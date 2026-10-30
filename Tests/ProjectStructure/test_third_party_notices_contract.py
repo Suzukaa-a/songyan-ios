@@ -9,7 +9,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 LEGAL = ROOT / "Resources/Legal"
 ENGINE = ROOT / "Resources/EngineResources"
-NOTICE = (LEGAL / "ThirdPartyNotices.txt").read_text(encoding="utf-8")
+SHARED_NOTICE = (LEGAL / "ThirdPartyNotices.txt").read_text(encoding="utf-8")
+IOS_NOTICE = (LEGAL / "ThirdPartyNotices-iOS.txt").read_text(encoding="utf-8")
+# The in-app screen shows both documents.
+NOTICE = SHARED_NOTICE + "\n" + IOS_NOTICE
 VIEW = (ROOT / "Apps/HostApp/EngineStatusView.swift").read_text(encoding="utf-8")
 
 
@@ -34,10 +37,10 @@ class ThirdPartyNoticesContractTests(unittest.TestCase):
         names = {pin["identity"]: pin["state"]["version"] for pin in resolved["pins"]}
         self.assertEqual(names, {"yams": "5.4.0", "zipfoundation": "0.9.20"})
         for name, version in (("Yams", "5.4.0"), ("ZIPFoundation", "0.9.20")):
-            path = LEGAL / "licenses" / f"{name}-{version}-LICENSE.txt"
+            path = LEGAL / "ios/licenses" / f"{name}-{version}-LICENSE.txt"
             with self.subTest(component=name):
                 self.assertIn(name, NOTICE)
-                self.assertIn(path.name, NOTICE)
+                self.assertIn(path.name, IOS_NOTICE)
                 self.assertIn("Permission is hereby granted", path.read_text(encoding="utf-8"))
                 self.assertIn(path.name, VIEW)
 
@@ -86,7 +89,8 @@ class ThirdPartyNoticesContractTests(unittest.TestCase):
         ):
             with self.subTest(component=name):
                 self.assertIn(name, NOTICE)
-                self.assertIn(marker, (LEGAL / "licenses" / license_file).read_text(encoding="utf-8"))
+                folder = "ios/licenses" if name == "LibYAML" else "licenses"
+                self.assertIn(marker, (LEGAL / folder / license_file).read_text(encoding="utf-8"))
                 self.assertIn(license_file, NOTICE)
                 self.assertIn(license_file, VIEW)
 
@@ -113,8 +117,16 @@ class ThirdPartyNoticesContractTests(unittest.TestCase):
         self.assertIsNotNone(pin)
         self.assertIn(pin.group(1), NOTICE)
         self.assertIn("GNU LESSER GENERAL PUBLIC LICENSE", (prelude / "LICENSE").read_text(encoding="utf-8"))
-        self.assertIn("PackageManager_PackageManager.bundle/RimePrelude/LICENSE", NOTICE)
+        self.assertIn("PackageManager_PackageManager.bundle/RimePrelude/", IOS_NOTICE)
         self.assertIn("PackageManager_PackageManager.bundle/RimePrelude/LICENSE", VIEW)
+
+    def test_shared_notice_names_no_ios_only_component(self):
+        # Android syncs ThirdPartyNotices.txt and licenses/; they must not name iOS-only parts.
+        for word in ("ZIPFoundation", "Yams", "LibYAML", "HostApp", "RimeKit", "xcframework"):
+            with self.subTest(word=word):
+                self.assertNotIn(word, SHARED_NOTICE)
+                self.assertFalse(list((LEGAL / "licenses").glob(f"{word}*")))
+        self.assertIn("ThirdPartyNotices-iOS.txt", VIEW)
 
     def test_in_app_offline_license_links_resolve(self):
         resources = re.findall(r'resource: "((?:Legal|EngineResources)/licenses/[^\"]+)"', VIEW)

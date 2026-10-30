@@ -72,4 +72,4 @@
 
 Copyright © 2026 Suzukaa-a。松烟采用 [GNU 通用公共许可证第 3 版](LICENSE)，仅限第 3 版（GPL-3.0-only）。
 
-第三方组件及其许可证详见 [Resources/Legal/ThirdPartyNotices.txt](Resources/Legal/ThirdPartyNotices.txt)。
+第三方组件及其许可证详见 [Resources/Legal/ThirdPartyNotices.txt](Resources/Legal/ThirdPartyNotices.txt) 与 [Resources/Legal/ThirdPartyNotices-iOS.txt](Resources/Legal/ThirdPartyNotices-iOS.txt)。

@@ -111,4 +111,5 @@ Copyright © 2026 Suzukaa-a. Songyan is licensed under the
 [GNU General Public License, version 3 only](LICENSE) (GPL-3.0-only).
 
 Third-party components and their licenses are listed in
-[Resources/Legal/ThirdPartyNotices.txt](Resources/Legal/ThirdPartyNotices.txt).
+[Resources/Legal/ThirdPartyNotices.txt](Resources/Legal/ThirdPartyNotices.txt) and
+[Resources/Legal/ThirdPartyNotices-iOS.txt](Resources/Legal/ThirdPartyNotices-iOS.txt).

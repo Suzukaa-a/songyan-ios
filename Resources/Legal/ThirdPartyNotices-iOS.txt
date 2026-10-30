@@ -1,0 +1,36 @@
+Third-Party Notices (iOS app)
+=============================
+
+These components ship only in the iOS app, in addition to the engine and
+shared data listed in ThirdPartyNotices.txt. Their license texts are bundled
+in "ios/licenses/" next to this file.
+
+1. ZIPFoundation 0.9.20
+    - Upstream: https://github.com/weichsel/ZIPFoundation
+    - Pinned: commit 22787ffb59de99e5dc1fbfe80b19c97a904ad48d
+    - License: MIT; Copyright (c) 2017-2025 Thomas Zoechling
+    - Role: ZIP import in the HostApp's PackageManager dependency.
+    - Full text: ios/licenses/ZIPFoundation-0.9.20-LICENSE.txt
+
+2. Yams 5.4.0
+    - Upstream: https://github.com/jpsim/Yams
+    - Pinned: commit 3d6871d5b4a5cd519adf233fbb576e0a2af71c17
+    - License: MIT; Copyright (c) 2016 JP Simard
+    - Role: YAML import in the HostApp's PackageManager dependency.
+    - Full text: ios/licenses/Yams-5.4.0-LICENSE.txt
+
+3. LibYAML (vendored in Yams 5.4.0 as Sources/CYaml)
+    - Upstream: https://github.com/yaml/libyaml
+    - License: MIT; Copyright (c) 2017-2020 Ingy döt Net,
+      Copyright (c) 2006-2016 Kirill Simonov
+    - Role: C YAML parser underneath Yams, compiled into HostApp.
+    - Full text: ios/licenses/libyaml-LICENSE.txt
+
+Bundle layout
+-------------
+In the iOS app the license files named in ThirdPartyNotices.txt are bundled in
+"Legal/licenses/", "EngineResources/licenses/" and
+"PackageManager_PackageManager.bundle/RimePrelude/" (LICENSE is LGPL-3.0 and
+COPYING is GPL-3.0; PROVENANCE.md records the source). HostApp links
+ZIPFoundation and Yams (with its LibYAML) via PackageManager; the keyboard
+extension does not.

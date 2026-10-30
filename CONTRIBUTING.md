@@ -76,4 +76,4 @@ Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md), not
 
 ## License
 
-Songyan is licensed under [GPL-3.0-only](LICENSE). By contributing you agree that your contribution is licensed under the same terms. Third-party components and their licenses are listed in [Resources/Legal/ThirdPartyNotices.txt](Resources/Legal/ThirdPartyNotices.txt); do not add a dependency without updating that file.
+Songyan is licensed under [GPL-3.0-only](LICENSE). By contributing you agree that your contribution is licensed under the same terms. Third-party components and their licenses are listed in [Resources/Legal/ThirdPartyNotices.txt](Resources/Legal/ThirdPartyNotices.txt) (engine and shared data, also used by the Android app) and [Resources/Legal/ThirdPartyNotices-iOS.txt](Resources/Legal/ThirdPartyNotices-iOS.txt) (iOS-only components); do not add a dependency without updating the matching file.

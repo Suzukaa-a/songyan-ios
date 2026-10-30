@@ -1,15 +1,16 @@
-Third-Party Notices
-===================
+Third-Party Notices (engine and shared data)
+============================================
 
 This application is built on top of the Rime input method engine and links the
-following open-source components (statically linked into the bundled
-RimeKit.xcframework engine framework, or otherwise distributed with the app).
+following open-source components (statically linked into the engine library,
+or otherwise distributed with the app). The same list applies to every
+platform build; components that only one platform ships are listed in that
+platform's own notice file.
 
 License texts for components 1-8 are reproduced in the appendix below. The
-additional full terms for components 9-21 are bundled in "licenses/",
-"EngineResources/licenses/" and "PackageManager_PackageManager.bundle/
-RimePrelude/" next to this file; the project's own GPL-3.0-only
-terms are in the repository root LICENSE.
+additional full terms for components 9-18 are bundled with the app as the
+license files named in each entry; the project's own GPL-3.0-only terms are in
+the repository root LICENSE.
 
 1. librime 1.17.0
    - Upstream: https://github.com/rime/librime
@@ -51,11 +52,11 @@ terms are in the repository root LICENSE.
    - License: Apache License 2.0
    - Copyright 2010-2020 Carbo Kuo <byvoid@byvoid.com>
    - Role: simplified/traditional conversion library inside the engine,
-     linked statically. HostApp also bundles OpenCC 1.1.9 conversion data:
-     16 compiled .ocd2 dictionaries and 14 JSON configs in
-     EngineResources/opencc/. Recipe deployment copies these resources for
-     installed schemes; the built-in schemes do not activate OpenCC.
-     The pinned OpenCC Apache-2.0 license is bundled in licenses/.
+     linked statically. The app also bundles OpenCC 1.1.9 conversion data:
+     16 compiled .ocd2 dictionaries and 14 JSON configs (opencc/). Installing
+     an imported scheme copies these resources for it; the built-in schemes
+     do not activate OpenCC. The pinned OpenCC Apache-2.0 license is
+     opencc-1.1.9-LICENSE.txt.
 
 6. yaml-cpp (master snapshot after 0.8.0)
    - Upstream: https://github.com/jbeder/yaml-cpp
@@ -98,9 +99,9 @@ terms are in the repository root LICENSE.
      (script_translator.cc, table_translator.cc, translator.h);
      Copyright (c) 2015 Kepler Project (lib/lauxlib-compat.c);
      Copyright (C) 1994-2018 Lua.org, PUC-Rio (lib/lutf8lib-compat.c).
-   - Role: Lua support statically linked into RimeKit.
-   - Full text: EngineResources/licenses/librime-lua-ad1e4a6-LICENSE.txt
-     (BSD) and EngineResources/licenses/librime-lua-ad1e4a6-MIT-NOTICES.txt
+   - Role: Lua support statically linked into the engine.
+   - Full text: librime-lua-ad1e4a6-LICENSE.txt
+     (BSD) and librime-lua-ad1e4a6-MIT-NOTICES.txt
      (MIT)
 
 10. Lua 5.4.9
@@ -108,124 +109,102 @@ terms are in the repository root LICENSE.
     - Pinned source archive SHA-256:
       2335b6c582a52654f94612bf10d2f4672805d05329aa6568b1d8cd9e5c6fb8e6
     - License: MIT; Copyright (c) 1994-2026 Lua.org, PUC-Rio
-    - Role: interpreter statically linked into RimeKit.
-    - Full text: EngineResources/licenses/Lua-5.4.9-LICENSE.txt
+    - Role: interpreter statically linked into the engine.
+    - Full text: Lua-5.4.9-LICENSE.txt
 
 11. librime-octagram
     - Upstream: https://github.com/lotem/librime-octagram
     - Pinned: commit 57d18b9f58e5284bd891d559f6bdd16cf60341e9
     - License: BSD 3-Clause; Copyright (c) 2014, RIME Developers
-    - Role: grammar model support statically linked into RimeKit.
-    - Full text: EngineResources/licenses/librime-octagram-LICENSE
+    - Role: grammar model support statically linked into the engine.
+    - Full text: librime-octagram-LICENSE
 
-12. ZIPFoundation 0.9.20
-    - Upstream: https://github.com/weichsel/ZIPFoundation
-    - Pinned: commit 22787ffb59de99e5dc1fbfe80b19c97a904ad48d
-    - License: MIT; Copyright (c) 2017-2025 Thomas Zoechling
-    - Role: ZIP import in the HostApp's PackageManager dependency.
-    - Full text: licenses/ZIPFoundation-0.9.20-LICENSE.txt
-
-13. Yams 5.4.0
-    - Upstream: https://github.com/jpsim/Yams
-    - Pinned: commit 3d6871d5b4a5cd519adf233fbb576e0a2af71c17
-    - License: MIT; Copyright (c) 2016 JP Simard
-    - Role: YAML import in the HostApp's PackageManager dependency.
-    - Full text: licenses/Yams-5.4.0-LICENSE.txt
-
-14. rime-clover-flypy (clover_flypy_14 schema rules)
+12. rime-clover-flypy (clover_flypy_14 schema rules)
     - Upstream: https://github.com/forfudan/rime-clover-flypy
     - Pinned: commit c69e96898b6bf82764628f84ad74aab1584a307e
-    - License: LGPL-3.0; full text: licenses/LGPL-3.0.txt and
-      licenses/GPL-3.0.txt (also the repository root LICENSE).
+    - License: LGPL-3.0; full text: LGPL-3.0.txt and
+      GPL-3.0.txt (also the repository root LICENSE).
     - Role: ordered Flypy algebra adapted in the bundled songyan_flypy
       schema and carried into its generated 14-, 18- and 9-key
       companions (keyboard_*.schema.yaml). Modification notices and the
       corresponding schema source are distributed with the app.
 
-15. rime-double-pinyin (double_pinyin_flypy schema rules)
+13. rime-double-pinyin (double_pinyin_flypy schema rules)
     - Upstream: https://github.com/rime/rime-double-pinyin
     - Pinned: commit 01a13287cbd2
-    - License: GPL-3.0; full text: licenses/GPL-3.0.txt
+    - License: GPL-3.0; full text: GPL-3.0.txt
       (also the repository root LICENSE).
     - Role: Flypy algebra reference for the adapted songyan_flypy schema;
       no upstream dictionary files are bundled.
 
-16. librime-predict
+14. librime-predict
     - Upstream: https://github.com/rime/librime-predict
     - Pinned: commit 920bd41ebf6f9bf6855d14fbe80212e54e749791
     - License: BSD 3-Clause; Copyright (c) 2023, RIME Developers
     - Role: next-word prediction (predictor, predict_translator) statically
-      linked into RimeKit. No prediction database is bundled.
-    - Full text: EngineResources/licenses/librime-predict-LICENSE
+      linked into the engine. No prediction database is bundled.
+    - Full text: librime-predict-LICENSE
 
-17. rime-prelude
+15. rime-prelude
     - Upstream: https://github.com/rime/rime-prelude
     - Pinned: commit 082425ea0684bca36474415d4a0e8db9b016487e
     - License: LGPL-3.0; authors listed in the bundled AUTHORS file
     - Role: unmodified default.yaml, key_bindings.yaml, punctuation.yaml
       and symbols.yaml supplied to imported schemes that lack them.
-    - Full text: PackageManager_PackageManager.bundle/RimePrelude/LICENSE
-      (LGPL-3.0) and COPYING (GPL-3.0); PROVENANCE.md records the source.
+    - Full text: the LICENSE (LGPL-3.0) and COPYING (GPL-3.0) files
+      shipped with the prelude files; PROVENANCE.md there records the source.
 
-18. RapidJSON 1.1.0
+16. RapidJSON 1.1.0
     - Upstream: https://github.com/Tencent/rapidjson
     - Pinned inside OpenCC checkout: deps/rapidjson-1.1.0 (headers only)
     - License: MIT; Copyright (C) 2015 THL A29 Limited, a Tencent company,
       and Milo Yip
     - Role: JSON parsing of OpenCC configuration files, compiled into the
-      OpenCC objects in RimeKit. The JSON-licensed bin/jsonchecker is not
+      OpenCC objects in the engine. The JSON-licensed bin/jsonchecker is not
       built.
-    - Full text: licenses/rapidjson-1.1.0-LICENSE.txt
+    - Full text: rapidjson-1.1.0-LICENSE.txt
 
-19. LibYAML (vendored in Yams 5.4.0 as Sources/CYaml)
-    - Upstream: https://github.com/yaml/libyaml
-    - License: MIT; Copyright (c) 2017-2020 Ingy döt Net,
-      Copyright (c) 2006-2016 Kirill Simonov
-    - Role: C YAML parser underneath Yams, compiled into HostApp.
-    - Full text: licenses/libyaml-LICENSE.txt
-
-20. X11 keysym definitions
+17. X11 keysym definitions
     - Source: include/X11/keysym.h and keysymdef.h vendored in librime 1.17.0
     - License: X11 / MIT-style; Copyright 1987, 1994, 1998 The Open Group;
       Copyright 1987 by Digital Equipment Corporation
     - Role: key codes and key names used by the engine's key table.
-    - Full text: licenses/X11-keysym-NOTICE.txt
+    - Full text: X11-keysym-NOTICE.txt
 
-21. UTF8-CPP
+18. UTF8-CPP
     - Source: include/utf8.h and include/utf8/ vendored in librime 1.17.0
     - License: Boost Software License 1.0; Copyright 2006 Nemanja Trifunovic
     - Role: UTF-8 iteration inside librime (header only).
-    - Full text: licenses/boost-1.89.0-LICENSE_1_0.txt (same license)
+    - Full text: boost-1.89.0-LICENSE_1_0.txt (same license)
 
 Distribution note
 -----------------
-The engine components above are merged into a single static archive
-(RimeKit.xcframework slices: librime, glog, LevelDB, marisa-trie, OpenCC,
-RapidJSON, darts-clone, yaml-cpp, Boost.Regex, librime-lua, Lua,
-librime-octagram, librime-predict, and the project's C bridge). HostApp also
-links ZIPFoundation and Yams (with its LibYAML) via PackageManager.
-The final binary only contains the object files the linker pulls in;
-these notices list the linked components and bundled data.
+The engine components above are merged into a single static library
+(librime, glog, LevelDB, marisa-trie, OpenCC, RapidJSON, darts-clone,
+yaml-cpp, Boost.Regex, librime-lua, Lua, librime-octagram, librime-predict,
+and the project's C bridge). The final binary only contains the object files
+the linker pulls in; these notices list the linked components and bundled
+data.
 
-The built-in dictionary (Resources/BuiltinPackages/Basic/songyan_basic.dict.yaml)
-is original to this project and contains no upstream dictionary corpus. The
-bundled songyan_flypy schema adapts the ordered Flypy rules from
-rime-clover-flypy (LGPL-3.0) and rime-double-pinyin (GPL-3.0); its header
-records the project modifications. The generated keyboard_*.schema.yaml
-companions are derived from songyan_flypy and songyan_quanpin and point back
-to that header. No rime-ice dictionary data ships.
+The built-in dictionary (songyan_basic.dict.yaml) is original to this project
+and contains no upstream dictionary corpus. The bundled songyan_flypy schema
+adapts the ordered Flypy rules from rime-clover-flypy (LGPL-3.0) and
+rime-double-pinyin (GPL-3.0); its header records the project modifications.
+The generated keyboard_*.schema.yaml companions are derived from
+songyan_flypy and songyan_quanpin and point back to that header. No rime-ice
+dictionary data ships.
 
-The HostApp bundles OpenCC 1.1.9 conversion data in EngineResources/opencc/:
-16 compiled dictionaries and 14 JSON configs sourced from the pinned OpenCC
-release. The upstream project distributes these under Apache-2.0, whose full
-text is bundled in licenses/opencc-1.1.9-LICENSE.txt. The built-in schemes
-do not activate OpenCC; imported schemes may use these data files.
+The app bundles OpenCC 1.1.9 conversion data: 16 compiled dictionaries and 14
+JSON configs sourced from the pinned OpenCC release. The upstream project
+distributes these under Apache-2.0, whose full text is
+opencc-1.1.9-LICENSE.txt. The built-in schemes do not activate OpenCC;
+imported schemes may use these data files.
 
-The nine-key t9_processor (Tools/BuildRimeIOS/src/rime_t9_processor.cc and
-rime_t9_keys.h) is original project code licensed under GPL-3.0-only (root
-LICENSE). It is compiled into the bundled RimeKit engine and uses the public
+The nine-key t9_processor (rime_t9_processor.cc and rime_t9_keys.h in the
+engine sources) is original project code licensed under GPL-3.0-only (root
+LICENSE). It is compiled into the bundled engine and uses the public
 Processor, Speller and module registry interfaces of librime 1.17.0
-(BSD 3-Clause, licenses/librime-1.17.0-LICENSE.txt).
+(BSD 3-Clause, librime-1.17.0-LICENSE.txt).
 
 ===== Appendix: Verbatim license texts =====
 

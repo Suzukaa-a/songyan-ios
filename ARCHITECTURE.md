@@ -203,7 +203,7 @@ Repository-local scratch space `.scratch/` is git-ignored and pruned after 7 day
 | [Resources/KeyFeedback](Resources/KeyFeedback), [generate_key_clicks.py](Tools/KeyFeedbackAssets/generate_key_clicks.py) | original 20 ms mono PCM click assets at three amplitudes, copied to both targets; the generator is optional and is not run by the app or build |
 | [Resources/Layouts](Resources/Layouts) | example layouts `qwerty26.json`, `merged14.json`, `merged18.json`, `phone9.json`; layouts name no input scheme, and several schemes can share one layout (`BuiltinTemplateSchemas` pairs the built-in templates) |
 | [Resources/EngineResources](Resources/EngineResources) | `engine-capabilities.json`, `opencc/`, `licenses/`; host app |
-| [Resources/Legal](Resources/Legal) | `ThirdPartyNotices.txt`, `licenses/`; host app |
+| [Resources/Legal](Resources/Legal) | `ThirdPartyNotices.txt` (engine and shared data; synced to Android), `licenses/` (synced to Android), `ThirdPartyNotices-iOS.txt` and `ios/licenses/` (iOS-only components); host app |
 | [LICENSE](LICENSE), [SECURITY.md](SECURITY.md) | copyright notice and GPL-3.0-only terms for the project's own source; how to report a vulnerability |
 | [RimePrelude](Packages/PackageManager/Sources/PackageManager/Resources/RimePrelude) | Rime prelude config (PackageManager resource) |
 | [default-symbols.json](Packages/QuickContentKit/Sources/QuickContentKit/Resources/default-symbols.json) | default symbol catalog (QuickContentKit resource) |

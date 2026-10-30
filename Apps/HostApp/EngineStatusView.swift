@@ -241,6 +241,13 @@ struct ThirdPartyLicensesView: View {
                         LicenseTextView(title: "Rime 与组件", resource: "Legal/ThirdPartyNotices.txt")
                     }
                 }
+                if let url = Bundle.main.resourceURL?.appendingPathComponent("Legal/ThirdPartyNotices-iOS.txt"),
+                    FileManager.default.fileExists(atPath: url.path)
+                {
+                    NavigationLink("iOS 版专用组件 · 归属及许可") {
+                        LicenseTextView(title: "iOS 版专用组件", resource: "Legal/ThirdPartyNotices-iOS.txt")
+                    }
+                }
                 NavigationLink("librime-lua · BSD-3-Clause") {
                     LicenseTextView(
                         title: "librime-lua", resource: "EngineResources/licenses/librime-lua-ad1e4a6-LICENSE.txt")
@@ -262,16 +269,16 @@ struct ThirdPartyLicensesView: View {
                         title: "librime-predict", resource: "EngineResources/licenses/librime-predict-LICENSE")
                 }
                 NavigationLink("ZIPFoundation · MIT") {
-                    LicenseTextView(title: "ZIPFoundation", resource: "Legal/licenses/ZIPFoundation-0.9.20-LICENSE.txt")
+                    LicenseTextView(title: "ZIPFoundation", resource: "Legal/ios/licenses/ZIPFoundation-0.9.20-LICENSE.txt")
                 }
                 NavigationLink("Yams · MIT") {
-                    LicenseTextView(title: "Yams", resource: "Legal/licenses/Yams-5.4.0-LICENSE.txt")
+                    LicenseTextView(title: "Yams", resource: "Legal/ios/licenses/Yams-5.4.0-LICENSE.txt")
                 }
                 NavigationLink("RapidJSON · MIT") {
                     LicenseTextView(title: "RapidJSON", resource: "Legal/licenses/rapidjson-1.1.0-LICENSE.txt")
                 }
                 NavigationLink("LibYAML · MIT") {
-                    LicenseTextView(title: "LibYAML", resource: "Legal/licenses/libyaml-LICENSE.txt")
+                    LicenseTextView(title: "LibYAML", resource: "Legal/ios/licenses/libyaml-LICENSE.txt")
                 }
                 NavigationLink("X11 keysym · MIT") {
                     LicenseTextView(title: "X11 keysym", resource: "Legal/licenses/X11-keysym-NOTICE.txt")
