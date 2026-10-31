@@ -103,7 +103,8 @@ enum KeyboardPanelRules {
             page: page, isEnglishMode: isEnglishMode, hasGlobe: hasGlobe,
             isPhoneLayout: phoneShellVisible, usesASCIIPunctuation: usesASCIIPunctuation,
             includesBottomEnter: !phoneShellVisible || (!usesFixedEditingRail && !trailingHasReturn),
-            usesCategorySymbolPage: showsCategorySymbolPage, numericPageReachesSymbols: numericPageReachesSymbols)
+            usesCategorySymbolPage: showsCategorySymbolPage, numericPageReachesSymbols: numericPageReachesSymbols,
+            usesDigitPadRow: usesFixedEditingRail)
     }
 
     /// The known bundled main-shell preset (26 or merged 14/18) whose main rows still provide the

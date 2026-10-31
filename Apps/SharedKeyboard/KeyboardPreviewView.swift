@@ -343,9 +343,17 @@ private struct KeyboardMainLayoutPreview: View {
     private func phoneDigitPad(split: ActiveLayoutSplit?) -> some View {
         KeyboardPhoneDigitPad(
             usesASCIIPunctuation: usesASCIIPunctuation, split: split,
-            trailingSpansControlRow: showsBundledPhoneShell,
+            trailingSpansControlRow: false,
             onKey: { _ in }, expanded: { EmptyView() },
-            trailing: { metrics in rail(.trailing, metrics: metrics) },
+            trailing: { metrics in
+                if showsBundledPhoneShell {
+                    KeyboardPhoneDigitTrailingRail(
+                        metrics: metrics, comma: controlPolicy.utilityText,
+                        commaAlternates: controlPolicy.utilityAlternates, onDelete: { _ in }, onKey: { _ in })
+                } else {
+                    rail(.trailing, metrics: metrics)
+                }
+            },
             bottom: { metrics in
                 controlRow(
                     split: split,

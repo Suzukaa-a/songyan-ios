@@ -23,8 +23,6 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
     }
     public enum Utility: Equatable, Sendable {
         case punctuation(String)
-        /// 9-key digit page: the 3x3 holds only 1-9 and 0 goes in the bottom-right slot (as on the system 9-key digit page).
-        case digit(String)
     }
 
     public let page: Page
@@ -42,6 +40,9 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
     /// page's third-row switch, or an authored page's symbol switch). Only then does the letter
     /// page's utility position type punctuation instead of opening the symbol page.
     public let numericPageReachesSymbols: Bool
+    /// The 123 page is drawn as the digit pad on the nine-key letter shell's grid. An imported
+    /// keypad keeps its own declared rails and bottom row, so the shell flag alone is not enough.
+    public let usesDigitPadRow: Bool
     /// The bundled phone shell's column widths. When set, the first bottom key sits
     /// under the rail and the rest share the grid's width with a wide space bar
     /// (see `Metrics.init(width:columns:includesUtility:)`) instead of the generic
@@ -67,7 +68,7 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
         page: Page, isEnglishMode: Bool, hasGlobe: Bool,
         isPhoneLayout: Bool, usesASCIIPunctuation: Bool,
         includesBottomEnter: Bool = true, usesCategorySymbolPage: Bool = true,
-        numericPageReachesSymbols: Bool = true
+        numericPageReachesSymbols: Bool = true, usesDigitPadRow: Bool = false
     ) {
         self.page = page
         self.isEnglishMode = isEnglishMode
@@ -77,23 +78,33 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
         self.includesBottomEnter = includesBottomEnter
         self.usesCategorySymbolPage = usesCategorySymbolPage
         self.numericPageReachesSymbols = numericPageReachesSymbols
+        self.usesDigitPadRow = usesDigitPadRow
     }
 
     /// Slot identities and count stay unchanged across all pages and languages
     /// **for one surface**. Only an actual system-keyboard availability change may
     /// add/remove globe, and only the bundled T9 (which moves Return into its own
     /// trailing column) may drop `enter`. The utility position types the comma on letter
-    /// and row-shaped 123 / #+= pages (or opens symbols where 123 cannot), types 0 on the
-    /// phone digit pad and locks the categorized symbol page.
+    /// and row-shaped 123 / #+= pages (or opens symbols where 123 cannot), has no utility slot on the
+    /// phone digit pad (the comma sits in its right column) and locks the categorized symbol page.
     ///
     /// The globe is the leftmost, lowest-frequency control; every other slot keeps its
     /// relative order after it. A surface without a system-keyboard switch has no globe
     /// slot, and the freed width goes to space/Return.
     public var slots: [Slot] {
-        [.globe, .page, .language, .space, .utility, .enter].filter {
+        if isDigitPad {
+            return [.globe, .page, .language, .space, .symbolPage, .enter].filter { $0 != .globe || hasGlobe }
+        }
+        return [.globe, .page, .language, .space, .utility, .enter].filter {
             ($0 != .globe || hasGlobe) && ($0 != .enter || includesBottomEnter)
         }
     }
+
+    /// The phone digit pad's row is a grid row, not a control row: 返回 under the rail, then 中/英,
+    /// the space bar and 符号 under the three digit columns and Return under the trailing column,
+    /// which holds Delete, 0 and the comma above it. The globe, when shown, takes the cell under the
+    /// rail and 返回 and 中/英 share the first column's.
+    public var isDigitPad: Bool { usesDigitPadRow && isBundledPhonePad && page == .numeric }
 
     /// The row-shaped 123 / #+= page: its third row opens with the 123/symbol switch.
     public var isRowPage: Bool {
@@ -121,7 +132,7 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
         case .numeric:
             // 123: the left switch returns to letters (keeping the language) and the language key
             // switches the symbol branch in place. The row page types the comma there, a digit
-            // pad its 0 (bundled 9-key) or the #+= switch (imported keypad, which has no rows).
+            // pad has no such slot (bundled 9-key) or the #+= switch (imported keypad, no rows).
             switch slot {
             case .page: return .returnToLetters
             case .utility: return isRowPage || isBundledPhonePad ? .utility : .page
@@ -193,17 +204,15 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
         case .returnToLetters: return "返回主键盘"
         }
     }
-    public var utility: Utility {
-        if isPhoneLayout && page == .numeric { return .digit("0") }
-        // Only the effective symbol branch decides the mark: an English input language with an
-        // explicit Chinese symbol state must keep Chinese punctuation.
-        return .punctuation(usesASCIIPunctuation ? "," : "，")
-    }
+    public var utility: Utility { .punctuation(utilityText) }
+
+    /// Only the effective symbol branch decides the mark: an English input language with an
+    /// explicit Chinese symbol state must keep Chinese punctuation.
+    public var utilityText: String { usesASCIIPunctuation ? "," : "，" }
 
     /// The punctuation slot's long-press list, its first entry being the corner hint.
     public var utilityAlternates: [String] {
-        guard case .punctuation(let text) = utility else { return [] }
-        return text == ","
+        utilityText == ","
             ? [".", "?", "!", "'", "\""]
             : ["。", "？", "！", "、", "…"]
     }
@@ -216,6 +225,7 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
     /// is centred on every page. Return never falls below 60pt on a supported >=320pt
     /// keyboard; extremely small previews scale as a whole.
     public func metrics(width: Double) -> Metrics {
+        if isDigitPad { return Metrics(digitPadWidth: width, rail: phoneColumns?.rail, hasGlobe: hasGlobe) }
         if let phoneColumns, !hasGlobe, !includesBottomEnter {
             return Metrics(width: width, columns: phoneColumns, includesUtility: true)
         }
@@ -232,6 +242,22 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
         public let space: Double
         public let utility: Double
         public let enter: Double
+        /// The symbol page key; as wide as the page switches except on the digit pad.
+        public let symbolPage: Double
+
+        /// The digit pad row: one cell under the rail (`rail` wide, or a fifth of the row without
+        /// the shell's columns), three equal cells under the digit columns and one under the
+        /// trailing column, as wide as the rail. With the globe, the globe takes the first cell
+        /// and 返回 and 中/英 split the second.
+        public init(digitPadWidth width: Double, rail: Double?, hasGlobe: Bool) {
+            let width = width.isFinite ? max(0, width) : 0
+            let side = min(width / 2, max(0, rail ?? (width - 16) / 5))
+            let cell = max(0, (width - 2 * side - 16) / 3)
+            let shared = max(0, (cell - 4) / 2)
+            self.init(
+                spacing: 4, page: hasGlobe ? shared : side, language: hasGlobe ? shared : cell,
+                globe: hasGlobe ? side : 0, space: cell, utility: 0, enter: side, symbolPage: cell)
+        }
 
         public init(
             width: Double, hasGlobe: Bool, includesEnter: Bool = true,
@@ -274,6 +300,7 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
                 enter = includesEnter ? 60 * scale + min(20, extra * 0.16) : 0
             }
             space = max(0, content - page - language - globe - utility - enter)
+            symbolPage = page
         }
 
         /// Phone row: the first key sits under the rail; the keys under the 3×3 grid
@@ -301,7 +328,7 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
 
         private init(
             spacing: Double, page: Double, language: Double, globe: Double,
-            space: Double, utility: Double, enter: Double
+            space: Double, utility: Double, enter: Double, symbolPage: Double? = nil
         ) {
             self.spacing = spacing
             self.page = page
@@ -310,6 +337,7 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
             self.space = space
             self.utility = utility
             self.enter = enter
+            self.symbolPage = symbolPage ?? page
         }
 
         public subscript(slot: Slot) -> Double {
@@ -320,7 +348,7 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
             case .space: return space
             case .utility: return utility
             case .enter: return enter
-            case .symbolPage: return page
+            case .symbolPage: return symbolPage
             case .symbolLock: return utility
             // Semantic slot only; it occupies the physical page position.
             case .returnToLetters: return page

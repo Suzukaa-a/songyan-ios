@@ -462,17 +462,41 @@ public struct KeyboardPageDefinition: Codable, Equatable, Identifiable, Sendable
         }
     }
 
-    private static func keypadChrome(marks: KeyboardNumericMarks) -> KeyboardPageChrome {
+    /// The digit pad on the nine-key letter shell's grid: three marks beside the digit rows;
+    /// Delete, 0 and the comma down the right; and the bottom row 返回, 中英, space, 符号 and
+    /// Return under the rail, the three digit columns and the right column (the input-method
+    /// switch, when shown, first).
+    static func keypadChrome(marks: KeyboardNumericMarks) -> KeyboardPageChrome {
         KeyboardPageChrome(
             bottom: [
-                // globe, 返回, 中英, space, 0; Delete/重输/Return stay in the trailing rail.
+                globeKey, pageSwitchKey(.letters), languageSwitchKey,
+                // One digit column wide, not the control row's wide space bar.
+                functionKey("空格", .init(.space)),
+                // A letter layout paired with this pad has no other way to the symbol page.
+                pageSwitchKey(.symbols), enterKey,
+            ],
+            leading: keypadLeadingKeys(marks: marks),
+            trailing: [
+                railKey("⌫", .init(.backspace), span: 1),
+                railKey(
+                    KeyboardPageDefaultShape.keypadZero, .init(.literal, value: KeyboardPageDefaultShape.keypadZero),
+                    span: 1),
+                railKey(
+                    marks == .ascii ? "," : "，", .init(.literal, value: "，", asciiValue: ","), span: 1),
+            ],
+            trailingSpansBottom: false)
+    }
+
+    /// The digit pad as it shipped before it moved onto the letter shell's grid, so a stored copy of
+    /// the untouched preset can be told apart from a page the user edited.
+    static func previousKeypadChrome(marks: KeyboardNumericMarks) -> KeyboardPageChrome {
+        KeyboardPageChrome(
+            bottom: [
                 globeKey, pageSwitchKey(.letters), languageSwitchKey, spaceKey,
                 LayoutKey(
                     label: KeyboardPageDefaultShape.keypadZero,
                     action: .init(.literal, value: KeyboardPageDefaultShape.keypadZero)),
             ],
-            // The three marks, then 符号: a letter layout paired with this pad has no other way to
-            // the symbol page.
             leading: keypadLeadingKeys(marks: marks)
                 + [railKey(Self.pageSwitchKey(.symbols).label, .pageSwitch(.symbols), span: 1)],
             trailing: [

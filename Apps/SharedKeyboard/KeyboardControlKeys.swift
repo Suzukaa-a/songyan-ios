@@ -55,18 +55,18 @@ struct ControlRow<ModeKey: View>: View {
                 policy.pageTarget == .symbols
                     ? (policy.isBundledPhonePad ? "打开符号页" : "打开更多符号页") : "打开数字符号页")
         case .symbolPage:
-            // Long press types 0: the 9-key letter page has no other key for it.
+            // Long press types 0 on the 9-key letter page, which has no other key for it.
             AlternateCharacterKey(
                 cap: KeyCap(
                     id: "control-symbol-page", title: KeyboardControlPolicy.symbolPageTitle,
                     action: .cycleLayout),
-                alternates: policy.isBundledPhonePad
+                alternates: policy.isBundledPhonePad && policy.page == .letters
                     ? [KeyCap(id: "control-symbol-page-0", title: "0", action: .literal("0"))] : []
             ) { cap in
                 if case .literal = cap.action { onKey(cap.action) } else { onPage(.symbols) }
             }
             .accessibilityLabel("打开符号页")
-            .accessibilityHint(policy.isBundledPhonePad ? "长按输入 0" : "")
+            .accessibilityHint(policy.isBundledPhonePad && policy.page == .letters ? "长按输入 0" : "")
         case .symbolLock:
             AlternateCharacterKey(
                 cap: KeyCap(id: "control-symbol-lock", title: "锁定", action: .cycleLayout),
@@ -93,22 +93,14 @@ struct ControlRow<ModeKey: View>: View {
                 layoutHintToken: layoutHintToken,
                 onTap: { onKey(.space) }, moveCursor: moveCursor)
         case .utility:
-            switch policy.utility {
-            case .punctuation(let text):
-                AlternateCharacterKey(
-                    cap: KeyCap(id: "control-period", title: text, action: .literal(text)),
-                    alternates: policy.utilityAlternates.enumerated().map {
-                        KeyCap(
-                            id: "control-punctuation-\($0.offset)", title: $0.element, action: .literal($0.element))
-                    }
-                ) { onKey($0.action) }
-                .accessibilityLabel("\(text)，长按选择标点")
-            case .digit(let digit):
-                AlternateCharacterKey(
-                    cap: KeyCap(id: "control-digit-\(digit)", title: digit, action: .literal(digit)),
-                    alternates: []
-                ) { onKey($0.action) }
-            }
+            let text = policy.utilityText
+            AlternateCharacterKey(
+                cap: KeyCap(id: "control-period", title: text, action: .literal(text)),
+                alternates: policy.utilityAlternates.enumerated().map {
+                    KeyCap(id: "control-punctuation-\($0.offset)", title: $0.element, action: .literal($0.element))
+                }
+            ) { onKey($0.action) }
+            .accessibilityLabel("\(text)，长按选择标点")
         case .enter:
             ReturnKey(title: returnTitle, isEnabled: returnEnabled) { onKey($0.action) }
         }

@@ -464,16 +464,20 @@ public struct KeyboardPagePreviewView: View {
         }
     }
 
-    /// A phone main layout is drawn as the bundled 9-key, whose editing rail spans the bottom row.
+    /// A phone main layout is drawn as the bundled 9-key's digit pad.
     private func phoneDigitPad(usesASCIIPunctuation: Bool, split: ActiveLayoutSplit?) -> some View {
         let policy = KeyboardPanelRules.controlPolicy(
             page: .numeric, isEnglishMode: false, hasGlobe: showsGlobe,
             usesASCIIPunctuation: usesASCIIPunctuation, phoneShellVisible: true, usesFixedEditingRail: true,
             declaredTrailingReturn: false, showsCategorySymbolPage: false)
         return KeyboardPhoneDigitPad(
-            usesASCIIPunctuation: usesASCIIPunctuation, split: split, trailingSpansControlRow: true,
+            usesASCIIPunctuation: usesASCIIPunctuation, split: split, trailingSpansControlRow: false,
             onKey: { _ in }, expanded: { EmptyView() },
-            trailing: { metrics in KeyboardFixedEditingRail(previewMetrics: metrics) },
+            trailing: { metrics in
+                KeyboardPhoneDigitTrailingRail(
+                    metrics: metrics, comma: policy.utilityText, commaAlternates: policy.utilityAlternates,
+                    onDelete: { _ in }, onKey: { _ in })
+            },
             bottom: { metrics in
                 KeyboardPreviewControlRow(
                     policy: policy, showsGlobe: showsGlobe,

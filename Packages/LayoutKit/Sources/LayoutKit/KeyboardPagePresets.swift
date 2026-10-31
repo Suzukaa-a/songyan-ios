@@ -68,8 +68,9 @@ public enum KeyboardPagePresets {
     public static let numericAutomatic = KeyboardPageDefinition(
         id: "page.numeric.automatic", name: "自动 123", kind: .numeric, rows: [],
         numericPresentation: .automatic)
-    /// An authored digit pad: the ten-key phone shape (1–9 grid, 0 in the footer) as editable
-    /// data, usable with any main layout. Copying the automatic phone digit pad lands here.
+    /// An authored digit pad: the nine-key letter shell's grid with 1–9 in it and Delete, 0 and the
+    /// comma down the right (see `KeyboardPageDefinition.keypadChrome`) as editable data, usable
+    /// with any main layout. Copying the automatic phone digit pad lands here.
     public static let numericKeypad: KeyboardPageDefinition = {
         var page = numericAutomatic.materialized(numericForm: .phoneDigitPad)
         page.id = "page.numeric.keypad"
@@ -140,7 +141,12 @@ public enum KeyboardPagePresets {
             page.defaultSymbolMarks = ascii ? .ascii : .chinese
             return page
         }
+        var previousKeypad = numericKeypad
+        previousKeypad.chrome = KeyboardPageDefinition.previousKeypadChrome(marks: .chinese)
         return [
+            // The keypad keeps its id; dropping a stored copy of its earlier arrangement lets the
+            // current preset merge back in under the same id.
+            previousKeypad,
             old("page.numeric.chinese", "中文 123", .numeric, ascii: false),
             old("page.numeric.english", "英文 123", .numeric, ascii: true),
             old("page.symbols.chinese", "中文符号", .symbols, ascii: false),

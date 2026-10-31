@@ -278,19 +278,23 @@ final class BilingualLiteralTests: XCTestCase {
         XCTAssertEqual(categorized[2].action.pageSwitchTarget, .numeric)
 
         let keypad = try XCTUnwrap(KeyboardPagePresets.numericKeypad.chrome)
-        XCTAssertEqual(keypad.bottom.map(\.action.type), [.globe, .pageSwitch, .languageSwitch, .space, .literal])
+        XCTAssertEqual(
+            keypad.bottom.map(\.action.type), [.globe, .pageSwitch, .languageSwitch, .space, .pageSwitch, .enter])
         XCTAssertEqual(keypad.bottom[1].action.pageSwitchTarget, .letters)
-        XCTAssertEqual(keypad.bottom[4].action.value, "0")
-        XCTAssertEqual(keypad.trailing.map(\.action.type), [.backspace, .clearInput, .enter])
+        XCTAssertEqual(keypad.bottom[4].action.pageSwitchTarget, .symbols)
+        XCTAssertEqual(keypad.trailing.map(\.action.type), [.backspace, .literal, .literal])
+        XCTAssertEqual(keypad.trailing[1].action.value, "0")
+        XCTAssertFalse(keypad.trailingSpansBottom)
 
-        // Space is the only relative width in a default footer; function keys draw automatic faces,
-        // while the fixed digit 0 keeps the plain literal face (the ABC comma is automatic).
-        for keys in [abc, numeric, symbols, categorized, keypad.bottom] {
+        // Space is the only relative width in a default footer (one digit column on the keypad);
+        // function keys draw automatic faces.
+        for keys in [abc, numeric, symbols, categorized] {
             for key in keys {
                 XCTAssertEqual(key.width, key.action.type == .space ? 4 : nil)
-                XCTAssertEqual(key.titleMode, key.action.value == "0" ? nil : .automatic)
+                XCTAssertEqual(key.titleMode, .automatic)
             }
         }
+        XCTAssertTrue(keypad.bottom.allSatisfy { $0.width == nil && $0.titleMode == .automatic })
     }
 
     func testKeypadRailUsesTheRealNumericRailFirstThreeWithPairs() throws {
@@ -304,7 +308,7 @@ final class BilingualLiteralTests: XCTestCase {
         XCTAssertTrue(railASCII.contains("-"))
 
         let chineseKeypad = try XCTUnwrap(KeyboardPagePresets.numericKeypad.chrome)
-        XCTAssertEqual(chineseKeypad.leading.map(\.label), [".", "？", "！", "符号"])
+        XCTAssertEqual(chineseKeypad.leading.map(\.label), [".", "？", "！"])
         XCTAssertEqual(chineseKeypad.leading[1].action.value, "？")
         XCTAssertEqual(chineseKeypad.leading[1].action.asciiValue, "?")
         XCTAssertEqual(chineseKeypad.leading[0].action.asciiValue, nil)
@@ -312,7 +316,7 @@ final class BilingualLiteralTests: XCTestCase {
         let asciiCopy = KeyboardPagePresets.numericAutomatic.copy(
             numericMarks: .ascii, numericForm: .phoneDigitPad)
         let asciiLeading = try XCTUnwrap(asciiCopy.chrome?.leading)
-        XCTAssertEqual(asciiLeading.map(\.label), [".", "?", "!", "符号"])
+        XCTAssertEqual(asciiLeading.map(\.label), [".", "?", "!"])
         XCTAssertEqual(asciiLeading[2].action.value, "！")
         XCTAssertEqual(asciiLeading[2].action.asciiValue, "!")
         XCTAssertEqual(
@@ -351,7 +355,8 @@ final class BilingualLiteralTests: XCTestCase {
                 KeyboardPagePresets.numericKeypad,
                 KeyboardControlPolicy(
                     page: .numeric, isEnglishMode: false, hasGlobe: true,
-                    isPhoneLayout: true, usesASCIIPunctuation: false, includesBottomEnter: false)
+                    isPhoneLayout: true, usesASCIIPunctuation: false, includesBottomEnter: false,
+                    usesDigitPadRow: true)
             ),
         ]
         for (page, policy) in variants {

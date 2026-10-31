@@ -70,7 +70,8 @@ final class KeyboardPageFooterGeometryTests: XCTestCase {
                 KeyboardPagePresets.numericKeypad,
                 KeyboardControlPolicy(
                     page: .numeric, isEnglishMode: false, hasGlobe: true,
-                    isPhoneLayout: true, usesASCIIPunctuation: false, includesBottomEnter: false)
+                    isPhoneLayout: true, usesASCIIPunctuation: false, includesBottomEnter: false,
+                    usesDigitPadRow: true)
             ),
         ]
         for (page, policy) in variants {
@@ -80,16 +81,77 @@ final class KeyboardPageFooterGeometryTests: XCTestCase {
         }
     }
 
+    private func digitPadPolicy(globe: Bool) -> KeyboardControlPolicy {
+        KeyboardControlPolicy(
+            page: .numeric, isEnglishMode: false, hasGlobe: globe,
+            isPhoneLayout: true, usesASCIIPunctuation: false, includesBottomEnter: false,
+            usesDigitPadRow: true)
+    }
+
+    /// The keypad footer is the digit pad's grid row: 返回 under the rail, 中英, space and 符号
+    /// one digit column each, Return as wide as the rail; the globe takes the rail's cell.
     func testKeypadFooterOnThePhoneShellKeepsTheRailColumns() {
-        let policy = KeyboardControlPolicy(
-            page: .numeric, isEnglishMode: false, hasGlobe: false,
-            isPhoneLayout: true, usesASCIIPunctuation: false, includesBottomEnter: false
-        ).aligned(to: .init(rail: 88, digit: 64))
+        let rail = 88.0
+        let policy = digitPadPolicy(globe: false)
         let keys = footer(KeyboardPagePresets.numericKeypad).filter { $0.action.type != .globe }
-        let geometry = KeyboardPageFooterGeometry(width: 402, keys: keys, policy: policy)
+        let geometry = KeyboardPageFooterGeometry(
+            width: 402, keys: keys, policy: policy, rails: .init(leading: rail, trailing: rail))
         XCTAssertTrue(geometry.usesControlRowBudget)
-        XCTAssertEqual(geometry.keyWidths[0], 88, accuracy: 0.001, "the first bottom key sits under the rail")
+        let cell = (402 - 2 * rail - 16) / 3
+        XCTAssertEqual(geometry.keyWidths[0], rail, accuracy: 0.001, "返回 sits under the rail")
+        for width in geometry.keyWidths[1...3] { XCTAssertEqual(width, cell, accuracy: 0.001) }
+        XCTAssertEqual(geometry.keyWidths[4], rail, accuracy: 0.001, "Return sits under the right column")
         assertFillsWidth(geometry, width: 402)
+
+        let withGlobe = KeyboardPageFooterGeometry(
+            width: 402, keys: footer(KeyboardPagePresets.numericKeypad), policy: digitPadPolicy(globe: true),
+            rails: .init(leading: rail, trailing: rail))
+        XCTAssertTrue(withGlobe.usesControlRowBudget)
+        XCTAssertEqual(withGlobe.keyWidths[0], rail, accuracy: 0.001, "the globe leads under the rail")
+        XCTAssertEqual(withGlobe.keyWidths[1] + 4 + withGlobe.keyWidths[2], cell, accuracy: 0.001)
+        assertFillsWidth(withGlobe, width: 402)
+    }
+
+    /// A copied or edited pad's footer keeps the columns of the rows above: first key under the
+    /// leading rail, last under the trailing rail, the rest by their own weights in between.
+    func testAFooterUnderRailsStartsUnderTheLeadingRailAndEndsUnderTheTrailingOne() {
+        var keys = footer(KeyboardPagePresets.numericKeypad).filter { $0.action.type != .globe }
+        keys[1] = keys[1].settingWidth(2)
+        let geometry = KeyboardPageFooterGeometry(
+            width: 400, keys: keys, policy: digitPadPolicy(globe: false), rails: .init(leading: 60, trailing: 50))
+        XCTAssertFalse(geometry.usesControlRowBudget)
+        XCTAssertEqual(geometry.keyWidths.first ?? 0, 60, accuracy: 0.001)
+        XCTAssertEqual(geometry.keyWidths.last ?? 0, 50, accuracy: 0.001)
+        let rest = Array(geometry.keyWidths.dropFirst().dropLast())
+        XCTAssertEqual(rest[0], rest[1] * 2, accuracy: 0.001)
+        assertFillsWidth(geometry, width: 400)
+
+        // Without a leading rail only the last key is pinned; without any rails weights decide.
+        let trailingOnly = KeyboardPageFooterGeometry(
+            width: 400, keys: keys, policy: digitPadPolicy(globe: false), rails: .init(leading: 0, trailing: 50))
+        XCTAssertEqual(trailingOnly.keyWidths.last ?? 0, 50, accuracy: 0.001)
+        assertFillsWidth(trailingOnly, width: 400)
+        let plain = KeyboardPageFooterGeometry(width: 400, keys: keys, policy: digitPadPolicy(globe: false))
+        XCTAssertNotEqual(plain.keyWidths.first, 60)
+        // Rails that leave no room for the middle keys fall back to the authored weights.
+        let tooWide = KeyboardPageFooterGeometry(
+            width: 100, keys: keys, policy: digitPadPolicy(globe: false), rails: .init(leading: 90, trailing: 90))
+        assertFillsWidth(tooWide, width: 100)
+    }
+
+    /// A stored copy of the retired keypad is an untouched old preset and gives way; an edited one stays.
+    func testRetiredKeypadChromeIsReplacedOnlyWhenUntouched() {
+        var old = KeyboardPagePresets.numericKeypad
+        old.chrome = KeyboardPageDefinition.previousKeypadChrome(marks: .chinese)
+        let resolved = KeyboardPagePresets.resolvingRetired(pages: [old], compositions: [:])
+        XCTAssertTrue(resolved.pages.isEmpty)
+        var edited = old
+        edited.chrome?.bottom.removeLast()
+        XCTAssertEqual(KeyboardPagePresets.resolvingRetired(pages: [edited], compositions: [:]).pages, [edited])
+        XCTAssertEqual(
+            KeyboardPagePresets.resolvingRetired(pages: [KeyboardPagePresets.numericKeypad], compositions: [:]).pages,
+            [KeyboardPagePresets.numericKeypad])
+        XCTAssertNotEqual(old.chrome, KeyboardPagePresets.numericKeypad.chrome)
     }
 
     func testCustomLabelsAndLongPressDoNotChangeTheGeometry() {

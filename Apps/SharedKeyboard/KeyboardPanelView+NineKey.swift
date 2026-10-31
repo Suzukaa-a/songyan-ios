@@ -261,18 +261,26 @@ extension KeyboardPanelView {
             })
     }
 
-    /// A phone letter definition gets a phone digit pad on 123: 1–9 in the 3×3
-    /// grid, 0 in the bottom utility slot, the page's punctuation in the rail.
-    /// #+= stays the shared full symbol page.
+    /// A phone letter definition gets a phone digit pad on 123: 1–9 in the 3×3 grid, Delete, 0 and
+    /// the comma in the right column, the page's punctuation in the rail and the control row on
+    /// the grid's columns below. #+= stays the shared full symbol page.
     var phoneSymbolKeypad: some View {
         KeyboardPhoneDigitPad(
             usesASCIIPunctuation: effectiveUsesASCIIPunctuation, split: activeSplit,
-            trailingSpansControlRow: isBuiltinPhonePad,
+            trailingSpansControlRow: false,
             showsExpanded: showsAllCandidates && !controller.snapshot.candidates.isEmpty,
             alternates: alternates, onKey: { handleKey($0.action) },
             expanded: { expandedCandidates },
             trailing: { metrics in
-                if isBuiltinPhonePad { t9FixedEditingRail(metrics) } else { t9Rail(.trailing, metrics: metrics) }
+                if isBuiltinPhonePad {
+                    KeyboardPhoneDigitTrailingRail(
+                        metrics: metrics, comma: controlPolicy.utilityText,
+                        commaAlternates: controlPolicy.utilityAlternates,
+                        onDelete: { isRepeating in handleKey(.backspace, emitFeedback: !isRepeating) },
+                        onKey: { handleKey($0.action) })
+                } else {
+                    t9Rail(.trailing, metrics: metrics)
+                }
             },
             bottom: { metrics in
                 phoneControlRow(metrics)

@@ -95,7 +95,7 @@ final class KeyboardPageRowsTests: XCTestCase {
 
     /// A native letter page types a comma from the utility slot (the row page's third row carries
     /// the symbol switch); the 123 and #+= row pages have no utility slot at all. Phone pads
-    /// keep their direct symbol key and their 0 / 锁定 actions.
+    /// keep their direct symbol key and their 锁定 action; the digit pad's 0 sits in its right column.
     func testLetterPagesTypeCommaAndRowPagesHaveNoUtilitySlot() {
         for english in [false, true] {
             for globe in [false, true] {
@@ -118,8 +118,10 @@ final class KeyboardPageRowsTests: XCTestCase {
         }
         let digitPage = KeyboardControlPolicy(
             page: .numeric, isEnglishMode: false, hasGlobe: true,
-            isPhoneLayout: true, usesASCIIPunctuation: false, includesBottomEnter: false)
-        XCTAssertEqual(digitPage.utility, .digit("0"))
+            isPhoneLayout: true, usesASCIIPunctuation: false, includesBottomEnter: false,
+            usesDigitPadRow: true)
+        XCTAssertFalse(digitPage.slots.contains(.utility))
+        XCTAssertTrue(digitPage.slots.contains(.symbolPage))
         let categorized = KeyboardControlPolicy(
             page: .symbols, isEnglishMode: false, hasGlobe: true,
             isPhoneLayout: true, usesASCIIPunctuation: false, includesBottomEnter: false)

@@ -144,8 +144,7 @@ final class KeyboardControlPolicyTests: XCTestCase {
         }
     }
 
-    /// The utility position types a comma on native letter and row pages and keeps 0 on the phone
-    /// digit pad. The mark follows only the effective symbol state, never the input language.
+    /// The utility position types a comma on native letter and row pages. The mark follows only the effective symbol state, never the input language.
     func testGenericControlRowTypesPunctuationFromLetters() {
         for phone in [false, true] {
             for english in [false, true] {
@@ -153,9 +152,7 @@ final class KeyboardControlPolicyTests: XCTestCase {
                     let policy = KeyboardControlPolicy(
                         page: page, isEnglishMode: english,
                         hasGlobe: true, isPhoneLayout: phone, usesASCIIPunctuation: false)
-                    let expected: KeyboardControlPolicy.Utility =
-                        page == .numeric && phone ? .digit("0") : .punctuation("，")
-                    XCTAssertEqual(policy.utility, expected)
+                    XCTAssertEqual(policy.utility, .punctuation("，"))
                     let keys = policy.slots.map(policy.key(at:))
                     XCTAssertEqual(
                         keys.contains(.utility), !phone && (page != .symbols || !policy.usesCategorySymbolPage))
@@ -467,18 +464,66 @@ final class KeyboardControlPolicyTests: XCTestCase {
             cycle.prefix(3).joined())
     }
 
-    /// 9-key digit page: the utility slot is 0; other layouts keep punctuation as usual.
-    func testPhoneNumericUtilityIsZero() {
-        let qwerty = KeyboardControlPolicy(
-            page: .letters, isEnglishMode: false, hasGlobe: false,
-            isPhoneLayout: false, usesASCIIPunctuation: false)
-        XCTAssertEqual(qwerty.utility, .punctuation("，"))
-        let numeric = KeyboardControlPolicy(
-            page: .numeric, isEnglishMode: false, hasGlobe: false,
-            isPhoneLayout: true, usesASCIIPunctuation: false,
-            includesBottomEnter: false)
-        XCTAssertEqual(numeric.utility, .digit("0"))
-        XCTAssertTrue(numeric.utilityAlternates.isEmpty)
+    private func digitPad(globe: Bool, ascii: Bool = false) -> KeyboardControlPolicy {
+        KeyboardControlPolicy(
+            page: .numeric, isEnglishMode: false, hasGlobe: globe,
+            isPhoneLayout: true, usesASCIIPunctuation: ascii, includesBottomEnter: false,
+            usesDigitPadRow: true)
+    }
+
+    /// The 9-key digit page's bottom row is a grid row: 返回, 中/英, space, 符号 and Return, the
+    /// globe first when shown. The 0 and the comma live in the right column, so there is no
+    /// utility slot; any other phone page keeps its slots.
+    func testDigitPadRowIsAGridRowWithSymbolsAndReturn() {
+        XCTAssertEqual(
+            digitPad(globe: false).slots.map(digitPad(globe: false).key(at:)),
+            [.returnToLetters, .language, .space, .symbolPage, .enter])
+        XCTAssertEqual(
+            digitPad(globe: true).slots.map(digitPad(globe: true).key(at:)),
+            [.globe, .returnToLetters, .language, .space, .symbolPage, .enter])
+        let imported = KeyboardControlPolicy(
+            page: .numeric, isEnglishMode: false, hasGlobe: true,
+            isPhoneLayout: true, usesASCIIPunctuation: false, includesBottomEnter: false)
+        XCTAssertFalse(imported.isDigitPad)
+        XCTAssertTrue(imported.slots.contains(.utility))
+        let letters = KeyboardControlPolicy(
+            page: .letters, isEnglishMode: false, hasGlobe: true,
+            isPhoneLayout: true, usesASCIIPunctuation: false, includesBottomEnter: false,
+            usesDigitPadRow: true)
+        XCTAssertFalse(letters.isDigitPad)
+    }
+
+    /// One cell under the rail, three digit cells and one under the right column, with the right
+    /// cell as wide as the rail; the globe takes the rail's cell and 返回 and 中/英 split the next.
+    func testDigitPadMetricsFollowTheShellColumns() {
+        let rail = 54.0
+        for width in [320.0, 382.0, 432.0] {
+            for globe in [false, true] {
+                let policy = digitPad(globe: globe).aligned(to: .init(rail: rail, digit: 80))
+                let m = policy.metrics(width: width)
+                let cell = (width - 2 * rail - 16) / 3
+                XCTAssertEqual(m[.space], cell, accuracy: 0.001)
+                XCTAssertEqual(m[.symbolPage], cell, accuracy: 0.001)
+                XCTAssertEqual(m[.enter], rail, accuracy: 0.001)
+                let widths = policy.slots.map { m[$0] }
+                XCTAssertEqual(widths.reduce(0, +) + 4 * Double(widths.count - 1), width, accuracy: 0.001)
+                if globe {
+                    XCTAssertEqual(m[.globe], rail, accuracy: 0.001)
+                    XCTAssertEqual(m[.returnToLetters] + 4 + m[.language], cell, accuracy: 0.001)
+                } else {
+                    XCTAssertEqual(m[.returnToLetters], rail, accuracy: 0.001)
+                    XCTAssertEqual(m[.language], cell, accuracy: 0.001)
+                }
+            }
+        }
+        // Without the shell's columns the row falls back to a fifth for the side keys.
+        let bare = digitPad(globe: false).metrics(width: 400)
+        XCTAssertEqual(bare[.enter], (400 - 16) / 5, accuracy: 0.001)
+        // A letter page's symbol key is as wide as the page switch, as before.
+        let letters = KeyboardControlPolicy(
+            page: .letters, isEnglishMode: false, hasGlobe: true,
+            isPhoneLayout: true, usesASCIIPunctuation: false, includesBottomEnter: false)
+        XCTAssertEqual(letters.metrics(width: 390)[.symbolPage], letters.metrics(width: 390)[.page])
     }
 
     /// The letter and row pages share one comma key in the utility position, with the other

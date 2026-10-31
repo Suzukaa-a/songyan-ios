@@ -385,6 +385,8 @@ struct KeyboardAuthoredPageFooter: View {
     let actionTable: KeyboardPageAuthoredActionTable
     var selectedPath: KeyboardPageKeyPath? = nil
     var editorSelection = false
+    /// The rails the plain footer runs under; a split footer keeps its own gutter.
+    var rails: KeyboardPageFooterGeometry.Rails? = nil
 
     private var minimumWidth: Double { KeyboardAuthoredPageMetrics.minimumKeyHeight }
     /// Categorized pages keep browser rows as backup data; the presentation decides the shape.
@@ -407,14 +409,18 @@ struct KeyboardAuthoredPageFooter: View {
     private var policy: KeyboardControlPolicy {
         KeyboardControlPolicy(
             page: state.page, isEnglishMode: state.isEnglishMode, hasGlobe: state.hasGlobe,
-            isPhoneLayout: state.isPhoneStyled, usesASCIIPunctuation: state.usesASCIIPunctuation,
+            // A keypad page's footer is the digit pad's grid row, as on the nine-key 123 page.
+            isPhoneLayout: state.isPhoneStyled || (isKeypadPage && state.page == .numeric),
+            usesASCIIPunctuation: state.usesASCIIPunctuation,
             includesBottomEnter: !(isCategoryPage || isKeypadPage),
-            usesCategorySymbolPage: isCategoryPage)
+            usesCategorySymbolPage: isCategoryPage, usesDigitPadRow: isKeypadPage)
     }
 
     /// The one geometry entry shared with the preview: same keys, same policy, same width.
-    private func footerGeometry(_ width: Double) -> KeyboardPageFooterGeometry {
-        KeyboardPageFooterGeometry(width: max(0, width), keys: keys, policy: policy)
+    private func footerGeometry(_ width: Double, rails: KeyboardPageFooterGeometry.Rails? = nil)
+        -> KeyboardPageFooterGeometry
+    {
+        KeyboardPageFooterGeometry(width: max(0, width), keys: keys, policy: policy, rails: rails)
     }
 
     private var spaceIndex: Int? {
@@ -422,7 +428,7 @@ struct KeyboardAuthoredPageFooter: View {
     }
 
     @ViewBuilder private func plainRow(width: Double) -> some View {
-        let geometry = footerGeometry(width)
+        let geometry = footerGeometry(width, rails: rails)
         let spacing = CGFloat(geometry.spacing)
         if let floored = minimumScrollWidths(geometry) {
             // Generic authored data floors every key to a usable width first; if the floored row is
@@ -670,7 +676,13 @@ struct KeyboardAuthoredPageView<CategoryMain: View, CategoryLeading: View>: View
         KeyboardAuthoredPageFooter(
             page: page, keys: rendered.chrome?.bottom ?? [], sourceIndices: rendered.bottomSourceIndices,
             split: split, rootWidth: CGFloat(metrics.rootWidth), state: state, actions: actions,
-            actionTable: rendered.actionTable, selectedPath: selectedPath, editorSelection: editorSelection
+            actionTable: rendered.actionTable, selectedPath: selectedPath, editorSelection: editorSelection,
+            rails: metrics.leadingWidth > 0 || metrics.trailingWidth > 0
+                ? .init(
+                    leading: metrics.leadingWidth,
+                    // Beside the footer, not under it, when the trailing rail runs down past it.
+                    trailing: metrics.trailingRailHeight > metrics.rowsHeight ? 0 : metrics.trailingWidth)
+                : nil
         )
         .frame(width: CGFloat(metrics.bottomWidth), height: CGFloat(metrics.bottomHeight))
     }

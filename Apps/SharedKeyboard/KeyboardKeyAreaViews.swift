@@ -464,6 +464,42 @@ struct KeyboardFixedEditingRail: View {
     }
 }
 
+/// The 123 page's right column on the nine-key letter shell's grid: Delete, 0 and the comma, one
+/// row each, with Return a single row under it in the bottom row. The comma follows the symbol
+/// branch and holds the other sentence marks on its long press.
+struct KeyboardPhoneDigitTrailingRail: View {
+    let metrics: PhoneKeypadMetrics
+    let comma: String
+    let commaAlternates: [String]
+    /// Receives whether this call is a repeat of a held Delete.
+    let onDelete: (Bool) -> Void
+    let onKey: (KeyCap) -> Void
+
+    var body: some View {
+        VStack(spacing: CGFloat(metrics.spacing)) {
+            RepeatingDeleteKey(action: onDelete)
+                .frame(height: CGFloat(metrics.rowHeight))
+                .accessibilityLabel("删除")
+            AlternateCharacterKey(
+                cap: KeyCap(id: "digit-pad-0", title: "0", action: .literal("0")),
+                alternates: [], phoneKey: true, onSelect: onKey
+            )
+            .frame(height: CGFloat(metrics.rowHeight))
+            AlternateCharacterKey(
+                cap: KeyCap(id: "digit-pad-comma", title: comma, action: .literal(comma)),
+                alternates: commaAlternates.enumerated().map {
+                    KeyCap(id: "digit-pad-comma-\($0.offset)", title: $0.element, action: .literal($0.element))
+                },
+                phoneKey: true, phoneSideKey: true, titleSize: KeyboardPhoneSymbolRail.titleSize,
+                onSelect: onKey
+            )
+            .frame(height: CGFloat(metrics.rowHeight))
+            .accessibilityLabel("\(comma)，长按选择标点")
+        }
+        .buttonStyle(KeyboardPressStyle())
+    }
+}
+
 /// The three fixed symbol slots of a phone keypad's leading rail.
 ///
 /// `firstKeyAlternates` is for callers whose only path to further symbols is long press (the 123
@@ -525,9 +561,9 @@ struct KeyboardPhoneDeclaredRail<Readings: View, Key: View>: View {
     }
 }
 
-/// A phone keypad's 123 page: 1–9 in the 3×3 grid, 0 in the bottom row, the page's punctuation in
-/// the leading rail. This page has no first-key cycling, so extra punctuation stays on the first
-/// rail key's long press.
+/// A phone keypad's 123 page: 1–9 in the 3×3 grid, 0 in the trailing column, the page's punctuation
+/// in the leading rail. This page has no first-key cycling, so extra punctuation stays on the first
+/// rail key's long press; the comma has a key of its own in the trailing column.
 struct KeyboardPhoneDigitPad<Expanded: View, Trailing: View, Bottom: View>: View {
     let usesASCIIPunctuation: Bool
     let split: ActiveLayoutSplit?
@@ -541,13 +577,15 @@ struct KeyboardPhoneDigitPad<Expanded: View, Trailing: View, Bottom: View>: View
 
     var body: some View {
         let railCaps = SymbolPageTable.phoneNumericRail(ascii: usesASCIIPunctuation)
+        let comma = usesASCIIPunctuation ? "," : "，"
         let digitRows = SymbolPageTable.phoneDigitRows(ascii: usesASCIIPunctuation)
         StablePhoneKeypadShell(
             trailingSpansControlRow: trailingSpansControlRow,
             expandsForSplit: split != nil,
             leading: { metrics in
                 KeyboardPhoneSymbolRail(
-                    caps: railCaps, metrics: metrics, firstKeyAlternates: Array(railCaps.dropFirst(3)),
+                    caps: railCaps, metrics: metrics,
+                    firstKeyAlternates: railCaps.dropFirst(3).filter { $0.title != comma },
                     onSelect: onKey)
             },
             main: { metrics in

@@ -110,9 +110,10 @@ final class KeyboardPageChromeTests: XCTestCase {
         XCTAssertEqual(categorized.chrome?.bottom.map(\.widthWeight), [1, 1, 1, 4, 1])
         XCTAssertEqual(categorized.chrome?.trailing.map(\.widthWeight), [1, 1, 2])
         let keypad = KeyboardPagePresets.numericAutomatic.materialized(numericForm: .phoneDigitPad)
-        XCTAssertEqual(keypad.chrome?.leading.map(\.widthWeight), [1, 1, 1, 1])
-        XCTAssertEqual(keypad.chrome?.bottom.map(\.widthWeight), [1, 1, 1, 4, 1])
-        XCTAssertEqual(keypad.chrome?.trailing.map(\.widthWeight), [1, 1, 2])
+        XCTAssertEqual(keypad.chrome?.leading.map(\.widthWeight), [1, 1, 1])
+        // The space bar is one digit column wide here, not the control row's wide one.
+        XCTAssertEqual(keypad.chrome?.bottom.map(\.widthWeight), [1, 1, 1, 1, 1, 1])
+        XCTAssertEqual(keypad.chrome?.trailing.map(\.widthWeight), [1, 1, 1])
     }
 
     func testMaterializedNumericRowPageKeepsSwitchMarksAndDeleteOnTheThirdRow() throws {
@@ -212,12 +213,14 @@ final class KeyboardPageChromeTests: XCTestCase {
         XCTAssertEqual(keypad.rows.count, 3)
         XCTAssertEqual(keypad.rows.flatMap(\.keys).map(\.label), ["1", "2", "3", "4", "5", "6", "7", "8", "9"])
         XCTAssertTrue(keypad.rows.flatMap(\.keys).allSatisfy { $0.action.type == .literal })
-        XCTAssertEqual(keypad.chrome?.leading.count, 4)
-        XCTAssertEqual(keypad.chrome?.leading.last?.label, "符号")
-        XCTAssertEqual(keypad.chrome?.leading.last?.action.pageSwitchTarget, .symbols)
-        XCTAssertEqual(keypad.chrome?.bottom.last?.action.value, "0")
-        XCTAssertEqual(keypad.chrome?.trailing.map(\.action.type), [.backspace, .clearInput, .enter])
-        XCTAssertEqual(keypad.chrome?.trailing.map(\.widthWeight), [1, 1, 2])
+        XCTAssertEqual(keypad.chrome?.leading.count, 3)
+        XCTAssertEqual(keypad.chrome?.bottom.map(\.label), ["🌐", "返回", "中英", "空格", "符号", "⏎"])
+        XCTAssertEqual(keypad.chrome?.bottom[4].action.pageSwitchTarget, .symbols)
+        XCTAssertEqual(keypad.chrome?.trailing.map(\.label), ["⌫", "0", "，"])
+        XCTAssertEqual(keypad.chrome?.trailing.map(\.action.type), [.backspace, .literal, .literal])
+        XCTAssertEqual(keypad.chrome?.trailing[2].action, .init(.literal, value: "，", asciiValue: ","))
+        XCTAssertEqual(keypad.chrome?.trailingSpansBottom, false)
+        XCTAssertEqual(keypad.chrome?.trailing.map(\.widthWeight), [1, 1, 1])
         XCTAssertNil(keypad.chrome?.leadingWidth)
         XCTAssertNil(keypad.chrome?.trailingWidth)
         try keypad.validate()
@@ -441,7 +444,7 @@ final class KeyboardPageChromeTests: XCTestCase {
         let keypad = KeyboardPagePresets.numericKeypad.materialized()
         XCTAssertTrue(KeyboardPageResolver.numericPageReachesSymbols(page: keypad, mainLayoutIsPhoneKeypad: false))
         var withoutSwitch = keypad
-        withoutSwitch.chrome?.leading.removeAll { $0.action.pageSwitchTarget == .symbols }
+        withoutSwitch.chrome?.bottom.removeAll { $0.action.pageSwitchTarget == .symbols }
         XCTAssertFalse(
             KeyboardPageResolver.numericPageReachesSymbols(page: withoutSwitch, mainLayoutIsPhoneKeypad: false))
         var withSwitch = withoutSwitch
@@ -454,7 +457,9 @@ final class KeyboardPageChromeTests: XCTestCase {
     func testKeypadSymbolSwitchOpensThePairedSymbolPageAndReturnsToThePad() throws {
         let input = KeyboardPageResolutionInput(usesASCIIPunctuation: false, mainLayoutIsPhoneKeypad: false)
         let padSwitch = try XCTUnwrap(
-            KeyboardPagePresets.numericKeypad.materialized().chrome?.leading.last)
+            KeyboardPagePresets.numericKeypad.materialized().chrome?.bottom.first {
+                $0.action.pageSwitchTarget == .symbols
+            })
         let rowSwitch = try XCTUnwrap(
             KeyboardPagePresets.numericRowsPage(ascii: false).materialized().rows.last?.keys.first)
         XCTAssertEqual(padSwitch.action, rowSwitch.action)
