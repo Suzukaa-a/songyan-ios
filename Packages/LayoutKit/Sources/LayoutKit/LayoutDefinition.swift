@@ -7,11 +7,50 @@ public struct LayoutAction: Codable, Equatable, Sendable {
         /// Page-level controls. The host dispatches them itself; they never become an engine
         /// key action, so no engine case is added for a new kind.
         case shift, pageSwitch, languageSwitch, symbolLock, clearInput
+        /// Opens a non-letter page of another keyboard layout and makes that layout the running one.
+        /// A kind of its own (not a `pageSwitch` value) so a decoder that predates it rejects the
+        /// file instead of opening a page of the wrong layout.
+        case layoutPageSwitch
     }
 
     /// The only page a `.pageSwitch` key may open.
     public enum PageTarget: String, Codable, CaseIterable, Sendable {
         case letters, numeric, symbols
+    }
+
+    /// Where a `.layoutPageSwitch` key goes: the 123 or symbol page of one keyboard layout. A layout's
+    /// letter page is no target; its 123 / symbol page is the one its pairing chooses for the running
+    /// input method. Wire form: `"<layout>:<page>"`, e.g. `"phone9:numeric"`.
+    public struct PageJump: Hashable, Sendable {
+        public let layout: LayoutInput.Builtin
+        public let page: PageTarget
+
+        /// Nil for the letter page: it is not a jump target.
+        public init?(layout: LayoutInput.Builtin, page: PageTarget) {
+            guard Self.pages.contains(page) else { return nil }
+            self.layout = layout
+            self.page = page
+        }
+
+        public var wire: String { layout.rawValue + ":" + page.rawValue }
+
+        /// The pages a jump may open, in the order an editor lists them.
+        public static let pages: [PageTarget] = [.numeric, .symbols]
+
+        /// Every target, layout by layout.
+        public static let all: [PageJump] = LayoutInput.Builtin.allCases.flatMap { layout in
+            pages.compactMap { PageJump(layout: layout, page: $0) }
+        }
+
+        /// Nil for anything but exactly one known layout and one non-letter page (case-sensitive).
+        public init?(wire: String?) {
+            guard let wire else { return nil }
+            let parts = wire.split(separator: ":", omittingEmptySubsequences: false)
+            guard parts.count == 2, let layout = LayoutInput.Builtin(rawValue: String(parts[0])),
+                let page = PageTarget(rawValue: String(parts[1]))
+            else { return nil }
+            self.init(layout: layout, page: page)
+        }
     }
 
     /// Explicit behavior of an authored language key. No value keeps the page-following default.
@@ -42,6 +81,24 @@ public struct LayoutAction: Codable, Equatable, Sendable {
 
     public static func pageSwitch(_ target: PageTarget) -> LayoutAction {
         LayoutAction(.pageSwitch, value: target.rawValue)
+    }
+
+    /// Where a `.layoutPageSwitch` key goes, or nil for every other kind.
+    public var layoutPageJump: PageJump? {
+        guard type == .layoutPageSwitch else { return nil }
+        return PageJump(wire: value)
+    }
+
+    public static func layoutPageSwitch(_ target: PageJump) -> LayoutAction {
+        LayoutAction(.layoutPageSwitch, value: target.wire)
+    }
+
+    /// Whether a key with this action is drawn when only `layouts` can be switched to. A jump to
+    /// any other layout is left out, the way a globe key is left out without a system switch.
+    public func isUsableJump(among layouts: Set<LayoutInput.Builtin>) -> Bool {
+        guard type == .layoutPageSwitch else { return true }
+        guard let jump = layoutPageJump else { return false }
+        return layouts.contains(jump.layout)
     }
 
     /// The value a literal key shows and types for the current punctuation state. A nil pair is
@@ -94,6 +151,10 @@ public struct LayoutAction: Codable, Equatable, Sendable {
         case .pageSwitch:
             guard let value, PageTarget(rawValue: value) != nil else {
                 throw LayoutError.invalid("翻页键只能选择字母、数字或符号页，请重新选择。")
+            }
+        case .layoutPageSwitch:
+            guard layoutPageJump != nil else {
+                throw LayoutError.invalid("跳转键只能选择 26 键、14 键、18 键或 9 键的数字页或符号页，请重新选择。")
             }
         case .languageSwitch:
             guard value.map({ LanguageSwitchBehavior(rawValue: $0) != nil }) ?? true else {
