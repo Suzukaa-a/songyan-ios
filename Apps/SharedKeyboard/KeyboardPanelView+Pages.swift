@@ -158,6 +158,13 @@ extension KeyboardPanelView {
             pageSplit: pageDefinition?.split, contentWidth: widthBox.contentWidth)
     }
 
+    /// Extra room at both edges of a split key area, on top of the panel's own 4pt, so the halves do
+    /// not run into the screen edges. Zero whenever the page is not split.
+    var splitEdgeInset: CGFloat {
+        guard let split = activeSplit else { return 0 }
+        return CGFloat(max(0, split.edgeMargin(width: widthBox.contentWidth) - 4))
+    }
+
     /// Tells the user why the built-in page replaced their authored one for this visit: the page
     /// still lacks the system-switch entry the host requires. Reuses the transient key hint.
     func showAuthoredPageNeedsGlobeHint() {

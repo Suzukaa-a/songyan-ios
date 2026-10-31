@@ -753,6 +753,7 @@ public struct KeyboardPanelView: View {
             // Under the default skin the key area is transparent (system keyboard surface shows through); iOS does not deliver touches in fully transparent
             // areas to a keyboard extension, so taps in the gaps between keys would be lost entirely. Lay down an invisible hit surface, and the root input view
             // (FeedbackInputView.hitTest) hands gap touches to the adjacent key. It covers the key area only, not the root view.
+            .padding(.horizontal, splitEdgeInset)
             .id(keyAreaGeneration)
             .background(Color.black.opacity(0.001))
             // Switch pages in place. A keyframeAnimator/visualEffect around this

@@ -87,7 +87,15 @@ public struct ActiveLayoutSplit: Equatable, Sendable {
     public let automaticGap: Bool
 
     /// Each half stays within one thumb's reach on large surfaces.
-    public static let maximumThumbHalfWidth = 280.0
+    public static let maximumThumbHalfWidth = 300.0
+    /// The automatic gutter's share of the width. It is narrower than the saved default so the
+    /// keys get wider; a wider surface opens the gutter instead once a half reaches its maximum.
+    public static let automaticGapShare = 0.2
+    /// The outer margin that keeps the halves off the screen edges: a share of the width within
+    /// these bounds.
+    public static let edgeMarginShare = 0.025
+    public static let minimumEdgeMargin = 8.0
+    public static let maximumEdgeMargin = 20.0
     /// Automatic spacing lets a key grow to this width before the rest becomes gutter, so a few
     /// columns on a tablet do not stretch into slabs.
     public static let maximumAutomaticKeyWidth = 84.0
@@ -131,9 +139,21 @@ public struct ActiveLayoutSplit: Equatable, Sendable {
             Double(keyCount) * Self.maximumAutomaticKeyWidth + Double(keyCount - 1) * spacing)
         let requested =
             automaticGap
-            ? max(width * LayoutSplitConfiguration.defaultGapFraction, width - maximumContentWidth)
+            ? max(width * Self.automaticGapShare, width - maximumContentWidth)
             : width * gapFraction
         let result = min(requested, room)
         return result > spacing ? result : 0
+    }
+
+    /// The margin left at both screen edges of a split key area, for a row of `keyCount` keys (the
+    /// widest letter row). It gives way before the keys shrink: it only takes what the width has
+    /// left after the key floor and the gutter, and is zero when the surface does not split.
+    public func edgeMargin(width: Double, keyCount: Int = 10, spacing: Double = 4) -> Double {
+        guard width.isFinite, gap(width: width, keyCount: keyCount, spacing: spacing) > 0 else { return 0 }
+        let keyFloor = automaticGap ? Self.minimumAutomaticKeyWidth : 28
+        let slack = max(0, width - Double(keyCount) * keyFloor - Double(keyCount - 1) * spacing)
+        let margin = min(Self.maximumEdgeMargin, max(Self.minimumEdgeMargin, width * Self.edgeMarginShare))
+        let gutter = min(gap(width: width, keyCount: keyCount, spacing: spacing), slack)
+        return max(0, min(margin, (slack - gutter) / 2))
     }
 }

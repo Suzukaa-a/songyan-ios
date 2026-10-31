@@ -22,6 +22,40 @@ final class LayoutSplitConfigurationTests: XCTestCase {
         }
     }
 
+    func testASplitLeavesAMarginAtBothEdgesAndWidensTheKeysOverTheSavedGutter() {
+        let automatic = active(LayoutSplitConfiguration(activation: .always))
+        for width in [700.0, 860, 1024, 1366] {
+            let margin = automatic.edgeMargin(width: width)
+            XCTAssertGreaterThanOrEqual(margin, 8, "\(width)")
+            XCTAssertLessThanOrEqual(margin, 20, "\(width)")
+            let gutter = automatic.gap(width: width, keyCount: 10)
+            // The gutter the old thumb-reach rule (280pt halves, 32% share) would have left.
+            let previous = max(width * 0.32, width - 560)
+            XCTAssertLessThan(gutter, previous, "\(width)")
+            let half = (width - 2 * margin - gutter) / 2
+            XCTAssertLessThanOrEqual(half, ActiveLayoutSplit.maximumThumbHalfWidth + 1e-9, "\(width)")
+        }
+    }
+
+    func testANarrowSplitGivesUpTheMarginBeforeTheKeys() {
+        let automatic = active(LayoutSplitConfiguration(activation: .always))
+        let width = 400.0
+        let margin = automatic.edgeMargin(width: width)
+        let gutter = automatic.gap(width: width, keyCount: 10)
+        let key = (width - 2 * margin - gutter - 9 * 4) / 10
+        XCTAssertGreaterThanOrEqual(key, ActiveLayoutSplit.minimumAutomaticKeyWidth - 1e-9)
+        XCTAssertGreaterThan(gutter, 0)
+        // Even narrower: the margin is gone, the keys still hold their floor.
+        XCTAssertEqual(automatic.edgeMargin(width: 340), 0, accuracy: 1e-9)
+        XCTAssertEqual(active(LayoutSplitConfiguration(activation: .always)).edgeMargin(width: 200), 0)
+    }
+
+    func testAnUnsplitKeyboardHasNoMargin() {
+        XCTAssertNil(LayoutSplitConfiguration(activation: .automatic).resolved(forWidth: 390))
+        let manual = active(LayoutSplitConfiguration(activation: .always, gapFraction: 0.4))
+        XCTAssertEqual(manual.edgeMargin(width: 300), 0)
+    }
+
     func testManualGapRetractsWhenKeysWouldGetTooNarrow() {
         let split = active(LayoutSplitConfiguration(gapFraction: 0.4))
         XCTAssertEqual(split.gap(width: 300, keyCount: 10), 0)
@@ -60,9 +94,10 @@ final class LayoutSplitConfigurationTests: XCTestCase {
         XCTAssertEqual(gaps[1], 0)
         XCTAssertEqual(gaps[2], 0, "a 466pt cover screen fits one hand")
         for index in 4..<gaps.count { XCTAssertGreaterThan(gaps[index], gaps[index - 1]) }
-        XCTAssertGreaterThan(gaps[5], 834 * 0.3)
+        XCTAssertGreaterThan(gaps[5], 834 * ActiveLayoutSplit.automaticGapShare)
         let forced = LayoutSplitConfiguration(activation: .always).resolved(forWidth: 466)
-        XCTAssertEqual(forced?.gap(width: 466, keyCount: 10) ?? 0, 110, accuracy: 0.001)
+        XCTAssertEqual(
+            forced?.gap(width: 466, keyCount: 10) ?? 0, 466 * ActiveLayoutSplit.automaticGapShare, accuracy: 0.001)
     }
 
     func testActivationIsDecidedOnceOnTheWholeKeyboard() throws {
