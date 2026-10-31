@@ -240,6 +240,7 @@ public struct KeyboardPanelHost: View {
             // capability change must reach UIInputView even if the ready subtree
             // is replaced in the same SwiftUI update.
             .onAppear {
+                KeyboardKeyFeelPreferences.refresh()
                 if presentationBudget == nil {
                     storedHeightPreset = KeyboardHeightPreferences.current
                     readingPlacement = KeyboardReadingPlacementPreferences.current
@@ -278,6 +279,7 @@ public struct KeyboardPanelHost: View {
             // area does not inject it (`nil`) and keeps reading on onAppear.
             // A new host binding is a new presentation: re-read shared preferences.
             .onChange(of: hostBindingTick) {
+                KeyboardKeyFeelPreferences.refresh()
                 oneHandMode = KeyboardOneHandPreferences.current
                 readingPlacement = KeyboardReadingPlacementPreferences.current
                 reloadStoredLayouts()

@@ -89,6 +89,8 @@ extension AlternateCharacterKey.CharacterButton {
         didSwipeUp = false
         slidOff = false
         exitedUpward = false
+        exitedDownward = false
+        flickDirection = nil
         resetLetterSwipe()
         KeyRollover.release(self)
         isHighlighted = false

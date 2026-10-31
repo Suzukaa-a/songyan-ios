@@ -59,6 +59,11 @@ struct AlternateCharacterKey: UIViewRepresentable {
     var letterSwipe: [KeyCap] = []
     /// Committed by a short upward swipe that starts on the key (phone digits).
     var swipeUp: KeyCap? = nil
+    /// Committed by a short downward swipe that starts on the key (letter keys).
+    var swipeDown: KeyCap? = nil
+    /// A vertical flick on this key is a flick whether or not it has something to type that way:
+    /// past the threshold with no target the release types nothing.
+    var flickEligible = false
     /// The subtitle is a shuangpin final table: draw it as a small line under the
     /// letter and keep the corner for the first long-press alternate (the digit),
     /// as on the quanpin 26-key.
@@ -82,7 +87,8 @@ struct AlternateCharacterKey: UIViewRepresentable {
             showsKeyPreview: showsKeyPreview,
             visualRole: visualRole, titleSize: titleSize, letterGroup: letterGroup,
             groupHints: groupHints, letterSwipe: letterSwipe,
-            swipeUp: swipeUp, syllableHintBelow: syllableHintBelow,
+            swipeUp: swipeUp, swipeDown: swipeDown, flickEligible: flickEligible,
+            syllableHintBelow: syllableHintBelow,
             accessibilityHintOverride: accessibilityHintOverride, onSelect: onSelect)
         button.isEnabled = isEnabled
         return button
@@ -100,7 +106,8 @@ struct AlternateCharacterKey: UIViewRepresentable {
             showsKeyPreview: showsKeyPreview,
             visualRole: visualRole, titleSize: titleSize, letterGroup: letterGroup,
             groupHints: groupHints, letterSwipe: letterSwipe,
-            swipeUp: swipeUp, syllableHintBelow: syllableHintBelow,
+            swipeUp: swipeUp, swipeDown: swipeDown, flickEligible: flickEligible,
+            syllableHintBelow: syllableHintBelow,
             accessibilityHintOverride: accessibilityHintOverride, onSelect: onSelect)
         // `isEnabled` repaints the cap in its setter; only write a real change.
         if button.isEnabled != isEnabled { button.isEnabled = isEnabled }
@@ -191,20 +198,22 @@ struct AlternateCharacterKey: UIViewRepresentable {
         /// The letter the swipe currently picks; drawn in the primary tone.
         private var swipeChoice: Int?
         private var swipeUp: KeyCap?
+        private var swipeDown: KeyCap?
+        private var flickEligible = false
+        /// The direction the armed flick went; nil until one arms.
+        var flickDirection: KeyFlick.Direction?
         private var syllableHintBelow = false
         /// Overrides the default AX hint (the default only describes "long-press alternate", wrong for a tap-cycling key).
         /// Assigned only from `configure`; takes no part in state outside `Configuration`.
         private var accessibilityHintOverride: String?
         /// Window-space touch-down point; an upward travel past
-        /// `swipeUpDistance` before the hold fires selects `swipeUp`.
+        /// `flickThreshold` before the hold fires selects `swipeUp` (or `swipeDown` going down).
         private var touchOrigin = CGPoint.zero
         var didSwipeUp = false
         /// A flick shorter than this (or than 40% of the key) is finger drift in a
-        /// normal tap; 20pt let slightly upward taps on 9-key type the digit.
-        private static let swipeUpDistance: CGFloat = 24
-        /// Coming back this close to the touch-down point undoes the flick.
-        private static let swipeUpReturn: CGFloat = 10
-        private var swipeUpThreshold: CGFloat { max(Self.swipeUpDistance, bounds.height * 0.4) }
+        /// normal tap; 20pt let slightly upward taps on 9-key type the digit (`KeyFlick`).
+        private var flickThreshold: Double { KeyFlick.threshold(keyHeight: Double(bounds.height)) }
+        private var hasFlick: Bool { flickEligible || swipeUp != nil || swipeDown != nil }
         /// The finger left the key before a hold completed. Like the system
         /// keyboard, the character key under the finger at lift types instead.
         var slidOff = false
@@ -212,6 +221,8 @@ struct AlternateCharacterKey: UIViewRepresentable {
         var consumed = false
         /// A flick key's touch rose out of the key without becoming its swipe-up.
         var exitedUpward = false
+        /// A flick key's touch sank out of the key without becoming its swipe-down.
+        var exitedDownward = false
         var explicitSelection = ExplicitAlternateSelection()
         /// Everything `configure` derives the labels, hints and cap paint from.
         /// SwiftUI calls `updateUIView` for every key on every panel update (each
@@ -232,6 +243,8 @@ struct AlternateCharacterKey: UIViewRepresentable {
             let groupHints: [String?]
             let letterSwipe: [KeyCap]
             let swipeUp: KeyCap?
+            let swipeDown: KeyCap?
+            let flickEligible: Bool
             let syllableHintBelow: Bool
             let accessibilityHintOverride: String?
             let appearance: KeyboardAppearance
@@ -271,7 +284,7 @@ struct AlternateCharacterKey: UIViewRepresentable {
             showsKeyPreview: Bool,
             visualRole: String?, titleSize: Double? = nil,
             letterGroup: [String] = [], groupHints: [String?] = [],
-            letterSwipe: [KeyCap] = [], swipeUp: KeyCap? = nil,
+            letterSwipe: [KeyCap] = [], swipeUp: KeyCap? = nil, swipeDown: KeyCap? = nil, flickEligible: Bool = false,
             syllableHintBelow: Bool = false,
             accessibilityHintOverride: String? = nil,
             onSelect: @escaping (KeyCap) -> Void
@@ -285,7 +298,8 @@ struct AlternateCharacterKey: UIViewRepresentable {
                 showsKeyPreview: showsKeyPreview,
                 visualRole: visualRole, titleSize: titleSize, letterGroup: letterGroup,
                 groupHints: groupHints, letterSwipe: letterSwipe,
-                swipeUp: swipeUp, syllableHintBelow: syllableHintBelow,
+                swipeUp: swipeUp, swipeDown: swipeDown, flickEligible: flickEligible,
+                syllableHintBelow: syllableHintBelow,
                 accessibilityHintOverride: accessibilityHintOverride,
                 appearance: appearance)
             guard next != configuration else { return }
@@ -314,6 +328,8 @@ struct AlternateCharacterKey: UIViewRepresentable {
             self.letterSwipe = letterSwipe.count == 2 ? letterSwipe : []
             configureColumnHints()
             self.swipeUp = swipeUp
+            self.swipeDown = swipeDown
+            self.flickEligible = flickEligible
             self.syllableHintBelow = syllableHintBelow
             self.accessibilityHintOverride = accessibilityHintOverride
             title.text = cap.title
@@ -740,14 +756,17 @@ struct AlternateCharacterKey: UIViewRepresentable {
             lastLocation = touch.location(in: window)
             if slidOff || consumed { return true }
             if popup == nil, trackLetterSwipe() { return true }
-            if popup == nil, swipeUp != nil, !didSwipeUp,
-                touchOrigin.y - lastLocation.y >= swipeUpThreshold,
-                abs(lastLocation.x - touchOrigin.x) < touchOrigin.y - lastLocation.y
+            if popup == nil, hasFlick, !didSwipeUp,
+                let direction = KeyFlick.direction(
+                    rise: Double(touchOrigin.y - lastLocation.y),
+                    dx: Double(lastLocation.x - touchOrigin.x), threshold: flickThreshold)
             {
-                // A short upward flick: the hold popup no longer opens for this press.
+                // A short vertical flick: the hold popup no longer opens for this press. With
+                // nothing to type that way the release types nothing, not the key under the finger.
                 holdTimer?.invalidate()
                 holdTimer = nil
                 didSwipeUp = true
+                flickDirection = direction
             }
             if didSwipeUp { return true }
             if popup != nil {
@@ -763,10 +782,18 @@ struct AlternateCharacterKey: UIViewRepresentable {
                 }
                 // Rising out of a flick key may still become its swipe-up, never the key above;
                 // a rise that never qualifies (rolling up and sideways) types the key itself.
-                if swipeUp != nil, lastLocation.y < touchOrigin.y {
+                if hasFlick, lastLocation.y < touchOrigin.y {
                     holdTimer?.invalidate()
                     holdTimer = nil
                     exitedUpward = true
+                    return true
+                }
+                // Sinking out of a flick key may still become its swipe-down; if it does not, the
+                // key under the finger at lift types, as for any slide off.
+                if hasFlick, lastLocation.y > touchOrigin.y {
+                    holdTimer?.invalidate()
+                    holdTimer = nil
+                    exitedDownward = true
                     return true
                 }
                 // Leaving a two-letter key sideways is the start of its swipe, not a roll onto the neighbour.
@@ -829,8 +856,20 @@ struct AlternateCharacterKey: UIViewRepresentable {
                 if let target, let cap = target.cap { target.onSelect?(cap) }
                 return
             } else if didSwipeUp {
-                let rise = touchOrigin.y - (touch?.location(in: window) ?? lastLocation).y
-                selected = isHighlighted ? (rise < Self.swipeUpReturn ? cap : swipeUp) : nil
+                let rise = Double(touchOrigin.y - (touch?.location(in: window) ?? lastLocation).y)
+                let direction = flickDirection ?? .up
+                switch KeyFlick.release(
+                    rise: rise, direction: direction, hasOption: flickCap(direction) != nil)
+                {
+                case .tap: selected = isHighlighted ? cap : nil
+                case .option: selected = isHighlighted ? flickCap(direction) : nil
+                case .nothing: selected = nil
+                }
+            } else if exitedDownward {
+                let target = touch.flatMap { characterKey(at: $0.location(in: window)) }
+                cancelPress()
+                if let target, let cap = target.cap { target.onSelect?(cap) } else if let cap { onSelect?(cap) }
+                return
             } else if didLetterSwipe {
                 selected = isHighlighted ? (swipeChoice.map { letterSwipe[$0] } ?? cap) : nil
             } else {
@@ -843,6 +882,10 @@ struct AlternateCharacterKey: UIViewRepresentable {
         }
 
         override func cancelTracking(with event: UIEvent?) { cancelPress() }
+
+        private func flickCap(_ direction: KeyFlick.Direction) -> KeyCap? {
+            direction == .up ? swipeUp : swipeDown
+        }
 
         /// Feeds the sideways swipe of a two-letter key; true once the swipe owns the press.
         private func trackLetterSwipe() -> Bool {

@@ -1,6 +1,7 @@
 import AppearanceKit
 import CandidateKit
 import KeyboardCore
+import LayoutKit
 import SkinKit
 import SwiftUI
 import os
@@ -34,6 +35,51 @@ public enum KeyboardOneHandPreferences {
     }
     public static func set(_ mode: KeyboardOneHandMode) {
         SharedPreferences.set(mode.rawValue, forKey: modeKey, in: defaults)
+    }
+}
+
+/// Key feel shared by the app and the keyboard extension: the global long-press delay and the
+/// up/down flick of character keys. Keys read the in-process copy on every render, so the stored
+/// values are re-read only when a keyboard presentation starts (`refresh`).
+public enum KeyboardKeyFeelPreferences {
+    public static let longPressDelayKey = "keyboard.longPressDelayMs.v1"
+    public static let flickKey = "keyboard.keyFlickEnabled.v1"
+    public static var defaults: UserDefaults { KeyboardRecipeStore.sharedDefaults() ?? .standard }
+
+    private struct Snapshot {
+        var longPressMilliseconds: Int?
+        var flickEnabled: Bool
+    }
+
+    private static let cache = OSAllocatedUnfairLock<Snapshot?>(uncheckedState: nil)
+
+    private static func load() -> Snapshot {
+        Snapshot(
+            longPressMilliseconds: LongPressDelaySetting.resolve(
+                SharedPreferences.object(forKey: longPressDelayKey, in: defaults)),
+            flickEnabled: (SharedPreferences.object(forKey: flickKey, in: defaults) as? Bool) ?? true)
+    }
+
+    private static var snapshot: Snapshot {
+        cache.withLockUnchecked { state in
+            if let state { return state }
+            let loaded = load()
+            state = loaded
+            return loaded
+        }
+    }
+
+    public static func refresh() {
+        let loaded = load()
+        cache.withLockUnchecked { $0 = loaded }
+    }
+
+    /// Milliseconds; nil follows each layout's own delay.
+    public static var longPressMilliseconds: Int? { snapshot.longPressMilliseconds }
+    public static var flickEnabled: Bool { snapshot.flickEnabled }
+
+    public static func longPressDelay(layout: Double?) -> TimeInterval {
+        LongPressDelaySetting.effectiveDelay(layout: layout, override: longPressMilliseconds)
     }
 }
 

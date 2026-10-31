@@ -164,7 +164,7 @@ extension KeyboardPanelView {
                     id: "\(id)-ui", title: definitionUIActionTitle(key),
                     subtitle: key.secondaryLabel, action: .cycleLayout),
                 alternates: alternates,
-                longPressDelay: activeDefinition?.effectiveLongPressDelay ?? 0.35,
+                longPressDelay: keyLongPressDelay,
                 layoutPicker: languageKeepsMenu,
                 visualRole: definitionUIActionRole(key),
                 onSelect: dispatch
@@ -177,7 +177,7 @@ extension KeyboardPanelView {
                     id: "\(id)-ui", title: definitionUIActionTitle(key),
                     subtitle: key.secondaryLabel, action: .cycleLayout),
                 alternates: alternates,
-                longPressDelay: activeDefinition?.effectiveLongPressDelay ?? 0.35,
+                longPressDelay: keyLongPressDelay,
                 layoutPicker: languageKeepsMenu,
                 visualRole: definitionUIActionRole(key),
                 onSelect: dispatch
@@ -233,7 +233,7 @@ extension KeyboardPanelView {
             performDefinitionFaceAction(action, alternate: true, onAction: onAction)
         }
         let customTitle = key.titleMode == .custom ? key.label : nil
-        let longPressDelay = activeDefinition?.effectiveLongPressDelay ?? 0.35
+        let longPressDelay = keyLongPressDelay
         let primaryID = "\(id)-mixed-primary"
         switch key.action.type {
         case .enter:
@@ -366,7 +366,7 @@ extension KeyboardPanelView {
                 isEnabled: controller.isReturnKeyEnabled,
                 alternates: (key.longPress ?? []).enumerated().map { index, option in
                     KeyCap(id: "\(id)-option-\(index)", title: option.label, action: keyAction(option.action))
-                }, longPressDelay: activeDefinition?.effectiveLongPressDelay ?? 0.35,
+                }, longPressDelay: keyLongPressDelay,
                 subtitle: key.secondaryLabel
             ) {
                 perform($0.action, true)
@@ -486,9 +486,14 @@ extension KeyboardPanelView {
                     : (isComposing
                         ? "轻点分词，长按输入 1"
                         : "连续点按轮换符号，长按输入 1")
+            let digitFlick = t9SwipeDigit(for: key)
+            let flick = letterFlickCaps(
+                for: key, options: options, controlOptions: controlOptions,
+                merged: letterGroup.count > 1 || !letterSwipe.isEmpty,
+                ownsUpwardFlick: isT9FirstKey || digitFlick != nil)
             AlternateCharacterKey(
                 cap: cap, alternates: options,
-                longPressDelay: activeDefinition?.effectiveLongPressDelay ?? 0.35,
+                longPressDelay: keyLongPressDelay,
                 phoneKey: usesStandardT9,
                 phoneSideKey: usesStandardT9 && !id.hasPrefix("row-"),
                 showsKeyPreview: !compactSpellingCapability
@@ -500,7 +505,9 @@ extension KeyboardPanelView {
                     : [],
                 groupHints: mergedHints,
                 letterSwipe: letterSwipe,
-                swipeUp: t9SwipeDigit(for: key),
+                swipeUp: digitFlick ?? flick.up,
+                swipeDown: flick.down,
+                flickEligible: digitFlick != nil || flick.eligible,
                 syllableHintBelow: overlayHint != nil,
                 accessibilityHintOverride: cycleHint
             ) { selected in
@@ -557,6 +564,27 @@ extension KeyboardPanelView {
 
     /// The bundled T9 digit keys type their digit on an upward flick, the same
     /// literal their long press offers.
+    private var keyLongPressDelay: TimeInterval {
+        KeyboardKeyFeelPreferences.longPressDelay(layout: activeDefinition?.longPressDelay)
+    }
+
+    /// Up/down flick targets of a plain character key: its first two long-press options, the way
+    /// a flick on a 26-key / 14-key / 18-key letter key types a digit or punctuation mark.
+    private func letterFlickCaps(
+        for key: LayoutKey, options: [KeyCap], controlOptions: [(KeyCap, LayoutAction)],
+        merged: Bool, ownsUpwardFlick: Bool
+    ) -> (up: KeyCap?, down: KeyCap?, eligible: Bool) {
+        guard
+            KeyFlick.isEligible(
+                actionType: key.action.type, enabled: KeyboardKeyFeelPreferences.flickEnabled,
+                merged: merged, ownsUpwardFlick: ownsUpwardFlick)
+        else { return (nil, nil, false) }
+        let typed = options.filter { option in
+            option.action != .cycleLayout && !controlOptions.contains { $0.0.id == option.id }
+        }
+        return (KeyFlick.option(in: typed, direction: .up), KeyFlick.option(in: typed, direction: .down), true)
+    }
+
     private func t9SwipeDigit(for key: LayoutKey) -> KeyCap? {
         guard isKnownPhone9Primary, key.action.type == .code, let digit = key.action.value,
             digit.count == 1, ("2"..."9").contains(digit)

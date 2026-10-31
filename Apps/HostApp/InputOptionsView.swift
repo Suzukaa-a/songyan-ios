@@ -57,6 +57,11 @@ struct InputOptionsView: View {
     private var readingPlacementValue = ReadingPlacement.row.rawValue
     /// Per-physical wide-screen dock. Read once per visit, written through the same shared
     /// preference path the keyboard reads at presentation, never from a per-key disk read.
+    @AppStorage(KeyboardKeyFeelPreferences.flickKey, store: KeyboardKeyFeelPreferences.defaults)
+    private var keyFlickEnabled = true
+    /// Milliseconds; 0 follows each keyboard layout's own delay.
+    @AppStorage(KeyboardKeyFeelPreferences.longPressDelayKey, store: KeyboardKeyFeelPreferences.defaults)
+    private var longPressDelayValue = 0
     @State private var wideDockValues: [String: KeyboardContentDock] = [:]
     @StateObject private var typoCorrection = TypoCorrectionCenter.shared
     @StateObject private var prediction = PredictionCenter.shared
@@ -80,6 +85,7 @@ struct InputOptionsView: View {
             predictionSection
             quickSymbolsSection
             feedbackSection
+            keyFeelSection
             optionSection
         }
         .navigationTitle("输入选项")
@@ -407,6 +413,35 @@ struct InputOptionsView: View {
             Text("按键反馈")
         } footer: {
             Text("需要开启「允许完全访问」。")
+        }
+    }
+
+    // MARK: - Key feel (long-press delay, flick)
+
+    private var keyFeelSection: some View {
+        Section {
+            Toggle(isOn: $keyFlickEnabled) {
+                Text("上下滑输入数字与符号")
+            }
+            .accessibilityIdentifier("inputOptions.keyFlick")
+            .accessibilityValue(keyFlickEnabled ? "已开启" : "已关闭")
+            Picker(
+                "长按延迟",
+                selection: Binding(
+                    get: { LongPressDelaySetting.resolve(longPressDelayValue) ?? 0 },
+                    set: { longPressDelayValue = $0 }
+                )
+            ) {
+                Text("跟随键盘布局").tag(0)
+                ForEach(LongPressDelaySetting.choices, id: \.self) { milliseconds in
+                    Text("\(milliseconds) 毫秒").tag(milliseconds)
+                }
+            }
+            .accessibilityIdentifier("inputOptions.longPressDelay")
+        } header: {
+            Text("按键手感")
+        } footer: {
+            Text("上滑输入键上的第一个符号，下滑输入第二个。下次打开键盘时生效。")
         }
     }
 
