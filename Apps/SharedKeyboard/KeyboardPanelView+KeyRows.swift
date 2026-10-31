@@ -35,7 +35,13 @@ extension KeyboardPanelView {
             KeyboardSymbolPageRows(
                 rows: symbolRows, split: activeSplit, alternates: alternates,
                 onTap: { handleKey($0.action) },
-                pageSwitch: { markPageSwitchKey(target: page == .numeric ? .symbols : .numeric) },
+                pageSwitch: {
+                    if everydayMarkRows != nil {
+                        moreSymbolsKey
+                    } else {
+                        markPageSwitchKey(target: page == .numeric ? .symbols : .numeric)
+                    }
+                },
                 delete: { RepeatingDeleteKey { repeating in handleKey(.backspace, emitFeedback: !repeating) } })
         case .authoredChromePage, .phoneDigitPad, .categorySymbolPage, .phonePad:
             // These shells are drawn by the panel body, never inside the rows area.
@@ -117,6 +123,7 @@ extension KeyboardPanelView {
             allowsCursorMovement: allowsCursorMovement,
             numericPageReachesSymbols: page == .letters && numericPageReachesSymbols,
             symbolPageLocked: symbolPageLocked,
+            showsEverydayMarksPage: showsEverydayMarksPage,
             symbolCategoryID: phoneSymbolCategoryID,
             showsExpandedCandidates: showsExpandedCandidates)
     }
@@ -168,7 +175,8 @@ extension KeyboardPanelView {
 
     /// The 123 rows, or the row-shaped #+= page's (the categorized page has no rows).
     var symbolRows: [KeyboardRow] {
-        page == .symbols
+        if let everydayMarkRows { return everydayMarkRows }
+        return page == .symbols
             ? SymbolPageTable.symbolRows(ascii: effectiveUsesASCIIPunctuation)
             : SymbolPageTable.numericRows(ascii: effectiveUsesASCIIPunctuation)
     }
@@ -182,7 +190,9 @@ extension KeyboardPanelView {
 
     /// The key-area shell for this page, decided by the rule the host previews share.
     var keyAreaRenderer: KeyAreaRenderer {
-        KeyboardPanelRules.keyAreaRenderer(
+        // The extra everyday-marks page is drawn like the built-in row symbol page it precedes.
+        if everydayMarkRows != nil { return .symbolRows }
+        return KeyboardPanelRules.keyAreaRenderer(
             page: page, isEnglishMode: controller.isEnglishMode, authoredPage: pageDefinition,
             facts: definitionFacts, showsCategorySymbolPage: showsCategorySymbolPage)
     }

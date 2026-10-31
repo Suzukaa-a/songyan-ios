@@ -121,17 +121,20 @@ struct ControlRow<ModeKey: View>: View {
 struct MarkPageSwitchKey: View {
     /// The page this key opens: 符号 on the 123 page, 123 on the symbol page.
     let target: KeyboardPage
+    /// Overrides for the symbol page's own page turn; nil keeps the target's title.
+    var title: String? = nil
+    var accessibilityText: String? = nil
     let onTap: () -> Void
 
     var body: some View {
         AlternateCharacterKey(
             cap: KeyCap(
                 id: "control-mark-page-switch",
-                title: target == .symbols ? KeyboardControlPolicy.symbolPageTitle : "123",
+                title: title ?? (target == .symbols ? KeyboardControlPolicy.symbolPageTitle : "123"),
                 action: .cycleLayout),
             alternates: []
         ) { _ in onTap() }
-        .accessibilityLabel(target == .symbols ? "打开更多符号页" : "打开数字符号页")
+        .accessibilityLabel(accessibilityText ?? (target == .symbols ? "打开更多符号页" : "打开数字符号页"))
     }
 }
 

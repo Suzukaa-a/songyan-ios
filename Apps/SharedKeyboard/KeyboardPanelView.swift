@@ -102,6 +102,9 @@ public struct KeyboardPanelView: View {
     @State var symbolMarksOverride: KeyboardNumericMarks?
     /// The symbol page's open category; every visit starts on 常用.
     @State var phoneSymbolCategoryID = SymbolPageTable.commonCategoryID
+    /// The row symbol page opens on its extra page of everyday marks when the pairing reaches them
+    /// nowhere else; its page switch turns to the usual rows. Every visit starts on the extra page.
+    @State var showsEverydayMarksPage = true
     /// 锁定 on the symbol page: stay there after a symbol. Session-only, never stored.
     @State var symbolPageLocked = false
     /// Whether a symbol has been entered on the current number/symbol page (used to return to letters after space); reset on every page change.
@@ -866,6 +869,7 @@ public struct KeyboardPanelView: View {
                 controller.resetPunctuationCycle()
                 showsAllCandidates = false
                 typedOnSymbolPage = false
+                showsEverydayMarksPage = true
                 if page == .letters { clearSymbolMarksOverride() }
                 if authoredPageMissingInputModeSwitchFallback { showAuthoredPageNeedsGlobeHint() }
                 // Decided once per visit: committing the composition with the first symbol

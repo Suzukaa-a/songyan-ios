@@ -133,8 +133,9 @@ enum SymbolPageTable {
     /// 常用, then 最近 (once something has been typed from this page or the symbol
     /// library), 中文, 英文, 括号, then the library's sets. A library set whose every
     /// symbol is already in a built-in tab (the default 标点 set) is not repeated.
+    /// `leadingMarks` are the everyday marks the pairing reaches nowhere else; 常用 lists them first.
     static func phoneSymbolCategories(
-        ascii: Bool, recents: [String] = [], library: [LibraryCategory] = []
+        ascii: Bool, recents: [String] = [], library: [LibraryCategory] = [], leadingMarks: [String] = []
     ) -> [PhoneSymbolCategory] {
         func category(_ id: String, _ title: String, _ symbols: [String]) -> PhoneSymbolCategory {
             var seen = Set<String>()
@@ -142,7 +143,9 @@ enum SymbolPageTable {
                 id: id, title: title,
                 caps: literals("ps-\(id)", symbols.filter { !$0.isEmpty && seen.insert($0).inserted }))
         }
-        let common = category(commonCategoryID, "常用", phoneCommonSymbols(ascii: ascii))
+        let common = category(
+            commonCategoryID, "常用",
+            KeyboardPageMarkCoverage.commonSymbols(phoneCommonSymbols(ascii: ascii), leading: leadingMarks))
         let widths = [
             category("chinese", "中文", phoneChineseSymbols),
             category("english", "英文", phoneEnglishSymbols),
@@ -164,6 +167,12 @@ enum SymbolPageTable {
     /// exposes every mark in these rows.
     static func symbolRows(ascii: Bool) -> [KeyboardRow] {
         rows(BuiltinLayouts.symbolPageRows(ascii: ascii), prefix: "sym", capPrefix: "s")
+    }
+
+    /// The row symbol page's extra first page (see `KeyboardPageMarkCoverage`); its own prefix
+    /// keeps the caps distinct from the usual symbol rows.
+    static func everydayRows(_ values: [[String]]) -> [KeyboardRow] {
+        rows(values, prefix: "everyday", capPrefix: "e")
     }
 
     /// One `KeyboardRow` per canonical character row; the prefix keeps the caps'

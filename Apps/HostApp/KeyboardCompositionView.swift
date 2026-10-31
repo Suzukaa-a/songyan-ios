@@ -194,6 +194,9 @@ struct KeyboardCompositionView: View {
                 if let note = pageNote(page) {
                     Text(note).font(.footnote).foregroundStyle(.secondary)
                 }
+                if kind == .symbols, let note = missingMarksNote(symbols: page) {
+                    Text(note).font(.footnote).foregroundStyle(.orange)
+                }
                 if !KeyboardPagePresets.all.contains(where: { $0.id == page.id }) {
                     Button("编辑页面") { openPageEditor(page) }
                 }
@@ -241,6 +244,14 @@ struct KeyboardCompositionView: View {
         default:
             return nil
         }
+    }
+
+    /// The everyday marks this pairing types nowhere, when the user's own symbol page would have
+    /// to carry them; a built-in symbol page takes them over itself.
+    private func missingMarksNote(symbols: KeyboardPageDefinition) -> String? {
+        KeyboardPageMarkCoverage.pairingNote(
+            letters: mainLayout, numeric: manager.registry.page(id: draft.numericPageID), symbols: symbols,
+            mainLayoutIsPhoneKeypad: mainLayoutIsPhoneKeypad)
     }
 
     private func copyPage(

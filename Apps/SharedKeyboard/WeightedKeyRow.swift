@@ -73,6 +73,8 @@ struct KeyAreaRenderToken: Equatable {
     let numericPageReachesSymbols: Bool
     /// Authored symbol-lock keys redraw their selected state; the token is what lets the gate see it.
     let symbolPageLocked: Bool
+    /// The row symbol page's switch turns between its extra everyday-marks page and the usual rows.
+    let showsEverydayMarksPage: Bool
     /// The open category of a categorized authored page (its rail and grid render inside the gate).
     let symbolCategoryID: String
     /// An authored page swaps its main area for the expanded candidate list inside the gate.

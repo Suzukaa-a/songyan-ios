@@ -613,7 +613,7 @@ extension SymbolLibraryModel {
     /// the built-in tabs followed by the library's sets. `ascii` follows the real input language;
     /// an explicit symbol toggle only changes explicitly paired keys.
     func pageCategories(
-        authored: [KeyboardPageCategory]?, ascii: Bool, showsGlobe: Bool
+        authored: [KeyboardPageCategory]?, ascii: Bool, showsGlobe: Bool, leadingMarks: [String] = []
     ) -> [SymbolPageTable.PhoneSymbolCategory] {
         if let authored {
             return SymbolPageTable.authoredCategories(
@@ -627,6 +627,7 @@ extension SymbolLibraryModel {
                 SymbolPageTable.LibraryCategory(
                     id: category.id, title: category.name,
                     symbols: catalog.items(in: category.id).map(\.text))
-            })
+            },
+            leadingMarks: leadingMarks)
     }
 }

@@ -343,10 +343,12 @@ extension KeyboardPanelView {
     }
 
     var phoneSymbolCategories: [SymbolPageTable.PhoneSymbolCategory] {
-        symbolLibrary.pageCategories(
-            authored: pageDefinition?.categories,
-            ascii: controller.isEnglishMode || controller.usesASCIIPunctuation,
-            showsGlobe: systemKeyboardSwitch != nil)
+        let ascii = controller.isEnglishMode || controller.usesASCIIPunctuation
+        let authored = pageDefinition?.categories
+        return symbolLibrary.pageCategories(
+            authored: authored, ascii: ascii, showsGlobe: systemKeyboardSwitch != nil,
+            // Only the built-in tabs take the pairing's missing marks; a user's categories stay as made.
+            leadingMarks: authored == nil ? pairingMissingMarks(ascii: ascii) : [])
     }
 
     /// Both rails go through the one policy: only the bundled T9 gets the

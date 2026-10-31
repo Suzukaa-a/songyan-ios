@@ -124,6 +124,47 @@ extension KeyboardPanelView {
         }
     }
 
+    /// The everyday marks of the `ascii` branch that no page of this pairing types with a tap; the
+    /// built-in symbol page takes them over. Memoized: the key area asks on every render.
+    func pairingMissingMarks(ascii: Bool) -> [String] {
+        let key = PageResolutionMemo.MissingMarksKey(
+            composition: compositionMemoKey, needsSwitchEntry: systemKeyboardSwitch != nil,
+            mainLayoutIsPhoneKeypad: usesPhoneDefinition, mainLayoutID: activeDefinition?.id, ascii: ascii)
+        return pageMemo.missingMarks(for: key) {
+            let composition = selectedComposition
+            var numeric = composition.flatMap { layoutRegistry?.page(id: $0.pageID(for: .numeric)) }
+            var symbols = composition.flatMap { layoutRegistry?.page(id: $0.pageID(for: .symbols)) }
+            // A page skipped for a missing system-switch entry is replaced by the built-in one.
+            for page in [numeric, symbols] {
+                guard let authored = page, key.needsSwitchEntry, authored.chrome != nil,
+                    !authored.hasInputModeSwitchKey
+                else { continue }
+                if authored.kind == .numeric { numeric = nil } else { symbols = nil }
+            }
+            return KeyboardPageMarkCoverage.missingMarks(
+                letters: activeDefinition, numeric: numeric, symbols: symbols,
+                mainLayoutIsPhoneKeypad: key.mainLayoutIsPhoneKeypad, ascii: ascii)
+        }
+    }
+
+    /// The row symbol page's extra first page, or nil when this visit shows the usual rows: the
+    /// pairing reaches every everyday mark, the page is not the built-in row page, or the switch
+    /// already turned to the second page.
+    var everydayMarkRows: [KeyboardRow]? {
+        guard page == .symbols, showsEverydayMarksPage else { return nil }
+        let symbolPage = selectedComposition.flatMap { layoutRegistry?.page(id: $0.pageID(for: .symbols)) }
+        guard
+            KeyboardPageMarkCoverage.symbolPageForm(symbolPage, mainLayoutIsPhoneKeypad: usesPhoneDefinition)
+                == .builtInRows,
+            pageDefinition == nil || pageDefinition?.chrome == nil
+        else { return nil }
+        let ascii = effectiveUsesASCIIPunctuation
+        let rows = KeyboardPageMarkCoverage.extraSymbolPageRows(
+            missing: pairingMissingMarks(ascii: ascii), ascii: ascii)
+        guard !rows.isEmpty else { return nil }
+        return SymbolPageTable.everydayRows(rows)
+    }
+
     /// Whether the authored page draws a live Return title or clear-input enabled state.
     var pageDefinitionReadsComposition: Bool { pageFacts.readsComposition }
 
@@ -213,6 +254,14 @@ extension KeyboardPanelView {
             emitKeyFeedback()
             page = target
             showsAllCandidates = false
+        }
+    }
+
+    /// The extra everyday-marks page's switch, in the same slot: it turns to the usual symbol rows.
+    var moreSymbolsKey: some View {
+        MarkPageSwitchKey(target: .symbols, title: "#+=", accessibilityText: "打开更多符号") {
+            emitKeyFeedback()
+            showsEverydayMarksPage = false
         }
     }
 
@@ -552,6 +601,14 @@ final class PageResolutionMemo {
         let mainLayoutIsPhoneKeypad: Bool
     }
 
+    struct MissingMarksKey: Equatable {
+        let composition: CompositionKey
+        let needsSwitchEntry: Bool
+        let mainLayoutIsPhoneKeypad: Bool
+        let mainLayoutID: String?
+        let ascii: Bool
+    }
+
     struct ResolutionKey: Equatable {
         let paired: PairedKey
         let usesASCIIPunctuation: Bool
@@ -573,6 +630,8 @@ final class PageResolutionMemo {
     private var resolved: Resolution?
     private var numericReachKey: NumericReachKey?
     private var numericReach: Bool?
+    private var missingMarksKey: MissingMarksKey?
+    private var missingMarks: [String]?
 
     func composition(for key: CompositionKey, resolve: () -> KeyboardComposition?) -> KeyboardComposition? {
         if compositionKey == key { return composition }
@@ -603,6 +662,14 @@ final class PageResolutionMemo {
         let value = resolve()
         numericReachKey = key
         numericReach = value
+        return value
+    }
+
+    func missingMarks(for key: MissingMarksKey, resolve: () -> [String]) -> [String] {
+        if let missingMarks, missingMarksKey == key { return missingMarks }
+        let value = resolve()
+        missingMarksKey = key
+        missingMarks = value
         return value
     }
 
