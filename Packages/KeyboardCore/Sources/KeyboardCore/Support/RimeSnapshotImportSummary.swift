@@ -29,7 +29,9 @@ public enum RimeSnapshotImportSummary {
     /// What the user confirms: the dictionaries that will be offered to the input scheme in use, and the files left out.
     public static func confirmation(for collected: CollectedSnapshots, sourceName: String) -> String {
         var entriesByDictionary: [String: Int] = [:]
-        for snapshot in collected.snapshots { entriesByDictionary[snapshot.dictionary, default: 0] += snapshot.entryCount }
+        for snapshot in collected.snapshots {
+            entriesByDictionary[snapshot.dictionary, default: 0] += snapshot.entryCount
+        }
         let total = collected.snapshots.reduce(0) { $0 + $1.entryCount }
         var lines = ["\(collected.snapshots.count) 份词库，共 \(total) 条，会并入「\(sourceName)」："]
         let names = entriesByDictionary.keys.sorted()

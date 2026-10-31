@@ -51,7 +51,7 @@ final class RimeUserDbTextTests: XCTestCase {
             Data(text.replacingOccurrences(of: "#@/db_name\tluna_pinyin\n", with: "").utf8),
             Data("junk\n".utf8),
             Data(),
-            Data(text.replacingOccurrences(of: "#@/db_type\tuserdb", with: "#@/db_type\tuserdb\n#@/db_type\tuserdb").utf8),
+            Data(text.replacingOccurrences(of: "userdb\n", with: "userdb\n#@/db_type\tuserdb\n").utf8),
         ]
         for data in bad {
             XCTAssertThrowsError(try RimeUserDbText.inspect(data))

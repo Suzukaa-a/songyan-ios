@@ -97,7 +97,8 @@ private enum LearningBackupIO {
         try await LearningTransferIO.async {
             guard url.isFileURL else { throw LearningBackupUserError.unreadableFile }
             let resolved = url.resolvingSymlinksInPath()
-            guard let values = try? resolved.resourceValues(forKeys: [.isDirectoryKey, .isRegularFileKey, .fileSizeKey]),
+            let keys: Set<URLResourceKey> = [.isDirectoryKey, .isRegularFileKey, .fileSizeKey]
+            guard let values = try? resolved.resourceValues(forKeys: keys),
                 let node = DiskPickedNode(url: resolved)
             else { throw LearningBackupUserError.unreadableFile }
             do {

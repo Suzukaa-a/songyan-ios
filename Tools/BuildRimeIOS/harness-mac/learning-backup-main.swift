@@ -259,7 +259,8 @@ struct LearningBackupMain {
         let ownBefore = try foreignDestination.backupLearningData()
         let sourceText = String(decoding: snapshots[0].data, as: UTF8.self)
         func foreign(name: String, commitCount: Int) -> RimeLearningSnapshot {
-            let lines = sourceText.split(separator: "\n", omittingEmptySubsequences: false).compactMap { line -> String? in
+            let rows = sourceText.split(separator: "\n", omittingEmptySubsequences: false)
+            let lines = rows.compactMap { line -> String? in
                 if line.hasPrefix("#@/rime_version") || line.hasPrefix("#@/user_id") { return nil }
                 if line.hasPrefix("#@/db_name") { return "#@/db_name\t\(name).userdb" }
                 return line.replacingOccurrences(of: "c=1 ", with: "c=\(commitCount) ")

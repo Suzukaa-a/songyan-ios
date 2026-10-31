@@ -196,7 +196,8 @@ final class RimeSnapshotCollectorTests: XCTestCase {
         try Data("x".utf8).write(to: inner.appendingPathComponent("installation.yaml"))
         try Data(repeating: 0x20, count: 100).write(to: root.appendingPathComponent("big.userdb.txt"))
         try FileManager.default.createSymbolicLink(
-            at: root.appendingPathComponent("link.userdb.txt"), withDestinationURL: inner.appendingPathComponent("luna_pinyin.userdb.txt"))
+            at: root.appendingPathComponent("link.userdb.txt"),
+            withDestinationURL: inner.appendingPathComponent("luna_pinyin.userdb.txt"))
 
         let node = try XCTUnwrap(DiskPickedNode(url: root))
         let files = try RimeSnapshotCollector.files(in: node)
