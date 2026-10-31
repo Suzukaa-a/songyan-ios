@@ -124,6 +124,19 @@ final class BuiltinLayoutSplitTests: XCTestCase {
         XCTAssertEqual(drawn(withChrome), [])
     }
 
+    /// The page preview resolves the English page through the same rule with the layout's hand
+    /// cuts as the inherited split, so it shows what the keyboard draws.
+    func testThePreviewOfThePresetEnglishPageShowsTheHandCutsOnBothBundledLayouts() throws {
+        let on = LayoutSplitConfiguration(activation: .always)
+        for layout in [BuiltinLayouts.qwerty26.settingSplit(on), BuiltinLayouts.merged18.settingSplit(on)] {
+            let inherited = try XCTUnwrap(BuiltinLayouts.handSplit(for: layout), layout.id)
+            let drawn = ActiveLayoutSplit.drawn(
+                main: inherited, mainWidth: 1024, showsMainLetters: false, showsEnglishLetters: true,
+                authoredPage: KeyboardPagePresets.englishQwerty, pageSplit: nil, contentWidth: 1024)
+            XCTAssertEqual(drawn?.rowBreaks, [5, 5, 5], layout.id)
+        }
+    }
+
     /// A saved copy keeps the cuts the editor showed; a changed note on the bundled layout would
     /// not drop them.
     func testACopyKeepsTheShownHandCuts() throws {

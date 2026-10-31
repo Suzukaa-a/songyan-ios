@@ -84,6 +84,9 @@ struct KeyboardCompositionView: View {
 
     private var mainLayout: LayoutDefinition? { manager.registry.resolvedLayout(id: draft.mainLayoutID) }
 
+    /// The hand cuts the selected main layout is drawn with, as the keyboard resolves them.
+    private var mainHandSplit: LayoutSplitConfiguration? { mainLayout.flatMap(BuiltinLayouts.handSplit(for:)) }
+
     /// An automatic page previews against the selected main layout, so a phone keypad previews its
     /// digit pad instead of a row page it will never show.
     private var mainLayoutIsPhoneKeypad: Bool { mainLayout.map(PhoneKeypadStructure.matches) ?? false }
@@ -150,7 +153,8 @@ struct KeyboardCompositionView: View {
         .sheet(item: $editingPage) { page in
             NavigationStack {
                 KeyboardPageEditorView(
-                    page: page, inheritedSplit: mainLayout?.split, isPhoneLayout: mainLayoutIsPhoneKeypad,
+                    page: page, inheritedSplit: mainHandSplit ?? mainLayout?.split, usesHandCuts: mainHandSplit != nil,
+                    isPhoneLayout: mainLayoutIsPhoneKeypad,
                     mainLayout: keyboard.layout
                 ) { saved in draft.setPageID(saved.id, for: saved.kind) }
             }
@@ -182,7 +186,8 @@ struct KeyboardCompositionView: View {
             }
             if let page = manager.registry.page(id: draft.pageID(for: kind)) {
                 KeyboardPagePreviewView(
-                    page: page, inheritedSplit: mainLayout?.split, isPhoneLayout: mainLayoutIsPhoneKeypad,
+                    page: page, inheritedSplit: mainHandSplit ?? mainLayout?.split, usesHandCuts: mainHandSplit != nil,
+                    isPhoneLayout: mainLayoutIsPhoneKeypad,
                     mainLayout: keyboard.layout, skin: AppearanceManager.shared.applied.skin)
                 if let note = pageNote(page) {
                     Text(note).font(.footnote).foregroundStyle(.secondary)

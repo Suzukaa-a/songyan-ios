@@ -19,13 +19,15 @@ struct KeyboardPageEditorView: View {
     private let original: KeyboardPageDefinition
     var onSaved: ((KeyboardPageDefinition) -> Void)?
     let inheritedSplit: LayoutSplitConfiguration?
+    /// The inherited split carries the bundled layout's hand cuts, so the English page takes them too.
+    let usesHandCuts: Bool
     let isPhoneLayout: Bool
     /// The shape of the keyboard this page is paired with, so the preview takes its width.
     let mainLayout: KeyboardLayoutKind?
 
     init(
         page: KeyboardPageDefinition, inheritedSplit: LayoutSplitConfiguration? = nil,
-        isPhoneLayout: Bool = false, mainLayout: KeyboardLayoutKind? = nil,
+        usesHandCuts: Bool = false, isPhoneLayout: Bool = false, mainLayout: KeyboardLayoutKind? = nil,
         onSaved: ((KeyboardPageDefinition) -> Void)? = nil
     ) {
         let materialized = page.materialized()
@@ -34,6 +36,7 @@ struct KeyboardPageEditorView: View {
         _selected = State(initialValue: materialized.firstKeyPath ?? .row(0, key: 0))
         self.onSaved = onSaved
         self.inheritedSplit = inheritedSplit
+        self.usesHandCuts = usesHandCuts
         self.isPhoneLayout = isPhoneLayout
         self.mainLayout = mainLayout
     }
@@ -67,7 +70,8 @@ struct KeyboardPageEditorView: View {
             }
             Section("预览") {
                 KeyboardPagePreviewView(
-                    page: draft, inheritedSplit: inheritedSplit, isPhoneLayout: isPhoneLayout,
+                    page: draft, inheritedSplit: inheritedSplit, usesHandCuts: usesHandCuts,
+                    isPhoneLayout: isPhoneLayout,
                     mainLayout: mainLayout, skin: AppearanceManager.shared.applied.skin,
                     onSelectKey: { selected = $0 },
                     selectedPageKey: selected)

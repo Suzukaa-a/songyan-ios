@@ -144,6 +144,9 @@ extension KeyboardFixedEditingRail {
 public struct KeyboardPagePreviewView: View {
     public let page: KeyboardPageDefinition
     public var inheritedSplit: LayoutSplitConfiguration?
+    /// The inherited split carries the bundled layout's hand cuts, so the English page takes them
+    /// too, exactly as the key area does.
+    public var usesHandCuts: Bool
     /// The running main layout is a phone keypad: an automatic page then shows its digit pad
     /// instead of the ten-column row page, exactly as the key area does.
     public var isPhoneLayout: Bool
@@ -164,7 +167,7 @@ public struct KeyboardPagePreviewView: View {
 
     public init(
         page: KeyboardPageDefinition, inheritedSplit: LayoutSplitConfiguration? = nil,
-        isPhoneLayout: Bool = false, mainLayout: KeyboardLayoutKind? = nil,
+        usesHandCuts: Bool = false, isPhoneLayout: Bool = false, mainLayout: KeyboardLayoutKind? = nil,
         skin: SkinDefinition = .systemDefault, previewDark: Bool? = nil,
         onSelectKey: ((KeyboardPageKeyPath) -> Void)? = nil,
         onSelectCategoryKey: ((String, Int) -> Void)? = nil, selectedCategoryKey: (String, Int)? = nil,
@@ -172,6 +175,7 @@ public struct KeyboardPagePreviewView: View {
     ) {
         self.page = page
         self.inheritedSplit = inheritedSplit
+        self.usesHandCuts = usesHandCuts
         self.isPhoneLayout = isPhoneLayout
         self.mainLayout = mainLayout
         self.skin = skin
@@ -207,7 +211,8 @@ public struct KeyboardPagePreviewView: View {
                 .padding(
                     .horizontal,
                     KeyboardPanelRules.splitEdgeInset(
-                        split: pageSplit(resolution.page?.split, widths: widths), contentWidth: widths.content)
+                        split: pageSplit(resolution.page?.split, widths: widths, authored: resolution.page),
+                        contentWidth: widths.content)
                 )
                 .padding(4)
                 .background(appearance.background, in: RoundedRectangle(cornerRadius: 8))
@@ -234,7 +239,7 @@ public struct KeyboardPagePreviewView: View {
     @ViewBuilder
     private func content(_ resolution: KeyboardPageResolution, widths: KeyboardPreviewWidths) -> some View {
         if let authored = resolution.page {
-            let split = pageSplit(authored.split, widths: widths)
+            let split = pageSplit(authored.split, widths: widths, authored: authored)
             if authored.chrome != nil {
                 authoredChromePreview(authored, split: split, widths: widths)
             } else if authored.kind == .symbols && authored.symbolPresentation == .categorized {
@@ -261,10 +266,14 @@ public struct KeyboardPagePreviewView: View {
     }
 
     /// An automatic page draws no page object, so only an authored page's own split applies.
-    private func pageSplit(_ split: LayoutSplitConfiguration?, widths: KeyboardPreviewWidths) -> ActiveLayoutSplit? {
+    private func pageSplit(
+        _ split: LayoutSplitConfiguration?, widths: KeyboardPreviewWidths,
+        authored: KeyboardPageDefinition? = nil
+    ) -> ActiveLayoutSplit? {
         KeyboardPanelRules.activeSplit(
             main: inheritedSplit, mainWidth: widths.mainSplit, showsMainLetters: false,
-            pageSplit: split, contentWidth: widths.content)
+            pageSplit: split, contentWidth: widths.content,
+            showsEnglishLetters: usesHandCuts && page.kind == .english, authoredPage: authored)
     }
 
     private var mainAreaHeight: CGFloat {
