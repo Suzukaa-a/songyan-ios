@@ -75,26 +75,24 @@ public enum KeyboardPageMarkCoverage {
         return everydayMarkRows(ascii: ascii).joined().filter { !reached.contains($0) }
     }
 
-    /// The row symbol page's extra first page, shaped like the 123 page without its digit row: the
-    /// second and third rows hold the missing marks of the 123 page's two mark rows, in order, so a
-    /// mark sits where it does on the full 123 page. When the third row (between the page switch
-    /// and Delete) would be empty, it takes the last marks of the row above, so the two controls
-    /// never stand alone. Empty when nothing is missing: the symbol page then has no extra page.
+    /// The row symbol page's extra first page, in the symbol page's own rows (ten, ten and the seven
+    /// between the page switch and Delete), so it has that page's key widths and no row stands
+    /// empty. The missing marks come first in the 123 page's order; the slots they leave take the
+    /// symbol page's own marks from its start, which are the ones the next page opens with, so a mark
+    /// appears at most once here and never a digit. Empty when nothing is missing: the symbol page
+    /// then has no extra page.
     public static func extraSymbolPageRows(missing: [String], ascii: Bool) -> [[String]] {
         guard !missing.isEmpty else { return [] }
-        let wanted = Set(missing)
-        let markRows = everydayMarkRows(ascii: ascii).map { $0.filter(wanted.contains) }
-        var middle = markRows.first ?? []
-        var bottom = markRows.dropFirst().flatMap { $0 }
-        if bottom.isEmpty {
-            bottom = Array(middle.suffix(thirdRowMarks))
-            middle.removeLast(bottom.count)
+        let shape = BuiltinLayouts.symbolPageRows(ascii: ascii)
+        var seen = Set<String>()
+        let marks = (missing + shape.flatMap { $0 }).filter { seen.insert($0).inserted }
+            .prefix(shape.reduce(0) { $0 + $1.count })
+        var next = marks.startIndex
+        return shape.map { row in
+            defer { next = marks.index(next, offsetBy: row.count) }
+            return Array(marks[next..<marks.index(next, offsetBy: row.count)])
         }
-        return [[], middle, bottom]
     }
-
-    /// Marks between the page switch and Delete on a row page's third row.
-    static let thirdRowMarks = 7
 
     /// 常用 with the missing marks first; a mark already in it moves to the front instead of
     /// appearing twice.

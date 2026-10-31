@@ -74,16 +74,35 @@ final class KeyboardPageMarkCoverageTests: XCTestCase {
 
     func testTheRowSymbolPageGrowsAFirstPageOnlyWhenMarksAreMissing() {
         XCTAssertEqual(KeyboardPageMarkCoverage.extraSymbolPageRows(missing: [], ascii: false), [])
+        for (ascii, missing) in [(false, chineseKeypadMissing), (true, asciiKeypadMissing), (true, ["'", "#"])] {
+            let rows = KeyboardPageMarkCoverage.extraSymbolPageRows(missing: missing, ascii: ascii)
+            let shape = BuiltinLayouts.symbolPageRows(ascii: ascii)
+            XCTAssertEqual(rows.map(\.count), shape.map(\.count))
+            let marks = rows.flatMap { $0 }
+            XCTAssertEqual(marks.count, Set(marks).count)
+            XCTAssertTrue(marks.allSatisfy { mark in !mark.contains(where: \.isNumber) })
+            XCTAssertEqual(Array(marks.prefix(missing.count)), missing)
+            XCTAssertEqual(
+                Array(marks.dropFirst(missing.count)),
+                Array(shape.flatMap { $0 }.filter { !missing.contains($0) }.prefix(marks.count - missing.count)))
+        }
         XCTAssertEqual(
-            KeyboardPageMarkCoverage.extraSymbolPageRows(missing: chineseKeypadMissing, ascii: false),
-            [[], ["-", "/", "：", "；", "（", "）", "¥", "@", "“", "”"], ["。", "、", "…", "%"]])
-        XCTAssertEqual(
-            KeyboardPageMarkCoverage.extraSymbolPageRows(missing: ["'", "#"], ascii: true), [[], [], ["'", "#"]])
-        // The third row never holds only the page switch and Delete.
-        XCTAssertEqual(
-            KeyboardPageMarkCoverage.extraSymbolPageRows(
-                missing: ["-", "/", ":", ";", "(", ")", "$", "&"], ascii: true),
-            [[], ["-"], ["/", ":", ";", "(", ")", "$", "&"]])
+            KeyboardPageMarkCoverage.extraSymbolPageRows(missing: chineseKeypadMissing, ascii: false).first,
+            ["-", "/", "：", "；", "（", "）", "¥", "@", "“", "”"])
+    }
+
+    /// The keyboard draws these rows in the symbol page's own grid, so equal row counts mean equal
+    /// key widths, and the third-row switch and Delete are the symbol page's.
+    func testTheKeypadPairingGivesTheExtraPageTheSymbolPagesGrid() {
+        for ascii in [false, true] {
+            let missing = missing(numeric: KeyboardPagePresets.numericKeypad, ascii: ascii)
+            let rows = KeyboardPageMarkCoverage.extraSymbolPageRows(missing: missing, ascii: ascii)
+            XCTAssertEqual(rows.map(\.count), BuiltinLayouts.symbolPageRows(ascii: ascii).map(\.count))
+            XCTAssertTrue(rows.allSatisfy { !$0.isEmpty })
+            XCTAssertEqual(Array(rows.flatMap { $0 }.prefix(missing.count)), missing)
+            let full = self.missing(numeric: KeyboardPagePresets.numericAutomatic, ascii: ascii)
+            XCTAssertEqual(KeyboardPageMarkCoverage.extraSymbolPageRows(missing: full, ascii: ascii), [])
+        }
     }
 
     func testCommonPutsTheMissingMarksFirstWithoutRepeatingThem() {
