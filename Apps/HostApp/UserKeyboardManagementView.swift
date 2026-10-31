@@ -2,9 +2,10 @@ import KeyboardCore
 import LayoutKit
 import SwiftUI
 
-/// 我的键盘: the only place to choose what is on the keyboard. Pairs are grouped by input method; the
-/// toggles edit a draft published once by "Save", while "Use" on a card publishes the draft plus that
-/// pair and switches to it right away. The pair in use is marked 正在使用.
+/// 我的键盘: the only place to choose what is on the keyboard. The added keyboards come first as a
+/// short list (each opens its 页面搭配); below, every input method folds into one row whose layouts
+/// are checked into a draft published once by "Save". "Use" publishes the draft plus that pair and
+/// switches to it right away. The pair in use is marked 正在使用.
 struct UserKeyboardManagementView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var center: UserKeyboardCenter
@@ -16,6 +17,11 @@ struct UserKeyboardManagementView: View {
     @State private var confirmingDiscard = false
     @State private var isSaving = false
     @State private var configuringKeyboard: UserKeyboard?
+    /// Input methods unfolded in the add list; seeded once so a later save does not refold them.
+    @State private var expandedGroupIDs: Set<String> = []
+    /// Input-method order from the first read: saving puts added keyboards first in `items`, and the
+    /// add list must not reshuffle under the finger.
+    @State private var groupOrder: [String] = []
     @ObservedObject private var layoutManager = LayoutManager.shared
 
     init(
@@ -37,13 +43,21 @@ struct UserKeyboardManagementView: View {
                             .foregroundStyle(.orange)
                     }
                 }
-                // Every input method keeps its own section, so a checked keyboard is never hidden.
-                ForEach(groups, id: \.id) { group in
-                    Section(group.name) {
-                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 260), spacing: 12)], spacing: 12) {
-                            ForEach(group.items) { item in keyboardCard(item, inputMethod: group.name) }
+                // Checked keyboards are always listed here, so folding an input method never hides one.
+                if !selectedItems.isEmpty {
+                    Section(UserTerminology.userKeyboardAdded) {
+                        ForEach(selectedItems) { item in addedRow(item) }
+                    }
+                }
+                if !groups.isEmpty {
+                    Section(UserTerminology.addUserKeyboard) {
+                        ForEach(groups, id: \.id) { group in
+                            DisclosureGroup(isExpanded: expansion(for: group.id)) {
+                                ForEach(group.items) { item in pickRow(item, inputMethod: group.name) }
+                            } label: {
+                                groupLabel(group)
+                            }
                         }
-                        .padding(.vertical, 6)
                     }
                 }
                 if groups.isEmpty {
@@ -211,15 +225,28 @@ struct UserKeyboardManagementView: View {
             grouped[item.inputMethodID, default: []].append(item)
             names[item.inputMethodID] = item.inputMethodName
         }
-        return order.map { Group(id: $0, name: names[$0] ?? "输入方式", items: grouped[$0] ?? []) }
+        let rank = Dictionary(groupOrder.enumerated().map { ($1, $0) }, uniquingKeysWith: { first, _ in first })
+        let stable = order.enumerated().sorted {
+            (rank[$0.element] ?? groupOrder.count + $0.offset, $0.offset)
+                < (rank[$1.element] ?? groupOrder.count + $1.offset, $1.offset)
+        }
+        return stable.map { _, id in
+            Group(
+                id: id, name: names[id] ?? "输入方式",
+                items: (grouped[id] ?? []).sorted { Self.layoutRank($0.layout) < Self.layoutRank($1.layout) })
+        }
+    }
+
+    private static func layoutRank(_ layout: KeyboardLayoutKind) -> Int {
+        KeyboardLayoutKind.allCases.firstIndex(of: layout) ?? Int.max
     }
 
     private var hasChanges: Bool { initialized && hasEditedSelection && selectedIDs != baselineIDs }
 
     /// Keyboards turned on in the draft (in page order).
-    private var selectedRoster: [UserKeyboard] {
-        items.filter { selectedIDs.contains($0.id) }.map(\.keyboard)
-    }
+    private var selectedItems: [Item] { items.filter { selectedIDs.contains($0.id) } }
+
+    private var selectedRoster: [UserKeyboard] { selectedItems.map(\.keyboard) }
 
     /// No keyboard turned on after the change: cannot save, explained in place.
     private var needsOneKeyboard: Bool { hasChanges && selectedRoster.isEmpty }
@@ -246,85 +273,130 @@ struct UserKeyboardManagementView: View {
                 .map { $0.keyboard.compositionKey })
     }
 
-    /// The card body toggles the pair in the draft; the footer is either 正在使用 or a separate "Use" button.
-    private func keyboardCard(_ item: Item, inputMethod: String) -> some View {
-        let selected = selectedIDs.contains(item.id)
+    /// The paired main layout's name when it is not the shape's own preset, shown under the shape.
+    private func customMainName(_ item: Item, main: LayoutDefinition) -> String? {
+        main.id == BuiltinLayouts.preset(for: item.layout.builtinLayout).id ? nil : main.name
+    }
+
+    /// An added keyboard: the row opens its 页面搭配; the trailing control is 正在使用 or "Use".
+    private func addedRow(_ item: Item) -> some View {
         let inUse = center.currentKeyboardID == item.id
-        let name = UserTerminology.userKeyboardToggleLabel(inputMethod: inputMethod, layout: item.layout)
         let main = mainLayout(for: item)
-        // The card names the keyboard shape; a paired custom main layout is named under it.
-        let customMain = main.id == BuiltinLayouts.preset(for: item.layout.builtinLayout).id ? nil : main.name
-        return VStack(alignment: .leading, spacing: 8) {
+        let customMain = customMainName(item, main: main)
+        return HStack(spacing: 12) {
             Button {
-                binding(for: item.id).wrappedValue.toggle()
+                configuringKeyboard = item.keyboard
             } label: {
-                VStack(alignment: .leading, spacing: 10) {
-                    UserKeyboardMiniature(definition: main)
-                        .frame(height: 64)
-                        .accessibilityHidden(true)
-                    HStack(alignment: .firstTextBaseline) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(UserTerminology.layoutName(item.layout))
-                                .font(.subheadline.weight(.medium))
-                                .foregroundStyle(.primary)
-                            if let customMain {
-                                Text(customMain).font(.caption).foregroundStyle(.secondary).lineLimit(1)
-                            }
+                HStack(spacing: 12) {
+                    LayoutThumbnail(definition: main).accessibilityHidden(true)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(item.keyboard.title).foregroundStyle(.primary).lineLimit(1)
+                        if let customMain {
+                            Text(customMain).font(.caption).foregroundStyle(.secondary).lineLimit(1)
                         }
-                        .fixedSize(horizontal: false, vertical: true)
-                        Spacer(minLength: 4)
-                        Image(systemName: selected ? "checkmark.circle.fill" : "circle")
-                            .foregroundStyle(selected ? Color.accentColor : Color.secondary)
                     }
+                    Spacer(minLength: 4)
                 }
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .disabled(isBusy || !center.supportsManagement)
-            .accessibilityIdentifier("userKeyboard.card." + item.id)
-            .accessibilityLabel(customMain.map { "\(name)，\($0)" } ?? name)
-            .accessibilityValue(
-                selected ? UserTerminology.userKeyboardSelected : UserTerminology.userKeyboardNotSelected
-            )
-            .accessibilityAddTraits(selected ? [.isSelected] : [])
-            .accessibilityHint(UserTerminology.userKeyboardDraftHint)
+            .disabled(isBusy)
+            .accessibilityIdentifier("userKeyboard.pages." + item.id)
+            .accessibilityLabel(customMain.map { "\(item.keyboard.title)，\($0)" } ?? item.keyboard.title)
+            .accessibilityHint("打开\(UserTerminology.pageComposition)")
             if inUse {
-                Label(UserTerminology.statusInUse, systemImage: "checkmark")
-                    .font(.footnote)
-                    .foregroundStyle(.green)
-                    .frame(minHeight: 28)
-                    .accessibilityLabel("\(name)，\(UserTerminology.statusInUse)")
+                HStack(spacing: 3) {
+                    Image(systemName: "checkmark")
+                    Text(UserTerminology.statusInUse)
+                }
+                .font(.footnote)
+                .foregroundStyle(.green)
+                .fixedSize()
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("\(item.keyboard.title)，\(UserTerminology.statusInUse)")
             } else {
                 Button(UserTerminology.startUsing) { use(item) }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
                     .disabled(isBusy || !center.supportsManagement)
                     .accessibilityIdentifier("userKeyboard.use." + item.id)
-                    .accessibilityLabel("\(UserTerminology.startUsing)\(name)")
+                    .accessibilityLabel("\(UserTerminology.startUsing)\(item.keyboard.title)")
             }
-            Button {
-                configuringKeyboard = item.keyboard
-            } label: {
-                Label(UserTerminology.pageComposition, systemImage: "square.stack.3d.up")
-                    .foregroundStyle(Color.accentColor)
-            }
-            .buttonStyle(.plain)
-            .font(.subheadline)
-            .accessibilityIdentifier("userKeyboard.pages." + item.id)
-            .accessibilityLabel("\(name)的\(UserTerminology.pageComposition)")
-            .disabled(isBusy)
+            Image(systemName: "chevron.right")
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(.tertiary)
+                .accessibilityHidden(true)
         }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            selected ? Color.accentColor.opacity(0.08) : Color(uiColor: .tertiarySystemGroupedBackground),
-            in: RoundedRectangle(cornerRadius: 14)
+        .alignmentGuide(.listRowSeparatorLeading) { _ in LayoutThumbnail.width + 12 }
+        .swipeActions {
+            Button("移除", role: .destructive) { binding(for: item.id).wrappedValue = false }
+                .disabled(isBusy || !center.supportsManagement)
+        }
+    }
+
+    private func groupLabel(_ group: Group) -> some View {
+        let added = group.items.filter { selectedIDs.contains($0.id) }.count
+        return HStack {
+            Text(group.name).foregroundStyle(.primary)
+            Spacer(minLength: 8)
+            if added > 0 {
+                Text("已添加 \(added) 个").font(.subheadline).foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    /// One layout of an input method: the row checks it into the draft; long-press uses it or opens
+    /// its 页面搭配 without adding it first.
+    private func pickRow(_ item: Item, inputMethod: String) -> some View {
+        let selected = selectedIDs.contains(item.id)
+        let name = UserTerminology.userKeyboardToggleLabel(inputMethod: inputMethod, layout: item.layout)
+        let main = mainLayout(for: item)
+        let customMain = customMainName(item, main: main)
+        return Button {
+            binding(for: item.id).wrappedValue.toggle()
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: selected ? "checkmark.circle.fill" : "circle")
+                    .font(.title3)
+                    .foregroundStyle(selected ? Color.accentColor : Color.secondary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(UserTerminology.layoutName(item.layout)).foregroundStyle(.primary)
+                    if let customMain {
+                        Text(customMain).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                    }
+                }
+                Spacer(minLength: 4)
+                LayoutThumbnail(definition: main).accessibilityHidden(true)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(isBusy || !center.supportsManagement)
+        .contextMenu {
+            if center.currentKeyboardID != item.id {
+                Button(UserTerminology.startUsing) { use(item) }
+                    .disabled(isBusy || !center.supportsManagement)
+            }
+            Button(UserTerminology.pageComposition) { configuringKeyboard = item.keyboard }
+                .disabled(isBusy)
+        }
+        .accessibilityIdentifier("userKeyboard.card." + item.id)
+        .accessibilityLabel(customMain.map { "\(name)，\($0)" } ?? name)
+        .accessibilityValue(
+            selected ? UserTerminology.userKeyboardSelected : UserTerminology.userKeyboardNotSelected
         )
-        .overlay(
-            RoundedRectangle(cornerRadius: 14)
-                .strokeBorder(
-                    selected ? Color.accentColor : Color.secondary.opacity(0.2), lineWidth: selected ? 2 : 1)
-        )
+        .accessibilityAddTraits(selected ? [.isSelected] : [])
+        .accessibilityHint(UserTerminology.userKeyboardDraftHint)
+        .accessibilityAction(named: UserTerminology.startUsing) { use(item) }
+        .accessibilityAction(named: UserTerminology.pageComposition) { configuringKeyboard = item.keyboard }
+    }
+
+    private func expansion(for id: String) -> Binding<Bool> {
+        Binding(
+            get: { expandedGroupIDs.contains(id) },
+            set: { open in
+                if open { expandedGroupIDs.insert(id) } else { expandedGroupIDs.remove(id) }
+            })
     }
 
     private func mainLayout(for item: Item) -> LayoutDefinition {
@@ -350,6 +422,15 @@ struct UserKeyboardManagementView: View {
         selectedIDs = ids.isEmpty ? Set(suggested.map { [$0.id] } ?? []) : ids
         baselineIDs = ids
         hasEditedSelection = false
+        if !initialized {
+            let all = groups
+            groupOrder = all.map(\.id)
+            // A short list stays open; a long one opens only where something is already added.
+            expandedGroupIDs = Set(
+                all.count <= 3
+                    ? all.map(\.id)
+                    : all.filter { $0.items.contains { selectedIDs.contains($0.id) } }.map(\.id))
+        }
         initialized = true
     }
 
@@ -378,28 +459,34 @@ struct UserKeyboardManagementView: View {
     }
 }
 
-/// Draws the shipped key positions and labels instead of a generic keyboard icon.
-private struct UserKeyboardMiniature: View {
+/// The layout's shape as bars as wide as its keys, with no labels: at list-row size, text only
+/// blurred the outline that tells 26, 14, 18 and 9 keys apart.
+private struct LayoutThumbnail: View {
+    static let width: CGFloat = 64
     let definition: LayoutDefinition
 
     var body: some View {
         Canvas { context, size in
-            let rows = definition.rows
+            let rows = definition.rows.filter { !$0.keys.isEmpty }
+            guard !rows.isEmpty else { return }
             let gap: CGFloat = 2
-            let height = (size.height - gap * CGFloat(max(rows.count - 1, 0))) / CGFloat(max(rows.count, 1))
+            let count = CGFloat(rows.count)
+            let barHeight = min(5, (size.height - gap * (count - 1)) / count)
+            let top = (size.height - barHeight * count - gap * (count - 1)) / 2
+            let color = GraphicsContext.Shading.color(Color.secondary.opacity(0.55))
             for (rowIndex, row) in rows.enumerated() {
-                let total = row.keys.reduce(0) { $0 + $1.widthWeight }
-                let usable = size.width - gap * CGFloat(max(row.keys.count - 1, 0))
+                let total = row.keys.reduce(0) { $0 + max($1.widthWeight, 0.1) }
+                let usable = size.width - gap * CGFloat(row.keys.count - 1)
+                let y = top + CGFloat(rowIndex) * (barHeight + gap)
                 var x: CGFloat = 0
                 for key in row.keys {
-                    let width = usable * CGFloat(key.widthWeight / max(total, 1))
-                    let rect = CGRect(x: x, y: CGFloat(rowIndex) * (height + gap), width: width, height: height)
-                    context.fill(Path(roundedRect: rect, cornerRadius: 3), with: .color(Color.primary.opacity(0.09)))
-                    let label = Text(key.label).font(.system(size: min(9, width * 0.65))).foregroundColor(.primary)
-                    context.draw(label, at: CGPoint(x: rect.midX, y: rect.midY))
+                    let width = usable * CGFloat(max(key.widthWeight, 0.1) / total)
+                    let rect = CGRect(x: x, y: y, width: width, height: barHeight)
+                    context.fill(Path(roundedRect: rect, cornerRadius: 1.5), with: color)
                     x += width + gap
                 }
             }
         }
+        .frame(width: Self.width, height: 36)
     }
 }
