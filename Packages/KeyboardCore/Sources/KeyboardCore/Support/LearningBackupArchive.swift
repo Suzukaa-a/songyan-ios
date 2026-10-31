@@ -43,6 +43,10 @@ public struct LearningBackupArchive: Codable, Equatable, Sendable {
     public static let currentVersion = 1
     /// Producer written by this implementation; together with version it declares whose backup this is.
     public static let expectedProducer = "keyboard-extension"
+    /// Producer of an archive built from snapshots of other Rime front-ends (`.userdb.txt` files the user
+    /// picked). Several snapshots may name the same dictionary, one per installation they came from, and
+    /// the keyboard extension merges only those the input scheme in use learns into.
+    public static let importProducer = "rime-userdb-import"
     /// Length of the lowercase hex SHA256 digest.
     public static let digestHexLength = 64
 
@@ -106,6 +110,9 @@ public struct LearningBackupArchive: Codable, Equatable, Sendable {
         return Date(timeIntervalSince1970: seconds.rounded(.down))
     }
 
+    /// Whether this archive comes from other Rime front-ends rather than from Songyan's own backup.
+    public var isImport: Bool { producer == LearningBackupArchive.importProducer }
+
     // MARK: - Validation (the single rule entry)
 
     /// Full validation. Every public entry point calls it.
@@ -113,7 +120,7 @@ public struct LearningBackupArchive: Codable, Equatable, Sendable {
         guard version == LearningBackupArchive.currentVersion else {
             throw LearningBackupArchiveError.unsupportedVersion(version)
         }
-        guard producer == LearningBackupArchive.expectedProducer else {
+        guard producer == LearningBackupArchive.expectedProducer || isImport else {
             throw LearningBackupArchiveError.unexpectedProducer
         }
         guard createdAt.timeIntervalSinceReferenceDate.isFinite else {
@@ -149,7 +156,7 @@ public struct LearningBackupArchive: Codable, Equatable, Sendable {
             let uniquenessKey = snapshot.name
                 .precomposedStringWithCanonicalMapping
                 .lowercased()
-            guard seenNames.insert(uniquenessKey).inserted else {
+            guard seenNames.insert(uniquenessKey).inserted || isImport else {
                 throw LearningBackupArchiveError.duplicateDictionaryName
             }
             // Do the cheap bound checks first, then compute the digest (no useless hashing of over-limit data).

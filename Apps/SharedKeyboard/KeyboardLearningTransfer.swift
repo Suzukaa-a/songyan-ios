@@ -332,6 +332,27 @@ public enum KeyboardLearningTransfer {
             return
         }
 
+        // Snapshots from other Rime front-ends: only the dictionaries this input scheme learns into are
+        // merged. Without a match nothing is written, not even the safety backup.
+        var importPlan: RimeEngine.ImportedLearningPlan?
+        if input.isImport {
+            let plan: RimeEngine.ImportedLearningPlan
+            do {
+                plan = try engine.planImportedLearningData(
+                    input.dictionaries.map { RimeLearningSnapshot(name: $0.name, data: $0.data) })
+            } catch {
+                try await fail(store, lease, claimed.id, message: "所选文件无法使用，未做任何修改。")
+                return
+            }
+            guard !plan.matching.isEmpty else {
+                try await fail(
+                    store, lease, claimed.id,
+                    message: "所选文件里没有当前输入方案用到的词库，未做任何修改。")
+                return
+            }
+            importPlan = plan
+        }
+
         // The complete safety backup must be on disk, with the flag published, before the merge starts.
         do {
             guard let safety = try snapshotArchive(claimed: claimed, engine: engine) else {
@@ -348,10 +369,14 @@ public enum KeyboardLearningTransfer {
         // The bridge throws `.mergeUnverified` only after a native write was attempted; every other
         // error happens before any write.
         do {
-            try engine.restoreLearningData(
-                input.dictionaries.map {
-                    RimeLearningSnapshot(name: $0.name, data: $0.data)
-                })
+            if let importPlan {
+                try engine.restoreImportedLearningData(importPlan.matching)
+            } else {
+                try engine.restoreLearningData(
+                    input.dictionaries.map {
+                        RimeLearningSnapshot(name: $0.name, data: $0.data)
+                    })
+            }
         } catch RimeLearningBackupError.mergeUnverified {
             try await fail(store, lease, claimed.id, message: "合并结果未能确认完整，学习数据可能已部分改变。")
             return
@@ -360,9 +385,17 @@ public enum KeyboardLearningTransfer {
             return
         }
 
+        let result = importPlan.map(importResultMessage)
         _ = try await LearningTransferIO.async {
-            try store.completeRestore(requestID: claimed.id, lease: lease)
+            try store.completeRestore(requestID: claimed.id, lease: lease, message: result)
         }
+    }
+
+    /// The receipt line of an import: what was merged, and how many of the picked files were left out.
+    nonisolated static func importResultMessage(_ plan: RimeEngine.ImportedLearningPlan) -> String {
+        let merged = "已并入 \(plan.matching.count) 份词库，共 \(plan.entryCount) 条。"
+        guard plan.skippedCount > 0 else { return merged }
+        return merged + "另有 \(plan.skippedCount) 份用不到，没有并入。"
     }
 
     nonisolated private static func fail(

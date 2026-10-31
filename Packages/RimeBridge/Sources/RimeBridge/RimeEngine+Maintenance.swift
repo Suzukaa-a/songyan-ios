@@ -28,6 +28,48 @@ extension RimeEngine {
         }
     }
 
+    /// What a batch of snapshots from other Rime front-ends would change here. Reads only; any engine
+    /// state is left as it is.
+    public struct ImportedLearningPlan: Equatable, Sendable {
+        /// The snapshots for a dictionary the input scheme in use learns into and that hold entries.
+        public let matching: [RimeLearningSnapshot]
+        /// Entries in `matching`.
+        public let entryCount: Int
+        /// Snapshots left out: another dictionary, or no entries.
+        public let skippedCount: Int
+    }
+
+    /// Splits snapshots from other front-ends into those this input scheme learns into and the rest.
+    /// Throws for a snapshot that is not a user dictionary at all. Writes nothing.
+    public func planImportedLearningData(_ snapshots: [RimeLearningSnapshot]) throws -> ImportedLearningPlan {
+        try queue.sync {
+            let native = try learningNativeOnQueue()
+            let documents = try RimeLearningFormat.parseImportedBatch(snapshots)
+            var matching: [RimeLearningSnapshot] = []
+            var entries = 0
+            for (snapshot, document) in zip(snapshots, documents)
+            where document.entryCount > 0 && native.declaredNames.contains(document.name) {
+                matching.append(snapshot)
+                entries += document.entryCount
+            }
+            return ImportedLearningPlan(
+                matching: matching, entryCount: entries, skippedCount: snapshots.count - matching.count)
+        }
+    }
+
+    /// Merges snapshots from other Rime front-ends with librime's restore: every entry keeps the higher
+    /// commit count and weight, nothing already learned is replaced or removed. Every snapshot must be for a
+    /// dictionary the input scheme learns into (`identityMismatch` otherwise, before anything is written).
+    /// Same rules as `restoreLearningData`: exclusive temporary engine, no rollback after a native write.
+    public func restoreImportedLearningData(_ snapshots: [RimeLearningSnapshot]) throws {
+        try queue.sync {
+            let native = try learningNativeOnQueue()
+            let documents = try native.validateImported(snapshots)
+            try releaseLearningSessionsOnQueue(api: native.api)
+            try native.restore(snapshots, documents: documents)
+        }
+    }
+
     private func learningNativeOnQueue() throws -> RimeLearningNative {
         guard let engine, rb_engine_ready(engine) != 0,
             Self.processOwnerID.withLock({ $0 }) == ObjectIdentifier(self), let api = rime_get_api()

@@ -249,6 +249,55 @@ struct LearningBackupMain {
         fresh.shutdown()
         print("PASS completely fresh target restored real source learning")
 
+        // Snapshots from another Rime front-end: no /rime_version or /user_id, a ".userdb" suffix on
+        // /db_name, a BOM and CR LF line ends. The same dictionary comes twice (two installations) and a
+        // third file is for a dictionary this input scheme does not learn into.
+        let foreignDestination = engine("foreign-target")
+        defer { foreignDestination.shutdown() }
+        try foreignDestination.start()
+        try learned(foreignDestination, "shan'shui", phraseB)
+        let ownBefore = try foreignDestination.backupLearningData()
+        let sourceText = String(decoding: snapshots[0].data, as: UTF8.self)
+        func foreign(name: String, commitCount: Int) -> RimeLearningSnapshot {
+            let lines = sourceText.split(separator: "\n", omittingEmptySubsequences: false).compactMap { line -> String? in
+                if line.hasPrefix("#@/rime_version") || line.hasPrefix("#@/user_id") { return nil }
+                if line.hasPrefix("#@/db_name") { return "#@/db_name\t\(name).userdb" }
+                return line.replacingOccurrences(of: "c=1 ", with: "c=\(commitCount) ")
+            }
+            return RimeLearningSnapshot(
+                name: name, data: Data([0xEF, 0xBB, 0xBF]) + Data(lines.joined(separator: "\r\n").utf8))
+        }
+        let imported = [
+            foreign(name: dictionary, commitCount: 7), foreign(name: dictionary, commitCount: 2),
+            foreign(name: "other_dictionary", commitCount: 3),
+        ]
+        let plan = try foreignDestination.planImportedLearningData(imported)
+        try require(
+            plan.matching.count == 2 && plan.skippedCount == 1 && plan.entryCount == 2,
+            "plan did not keep exactly the snapshots of the declared dictionary")
+        try require(
+            try foreignDestination.backupLearningData() == ownBefore, "planning an import changed learning")
+        do {
+            try foreignDestination.restoreImportedLearningData(imported)
+            try require(false, "snapshot of an undeclared dictionary unexpectedly merged")
+        } catch RimeLearningBackupError.identityMismatch {
+            print("PASS import of an undeclared dictionary rejected before native restore")
+        }
+        try require(
+            try foreignDestination.backupLearningData() == ownBefore, "rejected import changed learning")
+        try foreignDestination.restoreImportedLearningData(plan.matching)
+        let importedMerge = try foreignDestination.backupLearningData()
+        let mergedText = String(decoding: importedMerge[0].data, as: UTF8.self)
+        try require(
+            try RimeLearningFormat.parse(importedMerge[0]).entryCount == 2
+                && mergedText.contains("c=7") && !mergedText.contains("c=2 "),
+            "imported merge lost an entry or did not keep the higher commit count")
+        try foreignDestination.restoreImportedLearningData(plan.matching)
+        try require(
+            try foreignDestination.backupLearningData() == importedMerge, "repeat import was not idempotent")
+        foreignDestination.shutdown()
+        print("PASS snapshots from another front-end merged with the higher commit count, idempotent")
+
         let gate = engine("composition-gate")
         defer { gate.shutdown() }
         try gate.start()

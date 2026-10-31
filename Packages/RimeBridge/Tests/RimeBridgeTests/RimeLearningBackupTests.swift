@@ -60,6 +60,52 @@ final class RimeLearningBackupTests: XCTestCase {
         XCTAssertThrowsError(try RimeLearningFormat.parseBatch([snapshot("proof"), snapshot("PROOF")]))
     }
 
+    private func foreign(
+        _ name: String = "proof", dbName: String? = nil, header: String = "#@/db_type\tuserdb\n",
+        lineEnd: String = "\n", bom: Bool = false
+    ) -> RimeLearningSnapshot {
+        let text =
+            ("# Rime user dictionary\n#@/db_name\t\(dbName ?? name)\n" + header + "x \tA\tc=3 d=1 t=0\n")
+            .replacingOccurrences(of: "\n", with: lineEnd)
+        return RimeLearningSnapshot(name: name, data: (bom ? Data([0xEF, 0xBB, 0xBF]) : Data()) + Data(text.utf8))
+    }
+
+    func testImportedSnapshotNeedsNeitherVersionNorUserNorType() throws {
+        let parsed = try RimeLearningFormat.parseImported(foreign(header: ""))
+        XCTAssertEqual(parsed.name, "proof")
+        XCTAssertEqual(parsed.entryCount, 1)
+        XCTAssertEqual(parsed.version, "")
+        XCTAssertEqual(try RimeLearningFormat.parseImported(foreign()).entryCount, 1)
+    }
+
+    func testImportedSnapshotAcceptsUserdbSuffixCRLFAndBOM() throws {
+        for suffix in [".userdb", ".userdb.kct"] {
+            let snapshot = foreign(dbName: "proof" + suffix, lineEnd: "\r\n", bom: true)
+            XCTAssertEqual(try RimeLearningFormat.parseImported(snapshot).entryCount, 1)
+            XCTAssertEqual(RimeLearningFormat.importedBody(snapshot.data).first, UInt8(ascii: "#"))
+        }
+    }
+
+    func testImportedSnapshotRefusesWhatLibrimeRefuses() {
+        let wrongType = foreign(header: "#@/db_type\ttabledb\n")
+        XCTAssertThrowsError(try RimeLearningFormat.parseImported(wrongType)) {
+            XCTAssertEqual($0 as? RimeLearningBackupError, .identityMismatch)
+        }
+        let noName = RimeLearningSnapshot(
+            name: "proof", data: Data("# Rime user dictionary\n#@/db_type\tuserdb\nx \tA\tc=1\n".utf8))
+        XCTAssertThrowsError(try RimeLearningFormat.parseImported(noName))
+        XCTAssertThrowsError(try RimeLearningFormat.parseImported(foreign("proof", dbName: "other")))
+        XCTAssertThrowsError(
+            try RimeLearningFormat.parseImported(
+                RimeLearningSnapshot(name: "proof", data: foreign().data + Data([0xFF, 0xFE]))))
+    }
+
+    func testImportedBatchMayNameADictionaryTwiceButKeepsTheCaps() throws {
+        XCTAssertEqual(try RimeLearningFormat.parseImportedBatch([foreign(), foreign()]).count, 2)
+        XCTAssertThrowsError(try RimeLearningFormat.parseImportedBatch([]))
+        XCTAssertThrowsError(try RimeLearningFormat.parseImportedBatch((0..<33).map { _ in foreign() }))
+    }
+
     func testFailedBackupPutsPreviousSyncSnapshotBack() throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("learning-files-" + UUID().uuidString, isDirectory: true)

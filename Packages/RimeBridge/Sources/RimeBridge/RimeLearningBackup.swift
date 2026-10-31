@@ -97,6 +97,73 @@ enum RimeLearningFormat {
     }
 }
 
+extension RimeLearningFormat {
+    /// Snapshots written by other Rime front-ends: `/rime_version`, `/user_id` and even `/db_type` may be
+    /// missing (librime gives the restore's temporary database the userdb type itself), `/db_name` may carry
+    /// a `.userdb…` suffix, lines may end in CR LF, and several snapshots may name one dictionary (one per
+    /// installation). `/db_name` is required, because without it librime's restore would merge the file into
+    /// its own temporary database; a `/db_type` other than userdb is refused, because librime refuses it too.
+    static func parseImportedBatch(_ snapshots: [RimeLearningSnapshot]) throws -> [RimeLearningDocument] {
+        guard !snapshots.isEmpty, snapshots.count <= maximumCount,
+            snapshots.reduce(0, { $0 + $1.data.count }) <= maximumTotalBytes
+        else {
+            throw RimeLearningBackupError.invalidSnapshot
+        }
+        return try snapshots.map(parseImported)
+    }
+
+    static func parseImported(_ snapshot: RimeLearningSnapshot) throws -> RimeLearningDocument {
+        try validateName(snapshot.name)
+        let body = importedBody(snapshot.data)
+        guard !body.isEmpty, body.count <= maximumBytes, String(data: body, encoding: .utf8) != nil else {
+            throw RimeLearningBackupError.invalidSnapshot
+        }
+        var metadata: [String: String] = [:]
+        var entryCount = 0
+        var first = true
+        var inComments = true
+        for slice in body.split(separator: 0x0A, omittingEmptySubsequences: false) {
+            // librime trims trailing whitespace, which also takes a Windows line's CR.
+            var end = slice.endIndex
+            while end > slice.startIndex, [0x20, 0x09, 0x0D].contains(slice[end - 1]) { end -= 1 }
+            let line = String(decoding: slice[slice.startIndex..<end], as: UTF8.self)
+            if first {
+                first = false
+                guard line == "# Rime user dictionary" else { throw RimeLearningBackupError.invalidSnapshot }
+                continue
+            }
+            if line.isEmpty { continue }
+            if inComments && line.hasPrefix("#") {
+                if line.hasPrefix("#@") {
+                    let pair = line.dropFirst(2).split(separator: "\t", omittingEmptySubsequences: false)
+                    guard pair.count == 2, pair[1].utf8.count <= 256,
+                        metadata.updateValue(String(pair[1]), forKey: String(pair[0])) == nil
+                    else { throw RimeLearningBackupError.invalidSnapshot }
+                } else if line == "# no comment" {
+                    inComments = false
+                }
+                continue
+            }
+            let row = line.split(separator: "\t", omittingEmptySubsequences: false)
+            if row.count >= 2, !row[0].isEmpty, !row[1].isEmpty { entryCount += 1 }
+        }
+        if let type = metadata["/db_type"], type != "userdb" { throw RimeLearningBackupError.identityMismatch }
+        guard let dbName = metadata["/db_name"] else { throw RimeLearningBackupError.identityMismatch }
+        // librime's UserDbHelper::GetDbName: the name ends before the last ".userdb".
+        let name = dbName.range(of: ".userdb", options: .backwards).map { String(dbName[..<$0.lowerBound]) } ?? dbName
+        guard Data(name.utf8) == Data(snapshot.name.utf8) else { throw RimeLearningBackupError.identityMismatch }
+        return RimeLearningDocument(
+            name: name, version: metadata["/rime_version"] ?? "", userID: metadata["/user_id"] ?? "",
+            entryCount: entryCount)
+    }
+
+    /// The snapshot as librime's restore reads it: a UTF-8 BOM would become part of the first line.
+    static func importedBody(_ data: Data) -> Data {
+        let bom: [UInt8] = [0xEF, 0xBB, 0xBF]
+        return data.starts(with: bom) ? Data(data.dropFirst(bom.count)) : data
+    }
+}
+
 /// Sets the existing sync-folder snapshot of a dictionary aside while a backup overwrites it,
 /// so a failed run leaves the user's previous snapshot where it was.
 struct RimeLearningSnapshotFiles {
@@ -248,6 +315,16 @@ struct RimeLearningSnapshotFiles {
             return documents
         }
 
+        /// Validates snapshots from other front-ends: each must be for a dictionary the input scheme learns
+        /// into. The librime version and the user may differ, as they do between front-ends.
+        func validateImported(_ snapshots: [RimeLearningSnapshot]) throws -> [RimeLearningDocument] {
+            let documents = try RimeLearningFormat.parseImportedBatch(snapshots)
+            guard documents.allSatisfy({ declaredNames.contains($0.name) }) else {
+                throw RimeLearningBackupError.identityMismatch
+            }
+            return documents
+        }
+
         private func prepareSyncDirectory() throws -> URL {
             let sync = try Self.provided(api, \.get_user_data_sync_dir)
             guard rls_prepare_installation() != 0 else { throw RimeLearningBackupError.backupFailed }
@@ -317,7 +394,7 @@ struct RimeLearningSnapshotFiles {
             var staged: [URL] = []
             for (index, snapshot) in snapshots.enumerated() where documents[index].entryCount > 0 {
                 let file = staging.appendingPathComponent("incoming-\(index).userdb.txt")
-                try snapshot.data.write(to: file, options: .atomic)
+                try RimeLearningFormat.importedBody(snapshot.data).write(to: file, options: .atomic)
                 staged.append(file)
             }
             for file in staged {

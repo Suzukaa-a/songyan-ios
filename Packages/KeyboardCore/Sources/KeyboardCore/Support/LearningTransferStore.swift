@@ -413,14 +413,16 @@ public struct LearningTransferStore: Sendable {
     }
 
     /// Completes an import. A persisted safety backup is required, otherwise it is refused (fail closed, never claims false success).
-    public func completeRestore(requestID: UUID, lease: WorkerLease) throws -> State {
-        try withWorkerLease(lease) {
+    /// `message` is the fixed user-facing result line shown with the success (for example what an import merged).
+    public func completeRestore(requestID: UUID, lease: WorkerLease, message: String? = nil) throws -> State {
+        if let message { try LearningTransferStore.validateMessage(message) }
+        return try withWorkerLease(lease) {
             try withLock {
                 let current = try self.runningOwner(requestID: requestID, owner: lease.id)
                 guard current.hasSafetyBackup else {
                     throw LearningTransferStoreError.safetyBackupRequired
                 }
-                return try self.finish(current, status: .succeeded, message: nil)
+                return try self.finish(current, status: .succeeded, message: message)
             }
         }
     }
