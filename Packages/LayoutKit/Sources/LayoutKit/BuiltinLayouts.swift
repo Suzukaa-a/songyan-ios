@@ -8,6 +8,13 @@ public enum BuiltinLayouts {
         id: "qwerty26", name: "26 键", input: .init(builtinLayout: .qwerty26),
         rows: alphabetRows() + [controls])
 
+    /// The definition with the hand cuts it is drawn with written into its split, for a copy: the
+    /// copy has its own id and name, so it would no longer count as the bundled layout and would
+    /// draw middle cuts instead of what the editor showed.
+    public static func persistingHandCuts(in definition: LayoutDefinition) -> LayoutDefinition {
+        handSplit(for: definition).map(definition.settingSplit) ?? definition
+    }
+
     /// Row cuts of the standard 26-key letter rows (10, 9 and 7 letters): five keys on the left.
     public static let standardLetterRowBreaks = [5, 5, 5]
 
@@ -28,8 +35,13 @@ public enum BuiltinLayouts {
         default: return nil
         }
         let bundled = preset(for: layout)
-        var comparable = definition
-        comparable.split = bundled.split
+        // The split is what this rule decides, and the note is prose a later release may reword: a
+        // changed note must not drop the cuts of a copy the user already stored.
+        let comparable = LayoutDefinition(
+            id: definition.id, name: definition.name, input: definition.input, rows: definition.rows,
+            auxiliaryAreas: definition.auxiliaryAreas, note: bundled.note,
+            longPressDelay: definition.longPressDelay, candidateArea: definition.candidateArea,
+            split: bundled.split)
         guard comparable == bundled, definition.split?.rowBreaks.isEmpty ?? true else { return nil }
         var split = definition.split ?? LayoutSplitConfiguration(activation: .off)
         split.rowBreaks = breaks

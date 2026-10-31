@@ -128,7 +128,7 @@ struct LayoutEditorView: View {
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
         Task { @MainActor in
             await Task.yield()
-            let snapshot = asCopy ? draft.copy() : draft
+            let snapshot = asCopy ? BuiltinLayouts.persistingHandCuts(in: draft).copy() : draft
             defer { saving = false }
             if await manager.saveDraft(snapshot) {
                 onSaved?(snapshot)

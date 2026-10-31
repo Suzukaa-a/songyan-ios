@@ -12,11 +12,11 @@ enum KeyboardPanelRules {
     static func activeSplit(
         main: LayoutSplitConfiguration?, mainWidth: Double, showsMainLetters: Bool,
         pageSplit: @autoclosure () -> LayoutSplitConfiguration?, contentWidth: Double,
-        showsEnglishLetters: Bool = false, hasAuthoredPage: Bool = false
+        showsEnglishLetters: Bool = false, authoredPage: KeyboardPageDefinition? = nil
     ) -> ActiveLayoutSplit? {
         ActiveLayoutSplit.drawn(
             main: main, mainWidth: mainWidth, showsMainLetters: showsMainLetters,
-            showsEnglishLetters: showsEnglishLetters, hasAuthoredPage: hasAuthoredPage,
+            showsEnglishLetters: showsEnglishLetters, authoredPage: authoredPage,
             pageSplit: pageSplit(), contentWidth: contentWidth)
     }
 

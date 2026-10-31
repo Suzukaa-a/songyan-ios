@@ -87,10 +87,13 @@ final class BuiltinLayoutSplitTests: XCTestCase {
 
     func testTheEnglishPageKeepsInheritedCutsWhenAnAuthoredPageShows() throws {
         let main = try XCTUnwrap(BuiltinLayouts.handSplit(for: BuiltinLayouts.merged18))
+        let nonStandard = KeyboardPageDefinition(
+            id: "page.test.rows", name: "测试", kind: .english,
+            rows: KeyboardPagePresets.englishQwerty.rows.dropLast().map { $0 })
         func drawn(authored: Bool, pageSplit: LayoutSplitConfiguration? = nil) -> ActiveLayoutSplit? {
             ActiveLayoutSplit.drawn(
                 main: main, mainWidth: 1024, showsMainLetters: false, showsEnglishLetters: true,
-                hasAuthoredPage: authored, pageSplit: pageSplit, contentWidth: 1024)
+                authoredPage: authored ? nonStandard : nil, pageSplit: pageSplit, contentWidth: 1024)
         }
         XCTAssertEqual(drawn(authored: false)?.rowBreaks, [5, 5, 5])
         XCTAssertEqual(drawn(authored: true)?.rowBreaks, [])
@@ -100,7 +103,44 @@ final class BuiltinLayoutSplitTests: XCTestCase {
         XCTAssertEqual(
             ActiveLayoutSplit.drawn(
                 main: main, mainWidth: 1024, showsMainLetters: true, showsEnglishLetters: false,
-                hasAuthoredPage: false, pageSplit: nil, contentWidth: 1024)?.rowBreaks, [3, 3, 4])
+                authoredPage: nil, pageSplit: nil, contentWidth: 1024)?.rowBreaks, [3, 3, 4])
+    }
+
+    /// The preset English page draws like the built-in letters, so it keeps the hand cuts; a page of
+    /// other rows, or one with chrome (Shift and Delete are keys there), keeps the inherited cuts.
+    func testThePresetEnglishPageKeepsTheHandCutsButOtherAuthoredPagesDoNot() throws {
+        let main = try XCTUnwrap(BuiltinLayouts.handSplit(for: BuiltinLayouts.merged18))
+        func drawn(_ page: KeyboardPageDefinition) -> [Int]? {
+            ActiveLayoutSplit.drawn(
+                main: main, mainWidth: 1024, showsMainLetters: false, showsEnglishLetters: true,
+                authoredPage: page, pageSplit: page.split, contentWidth: 1024)?.rowBreaks
+        }
+        XCTAssertEqual(drawn(KeyboardPagePresets.englishQwerty), [5, 5, 5])
+        var shortRows = KeyboardPagePresets.englishQwerty
+        shortRows.rows.removeLast()
+        XCTAssertEqual(drawn(shortRows), [])
+        var withChrome = KeyboardPagePresets.englishQwerty
+        withChrome.chrome = KeyboardPageChrome(bottom: [])
+        XCTAssertEqual(drawn(withChrome), [])
+    }
+
+    /// A saved copy keeps the cuts the editor showed; a changed note on the bundled layout would
+    /// not drop them.
+    func testACopyKeepsTheShownHandCuts() throws {
+        for (layout, cuts) in [(BuiltinLayouts.qwerty26, [5, 5, 5]), (BuiltinLayouts.merged18, [3, 3, 4])] {
+            let draft = layout.settingSplit(LayoutSplitConfiguration(activation: .automatic))
+            let copy = BuiltinLayouts.persistingHandCuts(in: draft).copy()
+            XCTAssertEqual(copy.split?.rowBreaks, cuts, layout.id)
+            XCTAssertEqual(copy.split?.activation, .automatic)
+            XCTAssertNil(BuiltinLayouts.handSplit(for: copy), "the copy now has saved cuts")
+            XCTAssertNoThrow(try copy.validate())
+        }
+        let plain = BuiltinLayouts.phone9
+        XCTAssertEqual(BuiltinLayouts.persistingHandCuts(in: plain), plain)
+        let renamedNote = LayoutDefinition(
+            id: "qwerty26", name: "26 键", input: BuiltinLayouts.qwerty26.input,
+            rows: BuiltinLayouts.qwerty26.rows, note: "另一句说明")
+        XCTAssertEqual(BuiltinLayouts.handSplit(for: renamedNote)?.rowBreaks, [5, 5, 5])
     }
 
     /// The letters left of the cut in each letter row, for a split active at a wide width.

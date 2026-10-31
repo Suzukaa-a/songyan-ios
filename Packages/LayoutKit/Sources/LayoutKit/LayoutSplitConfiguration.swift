@@ -128,19 +128,27 @@ public struct ActiveLayoutSplit: Equatable, Sendable {
 
     /// The split a page is drawn with. The main letters take the main split as is. The English
     /// letter page (standard 26-key rows) of a layout with hand cuts takes the standard cuts, unless
-    /// an authored page is showing: that keeps its inherited middle cuts. Other pages inherit the
+    /// an authored page with its own rows is showing: that keeps its inherited middle cuts. Other pages inherit the
     /// spacing without the main layout's row cuts unless they carry their own split.
     public static func drawn(
         main: LayoutSplitConfiguration?, mainWidth: Double, showsMainLetters: Bool,
-        showsEnglishLetters: Bool, hasAuthoredPage: Bool,
+        showsEnglishLetters: Bool, authoredPage: KeyboardPageDefinition?,
         pageSplit: @autoclosure () -> LayoutSplitConfiguration?, contentWidth: Double
     ) -> ActiveLayoutSplit? {
         let resolved = main?.resolved(forWidth: mainWidth)
         if showsMainLetters { return resolved }
-        if showsEnglishLetters, !hasAuthoredPage, let resolved, pageSplit() == nil {
+        if showsEnglishLetters, !Self.drawsItsOwnRows(authoredPage), let resolved, pageSplit() == nil {
             return resolved.forStandardLetterRows
         }
         return resolving(nested: pageSplit(), parent: resolved, width: contentWidth)
+    }
+
+    /// Whether a page's own rows replace the standard English letters. The preset English page and
+    /// any page of standard alphabet rows draw exactly like them; other rows keep the inherited
+    /// cuts, and a chrome page has Shift and Delete as keys of its third row.
+    static func drawsItsOwnRows(_ page: KeyboardPageDefinition?) -> Bool {
+        guard let page else { return false }
+        return !KeyboardPageDefaultShape.isNativeAlphabet(page) || page.chrome != nil
     }
 
     /// Room added at both edges of the key area on top of the panel's own 4pt side padding.

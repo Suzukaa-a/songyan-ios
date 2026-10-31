@@ -158,7 +158,7 @@ extension KeyboardPanelView {
             pageSplit: pageDefinition?.split, contentWidth: widthBox.contentWidth,
             showsEnglishLetters: page == .letters && controller.isEnglishMode
                 && definitionFacts.handSplit != nil,
-            hasAuthoredPage: pageDefinition != nil)
+            authoredPage: pageDefinition)
     }
 
     /// Extra room at both edges of a split key area, on top of the panel's own 4pt, so the halves do
