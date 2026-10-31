@@ -269,7 +269,8 @@ struct ThirdPartyLicensesView: View {
                         title: "librime-predict", resource: "EngineResources/licenses/librime-predict-LICENSE")
                 }
                 NavigationLink("ZIPFoundation · MIT") {
-                    LicenseTextView(title: "ZIPFoundation", resource: "Legal/ios/licenses/ZIPFoundation-0.9.20-LICENSE.txt")
+                    LicenseTextView(
+                        title: "ZIPFoundation", resource: "Legal/ios/licenses/ZIPFoundation-0.9.20-LICENSE.txt")
                 }
                 NavigationLink("Yams · MIT") {
                     LicenseTextView(title: "Yams", resource: "Legal/ios/licenses/Yams-5.4.0-LICENSE.txt")
