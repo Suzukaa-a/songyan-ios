@@ -464,7 +464,10 @@ public struct KeyboardPageDefinition: Codable, Equatable, Identifiable, Sendable
                     label: KeyboardPageDefaultShape.keypadZero,
                     action: .init(.literal, value: KeyboardPageDefaultShape.keypadZero)),
             ],
-            leading: keypadLeadingKeys(marks: marks),
+            // The three marks, then 符号: a letter layout paired with this pad has no other way to
+            // the symbol page.
+            leading: keypadLeadingKeys(marks: marks)
+                + [railKey(Self.pageSwitchKey(.symbols).label, .pageSwitch(.symbols), span: 1)],
             trailing: [
                 railKey("⌫", .init(.backspace), span: 1), railKey("重输", .init(.clearInput), span: 1),
                 railKey("⏎", .init(.enter), span: 2),

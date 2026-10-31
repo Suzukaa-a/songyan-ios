@@ -294,7 +294,7 @@ final class BilingualLiteralTests: XCTestCase {
         XCTAssertTrue(railASCII.contains("-"))
 
         let chineseKeypad = try XCTUnwrap(KeyboardPagePresets.numericKeypad.chrome)
-        XCTAssertEqual(chineseKeypad.leading.map(\.label), [".", "？", "！"])
+        XCTAssertEqual(chineseKeypad.leading.map(\.label), [".", "？", "！", "符号"])
         XCTAssertEqual(chineseKeypad.leading[1].action.value, "？")
         XCTAssertEqual(chineseKeypad.leading[1].action.asciiValue, "?")
         XCTAssertEqual(chineseKeypad.leading[0].action.asciiValue, nil)
@@ -302,12 +302,12 @@ final class BilingualLiteralTests: XCTestCase {
         let asciiCopy = KeyboardPagePresets.numericAutomatic.copy(
             numericMarks: .ascii, numericForm: .phoneDigitPad)
         let asciiLeading = try XCTUnwrap(asciiCopy.chrome?.leading)
-        XCTAssertEqual(asciiLeading.map(\.label), [".", "?", "!"])
+        XCTAssertEqual(asciiLeading.map(\.label), [".", "?", "!", "符号"])
         XCTAssertEqual(asciiLeading[2].action.value, "！")
         XCTAssertEqual(asciiLeading[2].action.asciiValue, "!")
         XCTAssertEqual(
             Array(BuiltinLayouts.phoneNumericRailValues(ascii: true).prefix(3)),
-            asciiLeading.map { $0.action.asciiValue ?? $0.action.value ?? "" })
+            asciiLeading.prefix(3).map { $0.action.asciiValue ?? $0.action.value ?? "" })
         try asciiCopy.validate()
     }
 

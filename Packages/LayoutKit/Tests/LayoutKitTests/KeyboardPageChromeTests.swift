@@ -109,7 +109,7 @@ final class KeyboardPageChromeTests: XCTestCase {
         XCTAssertEqual(categorized.chrome?.bottom.map(\.widthWeight), [1, 1, 1, 4, 1])
         XCTAssertEqual(categorized.chrome?.trailing.map(\.widthWeight), [1, 1, 2])
         let keypad = KeyboardPagePresets.numericAutomatic.materialized(numericForm: .phoneDigitPad)
-        XCTAssertEqual(keypad.chrome?.leading.map(\.widthWeight), [1, 1, 1])
+        XCTAssertEqual(keypad.chrome?.leading.map(\.widthWeight), [1, 1, 1, 1])
         XCTAssertEqual(keypad.chrome?.bottom.map(\.widthWeight), [1, 1, 1, 4, 1])
         XCTAssertEqual(keypad.chrome?.trailing.map(\.widthWeight), [1, 1, 2])
     }
@@ -211,7 +211,9 @@ final class KeyboardPageChromeTests: XCTestCase {
         XCTAssertEqual(keypad.rows.count, 3)
         XCTAssertEqual(keypad.rows.flatMap(\.keys).map(\.label), ["1", "2", "3", "4", "5", "6", "7", "8", "9"])
         XCTAssertTrue(keypad.rows.flatMap(\.keys).allSatisfy { $0.action.type == .literal })
-        XCTAssertEqual(keypad.chrome?.leading.count, 3)
+        XCTAssertEqual(keypad.chrome?.leading.count, 4)
+        XCTAssertEqual(keypad.chrome?.leading.last?.label, "符号")
+        XCTAssertEqual(keypad.chrome?.leading.last?.action.pageSwitchTarget, .symbols)
         XCTAssertEqual(keypad.chrome?.bottom.last?.action.value, "0")
         XCTAssertEqual(keypad.chrome?.trailing.map(\.action.type), [.backspace, .clearInput, .enter])
         XCTAssertEqual(keypad.chrome?.trailing.map(\.widthWeight), [1, 1, 2])
@@ -436,8 +438,12 @@ final class KeyboardPageChromeTests: XCTestCase {
                 page: KeyboardPagePresets.numericChinese, mainLayoutIsPhoneKeypad: true))
         // An authored page reaches symbols only through its own symbol switch.
         let keypad = KeyboardPagePresets.numericKeypad.materialized()
-        XCTAssertFalse(KeyboardPageResolver.numericPageReachesSymbols(page: keypad, mainLayoutIsPhoneKeypad: false))
-        var withSwitch = keypad
+        XCTAssertTrue(KeyboardPageResolver.numericPageReachesSymbols(page: keypad, mainLayoutIsPhoneKeypad: false))
+        var withoutSwitch = keypad
+        withoutSwitch.chrome?.leading.removeAll { $0.action.pageSwitchTarget == .symbols }
+        XCTAssertFalse(
+            KeyboardPageResolver.numericPageReachesSymbols(page: withoutSwitch, mainLayoutIsPhoneKeypad: false))
+        var withSwitch = withoutSwitch
         withSwitch.chrome?.bottom.append(LayoutKey(label: "符号", action: .pageSwitch(.symbols)))
         XCTAssertTrue(KeyboardPageResolver.numericPageReachesSymbols(page: withSwitch, mainLayoutIsPhoneKeypad: false))
     }
