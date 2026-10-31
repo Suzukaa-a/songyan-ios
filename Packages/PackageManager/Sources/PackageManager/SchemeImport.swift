@@ -44,6 +44,11 @@ public struct PreparedSchemeImport: Sendable {
     public let resourceBytes: Int
     public let diagnostics: [String]
     private let bytes: [String: Data]
+    /// Learned words the package shipped as `*.userdb.txt`. They are never source files: they stay
+    /// out of the package identity and the installed tree, and wait here for the user's answer.
+    public let learningSnapshots: CollectedSnapshots
+    /// How many distinct dictionaries the shipped learned words belong to.
+    public var learningDictionaryCount: Int { Set(learningSnapshots.snapshots.map(\.dictionary)).count }
     /// Source-declared grammar is required for this unchanged installation. Runtime
     /// validation remains authoritative for includes/patches and actual model loading.
     public var requiredModelPaths: [String] { SchemeGrammarRequirements.paths(in: bytes) }
@@ -60,6 +65,26 @@ public struct PreparedSchemeImport: Sendable {
             }
             models[path] = model
         }
+        return try replacingModels(models)
+    }
+
+    /// An update keeps the grammar models of the installed version that the new files do not bring.
+    /// A model is added by the user (they are far too large to ship in a package), and the keyboard
+    /// settings that point at it live in the user's own configuration, which an update keeps. Models
+    /// the new files carry themselves win; the same files over the same models give the same revision.
+    public func carryingModels(from installed: InstalledRecipeSources) throws -> PreparedSchemeImport {
+        var models = fileResources
+        for (path, model) in installed.fileResources
+        where path.hasSuffix(".gram") && !path.hasPrefix("source-repositories/")
+            && bytes[path] == nil && models[path] == nil
+        {
+            models[path] = model
+        }
+        guard models.count != fileResources.count else { return self }
+        return try replacingModels(models)
+    }
+
+    private func replacingModels(_ models: [String: RecipeFileResource]) throws -> PreparedSchemeImport {
         try RecipeResourceBudget.validate(bytes.mapValues(\.count).merging(models.mapValues(\.size)) { _, new in new })
         let records = Set(bytes.keys).union(models.keys).sorted().map { path in
             if let model = models[path] {
@@ -76,13 +101,14 @@ public struct PreparedSchemeImport: Sendable {
             requiredComponents: manifest.requiredComponents, files: records, origin: manifest.origin)
         return PreparedSchemeImport(
             declaration: declaration, manifest: updated, schemaIDs: schemaIDs,
-            bytes: bytes, sourceFiles: sourceFiles, fileResources: models)
+            bytes: bytes, sourceFiles: sourceFiles, fileResources: models, learningSnapshots: learningSnapshots)
     }
     fileprivate init(
         declaration: SchemePackageDeclaration, manifest: RecipeManifest,
         schemaIDs: [String], bytes: [String: Data], sourceFiles: [String: Data],
-        fileResources: [String: RecipeFileResource]
+        fileResources: [String: RecipeFileResource], learningSnapshots: CollectedSnapshots
     ) {
+        self.learningSnapshots = learningSnapshots
         self.declaration = declaration
         self.manifest = manifest
         self.schemaIDs = schemaIDs
@@ -126,7 +152,8 @@ public struct PreparedSchemeImport: Sendable {
             requiredComponents: manifest.requiredComponents, files: records, origin: .userScheme)
         return PreparedSchemeImport(
             declaration: declaration, manifest: updatedManifest,
-            schemaIDs: schemaIDs, bytes: updated, sourceFiles: sourceFiles, fileResources: fileResources)
+            schemaIDs: schemaIDs, bytes: updated, sourceFiles: sourceFiles, fileResources: fileResources,
+            learningSnapshots: learningSnapshots)
     }
 }
 
@@ -158,13 +185,25 @@ public extension RecipePackageManager {
             roots.count == 1 && entries.allSatisfy({ $0.entry.type == .directory || $0.path.contains("/") })
             ? roots.first : nil
         var sizes: [String: Int] = [:]
+        var snapshotBytes = 0
         for (entry, path) in entries {
             let logicalPath = wrapper.map { String(path.dropFirst($0.count + 1)) } ?? path
-            guard entry.uncompressedSize <= UInt64(RecipeResourceBudget.maximumFileBytes(logicalPath)) else {
-                throw RecipeInstallError.invalidResource("ZIP 解压后大小超过限制")
+            // A shipped snapshot is extracted only to be offered for merging, under the snapshot bounds
+            // instead of the source budgets; one over them is left out.
+            let isSnapshot = entry.type == .file && SchemeSourceCheck.isLearningSnapshot(logicalPath)
+            if isSnapshot {
+                let size = Int(clamping: entry.uncompressedSize)
+                guard size <= RimeSnapshotCollector.maximumFileBytes,
+                    snapshotBytes + size <= RimeSnapshotCollector.maximumTotalBytes
+                else { continue }
+                snapshotBytes += size
+            } else {
+                guard entry.uncompressedSize <= UInt64(RecipeResourceBudget.maximumFileBytes(logicalPath)) else {
+                    throw RecipeInstallError.invalidResource("ZIP 解压后大小超过限制")
+                }
+                if entry.type != .directory { sizes[logicalPath] = Int(entry.uncompressedSize) }
+                try RecipeResourceBudget.validate(sizes)
             }
-            if entry.type != .directory { sizes[logicalPath] = Int(entry.uncompressedSize) }
-            try RecipeResourceBudget.validate(sizes)
             let destination = staging.appendingPathComponent(path)
             if entry.type == .directory {
                 try FileManager.default.createDirectory(at: destination, withIntermediateDirectories: true)
@@ -206,6 +245,7 @@ public extension RecipePackageManager {
         }
         var files: [DictionaryImportFile] = []
         var visited = 0
+        var sawSnapshot = false
         func visit(_ url: URL, prefix: String) throws {
             for child in try fm.contentsOfDirectory(
                 at: url, includingPropertiesForKeys: [.isDirectoryKey, .isSymbolicLinkKey])
@@ -238,6 +278,10 @@ public extension RecipePackageManager {
                     throw RecipeInstallError.invalidResource("不支持符号链接：\(child.path)")
                 }
                 let path = prefix + name
+                if values.isDirectory != true, SchemeSourceCheck.isLearningSnapshot(path) {
+                    sawSnapshot = true
+                    continue
+                }
                 guard files.count < 2000 else { throw RecipeInstallError.invalidResource("输入方案文件超过 2000 个") }
                 if values.isDirectory == true {
                     try visit(child, prefix: path + "/")
@@ -247,12 +291,15 @@ public extension RecipePackageManager {
             }
         }
         try visit(directory, prefix: "")
-        return try prepareSchemeImport(files: files, declaration: declaration)
+        return try prepareSchemeImport(
+            files: files, declaration: declaration,
+            learning: sawSnapshot ? Self.collectLearning(in: directory) : .empty)
     }
 
     /// Multiple files retain explicit package-relative paths (including lua/, opencc/, dictionaries/).
     nonisolated func prepareSchemeImport(
-        files: [DictionaryImportFile], declaration supplied: SchemePackageDeclaration? = nil
+        files: [DictionaryImportFile], declaration supplied: SchemePackageDeclaration? = nil,
+        learning folderLearning: CollectedSnapshots? = nil
     ) throws -> PreparedSchemeImport {
         var bytes: [String: Data] = [:]
         var fileResources: [String: RecipeFileResource] = [:]
@@ -262,7 +309,17 @@ public extension RecipePackageManager {
         guard !files.isEmpty, files.count <= 2000 else {
             throw RecipeInstallError.invalidResource("导入的输入方案为空或文件数量超过 2000 个")
         }
+        var snapshotFiles: [PickedFile] = []
         for file in files {
+            // Learned-word snapshots are not source files; they wait for the user's answer instead.
+            if SchemeSourceCheck.isLearningSnapshot(file.path), SchemeSourceCheck.safe(file.path),
+                names.insert(file.path.lowercased()).inserted, file.location.isFileURL
+            {
+                if let node = DiskPickedNode(url: file.location), !node.isDirectory {
+                    snapshotFiles.append(PickedFile(name: file.location.lastPathComponent, read: node.file().read))
+                }
+                continue
+            }
             guard SchemeSourceCheck.safe(file.path), names.insert(file.path.lowercased()).inserted,
                 file.location.isFileURL, !file.path.contains(".userdb")
             else {
@@ -283,7 +340,23 @@ public extension RecipePackageManager {
             total += data.count
             bytes[file.path] = data
         }
-        return try prepareSchemeImport(bytes: bytes, fileResources: fileResources, declaration: supplied)
+        return try prepareSchemeImport(
+            bytes: bytes, fileResources: fileResources, declaration: supplied,
+            learning: folderLearning ?? Self.collectLearning(files: snapshotFiles))
+    }
+
+    /// Reads the shipped snapshots a package carries. Nothing here fails an import: a pick over the
+    /// snapshot bounds, or one that cannot be read, simply brings no learned words.
+    nonisolated static func collectLearning(files: [PickedFile]) -> CollectedSnapshots {
+        guard !files.isEmpty else { return .empty }
+        return (try? RimeSnapshotCollector.collect(files: files, byContent: false)) ?? .empty
+    }
+
+    nonisolated static func collectLearning(in directory: URL) -> CollectedSnapshots {
+        guard let root = DiskPickedNode(url: directory), let files = try? RimeSnapshotCollector.files(in: root) else {
+            return .empty
+        }
+        return collectLearning(files: files)
     }
 
     /// The scheme files the app ships in its bundle, installed like an imported scheme so they
@@ -324,7 +397,8 @@ public extension RecipePackageManager {
 
     nonisolated private func prepareSchemeImport(
         bytes source: [String: Data], fileResources: [String: RecipeFileResource],
-        declaration supplied: SchemePackageDeclaration?
+        declaration supplied: SchemePackageDeclaration?,
+        learning: CollectedSnapshots = .empty
     ) throws -> PreparedSchemeImport {
         var bytes = source
         let sourceFiles = bytes
@@ -414,7 +488,7 @@ public extension RecipePackageManager {
             schemaID: entrySchema, requiredComponents: [], files: records, origin: .userScheme)
         return PreparedSchemeImport(
             declaration: declaration, manifest: manifest, schemaIDs: schemas, bytes: bytes, sourceFiles: sourceFiles,
-            fileResources: fileResources)
+            fileResources: fileResources, learningSnapshots: learning)
     }
 
     /// An update passes the generation it started from; the store compares it under its lock so
@@ -467,6 +541,13 @@ enum SchemeSourceCheck {
         let components = path.split(separator: "/")
         guard let first = components.first, let last = components.last else { return false }
         return first == "__MACOSX" || last.hasPrefix("._") || last == ".DS_Store"
+    }
+    /// A librime `*.userdb.txt` text snapshot: the file itself, with no `.userdb` folder above it.
+    /// Anything else with `userdb` in its path stays refused.
+    static func isLearningSnapshot(_ path: String) -> Bool {
+        let parts = path.split(separator: "/")
+        guard let last = parts.last, last.lowercased().hasSuffix(".userdb.txt") else { return false }
+        return !parts.dropLast().contains { $0.contains(".userdb") }
     }
     static func hash(_ data: Data) -> String { SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined() }
     static func matches(_ pattern: String, _ text: String) -> [String] {

@@ -97,6 +97,13 @@ public struct SkippedSnapshot: Equatable, Sendable {
 public struct CollectedSnapshots: Equatable, Sendable {
     public let snapshots: [CollectedSnapshot]
     public let skipped: [SkippedSnapshot]
+
+    public init(snapshots: [CollectedSnapshot], skipped: [SkippedSnapshot]) {
+        self.snapshots = snapshots
+        self.skipped = skipped
+    }
+
+    public static let empty = CollectedSnapshots(snapshots: [], skipped: [])
 }
 
 public enum RimeSnapshotCollector {
