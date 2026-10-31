@@ -220,6 +220,9 @@ public struct LayoutKey: Codable, Equatable, Sendable {
         }
     }
 
+    /// Replaces the stored title only; unlike `title(_:)` it leaves `titleMode` alone.
+    func settingLabel(_ label: String) -> LayoutKey { with { $0.label = label } }
+
     public func settingTitleMode(_ mode: LayoutKeyTitleMode?) -> LayoutKey { with { $0.titleMode = mode } }
 
     public func settingSecondaryLabel(_ label: String?) -> LayoutKey { with { $0.secondaryLabel = label } }

@@ -311,6 +311,7 @@ extension KeyboardPanelView {
             shiftState: controller.shiftState, returnTitle: controller.returnKeyTitle,
             isReturnEnabled: controller.isReturnKeyEnabled, symbolLocked: symbolPageLocked,
             isComposing: controller.snapshot.isComposing, hasGlobe: systemKeyboardSwitch != nil,
+            jumpLayouts: jumpLayouts,
             isPhoneStyled: !(definition.chrome?.trailing.isEmpty ?? true),
             usesASCIIPunctuation: effectiveUsesASCIIPunctuation,
             usesCategorySymbolPage: definition.symbolPresentation == .categorized)
@@ -350,6 +351,8 @@ extension KeyboardPanelView {
             case .symbols: page = .symbols
             }
             showsAllCandidates = false
+        case .layoutPageSwitch:
+            performLayoutPageJump(action)
         case .languageSwitch:
             switch controlPolicy.languageAction(for: action.languageSwitchBehavior) {
             case .toggleLanguage:
@@ -392,6 +395,41 @@ extension KeyboardPanelView {
         case .code:
             break
         }
+    }
+
+    /// The layouts a jump key may open now, memoized until the layout or input method changes.
+    var jumpLayouts: Set<LayoutInput.Builtin> { jumpMemo.reachable(for: controller) }
+
+    /// A jump key: the target layout becomes the running one through the same joint switch the
+    /// keyboard menu uses (the input method follows, e.g. 9 键 runs its compact companion), then its
+    /// page opens. Its 返回 lands on that layout's letters, which stay until the user switches back.
+    /// A target the running input method cannot use, or a switch the session refused, changes nothing.
+    func performLayoutPageJump(_ action: LayoutAction) {
+        guard let running = LayoutInput.Builtin(rawValue: controller.layout.rawValue) else { return }
+        switch LayoutPageJumpPlan.plan(for: action, running: running, reachable: jumpLayouts) {
+        case .ignore:
+            return
+        case .openPage(let target):
+            emitKeyFeedback()
+            openJumpPage(target)
+        case .switchLayout(let layout, let target):
+            guard let kind = KeyboardLayoutKind(rawValue: layout.rawValue) else { return }
+            let schemaID = controller.selectedSchemaID
+            selectionFeedbackAfterEffect {
+                if let onSelectLayoutBound {
+                    onSelectLayoutBound(kind, schemaID)
+                } else {
+                    controller.selectLayout(kind, boundSchemaID: schemaID)
+                }
+            }
+            guard controller.layout == kind else { return }
+            openJumpPage(target)
+        }
+    }
+
+    private func openJumpPage(_ target: LayoutAction.PageTarget) {
+        page = target == .symbols ? .symbols : .numeric
+        showsAllCandidates = false
     }
 
     // MARK: Categorized authored page
@@ -453,7 +491,7 @@ extension KeyboardPanelView {
         switch action.type {
         case .shift:
             keyFeedbackAfterEffect { controller.handleShiftTap() }
-        case .pageSwitch, .languageSwitch, .symbolLock, .clearInput:
+        case .pageSwitch, .languageSwitch, .symbolLock, .clearInput, .layoutPageSwitch:
             performAuthoredPageAction(action, isAlternate: isAlternate)
         case .modeSwitch:
             recordCategoryAction(.cycleLayout)

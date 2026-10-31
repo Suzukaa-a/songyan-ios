@@ -217,7 +217,8 @@ extension LayoutAction {
         case .enter: return .enter
         case .globe: return .switchKeyboard
         case .modeSwitch: return .cycleLayout
-        case .shift, .pageSwitch, .languageSwitch, .symbolLock, .clearInput: return .cycleLayout
+        case .shift, .pageSwitch, .languageSwitch, .symbolLock, .clearInput, .layoutPageSwitch:
+            return .cycleLayout
         }
     }
 }

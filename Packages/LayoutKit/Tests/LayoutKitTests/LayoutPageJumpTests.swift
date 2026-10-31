@@ -83,7 +83,76 @@ final class LayoutPageJumpTests: XCTestCase {
         let jump = LayoutAction.layoutPageSwitch(toNineKeyDigits)
         XCTAssertTrue(jump.isUsableJump(among: [.phone9, .qwerty26]))
         XCTAssertFalse(jump.isUsableJump(among: [.qwerty26]))
-        XCTAssertFalse(LayoutAction(.layoutPageSwitch, value: "bogus").isUsableJump(among: Set(LayoutInput.Builtin.allCases)))
+        XCTAssertFalse(
+            LayoutAction(.layoutPageSwitch, value: "bogus").isUsableJump(among: Set(LayoutInput.Builtin.allCases)))
         XCTAssertTrue(LayoutAction.pageSwitch(.numeric).isUsableJump(among: []))
+    }
+
+    // MARK: - Editing
+
+    func testNewJumpKeyIsNamedAfterItsPageUntilRenamed() {
+        let literal = LayoutKey(label: "·", action: .init(.literal, value: "·"))
+        let first = LayoutAction.PageJump.all[0]
+        let jump = literal.editingAction(.layoutPageSwitch(first), allowsTitleMode: true)
+        XCTAssertEqual(jump.label, "123")
+        XCTAssertEqual(jump.titleMode, .automatic)
+        XCTAssertEqual(jump.action.layoutPageJump, first)
+
+        // The title follows the page while the author has not written one.
+        let toSymbols = jump.editingAction(
+            .layoutPageSwitch(.init(layout: .phone9, page: .symbols)!), allowsTitleMode: true)
+        XCTAssertEqual(toSymbols.label, "符号")
+        XCTAssertEqual(toSymbols.action.layoutPageJump?.layout, .phone9)
+
+        // A title the author wrote stays.
+        let renamed = toSymbols.editingLabel("我的符号", allowsTitleMode: true)
+        XCTAssertEqual(renamed.titleMode, .custom)
+        let kept = renamed.editingAction(.layoutPageSwitch(first), allowsTitleMode: true)
+        XCTAssertEqual(kept.label, "我的符号")
+        XCTAssertEqual(kept.titleMode, .custom)
+        XCTAssertEqual(kept.action.layoutPageJump, first)
+    }
+
+    func testEditorOffersAJumpOnlyWhereAPageKeyMayHaveOne() {
+        func kinds(jump: Bool, stored: LayoutAction.Kind = .literal) -> [LayoutAction.Kind] {
+            LayoutAction.Kind.editorChoices(
+                allowsCode: false, allowsFunctionActions: true, allowsJump: jump, stored: stored)
+        }
+        XCTAssertTrue(kinds(jump: true).contains(.layoutPageSwitch))
+        XCTAssertFalse(kinds(jump: false).contains(.layoutPageSwitch))
+        // A stored jump stays visible as the current choice where it is not offered.
+        XCTAssertTrue(kinds(jump: false, stored: .layoutPageSwitch).contains(.layoutPageSwitch))
+        XCTAssertFalse(
+            LayoutAction.Kind.editorChoices(
+                allowsCode: false, allowsFunctionActions: false, allowsJump: true, stored: .literal
+            ).contains(.layoutPageSwitch))
+
+        XCTAssertTrue(KeyboardPageKeyPath.row(0, key: 0).allowsJumpKey)
+        XCTAssertTrue(KeyboardPageKeyPath.chrome(.leading, key: 0).allowsJumpKey)
+        XCTAssertTrue(KeyboardPageKeyPath.chrome(.trailing, key: 0).allowsJumpKey)
+        XCTAssertFalse(KeyboardPageKeyPath.chrome(.bottom, key: 0).allowsJumpKey)
+    }
+
+    // MARK: - Dispatch decision
+
+    func testPlanSwitchesThenOpensOrOnlyOpensOrDoesNothing() {
+        let toNine = LayoutAction.layoutPageSwitch(.init(layout: .phone9, page: .symbols)!)
+        let all = Set(LayoutInput.Builtin.allCases)
+        XCTAssertEqual(
+            LayoutPageJumpPlan.plan(for: toNine, running: .qwerty26, reachable: all),
+            .switchLayout(.phone9, thenOpen: .symbols))
+        // The running layout needs no switch, even when the set does not list it.
+        XCTAssertEqual(
+            LayoutPageJumpPlan.plan(for: toNine, running: .phone9, reachable: []), .openPage(.symbols))
+        // A layout the running input method cannot use: nothing happens.
+        XCTAssertEqual(
+            LayoutPageJumpPlan.plan(for: toNine, running: .qwerty26, reachable: [.qwerty26]), .ignore)
+        // Not a jump, or a jump with a value this version does not know.
+        XCTAssertEqual(
+            LayoutPageJumpPlan.plan(for: .pageSwitch(.numeric), running: .qwerty26, reachable: all), .ignore)
+        XCTAssertEqual(
+            LayoutPageJumpPlan.plan(
+                for: LayoutAction(.layoutPageSwitch, value: "phone9:letters"), running: .qwerty26, reachable: all),
+            .ignore)
     }
 }

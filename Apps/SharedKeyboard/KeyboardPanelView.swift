@@ -137,6 +137,7 @@ public struct KeyboardPanelView: View {
 
     @State var definitionMemo = DefinitionResolutionMemo()
     @State var pageMemo = PageResolutionMemo()
+    @State var jumpMemo = JumpTargetsMemo()
     /// The real key-area width, recorded by the root GeometryReader before the panel body builds.
     @State var widthBox = KeyboardPanelWidthBox()
     /// Per-physical wide-screen dock, read at presentation/layout changes (never per key).

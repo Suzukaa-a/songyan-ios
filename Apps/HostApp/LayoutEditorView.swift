@@ -177,6 +177,8 @@ struct LayoutKeyFields: View {
     var widthLabel = "宽度比例"
     /// Category keys only type text, so their action list leaves out every function key.
     var allowsFunctionActions = true
+    /// Only a page's keys may jump to another layout's page, never a main layout's.
+    var allowsJump = false
     let update: (LayoutKey) -> Void
 
     var body: some View {
@@ -211,7 +213,8 @@ struct LayoutKeyFields: View {
                 title: widthLabel,
                 value: Binding(get: { key.width }, set: { update(key.settingWidth($0)) }))
             LayoutActionFields(
-                action: key.action, allowsCode: allowsCode, allowsFunctionActions: allowsFunctionActions
+                action: key.action, allowsCode: allowsCode, allowsFunctionActions: allowsFunctionActions,
+                allowsJump: allowsJump
             ) { action in
                 update(key.editingAction(action, allowsTitleMode: allowsTitleMode))
             }
@@ -303,21 +306,15 @@ private struct LayoutActionFields: View {
     let action: LayoutAction
     var allowsCode = true
     var allowsFunctionActions = true
+    var allowsJump = false
     /// What the picker is called: a key does it on tap, a long-press option once chosen.
     var title = "轻点后"
     let update: (LayoutAction) -> Void
 
     private var kinds: [LayoutAction.Kind] {
-        var kinds: [LayoutAction.Kind] = allowsCode ? [.code, .literal] : [.literal]
-        if allowsFunctionActions {
-            kinds += [
-                .space, .enter, .backspace, .globe, .modeSwitch, .shift, .pageSwitch, .languageSwitch, .symbolLock,
-                .clearInput,
-            ]
-        }
-        // A stored action outside the offered list stays visible as the current choice.
-        if !kinds.contains(action.type) { kinds.append(action.type) }
-        return kinds
+        LayoutAction.Kind.editorChoices(
+            allowsCode: allowsCode, allowsFunctionActions: allowsFunctionActions, allowsJump: allowsJump,
+            stored: action.type)
     }
 
     private func actionTitle(_ kind: LayoutAction.Kind) -> String {
@@ -331,6 +328,7 @@ private struct LayoutActionFields: View {
         case .modeSwitch: return "切换键盘布局"
         case .shift: return "大小写"
         case .pageSwitch: return "切换页面"
+        case .layoutPageSwitch: return "跳转到…"
         case .languageSwitch: return UserTerminology.languageKey
         case .symbolLock: return "符号锁定"
         case .clearInput: return "重输"
@@ -342,9 +340,16 @@ private struct LayoutActionFields: View {
         case .code: return LayoutAction(.code, value: "a")
         case .literal: return LayoutAction(.literal, value: "。")
         case .pageSwitch: return .pageSwitch(.numeric)
+        case .layoutPageSwitch: return .layoutPageSwitch(LayoutAction.PageJump.all[0])
         case .languageSwitch: return .languageSwitch()
         default: return LayoutAction(kind)
         }
+    }
+
+    /// "9 键 · 123": the layout by its user-visible name, then the page.
+    static func jumpTargetName(_ target: LayoutAction.PageJump) -> String {
+        let layout = KeyboardLayoutKind(rawValue: target.layout.rawValue)?.userTitle ?? target.layout.rawValue
+        return "\(layout) · \(target.pageLabel)"
     }
 
     var body: some View {
@@ -379,6 +384,20 @@ private struct LayoutActionFields: View {
                 Text("123 页").tag(LayoutAction.PageTarget.numeric)
                 Text("符号页").tag(LayoutAction.PageTarget.symbols)
             }
+        }
+        if action.type == .layoutPageSwitch {
+            Picker(
+                "跳转到",
+                selection: Binding(
+                    get: { action.layoutPageJump ?? LayoutAction.PageJump.all[0] },
+                    set: { update(.layoutPageSwitch($0)) })
+            ) {
+                ForEach(LayoutAction.PageJump.all, id: \.self) { target in
+                    Text(Self.jumpTargetName(target)).tag(target)
+                }
+            }
+            Text("轻点后换用这个键盘布局。正在使用的输入方式不支持它时，这个键不显示。")
+                .font(.footnote).foregroundStyle(.secondary)
         }
         if action.type == .code {
             TextField(

@@ -228,6 +228,12 @@ public final class KeyboardController: ObservableObject {
         return Dictionary(uniqueKeysWithValues: tokens.map { ($1, $0) })
     }
 
+    /// The layouts a jump key may switch to now (see `KeyboardResourceSet.reachableLayouts`).
+    public var reachableLayouts: Set<KeyboardLayoutKind> {
+        KeyboardResourceSet.reachableLayouts(
+            in: availableCombinations, schemaID: selectedSchemaID, running: layout)
+    }
+
     public var availableCombinations: [KeyboardResourceSet.Combination] {
         if let resources = session.resourceSet { return resources.availableCombinations }
         return KeyboardLayoutKind.allCases.compactMap { layout in

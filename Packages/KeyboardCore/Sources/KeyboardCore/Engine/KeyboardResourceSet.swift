@@ -317,6 +317,17 @@ public struct KeyboardResourceSet: Equatable, Sendable {
         combination(layout: layout)?.engineSchemaID
     }
 
+    /// The layouts the keyboard can switch to while `schemaID` runs `running`: the running one, and
+    /// every layout that schema has a combination for. The same pairing rule `select(layout:)` applies,
+    /// so a layout it would refuse is not offered.
+    public static func reachableLayouts(
+        in combinations: [Combination], schemaID: String, running: KeyboardLayoutKind
+    ) -> Set<KeyboardLayoutKind> {
+        var layouts: Set<KeyboardLayoutKind> = [running]
+        for combination in combinations where combination.schemaID == schemaID { layouts.insert(combination.layout) }
+        return layouts
+    }
+
     public func incompatibilityReason(layout: KeyboardLayoutKind, schemaID: String) -> String? {
         let source = sourceSchemaID(schemaID)
         if availableCombinations.contains(where: { $0.schemaID == source && $0.layout == layout }) { return nil }

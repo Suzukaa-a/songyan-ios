@@ -178,7 +178,8 @@ struct KeyboardPageEditorView: View {
         if let key = draft.key(at: selected) {
             LayoutKeyFields(
                 key: key, allowsCode: false, allowsTitleMode: true,
-                widthLabel: isRailSelection ? "高度比例" : "宽度比例"
+                widthLabel: isRailSelection ? "高度比例" : "宽度比例",
+                allowsJump: selected.allowsJumpKey
             ) { updated in
                 draft = draft.replacingKey(at: selected, with: updated)
             }

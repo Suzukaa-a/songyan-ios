@@ -145,6 +145,8 @@ struct KeyboardPageAuthoredState: Equatable {
     var symbolLocked: Bool
     var isComposing: Bool
     var hasGlobe: Bool
+    /// The layouts a jump key may open now; a jump to any other is not drawn. Previews draw them all.
+    var jumpLayouts = Set(LayoutInput.Builtin.allCases)
     /// A phone-shaped page (keypad/category) names the symbol page 符号, a 123 row page uses #+=.
     var isPhoneStyled: Bool
     /// Effective panel symbol branch, not the raw controller state. Automatic paired faces and
@@ -224,6 +226,7 @@ enum KeyboardPageControlFace {
             case .symbols: return "符号"
             case nil: return key.label
             }
+        case .layoutPageSwitch: return key.action.layoutPageJump?.pageLabel ?? key.label
         case .languageSwitch: return policy.languageTitle(for: key.action.languageSwitchBehavior)
         case .symbolLock: return "锁定"
         case .clearInput: return "重输"
@@ -237,6 +240,10 @@ enum KeyboardPageControlFace {
         switch key.action.type {
         case .pageSwitch where key.action.pageSwitchTarget == .letters: return "返回主键盘"
         case .pageSwitch: return title(for: key, policy: policy).map { "打开\($0)页" }
+        case .layoutPageSwitch:
+            guard let jump = key.action.layoutPageJump else { return title(for: key, policy: policy) }
+            let name = KeyboardLayoutKind(rawValue: jump.layout.rawValue)?.userTitle ?? jump.layout.rawValue
+            return "切换到\(name)并打开\(jump.page == .symbols ? "符号页" : "数字符号页")"
         case .languageSwitch: return policy.languageAccessibilityLabel(for: key.action.languageSwitchBehavior)
         case .symbolLock: return "锁定符号页"
         case .shift: return "上档键"
@@ -274,7 +281,7 @@ extension LayoutAction.Kind {
     /// Page-level controls the host dispatches itself; they never become an engine key action.
     var isPageUI: Bool {
         switch self {
-        case .shift, .pageSwitch, .languageSwitch, .symbolLock, .clearInput: return true
+        case .shift, .pageSwitch, .languageSwitch, .symbolLock, .clearInput, .layoutPageSwitch: return true
         default: return false
         }
     }

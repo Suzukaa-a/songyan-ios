@@ -282,6 +282,24 @@ extension KeyboardPanelView {
     }
 }
 
+// MARK: - Jump targets cache
+
+/// The layouts a jump key may open, kept until the layout or input method changes: every key of
+/// a page asks, and the combinations behind the answer are derived on each access.
+@MainActor
+final class JumpTargetsMemo {
+    private var inputs: (controller: ObjectIdentifier, revision: UInt64)?
+    private var layouts = Set(LayoutInput.Builtin.allCases)
+
+    func reachable(for controller: KeyboardController) -> Set<LayoutInput.Builtin> {
+        let current = (controller: ObjectIdentifier(controller), revision: controller.definitionInputsRevision)
+        if let inputs, inputs == current { return layouts }
+        inputs = current
+        layouts = Set(controller.reachableLayouts.compactMap { LayoutInput.Builtin(rawValue: $0.rawValue) })
+        return layouts
+    }
+}
+
 // MARK: - Physical definition resolution cache
 
 /// Memo for `KeyboardPanelView.definitionFacts`.

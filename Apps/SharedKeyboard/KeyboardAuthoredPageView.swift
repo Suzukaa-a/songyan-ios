@@ -264,7 +264,8 @@ struct KeyboardAuthoredPageKey: View {
         case .globe: return .switchKeyboard
         case .modeSwitch: return .cycleLayout
         case .code: return .code(action.value ?? "")
-        case .shift, .pageSwitch, .languageSwitch, .symbolLock, .clearInput: return .cycleLayout
+        case .shift, .pageSwitch, .languageSwitch, .symbolLock, .clearInput, .layoutPageSwitch:
+            return .cycleLayout
         }
     }
 
@@ -583,7 +584,8 @@ struct KeyboardAuthoredPageView<CategoryMain: View, CategoryLeading: View>: View
 
     var body: some View {
         // Derived once per body: every region below reads the same filtered page and table.
-        let rendered = KeyboardAuthoredRenderedPage(page: page, hasGlobe: state.hasGlobe)
+        let rendered = KeyboardAuthoredRenderedPage(
+            page: page, hasGlobe: state.hasGlobe, jumpLayouts: state.jumpLayouts)
         GeometryReader { proxy in
             let rootWidth = Double(proxy.size.width)
             // A centered phone shell keeps its built-in unit width; an active split expands it
@@ -752,9 +754,15 @@ struct KeyboardAuthoredRenderedPage {
     /// presentation, never by rows.isEmpty.
     let isCategoryPage: Bool
 
-    init(page source: KeyboardPageDefinition, hasGlobe: Bool) {
+    init(page source: KeyboardPageDefinition, hasGlobe: Bool, jumpLayouts: Set<LayoutInput.Builtin>) {
+        /// A globe without a system switch, and a jump to a layout the running input method cannot
+        /// use, are left out rather than drawn as dead keys.
+        func drawn(_ key: LayoutKey) -> Bool {
+            (hasGlobe || key.action.type != .globe) && key.action.isUsableJump(among: jumpLayouts)
+        }
+        let drawsEverything = hasGlobe && jumpLayouts.count == LayoutInput.Builtin.allCases.count
         func visible(_ keys: [LayoutKey]) -> [Int] {
-            hasGlobe ? Array(keys.indices) : keys.indices.filter { keys[$0].action.type != .globe }
+            drawsEverything ? Array(keys.indices) : keys.indices.filter { drawn(keys[$0]) }
         }
         rowSourceIndices = source.rows.map { visible($0.keys) }
         leadingSourceIndices = visible(source.chrome?.leading ?? [])
@@ -762,17 +770,17 @@ struct KeyboardAuthoredRenderedPage {
         bottomSourceIndices = visible(source.chrome?.bottom ?? [])
         actionTable = KeyboardPageAuthoredActionTable(page: source)
         isCategoryPage = source.symbolPresentation == .categorized
-        guard !hasGlobe else {
+        guard !drawsEverything else {
             page = source
             return
         }
         // Rows are filtered like their source indices, so the two can never disagree.
         var copy = source
-        copy.rows = source.rows.map { LayoutRow(keys: $0.keys.filter { $0.action.type != .globe }) }
+        copy.rows = source.rows.map { LayoutRow(keys: $0.keys.filter(drawn)) }
         if var chrome = source.chrome {
-            chrome.bottom = chrome.bottom.filter { $0.action.type != .globe }
-            chrome.leading = chrome.leading.filter { $0.action.type != .globe }
-            chrome.trailing = chrome.trailing.filter { $0.action.type != .globe }
+            chrome.bottom = chrome.bottom.filter(drawn)
+            chrome.leading = chrome.leading.filter(drawn)
+            chrome.trailing = chrome.trailing.filter(drawn)
             copy.chrome = chrome
         }
         page = copy

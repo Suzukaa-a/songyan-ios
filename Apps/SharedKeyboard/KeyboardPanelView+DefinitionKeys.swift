@@ -41,7 +41,10 @@ extension KeyboardPanelView {
     }
 
     func visibleKeys(_ keys: [LayoutKey]) -> [LayoutKey] {
-        keys.filter { $0.action.type != .globe || systemKeyboardSwitch != nil }
+        let reachable = jumpLayouts
+        return keys.filter {
+            ($0.action.type != .globe || systemKeyboardSwitch != nil) && $0.action.isUsableJump(among: reachable)
+        }
     }
 
     @ViewBuilder
