@@ -291,9 +291,16 @@ struct UserKeyboardManagementView: View {
                     LayoutThumbnail(definition: main).accessibilityHidden(true)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(item.keyboard.title).foregroundStyle(.primary).lineLimit(1)
-                        if let customMain {
-                            Text(customMain).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                        // Names the destination so the row reads as the way into 页面搭配.
+                        HStack(spacing: 3) {
+                            Image(systemName: "square.stack.3d.up")
+                            Text(
+                                customMain.map { "\(UserTerminology.pageComposition) · \($0)" }
+                                    ?? UserTerminology.pageComposition)
                         }
+                        .font(.caption)
+                        .foregroundStyle(Color.accentColor)
+                        .lineLimit(1)
                     }
                     Spacer(minLength: 4)
                 }
