@@ -34,6 +34,8 @@ enum LearningBackupUserError: Error, Equatable {
     case noAppliedSource
     case containerUnavailable
     case unreadableFile
+    /// Nothing in the picked files or folder can be merged; the text says why.
+    case nothingToImport(String)
 
     var message: String {
         switch self {
@@ -44,6 +46,8 @@ enum LearningBackupUserError: Error, Equatable {
             return "无法访问共享数据。请在系统设置中开启「允许完全访问」，然后重新打开此页。"
         case .unreadableFile:
             return "无法读取所选的备份文件，请重新选择。"
+        case .nothingToImport(let reason):
+            return reason
         }
     }
 }
@@ -80,21 +84,48 @@ private enum LearningBackupIO {
         }
     }
 
-    /// Reads a user-picked backup file off the main thread, rejecting non-regular files (a FIFO would
-    /// block the transfer queue) and oversized ones before decoding and validating.
-    static func readArchive(at url: URL) async throws -> LearningBackupArchive {
+    /// What the user picked: a Songyan backup, or snapshots from other Rime front-ends.
+    enum Pick: Sendable {
+        case archive(LearningBackupArchive)
+        case snapshots(CollectedSnapshots)
+    }
+
+    /// Reads a user-picked file or folder off the main thread. A folder, a ZIP or a file that starts like a
+    /// `.userdb.txt` snapshot goes through the snapshot collector; anything else is read as a Songyan backup,
+    /// rejecting non-regular files (a FIFO would block the transfer queue) and oversized ones before decoding.
+    static func readPick(at url: URL) async throws -> Pick {
         try await LearningTransferIO.async {
             guard url.isFileURL else { throw LearningBackupUserError.unreadableFile }
             let resolved = url.resolvingSymlinksInPath()
-            guard let values = try? resolved.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey]),
-                values.isRegularFile == true
+            guard let values = try? resolved.resourceValues(forKeys: [.isDirectoryKey, .isRegularFileKey, .fileSizeKey]),
+                let node = DiskPickedNode(url: resolved)
             else { throw LearningBackupUserError.unreadableFile }
+            do {
+                if values.isDirectory == true {
+                    let files = try RimeSnapshotCollector.files(in: node)
+                    return .snapshots(try RimeSnapshotCollector.collect(files: files, byContent: false))
+                }
+                guard values.isRegularFile == true else { throw LearningBackupUserError.unreadableFile }
+                let head = try readHead(of: resolved)
+                if head.starts(with: BoundedZipReader.magic) || RimeUserDbText.looksLikeSnapshot(head) {
+                    let file = PickedFile(name: url.lastPathComponent, read: node.file().read)
+                    return .snapshots(try RimeSnapshotCollector.collect(files: [file], byContent: true))
+                }
+            } catch is RimeSnapshotCollector.TooLarge {
+                throw LearningBackupUserError.nothingToImport(RimeSnapshotImportSummary.tooLarge)
+            }
             if let size = values.fileSize, size > LearningBackupArchive.maximumEncodedBytes {
                 throw LearningBackupArchiveError.encodedTooLarge(bytes: size)
             }
             guard let data = try? Data(contentsOf: resolved) else { throw LearningBackupUserError.unreadableFile }
-            return try LearningBackupArchive.decode(data)
+            return .archive(try LearningBackupArchive.decode(data))
         }
+    }
+
+    private static func readHead(of url: URL) throws -> Data {
+        let handle = try FileHandle(forReadingFrom: url)
+        defer { try? handle.close() }
+        return try handle.read(upToCount: 64) ?? Data()
     }
 
     /// Encoding for export (also done on the background queue; the main thread does no serialization).
@@ -198,6 +229,12 @@ final class LearningBackupModel: ObservableObject {
     }
 
     var restoreConfirmationMessage: String? { restoreSummary }
+
+    static let backupConfirmationTitle = "导入并合并学习备份？"
+    static let snapshotConfirmationTitle = "合并这些词库？"
+
+    /// The dialog title follows what was picked: a Songyan backup or word lists from other Rime input methods.
+    @Published private(set) var restoreConfirmationTitle = LearningBackupModel.backupConfirmationTitle
 
     // MARK: Lifecycle
 
@@ -344,16 +381,16 @@ final class LearningBackupModel: ObservableObject {
     func handleImportResult(_ result: Result<URL, Error>) {
         switch result {
         case .success(let url):
-            importArchive(from: url)
+            importPicked(from: url)
         case .failure(let error):
             // A user cancel is not a failure.
             let nsError = error as NSError
             guard !(nsError.domain == NSCocoaErrorDomain && nsError.code == NSUserCancelledError) else { return }
-            notice = "无法打开所选的备份文件，请重新选择。"
+            notice = "无法打开所选的文件，请重新选择。"
         }
     }
 
-    func importArchive(from url: URL) {
+    func importPicked(from url: URL) {
         notice = nil
         pendingRestore = nil
         restoreSummary = nil
@@ -367,20 +404,36 @@ final class LearningBackupModel: ObservableObject {
             }
             do {
                 // Within the security-scoped validity window, do the bounded read + decode + full validation in the background.
-                let archive = try await LearningBackupIO.readArchive(at: url)
+                let pick = try await LearningBackupIO.readPick(at: url)
                 guard let self, !Task.isCancelled else { return }
+                if case .snapshots(let collected) = pick, collected.snapshots.isEmpty {
+                    throw LearningBackupUserError.nothingToImport(RimeSnapshotImportSummary.nothingToImport(collected))
+                }
                 // Always compare identity against the just-read current source, not a value from the list that may be stale.
                 let source = try await LearningBackupIO.readSource()
                 guard !Task.isCancelled else { return }
                 self.sourceState = source.map { SourceState.ready($0) } ?? .missing
                 guard let source else { throw LearningBackupUserError.noAppliedSource }
-                try archive.validateIdentity(
-                    sourceID: source.sourceID,
-                    resourceRevision: source.resourceRevision)
-                guard !Task.isCancelled else { return }
+                switch pick {
+                case .archive(let archive):
+                    try archive.validateIdentity(
+                        sourceID: source.sourceID,
+                        resourceRevision: source.resourceRevision)
+                    guard !Task.isCancelled else { return }
+                    self.restoreConfirmationTitle = Self.backupConfirmationTitle
+                    self.pendingRestore = archive
+                    self.restoreSummary = Self.restoreSummary(for: archive)
+                case .snapshots(let collected):
+                    let archive = try RimeSnapshotImportSummary.archive(
+                        from: collected, sourceID: source.sourceID,
+                        resourceRevision: source.resourceRevision, sourceName: source.sourceName)
+                    guard !Task.isCancelled else { return }
+                    self.restoreConfirmationTitle = Self.snapshotConfirmationTitle
+                    self.pendingRestore = archive
+                    self.restoreSummary = RimeSnapshotImportSummary.confirmation(
+                        for: collected, sourceName: source.sourceName)
+                }
                 // The confirmation dialog may be shown only from this point.
-                self.pendingRestore = archive
-                self.restoreSummary = Self.restoreSummary(for: archive)
                 self.confirmingRestore = true
             } catch {
                 guard let self, !Task.isCancelled else { return }
@@ -533,6 +586,8 @@ final class LearningBackupModel: ObservableObject {
         case .running:
             return state.operation == .backup ? "正在备份学习数据…" : "正在合并学习数据…"
         case .succeeded:
+            // An import carries its own result line (what was merged).
+            if state.operation == .restore, let message = state.message { return message }
             return state.operation == .backup ? "备份完成。" : "合并完成。"
         case .failed:
             return "操作失败：\(state.message ?? "原因未知")"

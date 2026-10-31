@@ -75,7 +75,7 @@ struct LearningBackupView: View {
         .onChange(of: model.showsKeyboardActivation) { _, needed in
             if !needed { clearActivationField() }
         }
-        .fileImporter(isPresented: $model.importing, allowedContentTypes: [.json]) { result in
+        .fileImporter(isPresented: $model.importing, allowedContentTypes: [.data, .folder]) { result in
             model.handleImportResult(result)
         }
         .fileExporter(
@@ -85,7 +85,7 @@ struct LearningBackupView: View {
             if case .failure(let error) = result { model.reportExportFailure(error) }
         }
         .confirmationDialog(
-            "导入并合并学习备份？", isPresented: $model.confirmingRestore,
+            model.restoreConfirmationTitle, isPresented: $model.confirmingRestore,
             titleVisibility: .visible
         ) {
             Button("导入并合并") { model.confirmRestore() }
@@ -176,7 +176,7 @@ struct LearningBackupView: View {
         } header: {
             Text("学习数据")
         } footer: {
-            Text("需要开启「允许完全访问」。合并后无法撤销。")
+            Text("可以选松烟的学习备份，也可以选其他 Rime 输入法的词库文件、压缩包或文件夹。需要开启「允许完全访问」，合并后无法撤销。")
         }
     }
 
