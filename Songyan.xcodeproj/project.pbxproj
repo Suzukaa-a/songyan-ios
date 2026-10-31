@@ -213,6 +213,7 @@
 		A0000000000000000000000067 /* LayoutKit in Frameworks */ = {isa = PBXBuildFile; productRef = A0000000000000000000000065 /* LayoutKit */; };
 		G20000000000000000000001 /* InputOptionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = G20000000000000000000000002 /* InputOptionsView.swift */; };
 		A0000000000000000000000068 /* LayoutKit in Frameworks */ = {isa = PBXBuildFile; productRef = A0000000000000000000000066 /* LayoutKit */; };
+		AS1C0NBF000000000000001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AS1C0N0000000000000001 /* Assets.xcassets */; };
 		PRIVH0STBF00000000000001 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = PRIVH0ST0000000000000001 /* PrivacyInfo.xcprivacy */; };
 		PRIVE0XTBF00000000000001 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = PRIVE0XT0000000000000001 /* PrivacyInfo.xcprivacy */; };
 		LT2600000000000000000003 /* KeyboardLearningTransfer.swift in Sources */ = {isa = PBXBuildFile; fileRef = LT2600000000000000000001 /* KeyboardLearningTransfer.swift */; };
@@ -388,6 +389,7 @@
 		A0000000000000000000000060 /* LayoutManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutManager.swift; sourceTree = "<group>"; };
 		A0000000000000000000000061 /* LayoutManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutManagementView.swift; sourceTree = "<group>"; };
 		G20000000000000000000000002 /* InputOptionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputOptionsView.swift; sourceTree = "<group>"; };
+		AS1C0N0000000000000001 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		PRIVH0ST0000000000000001 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		PRIVE0XT0000000000000001 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		LT2600000000000000000001 /* KeyboardLearningTransfer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardLearningTransfer.swift; sourceTree = "<group>"; };
@@ -523,6 +525,7 @@
                 F10000000000000000000104 /* CandidateBarManagementView.swift */,
                 AB0000000000000000000003 /* AppearanceManager.swift */,
                 PRIVH0ST0000000000000001 /* PrivacyInfo.xcprivacy */,
+				AS1C0N0000000000000001 /* Assets.xcassets */,
 			);
 			path = HostApp;
 			sourceTree = "<group>";
@@ -748,6 +751,7 @@
 				A0000000000000000000000059 /* EngineResources in Resources */,
 				B1000000000000000000000001 /* Legal in Resources */,
 				PRIVH0STBF00000000000001 /* PrivacyInfo.xcprivacy in Resources */,
+				AS1C0NBF000000000000001 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1116,6 +1120,7 @@
 		A000000000000000000000000D /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CODE_SIGN_ENTITLEMENTS = Apps/HostApp/HostApp.entitlements;
 				INFOPLIST_FILE = Apps/HostApp/Info.plist;
@@ -1150,6 +1155,7 @@
 		A000000000000000000000000E /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CODE_SIGN_ENTITLEMENTS = Apps/HostApp/HostApp.entitlements;
 				INFOPLIST_FILE = Apps/HostApp/Info.plist;
