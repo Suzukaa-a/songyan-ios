@@ -302,6 +302,18 @@ final class AlternateKeyPolicyTests: XCTestCase {
         XCTAssertEqual(yen.map(\.label), ["$"])
     }
 
+    /// Three keys side by side never carry the same corner hint: with $ € £ on the page, only $ hints ¥.
+    func testCurrencyKeysOnOnePageDoNotAllHintYen() {
+        func hint(_ key: String) -> String? {
+            AlternateKeyPolicy.options(
+                for: .init(keyLabel: key, page: .symbols, language: .chinese, visibleKeys: ["$", "€", "£"])
+            ).first?.label
+        }
+        XCTAssertEqual(hint("$"), "¥")
+        XCTAssertNil(hint("€"))
+        XCTAssertNil(hint("£"))
+    }
+
     func testNumericPagePunctuationVariantDoesNotRepeatTheKey() {
         let dash = options(key: "-", page: .numeric, language: .chinese)
         XCTAssertFalse(dash.contains { $0.label == "-" }, "the key's own label is not an alternate")
