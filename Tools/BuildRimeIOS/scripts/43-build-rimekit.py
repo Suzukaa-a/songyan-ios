@@ -88,6 +88,8 @@ def write_slice_metadata(destination, prefix, label):
                        "CFBundleIdentifier": BUNDLE_ID, "CFBundleInfoDictionaryVersion": "6.0",
                        "CFBundleName": "RimeKit", "CFBundlePackageType": "FMWK",
                        "CFBundleShortVersionString": "1.17.0", "CFBundleVersion": "1.17.0",
+                       # App Store Connect rejects embedded frameworks without it.
+                       "MinimumOSVersion": "17.0",
                        "CFBundleSupportedPlatforms": ["iPhoneSimulator" if label == "sim" else "iPhoneOS"]},
                       stream, sort_keys=False)
 
