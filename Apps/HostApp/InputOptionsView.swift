@@ -53,6 +53,8 @@ struct InputOptionsView: View {
     private var heightPresetValue = KeyboardHeightPreset.standard.rawValue
     @AppStorage(KeyboardOneHandPreferences.modeKey, store: KeyboardOneHandPreferences.defaults)
     private var oneHandValue = KeyboardOneHandMode.off.rawValue
+    @AppStorage(KeyboardReadingPlacementPreferences.key, store: KeyboardReadingPlacementPreferences.defaults)
+    private var readingPlacementValue = ReadingPlacement.row.rawValue
     /// Per-physical wide-screen dock. Read once per visit, written through the same shared
     /// preference path the keyboard reads at presentation, never from a per-key disk read.
     @State private var wideDockValues: [String: KeyboardContentDock] = [:]
@@ -65,6 +67,7 @@ struct InputOptionsView: View {
         List {
             inlineCompositionSection
             keyboardHeightSection
+            readingPlacementSection
             wideDockSection
             if UIDevice.current.userInterfaceIdiom == .phone { oneHandSection }
             Section {
@@ -157,6 +160,28 @@ struct InputOptionsView: View {
             Text("宽松").tag(KeyboardHeightPreset.comfortable)
         }
         .accessibilityIdentifier("inputOptions.keyboardHeight")
+    }
+
+    private var readingPlacementSection: some View {
+        Section {
+            Picker(
+                "读音位置",
+                selection: Binding(
+                    get: { ReadingPlacement.resolve(readingPlacementValue) },
+                    set: { readingPlacementValue = $0.rawValue }
+                )
+            ) {
+                Text("候选栏上方单独一行").tag(ReadingPlacement.row)
+                Text("候选栏最左").tag(ReadingPlacement.candidateBar)
+            }
+            .pickerStyle(.inline)
+            .labelsHidden()
+            .accessibilityIdentifier("inputOptions.readingPlacement")
+        } header: {
+            Text("14 键 / 18 键读音")
+        } footer: {
+            Text("放在候选栏最左时，读音单独滚动，键盘不会变高。下次打开键盘时生效。")
+        }
     }
 
     private static let wideDockLayouts: [KeyboardLayoutKind] = [.phone9, .merged14, .merged18]

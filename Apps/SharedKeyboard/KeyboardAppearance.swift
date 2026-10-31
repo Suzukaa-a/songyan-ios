@@ -14,6 +14,16 @@ public enum KeyboardHeightPreferences {
     }
 }
 
+/// Where the readings of a 14-key / 18-key layout show. Read at each presentation (it decides
+/// whether the shell reserves a reading row), never per key.
+public enum KeyboardReadingPlacementPreferences {
+    public static let key = ReadingPlacementStorage.key
+    public static var defaults: UserDefaults { KeyboardRecipeStore.sharedDefaults() ?? .standard }
+    public static var current: ReadingPlacement {
+        ReadingPlacement.resolve(SharedPreferences.object(forKey: key, in: defaults) as? String)
+    }
+}
+
 /// One-handed mode, adopted at the next presentation like the height preset; the
 /// in-keyboard restore control turns it off in place.
 public enum KeyboardOneHandPreferences {
@@ -139,8 +149,11 @@ public struct KeyboardInitialPresentation {
         result.heightPreset = KeyboardHeightPreferences.current
         let defaults = UserDefaults.standard
         let storedHint = defaults.object(forKey: CandidateReadingRowHint.defaultsKey)
-        result.readingRowReserved = CandidateReadingRowHint.resolve(
-            storedValue: storedHint, currentSelection: readingRowSelection)
+        // The hint records the layout's eligibility; only the row placement turns it into height.
+        result.readingRowReserved =
+            KeyboardReadingPlacementPreferences.current == .row
+            && CandidateReadingRowHint.resolve(
+                storedValue: storedHint, currentSelection: readingRowSelection)
         result.candidateAreaReserved = CandidateReadingRowHint.resolveCandidateArea(
             storedValue: storedHint, currentSelection: readingRowSelection)
         if let budget = defaults.dictionary(forKey: geometryBudgetKey) as? [String: Double],

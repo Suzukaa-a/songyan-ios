@@ -148,6 +148,8 @@ public struct KeyboardPanelHost: View {
     /// Standalone reading row granted by the host (the single owner). The initial value comes from the
     /// cold-start hint (`KeyboardInitialPresentation.readingRowReserved`), the same source as the first `loadView` frame.
     @State private var readingRowGranted = false
+    /// Adopted at every presentation like the height preset; the row placement is what reserves height for the row.
+    @State private var readingPlacement = KeyboardReadingPlacementPreferences.current
     @State private var candidateAreaGranted = true
     /// Latest eligibility report from the panel (a fact); only adopted as the granted value once the layout source has settled.
     @State private var latestReadingRowReport: CandidateReadingRowReport?
@@ -238,7 +240,10 @@ public struct KeyboardPanelHost: View {
             // capability change must reach UIInputView even if the ready subtree
             // is replaced in the same SwiftUI update.
             .onAppear {
-                if presentationBudget == nil { storedHeightPreset = KeyboardHeightPreferences.current }
+                if presentationBudget == nil {
+                    storedHeightPreset = KeyboardHeightPreferences.current
+                    readingPlacement = KeyboardReadingPlacementPreferences.current
+                }
                 onPanelHeightChange?(fixedShellHeight)
             }
             .onChange(of: fixedShellHeight) { _, height in onPanelHeightChange?(height) }
@@ -274,6 +279,7 @@ public struct KeyboardPanelHost: View {
             // A new host binding is a new presentation: re-read shared preferences.
             .onChange(of: hostBindingTick) {
                 oneHandMode = KeyboardOneHandPreferences.current
+                readingPlacement = KeyboardReadingPlacementPreferences.current
                 reloadStoredLayouts()
                 reloadAppearance()
                 reloadShuangpinHints()
@@ -285,6 +291,7 @@ public struct KeyboardPanelHost: View {
             // When the layout source settles / the registry arrives, re-evaluate the latest report (the report itself may be unchanged).
             .onChange(of: resolvedLayoutSourceSettled) { applyReadingRowReport() }
             .onChange(of: registryAvailable) { applyReadingRowReport() }
+            .onChange(of: readingPlacement) { applyReadingRowReport() }
             .environment(\.keyboardAppearance, appearance)
             // SwiftUI controls (candidates, bar controls, readings, tools buttons) give the key feedback on press.
             .environment(\.keyboardTouchDownFeedback, { KeyboardFeedbackService.shared.keyTouchDown() })
@@ -444,6 +451,7 @@ public struct KeyboardPanelHost: View {
                 hostBindingTick: hostBindingTick,
                 shuangpinHints: shuangpinHints, shuangpinHintRevision: shuangpinHintRevision,
                 readingRowReserved: readingRowGranted,
+                readingPlacement: readingPlacement,
                 candidateAreaReserved: candidateAreaGranted,
                 keyHeight: CGFloat(layoutFit.keyHeight),
                 candidateBandHeight: CGFloat(layoutFit.headerHeight),
@@ -607,7 +615,8 @@ public struct KeyboardPanelHost: View {
                 report, layoutSourceSettled: resolvedLayoutSourceSettled,
                 registryAvailable: registryAvailable)
         else { return }
-        if readingRowGranted != report.eligible { readingRowGranted = report.eligible }
+        let reservesRow = report.eligible && readingPlacement == .row
+        if readingRowGranted != reservesRow { readingRowGranted = reservesRow }
         if candidateAreaGranted != report.candidateAreaRequired {
             candidateAreaGranted = report.candidateAreaRequired
         }
@@ -615,7 +624,7 @@ public struct KeyboardPanelHost: View {
         // page state and must not become the next cold start's hint.
         if !report.pageOverride {
             let shell = KeyboardPresentationShell(
-                readingRow: report.eligible,
+                readingRow: reservesRow,
                 candidateArea: report.candidateAreaRequired)
             if definitionShell != shell { definitionShell = shell }
             KeyboardInitialPresentation.recordReadingRow(

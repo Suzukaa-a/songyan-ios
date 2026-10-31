@@ -166,13 +166,19 @@ extension KeyboardPanelView {
     private var activeHeaderContent: some View {
         switch headerContent {
         case .compositionWithoutCandidates:
-            Text("暂无候选字词，请按退格修改")
-                .font(appearance.font(14))
-                .foregroundStyle(Color(uiColor: appearance.text(on: "panel", secondary: true)))
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-                .padding(.horizontal, 8)
-                .frame(maxWidth: .infinity, minHeight: candidateRowHeight, alignment: .leading)
+            GeometryReader { geometry in
+                HStack(spacing: 0) {
+                    inlineReadingSection(rowWidth: geometry.size.width)
+                    Text("暂无候选字词，请按退格修改")
+                        .font(appearance.font(14))
+                        .foregroundStyle(Color(uiColor: appearance.text(on: "panel", secondary: true)))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                        .padding(.horizontal, 8)
+                        .frame(maxWidth: .infinity, minHeight: candidateRowHeight, alignment: .leading)
+                }
+            }
+            .frame(height: candidateRowHeight)
         case .idle:
             // The separate reading row may carry the picker while the word row stays empty.
             HStack(spacing: 8) {
@@ -215,6 +221,10 @@ extension KeyboardPanelView {
             // Expand and collapse share the same fixed budget (the expanded area is in the key area and adds no header height).
             GeometryReader { geometry in
                 HStack(spacing: 0) {
+                    // Only the collapsed bar: the expanded grid is unchanged.
+                    if headerContent == .candidates {
+                        inlineReadingSection(rowWidth: geometry.size.width)
+                    }
                     candidateBar
                     Spacer(minLength: 0)
                     if statusMessage != nil, onStatusDetails != nil { statusEntryKey }
@@ -283,9 +293,46 @@ extension KeyboardPanelView {
         .background(Color.black.opacity(0.001))
     }
 
+    /// The readings at the leading edge of the candidate bar (`ReadingPlacement.candidateBar`): same content,
+    /// labels and taps as the reading row, in a section that scrolls on its own and ends at a divider.
+    /// It takes no height of its own and has no width when there is nothing to show.
+    @ViewBuilder
+    private func inlineReadingSection(rowWidth: CGFloat) -> some View {
+        if inlineReadingsActive {
+            let displayed = displayedReadingRowContent
+            let items = displayed.content.inlineItems
+            if !items.isEmpty {
+                let font = appearance.uiFont(appearance.skin.typography.candidateSize)
+                // Leave the candidates at least half of the row beside the expand control.
+                let layout = InlineReadingStrip.layout(
+                    textWidths: items.map { Double(KeyboardTextMeasure.width(of: $0.label, font: font)) },
+                    available: Double(rowWidth))
+                let interactive = displayed.interactive
+                InlineReadingStripView(
+                    items: items, layout: layout, height: candidateRowHeight,
+                    font: Font(font),
+                    textColor: Color(uiColor: appearance.text(on: "panel")),
+                    accentColor: appearance.accentForeground,
+                    dividerColor: Color(uiColor: appearance.text(on: "panel", secondary: true)).opacity(0.3),
+                    interactive: interactive,
+                    loadMoreID: controller.readingFilter.hasMore && !controller.readingFilter.readFailed
+                        && !controller.readingPrefetchSatisfied ? controller.readingFilter.nextIndex : nil,
+                    onChoose: { action in
+                        selectionFeedbackAfterEffect {
+                            switch action {
+                            case .lockSpelling(let option): controller.selectAmbiguityOption(option)
+                            case .selectReading(let reading): controller.selectReading(reading)
+                            }
+                        }
+                    },
+                    onLoadMore: { controller.loadMoreReadings() })
+            }
+        }
+    }
+
     private var liveReadingRowContent: CandidateReadingRowContent {
         CandidateReadingRowContent.resolve(
-            reserved: readingRowReserved, eligible: readingRowEligibleNow,
+            reserved: readingRowReserved || inlineReadingsActive, eligible: readingRowEligibleNow,
             usesPickerUI: controller.usesAmbiguityPickerUI, picker: controller.ambiguityPicker,
             readings: controller.readingFilter)
     }
@@ -299,7 +346,8 @@ extension KeyboardPanelView {
     }
 
     var settledReadingRowContent: CandidateReadingRowContent? {
-        guard readingRowReserved, controller.snapshot.isComposing, t9RailChoicesSettled else { return nil }
+        guard readingRowReserved || inlineReadingsActive, controller.snapshot.isComposing, t9RailChoicesSettled
+        else { return nil }
         return liveReadingRowContent
     }
 

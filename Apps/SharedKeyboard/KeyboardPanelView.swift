@@ -79,6 +79,8 @@ public struct KeyboardPanelView: View {
     @AccessibilityFocusState var utilitiesTitleFocused: Bool
     /// Reading-row height granted by the host (the host is the sole height owner; the panel only lays out to the granted value).
     let readingRowReserved: Bool
+    /// Where the readings show; `.candidateBar` reserves no row (see `inlineReadingsActive`).
+    let readingPlacement: ReadingPlacement
     private let candidateAreaReserved: Bool
     /// Key-row height chosen by the Host (standard size-class height, or the
     /// height that fills a viewport UIKit kept at an earlier budget). nil = size class.
@@ -162,6 +164,7 @@ public struct KeyboardPanelView: View {
         hostBindingTick: Int = 0,
         shuangpinHints: ShuangpinHintSnapshot? = nil, shuangpinHintRevision: UInt64 = 0,
         readingRowReserved: Bool = false,
+        readingPlacement: ReadingPlacement = .row,
         candidateAreaReserved: Bool = true,
         keyHeight keyHeightOverride: CGFloat? = nil,
         candidateBandHeight: CGFloat? = nil,
@@ -177,6 +180,7 @@ public struct KeyboardPanelView: View {
         self.readingRowBandHeight = readingRowBandHeight
         self.topTrim = topTrim
         self.readingRowReserved = readingRowReserved
+        self.readingPlacement = readingPlacement
         self.candidateAreaReserved = candidateAreaReserved
         self.onReadingRowReport = onReadingRowReport
         self.onSelectLayout = onSelectLayout
@@ -465,6 +469,13 @@ public struct KeyboardPanelView: View {
 
     /// Physical eligibility of the reading row depends only on definition content; height is granted separately by the host from the report.
     var readingRowEligibleNow: Bool { definitionFacts.readingRowEligible }
+
+    /// The readings sit at the start of the candidate bar instead of a row of their own: the same
+    /// pages and layouts that would get the row, with no height reserved for it.
+    var inlineReadingsActive: Bool {
+        readingPlacement == .candidateBar && page == .letters && !controller.isEnglishMode
+            && readingRowEligibleNow
+    }
 
     /// ABC and 123/#+= are shared pages, not part of the Chinese definition: ABC always
     /// keeps one word-suggestion row (engine completions, or built-in next-word
