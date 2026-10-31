@@ -447,4 +447,24 @@ final class KeyboardPageChromeTests: XCTestCase {
         withSwitch.chrome?.bottom.append(LayoutKey(label: "符号", action: .pageSwitch(.symbols)))
         XCTAssertTrue(KeyboardPageResolver.numericPageReachesSymbols(page: withSwitch, mainLayoutIsPhoneKeypad: false))
     }
+
+    /// The pad's switch is the row 123 page's switch: it names the symbol page, never a specific one, so
+    /// the pairing decides (row-shaped, categorized or custom) and every symbol page returns to 123.
+    func testKeypadSymbolSwitchOpensThePairedSymbolPageAndReturnsToThePad() throws {
+        let input = KeyboardPageResolutionInput(usesASCIIPunctuation: false, mainLayoutIsPhoneKeypad: false)
+        let padSwitch = try XCTUnwrap(
+            KeyboardPagePresets.numericKeypad.materialized().chrome?.leading.last)
+        let rowSwitch = try XCTUnwrap(
+            KeyboardPagePresets.numericChinese.materialized().rows.last?.keys.first)
+        XCTAssertEqual(padSwitch.action, rowSwitch.action)
+
+        for symbols in [KeyboardPagePresets.symbolsChinese, KeyboardPagePresets.symbolsCategorized] {
+            let resolution = KeyboardPageResolver.resolve(page: symbols, kind: .symbols, input: input)
+            let page = try XCTUnwrap(resolution.page, symbols.id)
+            XCTAssertEqual(page.id, symbols.id)
+            XCTAssertTrue(
+                page.materialized().containsKey { $0.action.pageSwitchTarget == .numeric },
+                "\(symbols.id) returns to the paired 123 page")
+        }
+    }
 }
