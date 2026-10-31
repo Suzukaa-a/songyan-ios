@@ -448,7 +448,7 @@ public struct KeyboardPanelView: View {
         return usesConfiguredLayout && !usesStandardQwerty ? max(1, definitionMainRows.count) : 3
     }
     var keyHeight: CGFloat {
-        keyHeightOverride ?? (verticalSizeClass == .compact ? 44 : 54)
+        keyHeightOverride ?? CGFloat(KeyboardHeightPreset.standard.keyHeight(compact: verticalSizeClass == .compact))
     }
     var mainAreaHeight: CGFloat {
         panelGeometry.mainAreaHeight

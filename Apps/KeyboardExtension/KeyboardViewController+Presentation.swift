@@ -158,6 +158,11 @@ extension KeyboardViewController {
         logPanelGeometry("budget")
     }
 
+    /// A size-class change before the keyboard is on screen still belongs to the measured
+    /// presentation, so it re-budgets the shell. Once visible, iOS keeps the height it
+    /// measured (a rotation sends no sizing query, and a new budget is ignored until the
+    /// next presentation): only the budget's orientation follows, and `syncPresentedHeight`
+    /// hands the kept shell height to the panel, which re-fits the new orientation inside it.
     func syncPresentationSizeClass() {
         guard isBoundHost,
             let input = viewIfLoaded as? KeyboardPanelInputView,
@@ -165,7 +170,29 @@ extension KeyboardViewController {
         else { return }
         let compact = traitCollection.verticalSizeClass == .compact
         guard presentation.budget.compact != compact else { return }
-        applyPresentationBudget(presentation.budget.withCompact(compact))
+        guard isPresentationSettled else {
+            applyPresentationBudget(presentation.budget.withCompact(compact))
+            return
+        }
+        presentation.budget = presentation.budget.withCompact(compact)
+        // Same transaction as the budget, so the panel never lays the new orientation out at the wrong height.
+        let presented = presentedShellHeight(of: input)
+        presentation.presentedHeight = presented
+        hostingHeightConstraint?.constant = presented ?? input.panelHeight
+        view.setNeedsLayout()
+        logPanelGeometry("sizeClass")
+    }
+
+    /// The height iOS is actually presenting when it differs from the current budget: an earlier
+    /// request of this presentation it kept, or, once the keyboard is on screen, whatever height it
+    /// settled on (the one measured before a rotation, or an earlier one kept when the keyboard
+    /// re-appears without leaving the screen). Before that the root can still pass through
+    /// transient heights, so only this presentation's own requests count.
+    private func presentedShellHeight(of input: KeyboardPanelInputView) -> CGFloat? {
+        if let retained = input.retainedPresentedHeight { return retained }
+        guard isPresentationSettled, view.window != nil else { return nil }
+        let height = view.bounds.height
+        return height > 0 && abs(height - CGFloat(presentation.budget.shellHeight)) >= 0.5 ? height : nil
     }
 
     /// Deferred receipts may only change the controller and presentation that observed them.
@@ -173,13 +200,13 @@ extension KeyboardViewController {
         guard isBoundHost, let input = view as? KeyboardPanelInputView else { return }
         let revision = input.presentationRevision
         guard input.acceptsPresentation(revision) else { return }
-        let presented = input.retainedPresentedHeight
+        let presented = presentedShellHeight(of: input)
         guard presentation.presentedHeight != presented else { return }
         DispatchQueue.main.async { [weak self] in
             guard let self, isBoundHost,
                 let input = self.view as? KeyboardPanelInputView,
                 input.acceptsPresentation(revision),
-                input.retainedPresentedHeight == presented,
+                self.presentedShellHeight(of: input) == presented,
                 self.presentation.presentedHeight != presented
             else { return }
             self.presentation.presentedHeight = presented

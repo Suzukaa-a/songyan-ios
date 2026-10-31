@@ -81,6 +81,7 @@ Pass `--udid` for your simulator and export `DEVELOPER_DIR` first.
 - Long press: `axe touch -x <x> -y <y> --down --up --delay 1.5`. `--pre-delay` waits before the press; it is not a hold.
 - Judge each step by its effect (composition, candidates, committed text) rather than the command's exit code, and take a screenshot when in doubt.
 - Typical flow: open the host app's “试打” (Try typing) tab, tap the text field, long-press the globe key and pick Songyan.
+- Rotate an iPhone simulator without Simulator.app (Debug builds): `xcrun simctl openurl "$UDID" "songyan://debug/orientation?to=landscape"` (or `portrait`). The first call asks to open 松烟; confirm it. The keyboard stays up, so this also exercises rotation while it is visible. iPadOS ignores the request.
 - If `axe` keeps failing with `No translation object returned`, restart your simulator's bridge: `xcrun simctl spawn "$UDID" launchctl kickstart -k user/foreground/com.apple.CoreSimulator.bridge`. If touches stop reaching the extension after a reinstall, `xcrun simctl shutdown` and `boot` the simulator.
 
 ## 6. Host app log

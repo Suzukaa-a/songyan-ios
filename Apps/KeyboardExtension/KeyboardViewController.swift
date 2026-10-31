@@ -670,6 +670,8 @@ class KeyboardViewController: UIInputViewController {
         syncSystemColorScheme(animated: false)
         isPresentationSettled = true
         syncPresentationSizeClass()
+        // A height iOS kept from before this appearance is only trusted once on screen.
+        syncPresentedHeight()
         // The live document/keyboard connection is now attached. Full Access
         // can resolve after willAppear; use its visible value for click feedback
         // rather than leaving this appearance pinned to an early false reading.

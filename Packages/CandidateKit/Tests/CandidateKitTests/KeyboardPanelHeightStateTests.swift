@@ -33,7 +33,7 @@ final class KeyboardPanelHeightStateTests: XCTestCase {
         XCTAssertNotEqual(first, largerFont)
         XCTAssertGreaterThan(largerFont.shellHeight, first.shellHeight)
         XCTAssertNotEqual(first, compact)
-        XCTAssertEqual(first.shellHeight - compact.shellHeight, 40)
+        XCTAssertEqual(first.shellHeight - compact.shellHeight, 4 * (first.keyHeight - compact.keyHeight))
         XCTAssertEqual(compact.candidateHeight, first.candidateHeight)
         XCTAssertEqual(compact.candidateSize, first.candidateSize)
     }

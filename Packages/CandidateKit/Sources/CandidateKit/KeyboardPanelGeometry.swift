@@ -310,12 +310,16 @@ public enum KeyboardHeightPreset: String, CaseIterable, Hashable, Sendable {
         storedValue.flatMap(Self.init(rawValue:)) ?? .standard
     }
 
+    /// `compact` is a compact-height surface (an iPhone in landscape): the screen is short there,
+    /// so rows are well below the portrait ones while each preset keeps its relative step.
     public func keyHeight(compact: Bool) -> Double {
-        guard !compact else { return 44 }
-        switch self {
-        case .compact: return 48
-        case .standard: return 54
-        case .comfortable: return 60
+        switch (self, compact) {
+        case (.compact, false): return 48
+        case (.standard, false): return 54
+        case (.comfortable, false): return 60
+        case (.compact, true): return 34
+        case (.standard, true): return 38
+        case (.comfortable, true): return 42
         }
     }
 }

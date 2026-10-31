@@ -181,6 +181,8 @@ struct AlternateCharacterKey: UIViewRepresentable {
         /// Per-letter hint labels of a merged cap, one per letter while any hint shows.
         private var columnHints: [UILabel] = []
         private var columnHintLines = 1
+        /// Least space between the title's line and a bottom hint on a short key (a landscape row).
+        private static let stackedTitleGap: CGFloat = 1
         /// Sideways pick on a two-letter key (`LetterSwipeTracker`).
         private var letterTracker: LetterSwipeTracker?
         var didLetterSwipe = false
@@ -442,6 +444,17 @@ struct AlternateCharacterKey: UIViewRepresentable {
                             lines: hintLines,
                             lineHeight: Double(alternateHint.font.lineHeight))))
             }
+            // On a short key the title's line would reach into the bottom hint: it moves up just
+            // enough (into the content's top margin if needed) and the hint keeps its place.
+            let hintHeight = bottomHintHeight
+            if hintHeight > 0 {
+                let lineHeight = title.font.lineHeight
+                let limit = content.maxY - hintHeight - Self.stackedTitleGap
+                if title.frame.midY + lineHeight / 2 > limit {
+                    let top = max(content.minY - 2, limit - lineHeight)
+                    title.frame = CGRect(x: content.minX, y: top, width: content.width, height: lineHeight)
+                }
+            }
             layoutColumnHints(in: content)
             // Under a callout the keycap keeps its full size so the callout's stem meets its edges.
             releaseAnimator.updatePressVisual(
@@ -515,23 +528,13 @@ struct AlternateCharacterKey: UIViewRepresentable {
                     : phoneKey
                         ? min(appearance.isSystemDefault ? 17 : 20, appearance.skin.typography.keySize)
                         : appearance.keyTextSize)
-            // Merged keys / letter clusters shrink to the actual available width (QQ scaling floor: see scaledFontSize),
-            // while a single letter keeps the default key font size; the label's own adjustsFontSizeToFitWidth remains the fallback.
-            // The font setter invalidates the label's layout even for an equal font.
-            let titleFont = appearance.uiFont(
-                appearance.scaledFontSize(
-                    base, label: title.text ?? "", availableWidth: bounds.width - 10))
-            if title.font != titleFont { title.font = titleFont }
-            if letterGroup.count > 1 {
-                let contentWidth = appearance.visualRect(in: bounds).insetBy(dx: 3, dy: 2).width
-                let merged = mergedTitle(font: titleFont, role: role, contentWidth: contentWidth)
-                if title.attributedText != merged { title.attributedText = merged }
-            }
+            // Hints first: the title size depends on the room the bottom hint leaves.
             // Resolve the hint policy here so any appearance refresh (including a
             // press) re-applies the right font size and line behaviour before the
             // frames are computed in `layoutSubviews`.
             let secondaryFont = appearance.uiFont(appearance.skin.typography.secondarySize)
-            let contentWidth = appearance.visualRect(in: bounds).insetBy(dx: 3, dy: 2).width
+            let content = appearance.visualRect(in: bounds).insetBy(dx: 3, dy: 2)
+            let contentWidth = content.width
             subtitleLines = applyHintLayout(
                 to: subtitle, kind: subtitleHintKind,
                 availableWidth: contentWidth, natural: secondaryFont)
@@ -554,6 +557,34 @@ struct AlternateCharacterKey: UIViewRepresentable {
                     applyHintLayout(
                         to: label, kind: .syllableHint, availableWidth: columnWidth, natural: secondaryFont))
             }
+            // Merged keys / letter clusters shrink to the actual available width (QQ scaling floor: see scaledFontSize),
+            // while a single letter keeps the default key font size; the label's own adjustsFontSizeToFitWidth remains the fallback.
+            // The font setter invalidates the label's layout even for an equal font.
+            var titleFont = appearance.uiFont(
+                appearance.scaledFontSize(
+                    base, label: title.text ?? "", availableWidth: bounds.width - 10))
+            // Only when even the top margin leaves no room above the hint does the title shrink.
+            let hintHeight = bottomHintHeight
+            let titleRoom = content.height + 2 - Self.stackedTitleGap - hintHeight
+            if hintHeight > 0, titleFont.lineHeight > titleRoom {
+                titleFont = titleFont.withSize(titleFont.pointSize * max(0.75, titleRoom / titleFont.lineHeight))
+            }
+            if title.font != titleFont { title.font = titleFont }
+            if letterGroup.count > 1 {
+                let merged = mergedTitle(font: titleFont, role: role, contentWidth: contentWidth)
+                if title.attributedText != merged { title.attributedText = merged }
+            }
+        }
+
+        /// Height of the hint line under the title (the subtitle or per-letter columns); 0 without one.
+        private var bottomHintHeight: CGFloat {
+            if let first = columnHints.first {
+                return CGFloat(
+                    KeyHintLayoutPolicy.height(lines: columnHintLines, lineHeight: Double(first.font.lineHeight)))
+            }
+            guard !(subtitle.text ?? "").isEmpty else { return 0 }
+            return CGFloat(
+                KeyHintLayoutPolicy.height(lines: subtitleLines, lineHeight: Double(subtitle.font.lineHeight)))
         }
 
         /// The letters of a merged cap: the picked (or first) letter in the primary tone.

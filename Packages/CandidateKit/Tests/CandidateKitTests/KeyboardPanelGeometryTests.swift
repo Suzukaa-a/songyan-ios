@@ -34,7 +34,7 @@ final class KeyboardPanelGeometryTests: XCTestCase {
                 budget.shellHeight - standard.shellHeight,
                 4 * (budget.keyHeight - standard.keyHeight), accuracy: 0.001)
             let rotated = budget.withCompact(true)
-            XCTAssertEqual(rotated.keyHeight, 44)
+            XCTAssertLessThan(rotated.keyHeight, budget.keyHeight)
             XCTAssertEqual(rotated.heightPreset, preset)
             XCTAssertEqual(rotated.withCompact(false), budget)
         }
@@ -54,7 +54,8 @@ final class KeyboardPanelGeometryTests: XCTestCase {
                             readingRowReserved: reading, candidateAreaReserved: candidates,
                             compactReadingRow: compact)
                         XCTAssertEqual(fit.keyHeight, budget.keyHeight, accuracy: 0.001)
-                        XCTAssertGreaterThanOrEqual(fit.keyHeight, 44)
+                        // Landscape rows are deliberately shorter: the screen is short there.
+                        XCTAssertGreaterThanOrEqual(fit.keyHeight, compact ? 34 : 44)
                         let plan = KeyboardPanelGeometry(
                             candidateHeight: 44, keyHeight: fit.keyHeight,
                             selectedMainRows: 3, readingRowReserved: reading && candidates,

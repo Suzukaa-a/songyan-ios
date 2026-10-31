@@ -39,7 +39,9 @@ public struct KeyboardPanelHost: View {
             skinAppearance: appearanceSnapshot.document.appearance,
             hostAppearance: host, systemDark: colorScheme == .dark,
             systemTraitKnown: systemTraitKnown)
-        return .init(skin: appearanceSnapshot.document.skin, dark: dark)
+        var resolved = KeyboardAppearance(skin: appearanceSnapshot.document.skin, dark: dark)
+        resolved.widensKeyGaps = compactReadingRow
+        return resolved
     }
     /// Runtime-only rescue; implementations must not require a shared selection write.
     private let onRestoreBuiltin: (() -> Void)?
@@ -72,10 +74,12 @@ public struct KeyboardPanelHost: View {
         return initialGeometryBudget?.size ?? appearance.skin.typography.candidateSize
     }
     private var compactReadingRow: Bool { presentationBudget?.compact ?? (verticalSizeClass == .compact) }
-    @State private var heightPreset = KeyboardHeightPreferences.current
+    @State private var storedHeightPreset = KeyboardHeightPreferences.current
     private var keyHeight: CGFloat {
         CGFloat(presentationBudget?.keyHeight ?? heightPreset.keyHeight(compact: compactReadingRow))
     }
+    /// The extension's budget carries the preset it was measured with; the app trial reads it live.
+    private var heightPreset: KeyboardHeightPreset { presentationBudget?.heightPreset ?? storedHeightPreset }
 
     /// Layout/page changes only re-fit inside the extension's frozen presentation.
     /// Embedded trials follow accepted definition facts without UIKit's restriction.
@@ -108,9 +112,15 @@ public struct KeyboardPanelHost: View {
         return (30...72).contains(key) ? presentedHeight : fixedShellHeight
     }
     private func panelFit(shellHeight: CGFloat) -> KeyboardPanelFit {
-        KeyboardPanelGeometry.fit(
+        // A shell taller than this budget (presented before a rotation to landscape) first lets
+        // the rows grow back toward the portrait height, so the surplus does not all become a
+        // tall, empty candidate bar.
+        let rowCap =
+            shellHeight > fixedShellHeight + 0.5
+            ? max(keyHeight, CGFloat(heightPreset.keyHeight(compact: false))) : keyHeight
+        return KeyboardPanelGeometry.fit(
             shellHeight: Double(shellHeight), candidateHeight: candidateHeight,
-            standardKeyHeight: Double(keyHeight),
+            standardKeyHeight: Double(rowCap),
             readingRowReserved: readingRowGranted,
             candidateAreaReserved: candidateAreaGranted,
             candidateSize: candidateSize,
@@ -228,7 +238,7 @@ public struct KeyboardPanelHost: View {
             // capability change must reach UIInputView even if the ready subtree
             // is replaced in the same SwiftUI update.
             .onAppear {
-                if presentationBudget == nil { heightPreset = KeyboardHeightPreferences.current }
+                if presentationBudget == nil { storedHeightPreset = KeyboardHeightPreferences.current }
                 onPanelHeightChange?(fixedShellHeight)
             }
             .onChange(of: fixedShellHeight) { _, height in onPanelHeightChange?(height) }

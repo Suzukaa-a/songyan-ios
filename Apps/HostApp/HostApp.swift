@@ -28,7 +28,27 @@ struct HostApp: App {
                 // `songyan://` exists only so the keyboard's settings panel can come back here
                 // (an extension cannot open another app any other way). Landing on the home
                 // screen is right: every setting starts from there, so no route is pending.
-                .onOpenURL { _ in }
+                .onOpenURL { url in
+                    #if DEBUG
+                        DebugOrientation.handle(url)
+                    #endif
+                }
         }
     }
 }
+
+#if DEBUG
+    /// `xcrun simctl openurl <udid> "songyan://debug/orientation?to=landscape"` (or `portrait`) rotates the
+    /// simulator without Simulator.app, so the keyboard's landscape layout can be driven from scripts.
+    enum DebugOrientation {
+        @MainActor static func handle(_ url: URL) {
+            guard url.host == "debug", url.path == "/orientation" else { return }
+            let target = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+                .queryItems?.first { $0.name == "to" }?.value
+            let mask: UIInterfaceOrientationMask = target == "landscape" ? .landscapeRight : .portrait
+            for case let scene as UIWindowScene in UIApplication.shared.connectedScenes {
+                scene.requestGeometryUpdate(.iOS(interfaceOrientations: mask)) { _ in }
+            }
+        }
+    }
+#endif

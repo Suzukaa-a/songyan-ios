@@ -209,6 +209,12 @@ public struct KeyboardAppearance: Equatable, Sendable {
         didSet { palette = KeyboardPalette.resolve(skin: skin, dark: dark) }
     }
     private var palette: KeyboardPalette
+    /// A compact-height surface (an iPhone in landscape) has wide, short keys: like the system
+    /// keyboard it shows a wider seam between caps. Only the painted cap narrows; touch areas
+    /// still meet, so no tap lands in a dead gap.
+    public var widensKeyGaps = false
+    /// Extra inset on each side of a cap when `widensKeyGaps` is set.
+    static let landscapeGapInset: Double = 1.5
     public init(skin: SkinDefinition = .systemDefault, dark: Bool = false) {
         // Stored/fallback/default appearances share one source; custom skins stay exact.
         let skin = skin.id == SkinDefinition.systemDefault.id ? .systemDefault : skin
@@ -217,11 +223,11 @@ public struct KeyboardAppearance: Equatable, Sendable {
         self.palette = KeyboardPalette.resolve(skin: skin, dark: dark)
     }
 
-    /// The palette is derived from `(skin, dark)`, so those two decide equality.
+    /// The palette is derived from `(skin, dark)`, so those two (and the cap geometry flag) decide equality.
     /// SwiftUI uses this to skip environment-driven updates when a parent rebuilds
     /// an identical appearance.
     public static func == (lhs: KeyboardAppearance, rhs: KeyboardAppearance) -> Bool {
-        lhs.dark == rhs.dark && lhs.skin == rhs.skin
+        lhs.dark == rhs.dark && lhs.skin == rhs.skin && lhs.widensKeyGaps == rhs.widensKeyGaps
     }
 
     public var isSystemDefault: Bool { skin.id == SkinDefinition.systemDefault.id }
@@ -267,7 +273,9 @@ public struct KeyboardAppearance: Equatable, Sendable {
         return max(base * 0.55, base * availableWidth / width)
     }
     public func visualRect(in bounds: CGRect) -> CGRect {
-        bounds.insetBy(dx: skin.spacing.visualInsetX, dy: skin.spacing.visualInsetY)
+        bounds.insetBy(
+            dx: skin.spacing.visualInsetX + (widensKeyGaps ? Self.landscapeGapInset : 0),
+            dy: skin.spacing.visualInsetY)
     }
     public func color(_ name: String) -> Color { Color(uiColor: uiColor(name)) }
     public func uiColor(_ name: String) -> UIColor { palette.fill(name) }
