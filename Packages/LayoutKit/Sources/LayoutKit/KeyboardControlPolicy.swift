@@ -212,8 +212,9 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
     /// At 382pt content (390pt phone minus panel insets) with globe:
     /// 44/44/44/114.8/44/71.2pt, plus five 4pt gaps. The two switches keep the
     /// 44pt target and the width they no longer take goes to space, the most-hit key.
-    /// Return never falls below 60pt on a supported >=320pt keyboard; extremely small
-    /// previews scale as a whole.
+    /// Without the globe, Return makes the right side as wide as the left, so the space bar
+    /// is centred on every page. Return never falls below 60pt on a supported >=320pt
+    /// keyboard; extremely small previews scale as a whole.
     public func metrics(width: Double) -> Metrics {
         if let phoneColumns, !hasGlobe, !includesBottomEnter {
             return Metrics(width: width, columns: phoneColumns, includesUtility: true)
@@ -238,9 +239,17 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
         ) {
             let width = width.isFinite ? max(0, width) : 0
             let count = (hasGlobe ? 4 : 3) + (includesUtility ? 1 : 0) + (includesEnter ? 1 : 0)
+            // Without the globe, Return takes whatever makes the keys right of the space bar as wide
+            // as those left of it, so the space bar sits on the centre line on every page. With the
+            // globe the width goes to the space bar instead: it is the most-hit key.
+            let centredContent = 252.0
+            let centred =
+                !hasGlobe && includesUtility && includesEnter
+                && width >= centredContent + Double(count - 1) * 4
             let minimumContent =
-                (hasGlobe ? 188.0 : 144.0) + (includesUtility ? 44.0 : 0)
-                + (includesEnter ? 60.0 : 0)
+                centred
+                ? centredContent
+                : (hasGlobe ? 188.0 : 144.0) + (includesUtility ? 44.0 : 0) + (includesEnter ? 60.0 : 0)
             let minimumTotal = minimumContent + Double(count - 1) * 4
             let scale = min(1, width / minimumTotal)
             spacing = 4 * scale
@@ -252,14 +261,18 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
                 page = 44 * scale
                 language = page
             } else {
-                // The base budget is 50 + 50 + [44] + 44 + 44 + 60.
-                // Modest growth goes to switches/Return; the rest goes to space.
-                page = 50 * scale + min(12, extra * 0.10)
+                // The centred base budget is 52 + 52 + 44 + 44 + 60; the switches grow a little
+                // and Return follows them, the rest goes to space.
+                page = (centred ? 52 : 50) * scale + min(12, extra * 0.10)
                 language = page
             }
             globe = hasGlobe ? 44 * scale : 0
             utility = includesUtility ? 44 * scale : 0
-            enter = includesEnter ? 60 * scale + min(20, extra * 0.16) : 0
+            if centred {
+                enter = page + language - utility
+            } else {
+                enter = includesEnter ? 60 * scale + min(20, extra * 0.16) : 0
+            }
             space = max(0, content - page - language - globe - utility - enter)
         }
 

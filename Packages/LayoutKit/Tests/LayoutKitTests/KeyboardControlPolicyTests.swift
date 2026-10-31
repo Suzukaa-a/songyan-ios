@@ -19,6 +19,56 @@ final class KeyboardControlPolicyTests: XCTestCase {
         // Presentation shortcuts do not mutate the persisted builtin.
         XCTAssertFalse((BuiltinLayouts.phone9.auxiliaryAreas ?? []).contains { $0.role == .punctuation })
     }
+    /// Without the globe the keys left of the space bar and the keys right of it take the same
+    /// width, so the space bar sits on the keyboard's centre line on every page. With the globe the
+    /// space bar keeps the wider budget: 44pt switches, a 44pt comma and a 60pt-based Return.
+    func testSpaceBarIsCentredOnlyWithoutTheGlobe() {
+        for width in [382.0, 390, 422, 430, 768, 1024] {
+            for page in KeyboardControlPolicy.Page.allCases {
+                for globe in [false, true] {
+                    let policy = KeyboardControlPolicy(
+                        page: page, isEnglishMode: false, hasGlobe: globe,
+                        isPhoneLayout: false, usesASCIIPunctuation: false)
+                    let m = policy.metrics(width: width)
+                    let slots = policy.slots
+                    let space = slots.firstIndex(of: .space)!
+                    let left = slots[..<space].reduce(0) { $0 + m[$1] } + Double(space) * m.spacing
+                    let after = slots[(space + 1)...]
+                    let right = after.reduce(0) { $0 + m[$1] } + Double(after.count) * m.spacing
+                    let label = "globe \(globe) width \(width) \(page)"
+                    XCTAssertGreaterThanOrEqual(m.enter, 60, label)
+                    XCTAssertGreaterThanOrEqual(m.space, 44, label)
+                    if globe {
+                        XCTAssertEqual(m.page, 44, label)
+                        XCTAssertEqual(m.utility, 44, label)
+                        XCTAssertGreaterThan(left, right, label)
+                        XCTAssertLessThan(m.enter, 92, label)
+                    } else {
+                        XCTAssertEqual(left, right, accuracy: 0.0001, label)
+                    }
+                }
+            }
+        }
+        let withGlobe = KeyboardControlPolicy(
+            page: .letters, isEnglishMode: false, hasGlobe: true,
+            isPhoneLayout: false, usesASCIIPunctuation: false
+        ).metrics(width: 382)
+        XCTAssertEqual(withGlobe.space, 114.8, accuracy: 0.5)
+        XCTAssertEqual(withGlobe.enter, 71.2, accuracy: 0.5)
+    }
+
+    /// The comma key carries the full stop first, so it is the corner hint, and the other sentence
+    /// marks after it.
+    func testCommaKeyLongPressStartsWithTheFullStop() {
+        let chinese = KeyboardControlPolicy(
+            page: .numeric, isEnglishMode: false, hasGlobe: true, isPhoneLayout: false, usesASCIIPunctuation: false)
+        XCTAssertEqual(chinese.utility, .punctuation("，"))
+        XCTAssertEqual(chinese.utilityAlternates.first, "。")
+        let english = KeyboardControlPolicy(
+            page: .letters, isEnglishMode: true, hasGlobe: true, isPhoneLayout: false, usesASCIIPunctuation: true)
+        XCTAssertEqual(english.utilityAlternates.first, ".")
+    }
+
     func testPageLanguageMatrixKeepsAllSlotWidthsAndReturnLanguage() {
         for globe in [false, true] {
             for width in [312.0, 367, 382, 422, 804] {
