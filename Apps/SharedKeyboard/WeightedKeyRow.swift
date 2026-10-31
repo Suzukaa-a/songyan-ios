@@ -68,7 +68,6 @@ struct KeyAreaRenderToken: Equatable {
     let hasKeyAlternates: Bool
     let hasSystemKeyboardSwitch: Bool
     let allowsCursorMovement: Bool
-    let prefersCategorySymbolPage: Bool
     /// The letter page's utility key types punctuation or opens symbols depending on the paired
     /// 123 page, which can change without any other token input.
     let numericPageReachesSymbols: Bool

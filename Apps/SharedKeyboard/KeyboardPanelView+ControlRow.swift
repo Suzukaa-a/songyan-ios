@@ -38,8 +38,7 @@ extension KeyboardPanelView {
 
     var showsCategorySymbolPage: Bool {
         KeyboardPanelRules.showsCategorySymbolPage(
-            page: page, authoredPage: pageDefinition, mainIsPhoneKeypad: usesPhoneDefinition,
-            prefersCategoryPage: prefersCategorySymbolPage)
+            page: page, authoredPage: pageDefinition, mainIsPhoneKeypad: usesPhoneDefinition)
     }
 
     func controlRow(columns: KeyboardControlPolicy.PhoneColumns?, splitOverride: ActiveLayoutSplit? = nil)

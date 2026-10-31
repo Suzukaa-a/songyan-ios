@@ -53,8 +53,6 @@ struct InputOptionsView: View {
     private var heightPresetValue = KeyboardHeightPreset.standard.rawValue
     @AppStorage(KeyboardOneHandPreferences.modeKey, store: KeyboardOneHandPreferences.defaults)
     private var oneHandValue = KeyboardOneHandMode.off.rawValue
-    @AppStorage(KeyboardSymbolPagePreferences.categoryPageKey, store: KeyboardSymbolPagePreferences.defaults)
-    private var categorySymbolPage = false
     /// Per-physical wide-screen dock. Read once per visit, written through the same shared
     /// preference path the keyboard reads at presentation, never from a per-key disk read.
     @State private var wideDockValues: [String: KeyboardContentDock] = [:]
@@ -77,7 +75,6 @@ struct InputOptionsView: View {
             }
             typoCorrectionSection
             predictionSection
-            symbolPageSection
             quickSymbolsSection
             feedbackSection
             optionSection
@@ -339,20 +336,6 @@ struct InputOptionsView: View {
         case .noDatabase: return "导入联想词库后即可开启。"
         case .databaseMissing: return "联想词库缺失或已损坏，请重新导入。"
         case .on, .off: return nil
-        }
-    }
-
-    private var symbolPageSection: some View {
-        Section {
-            Toggle(isOn: $categorySymbolPage) {
-                Text("分类符号页")
-            }
-            .accessibilityIdentifier("inputOptions.categorySymbolPage")
-            .accessibilityValue(categorySymbolPage ? "已开启" : "已关闭")
-        } header: {
-            Text("符号")
-        } footer: {
-            Text("开启后，「#+=」打开按分类排列的符号页。九键键盘始终使用分类符号页。")
         }
     }
 

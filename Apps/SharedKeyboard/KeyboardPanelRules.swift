@@ -40,16 +40,16 @@ enum KeyboardPanelRules {
         }
     }
 
-    /// #+= opens the categorised grid on a phone keypad (its 123 page is a digit pad, with no rows
-    /// for a second page to share) or when the user chose it; otherwise it is the row-shaped page
-    /// that shares the 123 page's geometry.
+    /// #+= opens the categorised grid when the paired page is categorised, or on a phone keypad
+    /// (its 123 page is a digit pad, with no rows for a second page to share); otherwise it is the
+    /// row-shaped page that shares the 123 page's geometry.
     static func showsCategorySymbolPage(
         page: KeyboardPage, authoredPage: @autoclosure () -> KeyboardPageDefinition?,
-        mainIsPhoneKeypad: @autoclosure () -> Bool, prefersCategoryPage: Bool
+        mainIsPhoneKeypad: @autoclosure () -> Bool
     ) -> Bool {
         guard page == .symbols else { return false }
         if let authored = authoredPage() { return authored.symbolPresentation == .categorized }
-        return mainIsPhoneKeypad() || prefersCategoryPage
+        return mainIsPhoneKeypad()
     }
 
     /// The bundled 9-key, and every categorised symbol page except an imported phone keypad's

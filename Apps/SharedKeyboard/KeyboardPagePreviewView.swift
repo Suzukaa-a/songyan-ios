@@ -16,7 +16,6 @@ import UIKit
 /// Main-layout and page previews both follow this rule.
 struct KeyboardPreviewPreferences: Equatable, Sendable {
     var heightPreset = KeyboardHeightPreset.standard
-    var prefersCategorySymbolPage = false
     var needsInputModeSwitchKey = true
     var docks: [KeyboardLayoutKind: KeyboardContentDock] = [:]
 
@@ -41,7 +40,6 @@ struct KeyboardPreviewPreferences: Equatable, Sendable {
         for layout in KeyboardLayoutKind.allCases { docks[layout] = KeyboardContentDockPreferences.dock(for: layout) }
         return Self(
             heightPreset: KeyboardHeightPreferences.current,
-            prefersCategorySymbolPage: KeyboardSymbolPagePreferences.usesCategoryPage,
             needsInputModeSwitchKey: KeyboardSystemRequirements.requiresKeyboardSwitchEntry(),
             docks: docks)
     }
@@ -229,7 +227,7 @@ public struct KeyboardPagePreviewView: View {
     private func showsCategories(_ resolution: KeyboardPageResolution) -> Bool {
         switch resolution {
         case .authored(let authored): return authored.symbolPresentation == .categorized
-        case .automaticSymbolPage: return isPhoneLayout || preferences.prefersCategorySymbolPage
+        case .automaticSymbolPage: return isPhoneLayout
         case .automaticNumeric, .builtIn: return false
         }
     }
@@ -256,7 +254,7 @@ public struct KeyboardPagePreviewView: View {
                     SymbolPageTable.numericRows(ascii: marks == .ascii), page: .numeric,
                     usesASCIIPunctuation: marks == .ascii, split: split)
             }
-        } else if isPhoneLayout || preferences.prefersCategorySymbolPage {
+        } else if isPhoneLayout {
             categoryPad(nil, split: pageSplit(nil, widths: widths), widths: widths)
         } else {
             builtInRows(

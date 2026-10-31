@@ -270,6 +270,22 @@ extension AppearanceDocument {
     /// Built-in appearances besides the system default. Identities are fixed and not deletable; users "duplicate and edit" to get their own.
     public static let builtinPresets: [AppearanceDocument] = [
         preset(
+            id: "builtin-songyan", name: "松烟墨韵", appearance: .system,
+            light: [
+                "panel": "#ECEFEA", "key": "#FFFFFF", "control": "#DDE3DA",
+                "accent": "#2A593F", "accentText": "#FFFFFF", "text": "#191D1A",
+                "secondaryText": "#586159", "selected": "#D8E6DB", "pressed": "#D2DDD3",
+                "border": "#D5DDD4",
+            ],
+            dark: [
+                "panel": "#121513", "key": "#232724", "control": "#1B1E1C",
+                "accent": "#8FD7AA", "accentText": "#003820", "text": "#E2E5E0",
+                "secondaryText": "#959F96", "selected": "#1C3426", "pressed": "#3B433D",
+                "border": "#272C28",
+            ],
+            // Dark keys sit close to the panel; the stroke keeps them apart.
+            borderWidth: 1),
+        preset(
             id: "builtin-ink", name: "墨夜", appearance: .system,
             light: [
                 "panel": "#E5E7EB", "key": "#FFFFFF", "control": "#D1D5DB",
@@ -338,11 +354,12 @@ extension AppearanceDocument {
 
     private static func preset(
         id: String, name: String, appearance: SkinAppearance,
-        light: [String: String]?, dark: [String: String]?
+        light: [String: String]?, dark: [String: String]?, borderWidth: Double = 0
     ) -> AppearanceDocument {
         var skin = SkinDefinition.systemDefault
         skin.id = id
         skin.name = name
+        skin.keycap.borderWidth = borderWidth
         if let light { skin.variants.light?.colors = light }
         if let dark { skin.variants.dark?.colors = dark }
         return AppearanceDocument(

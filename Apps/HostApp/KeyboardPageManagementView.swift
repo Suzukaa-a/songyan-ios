@@ -137,7 +137,7 @@ struct KeyboardPageManagementView: View {
         }
         if page.usesSymbolBrowser {
             guard let categories = page.categories else {
-                return page.symbolPresentation == .automatic ? "样式在「输入选项」中设置" : "分类浏览"
+                return page.symbolPresentation == .automatic ? "九键用分类浏览，其他布局用多行" : "分类浏览"
             }
             return "\(categories.count) 个分类"
         }

@@ -238,10 +238,6 @@ struct KeyboardCompositionView: View {
             return "123 页是\(UserTerminology.phoneDigitPad)。"
         case .automaticNumeric(.rows, _):
             return "标点跟着中英文切换。"
-        case .automaticSymbolPage:
-            // A phone keypad always opens the category browser, so only other layouts need the
-            // reminder that the preference decides between the two symbol presentations.
-            return mainLayoutIsPhoneKeypad ? nil : "样式在「输入选项」中设置。"
         default:
             return nil
         }

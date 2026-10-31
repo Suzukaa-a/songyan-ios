@@ -115,7 +115,6 @@ extension KeyboardPanelView {
             hasKeyAlternates: keyAlternates != nil,
             hasSystemKeyboardSwitch: systemKeyboardSwitch != nil,
             allowsCursorMovement: allowsCursorMovement,
-            prefersCategorySymbolPage: prefersCategorySymbolPage,
             numericPageReachesSymbols: page == .letters && numericPageReachesSymbols,
             symbolPageLocked: symbolPageLocked,
             symbolCategoryID: phoneSymbolCategoryID,

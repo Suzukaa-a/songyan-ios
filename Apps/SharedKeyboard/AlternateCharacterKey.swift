@@ -525,9 +525,7 @@ struct AlternateCharacterKey: UIViewRepresentable {
                 titleSize
                 ?? (isControl || phoneSideKey
                     ? appearance.controlTextSize
-                    : phoneKey
-                        ? min(appearance.isSystemDefault ? 17 : 20, appearance.skin.typography.keySize)
-                        : appearance.keyTextSize)
+                    : phoneKey ? appearance.phoneKeyTextSize : appearance.keyTextSize)
             // Hints first: the title size depends on the room the bottom hint leaves.
             // Resolve the hint policy here so any appearance refresh (including a
             // press) re-applies the right font size and line behaviour before the

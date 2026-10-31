@@ -27,18 +27,6 @@ public enum KeyboardOneHandPreferences {
     }
 }
 
-/// Which #+= page the 26/14/18-key layouts open. Off (the default) keeps the
-/// system keyboards' row-shaped page; on opens the categorised grid. The 9-key
-/// always uses the grid, since its 123 page is a digit pad with no rows to share.
-/// The keyboard re-reads it on each presentation.
-public enum KeyboardSymbolPagePreferences {
-    public static let categoryPageKey = "keyboard.categorySymbolPage.v1"
-    public static var defaults: UserDefaults { KeyboardRecipeStore.sharedDefaults() ?? .standard }
-    public static var usesCategoryPage: Bool {
-        (SharedPreferences.object(forKey: categoryPageKey, in: defaults) as? Bool) ?? false
-    }
-}
-
 /// Where a width-capped wide-screen keyboard sits. One value per physical layout, so a
 /// 9-key phone pad can hug the left while a 14-key pad stays centred. Unknown or missing
 /// values resolve to centre; the keyboard re-reads them per presentation, never per key.
@@ -259,14 +247,20 @@ public struct KeyboardAppearance: Equatable, Sendable {
     public var accentForeground: Color { Color(uiColor: palette.accentForeground) }
     public var uiAccentForeground: UIColor { palette.accentForeground }
 
-    public var controlTextSize: Double { min(isSystemDefault ? 14 : 20, skin.typography.keySize) }
-    public var keyTextSize: Double { isSystemDefault ? 18 : skin.typography.keySize }
+    /// Every skin's key size sits on one scale: the default 22 draws the system keyboard's sizes, so
+    /// the built-in appearances (and copies) match the system default, and an edited size scales
+    /// smoothly instead of jumping to a literal point size.
+    private var keyScale: Double { skin.typography.keySize / SkinDefinition.systemDefault.typography.keySize }
+    public var controlTextSize: Double { 14 * keyScale }
+    public var keyTextSize: Double { 18 * keyScale }
+    /// Letters on the 9-key phone pad, a step smaller than single-letter keys.
+    public var phoneKeyTextSize: Double { 17 * keyScale }
     public var controlIconSize: Double { min(20, skin.typography.keySize) }
     /// Scales font size to the available key width: long labels (merged keys, nine-key letter clusters,
     /// function words) shrink to the measured width, single letters keep the familiar system key size; the
     /// lower bound is 55% so narrow keys do not turn into tiny text.
     public func scaledFontSize(_ base: Double, label: String, availableWidth: CGFloat) -> Double {
-        let base = isSystemDefault && label.count > 1 ? min(base, 18) : base
+        let base = label.count > 1 ? min(base, keyTextSize) : base
         guard availableWidth > 0, !label.isEmpty else { return base }
         let width = KeyboardTextMeasure.width(of: label, font: uiFont(base))
         guard width > availableWidth else { return base }
