@@ -24,11 +24,62 @@ final class BuiltinLayoutSplitTests: XCTestCase {
         }
     }
 
-    func testPhoneAndQwertyKeepNoDefaultSplit() {
-        for layout in [BuiltinLayouts.qwerty26, BuiltinLayouts.phone9] {
-            XCTAssertNil(layout.split, layout.id)
-            XCTAssertNil(layout.split?.resolved(forWidth: 1366))
+    /// The bundled definitions stay as they are (copies and encoded documents must not carry the
+    /// hand cuts); the cuts are applied when the page is rendered.
+    func testBundledDefinitionsCarryNoHandCuts() {
+        XCTAssertNil(BuiltinLayouts.qwerty26.split)
+        XCTAssertNil(BuiltinLayouts.phone9.split)
+        XCTAssertEqual(BuiltinLayouts.merged18.split, LayoutSplitConfiguration())
+        XCTAssertEqual(BuiltinLayouts.merged14.split, LayoutSplitConfiguration())
+    }
+
+    func testHandCutsApplyToTheUneditedBundled26And18KeyLayoutsOnly() throws {
+        let qwerty = try XCTUnwrap(BuiltinLayouts.handSplit(for: BuiltinLayouts.qwerty26))
+        XCTAssertEqual(qwerty.activation, .off, "26 keys stays whole until splitting is turned on")
+        XCTAssertEqual(qwerty.rowBreaks, [5, 5, 5])
+        XCTAssertNil(qwerty.resolved(forWidth: 1366))
+        let merged = try XCTUnwrap(BuiltinLayouts.handSplit(for: BuiltinLayouts.merged18))
+        XCTAssertEqual(merged.activation, .automatic)
+        XCTAssertEqual(merged.rowBreaks, [3, 3, 4])
+        XCTAssertEqual(merged.gapFraction, LayoutSplitConfiguration.defaultGapFraction)
+        XCTAssertTrue(merged.automaticGap)
+        XCTAssertNil(BuiltinLayouts.handSplit(for: BuiltinLayouts.merged14))
+        XCTAssertNil(BuiltinLayouts.handSplit(for: BuiltinLayouts.phone9))
+        // An edited key set, or a split with saved cuts, passes through untouched.
+        var edited = BuiltinLayouts.qwerty26
+        edited.rows.removeLast()
+        XCTAssertNil(BuiltinLayouts.handSplit(for: edited))
+        let saved = LayoutSplitConfiguration(activation: .always, rowBreaks: [4, 4, 4])
+        XCTAssertNil(BuiltinLayouts.handSplit(for: BuiltinLayouts.qwerty26.settingSplit(saved)))
+        // A saved split without cuts keeps its own activation and spacing.
+        let always = LayoutSplitConfiguration(activation: .always)
+        let kept = try XCTUnwrap(BuiltinLayouts.handSplit(for: BuiltinLayouts.qwerty26.settingSplit(always)))
+        XCTAssertEqual(kept.activation, .always)
+        XCTAssertEqual(kept.rowBreaks, [5, 5, 5])
+    }
+
+    /// The letters left of the cut in each letter row, for a split active at a wide width.
+    private func leftLetters(_ rows: [[String]], _ split: ActiveLayoutSplit) -> [String] {
+        rows.enumerated().map { index, row in
+            row.prefix(split.breakIndex(row: index, keyCount: row.count)).joined().lowercased()
         }
+    }
+
+    func testTwentySixKeysPutFiveLettersOfEveryRowOnTheLeft() throws {
+        var split = try XCTUnwrap(BuiltinLayouts.handSplit(for: BuiltinLayouts.qwerty26))
+        split.activation = .always
+        let rows = BuiltinLayouts.qwerty26.rows.prefix(3).map { $0.keys.map(\.label) }
+        XCTAssertEqual(leftLetters(rows, try XCTUnwrap(split.resolved(forWidth: 1024))), ["qwert", "asdfg", "zxcvb"])
+        // The English page is the same rows whatever the main layout's own cuts.
+        let merged = try XCTUnwrap(BuiltinLayouts.handSplit(for: BuiltinLayouts.merged18)?.resolved(forWidth: 1024))
+        XCTAssertEqual(leftLetters(rows, merged.forStandardLetterRows), ["qwert", "asdfg", "zxcvb"])
+        XCTAssertEqual(merged.forStandardLetterRows.gapFraction, merged.gapFraction)
+    }
+
+    func testEighteenKeysPutThreeThreeAndFourKeysOnTheLeft() throws {
+        let split = try XCTUnwrap(BuiltinLayouts.handSplit(for: BuiltinLayouts.merged18)?.resolved(forWidth: 1024))
+        let rows = BuiltinLayouts.merged18.rows.prefix(3).map { $0.keys.map(\.label) }
+        XCTAssertEqual(leftLetters(rows, split), ["qwert", "asdfg", "zxcvbn"])
     }
 
     func testSavedExplicitOffOverridesTheBuiltinDefault() throws {

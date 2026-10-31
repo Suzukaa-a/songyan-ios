@@ -10,10 +10,14 @@ enum KeyboardPanelRules {
     /// spacing without its row cuts unless they carry their own split.
     static func activeSplit(
         main: LayoutSplitConfiguration?, mainWidth: Double, showsMainLetters: Bool,
-        pageSplit: @autoclosure () -> LayoutSplitConfiguration?, contentWidth: Double
+        pageSplit: @autoclosure () -> LayoutSplitConfiguration?, contentWidth: Double,
+        showsEnglishLetters: Bool = false
     ) -> ActiveLayoutSplit? {
         let resolved = main?.resolved(forWidth: mainWidth)
         if showsMainLetters { return resolved }
+        // The English letter page is always the standard 26-key rows, whatever the main layout's own
+        // row cuts count.
+        if showsEnglishLetters, let resolved, pageSplit() == nil { return resolved.forStandardLetterRows }
         return ActiveLayoutSplit.resolving(nested: pageSplit(), parent: resolved, width: contentWidth)
     }
 

@@ -159,8 +159,9 @@ private struct KeyboardMainLayoutPreview: View {
 
     var body: some View {
         let split = KeyboardPanelRules.activeSplit(
-            main: definition.split, mainWidth: widths.mainSplit, showsMainLetters: usesConfiguredLayout,
-            pageSplit: nil, contentWidth: widths.content)
+            main: facts.handSplit ?? definition.split, mainWidth: widths.mainSplit,
+            showsMainLetters: usesConfiguredLayout, pageSplit: nil, contentWidth: widths.content,
+            showsEnglishLetters: page == .letters && isEnglishMode && facts.handSplit != nil)
         let geometry = geometry
         VStack(spacing: 0) {
             Group {

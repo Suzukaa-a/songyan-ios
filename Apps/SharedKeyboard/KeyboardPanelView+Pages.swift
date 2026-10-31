@@ -153,9 +153,11 @@ extension KeyboardPanelView {
     /// one continuous row with a single space and no gutter.
     var activeSplit: ActiveLayoutSplit? {
         KeyboardPanelRules.activeSplit(
-            main: activeDefinition?.split, mainWidth: widthBox.mainSplitWidth,
+            main: definitionFacts.handSplit ?? activeDefinition?.split, mainWidth: widthBox.mainSplitWidth,
             showsMainLetters: page == .letters && !controller.isEnglishMode,
-            pageSplit: pageDefinition?.split, contentWidth: widthBox.contentWidth)
+            pageSplit: pageDefinition?.split, contentWidth: widthBox.contentWidth,
+            showsEnglishLetters: page == .letters && controller.isEnglishMode
+                && definitionFacts.handSplit != nil)
     }
 
     /// Extra room at both edges of a split key area, on top of the panel's own 4pt, so the halves do

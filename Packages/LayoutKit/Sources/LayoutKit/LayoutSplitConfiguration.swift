@@ -116,6 +116,13 @@ public struct ActiveLayoutSplit: Equatable, Sendable {
         ActiveLayoutSplit(rowBreaks: [], gapFraction: gapFraction, automaticGap: automaticGap)
     }
 
+    /// The same spacing on the standard 26-key letter rows, cut where the hands divide whatever
+    /// layout the split came from.
+    public var forStandardLetterRows: ActiveLayoutSplit {
+        ActiveLayoutSplit(
+            rowBreaks: BuiltinLayouts.standardLetterRowBreaks, gapFraction: gapFraction, automaticGap: automaticGap)
+    }
+
     /// The split index in a row.
     public func breakIndex(row: Int, keyCount: Int) -> Int {
         Self.breakIndex(rowBreaks: rowBreaks, row: row, keyCount: keyCount)

@@ -8,6 +8,33 @@ public enum BuiltinLayouts {
         id: "qwerty26", name: "26 键", input: .init(builtinLayout: .qwerty26),
         rows: alphabetRows() + [controls])
 
+    /// Row cuts of the standard 26-key letter rows (10, 9 and 7 letters): five keys on the left.
+    public static let standardLetterRowBreaks = [5, 5, 5]
+
+    /// Where the unedited bundled 26- and 18-key layouts split when nothing saved says otherwise:
+    /// each hand keeps its letters from a physical keyboard, QWERT ASDFG ZXCVB on the left (on 18
+    /// keys three, three and four keys, the BN pair following its B). The cuts live here rather than
+    /// on the definitions so a layout copied from them does not carry them. 26 keys stays whole
+    /// (`off`) until the user turns splitting on. The cuts count letter keys: the key area draws
+    /// Shift and Delete outside the rows, so nothing needs to move. Nil for any other layout and
+    /// for a split the user saved.
+    public static func handSplit(for definition: LayoutDefinition) -> LayoutSplitConfiguration? {
+        let breaks: [Int]
+        let layout: LayoutInput.Builtin
+        switch definition.input.builtinLayout {
+        case .some(.qwerty26): (layout, breaks) = (.qwerty26, standardLetterRowBreaks)
+        case .some(.merged18): (layout, breaks) = (.merged18, [3, 3, 4])
+        default: return nil
+        }
+        let bundled = preset(for: layout)
+        guard definition.rows == bundled.rows, definition.auxiliaryAreas == bundled.auxiliaryAreas,
+            definition.split?.rowBreaks.isEmpty ?? true
+        else { return nil }
+        var split = definition.split ?? LayoutSplitConfiguration(activation: .off)
+        split.rowBreaks = breaks
+        return split
+    }
+
     public static let merged14 = LayoutDefinition(
         id: "merged14", name: "14 键", input: .init(builtinLayout: .merged14),
         rows: mergedRows([

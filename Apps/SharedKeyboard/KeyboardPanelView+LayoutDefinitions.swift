@@ -306,6 +306,8 @@ final class DefinitionResolutionMemo {
         let usable: [LayoutDefinition]
         let active: LayoutDefinition?
         let isBundled: Bool
+        /// The hands' row cuts for the unedited bundled 26/18-key layout (see `BuiltinLayouts.handSplit`).
+        let handSplit: LayoutSplitConfiguration?
         let isBuiltinPhonePad: Bool
         /// Known bundled phone9 primary-gesture semantics, independent of the visual shell. Only
         /// first-key cycling / digit up-flick / declared alternates may read it; it must never gate
@@ -340,6 +342,7 @@ final class DefinitionResolutionMemo {
             }
             let isBundled = bundled != nil
             self.isBundled = isBundled
+            handSplit = active.flatMap(BuiltinLayouts.handSplit(for:))
             // Shell/chrome identity stays narrow: only the rendered main-row long-press menus may
             // differ, because injecting the fixed control row/rails would otherwise cover up authored
             // edits there. Primary gestures are a separate, shell-free predicate.
