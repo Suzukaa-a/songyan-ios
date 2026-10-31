@@ -80,6 +80,8 @@ extension SchemeImportCenter {
             let known = installedPackages.map {
                 InstalledSchemeIdentity(id: $0.id, name: $0.name, entrySchemaID: $0.active.installation.schemaID)
             }
+            let installedResources = Dictionary(
+                installedPackages.map { ($0.id, $0.active.resourceURL) }, uniquingKeysWith: { first, _ in first })
             let explicit = capture.target.map {
                 InstalledSchemeIdentity(
                     id: $0.id, name: $0.name,
@@ -96,9 +98,14 @@ extension SchemeImportCenter {
                                 ?? SchemeReimport.replacing(
                                     entrySchemaID: imported.manifest.schemaID,
                                     importedID: imported.declaration.id, installed: known)
-                            return try existing.map {
-                                try imported.updatingInstallation(id: $0.id, name: $0.name)
-                            } ?? imported
+                            guard let existing else { return imported }
+                            let update = try imported.updatingInstallation(id: existing.id, name: existing.name)
+                            // Grammar models the user added to the installed version are not in the
+                            // new files; an update keeps them.
+                            guard let location = installedResources[existing.id],
+                                let record = try? RecipePackageManager.readInstalledRecipeSources(resources: location)
+                            else { return update }
+                            return try update.carryingModels(from: record)
                         })
                 }
             }
