@@ -67,6 +67,11 @@ final class KeyboardPageRowsTests: XCTestCase {
         }
     }
 
+    func testPlusIsOnTheASCIINumericPageAndTheDigitPadRail() {
+        XCTAssertTrue(BuiltinLayouts.numericPageRows(ascii: true).flatMap { $0 }.contains("+"))
+        XCTAssertTrue(BuiltinLayouts.phoneNumericRailValues(ascii: true).contains("+"))
+    }
+
     func testNumericPageHoldsTheEverydayMarks() {
         let chinese = Set(BuiltinLayouts.numericPageRows(ascii: false).flatMap { $0 })
         XCTAssertTrue(["。", "？", "！", "、", "…", "：", "；", "（", "）", "“", "”"].allSatisfy(chinese.contains))

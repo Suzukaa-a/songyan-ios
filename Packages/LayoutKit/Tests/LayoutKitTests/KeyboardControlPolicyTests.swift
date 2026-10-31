@@ -23,7 +23,7 @@ final class KeyboardControlPolicyTests: XCTestCase {
     /// width, so the space bar sits on the keyboard's centre line on every page. With the globe the
     /// space bar keeps the wider budget: 44pt switches, a 44pt comma and a 60pt-based Return.
     func testSpaceBarIsCentredOnlyWithoutTheGlobe() {
-        for width in [382.0, 390, 422, 430, 768, 1024] {
+        for width in [312.0, 320, 382, 390, 422, 430, 768, 1024] {
             for page in KeyboardControlPolicy.Page.allCases {
                 for globe in [false, true] {
                     let policy = KeyboardControlPolicy(
@@ -49,6 +49,12 @@ final class KeyboardControlPolicyTests: XCTestCase {
                 }
             }
         }
+        // Too narrow for the centred budget: the old budget applies, so the sides differ.
+        let narrow = KeyboardControlPolicy(
+            page: .letters, isEnglishMode: false, hasGlobe: false,
+            isPhoneLayout: false, usesASCIIPunctuation: false
+        ).metrics(width: 260)
+        XCTAssertNotEqual(narrow.page + narrow.language, narrow.utility + narrow.enter, accuracy: 0.01)
         let withGlobe = KeyboardControlPolicy(
             page: .letters, isEnglishMode: false, hasGlobe: true,
             isPhoneLayout: false, usesASCIIPunctuation: false

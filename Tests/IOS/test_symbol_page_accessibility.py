@@ -54,13 +54,13 @@ for ascii in [false, true] {
     precondition(numericValues.filter { $0.count == 1 && $0.first!.isNumber } == "1234567890".map(String.init))
     // The third row holds seven marks between the 123/symbol switch and Delete.
     let expectedNumeric: [[String]] = ascii
-        ? ["1234567890".map(String.init), "-/:;()$&@\"".map(String.init), [".", "?", "!", "'", "%", "#", "*"]]
+        ? ["1234567890".map(String.init), "-/:;()$&@\"".map(String.init), [".", "?", "!", "'", "%", "#", "+"]]
         : ["1234567890".map(String.init), ["-", "/", "：", "；", "（", "）", "¥", "@", "“", "”"],
            ["。", "？", "！", "、", "…", ".", "%"]]
     precondition(numeric.map { literalValues($0.caps) } == expectedNumeric, "123 rows (ascii=\(ascii))")
     // The #+= page holds the marks the 123 page lacks.
     let expectedSymbols: [[String]] = ascii
-        ? ["[]{}+=\\€£¥".map(String.init), ["•", "°", "§", "×", "÷", "±", "≈", "≠", "©", "™"],
+        ? ["[]{}*=\\€£¥".map(String.init), ["•", "°", "§", "×", "÷", "±", "≈", "≠", "©", "™"],
            ["<", ">", "~", "`", "^", "_", "|"]]
         : [["【", "】", "{", "}", "#", "^", "*", "+", "=", "&"],
            ["_", "——", "\\", "|", "～", "《", "》", "「", "」", "·"], ["$", "€", "£", "<", ">", "‘", "’"]]
@@ -73,6 +73,11 @@ for ascii in [false, true] {
                                            isPhoneLayout: false, usesASCIIPunctuation: ascii,
                                            usesCategorySymbolPage: false)
         guard case .punctuation(let slot) = bottom.utility else { fatalError("\(page) bottom slot is punctuation") }
+        if page == .symbols {
+            // The #+= page has no sentence marks of its own; the comma key's long press holds them.
+            precondition(Set(required).isSubset(of: Set(bottom.utilityAlternates)),
+                         "#+= comma long press must hold \(required) (ascii=\(ascii))")
+        }
         precondition(!values.contains(slot), "the \(page) bottom slot \(slot) repeats a key (ascii=\(ascii))")
     }
 

@@ -159,7 +159,7 @@ enum SymbolPageTable {
     }
 
     /// The row-shaped #+= page shares the 123 page's ten-column geometry: the
-    /// third row holds nine direct marks and Delete closes the tenth column, so
+    /// third row holds seven direct marks and Delete closes the tenth column, so
     /// its caps are exactly as wide as the rows above. The categorised page also
     /// exposes every mark in these rows.
     static func symbolRows(ascii: Bool) -> [KeyboardRow] {

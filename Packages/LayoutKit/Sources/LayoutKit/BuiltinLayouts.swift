@@ -230,7 +230,7 @@ public enum BuiltinLayouts {
             ? [
                 Array("1234567890").map(String.init),
                 Array("-/:;()$&@\"").map(String.init),
-                [".", "?", "!", "'", "%", "#", "*"],
+                [".", "?", "!", "'", "%", "#", "+"],
             ]
             : [
                 Array("1234567890").map(String.init),
@@ -244,7 +244,7 @@ public enum BuiltinLayouts {
     public static func symbolPageRows(ascii: Bool) -> [[String]] {
         ascii
             ? [
-                Array("[]{}+=\\€£¥").map(String.init),
+                Array("[]{}*=\\€£¥").map(String.init),
                 ["•", "°", "§", "×", "÷", "±", "≈", "≠", "©", "™"],
                 ["<", ">", "~", "`", "^", "_", "|"],
             ]
