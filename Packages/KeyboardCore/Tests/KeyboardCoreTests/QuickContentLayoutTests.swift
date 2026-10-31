@@ -39,7 +39,7 @@ final class QuickContentLayoutTests: XCTestCase {
             for height in stride(from: CGFloat(120), through: 320, by: 4) {
                 let layout = QuickContentLayout.resolve(height: height, railItemCount: count)
                 XCTAssertGreaterThanOrEqual(
-                    layout.railSlotHeight, 34,
+                    layout.railSlotHeight, 44,
                     "a slot must stay tappable (\(count) choices at \(height)pt)")
                 XCTAssertLessThanOrEqual(
                     layout.railSlotHeight, 50,
@@ -54,7 +54,7 @@ final class QuickContentLayoutTests: XCTestCase {
         XCTAssertGreaterThan(
             few.railSlotHeight, many.railSlotHeight,
             "fewer choices can afford taller slots")
-        XCTAssertEqual(many.railSlotHeight, 34, "many choices sit at the touch-target floor")
+        XCTAssertEqual(many.railSlotHeight, 44, "many choices sit at the touch-target floor")
     }
 
     func testSearchGivesTheRailSpaceBackToTheResults() {

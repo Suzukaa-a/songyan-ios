@@ -36,9 +36,9 @@ public struct QuickContentLayout: Equatable, Sendable {
     public let showsRecents: Bool
 
     private static let separator: CGFloat = 0.5
-    /// A slot stays a comfortable touch target; the list scrolls when the slots outgrow the panel
+    /// A slot never drops below the 44pt minimum touch target; the list scrolls when the slots outgrow the panel
     /// rather than squeezing them below it.
-    private static let railSlotFloor: CGFloat = 34
+    private static let railSlotFloor: CGFloat = 44
     private static let railSlotCeiling: CGFloat = 50
 
     /// - Parameters:
