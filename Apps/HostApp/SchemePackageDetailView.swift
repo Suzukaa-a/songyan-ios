@@ -52,6 +52,7 @@ struct SchemePackageDetailView: View {
         List {
             if let item {
                 statusSection(item)
+                PackageLearningOfferSection(center: center, packageID: packageID)
                 Section {
                     NavigationLink(UserTerminology.userKeyboard) {
                         UserKeyboardManagementView(source: .package(packageID), returnsToSource: true)

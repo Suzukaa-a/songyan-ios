@@ -9,6 +9,7 @@ import SwiftUI
 extension SchemeImportCenter {
     func beginSourceImport() {
         guard !busy else { return }
+        declinePackageLearning()
         prepared = nil
         preparedSourceURL = nil
         lastInstalledPackageID = nil
@@ -55,6 +56,7 @@ extension SchemeImportCenter {
             return false
         }
         let leases = urls.map { ($0, $0.startAccessingSecurityScopedResource()) }
+        declinePackageLearning()
         busy = true
         error = nil
         prepared = nil
@@ -284,6 +286,7 @@ extension SchemeImportCenter {
                 installedPackageID: prepared.declaration.id)
             message = sourceWarning
             await refresh()
+            await offerPackageLearning(for: prepared)
             return installed.revision
         } catch {
             fail(.nothingCommitted, error)

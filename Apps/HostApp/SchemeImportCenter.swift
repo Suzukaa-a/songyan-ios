@@ -79,6 +79,11 @@ final class SchemeImportCenter: ObservableObject {
     @Published var lastInstalledPackageID: String?
     /// The last install replaced an existing package's files instead of adding a scheme.
     @Published var lastInstallReplacedVersion = false
+    /// The learned words the last installed package shipped, until the user answers.
+    @Published var learningOffer: PackageLearningOffer?
+    @Published var learningOfferBusy = false
+    /// What happened to the offer's words, shown under it.
+    @Published var learningOfferNotice: String?
 
     /// The recognized import replaces this already installed package, because it is the same scheme.
     var preparedUpdatesInstalledPackage: Bool {

@@ -58,7 +58,7 @@ enum LearningBackupUserError: Error, Equatable {
 /// `LearningTransferIO` (Shared-layer background queue), so the main thread never reads disk.
 /// The container directory is also resolved on that queue (never fall back to a host-private
 /// directory, or the keyboard extension would never see the request).
-private enum LearningBackupIO {
+enum LearningBackupIO {
 
     /// Resolves the container directory on the background queue and builds the store.
     static func withStore<T>(_ body: @escaping @Sendable (LearningTransferStore) throws -> T) async throws -> sending T

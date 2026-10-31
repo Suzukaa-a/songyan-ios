@@ -193,6 +193,7 @@
 		HS2610230000000000000012 /* SchemeImportCenter+Keyboards.swift in Sources */ = {isa = PBXBuildFile; fileRef = HS2610230000000000000011 /* SchemeImportCenter+Keyboards.swift */; };
 		HS2610230000000000000014 /* SchemeImportCenter+Install.swift in Sources */ = {isa = PBXBuildFile; fileRef = HS2610230000000000000013 /* SchemeImportCenter+Install.swift */; };
 		HS2610230000000000000016 /* SchemeImportCenter+Update.swift in Sources */ = {isa = PBXBuildFile; fileRef = HS2610230000000000000015 /* SchemeImportCenter+Update.swift */; };
+		HS2610230000000000000049 /* SchemeImportCenter+PackageLearning.swift in Sources */ = {isa = PBXBuildFile; fileRef = HS2610230000000000000048 /* SchemeImportCenter+PackageLearning.swift */; };
 		HS2610230000000000000018 /* SchemeKeyboardPublicationTransaction.swift in Sources */ = {isa = PBXBuildFile; fileRef = HS2610230000000000000017 /* SchemeKeyboardPublicationTransaction.swift */; };
 		HS2610230000000000000020 /* SchemePackageImportView+Configuration.swift in Sources */ = {isa = PBXBuildFile; fileRef = HS2610230000000000000019 /* SchemePackageImportView+Configuration.swift */; };
 		HS2610230000000000000022 /* RimeSourceInstallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = HS2610230000000000000021 /* RimeSourceInstallView.swift */; };
@@ -372,6 +373,7 @@
 		HS2610230000000000000011 /* SchemeImportCenter+Keyboards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SchemeImportCenter+Keyboards.swift"; sourceTree = "<group>"; };
 		HS2610230000000000000013 /* SchemeImportCenter+Install.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SchemeImportCenter+Install.swift"; sourceTree = "<group>"; };
 		HS2610230000000000000015 /* SchemeImportCenter+Update.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SchemeImportCenter+Update.swift"; sourceTree = "<group>"; };
+		HS2610230000000000000048 /* SchemeImportCenter+PackageLearning.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SchemeImportCenter+PackageLearning.swift"; sourceTree = "<group>"; };
 		HS2610230000000000000017 /* SchemeKeyboardPublicationTransaction.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchemeKeyboardPublicationTransaction.swift; sourceTree = "<group>"; };
 		HS2610230000000000000019 /* SchemePackageImportView+Configuration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SchemePackageImportView+Configuration.swift"; sourceTree = "<group>"; };
 		HS2610230000000000000021 /* RimeSourceInstallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RimeSourceInstallView.swift; sourceTree = "<group>"; };
@@ -485,6 +487,7 @@
 				HS2610230000000000000011 /* SchemeImportCenter+Keyboards.swift */,
 				HS2610230000000000000013 /* SchemeImportCenter+Install.swift */,
 				HS2610230000000000000015 /* SchemeImportCenter+Update.swift */,
+				HS2610230000000000000048 /* SchemeImportCenter+PackageLearning.swift */,
 				HS2610230000000000000017 /* SchemeKeyboardPublicationTransaction.swift */,
 				HS2610230000000000000019 /* SchemePackageImportView+Configuration.swift */,
 				HS2610230000000000000021 /* RimeSourceInstallView.swift */,
@@ -872,6 +875,7 @@
 				HS2610230000000000000012 /* SchemeImportCenter+Keyboards.swift in Sources */,
 				HS2610230000000000000014 /* SchemeImportCenter+Install.swift in Sources */,
 				HS2610230000000000000016 /* SchemeImportCenter+Update.swift in Sources */,
+				HS2610230000000000000049 /* SchemeImportCenter+PackageLearning.swift in Sources */,
 				HS2610230000000000000018 /* SchemeKeyboardPublicationTransaction.swift in Sources */,
 				HS2610230000000000000020 /* SchemePackageImportView+Configuration.swift in Sources */,
 				HS2610230000000000000022 /* RimeSourceInstallView.swift in Sources */,

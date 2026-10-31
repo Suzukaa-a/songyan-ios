@@ -93,7 +93,8 @@ final class SchemeUpdateModelTests: XCTestCase {
         XCTAssertNotNil(after.fileResources["user.gram"], "the model stays in the installed record for the next update")
         let marker = try String(contentsOf: active.resourceURL.appendingPathComponent("marker.txt"), encoding: .utf8)
         XCTAssertEqual(marker, "second")
-        let custom = try String(contentsOf: active.userDataURL.appendingPathComponent("main.custom.yaml"), encoding: .utf8)
+        let custom = try String(
+            contentsOf: active.userDataURL.appendingPathComponent("main.custom.yaml"), encoding: .utf8)
         XCTAssertTrue(custom.contains("grammar/language"), "the user's binding is kept by the update")
     }
 

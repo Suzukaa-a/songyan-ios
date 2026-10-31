@@ -165,3 +165,107 @@ final class PackageLearningSnapshotTests: XCTestCase {
         XCTAssertEqual(updated.learningDictionaryCount, 1)
     }
 }
+
+/// The answer flow: nothing is merged before the user agrees, a package that is not in use is used
+/// first, and every refusal leaves the installed package alone.
+final class PackageLearningMergeTests: XCTestCase {
+    private let sourceKey = "user-scheme:pkg"
+
+    private func collected() throws -> CollectedSnapshots {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("learning-" + UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        addTeardownBlock { try? FileManager.default.removeItem(at: root) }
+        let file = root.appendingPathComponent("main.userdb.txt")
+        let text = "# Rime user dictionary\n#@/db_name\tmain\n#@/db_type\tuserdb\nni \t你\tc=1 d=1 t=1\n"
+        try Data(text.utf8).write(to: file)
+        return try RimeSnapshotCollector.collect(
+            files: [try XCTUnwrap(DiskPickedNode(url: file)).file()], byContent: false)
+    }
+
+    private final class Log: @unchecked Sendable {
+        var calls: [String] = []
+        var inUse: Bool
+        var source: PackageLearningSource?
+        var submitted: [LearningBackupArchive] = []
+        init(inUse: Bool, source: PackageLearningSource?) {
+            self.inUse = inUse
+            self.source = source
+        }
+    }
+
+    private func merge(_ log: Log, failUse: Bool = false, snapshots: CollectedSnapshots) -> PackageLearningMerge {
+        PackageLearningMerge(
+            snapshots: snapshots, packageSourceID: sourceKey,
+            installedRevision: { "rev-2" },
+            isInUse: { log.inUse },
+            putInUse: {
+                log.calls.append("use")
+                if failUse { throw PackageLearningError.notInUse }
+                log.inUse = true
+            },
+            currentSource: { log.source },
+            submit: { archive in
+                log.calls.append("submit")
+                log.submitted.append(archive)
+            })
+    }
+
+    private let current = PackageLearningSource(
+        sourceID: "user-scheme:pkg", resourceRevision: "rev-2", sourceName: "我的方案")
+
+    func testPackageInUseMergesWithoutSwitching() async throws {
+        let log = Log(inUse: true, source: current)
+        try await merge(log, snapshots: try collected()).accept()
+        XCTAssertEqual(log.calls, ["submit"])
+        let archive = try XCTUnwrap(log.submitted.first)
+        XCTAssertEqual(archive.sourceID, sourceKey)
+        XCTAssertEqual(archive.resourceRevision, "rev-2")
+        XCTAssertTrue(archive.isImport)
+        XCTAssertEqual(archive.dictionaries.map(\.name), ["main"])
+    }
+
+    func testPackageNotInUseIsUsedFirst() async throws {
+        let log = Log(inUse: false, source: current)
+        try await merge(log, snapshots: try collected()).accept()
+        XCTAssertEqual(log.calls, ["use", "submit"])
+    }
+
+    func testFailedUseSubmitsNothing() async throws {
+        let log = Log(inUse: false, source: current)
+        do {
+            try await merge(log, failUse: true, snapshots: try collected()).accept()
+            XCTFail("a package that could not be used must not merge")
+        } catch {
+            XCTAssertEqual(error as? PackageLearningError, .notInUse)
+        }
+        XCTAssertEqual(log.calls, ["use"])
+    }
+
+    func testAnotherSchemeOrRevisionInUseSubmitsNothing() async throws {
+        for source in [
+            PackageLearningSource(sourceID: "user-scheme:other", resourceRevision: "rev-2", sourceName: "别的"),
+            PackageLearningSource(sourceID: sourceKey, resourceRevision: "rev-1", sourceName: "旧版"),
+            nil,
+        ] {
+            let log = Log(inUse: true, source: source)
+            do {
+                try await merge(log, snapshots: try collected()).accept()
+                XCTFail("the keyboard's source does not match the package")
+            } catch {
+                XCTAssertEqual(error as? PackageLearningError, .notInUse)
+            }
+            XCTAssertTrue(log.submitted.isEmpty)
+        }
+    }
+
+    func testNothingToMergeDoesNotEvenUseThePackage() async throws {
+        let log = Log(inUse: false, source: current)
+        do {
+            try await merge(log, snapshots: .empty).accept()
+            XCTFail("an empty offer has nothing to merge")
+        } catch {
+            XCTAssertEqual(error as? PackageLearningError, .nothingToMerge)
+        }
+        XCTAssertTrue(log.calls.isEmpty)
+    }
+}

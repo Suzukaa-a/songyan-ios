@@ -59,6 +59,7 @@ extension SchemeImportCenter {
                 diagnostics = ["delete-leftover-trash: \(leftover.lastPathComponent)"]
             }
             if lastInstalledPackageID == packageID { lastInstalledPackageID = nil }
+            dropPackageLearning(packageID: packageID)
             message = nil
             await refresh()
             // The install is gone; its page pairings can be dropped once nothing else provides them.

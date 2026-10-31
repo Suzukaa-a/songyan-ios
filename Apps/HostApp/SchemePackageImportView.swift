@@ -87,6 +87,7 @@ struct SchemePackageImportView: View {
         List {
             if let installedNotice = installedSuccessNotice {
                 installedSection(installedNotice)
+                PackageLearningOfferSection(center: center)
             } else if isInstalledMode {
                 installedHeaderSection
             } else if center.prepared == nil {
