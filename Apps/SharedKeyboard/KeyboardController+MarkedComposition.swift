@@ -112,9 +112,9 @@ extension KeyboardController {
             let path = readingFilter.matches.first?.readingPaths?.first(where: readingFilter.startsWithPrefix),
             let typed = ReadingInputCoverage(
                 input: snapshot.rawInput, keyForLetter: readingKeyMap, exactKeys: exactLetters)?
-                .typedSpelling(path)
+                .typedText(path, joiner: keypad ? SentenceSpelling.separator : " ")
         {
-            return MarkedComposition(text: typed.joined(separator: keypad ? SentenceSpelling.separator : " "))
+            return MarkedComposition(text: typed)
         }
         guard highlightedReading.isEmpty, session.compactSpellingLayout, !isEnglishMode,
             marked.selection.location == marked.text.utf16.count,
@@ -258,10 +258,10 @@ extension KeyboardController {
             return keypad ? Self.keypadJoined(reading) : reading
         }
         let syllables = reading.split(whereSeparator: { $0 == " " || $0 == "'" }).map(String.init)
-        guard let typed = coverage.typedSpelling(syllables) else {
+        guard let typed = coverage.typedText(syllables, joiner: keypad ? SentenceSpelling.separator : " ") else {
             return keypad ? Self.keypadJoined(reading) : reading
         }
-        return typed.joined(separator: keypad ? SentenceSpelling.separator : " ")
+        return typed
     }
 
     private static func keypadJoined(_ reading: String) -> String {

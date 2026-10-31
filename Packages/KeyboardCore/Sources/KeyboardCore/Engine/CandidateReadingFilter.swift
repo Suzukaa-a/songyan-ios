@@ -274,6 +274,22 @@ public struct ReadingInputCoverage: Equatable, Sendable {
         return syllables.isEmpty ? nil : search(0, 0)
     }
 
+    /// `typedSpelling` as one string: syllables meet with `joiner`, except where the user typed
+    /// a separator between them, which shows as `'`, and a separator typed last stays at the end.
+    public func typedText(_ syllables: [String], joiner: String) -> String? {
+        guard let typed = typedSpelling(syllables) else { return nil }
+        var text = ""
+        var position = 0
+        for (index, letters) in typed.enumerated() {
+            let start = skipSeparators(position)
+            if index > 0 { text += start > position ? String(Self.separator) : joiner }
+            text += letters
+            position = start + letters.count
+        }
+        if position < keys.count { text.append(Self.separator) }
+        return text
+    }
+
     private func matches(_ letters: ArraySlice<Character>, at start: Int) -> Bool {
         guard start + letters.count <= keys.count else { return false }
         return zip(keys[start...], letters).allSatisfy { key, letter in

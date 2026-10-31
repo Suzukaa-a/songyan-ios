@@ -155,6 +155,53 @@ public struct EngineSnapshot: Equatable, Sendable {
 /// The exception is `droppingTail`: numeric `canonical` composition requires removing the
 /// unconverted tail code as well.
 public enum SpellingDisplay {
+    /// `spelling` for the preedit range `span`, keeping the separators the user typed there:
+    /// librime keeps a typed `'` in the preedit as typed and only adds a space where it split
+    /// syllables itself. A spelling that dropped the user's `'` would make the key that typed
+    /// it, and the Delete that removes it, change nothing on screen.
+    ///
+    /// Where `span` and `spelling` have the same number of syllables, each boundary the user
+    /// marked with `'` gets `'`; a `'` typed after the last syllable is kept at the end either way.
+    public static func withTypedSeparators(span: String, spelling: String) -> String {
+        guard !spelling.isEmpty, span.contains(typedSeparator) else { return spelling }
+        let spanChars = Array(span), spellingChars = Array(spelling)
+        let spanRuns = separatorRuns(spanChars), spellingRuns = separatorRuns(spellingChars)
+        var text = ""
+        var last = 0
+        if spanRuns.inner.count == spellingRuns.inner.count {
+            for (index, run) in spellingRuns.inner.enumerated() {
+                text += String(spellingChars[last..<run.lowerBound])
+                let typed = spanChars[spanRuns.inner[index]].contains(typedSeparator)
+                text += typed ? String(typedSeparator) : String(spellingChars[run])
+                last = run.upperBound
+            }
+        }
+        text += String(spellingChars[last...])
+        let typedTrailing = spanRuns.trailing.map { spanChars[$0].contains(typedSeparator) } ?? false
+        if typedTrailing, text.last != typedSeparator { text.append(typedSeparator) }
+        return text
+    }
+
+    private static let typedSeparator: Character = "'"
+
+    /// The runs of separators between syllables, and the run that ends the text, if any.
+    private static func separatorRuns(_ text: [Character]) -> (inner: [Range<Int>], trailing: Range<Int>?) {
+        var runs: [Range<Int>] = []
+        var index = 0
+        while index < text.count {
+            guard text[index] == " " || text[index] == typedSeparator else {
+                index += 1
+                continue
+            }
+            let start = index
+            while index < text.count, text[index] == " " || text[index] == typedSeparator { index += 1 }
+            runs.append(start..<index)
+        }
+        let leading = runs.first.flatMap { $0.lowerBound == 0 ? $0 : nil }
+        let trailing = runs.last.flatMap { $0.upperBound == text.count && $0 != leading ? $0 : nil }
+        return (runs.filter { $0 != leading && $0 != trailing }, trailing)
+    }
+
     /// Replaces `[selStart, selEnd)` (UTF-8 bytes) of `preedit` in place with `spelling`
     /// and remaps `caretByte` into the result (returned as a UTF-16 offset).
     /// Returns nil when it cannot rewrite safely (out of bounds / not on a UTF-8 boundary);
@@ -259,7 +306,8 @@ public struct MarkedComposition: Equatable, Sendable {
                 selStart: snapshot.preeditSelStart,
                 selEnd: snapshot.preeditSelEnd,
                 caretByte: snapshot.preeditCaretByte,
-                spelling: replacement)
+                spelling: SpellingDisplay.withTypedSeparators(
+                    span: Self.span(of: snapshot), spelling: replacement))
         {
             self.text = rewritten.text
             self.selection = NSRange(location: rewritten.caret, length: 0)
@@ -291,7 +339,9 @@ public struct MarkedComposition: Equatable, Sendable {
             let rewritten = SpellingDisplay.rewrite(
                 preedit: snapshot.preedit, selStart: selStart, selEnd: selEnd,
                 caretByte: snapshot.preeditCaretByte,
-                spelling: spelling.isEmpty ? keys(selStart..<selEnd) : spelling,
+                spelling: spelling.isEmpty
+                    ? keys(selStart..<selEnd)
+                    : SpellingDisplay.withTypedSeparators(span: Self.span(of: snapshot), spelling: spelling),
                 droppingTail: true)
         else {
             // No usable highlight: the typed keys themselves.
@@ -308,6 +358,16 @@ public struct MarkedComposition: Equatable, Sendable {
         let separator = !tail.isEmpty && joins && letters ? "'" : ""
         let text = rewritten.text + separator + tail
         return (text, snapshot.preeditCaretByte >= selEnd ? text.utf16.count : rewritten.caret)
+    }
+
+    /// The preedit text under the highlight; empty when the range is not on character boundaries.
+    private static func span(of snapshot: EngineSnapshot) -> String {
+        let bytes = Array(snapshot.preedit.utf8)
+        let start = snapshot.preeditSelStart, end = snapshot.preeditSelEnd
+        guard start >= 0, start <= end, end <= bytes.count,
+            let text = String(bytes: bytes[start..<end], encoding: .utf8)
+        else { return "" }
+        return text
     }
 
     /// A display-only replacement of an ASCII preedit, caret at the end.

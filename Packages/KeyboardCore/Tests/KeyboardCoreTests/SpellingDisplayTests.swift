@@ -139,6 +139,34 @@ final class SpellingDisplayTests: XCTestCase {
         XCTAssertEqual(MarkedComposition(snapshot: snapshot, spellingPreedit: false).text, "ni hao")
     }
 
+    func testATypedApostropheSurvivesTheSpelling() {
+        XCTAssertEqual(SpellingDisplay.withTypedSeparators(span: "bi'", spelling: "ni"), "ni'")
+        XCTAssertEqual(SpellingDisplay.withTypedSeparators(span: "bi'hax", spelling: "ni hao"), "ni'hao")
+        XCTAssertEqual(SpellingDisplay.withTypedSeparators(span: "bi hax", spelling: "ni hao"), "ni hao")
+        XCTAssertEqual(SpellingDisplay.withTypedSeparators(span: "bi hax'", spelling: "ni hao"), "ni hao'")
+        // Syllables that do not line up keep the spelling's own joins; a trailing ' still shows.
+        XCTAssertEqual(SpellingDisplay.withTypedSeparators(span: "bi'hax'", spelling: "nihao"), "nihao'")
+    }
+
+    func testAHighlightEndingInATypedApostropheStillShowsIt() {
+        var snapshot = EngineSnapshot(preedit: "bi'h", rawInput: "bi'h", isComposing: true)
+        snapshot.preeditSelStart = 0
+        snapshot.preeditSelEnd = 3
+        snapshot.preeditCaretByte = 4
+        snapshot.preeditSelection = NSRange(location: 4, length: 0)
+        let marked = MarkedComposition(snapshot: snapshot, readingFallback: "ni")
+        XCTAssertEqual(marked.text, "ni'h")
+        XCTAssertEqual(marked.selection, NSRange(location: 4, length: 0))
+    }
+
+    func testTypedTextMarksTheBoundariesTheUserTyped() {
+        let keys = Dictionary(uniqueKeysWithValues: "abcdefghijklmnopqrstuvwxyz".map { ($0, $0) })
+        let coverage = ReadingInputCoverage(input: "ni'hao'", keyForLetter: keys)
+        XCTAssertEqual(coverage?.typedText(["ni", "hao"], joiner: " "), "ni'hao'")
+        XCTAssertEqual(
+            ReadingInputCoverage(input: "nih", keyForLetter: keys)?.typedText(["ni", "hao"], joiner: " "), "ni h")
+    }
+
     private func rewrite(_ preedit: String, _ start: Int, _ end: Int, _ caret: Int, _ spelling: String)
         -> (text: String, caret: Int)
     {
