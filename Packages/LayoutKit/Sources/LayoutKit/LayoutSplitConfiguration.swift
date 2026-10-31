@@ -50,6 +50,16 @@ public struct LayoutSplitConfiguration: Codable, Equatable, Sendable {
         return ActiveLayoutSplit(rowBreaks: rowBreaks, gapFraction: gapFraction, automaticGap: automaticGap)
     }
 
+    /// The cut shown for each row: the saved one, else `defaults` (the cuts the keyboard draws
+    /// before any is saved), else the middle. Editors show this and write cuts only when the user
+    /// changes one, so an untouched split keeps following the layout's own defaults.
+    public func cutPositions(rowKeyCounts: [Int], defaults: [Int]?) -> [Int] {
+        let source = rowBreaks.isEmpty ? (defaults ?? []) : rowBreaks
+        return rowKeyCounts.indices.map {
+            ActiveLayoutSplit.breakIndex(rowBreaks: source, row: $0, keyCount: rowKeyCounts[$0])
+        }
+    }
+
     public static func resolving(page: Self?, main: Self?) -> Self? {
         if let page { return page }
         guard var inherited = main else { return nil }
@@ -114,6 +124,28 @@ public struct ActiveLayoutSplit: Equatable, Sendable {
     /// The same spacing for an area with different key counts, which picks its own row cuts.
     public var withoutRowBreaks: ActiveLayoutSplit {
         ActiveLayoutSplit(rowBreaks: [], gapFraction: gapFraction, automaticGap: automaticGap)
+    }
+
+    /// The split a page is drawn with. The main letters take the main split as is. The English
+    /// letter page (standard 26-key rows) of a layout with hand cuts takes the standard cuts, unless
+    /// an authored page is showing: that keeps its inherited middle cuts. Other pages inherit the
+    /// spacing without the main layout's row cuts unless they carry their own split.
+    public static func drawn(
+        main: LayoutSplitConfiguration?, mainWidth: Double, showsMainLetters: Bool,
+        showsEnglishLetters: Bool, hasAuthoredPage: Bool,
+        pageSplit: @autoclosure () -> LayoutSplitConfiguration?, contentWidth: Double
+    ) -> ActiveLayoutSplit? {
+        let resolved = main?.resolved(forWidth: mainWidth)
+        if showsMainLetters { return resolved }
+        if showsEnglishLetters, !hasAuthoredPage, let resolved, pageSplit() == nil {
+            return resolved.forStandardLetterRows
+        }
+        return resolving(nested: pageSplit(), parent: resolved, width: contentWidth)
+    }
+
+    /// Room added at both edges of the key area on top of the panel's own 4pt side padding.
+    public func edgeInset(width: Double) -> Double {
+        max(0, edgeMargin(width: width) - 4)
     }
 
     /// The same spacing on the standard 26-key letter rows, cut where the hands divide whatever

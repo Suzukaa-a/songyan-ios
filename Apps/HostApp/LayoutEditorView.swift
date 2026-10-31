@@ -75,7 +75,8 @@ struct LayoutEditorView: View {
             }
             KeyboardRowsEditor(rows: rowsBinding, selected: $selected)
             KeyboardSplitEditor(
-                rows: draft.rows, split: Binding(get: { draft.split }, set: { draft = replacingSplit($0) }))
+                rows: draft.rows, split: Binding(get: { draft.split }, set: { draft = replacingSplit($0) }),
+                defaultBreaks: BuiltinLayouts.handSplit(for: draft)?.rowBreaks)
             Section {
                 Button("另存为副本") { save(asCopy: true) }
             }

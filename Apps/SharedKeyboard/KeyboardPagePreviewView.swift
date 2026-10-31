@@ -204,6 +204,11 @@ public struct KeyboardPagePreviewView: View {
         KeyboardPreviewFrame(layout: layout, mainSplit: inheritedSplit, dock: preferences.dock(for: layout)) {
             widths in
             content(resolution, widths: widths)
+                .padding(
+                    .horizontal,
+                    KeyboardPanelRules.splitEdgeInset(
+                        split: pageSplit(resolution.page?.split, widths: widths), contentWidth: widths.content)
+                )
                 .padding(4)
                 .background(appearance.background, in: RoundedRectangle(cornerRadius: 8))
         }

@@ -58,6 +58,51 @@ final class BuiltinLayoutSplitTests: XCTestCase {
         XCTAssertEqual(kept.rowBreaks, [5, 5, 5])
     }
 
+    /// The editor writes no cuts when splitting is turned on, so the keyboard keeps drawing the hand
+    /// cuts; the cuts it shows are the same ones, and the steppers' saved cuts win.
+    func testTurningSplittingOnKeepsTheHandCuts() throws {
+        for (layout, cuts, middle) in [
+            (BuiltinLayouts.qwerty26, [5, 5, 5], [5, 5, 4]), (BuiltinLayouts.merged18, [3, 3, 4], [4, 3, 3]),
+        ] {
+            let toggled = layout.settingSplit(LayoutSplitConfiguration(activation: .automatic))
+            let split = try XCTUnwrap(BuiltinLayouts.handSplit(for: toggled), layout.id)
+            XCTAssertEqual(split.rowBreaks, cuts)
+            XCTAssertEqual(split.activation, .automatic)
+            let counts = layout.rows.prefix(3).map { $0.keys.count }
+            let untouched = try XCTUnwrap(toggled.split)
+            XCTAssertEqual(untouched.cutPositions(rowKeyCounts: counts, defaults: cuts), cuts)
+            XCTAssertEqual(untouched.cutPositions(rowKeyCounts: counts, defaults: nil), middle)
+            var saved = untouched
+            saved.rowBreaks = [2, 2, 2]
+            XCTAssertEqual(saved.cutPositions(rowKeyCounts: counts, defaults: cuts), [2, 2, 2])
+            XCTAssertNil(BuiltinLayouts.handSplit(for: layout.settingSplit(saved)))
+        }
+    }
+
+    /// A copy that changed anything but its split is the user's own layout.
+    func testARenamedOrEditedCopyGetsNoHandCuts() {
+        XCTAssertNil(BuiltinLayouts.handSplit(for: BuiltinLayouts.qwerty26.renamed("我的 26 键")))
+        XCTAssertNil(BuiltinLayouts.handSplit(for: BuiltinLayouts.merged18.copy()))
+    }
+
+    func testTheEnglishPageKeepsInheritedCutsWhenAnAuthoredPageShows() throws {
+        let main = try XCTUnwrap(BuiltinLayouts.handSplit(for: BuiltinLayouts.merged18))
+        func drawn(authored: Bool, pageSplit: LayoutSplitConfiguration? = nil) -> ActiveLayoutSplit? {
+            ActiveLayoutSplit.drawn(
+                main: main, mainWidth: 1024, showsMainLetters: false, showsEnglishLetters: true,
+                hasAuthoredPage: authored, pageSplit: pageSplit, contentWidth: 1024)
+        }
+        XCTAssertEqual(drawn(authored: false)?.rowBreaks, [5, 5, 5])
+        XCTAssertEqual(drawn(authored: true)?.rowBreaks, [])
+        let own = LayoutSplitConfiguration(activation: .always, rowBreaks: [4, 4, 4])
+        XCTAssertEqual(drawn(authored: false, pageSplit: own)?.rowBreaks, [4, 4, 4])
+        // The main letters take the main split as it is.
+        XCTAssertEqual(
+            ActiveLayoutSplit.drawn(
+                main: main, mainWidth: 1024, showsMainLetters: true, showsEnglishLetters: false,
+                hasAuthoredPage: false, pageSplit: nil, contentWidth: 1024)?.rowBreaks, [3, 3, 4])
+    }
+
     /// The letters left of the cut in each letter row, for a split active at a wide width.
     private func leftLetters(_ rows: [[String]], _ split: ActiveLayoutSplit) -> [String] {
         rows.enumerated().map { index, row in

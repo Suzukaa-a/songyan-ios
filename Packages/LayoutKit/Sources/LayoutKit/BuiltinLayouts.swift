@@ -16,8 +16,9 @@ public enum BuiltinLayouts {
     /// keys three, three and four keys, the BN pair following its B). The cuts live here rather than
     /// on the definitions so a layout copied from them does not carry them. 26 keys stays whole
     /// (`off`) until the user turns splitting on. The cuts count letter keys: the key area draws
-    /// Shift and Delete outside the rows, so nothing needs to move. Nil for any other layout and
-    /// for a split the user saved.
+    /// Shift and Delete outside the rows, so nothing needs to move. Nil for any other layout, for
+    /// one that differs from the bundled one in anything but its split (a renamed copy included),
+    /// and for a split with saved cuts.
     public static func handSplit(for definition: LayoutDefinition) -> LayoutSplitConfiguration? {
         let breaks: [Int]
         let layout: LayoutInput.Builtin
@@ -27,9 +28,9 @@ public enum BuiltinLayouts {
         default: return nil
         }
         let bundled = preset(for: layout)
-        guard definition.rows == bundled.rows, definition.auxiliaryAreas == bundled.auxiliaryAreas,
-            definition.split?.rowBreaks.isEmpty ?? true
-        else { return nil }
+        var comparable = definition
+        comparable.split = bundled.split
+        guard comparable == bundled, definition.split?.rowBreaks.isEmpty ?? true else { return nil }
         var split = definition.split ?? LayoutSplitConfiguration(activation: .off)
         split.rowBreaks = breaks
         return split

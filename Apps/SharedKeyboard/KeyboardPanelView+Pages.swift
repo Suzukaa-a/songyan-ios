@@ -157,14 +157,14 @@ extension KeyboardPanelView {
             showsMainLetters: page == .letters && !controller.isEnglishMode,
             pageSplit: pageDefinition?.split, contentWidth: widthBox.contentWidth,
             showsEnglishLetters: page == .letters && controller.isEnglishMode
-                && definitionFacts.handSplit != nil)
+                && definitionFacts.handSplit != nil,
+            hasAuthoredPage: pageDefinition != nil)
     }
 
     /// Extra room at both edges of a split key area, on top of the panel's own 4pt, so the halves do
     /// not run into the screen edges. Zero whenever the page is not split.
     var splitEdgeInset: CGFloat {
-        guard let split = activeSplit else { return 0 }
-        return CGFloat(max(0, split.edgeMargin(width: widthBox.contentWidth) - 4))
+        KeyboardPanelRules.splitEdgeInset(split: activeSplit, contentWidth: widthBox.contentWidth)
     }
 
     /// Tells the user why the built-in page replaced their authored one for this visit: the page

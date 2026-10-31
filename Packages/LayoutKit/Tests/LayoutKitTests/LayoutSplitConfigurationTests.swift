@@ -50,6 +50,15 @@ final class LayoutSplitConfigurationTests: XCTestCase {
         XCTAssertEqual(active(LayoutSplitConfiguration(activation: .always)).edgeMargin(width: 200), 0)
     }
 
+    func testTheEdgeInsetIsTheMarginBeyondThePanelsOwnPadding() {
+        let automatic = active(LayoutSplitConfiguration(activation: .always))
+        for width in [700.0, 1024] {
+            XCTAssertEqual(
+                automatic.edgeInset(width: width), max(0, automatic.edgeMargin(width: width) - 4), accuracy: 1e-9)
+        }
+        XCTAssertGreaterThanOrEqual(automatic.edgeInset(width: 1024), 4)
+    }
+
     func testAnUnsplitKeyboardHasNoMargin() {
         XCTAssertNil(LayoutSplitConfiguration(activation: .automatic).resolved(forWidth: 390))
         let manual = active(LayoutSplitConfiguration(activation: .always, gapFraction: 0.4))

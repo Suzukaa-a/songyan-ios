@@ -181,14 +181,14 @@ struct KeyboardSplitEditor: View {
     @Binding var split: LayoutSplitConfiguration?
     var allowsInheritance = false
     var inheritanceTitle = "和主键盘一样拆分"
+    /// The cuts the keyboard draws before any is saved (the bundled 26/18-key hand cuts).
+    var defaultBreaks: [Int]? = nil
     /// No stored split means the split is off, never the initializer's default-on value.
     private var configuration: LayoutSplitConfiguration { split ?? LayoutSplitConfiguration(activation: .off) }
 
     /// The stored cut, or the same middle default the keyboard uses before a cut is saved.
     private var breaks: [Int] {
-        rows.indices.map { index in
-            configuration.breakIndex(row: index, keyCount: rows[index].keys.count)
-        }
+        configuration.cutPositions(rowKeyCounts: rows.map { $0.keys.count }, defaults: defaultBreaks)
     }
 
     var body: some View {
@@ -252,8 +252,8 @@ struct KeyboardSplitEditor: View {
     }
 
     private func update(_ change: (inout LayoutSplitConfiguration) -> Void) {
+        // Cuts are written only by the steppers, so an untouched split keeps the layout's defaults.
         var value = configuration
-        value.rowBreaks = breaks
         change(&value)
         split = value
     }

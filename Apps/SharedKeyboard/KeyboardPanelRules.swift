@@ -1,4 +1,5 @@
 import CandidateKit
+import CoreGraphics
 import KeyboardCore
 import LayoutKit
 
@@ -11,14 +12,18 @@ enum KeyboardPanelRules {
     static func activeSplit(
         main: LayoutSplitConfiguration?, mainWidth: Double, showsMainLetters: Bool,
         pageSplit: @autoclosure () -> LayoutSplitConfiguration?, contentWidth: Double,
-        showsEnglishLetters: Bool = false
+        showsEnglishLetters: Bool = false, hasAuthoredPage: Bool = false
     ) -> ActiveLayoutSplit? {
-        let resolved = main?.resolved(forWidth: mainWidth)
-        if showsMainLetters { return resolved }
-        // The English letter page is always the standard 26-key rows, whatever the main layout's own
-        // row cuts count.
-        if showsEnglishLetters, let resolved, pageSplit() == nil { return resolved.forStandardLetterRows }
-        return ActiveLayoutSplit.resolving(nested: pageSplit(), parent: resolved, width: contentWidth)
+        ActiveLayoutSplit.drawn(
+            main: main, mainWidth: mainWidth, showsMainLetters: showsMainLetters,
+            showsEnglishLetters: showsEnglishLetters, hasAuthoredPage: hasAuthoredPage,
+            pageSplit: pageSplit(), contentWidth: contentWidth)
+    }
+
+    /// Extra room at both edges of a split key area, so the halves do not run into the screen
+    /// edges; zero when the page is not split. The live panel and both previews use it.
+    static func splitEdgeInset(split: ActiveLayoutSplit?, contentWidth: Double) -> CGFloat {
+        CGFloat(split?.edgeInset(width: contentWidth) ?? 0)
     }
 
     /// The width cap a physical layout uses on a wide surface. A main split that really splits at the
