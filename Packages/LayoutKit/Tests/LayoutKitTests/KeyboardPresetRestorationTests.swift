@@ -34,8 +34,8 @@ final class KeyboardPresetRestorationTests: XCTestCase {
 
     /// An edited built-in page: same ID as the shipped one, different name.
     private func staleNumericPage() -> KeyboardPageDefinition {
-        var page = KeyboardPagePresets.numericChinese
-        page.name = "旧版中文 123"
+        var page = KeyboardPagePresets.numericKeypad
+        page.name = "旧版数字九宫格"
         return page
     }
 
@@ -71,27 +71,27 @@ final class KeyboardPresetRestorationTests: XCTestCase {
 
     func testRestoringAPagePresetKeepsPairingsAndUserCopies() throws {
         var old = try LayoutRegistry()
-        let myPage = KeyboardPagePresets.numericEnglish.copy(name: "我的数字页")
+        let myPage = KeyboardPagePresets.numericRowsPage(ascii: true).copy(name: "我的数字页")
         try old.savePage(myPage)
         try old.savePage(staleNumericPage())
 
         let pairing = KeyboardComposition(
             mainLayoutID: BuiltinLayouts.merged14.id,
-            numericPageID: KeyboardPagePresets.numericChinese.id)
+            numericPageID: KeyboardPagePresets.numericKeypad.id)
         try old.setComposition(pairing, for: "some_pinyin:merged14")
-        XCTAssertEqual(old.page(id: KeyboardPagePresets.numericChinese.id)?.name, "旧版中文 123")
+        XCTAssertEqual(old.page(id: KeyboardPagePresets.numericKeypad.id)?.name, "旧版数字九宫格")
 
         // Restore by ID, exactly as the page library's "restore preset" action does.
-        try old.savePage(KeyboardPagePresets.numericChinese)
+        try old.savePage(KeyboardPagePresets.numericKeypad)
         let restored = try reloaded(old)
 
-        XCTAssertEqual(restored.page(id: KeyboardPagePresets.numericChinese.id), KeyboardPagePresets.numericChinese)
+        XCTAssertEqual(restored.page(id: KeyboardPagePresets.numericKeypad.id), KeyboardPagePresets.numericKeypad)
         XCTAssertEqual(restored.compositions["some_pinyin:merged14"], pairing)
         XCTAssertEqual(
             restored.compositions["some_pinyin:merged14"]?.numericPageID,
-            KeyboardPagePresets.numericChinese.id)
+            KeyboardPagePresets.numericKeypad.id)
         // The user's page keeps its own content instead of becoming a second preset.
         XCTAssertEqual(restored.page(id: myPage.id), myPage)
-        XCTAssertNotEqual(restored.page(id: myPage.id), KeyboardPagePresets.numericEnglish)
+        XCTAssertNotEqual(restored.page(id: myPage.id), KeyboardPagePresets.numericKeypad)
     }
 }

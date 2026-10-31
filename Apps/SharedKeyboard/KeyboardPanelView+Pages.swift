@@ -56,11 +56,12 @@ extension KeyboardPanelView {
     }
 
     /// Effective symbol language for this visit: panel override > selected page default > the
-    /// controller's real punctuation state. Runtime-only; never written back to the controller.
+    /// controller's real punctuation state, which is ASCII in English input. Runtime-only; never
+    /// written back to the controller.
     var effectiveSymbolMarks: KeyboardNumericMarks {
-        if let symbolMarksOverride { return symbolMarksOverride }
-        if let selectedPageDefaultSymbolMarks { return selectedPageDefaultSymbolMarks }
-        return controller.usesASCIIPunctuation ? .ascii : .chinese
+        .opening(
+            flipped: symbolMarksOverride, pageDefault: selectedPageDefaultSymbolMarks,
+            asciiInput: controller.usesASCIIPunctuation)
     }
 
     var effectiveUsesASCIIPunctuation: Bool { effectiveSymbolMarks == .ascii }

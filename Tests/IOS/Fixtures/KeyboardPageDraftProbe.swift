@@ -66,7 +66,7 @@ struct Probe {
         let untouched = KeyboardPagePresets.symbolsSystem
         let asciiCopy = try await KeyboardPageDraftProbe.copy(
             untouched, presentation: .rows, numericMarks: .ascii)
-        let asciiExpected = KeyboardPagePresets.symbolsEnglish.materialized(numericMarks: .ascii)
+        let asciiExpected = KeyboardPagePresets.symbolRowsPage(ascii: true).materialized(numericMarks: .ascii)
         check(
             asciiCopy.rows == asciiExpected.rows,
             "untouched automatic copy takes the ASCII label and long-press snapshot")
@@ -77,8 +77,14 @@ struct Probe {
             untouched, presentation: .rows, numericMarks: .chinese)
         check(chineseCopy.defaultSymbolMarks == .chinese, "explicit Chinese copy pins Chinese")
         check(
-            chineseCopy.rows == KeyboardPagePresets.symbolsChinese.materialized(numericMarks: .chinese).rows,
+            chineseCopy.rows
+                == KeyboardPagePresets.symbolRowsPage(ascii: false).materialized(numericMarks: .chinese).rows,
             "untouched Chinese copy matches the canonical Chinese rows")
+
+        let followingCopy = try await KeyboardPageDraftProbe.copy(untouched, presentation: .rows)
+        check(followingCopy.defaultSymbolMarks == nil, "a copy without a chosen branch keeps following the input")
+        let followingNumeric = try await KeyboardPageDraftProbe.copy(KeyboardPagePresets.numericAutomatic)
+        check(followingNumeric.defaultSymbolMarks == nil, "an automatic 123 copy never pins the Chinese marks")
 
         // Editing an automatic page that pins a branch must keep that author choice.
         var explicitAutomatic = KeyboardPagePresets.numericAutomatic

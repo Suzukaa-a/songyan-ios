@@ -21,7 +21,7 @@ final class KeyboardCompositionTests: XCTestCase {
 
     func testTwoKeyboardsKeepIndependentPageSelectionsAcrossStoreRoundTrip() throws {
         var registry = try LayoutRegistry()
-        var custom = KeyboardPagePresets.numericChinese.copy(name: "我的数字")
+        var custom = KeyboardPagePresets.numericRowsPage(ascii: false).copy(name: "我的数字")
         custom.rows = [
             .init(keys: [
                 .init(
@@ -50,7 +50,7 @@ final class KeyboardCompositionTests: XCTestCase {
 
     func testInvalidCompositionAndReferencedRemovalLeaveCatalogIntact() throws {
         var registry = try LayoutRegistry()
-        let custom = KeyboardPagePresets.symbolsChinese.copy()
+        let custom = KeyboardPagePresets.symbolRowsPage(ascii: false).copy()
         try registry.savePage(custom)
         let composition = KeyboardComposition(mainLayoutID: BuiltinLayouts.qwerty26.id, symbolPageID: custom.id)
         try registry.setComposition(composition, for: "test:qwerty26")
@@ -69,7 +69,7 @@ final class KeyboardCompositionTests: XCTestCase {
 
     func testUsageListsTheKeyboardsWhosePairingReferencesALayoutOrPage() throws {
         var registry = try LayoutRegistry()
-        let custom = KeyboardPagePresets.symbolsChinese.copy()
+        let custom = KeyboardPagePresets.symbolRowsPage(ascii: false).copy()
         try registry.savePage(custom)
         try registry.setComposition(
             KeyboardComposition(mainLayoutID: BuiltinLayouts.qwerty26.id, symbolPageID: custom.id),
@@ -225,10 +225,14 @@ final class KeyboardCompositionTests: XCTestCase {
     /// user's data, whatever the live language is.
     func testExplicitPagesKeepTheirOwnContent() throws {
         var registry = try LayoutRegistry()
+        let numericCopy = KeyboardPagePresets.numericRowsPage(ascii: false).copy(name: "我的数字")
+        let symbolsCopy = KeyboardPagePresets.symbolRowsPage(ascii: false).copy(name: "我的符号")
+        try registry.savePage(numericCopy)
+        try registry.savePage(symbolsCopy)
         let composition = KeyboardComposition(
             mainLayoutID: BuiltinLayouts.qwerty26.id,
-            symbolPageID: KeyboardPagePresets.symbolsChinese.id,
-            numericPageID: KeyboardPagePresets.numericChinese.id,
+            symbolPageID: symbolsCopy.id,
+            numericPageID: numericCopy.id,
             englishPageID: KeyboardPagePresets.englishQwerty.id)
         try registry.setComposition(composition, for: "quanpin:qwerty26")
         let loaded = try storedRoundTrip(registry)
@@ -242,7 +246,6 @@ final class KeyboardCompositionTests: XCTestCase {
                 return XCTFail("an explicit page must stay authored (ascii=\(ascii))")
             }
             XCTAssertEqual(authored, numeric)
-            XCTAssertEqual(authored.rows, KeyboardPagePresets.numericChinese.rows)
             XCTAssertTrue(
                 authored.rows.flatMap(\.keys).contains { $0.action.value == "。" },
                 "the Chinese marks must not be rewritten to ASCII")
@@ -254,7 +257,7 @@ final class KeyboardCompositionTests: XCTestCase {
                 page: symbols, kind: .symbols,
                 input: .init(usesASCIIPunctuation: true, mainLayoutIsPhoneKeypad: true))
         else { return XCTFail("an explicit symbol page must stay authored") }
-        XCTAssertEqual(authoredSymbols.id, KeyboardPagePresets.symbolsChinese.id)
+        XCTAssertEqual(authoredSymbols.id, symbolsCopy.id)
 
         let english = try XCTUnwrap(loaded.page(id: composition.englishPageID))
         guard

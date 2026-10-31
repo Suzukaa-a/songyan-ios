@@ -12,6 +12,8 @@ struct KeyboardPageEditorView: View {
     @ObservedObject private var manager = LayoutManager.shared
     @State private var draft: KeyboardPageDefinition
     @State private var selected: KeyboardPageKeyPath = .row(0, key: 0)
+    /// Which branch the preview draws; a view of the page, never saved with it.
+    @State private var previewMarks: KeyboardNumericMarks
     @State private var saving = false
     @State private var error: String?
     @State private var confirmingDiscard = false
@@ -33,6 +35,7 @@ struct KeyboardPageEditorView: View {
         let materialized = page.materialized()
         original = materialized
         _draft = State(initialValue: materialized)
+        _previewMarks = State(initialValue: materialized.defaultSymbolMarks ?? .chinese)
         _selected = State(initialValue: materialized.firstKeyPath ?? .row(0, key: 0))
         self.onSaved = onSaved
         self.inheritedSplit = inheritedSplit
@@ -54,13 +57,15 @@ struct KeyboardPageEditorView: View {
             Section(draft.kind.title) {
                 TextField("名称", text: $draft.name)
                 if showsInitialSymbolChoice {
-                    // Nil follows the live keyboard; the two explicit choices pin the first face
-                    // of a copied bilingual page without adding a hidden parameter.
+                    // Nil follows the input language; an explicit choice pins the branch the page opens in.
                     Picker(
                         "初始符号",
                         selection: Binding(
                             get: { draft.defaultSymbolMarks },
-                            set: { draft.defaultSymbolMarks = $0 })
+                            set: {
+                                draft.defaultSymbolMarks = $0
+                                if let marks = $0 { previewMarks = marks }
+                            })
                     ) {
                         Text("跟随输入").tag(Optional<KeyboardNumericMarks>.none)
                         Text("中文").tag(Optional(KeyboardNumericMarks.chinese))
@@ -69,10 +74,18 @@ struct KeyboardPageEditorView: View {
                 }
             }
             Section("预览") {
+                if showsInitialSymbolChoice {
+                    Picker("预览符号", selection: $previewMarks) {
+                        Text("中文").tag(KeyboardNumericMarks.chinese)
+                        Text("英文").tag(KeyboardNumericMarks.ascii)
+                    }
+                    .pickerStyle(.segmented)
+                }
                 KeyboardPagePreviewView(
                     page: draft, inheritedSplit: inheritedSplit, usesHandCuts: usesHandCuts,
                     isPhoneLayout: isPhoneLayout,
                     mainLayout: mainLayout, skin: AppearanceManager.shared.applied.skin,
+                    previewMarks: showsInitialSymbolChoice ? previewMarks : nil,
                     onSelectKey: { selected = $0 },
                     selectedPageKey: selected)
             }

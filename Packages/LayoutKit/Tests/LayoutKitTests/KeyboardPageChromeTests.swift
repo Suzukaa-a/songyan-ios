@@ -100,7 +100,8 @@ final class KeyboardPageChromeTests: XCTestCase {
     /// The frozen contract fixes the default footer weights: space is 4, every other default key 1.
     func testDefaultFunctionAreaKeepsContractWeights() throws {
         for page in [
-            KeyboardPagePresets.englishQwerty, KeyboardPagePresets.numericChinese, KeyboardPagePresets.symbolsChinese,
+            KeyboardPagePresets.englishQwerty, KeyboardPagePresets.numericRowsPage(ascii: false),
+            KeyboardPagePresets.symbolRowsPage(ascii: false),
         ] {
             let materialized = page.materialized()
             XCTAssertEqual(materialized.chrome?.bottom.map(\.widthWeight), [1, 1, 1, 4, 1, 1])
@@ -115,7 +116,7 @@ final class KeyboardPageChromeTests: XCTestCase {
     }
 
     func testMaterializedNumericRowPageKeepsSwitchMarksAndDeleteOnTheThirdRow() throws {
-        let chinese = KeyboardPagePresets.numericChinese.materialized()
+        let chinese = KeyboardPagePresets.numericRowsPage(ascii: false).materialized()
         XCTAssertNil(chinese.numericPresentation)
         XCTAssertEqual(chinese.rows.map { $0.keys.count }, [10, 10, 9])
         let switchKey = try XCTUnwrap(chinese.rows[2].keys.first)
@@ -127,7 +128,7 @@ final class KeyboardPageChromeTests: XCTestCase {
         XCTAssertEqual(delete.action.type, .backspace)
         XCTAssertEqual(delete.width, 1.5, "Delete is a side key as wide as on the ABC page")
         XCTAssertEqual(delete.titleMode, .automatic)
-        XCTAssertEqual(chinese.defaultSymbolMarks, .chinese)
+        XCTAssertNil(chinese.defaultSymbolMarks)
         // Frozen default footer: globe, 返回, 中英, space, comma, Return.
         let bottom = try XCTUnwrap(chinese.chrome?.bottom)
         XCTAssertEqual(bottom.count, 6)
@@ -156,7 +157,7 @@ final class KeyboardPageChromeTests: XCTestCase {
         XCTAssertEqual(automaticASCII.rows[2].keys.first?.action.pageSwitchTarget, .symbols)
         try automaticASCII.validate()
 
-        let symbols = KeyboardPagePresets.symbolsChinese.materialized()
+        let symbols = KeyboardPagePresets.symbolRowsPage(ascii: false).materialized()
         let symbolSwitch = try XCTUnwrap(symbols.rows[2].keys.first)
         XCTAssertEqual(symbolSwitch.action.pageSwitchTarget, .numeric)
         XCTAssertEqual(symbolSwitch.label, "123")
@@ -196,7 +197,7 @@ final class KeyboardPageChromeTests: XCTestCase {
 
         // A categorized page with authored rows keeps its browser rows; materializing only adds chrome.
         var rowsBrowser = KeyboardPagePresets.symbolsCategorized
-        rowsBrowser.rows = KeyboardPagePresets.symbolsChinese.rows
+        rowsBrowser.rows = KeyboardPagePresets.symbolRowsPage(ascii: false).rows
         let kept = rowsBrowser.materialized()
         XCTAssertEqual(kept.rows, rowsBrowser.rows)
         XCTAssertEqual(kept.chrome?.trailing.count, 3)
@@ -265,7 +266,7 @@ final class KeyboardPageChromeTests: XCTestCase {
 
         let nativeNumeric = KeyboardPageDefinition(
             id: "cut.num", name: "切开数字", kind: .numeric,
-            rows: KeyboardPagePresets.numericChinese.rows,
+            rows: KeyboardPagePresets.numericRowsPage(ascii: false).rows,
             split: LayoutSplitConfiguration(rowBreaks: [5, 4, 3]))
         let numeric = nativeNumeric.materialized()
         XCTAssertEqual(numeric.split?.rowBreaks, [5, 4, 4], "the cut moved with the inserted page switch")
@@ -296,7 +297,7 @@ final class KeyboardPageChromeTests: XCTestCase {
         XCTAssertFalse(again.rows[2].keys.contains { $0.action.type == .backspace })
         try again.validate()
 
-        var emptied = KeyboardPagePresets.numericChinese.materialized()
+        var emptied = KeyboardPagePresets.numericRowsPage(ascii: false).materialized()
         emptied.chrome?.bottom = []
         emptied.chrome?.leading = []
         emptied.chrome?.trailing = []
@@ -341,7 +342,7 @@ final class KeyboardPageChromeTests: XCTestCase {
     }
 
     func testFunctionKeyContentSurvivesMaterialization() throws {
-        var page = KeyboardPagePresets.numericChinese.materialized()
+        var page = KeyboardPagePresets.numericRowsPage(ascii: false).materialized()
         var bottom = try XCTUnwrap(page.chrome?.bottom)
         let option = LayoutOption(label: "小键盘", action: .pageSwitch(.symbols))
         bottom[0] = bottom[0].settingLongPress([option])
@@ -384,7 +385,7 @@ final class KeyboardPageChromeTests: XCTestCase {
             leading: [LayoutKey(label: "x", action: .init(.literal, value: "x"))])
         rejection(categorized)
 
-        var page = KeyboardPagePresets.numericChinese.materialized()
+        var page = KeyboardPagePresets.numericRowsPage(ascii: false).materialized()
         page.chrome?.leadingWidth = 0
         rejection(page)
         page.chrome?.leadingWidth = .infinity
@@ -397,11 +398,11 @@ final class KeyboardPageChromeTests: XCTestCase {
             count: LayoutResourceBudget.keysPerRegion + 1)
         rejection(page)
 
-        var invalidSwitch = KeyboardPagePresets.numericChinese.materialized()
+        var invalidSwitch = KeyboardPagePresets.numericRowsPage(ascii: false).materialized()
         invalidSwitch.chrome?.bottom[1] = LayoutKey(
             label: "123", action: .init(.pageSwitch, value: "somewhere"))
         rejection(invalidSwitch)
-        var valuedKind = KeyboardPagePresets.numericChinese.materialized()
+        var valuedKind = KeyboardPagePresets.numericRowsPage(ascii: false).materialized()
         valuedKind.chrome?.bottom[1] = LayoutKey(label: "⇧", action: .init(.shift, value: "x"))
         rejection(valuedKind)
 
@@ -435,7 +436,7 @@ final class KeyboardPageChromeTests: XCTestCase {
         // Native-control rows (no chrome) always draw the switch.
         XCTAssertTrue(
             KeyboardPageResolver.numericPageReachesSymbols(
-                page: KeyboardPagePresets.numericChinese, mainLayoutIsPhoneKeypad: true))
+                page: KeyboardPagePresets.numericRowsPage(ascii: false), mainLayoutIsPhoneKeypad: true))
         // An authored page reaches symbols only through its own symbol switch.
         let keypad = KeyboardPagePresets.numericKeypad.materialized()
         XCTAssertTrue(KeyboardPageResolver.numericPageReachesSymbols(page: keypad, mainLayoutIsPhoneKeypad: false))
@@ -455,10 +456,10 @@ final class KeyboardPageChromeTests: XCTestCase {
         let padSwitch = try XCTUnwrap(
             KeyboardPagePresets.numericKeypad.materialized().chrome?.leading.last)
         let rowSwitch = try XCTUnwrap(
-            KeyboardPagePresets.numericChinese.materialized().rows.last?.keys.first)
+            KeyboardPagePresets.numericRowsPage(ascii: false).materialized().rows.last?.keys.first)
         XCTAssertEqual(padSwitch.action, rowSwitch.action)
 
-        for symbols in [KeyboardPagePresets.symbolsChinese, KeyboardPagePresets.symbolsCategorized] {
+        for symbols in [KeyboardPagePresets.symbolRowsPage(ascii: false), KeyboardPagePresets.symbolsCategorized] {
             let resolution = KeyboardPageResolver.resolve(page: symbols, kind: .symbols, input: input)
             let page = try XCTUnwrap(resolution.page, symbols.id)
             XCTAssertEqual(page.id, symbols.id)

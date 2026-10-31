@@ -76,22 +76,31 @@ public enum KeyboardPagePresets {
         page.name = "数字九宫格"
         return page
     }()
-    public static let numericChinese = KeyboardPageDefinition(
-        id: "page.numeric.chinese", name: "中文 123", kind: .numeric,
-        rows: markRows(BuiltinLayouts.numericPageBilingualRows(), kind: .numeric, ascii: false),
-        defaultSymbolMarks: .chinese)
-    public static let numericEnglish = KeyboardPageDefinition(
-        id: "page.numeric.english", name: "英文 123", kind: .numeric,
-        rows: markRows(BuiltinLayouts.numericPageBilingualRows(), kind: .numeric, ascii: true),
-        defaultSymbolMarks: .ascii)
-    public static let symbolsChinese = KeyboardPageDefinition(
-        id: "page.symbols.chinese", name: "中文符号", kind: .symbols,
-        rows: markRows(BuiltinLayouts.symbolPageBilingualRows(), kind: .symbols, ascii: false),
-        defaultSymbolMarks: .chinese)
-    public static let symbolsEnglish = KeyboardPageDefinition(
-        id: "page.symbols.english", name: "英文符号", kind: .symbols,
-        rows: markRows(BuiltinLayouts.symbolPageBilingualRows(), kind: .symbols, ascii: true),
-        defaultSymbolMarks: .ascii)
+    /// The ten-column 123 rows of one symbol branch. Every key carries both branches in its action;
+    /// the label and the long-press list are the `ascii` branch's, because alternates are plain data.
+    /// The running keyboard draws these for the automatic page, and a copy starts from them.
+    public static func numericRowsPage(ascii: Bool) -> KeyboardPageDefinition {
+        ascii ? numericAsciiRows : numericChineseRows
+    }
+
+    /// The row-shaped symbol page of one symbol branch; see `numericRowsPage(ascii:)`.
+    public static func symbolRowsPage(ascii: Bool) -> KeyboardPageDefinition {
+        ascii ? symbolsAsciiRows : symbolsChineseRows
+    }
+
+    private static let numericChineseRows = rowsPage(.numeric, ascii: false)
+    private static let numericAsciiRows = rowsPage(.numeric, ascii: true)
+    private static let symbolsChineseRows = rowsPage(.symbols, ascii: false)
+    private static let symbolsAsciiRows = rowsPage(.symbols, ascii: true)
+
+    private static func rowsPage(_ kind: KeyboardPageKind, ascii: Bool) -> KeyboardPageDefinition {
+        let numeric = kind == .numeric
+        let marks = numeric ? BuiltinLayouts.numericPageBilingualRows() : BuiltinLayouts.symbolPageBilingualRows()
+        return KeyboardPageDefinition(
+            id: numeric ? "page.numeric.rows" : "page.symbols.rows", name: numeric ? "123" : "符号", kind: kind,
+            rows: markRows(marks, kind: kind, ascii: ascii))
+    }
+
     public static let englishQwerty = KeyboardPageDefinition(
         id: "page.english.qwerty", name: "英文 QWERTY", kind: .english,
         rows: letterRows([
@@ -100,18 +109,62 @@ public enum KeyboardPagePresets {
         ]))
     public static let symbolsSystem = KeyboardPageDefinition(
         id: "page.symbols.system", name: "默认符号页", kind: .symbols,
-        rows: symbolsChinese.rows, symbolPresentation: .automatic)
+        rows: symbolRowsPage(ascii: false).rows, symbolPresentation: .automatic)
     public static let symbolsCategorized = KeyboardPageDefinition(
         id: "page.symbols.categorized", name: "分类符号", kind: .symbols,
         rows: [], symbolPresentation: .categorized)
 
     public static let all = [
-        symbolsSystem, symbolsCategorized, symbolsChinese, symbolsEnglish, numericAutomatic, numericKeypad,
-        numericChinese, numericEnglish, englishQwerty,
+        symbolsSystem, symbolsCategorized, numericAutomatic, numericKeypad, englishQwerty,
     ]
 
     public static func preset(id: String) -> KeyboardPageDefinition? {
         all.first { $0.id == id }
+    }
+
+    /// The Chinese and the English copy of the 123 page and of the symbol rows were separate library
+    /// pages although every key carries both branches. They are one page now: a retired ID resolves to
+    /// the automatic page of its kind, which opens in the branch of the input language. An alias, not
+    /// a fresh ID, because stored pairings, exported files and other devices still name the old IDs.
+    private static let retiredAliases: [String: String] = [
+        "page.numeric.chinese": "page.numeric.automatic", "page.numeric.english": "page.numeric.automatic",
+        "page.symbols.chinese": "page.symbols.system", "page.symbols.english": "page.symbols.system",
+    ]
+
+    /// The retired presets exactly as they shipped, to tell an untouched stored copy from an edited one.
+    private static let retiredPresets: [KeyboardPageDefinition] = {
+        func old(_ id: String, _ name: String, _ kind: KeyboardPageKind, ascii: Bool) -> KeyboardPageDefinition {
+            var page = rowsPage(kind, ascii: ascii)
+            page.id = id
+            page.name = name
+            page.defaultSymbolMarks = ascii ? .ascii : .chinese
+            return page
+        }
+        return [
+            old("page.numeric.chinese", "中文 123", .numeric, ascii: false),
+            old("page.numeric.english", "英文 123", .numeric, ascii: true),
+            old("page.symbols.chinese", "中文符号", .symbols, ascii: false),
+            old("page.symbols.english", "英文符号", .symbols, ascii: true),
+        ]
+    }()
+
+    /// A loaded catalog with the retired presets resolved: a stored copy the user never edited goes
+    /// (the automatic page replaces it), an edited one stays as an ordinary user page under its own
+    /// ID, and a pairing that names a retired ID whose page is gone points at the alias.
+    public static func resolvingRetired(
+        pages: [KeyboardPageDefinition], compositions: [String: KeyboardComposition]
+    ) -> (pages: [KeyboardPageDefinition], compositions: [String: KeyboardComposition]) {
+        let kept = pages.filter { page in !retiredPresets.contains(page) }
+        let keptIDs = Set(kept.map(\.id))
+        func resolved(_ id: String) -> String { keptIDs.contains(id) ? id : (retiredAliases[id] ?? id) }
+        let remapped = compositions.mapValues { composition -> KeyboardComposition in
+            var copy = composition
+            copy.symbolPageID = resolved(composition.symbolPageID)
+            copy.numericPageID = resolved(composition.numericPageID)
+            copy.englishPageID = resolved(composition.englishPageID)
+            return copy
+        }
+        return (kept, remapped)
     }
 
     /// A stored page with a preset ID may be a user-modified preset; only an unchanged one is left

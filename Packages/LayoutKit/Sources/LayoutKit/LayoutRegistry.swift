@@ -15,7 +15,10 @@ public struct LayoutRegistry: Codable, Equatable, Sendable {
         let storedPages = try values.decodeIfPresent([KeyboardPageDefinition].self, forKey: .pages) ?? []
         // Saves omit unchanged built-in pages, and a release may add one; the default pairings
         // reference pages by ID, so every built-in page must be present after loading.
-        let merged = KeyboardPagePresets.mergingInto(storedPages)
+        let storedCompositions =
+            try values.decodeIfPresent([String: KeyboardComposition].self, forKey: .compositions) ?? [:]
+        let resolved = KeyboardPagePresets.resolvingRetired(pages: storedPages, compositions: storedCompositions)
+        let merged = KeyboardPagePresets.mergingInto(resolved.pages)
         if let pageOrder = try values.decodeIfPresent([String].self, forKey: .pageOrder) {
             // Saves omit unchanged presets; the order list restores their original positions so a
             // save/load round trip does not reshuffle the page library. A repeated ID is corrupt
@@ -40,7 +43,7 @@ public struct LayoutRegistry: Codable, Equatable, Sendable {
         } else {
             pages = merged
         }
-        compositions = try values.decodeIfPresent([String: KeyboardComposition].self, forKey: .compositions) ?? [:]
+        compositions = resolved.compositions
     }
 
     public func encode(to encoder: Encoder) throws {

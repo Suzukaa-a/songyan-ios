@@ -49,7 +49,7 @@ enum KeyboardPageDraftFactory {
         if base.numericPresentation == .automatic {
             let marks = numericMarks ?? .chinese
             let form = numericForm ?? .rows
-            var copy = base.copy(numericMarks: marks, numericForm: form)
+            var copy = base.copy(numericMarks: numericMarks, numericForm: form)
             copy.name = numericCopyName(marks: marks, form: form)
             try copy.validate()
             return copy
@@ -62,9 +62,7 @@ enum KeyboardPageDraftFactory {
                 // initial-language snapshot) or author-modified (then it keeps them, along with the
                 // author's split). Hand-picking a preset here would discard both.
                 var copy = base.copy(
-                    name: page.name + " 副本", numericMarks: numericMarks ?? .chinese,
-                    numericForm: numericForm ?? .rows)
-                if numericMarks == nil { copy.defaultSymbolMarks = nil }
+                    name: page.name + " 副本", numericMarks: numericMarks, numericForm: numericForm ?? .rows)
                 try copy.validate()
                 return copy
             case .categorized:
@@ -81,10 +79,9 @@ enum KeyboardPageDraftFactory {
         if base.symbolPresentation == .categorized && base.categories == nil {
             base.categories = try await authoredCategories()
         }
-        var copy = base.copy(numericMarks: numericMarks ?? .chinese, numericForm: numericForm ?? .rows)
         // Runtime-resolved pages never pick a branch on their own; only a caller's explicit choice
         // pins the copy. Authored pages keep the initial branch they were saved with.
-        if page.resolvesAtRuntime { copy.defaultSymbolMarks = numericMarks }
+        var copy = base.copy(numericMarks: numericMarks, numericForm: numericForm ?? .rows)
         try copy.validate()
         return copy
     }

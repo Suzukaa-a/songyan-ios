@@ -98,7 +98,7 @@ final class KeyboardPageCategoryTests: XCTestCase {
         let browser = try JSONDecoder().decode(KeyboardPageDefinition.self, from: Data(browserJSON.utf8))
         XCTAssertNil(browser.categories)
         try browser.validate()
-        let row = KeyboardPagePresets.numericChinese
+        let row = KeyboardPagePresets.numericRowsPage(ascii: false)
         let restored = try JSONDecoder().decode(KeyboardPageDefinition.self, from: JSONEncoder().encode(row))
         XCTAssertEqual(restored, row)
         try restored.validate()

@@ -106,8 +106,8 @@ final class BilingualLiteralTests: XCTestCase {
     }
 
     func testPresetsStoreChineseValueAsciiCounterpartAndInitialBranch() throws {
-        let chinese = KeyboardPagePresets.numericChinese
-        XCTAssertEqual(chinese.defaultSymbolMarks, .chinese)
+        let chinese = KeyboardPagePresets.numericRowsPage(ascii: false)
+        XCTAssertNil(chinese.defaultSymbolMarks, "the rows follow the input language until a copy chooses")
         let chinesePaired = chinese.rows[1].keys[2]
         XCTAssertEqual(chinesePaired.action.value, "：")
         XCTAssertEqual(chinesePaired.action.asciiValue, ":")
@@ -116,8 +116,8 @@ final class BilingualLiteralTests: XCTestCase {
         XCTAssertEqual(resolve(chinesePaired, ascii: false), "：")
         XCTAssertEqual(resolve(chinesePaired, ascii: true), ":")
 
-        let english = KeyboardPagePresets.numericEnglish
-        XCTAssertEqual(english.defaultSymbolMarks, .ascii)
+        let english = KeyboardPagePresets.numericRowsPage(ascii: true)
+        XCTAssertNil(english.defaultSymbolMarks)
         let englishPaired = english.rows[1].keys[2]
         XCTAssertEqual(englishPaired.action.value, "：")
         XCTAssertEqual(englishPaired.action.asciiValue, ":")
@@ -125,14 +125,16 @@ final class BilingualLiteralTests: XCTestCase {
         XCTAssertEqual(resolve(englishPaired, ascii: false), "：")
         XCTAssertEqual(resolve(englishPaired, ascii: true), ":")
 
-        XCTAssertEqual(KeyboardPagePresets.symbolsChinese.defaultSymbolMarks, .chinese)
-        XCTAssertEqual(KeyboardPagePresets.symbolsEnglish.defaultSymbolMarks, .ascii)
+        XCTAssertNil(KeyboardPagePresets.symbolRowsPage(ascii: false).defaultSymbolMarks)
+        XCTAssertNil(KeyboardPagePresets.symbolRowsPage(ascii: true).defaultSymbolMarks)
         XCTAssertNil(KeyboardPagePresets.numericAutomatic.defaultSymbolMarks)
         XCTAssertNil(KeyboardPagePresets.symbolsSystem.defaultSymbolMarks)
         XCTAssertEqual(KeyboardPagePresets.numericKeypad.defaultSymbolMarks, .chinese)
 
         // Every paired literal resolves to its own branch; identical slots stay fixed.
-        for preset in [KeyboardPagePresets.numericChinese, KeyboardPagePresets.symbolsChinese] {
+        for preset in [
+            KeyboardPagePresets.numericRowsPage(ascii: false), KeyboardPagePresets.symbolRowsPage(ascii: false),
+        ] {
             try preset.validate()
             for key in preset.rows.flatMap(\.keys) {
                 XCTAssertNotNil(resolve(key, ascii: false))
@@ -152,9 +154,14 @@ final class BilingualLiteralTests: XCTestCase {
     }
 
     func testCopiedPresetsKeepOrChooseTheirInitialSymbolBranch() throws {
-        let englishPresetCopy = KeyboardPagePresets.numericEnglish.copy()
-        XCTAssertEqual(englishPresetCopy.defaultSymbolMarks, .ascii)
-        XCTAssertEqual(englishPresetCopy.rows[1].keys[2].label, ":")
+        // A copy of the rows keeps the labels of the branch they were drawn in and still follows the input.
+        let englishRowsCopy = KeyboardPagePresets.numericRowsPage(ascii: true).copy()
+        XCTAssertNil(englishRowsCopy.defaultSymbolMarks)
+        XCTAssertEqual(englishRowsCopy.rows[1].keys[2].label, ":")
+
+        let followingCopy = KeyboardPagePresets.numericAutomatic.copy()
+        XCTAssertNil(followingCopy.defaultSymbolMarks, "a copy never pins the Chinese marks by accident")
+        XCTAssertEqual(followingCopy.rows[1].keys[2].titleMode, .automatic)
 
         let automaticASCIICopy = KeyboardPagePresets.numericAutomatic.copy(numericMarks: .ascii)
         XCTAssertEqual(automaticASCIICopy.defaultSymbolMarks, .ascii)
@@ -177,20 +184,23 @@ final class BilingualLiteralTests: XCTestCase {
         let ascii = KeyboardPagePresets.symbolsSystem.copy(numericMarks: .ascii)
         XCTAssertEqual(ascii.symbolPresentation, .rows)
         XCTAssertEqual(ascii.defaultSymbolMarks, .ascii)
-        XCTAssertEqual(ascii.rows[0], KeyboardPagePresets.symbolsEnglish.rows[0])
-        XCTAssertEqual(ascii.rows[1], KeyboardPagePresets.symbolsEnglish.rows[1])
+        XCTAssertEqual(ascii.rows[0], KeyboardPagePresets.symbolRowsPage(ascii: true).rows[0])
+        XCTAssertEqual(ascii.rows[1], KeyboardPagePresets.symbolRowsPage(ascii: true).rows[1])
         // Materializing wraps the marks in the 123 switch and Delete.
         XCTAssertEqual(
-            Array(ascii.rows[2].keys.dropFirst().dropLast()), KeyboardPagePresets.symbolsEnglish.rows[2].keys)
-        XCTAssertEqual(ascii.rows[0].keys[0].label, KeyboardPagePresets.symbolsEnglish.rows[0].keys[0].label)
+            Array(ascii.rows[2].keys.dropFirst().dropLast()),
+            KeyboardPagePresets.symbolRowsPage(ascii: true).rows[2].keys)
         XCTAssertEqual(
-            ascii.rows[0].keys[0].longPress, KeyboardPagePresets.symbolsEnglish.rows[0].keys[0].longPress,
+            ascii.rows[0].keys[0].label, KeyboardPagePresets.symbolRowsPage(ascii: true).rows[0].keys[0].label)
+        XCTAssertEqual(
+            ascii.rows[0].keys[0].longPress, KeyboardPagePresets.symbolRowsPage(ascii: true).rows[0].keys[0].longPress,
             "the long-press menu is the chosen initial language's fixed snapshot")
         try ascii.validate()
 
         let chinese = KeyboardPagePresets.symbolsSystem.copy(numericMarks: .chinese)
-        XCTAssertEqual(chinese.rows[0], KeyboardPagePresets.symbolsChinese.rows[0])
-        XCTAssertEqual(chinese.rows[0].keys[0].label, KeyboardPagePresets.symbolsChinese.rows[0].keys[0].label)
+        XCTAssertEqual(chinese.rows[0], KeyboardPagePresets.symbolRowsPage(ascii: false).rows[0])
+        XCTAssertEqual(
+            chinese.rows[0].keys[0].label, KeyboardPagePresets.symbolRowsPage(ascii: false).rows[0].keys[0].label)
         XCTAssertEqual(chinese.defaultSymbolMarks, .chinese)
         try chinese.validate()
 
@@ -251,13 +261,13 @@ final class BilingualLiteralTests: XCTestCase {
         XCTAssertEqual(abc[4].longPress?.compactMap(\.action.value), ["。", "？", "！", "、", "…"])
         XCTAssertEqual(abc[4].longPress?.compactMap(\.action.asciiValue), [".", "?", "!", "'", "\""])
 
-        let numeric = footer(KeyboardPagePresets.numericChinese)
+        let numeric = footer(KeyboardPagePresets.numericRowsPage(ascii: false))
         XCTAssertEqual(numeric.map(\.action.type), [.globe, .pageSwitch, .languageSwitch, .space, .literal, .enter])
         XCTAssertEqual(numeric[4], abc[4], "every row page shares the ABC page's comma key")
         XCTAssertEqual(numeric[1].label, "返回")
         XCTAssertEqual(numeric[1].action.pageSwitchTarget, .letters)
 
-        let symbols = footer(KeyboardPagePresets.symbolsChinese)
+        let symbols = footer(KeyboardPagePresets.symbolRowsPage(ascii: false))
         XCTAssertEqual(symbols.map(\.action.type), [.globe, .pageSwitch, .languageSwitch, .space, .literal, .enter])
         XCTAssertEqual(symbols[1].action.pageSwitchTarget, .letters)
 
@@ -320,13 +330,13 @@ final class BilingualLiteralTests: XCTestCase {
                     isPhoneLayout: false, usesASCIIPunctuation: false)
             ),
             (
-                KeyboardPagePresets.numericChinese,
+                KeyboardPagePresets.numericRowsPage(ascii: false),
                 KeyboardControlPolicy(
                     page: .numeric, isEnglishMode: false, hasGlobe: true,
                     isPhoneLayout: false, usesASCIIPunctuation: false)
             ),
             (
-                KeyboardPagePresets.symbolsChinese,
+                KeyboardPagePresets.symbolRowsPage(ascii: false),
                 KeyboardControlPolicy(
                     page: .symbols, isEnglishMode: false, hasGlobe: true,
                     isPhoneLayout: false, usesASCIIPunctuation: false, usesCategorySymbolPage: false)

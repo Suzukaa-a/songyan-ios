@@ -206,7 +206,7 @@ extension SchemeImportCenter {
         check(LayoutManager.shared.lastError != nil, "a damaged catalog must surface a read error")
 
         // Every ordinary save must fail rather than persist the fallback over the damaged file.
-        let page = KeyboardPagePresets.symbolsChinese.copy(name: "新页面")
+        let page = KeyboardPagePresets.symbolRowsPage(ascii: false).copy(name: "新页面")
         check(!(await LayoutManager.shared.savePage(page)), "a page save must fail while the catalog is unreadable")
         check(LayoutManager.shared.lastError != nil, "the read error must survive the failed page save")
         check(
@@ -241,7 +241,7 @@ extension SchemeImportCenter {
 
         // The user's real catalog comes back, with content that only exists there.
         var userCatalog = try LayoutRegistry()
-        let keptPage = KeyboardPagePresets.numericEnglish.copy(name: "我保留的数字页")
+        let keptPage = KeyboardPagePresets.numericRowsPage(ascii: true).copy(name: "我保留的数字页")
         try userCatalog.savePage(keptPage)
         try userCatalog.setComposition(
             .init(mainLayoutID: BuiltinLayouts.qwerty26.id), for: "kept_method:qwerty26")
@@ -249,7 +249,7 @@ extension SchemeImportCenter {
         try LayoutStore(directoryURL: catalog).save(userCatalog)
 
         // The next save reads that real baseline and merges into it.
-        let freshPage = KeyboardPagePresets.symbolsChinese.copy(name: "新页面")
+        let freshPage = KeyboardPagePresets.symbolRowsPage(ascii: false).copy(name: "新页面")
         check(await LayoutManager.shared.savePage(freshPage), "the repaired catalog must accept a save")
         let saved = try LayoutStore(directoryURL: catalog).load()
         check(saved.page(id: freshPage.id) != nil, "the new page must be in the saved catalog")
@@ -272,7 +272,7 @@ extension SchemeImportCenter {
         try install("keeper", methods: ["kept_method"], root: root)
 
         var registry = LayoutManager.shared.registry
-        let page = KeyboardPagePresets.numericChinese.copy(name: "我的数字")
+        let page = KeyboardPagePresets.numericRowsPage(ascii: false).copy(name: "我的数字")
         let layout = try registry.copy(BuiltinLayouts.qwerty26, name: "我的布局")
         try registry.savePage(page)
         try registry.setComposition(.init(mainLayoutID: layout.id, numericPageID: page.id), for: "gone_method:qwerty26")

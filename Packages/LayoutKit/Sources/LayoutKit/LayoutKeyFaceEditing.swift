@@ -15,7 +15,8 @@ public extension LayoutKey {
     }
 
     /// A legacy space key or paired literal without a title mode always shows its stored label;
-    /// showing "follow" for it would promise a live title it never had. Other implicit nil cases
+    /// showing "follow" for it would promise a live title it never had (editing the ASCII variant
+    /// gives the key one). Other implicit nil cases
     /// (enter, globe, backspace, shift) keep following the live function title.
     var displayedTitleMode: LayoutKeyTitleMode {
         if titleMode == nil, action.type == .space || action.asciiValue != nil { return .custom }
@@ -30,8 +31,9 @@ public extension LayoutKey {
     }
 
     /// A character key carries no title class; switching to a function key restores the live
-    /// title. Literal edits keep the face the key already had: pairing a legacy fixed key must
-    /// not promote its author label into a live title.
+    /// title. Literal edits keep the face the key already had, except that filling the ASCII variant
+    /// of a key without a title mode makes it show what it types in the current branch; a title the
+    /// author typed (`.custom`) always stays.
     func editingAction(_ newAction: LayoutAction, allowsTitleMode: Bool) -> LayoutKey {
         let updated = settingAction(newAction)
         guard allowsTitleMode else { return updated }
@@ -43,8 +45,9 @@ public extension LayoutKey {
             return updated.settingTitleMode(nil)
         case .literal:
             // A function key switched into literal starts as fixed text; editing an existing
-            // literal (including adding or clearing its ASCII value) keeps its stored face.
-            return updated.settingTitleMode(action.type == .literal ? titleMode : nil)
+            // literal keeps its stored face, and a key with two variants follows the branch.
+            let kept = action.type == .literal ? titleMode : nil
+            return updated.settingTitleMode(newAction.asciiValue != nil && kept == nil ? .automatic : kept)
         default:
             return updated.settingTitleMode(titleMode ?? .automatic)
         }

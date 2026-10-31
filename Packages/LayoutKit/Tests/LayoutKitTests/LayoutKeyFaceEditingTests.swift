@@ -3,21 +3,26 @@ import XCTest
 @testable import LayoutKit
 
 final class LayoutKeyFaceEditingTests: XCTestCase {
-    func testPairingAndClearingALegacyFixedLiteralKeepsItsAuthorFace() {
+    func testPairingALegacyFixedLiteralMakesItsFaceFollowTheBranchUnlessTheAuthorTypedOne() {
         let fixed = LayoutKey(label: "笑脸", action: .init(.literal, value: "☺"))
         XCTAssertFalse(fixed.supportsLiveTitle)
         let paired = fixed.editingAction(LayoutAction(.literal, value: "☺", asciiValue: ":)"), allowsTitleMode: true)
-        XCTAssertNil(paired.titleMode, "first pairing keeps the legacy nil title mode")
-        XCTAssertEqual(paired.displayedTitleMode, .custom)
+        XCTAssertEqual(paired.titleMode, .automatic, "the face shows what the key types in the current branch")
+        XCTAssertEqual(paired.displayedTitleMode, .automatic)
         XCTAssertTrue(paired.supportsLiveTitle)
-        XCTAssertNil(paired.editingAction(LayoutAction(.literal, value: "☺"), allowsTitleMode: true).titleMode)
+        XCTAssertEqual(
+            paired.editingAction(LayoutAction(.literal, value: "☺"), allowsTitleMode: true).titleMode, .automatic)
+        XCTAssertNil(
+            fixed.editingAction(
+                LayoutAction(.literal, value: "☺", asciiValue: ":)"), allowsTitleMode: false
+            ).titleMode, "an editor without title modes keeps the stored face")
 
         let custom = paired.settingTitleMode(.custom)
         let clearedCustom = custom.editingAction(LayoutAction(.literal, value: "☺"), allowsTitleMode: true)
         XCTAssertEqual(clearedCustom.titleMode, .custom, "clearing the pair keeps an authored custom face")
         let repaired = clearedCustom.editingAction(
             LayoutAction(.literal, value: "☺", asciiValue: ":)"), allowsTitleMode: true)
-        XCTAssertEqual(repaired.titleMode, .custom, "re-pairing never promotes the face to automatic")
+        XCTAssertEqual(repaired.titleMode, .custom, "re-pairing never overrides the author's title")
     }
 
     func testSwitchingBetweenFunctionAndLiteralResetsTheLiveFace() {

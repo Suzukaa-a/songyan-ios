@@ -93,7 +93,7 @@ enum RimePaths {
             id: "probe.no.globe.page", name: "无地球页", kind: .numeric,
             rows: [LayoutRow(keys: [LayoutKey(label: "1", action: .init(.literal, value: "1"))])],
             chrome: KeyboardPageChrome())
-        var globePage = KeyboardPagePresets.numericChinese.materialized()
+        var globePage = KeyboardPagePresets.numericRowsPage(ascii: false).materialized()
         globePage.id = "probe.globe.page"
         globePage.name = "有地球页"
 

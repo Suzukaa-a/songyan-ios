@@ -22,8 +22,9 @@ final class KeyboardPageGeometryTests: XCTestCase {
 
     func testNumericAndSymbolThirdRowsIncludeTheSwitchAndDeleteColumns() {
         for page in [
-            KeyboardPagePresets.numericChinese, KeyboardPagePresets.numericEnglish, KeyboardPagePresets.symbolsChinese,
-            KeyboardPagePresets.symbolsEnglish,
+            KeyboardPagePresets.numericRowsPage(ascii: false), KeyboardPagePresets.numericRowsPage(ascii: true),
+            KeyboardPagePresets.symbolRowsPage(ascii: false),
+            KeyboardPagePresets.symbolRowsPage(ascii: true),
         ] {
             let first = KeyboardPageRowGeometry(
                 width: 834, page: page, row: 0, split: LayoutSplitConfiguration().resolved(forWidth: 834))
@@ -172,7 +173,7 @@ final class KeyboardPageGeometryTests: XCTestCase {
     }
 
     func testMaterializedNumericRowKeepsTenColumnsWithSideKeysOnTheThirdRow() {
-        let page = KeyboardPagePresets.numericChinese.materialized()
+        let page = KeyboardPagePresets.numericRowsPage(ascii: false).materialized()
         for width in [320.0, 466, 834] {
             let split = LayoutSplitConfiguration().resolved(forWidth: width)
             let standard = StandardKeyRowGeometry(width: width, split: split)

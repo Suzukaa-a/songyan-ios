@@ -33,6 +33,15 @@ public enum KeyboardNumericPresentation: String, Codable, Sendable {
 public enum KeyboardNumericMarks: String, Codable, CaseIterable, Sendable {
     case chinese
     case ascii
+
+    /// The branch the open page types and shows: the one the user flipped with the page's 中/英
+    /// key, else the one the page opens in, else the input language (English input opens the ASCII
+    /// marks, Chinese input the Chinese ones; a host that needs ASCII counts as English input).
+    public static func opening(
+        flipped: KeyboardNumericMarks?, pageDefault: KeyboardNumericMarks?, asciiInput: Bool
+    ) -> KeyboardNumericMarks {
+        flipped ?? pageDefault ?? (asciiInput ? .ascii : .chinese)
+    }
 }
 
 /// The built-in 123 shape an automatic page resolves to.
@@ -281,9 +290,7 @@ public struct KeyboardPageDefinition: Codable, Equatable, Identifiable, Sendable
                 page.chrome = Self.keypadChrome(marks: numericMarks)
                 page.defaultSymbolMarks = numericMarks
             } else {
-                page.rows =
-                    (numericMarks == .ascii ? KeyboardPagePresets.numericEnglish : KeyboardPagePresets.numericChinese)
-                    .rows
+                page.rows = KeyboardPagePresets.numericRowsPage(ascii: numericMarks == .ascii).rows
                 page.numericPresentation = nil
                 // The native row page gets its third-row switch and Delete from the renderer;
                 // materialized data carries them explicitly so an authored page keeps both.
@@ -302,13 +309,9 @@ public struct KeyboardPageDefinition: Codable, Equatable, Identifiable, Sendable
                 // the copy can take the initial-language snapshot (labels and long-press menus).
                 // Author-modified rows are never replaced by a whole preset.
                 let canonical =
-                    page.rows.isEmpty || page.rows == KeyboardPagePresets.symbolsChinese.rows
-                    || page.rows == KeyboardPagePresets.symbolsEnglish.rows
-                if canonical {
-                    page.rows =
-                        numericMarks == .ascii
-                        ? KeyboardPagePresets.symbolsEnglish.rows : KeyboardPagePresets.symbolsChinese.rows
-                }
+                    page.rows.isEmpty || page.rows == KeyboardPagePresets.symbolRowsPage(ascii: false).rows
+                    || page.rows == KeyboardPagePresets.symbolRowsPage(ascii: true).rows
+                if canonical { page.rows = KeyboardPagePresets.symbolRowsPage(ascii: numericMarks == .ascii).rows }
                 page.categories = nil
                 page.rows = Self.rowsInsertingNativeControls(rows: page.rows, kind: .symbols, split: &page.split)
                 page.chrome = Self.rowsChrome(kind: .symbols)
@@ -326,12 +329,16 @@ public struct KeyboardPageDefinition: Codable, Equatable, Identifiable, Sendable
 
     /// A copy is editable authored content, so an automatic page materializes into the built-in
     /// rows it stands for instead of keeping the automatic flag, and the result gets a new id.
+    /// The marks only choose which branch's labels the rows start with unless `numericMarks` is
+    /// given: a page that followed the keyboard keeps following it, so a copy never freezes the
+    /// Chinese marks by accident.
     public func copy(
         name: String? = nil,
-        numericMarks: KeyboardNumericMarks = .chinese,
+        numericMarks: KeyboardNumericMarks? = nil,
         numericForm: KeyboardNumericForm = .rows
     ) -> Self {
-        var copy = materialized(numericForm: numericForm, numericMarks: numericMarks)
+        var copy = materialized(numericForm: numericForm, numericMarks: numericMarks ?? .chinese)
+        if resolvesAtRuntime { copy.defaultSymbolMarks = numericMarks }
         copy.id = UUID().uuidString.lowercased()
         copy.name = name ?? self.name + " 副本"
         return copy

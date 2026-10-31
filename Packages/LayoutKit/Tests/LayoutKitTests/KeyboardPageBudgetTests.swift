@@ -57,7 +57,7 @@ final class KeyboardPageBudgetTests: XCTestCase {
                     ])
             }
         var full = try LayoutRegistry(pages: alternatePages + KeyboardPagePresets.all)
-        var withAlternate = KeyboardPagePresets.numericChinese
+        var withAlternate = KeyboardPagePresets.numericRowsPage(ascii: false)
         withAlternate.rows[0] = LayoutRow(
             keys: [withAlternate.rows[0].keys[0].settingLongPress([options[0]])]
                 + withAlternate.rows[0].keys.dropFirst())
@@ -82,7 +82,7 @@ final class KeyboardPageBudgetTests: XCTestCase {
     }
 
     func testFunctionKeysSpendThePageBudget() throws {
-        var page = KeyboardPagePresets.numericChinese.materialized()
+        var page = KeyboardPagePresets.numericRowsPage(ascii: false).materialized()
         page.rows = (0..<(LayoutResourceBudget.keys / LayoutResourceBudget.keysPerRegion)).map { _ in
             LayoutRow(
                 keys: (0..<LayoutResourceBudget.keysPerRegion).map {
@@ -94,12 +94,12 @@ final class KeyboardPageBudgetTests: XCTestCase {
         page.chrome?.bottom = [LayoutKey(label: "清空", action: .init(.clearInput))]
         XCTAssertThrowsError(try page.validate(), "a function key is a key too")
 
-        var longText = KeyboardPagePresets.numericChinese.materialized()
+        var longText = KeyboardPagePresets.numericRowsPage(ascii: false).materialized()
         longText.chrome?.bottom[0] = LayoutKey(
             label: String(repeating: "x", count: 300), action: .init(.languageSwitch))
         XCTAssertThrowsError(try longText.validate())
 
-        var hugeRegion = KeyboardPagePresets.numericChinese.materialized()
+        var hugeRegion = KeyboardPagePresets.numericRowsPage(ascii: false).materialized()
         hugeRegion.chrome?.leading = Array(
             repeating: LayoutKey(label: "x", action: .init(.literal, value: "x")),
             count: LayoutResourceBudget.keysPerRegion + 1)

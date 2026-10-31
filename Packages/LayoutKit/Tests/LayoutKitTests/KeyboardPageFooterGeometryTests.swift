@@ -49,13 +49,13 @@ final class KeyboardPageFooterGeometryTests: XCTestCase {
     func testEveryDefaultFooterVariantMatchesItsOwnControlRowPolicy() {
         let variants: [(KeyboardPageDefinition, KeyboardControlPolicy)] = [
             (
-                KeyboardPagePresets.numericChinese,
+                KeyboardPagePresets.numericRowsPage(ascii: false),
                 KeyboardControlPolicy(
                     page: .numeric, isEnglishMode: false, hasGlobe: true,
                     isPhoneLayout: false, usesASCIIPunctuation: false)
             ),
             (
-                KeyboardPagePresets.symbolsChinese,
+                KeyboardPagePresets.symbolRowsPage(ascii: false),
                 KeyboardControlPolicy(
                     page: .symbols, isEnglishMode: false, hasGlobe: true,
                     isPhoneLayout: false, usesASCIIPunctuation: false, usesCategorySymbolPage: false)

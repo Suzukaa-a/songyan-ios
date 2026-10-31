@@ -51,7 +51,7 @@ final class KeyboardCompositionCleanupTests: XCTestCase {
     /// The reported bug: a pairing left by a deleted scheme used to block removal forever.
     func testPageAndLayoutBecomeRemovableAfterCleanup() throws {
         var registry = try LayoutRegistry()
-        let page = KeyboardPagePresets.numericChinese.copy(name: "我的数字")
+        let page = KeyboardPagePresets.numericRowsPage(ascii: false).copy(name: "我的数字")
         try registry.savePage(page)
         let layout = BuiltinLayouts.qwerty26.copy(name: "我的布局")
         try registry.install(layout.encoded())

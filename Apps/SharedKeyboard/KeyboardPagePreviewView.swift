@@ -153,6 +153,9 @@ public struct KeyboardPagePreviewView: View {
     public var mainLayout: KeyboardLayoutKind?
     public var skin: SkinDefinition
     public var previewDark: Bool?
+    /// Draws this branch instead of the page's own default, so an editor can show both faces of a
+    /// bilingual page without changing it.
+    public var previewMarks: KeyboardNumericMarks?
     private let onSelectKey: ((KeyboardPageKeyPath) -> Void)?
     private let onSelectCategoryKey: ((String, Int) -> Void)?
     private let selectedCategoryKey: (String, Int)?
@@ -166,7 +169,7 @@ public struct KeyboardPagePreviewView: View {
     public init(
         page: KeyboardPageDefinition, inheritedSplit: LayoutSplitConfiguration? = nil,
         usesHandCuts: Bool = false, isPhoneLayout: Bool = false, mainLayout: KeyboardLayoutKind? = nil,
-        skin: SkinDefinition = .systemDefault, previewDark: Bool? = nil,
+        skin: SkinDefinition = .systemDefault, previewDark: Bool? = nil, previewMarks: KeyboardNumericMarks? = nil,
         onSelectKey: ((KeyboardPageKeyPath) -> Void)? = nil,
         onSelectCategoryKey: ((String, Int) -> Void)? = nil, selectedCategoryKey: (String, Int)? = nil,
         selectedPageKey: KeyboardPageKeyPath? = nil
@@ -178,6 +181,7 @@ public struct KeyboardPagePreviewView: View {
         self.mainLayout = mainLayout
         self.skin = skin
         self.previewDark = previewDark
+        self.previewMarks = previewMarks
         self.onSelectKey = onSelectKey
         self.onSelectCategoryKey = onSelectCategoryKey
         self.selectedCategoryKey = selectedCategoryKey
@@ -187,10 +191,10 @@ public struct KeyboardPagePreviewView: View {
     private var editing: Bool { onSelectKey != nil || onSelectCategoryKey != nil }
     private var showsGlobe: Bool { preferences.showsGlobe(editing: editing) }
 
-    /// An explicit page default wins, otherwise an English page shows the English branch and
+    /// The previewed branch wins, then an explicit page default, otherwise an English page shows the English branch and
     /// numeric/symbol pages show Chinese. The same value feeds resolution, faces and the footer.
     private var usesASCIIPunctuation: Bool {
-        (page.defaultSymbolMarks ?? (page.kind == .english ? .ascii : .chinese)) == .ascii
+        (previewMarks ?? page.defaultSymbolMarks ?? (page.kind == .english ? .ascii : .chinese)) == .ascii
     }
 
     private var resolution: KeyboardPageResolution {

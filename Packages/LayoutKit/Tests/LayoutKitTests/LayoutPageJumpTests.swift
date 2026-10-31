@@ -65,7 +65,7 @@ final class LayoutPageJumpTests: XCTestCase {
         let jump = LayoutKey(label: "123", action: .layoutPageSwitch(toNineKeyDigits))
         let symbolsJump = LayoutKey(
             label: "符号", action: .layoutPageSwitch(.init(layout: .merged14, page: .symbols)!))
-        var page = KeyboardPagePresets.symbolsChinese.copy(name: "我的符号")
+        var page = KeyboardPagePresets.symbolRowsPage(ascii: false).copy(name: "我的符号")
         var chrome = try XCTUnwrap(page.chrome)
         chrome.leading = [symbolsJump]
         page.chrome = chrome

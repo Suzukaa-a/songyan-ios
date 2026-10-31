@@ -82,10 +82,14 @@ final class KeyboardPageRowsTests: XCTestCase {
     /// The runtime tables and the editable page presets read the same canonical
     /// rows; otherwise editing a page could silently diverge from the built-in one.
     func testEditablePresetsUseTheCanonicalRows() {
-        XCTAssertEqual(presetRows(KeyboardPagePresets.numericChinese), BuiltinLayouts.numericPageRows(ascii: false))
-        XCTAssertEqual(presetRows(KeyboardPagePresets.numericEnglish), BuiltinLayouts.numericPageRows(ascii: true))
-        XCTAssertEqual(presetRows(KeyboardPagePresets.symbolsChinese), BuiltinLayouts.symbolPageRows(ascii: false))
-        XCTAssertEqual(presetRows(KeyboardPagePresets.symbolsEnglish), BuiltinLayouts.symbolPageRows(ascii: true))
+        XCTAssertEqual(
+            presetRows(KeyboardPagePresets.numericRowsPage(ascii: false)), BuiltinLayouts.numericPageRows(ascii: false))
+        XCTAssertEqual(
+            presetRows(KeyboardPagePresets.numericRowsPage(ascii: true)), BuiltinLayouts.numericPageRows(ascii: true))
+        XCTAssertEqual(
+            presetRows(KeyboardPagePresets.symbolRowsPage(ascii: false)), BuiltinLayouts.symbolPageRows(ascii: false))
+        XCTAssertEqual(
+            presetRows(KeyboardPagePresets.symbolRowsPage(ascii: true)), BuiltinLayouts.symbolPageRows(ascii: true))
         XCTAssertEqual(presetRows(KeyboardPagePresets.symbolsSystem), BuiltinLayouts.symbolPageRows(ascii: false))
     }
 
