@@ -21,7 +21,8 @@ public enum BuiltinLayouts {
     /// Where the unedited bundled 26- and 18-key layouts split when nothing saved says otherwise:
     /// each hand keeps its letters from a physical keyboard, QWERT ASDFG ZXCVB on the left (on 18
     /// keys three, three and four keys, the BN pair following its B). The cuts live here rather than
-    /// on the definitions so a layout copied from them does not carry them. 26 keys stays whole
+    /// on the definitions so a layout copied from them is not tied to them; a copy gets them written
+    /// into its own split (`persistingHandCuts(in:)`). 26 keys stays whole
     /// (`off`) until the user turns splitting on. The cuts count letter keys: the key area draws
     /// Shift and Delete outside the rows, so nothing needs to move. Nil for any other layout, for
     /// one that differs from the bundled one in anything but its split (a renamed copy included),

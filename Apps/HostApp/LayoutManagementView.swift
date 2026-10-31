@@ -257,7 +257,7 @@ struct LayoutDetailView: View {
 
                 Section {
                     Button("编辑键位与副键") { editingDraft = layout }
-                    Button("复制为新布局并编辑") { editingDraft = layout.copy() }
+                    Button("复制为新布局并编辑") { editingDraft = BuiltinLayouts.persistingHandCuts(in: layout).copy() }
                     if let preset = BuiltinLayouts.all.first(where: { $0.id == layout.id }), preset != layout {
                         Button("恢复预设") { confirmingPresetRestore = true }
                     }

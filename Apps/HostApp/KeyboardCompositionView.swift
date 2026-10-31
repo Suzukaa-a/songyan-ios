@@ -108,7 +108,7 @@ struct KeyboardCompositionView: View {
                 if let layout = mainLayout {
                     KeyboardPreviewView(layout: layout, skin: AppearanceManager.shared.applied.skin)
                     Button("编辑\(UserTerminology.mainLayout)") { editingMain = layout }
-                    Button("复制并编辑\(UserTerminology.mainLayout)") { editingMain = layout.copy() }
+                    Button("复制并编辑\(UserTerminology.mainLayout)") { editingMain = BuiltinLayouts.persistingHandCuts(in: layout).copy() }
                 } else {
                     Text("没有适合这个键盘的布局，请在下方「\(UserTerminology.keyboardLayout)」中添加。")
                         .foregroundStyle(.secondary)
