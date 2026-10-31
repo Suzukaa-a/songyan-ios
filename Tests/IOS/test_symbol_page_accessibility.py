@@ -41,7 +41,8 @@ for ascii in [false, true] {
     for (name, rows) in [("123", numeric), ("#+=", symbols)] {
         let caps = rows.flatMap(\.caps)
         let values = literalValues(caps)
-        for punctuation in required {
+        // The sentence marks live on the 123 page only; #+= holds the rest.
+        for punctuation in (name == "123" ? required : []) {
             precondition(values.contains(punctuation),
                          "\(name) ascii=\(ascii) must expose \(punctuation) without long press")
         }
@@ -53,15 +54,16 @@ for ascii in [false, true] {
     precondition(numericValues.filter { $0.count == 1 && $0.first!.isNumber } == "1234567890".map(String.init))
     // The third row holds seven marks between the 123/symbol switch and Delete.
     let expectedNumeric: [[String]] = ascii
-        ? ["1234567890".map(String.init), "-/:;()$&@\"".map(String.init), [".", "#", "?", "!", "'", "%", "+"]]
+        ? ["1234567890".map(String.init), "-/:;()$&@\"".map(String.init), [".", "?", "!", "'", "%", "#", "*"]]
         : ["1234567890".map(String.init), ["-", "/", "：", "；", "（", "）", "¥", "@", "“", "”"],
-           ["。", "%", "、", "？", "！", ".", "…"]]
+           ["。", "？", "！", "、", "…", ".", "%"]]
     precondition(numeric.map { literalValues($0.caps) } == expectedNumeric, "123 rows (ascii=\(ascii))")
-    // Each symbol page exposes seven sentence marks without repeating its other rows.
+    // The #+= page holds the marks the 123 page lacks.
     let expectedSymbols: [[String]] = ascii
-        ? ["[]{}#%^*+=".map(String.init), "_\\|~<>€£¥•".map(String.init), [".", "@", "?", "!", "'", "\"", "/"]]
-        : [["【", "】", "{", "}", "#", "%", "^", "*", "+", "="], ["_", "——", "\\", "|", "～", "《", "》", "$", "&", "·"],
-           ["。", "@", "、", "？", "！", ".", "…"]]
+        ? ["[]{}+=\\€£¥".map(String.init), ["•", "°", "§", "×", "÷", "±", "≈", "≠", "©", "™"],
+           ["<", ">", "~", "`", "^", "_", "|"]]
+        : [["【", "】", "{", "}", "#", "^", "*", "+", "=", "&"],
+           ["_", "——", "\\", "|", "～", "《", "》", "「", "」", "·"], ["$", "€", "£", "<", ">", "‘", "’"]]
     precondition(symbols.map { literalValues($0.caps) } == expectedSymbols, "#+= rows (ascii=\(ascii))")
     for (page, rows) in [(KeyboardControlPolicy.Page.numeric, numeric), (.symbols, symbols)] {
         let values = literalValues(rows.flatMap(\.caps))

@@ -222,38 +222,36 @@ public enum BuiltinLayouts {
 
     // MARK: - 123 / symbol page rows
 
-    /// The 123 page's marks. The first two rows fill the ten letter columns; the
-    /// third row holds seven marks between the 123/symbol switch and Delete, the
-    /// same shape as the ABC page's Shift row. The comma lives in the bottom row on
-    /// every page, so the third row carries a mark the page otherwise lacks instead.
+    /// The 123 page: digits, then the everyday marks, so what most text needs is one tap from the
+    /// letters. Nothing here repeats on the #+= page, which holds the rest one page deeper (the
+    /// comma is in the bottom row).
     public static func numericPageRows(ascii: Bool) -> [[String]] {
         ascii
             ? [
                 Array("1234567890").map(String.init),
                 Array("-/:;()$&@\"").map(String.init),
-                [".", "#", "?", "!", "'", "%", "+"],
+                [".", "?", "!", "'", "%", "#", "*"],
             ]
             : [
                 Array("1234567890").map(String.init),
                 ["-", "/", "：", "；", "（", "）", "¥", "@", "“", "”"],
-                ["。", "%", "、", "？", "！", ".", "…"],
+                ["。", "？", "！", "、", "…", ".", "%"],
             ]
     }
 
-    /// The row-shaped symbol page: the 123 page's geometry with the two mark rows
-    /// swapped for the second page's set and a seven-mark sentence row (the comma
-    /// is in the bottom row); no character repeats within the page.
+    /// The row-shaped symbol page: the 123 page's geometry with the less frequent marks, none of
+    /// which is also on the 123 page.
     public static func symbolPageRows(ascii: Bool) -> [[String]] {
         ascii
             ? [
-                Array("[]{}#%^*+=").map(String.init),
-                ["_", "\\", "|", "~", "<", ">", "€", "£", "¥", "•"],
-                [".", "@", "?", "!", "'", "\"", "/"],
+                Array("[]{}+=\\€£¥").map(String.init),
+                ["•", "°", "§", "×", "÷", "±", "≈", "≠", "©", "™"],
+                ["<", ">", "~", "`", "^", "_", "|"],
             ]
             : [
-                ["【", "】", "{", "}", "#", "%", "^", "*", "+", "="],
-                ["_", "——", "\\", "|", "～", "《", "》", "$", "&", "·"],
-                ["。", "@", "、", "？", "！", ".", "…"],
+                ["【", "】", "{", "}", "#", "^", "*", "+", "=", "&"],
+                ["_", "——", "\\", "|", "～", "《", "》", "「", "」", "·"],
+                ["$", "€", "£", "<", ">", "‘", "’"],
             ]
     }
 

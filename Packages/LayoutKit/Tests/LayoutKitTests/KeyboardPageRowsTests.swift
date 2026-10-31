@@ -58,6 +58,22 @@ final class KeyboardPageRowsTests: XCTestCase {
         }
     }
 
+    /// The 123 page carries the everyday marks and #+= the rest, so each mark has one home.
+    func testNumericAndSymbolPagesShareNoCharacter() {
+        for ascii in [false, true] {
+            let numeric = Set(BuiltinLayouts.numericPageRows(ascii: ascii).flatMap { $0 })
+            let symbols = Set(BuiltinLayouts.symbolPageRows(ascii: ascii).flatMap { $0 })
+            XCTAssertTrue(numeric.isDisjoint(with: symbols), "ascii \(ascii): \(numeric.intersection(symbols))")
+        }
+    }
+
+    func testNumericPageHoldsTheEverydayMarks() {
+        let chinese = Set(BuiltinLayouts.numericPageRows(ascii: false).flatMap { $0 })
+        XCTAssertTrue(["。", "？", "！", "、", "…", "：", "；", "（", "）", "“", "”"].allSatisfy(chinese.contains))
+        let ascii = Set(BuiltinLayouts.numericPageRows(ascii: true).flatMap { $0 })
+        XCTAssertTrue([".", "?", "!", "'", ":", ";", "(", ")", "\"", "/", "-"].allSatisfy(ascii.contains))
+    }
+
     /// The runtime tables and the editable page presets read the same canonical
     /// rows; otherwise editing a page could silently diverge from the built-in one.
     func testEditablePresetsUseTheCanonicalRows() {
