@@ -136,7 +136,9 @@ private struct KeyboardPressMovement: ViewModifier {
                 pressed
                     ? KeyboardPressPhysics.pressInAnimation
                     : KeyboardPressPhysics.releaseAnimation(reduceMotion: reduceMotion),
-                value: pressed)
+                value: pressed
+            )
+            .keyboardTouchDownFeedback(isPressed: pressed)
     }
 }
 
@@ -219,7 +221,9 @@ private struct KeyboardChromePressTiming: ViewModifier {
                 pressed
                     ? KeyboardPressPhysics.pressInAnimation
                     : KeyboardMotion.release(reduceMotion: reduceMotion),
-                value: pressed)
+                value: pressed
+            )
+            .keyboardTouchDownFeedback(isPressed: pressed)
     }
 }
 

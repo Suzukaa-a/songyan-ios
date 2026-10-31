@@ -130,7 +130,7 @@ public struct KeyboardOptionsView: View {
         let enabled = sound ? soundEnabled : hapticEnabled
         KeyboardFeedbackService.shared.refreshPreferences()
         if enabled { KeyboardFeedbackService.shared.prepare() }
-        KeyboardFeedbackService.shared.selectionChanged()
+        KeyboardFeedbackService.shared.selectionChanged(coalescing: false)
     }
 
     /// Strength rows persist through the service (which also updates its cache) and play

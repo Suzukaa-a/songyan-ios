@@ -101,7 +101,7 @@ private struct CandidatePressHighlight: ViewModifier {
     var extraBottomInset: CGFloat = 0
 
     func body(content: Content) -> some View {
-        content.background {
+        content.keyboardTouchDownFeedback(isPressed: pressed).background {
             RoundedRectangle(cornerRadius: CandidateTouchMetrics.cornerRadius, style: .continuous)
                 .fill(
                     tint.opacity(

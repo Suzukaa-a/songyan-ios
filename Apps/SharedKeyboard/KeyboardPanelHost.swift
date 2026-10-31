@@ -286,6 +286,8 @@ public struct KeyboardPanelHost: View {
             .onChange(of: resolvedLayoutSourceSettled) { applyReadingRowReport() }
             .onChange(of: registryAvailable) { applyReadingRowReport() }
             .environment(\.keyboardAppearance, appearance)
+            // SwiftUI controls (candidates, bar controls, readings, tools buttons) give the key feedback on press.
+            .environment(\.keyboardTouchDownFeedback, { KeyboardFeedbackService.shared.keyTouchDown() })
             .background(appearance.panelBackground.ignoresSafeArea(edges: .bottom))
     }
 

@@ -664,7 +664,9 @@ private struct SymbolPanelKeyStyle: ButtonStyle {
                 configuration.isPressed
                     ? KeyboardPressPhysics.pressInAnimation
                     : KeyboardMotion.release(reduceMotion: reduceMotion),
-                value: configuration.isPressed)
+                value: configuration.isPressed
+            )
+            .keyboardTouchDownFeedback(isPressed: configuration.isPressed)
     }
 }
 

@@ -217,3 +217,17 @@ final class KeyboardPressPhysicsTests: XCTestCase {
         _ = KeyboardSelectionPressStyle()
     }
 }
+
+/// SwiftUI controls give key feedback when a press begins, never on release or cancel.
+final class KeyboardTouchDownFeedbackTests: XCTestCase {
+    func testOnlyThePressBeginningFires() {
+        XCTAssertTrue(KeyboardTouchDownFeedback.shouldFire(wasPressed: false, isPressed: true))
+        XCTAssertFalse(KeyboardTouchDownFeedback.shouldFire(wasPressed: true, isPressed: false))
+        XCTAssertFalse(KeyboardTouchDownFeedback.shouldFire(wasPressed: true, isPressed: true))
+        XCTAssertFalse(KeyboardTouchDownFeedback.shouldFire(wasPressed: false, isPressed: false))
+    }
+
+    func testNoFeedbackActionOutsideTheLivePanel() {
+        XCTAssertNil(EnvironmentValues().keyboardTouchDownFeedback)
+    }
+}

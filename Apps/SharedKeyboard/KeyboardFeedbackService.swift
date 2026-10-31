@@ -348,11 +348,16 @@ public final class KeyboardFeedbackService {
 
     /// One effective key press (an accepted action such as insert/delete/confirm/Chinese-English toggle/page switch).
     public func keyPressed() {
-        if let pending = pendingTouchDownAt {
-            pendingTouchDownAt = nil
-            if CACurrentMediaTime() - pending < Self.touchDownCoalesceWindow { return }
-        }
+        if consumeTouchDownFeedback() { return }
         playKeyFeedback()
+    }
+
+    /// True when a touch-down already gave this press its feedback. Candidate taps in a scroller may never
+    /// report a press, so their effect-time feedback still plays when no touch-down came first.
+    private func consumeTouchDownFeedback() -> Bool {
+        guard let pending = pendingTouchDownAt else { return false }
+        pendingTouchDownAt = nil
+        return CACurrentMediaTime() - pending < Self.touchDownCoalesceWindow
     }
 
     private func playKeyFeedback() {
@@ -384,7 +389,10 @@ public final class KeyboardFeedbackService {
 
     /// One candidate selection / candidate page turn / list selection: the same click as keys,
     /// with the lighter selection-changed haptic, keeping behavior consistent.
-    public func selectionChanged() {
+    /// `coalescing: false` is for a result the touch-down could not have played (a switch that just turned feedback on).
+    public func selectionChanged(coalescing: Bool = true) {
+        if coalescing, consumeTouchDownFeedback() { return }
+        pendingTouchDownAt = nil
         playKeyClick(level: soundLevel)
         guard hapticEnabled, hapticsAllowedInProcess else { return }
         if selectionGenerator == nil { selectionGenerator = UISelectionFeedbackGenerator() }
