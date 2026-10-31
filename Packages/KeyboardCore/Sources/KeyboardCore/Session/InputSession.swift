@@ -356,9 +356,9 @@ public final class InputSession {
 
     /// Shift single tap: `off → once` (next letter uppercase); a tap in `once` or `locked` resets
     /// to `off` (releasing Caps Lock). Effective in front-end English mode or when the engine
-    /// reports `ascii_mode`; a no-op in normal Chinese composition.
+    /// reports `ascii_mode`, and in Chinese mode too: the next letter then reaches the engine
+    /// as a capital (see `tap`).
     public func tapShift() {
-        guard mode == .english || snapshot.isAsciiMode else { return }
         switch shiftState {
         case .off:
             shiftState = .once
@@ -382,7 +382,6 @@ public final class InputSession {
     /// Recognizing the double tap (two taps within ~0.3s) is the UI gesture's job; a single tap
     /// calls only `tapShift()`, so the two never stack.
     public func doubleTapShift() {
-        guard mode == .english || snapshot.isAsciiMode else { return }
         shiftState = (shiftState == .locked) ? .off : .locked
         onUpdate?()
     }
@@ -512,7 +511,10 @@ public final class InputSession {
     /// letters/digits/space/return are likewise committed directly, and backspace is left to the host instead of going to the engine).
     public func tap(_ action: KeyAction) {
         guard inputAvailable() else { return }
-        if case .code(let value) = action, defersCodeKeys {
+        // A capital in Chinese mode goes to the engine at once and in order, never as a deferred key.
+        let chineseCapital =
+            mode == .chinese && !snapshot.isAsciiMode && shiftState.isActive
+        if case .code(let value) = action, defersCodeKeys, !(chineseCapital && Self.isLowercaseLetter(value)) {
             deferCode(value)
             return
         }
@@ -562,7 +564,12 @@ public final class InputSession {
                     apply(try engine.processKey(output.text))
                     if output.shiftChanged { onUpdate?() }
                 } else {
-                    apply(try engine.processKey(value))
+                    // An armed Shift hands the capital to the engine too: the schema decides what
+                    // it means (rime_ice reads `V` as the start of its symbol input). A schema
+                    // that does not read capitals hands the letter back, and it is typed as itself.
+                    let output = englishOutput(for: value)
+                    apply(try engine.processKey(output.text))
+                    if output.shiftChanged { onUpdate?() }
                 }
             case .literal(let text), .letterVariant(let text):
                 insertLiteral(text)
@@ -742,6 +749,10 @@ public final class InputSession {
             onError?(EngineBackendError.operationFailed("取消输入失败，已保留拼音组合：\(error)"))
             return false
         }
+    }
+
+    private static func isLowercaseLetter(_ value: String) -> Bool {
+        value.count == 1 && value.unicodeScalars.allSatisfy { (97...122).contains($0.value) }
     }
 
     /// Shift conversion for a letter typed in direct English input (once/locked → uppercase; once resets after the letter).

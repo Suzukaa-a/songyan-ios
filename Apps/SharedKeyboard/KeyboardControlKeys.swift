@@ -232,23 +232,20 @@ struct ShiftKey: UIViewRepresentable {
         button.applyAuthorFace(
             title: customTitle, subtitle: subtitle,
             glyph: state == .locked ? "capslock.fill" : (state == .once ? "shift.fill" : "shift"))
-        // Shift has no effect in Chinese mode: it should also look disabled, rather than being an unresponsive key.
-        button.alpha = isEnglishMode ? 1 : 0.4
+        // Shift works in Chinese mode too: the next letter reaches the engine as a capital.
+        button.alpha = 1
         button.accessibilityLabel = button.authorTitle ?? "上档键"
         button.accessibilityTraits = state == .locked ? [.keyboardKey, .selected] : .keyboardKey
-        let shiftValue =
-            !isEnglishMode ? "中文" : (state == .off ? "小写" : (state == .once ? "下一字母大写" : "大写锁定"))
+        let shiftValue = state == .off ? "小写" : (state == .once ? "下一字母大写" : "大写锁定")
         button.accessibilityValue =
             subtitle?.isEmpty == false ? "\(shiftValue)，\(subtitle ?? "")" : shiftValue
-        button.accessibilityHint = isEnglishMode ? "轻点切换一次大写，连续点按两次锁定大写" : "切换到英文输入后可用。"
-        button.accessibilityCustomActions =
-            isEnglishMode
-            ? [
-                UIAccessibilityCustomAction(name: "切换大写锁定") { _ in
-                    doubleTap()
-                    return true
-                }
-            ] : []
+        button.accessibilityHint = "轻点切换一次大写，连续点按两次锁定大写"
+        button.accessibilityCustomActions = [
+            UIAccessibilityCustomAction(name: "切换大写锁定") { _ in
+                doubleTap()
+                return true
+            }
+        ]
     }
 
     final class ShiftButton: SkinnedButton {

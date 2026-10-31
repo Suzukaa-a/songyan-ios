@@ -375,8 +375,11 @@ final class EnglishShiftRegressionTests: XCTestCase {
         XCTAssertEqual(session.shiftState, .locked)
         session.setMode(.chinese)
         XCTAssertEqual(session.shiftState, .off, "leaving English resets Shift")
-        session.tapShift()  // a single tap in Chinese mode is a no-op
-        XCTAssertEqual(session.shiftState, .off)
+        session.tapShift()  // Chinese mode arms Shift too: the next letter is a capital for the engine
+        XCTAssertEqual(session.shiftState, .once)
+        session.setMode(.english)
+        XCTAssertEqual(session.shiftState, .off, "a mode switch releases an armed Shift")
+        session.setMode(.chinese)
         session.setMode(.english)
         XCTAssertEqual(session.shiftState, .off, "re-entering English also starts from off")
     }

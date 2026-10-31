@@ -476,6 +476,11 @@ public final class RimeBackend: EngineBackend, @unchecked Sendable {
         var snap = Self.snapshot(from: result.state)
         applyDisplay(&snap, from: result.state)
         if !result.state.commitText.isEmpty {
+            // A capital the speller refused: the editor confirmed the composition and handed
+            // the letter back, so it is typed right after what was confirmed.
+            if !result.consumed && !result.state.isComposing, Self.isCapital(keyValue) {
+                snap.committed += keyValue
+            }
             return snap  // the commit is already in the commit text, exactly once
         }
         // librime did not consume the key: the keyboard handles it.
@@ -823,8 +828,18 @@ public final class RimeBackend: EngineBackend, @unchecked Sendable {
         case " ": return .space
         default:
             guard value.count == 1, let ch = value.first else { return nil }
+            // A capital is the capital key with Shift held, as a hardware keyboard sends it:
+            // a schema that reads capitals (rime_ice's `V` symbol input) matches on it.
+            if let scalar = ch.unicodeScalars.first, ch.unicodeScalars.count == 1, (0x41...0x5A).contains(scalar.value)
+            {
+                return RimeKey(keycode: Int32(scalar.value), modifiers: .shift)
+            }
             return RimeKey(character: ch)
         }
+    }
+
+    private static func isCapital(_ keyValue: String) -> Bool {
+        keyValue.count == 1 && keyValue.unicodeScalars.allSatisfy { (0x41...0x5A).contains($0.value) }
     }
 
     private static func literalForUnconsumed(_ keyValue: String) -> String? {
