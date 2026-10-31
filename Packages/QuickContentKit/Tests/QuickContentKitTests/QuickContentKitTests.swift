@@ -9,6 +9,18 @@ final class QuickContentKitTests: XCTestCase {
 
     // MARK: Catalog coding and default data
 
+    func testPunctuationCategoryHasHalfWidthAfterFullWidth() throws {
+        let catalog = try SymbolCatalog.bundledDefault()
+        let texts = catalog.items.filter { $0.category == "punctuation" }.map(\.text)
+        let ascii = ",.?!:;'\"()[]{}/\\|@#$^&*_~`"
+        for character in ascii {
+            XCTAssertTrue(texts.contains(String(character)), "missing half-width \(character)")
+        }
+        let lastFullWidth = try XCTUnwrap(texts.lastIndex(of: "！"))
+        let firstHalfWidth = try XCTUnwrap(texts.firstIndex(of: ","))
+        XCTAssertLessThan(lastFullWidth, firstHalfWidth, "half-width punctuation follows the Chinese set")
+    }
+
     func testBundledDefaultDecodesAndSearches() throws {
         let catalog = try SymbolCatalog.bundledDefault()
         try catalog.validate()
