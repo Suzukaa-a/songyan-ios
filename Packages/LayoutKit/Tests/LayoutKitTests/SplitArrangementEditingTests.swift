@@ -54,7 +54,8 @@ final class SplitArrangementEditingTests: XCTestCase {
     func testAHalfKeepsItsLastKey() throws {
         var layout = start
         // Row 2 is zxcvb | nm: take the right half down to one key, then try to remove that one.
-        layout = try XCTUnwrap(layout.removingSplitKey(at: SplitKeyAddress(row: 2, key: 6), defaultBreaks: defaults)).layout
+        layout = try XCTUnwrap(layout.removingSplitKey(at: SplitKeyAddress(row: 2, key: 6), defaultBreaks: defaults))
+            .layout
         XCTAssertEqual(layout.splitCuts()[2], 5)
         XCTAssertNil(layout.removingSplitKey(at: SplitKeyAddress(row: 2, key: 5)))
         XCTAssertNotNil(layout.removingSplitKey(at: SplitKeyAddress(row: 2, key: 0)))
@@ -107,7 +108,9 @@ final class SplitArrangementEditingTests: XCTestCase {
         var dropped = explicit.rows
         dropped.remove(at: 1)
         let removed = explicit.replacingRowsFollowingSplit(dropped)
-        XCTAssertEqual(removed.split?.halves, [explicit.split?.halves?[0], explicit.split?.halves?[2], explicit.split?.halves?[3]].compactMap { $0 })
+        XCTAssertEqual(
+            removed.split?.halves,
+            [explicit.split?.halves?[0], explicit.split?.halves?[2], explicit.split?.halves?[3]].compactMap { $0 })
         XCTAssertNoThrow(try removed.validate())
 
         // A key edit of a whole row does not reach the arrangement.
