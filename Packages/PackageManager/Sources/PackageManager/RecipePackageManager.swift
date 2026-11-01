@@ -14,6 +14,8 @@ public actor RecipePackageManager {
 
     private let root: URL
     nonisolated let sharedOpenCCDirectory: URL?
+    /// The user's Rime config folder laid over every new generation; nil leaves user snapshots as they are.
+    nonisolated let userConfigDirectory: URL?
     /// One ephemeral transport per manager, so a prefetch/install batch reuses one
     /// session. Never a global singleton and never invalidated while a caller may
     /// still be reading: ARC releases it with the manager.
@@ -25,19 +27,23 @@ public actor RecipePackageManager {
     /// `fetch` stays injectable for offline tests. When it is omitted, the default
     /// closure reads through this manager's own transport (batch reuse); an injected
     /// closure remains fully in control and is never bypassed.
-    public init(rootURL: URL, sharedOpenCCDirectory: URL? = nil, fetch: FetchResource? = nil) {
+    public init(
+        rootURL: URL, sharedOpenCCDirectory: URL? = nil, userConfigDirectory: URL? = nil, fetch: FetchResource? = nil
+    ) {
         self.init(
-            rootURL: rootURL, sharedOpenCCDirectory: sharedOpenCCDirectory, fetch: fetch, configuration: .ephemeral)
+            rootURL: rootURL, sharedOpenCCDirectory: sharedOpenCCDirectory, userConfigDirectory: userConfigDirectory,
+            fetch: fetch, configuration: .ephemeral)
     }
 
     /// Designated initializer. Internal so offline tests can inject a `URLProtocol`
     /// fixture session; production always uses `.ephemeral`.
     init(
-        rootURL: URL, sharedOpenCCDirectory: URL? = nil, fetch: FetchResource? = nil,
+        rootURL: URL, sharedOpenCCDirectory: URL? = nil, userConfigDirectory: URL? = nil, fetch: FetchResource? = nil,
         configuration: URLSessionConfiguration
     ) {
         root = rootURL.standardizedFileURL
         self.sharedOpenCCDirectory = sharedOpenCCDirectory
+        self.userConfigDirectory = userConfigDirectory
         let transport = HTTPSResourceTransport(configuration: configuration)
         self.transport = transport
         self.fetch =
@@ -231,6 +237,7 @@ public actor RecipePackageManager {
                     manifest.files.filter { RecipeResourceBudget.isModel($0.path) }.map { $0.path.lowercased() })
                 try copyUserDirectory(source, to: user, topLevel: true, excludedModels: models)
             }
+            if let userConfigDirectory { try RimeConfigFolder.apply(userConfigDirectory, to: user) }
             try JSONEncoder().encode(manifest).write(
                 to: directory.appendingPathComponent(InstalledPackageLayout.sourceFile), options: .atomic)
             let receipt = try await deploy(

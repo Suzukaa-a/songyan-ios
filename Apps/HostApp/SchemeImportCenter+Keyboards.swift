@@ -144,6 +144,45 @@ extension SchemeImportCenter {
         }
     }
 
+    /// Reinstalls the scheme in use from its own files so the 「Rime 配置」 folder takes effect, then
+    /// republishes its keyboards as `rebuildAdaptersIfOutdated` does. Returns the text to show.
+    func applyRimeConfig() async -> String {
+        guard !busy else { return "另一项操作正在进行，请稍后再试。" }
+        busy = true
+        defer { busy = false }
+        let failed = "改动没能生效，键盘仍用原来的设置。"
+        do {
+            guard let shared = try await loadSharedActivation(), shared.kind == .userScheme,
+                let packageID = shared.packageID
+            else { return "正在使用的键盘不是来自输入方案，这里的文件对它不起作用。" }
+            let active = try await activeRecipe(packageID: packageID)
+            // A pending update the user has not chosen is never applied on the side.
+            guard shared.revision == active.installation.revision else {
+                return "这个输入方案有新版本还没使用，先使用新版本再应用更改。"
+            }
+            let store = manager(packageID)
+            let name = installedPackages.first { $0.id == packageID }?.name ?? packageID
+            let tasks = PublishedKeyboard.generationTasks(for: shared.keyboards)
+            try await EngineOwnershipCoordinator.shared.withExclusive {
+                _ = try await store.reinstallActivePackage { deployment in
+                    try await Self.verifyRecipeDeployment(
+                        deployment, packageID: packageID, packageName: name, requestedAdapters: tasks
+                    ).receipt
+                }
+            }
+            await refresh()
+            try await publishRoster(
+                packageID: packageID, roster: shared.keyboards, selection: nil,
+                prepare: false, added: nil, baseline: .publication(shared), preservingSelection: true)
+            return "已应用更改。"
+        } catch let rejected as RimeConfigFolder.RejectedFile {
+            return failed + "「\(rejected.name)」不能使用，检查这个文件后再试。"
+        } catch {
+            HostLog.append("rime config apply failed: \(error.localizedDescription)")
+            return failed + "检查最近改过的文件后再试。"
+        }
+    }
+
     /// Add/update ONE user keyboard (input method × layout) and select it.
     ///
     /// 14/9-key pairs run a combination-scoped adapter preparation whose `requested` set covers the

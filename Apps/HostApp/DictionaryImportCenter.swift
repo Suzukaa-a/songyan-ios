@@ -63,7 +63,7 @@ final class DictionaryImportCenter: ObservableObject {
     private init() {
         let downloads = Downloads()
         self.downloads = downloads
-        manager = RecipePackageManager(rootURL: Self.storeRoot) { try await downloads.read($0) }
+        manager = RecipePackageManager(rootURL: Self.storeRoot, userConfigDirectory: HostStorePaths.rimeConfig) { try await downloads.read($0) }
     }
 
     func report(_ error: Error) {

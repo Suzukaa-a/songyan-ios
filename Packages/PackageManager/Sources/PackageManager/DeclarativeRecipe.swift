@@ -700,11 +700,15 @@ public extension RecipePackageManager {
             guard info.isDirectory == true, info.isSymbolicLink != true else {
                 throw RecipeInstallError.invalidResource(directory.path)
             }
+            // The user's config folder copies are laid over each generation, never baked into a plan.
+            let configured = customOnly && prefix.isEmpty ? RimeConfigFolder.names(in: directory) : []
             for url in try FileManager.default.contentsOfDirectory(
                 at: directory,
                 includingPropertiesForKeys: [.isDirectoryKey, .isRegularFileKey, .isSymbolicLinkKey, .fileSizeKey])
             {
-                if [".git", ".DS_Store"].contains(url.lastPathComponent) || url.lastPathComponent.contains(".userdb") {
+                if [".git", ".DS_Store"].contains(url.lastPathComponent) || url.lastPathComponent.contains(".userdb")
+                    || configured.contains(url.lastPathComponent)
+                {
                     continue
                 }
                 if url.lastPathComponent == "build" {
@@ -814,11 +818,13 @@ public extension RecipePackageManager {
 
     static func readUserCustomFiles(at directory: URL) throws -> [String: Data] {
         var result: [String: Data] = [:]
+        let configured = RimeConfigFolder.names(in: directory)
         func walk(_ url: URL, _ prefix: String) throws {
             for child in try FileManager.default.contentsOfDirectory(
                 at: url, includingPropertiesForKeys: [.isDirectoryKey, .isSymbolicLinkKey])
             {
                 if child.lastPathComponent == "build" || child.lastPathComponent.contains(".userdb") { continue }
+                if prefix.isEmpty && configured.contains(child.lastPathComponent) { continue }
                 let info = try child.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
                 guard info.isSymbolicLink != true else { throw RecipeInstallError.invalidResource(child.path) }
                 let path = prefix + child.lastPathComponent

@@ -1,5 +1,6 @@
 import Foundation
 import KeyboardCore
+import PackageManager
 
 /// Roots of the host app's private stores (never shared with the keyboard through the App Group).
 enum HostStorePaths {
@@ -7,6 +8,11 @@ enum HostStorePaths {
         let fm = FileManager.default
         return fm.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
             ?? fm.urls(for: .documentDirectory, in: .userDomainMask).first!
+    }
+    /// The user's Rime files; Documents is shown in the Files app under the app's name.
+    static var rimeConfig: URL {
+        FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent(RimeConfigFolder.name, isDirectory: true)
     }
 }
 
