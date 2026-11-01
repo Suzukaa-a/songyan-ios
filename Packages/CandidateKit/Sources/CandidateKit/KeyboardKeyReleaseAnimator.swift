@@ -79,6 +79,21 @@
             }
         }
 
+        /// Drops an in-flight release and the pressed memory. A reused key view that is handed a
+        /// different key (a page switch keeps the view in the same slot) must not play the old
+        /// key's release spring on the new face.
+        public func cancelRelease(layers: [CALayer?]) {
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            for layer in layers {
+                guard let layer else { continue }
+                layer.removeAnimation(forKey: Self.pressVisualKey)
+                layer.transform = CATransform3DIdentity
+            }
+            CATransaction.commit()
+            wasPressedVisual = false
+        }
+
         /// Apply the shared press physics to a keycap's visual layers (cap + labels).
         /// Immediate on touch-down (`KeyboardPressPhysics.pressInAnimation` is nil)
         /// and the shared critically damped spring on release, both driven by Reduce Motion.

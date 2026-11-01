@@ -312,6 +312,7 @@ struct AlternateCharacterKey: UIViewRepresentable {
                 || (popup != nil && self.alternates != alternates)
             {
                 abandonPress()
+                releaseAnimator.cancelRelease(layers: pressVisualLayers)
             }
             self.cap = cap
             self.alternates = alternates
