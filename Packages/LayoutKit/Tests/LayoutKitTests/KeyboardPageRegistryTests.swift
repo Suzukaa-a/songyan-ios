@@ -53,7 +53,7 @@ final class KeyboardPageRegistryTests: XCTestCase {
         XCTAssertEqual(KeyboardPagePresets.symbolsSystem.name, "默认符号页")
     }
 
-    func testAPairingThatNamesARetiredPageResolvesToTheMergedPage() throws {
+    func testAPairingThatNamesARetiredPageKeepsItsBranchOnTheMergedRows() throws {
         let stored = [
             retiredCopy("page.numeric.chinese", "中文 123", kind: .numeric, ascii: false),
             retiredCopy("page.numeric.english", "英文 123", kind: .numeric, ascii: true),
@@ -68,10 +68,17 @@ final class KeyboardPageRegistryTests: XCTestCase {
                     numericPageID: "page.numeric.english")
             ])
         try loaded.validate()
-        XCTAssertTrue(loaded.pages.allSatisfy { !retiredIDs.contains($0.id) }, "an untouched stored copy is dropped")
+        XCTAssertEqual(
+            Set(loaded.pages.map(\.id)).intersection(retiredIDs), ["page.symbols.chinese", "page.numeric.english"],
+            "an untouched stored copy no pairing names is dropped")
         let pairing = try XCTUnwrap(loaded.compositions["quanpin:qwerty26"])
-        XCTAssertEqual(pairing.numericPageID, KeyboardPagePresets.numericAutomatic.id)
-        XCTAssertEqual(pairing.symbolPageID, KeyboardPagePresets.symbolsSystem.id)
+        XCTAssertEqual(pairing.numericPageID, "page.numeric.english")
+        XCTAssertEqual(pairing.symbolPageID, "page.symbols.chinese")
+        XCTAssertEqual(loaded.page(id: "page.numeric.english")?.defaultSymbolMarks, .ascii)
+        XCTAssertEqual(loaded.page(id: "page.symbols.chinese")?.defaultSymbolMarks, .chinese)
+        XCTAssertEqual(
+            loaded.page(id: "page.numeric.english")?.rows,
+            KeyboardPagePresets.numericRowsPage(ascii: true).rows, "the pinned page carries the merged rows")
     }
 
     func testARetiredPageTheUserEditedStaysTheirOwn() throws {

@@ -124,15 +124,15 @@ public enum KeyboardPagePresets {
     }
 
     /// The Chinese and the English copy of the 123 page and of the symbol rows were separate library
-    /// pages although every key carries both branches. They are one page now: a retired ID resolves to
-    /// the automatic page of its kind, which opens in the branch of the input language. An alias, not
-    /// a fresh ID, because stored pairings, exported files and other devices still name the old IDs.
-    private static let retiredAliases: [String: String] = [
-        "page.numeric.chinese": "page.numeric.automatic", "page.numeric.english": "page.numeric.automatic",
-        "page.symbols.chinese": "page.symbols.system", "page.symbols.english": "page.symbols.system",
+    /// pages although every key carries both branches. They are one page now, the automatic page of
+    /// each kind, which opens in the branch of the input language.
+    private static let retiredBranchPageIDs: Set<String> = [
+        "page.numeric.chinese", "page.numeric.english", "page.symbols.chinese", "page.symbols.english",
     ]
 
     /// The retired presets exactly as they shipped, to tell an untouched stored copy from an edited one.
+    /// A branch page here is also the merged rows pinned to that branch, so it stands in for a page
+    /// a pairing still names.
     private static let retiredPresets: [KeyboardPageDefinition] = {
         func old(_ id: String, _ name: String, _ kind: KeyboardPageKind, ascii: Bool) -> KeyboardPageDefinition {
             var page = rowsPage(kind, ascii: ascii)
@@ -155,22 +155,19 @@ public enum KeyboardPagePresets {
     }()
 
     /// A loaded catalog with the retired presets resolved: a stored copy the user never edited goes
-    /// (the automatic page replaces it), an edited one stays as an ordinary user page under its own
-    /// ID, and a pairing that names a retired ID whose page is gone points at the alias.
+    /// (the automatic page replaces it in the library), an edited one stays as an ordinary user page
+    /// under its own ID. A pairing that names a retired branch page chose that branch on purpose, as
+    /// no default pairing ever named one, so the merged rows pinned to it come back under that ID.
     public static func resolvingRetired(
         pages: [KeyboardPageDefinition], compositions: [String: KeyboardComposition]
     ) -> (pages: [KeyboardPageDefinition], compositions: [String: KeyboardComposition]) {
         let kept = pages.filter { page in !retiredPresets.contains(page) }
         let keptIDs = Set(kept.map(\.id))
-        func resolved(_ id: String) -> String { keptIDs.contains(id) ? id : (retiredAliases[id] ?? id) }
-        let remapped = compositions.mapValues { composition -> KeyboardComposition in
-            var copy = composition
-            copy.symbolPageID = resolved(composition.symbolPageID)
-            copy.numericPageID = resolved(composition.numericPageID)
-            copy.englishPageID = resolved(composition.englishPageID)
-            return copy
+        let named = Set(compositions.values.flatMap { [$0.symbolPageID, $0.numericPageID, $0.englishPageID] })
+        let pinned = retiredPresets.filter {
+            retiredBranchPageIDs.contains($0.id) && named.contains($0.id) && !keptIDs.contains($0.id)
         }
-        return (kept, remapped)
+        return (kept + pinned, compositions)
     }
 
     /// A stored page with a preset ID may be a user-modified preset; only an unchanged one is left
