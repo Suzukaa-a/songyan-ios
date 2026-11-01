@@ -77,7 +77,8 @@ final class KnownShellIdentityTests: XCTestCase {
             // drawn at their declared weights.
             XCTAssertTrue(BuiltinLayouts.matchesMainShellColumns(action, as: preset.input.builtinLayout!))
             XCTAssertFalse(BuiltinLayouts.matchesMainShellColumns(width, as: preset.input.builtinLayout!))
-            XCTAssertFalse(BuiltinLayouts.matchesMainShellColumns(clone(preset, rows: fewer), as: preset.input.builtinLayout!))
+            XCTAssertFalse(
+                BuiltinLayouts.matchesMainShellColumns(clone(preset, rows: fewer), as: preset.input.builtinLayout!))
         }
     }
 
