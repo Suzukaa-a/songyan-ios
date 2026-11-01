@@ -458,6 +458,11 @@ final class SchemeImportCenter: ObservableObject {
         case RecipeInstallError.invalidManifest, RecipeInstallError.invalidResource,
             RecipeInstallError.missingGrammarModels, RecipeInstallError.deployment:
             return (failure as? RecipeInstallError)?.userFacingDescription ?? "无法完成安装，请重试。"
+        case RimeEngineError.operationFailed(let detail)
+        where detail.unicodeScalars.contains(where: { (0x4E00...0x9FFF).contains($0.value) }):
+            // The engine's own Chinese reasons name the file or input method at fault; its English
+            // ones are internal and stay behind the generic message.
+            return "无法完成安装：\(detail)。"
         default:
             return "操作未完成，请重试。"
         }
