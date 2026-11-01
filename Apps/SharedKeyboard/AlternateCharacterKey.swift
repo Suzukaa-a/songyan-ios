@@ -866,9 +866,10 @@ struct AlternateCharacterKey: UIViewRepresentable {
                 case .nothing: selected = nil
                 }
             } else if exitedDownward {
+                // Same as `slidOff`: lifting over space, Return or another non-character key types nothing.
                 let target = touch.flatMap { characterKey(at: $0.location(in: window)) }
                 cancelPress()
-                if let target, let cap = target.cap { target.onSelect?(cap) } else if let cap { onSelect?(cap) }
+                if let target, let cap = target.cap { target.onSelect?(cap) }
                 return
             } else if didLetterSwipe {
                 selected = isHighlighted ? (swipeChoice.map { letterSwipe[$0] } ?? cap) : nil
