@@ -205,4 +205,49 @@ final class BuiltinLayoutSplitTests: XCTestCase {
         XCTAssertEqual(decoded.split?.rowBreaks, [2, 2, 1])
         XCTAssertEqual(decoded.split?.gapFraction, 0.2)
     }
+
+    /// The letters each hand types on the three letter rows of a bundled layout, as the keyboard
+    /// draws them with no saved cuts (the hand cuts of `BuiltinLayouts.handSplit`, else the
+    /// middle). The Android app pins the same strings in `KeyboardSplitTest`, so both keyboards
+    /// split every bundled layout alike.
+    private func leftAndRightLetters(_ layout: LayoutDefinition) -> (left: [String], right: [String]) {
+        let split = BuiltinLayouts.handSplit(for: layout) ?? layout.split ?? LayoutSplitConfiguration()
+        let letterRows = layout.rows.filter { row in row.keys.allSatisfy { $0.action.type == .code } }
+        let cuts = split.cutPositions(
+            rowKeyCounts: letterRows.map(\.keys.count), defaults: BuiltinLayouts.handSplit(for: layout)?.rowBreaks)
+        let rows = zip(letterRows, cuts).map { row, cut in
+            (
+                row.keys.prefix(cut).map(\.label).joined().lowercased(),
+                row.keys.dropFirst(cut).map(\.label).joined().lowercased()
+            )
+        }
+        return (rows.map(\.0), rows.map(\.1))
+    }
+
+    func testEveryBundledLetterLayoutSplitsWhereAndroidDoes() {
+        let qwerty = leftAndRightLetters(BuiltinLayouts.qwerty26)
+        XCTAssertEqual(qwerty.left, ["qwert", "asdfg", "zxcvb"])
+        XCTAssertEqual(qwerty.right, ["yuiop", "hjkl", "nm"])
+        let fourteen = leftAndRightLetters(BuiltinLayouts.merged14)
+        XCTAssertEqual(fourteen.left, ["qwerty", "asdfgh", "zxcv"])
+        XCTAssertEqual(fourteen.right, ["uiop", "jkl", "bnm"])
+        let eighteen = leftAndRightLetters(BuiltinLayouts.merged18)
+        XCTAssertEqual(eighteen.left, ["qwert", "asdfg", "zxcvbn"])
+        XCTAssertEqual(eighteen.right, ["yuiop", "hjkl", "m"])
+        // The phone pad has no letter rows and never splits.
+        XCTAssertNil(BuiltinLayouts.phone9.split)
+        XCTAssertNil(BuiltinLayouts.handSplit(for: BuiltinLayouts.phone9))
+    }
+
+    /// The footer's space bar is the same in both halves: one key per hand, cut where the bar is.
+    func testTheControlRowCutsAtItsSpaceBar() {
+        for layout in [BuiltinLayouts.qwerty26, BuiltinLayouts.merged14, BuiltinLayouts.merged18] {
+            let controls = layout.rows.last!
+            let cut = LayoutSplitConfiguration(activation: .always).cut(row: layout.rows.count - 1, keys: controls.keys)
+            let space = cut.left.last
+            XCTAssertEqual(space?.action.type, .space, layout.id)
+            XCTAssertEqual(cut.right.first?.action.type, .space, layout.id)
+            XCTAssertEqual(space?.widthWeight, cut.right.first?.widthWeight, layout.id)
+        }
+    }
 }
