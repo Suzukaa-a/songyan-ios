@@ -13,9 +13,9 @@ final class UserScriptsTests: XCTestCase {
         scripts = UserScripts(state: UserConfigState(directory: state))
     }
 
-    private func package(_ files: [String: String]) -> PackageFiles {
+    private func package(_ files: [String: String], id: String = "") -> PackageFiles {
         let data = files.mapValues { Data($0.utf8) }
-        return PackageFiles(hashes: data.mapValues(sha256Hex), read: { data[$0] })
+        return PackageFiles(id: id, hashes: data.mapValues(sha256Hex), read: { data[$0] })
     }
 
     private func files(_ values: [String: String]) -> [String: Data] { values.mapValues { Data($0.utf8) } }
@@ -95,20 +95,22 @@ final class UserScriptsTests: XCTestCase {
         XCTAssertEqual(found.map(\.id), ["x.custom.yaml: lua_filter@*x"])
     }
 
-    func testConfirmedComponentsAreKnownByTheirContent() {
+    func testConfirmedComponentsAreKnownByTheirContentFilePackage() {
         let pending = scripts.unconfirmed(
             files(["x.custom.yaml": "patch:\n  engine/filters/+: [lua_filter@*mine]\n", "lua/a.lua": "return 1\n"]),
-            package: .none)
-        XCTAssertTrue(scripts.confirmedComponents().isEmpty)
+            package: package([:], id: "pkg"))
+        XCTAssertTrue(scripts.confirmedComponents(package: "pkg").isEmpty)
         scripts.accept(pending)
         // A script file confirms itself, not a component.
-        XCTAssertEqual(scripts.confirmedComponents(), ["lua_filter@*mine"])
+        XCTAssertEqual(scripts.confirmedComponents(package: "pkg"), ["x.custom.yaml": ["lua_filter@*mine"]])
+        // Another package has not been told yes.
+        XCTAssertTrue(scripts.confirmedComponents(package: "other").isEmpty)
         // A record whose hash is not its component's confirms nothing.
-        scripts.accept([UserScripts.Entry(id: "y.custom.yaml: lua_filter@*forged", hash: "0000")])
-        XCTAssertEqual(scripts.confirmedComponents(), ["lua_filter@*mine"])
+        scripts.accept([UserScripts.Entry(id: "y.custom.yaml: lua_filter@*forged", hash: "0000", package: "pkg")])
+        XCTAssertEqual(scripts.confirmedComponents(package: "pkg"), ["x.custom.yaml": ["lua_filter@*mine"]])
     }
 
-    func testShippedComponentsComeFromThePackagesOwnYamlAndNeverFromBuild() throws {
+    func testShippedComponentsAreKeptPerFileAndNeverComeFromBuild() throws {
         let resources = FileManager.default.temporaryDirectory.appendingPathComponent("res-\(UUID().uuidString)")
         addTeardownBlock { try? FileManager.default.removeItem(at: resources) }
         try FileManager.default.createDirectory(
@@ -117,6 +119,9 @@ final class UserScriptsTests: XCTestCase {
             to: resources.appendingPathComponent("p.schema.yaml"))
         try Data("engine:\n  filters:\n    - lua_filter@*compiled\n".utf8).write(
             to: resources.appendingPathComponent("build/x.yaml"))
-        XCTAssertEqual(CompiledConfigGuard.shippedComponents(resources: resources), ["lua_filter@*shipped"])
+        let scope = CompiledConfigGuard.shippedScope(resources: resources)
+        XCTAssertEqual(scope.allowed(compiled: "p.schema.yaml"), ["lua_filter@*shipped"])
+        XCTAssertTrue(scope.allowed(compiled: "q.schema.yaml").isEmpty)
+        XCTAssertTrue(scope.allowed(compiled: "x.yaml").isEmpty)
     }
 }

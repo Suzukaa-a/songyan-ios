@@ -3,19 +3,23 @@ import Foundation
 /// A package's own files as the user-config code needs them: the hash of each file the package
 /// ships, and a way to read its bytes.
 struct PackageFiles: Sendable {
+    /// The package's id: what the user's confirmations of its scripts are scoped to.
+    var id = ""
     /// Path to the SHA-256 of the package's own bytes.
     let hashes: [String: String]
     let read: @Sendable (String) -> Data?
 
-    static let none = PackageFiles(hashes: [:], read: { _ in nil })
+    static let none = PackageFiles(id: "", hashes: [:], read: { _ in nil })
 
     /// The files a manifest lists, read from `resources`. Scripts the app replaced with the user's
     /// copy are read from `originals`, where the install kept the package's bytes.
-    static func installed(_ files: [RecipeManifest.File], resources: URL, originals: URL?) -> PackageFiles {
+    static func installed(
+        _ files: [RecipeManifest.File], resources: URL, originals: URL?, id: String = ""
+    ) -> PackageFiles {
         let hashes = Dictionary(
             files.filter { UserConfigFiles.isAllowedPath($0.path) }.map { ($0.path, $0.sha256) },
             uniquingKeysWith: { first, _ in first })
-        return PackageFiles(hashes: hashes) { path in
+        return PackageFiles(id: id, hashes: hashes) { path in
             guard hashes[path] != nil, UserConfigSafety.safePath(path) else { return nil }
             if let originals, let data = try? Data(contentsOf: originals.appendingPathComponent(path)) { return data }
             guard let data = try? Data(contentsOf: resources.appendingPathComponent(path)) else { return nil }

@@ -17,6 +17,8 @@ public enum UserConfigProblem: String, Sendable {
     case unsafeReference
     /// A script the user has not agreed to use (see `UserScripts`); `file` names it.
     case unconfirmedScript
+    /// A line the app marks its own settings blocks with (`# Rx: …` or `# }`), which the user's file may not hold.
+    case managedMarker
 }
 
 /// `file` is the relative path of the file at fault, when one is; `line` the 1-based line the YAML
@@ -50,6 +52,8 @@ public struct UserConfigError: Error, LocalizedError, Equatable, Sendable {
             return "\(name)里有指向别处文件的写法，改动没有应用，键盘仍用原来的设置。"
         case .unconfirmedScript:
             return "扩展脚本在你确认之后又有改动，改动没有应用。再点一次「应用更改」。"
+        case .managedMarker:
+            return "\(name)里有以「# Rx: 」开头的行或单独的「# }」行，这是松烟自己用的标记，改动没有应用。删掉这些行后再试。"
         case .name:
             return "\(name)的名字不能用，改动没有应用，键盘仍用原来的设置。"
         }
@@ -157,17 +161,27 @@ enum UserConfigFiles {
     }
 
     /// The problem with the file at `name` (a relative path) holding `data`, or nil when it can be used.
-    static func check(_ name: String, _ data: Data) -> UserConfigError? {
+    /// A user's file may not hold the markers of the app's own blocks: the app finds its blocks again by
+    /// those lines, and a scalar spanning lines can hide a forged one from the YAML check. `allowingBlocks`
+    /// is for text the app itself merged its blocks into.
+    static func check(_ name: String, _ data: Data, allowingBlocks: Bool = false) -> UserConfigError? {
         guard isAllowedPath(name) else { return UserConfigError(name, .name) }
         guard data.count <= maximumFileBytes else { return UserConfigError(name, .tooLarge) }
         guard let text = decode(data) else { return UserConfigError(name, .notText) }
         guard name.hasSuffix(".yaml") else { return nil }
+        if !allowingBlocks, hasManagedMarker(text) { return UserConfigError(name, .managedMarker) }
         let result = read(name, text)
         if let error = result.error { return error }
         if let bad = UserConfigSafety.unsafeReference(result.root) {
             return UserConfigError(name, .unsafeReference, detail: String(bad.prefix(maximumDetail)))
         }
         return nil
+    }
+
+    /// Whether any line starts with `# Rx: ` or is `# }`, on bytes, with every kind of line end
+    /// (`\r\n` is rewritten to `\n` before the app's blocks are looked for).
+    static func hasManagedMarker(_ text: String) -> Bool {
+        text.components(separatedBy: .newlines).contains { $0.utf8HasPrefix("# Rx: ") || $0.utf8Equals("# }") }
     }
 
     /// Reads one file's YAML the way every check does; nil error means `root` is the document.

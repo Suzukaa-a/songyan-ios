@@ -13,8 +13,16 @@ struct UserScripts: Sendable {
     struct Entry: Equatable, Hashable, Sendable {
         let id: String
         let hash: String
-        /// Identifies exactly this script, path and content.
-        var key: String { id + "@" + hash }
+        /// The package the script was confirmed for.
+        let package: String
+        /// Identifies exactly this script: package, path and content.
+        var key: String { package.replacingOccurrences(of: "\n", with: " ") + "\n" + id + "@" + hash }
+
+        init(id: String, hash: String, package: String = "") {
+            self.id = id
+            self.hash = hash
+            self.package = package
+        }
         /// The file the script is in.
         var path: String { id.components(separatedBy: ": ").first ?? id }
     }
@@ -32,11 +40,15 @@ struct UserScripts: Sendable {
         for path in files.keys.sorted() {
             guard let data = files[path] else { continue }
             if path.hasSuffix(".lua") {
-                if package.read(path) != data { found.append(Entry(id: path, hash: sha256Hex(data))) }
+                if package.read(path) != data {
+                    found.append(Entry(id: path, hash: sha256Hex(data), package: package.id))
+                }
             } else if path.hasSuffix(".yaml") {
                 let shipped = Set(package.read(path).map { components(path, $0) } ?? [])
                 for component in components(path, data) where !shipped.contains(component) {
-                    found.append(Entry(id: "\(path): \(component)", hash: sha256Hex(Data(component.utf8))))
+                    found.append(
+                        Entry(
+                            id: "\(path): \(component)", hash: sha256Hex(Data(component.utf8)), package: package.id))
                 }
             }
         }
@@ -49,19 +61,25 @@ struct UserScripts: Sendable {
         return Self.entries(files, package: package).filter { !agreed.contains($0.key) }
     }
 
-    /// The Lua component entries the user has agreed to, by their own content: a record is
-    /// `<file>: <component>@<hash>` (the component holds an `@` itself), and counts only while the hash
-    /// is that of the component.
-    func confirmedComponents() -> Set<String> {
-        Set(
-            record().confirmed.compactMap { key -> String? in
-                guard let at = key.lastIndex(of: "@") else { return nil }
-                let hash = String(key[key.index(after: at)...])
-                let id = String(key[..<at])
-                guard let separator = id.range(of: ": ") else { return nil }
-                let component = String(id[separator.upperBound...])
-                return !component.isEmpty && sha256Hex(Data(component.utf8)) == hash ? component : nil
-            })
+    /// The Lua component entries the user has agreed to for `package`, by the file they were agreed in.
+    /// A record is `<package>\n<file>: <component>@<hash>` (the component holds an `@` itself) and
+    /// counts only while the hash is that of the component; a record of another package counts for nothing.
+    func confirmedComponents(package: String) -> [String: Set<String>] {
+        let scope = package.replacingOccurrences(of: "\n", with: " ")
+        var found: [String: Set<String>] = [:]
+        for key in record().confirmed {
+            guard let newline = key.firstIndex(of: "\n"), key[..<newline] == scope[...],
+                let at = key.lastIndex(of: "@")
+            else { continue }
+            let hash = String(key[key.index(after: at)...])
+            let id = String(key[key.index(after: newline)..<at])
+            guard let separator = id.range(of: ": ") else { continue }
+            let component = String(id[separator.upperBound...])
+            if !component.isEmpty, sha256Hex(Data(component.utf8)) == hash {
+                found[String(id[..<separator.lowerBound]), default: []].insert(component)
+            }
+        }
+        return found
     }
 
     /// Whether the user has accepted the risk of running their own scripts (the first time they apply one).

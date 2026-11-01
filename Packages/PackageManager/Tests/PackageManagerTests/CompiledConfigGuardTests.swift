@@ -17,9 +17,9 @@ final class CompiledConfigGuardTests: XCTestCase {
         try Data(text.utf8).write(to: build.appendingPathComponent(name))
     }
 
-    private func refusal(shipped: Set<String> = [], confirmed: Set<String> = []) -> UserConfigError? {
+    private func refusal(scope: ScriptScope = ScriptScope()) -> UserConfigError? {
         do {
-            try CompiledConfigGuard.check(build: build, shipped: shipped, confirmed: confirmed)
+            try CompiledConfigGuard.check(build: build, scope: scope)
             return nil
         } catch { return error as? UserConfigError }
     }
@@ -57,7 +57,25 @@ final class CompiledConfigGuardTests: XCTestCase {
     func testALuaComponentMustBeShippedOrConfirmed() throws {
         try write("engine:\n  filters:\n    - lua_filter@*shipped\n    - lua_filter@*mine\n", "a.schema.yaml")
         XCTAssertEqual(refusal()?.problem, .unconfirmedScript)
-        XCTAssertNil(refusal(shipped: ["lua_filter@*shipped"], confirmed: ["lua_filter@*mine"]))
-        XCTAssertEqual(refusal(shipped: ["lua_filter@*shipped"])?.file, "a.schema.yaml")
+        var scope = ScriptScope()
+        scope.add("a.schema.yaml", Data("engine: {filters: [lua_filter@*shipped]}\n".utf8), allowing: nil)
+        scope.add("a.custom.yaml", Data("patch: {x: lua_filter@*mine}\n".utf8), allowing: ["lua_filter@*mine"])
+        XCTAssertNil(refusal(scope: scope))
+        var shippedOnly = ScriptScope()
+        shippedOnly.add("a.schema.yaml", Data("engine: {filters: [lua_filter@*shipped]}\n".utf8), allowing: nil)
+        XCTAssertEqual(refusal(scope: shippedOnly)?.file, "a.schema.yaml")
+    }
+
+    func testAShippedOrConfirmedComponentCountsOnlyInItsOwnFile() throws {
+        try write("engine:\n  filters:\n    - lua_filter@*shipped\n    - lua_filter@*mine\n", "b.schema.yaml")
+        var scope = ScriptScope()
+        // The package names both strings, but in another file; the user agreed to one for another file.
+        scope.add(
+            "a.schema.yaml", Data("engine: {filters: [lua_filter@*shipped, lua_filter@*mine]}\n".utf8), allowing: nil)
+        scope.add("a.custom.yaml", Data("patch: {x: lua_filter@*mine}\n".utf8), allowing: ["lua_filter@*mine"])
+        XCTAssertEqual(refusal(scope: scope)?.problem, .unconfirmedScript)
+        // Included from b's own file, a shipped component is b's too.
+        scope.add("b.schema.yaml", Data("__include: a.schema.yaml:/engine\n".utf8), allowing: nil)
+        XCTAssertNil(refusal(scope: scope))
     }
 }

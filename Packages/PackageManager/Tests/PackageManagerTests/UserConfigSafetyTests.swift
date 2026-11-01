@@ -171,3 +171,35 @@ final class UserConfigSafetyTests: XCTestCase {
         }
     }
 }
+
+/// librime splits on bytes; a combining mark after a separator makes a `Character` that is not the separator.
+final class UserConfigSafetyBytesTests: XCTestCase {
+    private func unsafe(_ yaml: String) throws -> String? {
+        UserConfigSafety.unsafeReference(try BoundedYAML.loadAsText(yaml: yaml))
+    }
+
+    func testAColonFollowedByACombiningMarkStillSplitsAFileReference() throws {
+        XCTAssertNotNil(try unsafe("__include: \"/abs/evil:\u{0338}\"\n"))
+        XCTAssertNotNil(try unsafe("__patch: [\"../evil:\u{0301}/x\"]\n"))
+        XCTAssertNil(try unsafe("__include: default:/menu\n"))
+    }
+
+    func testSeparatorsInPathsAreReadAsBytes() {
+        XCTAssertFalse(SchemeSourceCheck.safe("a:\u{0338}b.yaml"))
+        XCTAssertFalse(SchemeSourceCheck.safe("/\u{0301}abs"))
+        XCTAssertFalse(SchemeSourceCheck.safe("a\\\u{0301}b"))
+        XCTAssertTrue(UserConfigSafety.safePath("词库/é.yaml"))
+    }
+
+    func testALuaComponentWithACombiningMarkAfterTheAtSignIsOne() throws {
+        XCTAssertTrue(UserConfigSafety.isLuaComponent("lua_filter@\u{0301}x"))
+        let root = try BoundedYAML.loadAsText(yaml: "engine:\n  filters:\n    - \"lua_filter@\u{0301}x\"\n")
+        XCTAssertEqual(UserConfigSafety.luaComponents(root), ["lua_filter@\u{0301}x"])
+        XCTAssertFalse(UserConfigSafety.isLuaComponent("lua_filters_not"))
+    }
+
+    func testOperatorsInKeysAreReadAsBytes() throws {
+        XCTAssertNotNil(try unsafe("patch:\n  a/user_dict/=: ../x\n"))
+        XCTAssertNotNil(try unsafe("patch:\n  a/user_dict: /abs\n"))
+    }
+}

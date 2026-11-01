@@ -83,7 +83,8 @@ extension RecipePackageManager {
             from: Data(contentsOf: generation.appendingPathComponent(InstalledPackageLayout.sourceFile)))
         let package = PackageFiles.installed(
             manifest.files, resources: active.resourceURL,
-            originals: generation.appendingPathComponent(RimeConfigFolder.originalsDirectory, isDirectory: true))
+            originals: generation.appendingPathComponent(RimeConfigFolder.originalsDirectory, isDirectory: true),
+            id: manifest.id)
         return (userConfigDirectory, package, UserOverrides(folder: userConfigDirectory, state: userConfigState))
     }
 
@@ -203,7 +204,9 @@ extension RecipePackageManager {
     }
 
     private static func rimeConfigText(_ file: URL, _ path: String) throws -> String {
-        guard let data = try? BoundedLocalFile.read(file, maximumBytes: UserConfigFiles.maximumFileBytes),
+        guard
+            let data = try? BoundedLocalFile.read(
+                file, maximumBytes: UserConfigFiles.maximumFileBytes, followingSymlinks: false),
             let text = UserConfigFiles.decode(data)
         else { throw UserConfigError(path, .notText) }
         return text.hasPrefix("\u{FEFF}") ? String(text.dropFirst()) : text

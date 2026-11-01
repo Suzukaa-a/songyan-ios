@@ -21,9 +21,9 @@ enum UserConfigSafety {
 
     /// Whether `path` is a relative path a package or the user's folder may hold.
     static func safePath(_ path: String) -> Bool {
-        let components = path.split(separator: "/", omittingEmptySubsequences: false)
+        let components = path.utf8.split(separator: 0x2F, omittingEmptySubsequences: false)
         return SchemeSourceCheck.safe(path) && path.utf8.count <= maximumPathBytes
-            && components.count <= maximumPathDepth && components.allSatisfy { $0.utf8.count <= maximumComponentBytes }
+            && components.count <= maximumPathDepth && components.allSatisfy { $0.count <= maximumComponentBytes }
     }
 
     /// Whether the text nests flow collections (`[`, `{`) deeper than `maximumFlowDepth`, outside comments and quotes.
@@ -101,15 +101,22 @@ enum UserConfigSafety {
 
     private static func unsafeEntry(_ key: String, _ value: BoundedYAML.TextNode) -> String? {
         // A repeated key arrives as `key/=`: the same key again.
+        // Every separator is read on the bytes librime reads: a combining mark after `/` or `:` must not hide it.
         var base = key
-        while base.hasSuffix("/=") { base.removeLast(2) }
-        if base == "__include" || base == "__patch" { return firstUnsafeReference(value) }
-        let parts = key.split(separator: "/", omittingEmptySubsequences: false)
+        while base.utf8HasSuffix("/=") { base = String(decoding: base.utf8.dropLast(2), as: UTF8.self) }
+        if base.utf8Equals("__include") || base.utf8Equals("__patch") { return firstUnsafeReference(value) }
+        let parts = key.utf8.split(separator: 0x2F, omittingEmptySubsequences: false).map {
+            String(decoding: $0, as: UTF8.self)
+        }
         // A string can be built from pieces (`@next: lu`, then `@last/+: a_filter@*x`): lists are what Rime appends to.
-        if case .scalar = value, parts.last == "+" || base == "__append" || base == "__merge" { return key }
+        let appends = parts.last?.utf8Equals("+") == true
+        if case .scalar = value, appends || base.utf8Equals("__append") || base.utf8Equals("__merge") { return key }
         // The key the operators act on: without `=`, `+` and list selectors.
-        guard let name = parts.last(where: { !$0.isEmpty && $0 != "=" && $0 != "+" && !$0.hasPrefix("@") }),
-            fileKeys.contains(String(name))
+        guard
+            let name = parts.last(where: {
+                !$0.isEmpty && !$0.utf8Equals("=") && !$0.utf8Equals("+") && !$0.utf8HasPrefix("@")
+            }),
+            fileKeys.contains(name)
         else { return nil }
         return firstUnsafeName(value)
     }
@@ -133,10 +140,44 @@ enum UserConfigSafety {
 
     static func isLuaComponent(_ text: String) -> Bool {
         luaKinds.contains { kind in
-            guard text.hasPrefix(kind) else { return false }
-            let rest = text.dropFirst(kind.count)
-            return rest.isEmpty || rest.first == "@"
+            guard text.utf8HasPrefix(kind) else { return false }
+            let rest = text.utf8.dropFirst(kind.utf8.count)
+            return rest.isEmpty || rest.first == 0x40
         }
+    }
+
+    /// The files the document includes or patches from (`__include`, `__patch`), as paths with `.yaml`,
+    /// for the safe references among them.
+    static func fileReferences(_ root: BoundedYAML.TextNode?) -> Set<String> {
+        var found = Set<String>()
+        var budget = maximumNodes
+        var stack: [BoundedYAML.TextNode] = root.map { [$0] } ?? []
+        func collect(_ value: BoundedYAML.TextNode) {
+            switch value {
+            case .list(let items): items.forEach(collect)
+            case .map: break
+            case .scalar(let text):
+                guard let name = filePart(of: text) else { return }
+                let file = name.utf8HasSuffix(".yaml") ? name : name + ".yaml"
+                if SchemeSourceCheck.safe(file) { found.insert(file) }
+            }
+        }
+        while let node = stack.popLast() {
+            budget -= 1
+            if budget < 0 { break }
+            switch node {
+            case .map(let entries):
+                for entry in entries {
+                    var base = entry.key
+                    while base.utf8HasSuffix("/=") { base = String(decoding: base.utf8.dropLast(2), as: UTF8.self) }
+                    if base.utf8Equals("__include") || base.utf8Equals("__patch") { collect(entry.value) }
+                    if entry.value.isCollection { stack.append(entry.value) }
+                }
+            case .list(let items): stack.append(contentsOf: items.filter(\.isCollection))
+            case .scalar: break
+            }
+        }
+        return found
     }
 
     /// A `file:/node` reference (or a list of them, as `__patch` takes) whose file part is unsafe, or nil.
@@ -146,11 +187,17 @@ enum UserConfigSafety {
         case .map: return nil
         case .scalar(let text):
             // Without a file part the reference is to the file itself.
-            guard let colon = text.firstIndex(of: ":"), colon != text.startIndex else { return nil }
-            let name = String(text[..<colon])
-            let file = name.hasSuffix(".yaml") ? name : name + ".yaml"
+            guard let name = filePart(of: text) else { return nil }
+            let file = name.utf8HasSuffix(".yaml") ? name : name + ".yaml"
             return !SchemeSourceCheck.safe(file) || !safePath(file) ? text : nil
         }
+    }
+
+    /// The file part of a `file:/node` reference, split at the first `:` byte as librime splits it; nil
+    /// when there is none (the reference is to the file itself) or the file part is empty.
+    static func filePart(of reference: String) -> String? {
+        guard let colon = reference.utf8.firstIndex(of: 0x3A), colon != reference.utf8.startIndex else { return nil }
+        return String(decoding: reference.utf8[..<colon], as: UTF8.self)
     }
 
     private static func firstUnsafeName(_ value: BoundedYAML.TextNode) -> String? {
@@ -158,9 +205,17 @@ enum UserConfigSafety {
         case .list(let items): return items.lazy.compactMap { firstUnsafeName($0) }.first
         case .map(let entries):
             // `{__append: [x]}` / `{__merge: [x]}` spell the same value another way.
-            return entries.lazy.filter { $0.key.hasPrefix("__") }.compactMap { firstUnsafeName($0.value) }.first
+            return entries.lazy.filter { $0.key.utf8HasPrefix("__") }.compactMap { firstUnsafeName($0.value) }.first
         case .scalar(let text):
             return !text.isEmpty && (!SchemeSourceCheck.safe(text) || !safePath(text)) ? text : nil
         }
     }
+}
+
+extension String {
+    /// Byte-wise comparisons: `String`'s own `hasPrefix`, `==` and `contains` work on grapheme clusters,
+    /// where a combining mark after `:` or `@` hides it from the check but not from librime.
+    func utf8HasPrefix(_ prefix: String) -> Bool { utf8.starts(with: prefix.utf8) }
+    func utf8HasSuffix(_ suffix: String) -> Bool { utf8.reversed().starts(with: suffix.utf8.reversed()) }
+    func utf8Equals(_ other: String) -> Bool { utf8.elementsEqual(other.utf8) }
 }

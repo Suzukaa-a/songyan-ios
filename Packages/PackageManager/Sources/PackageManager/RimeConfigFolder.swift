@@ -64,7 +64,9 @@ public enum RimeConfigFolder {
                 if strict { throw UserConfigError(nil, .tooMany) }
                 break
             }
-            guard let data = try? BoundedLocalFile.read(entry.url, maximumBytes: maximumFileBytes),
+            guard
+                let data = try? BoundedLocalFile.read(
+                    entry.url, maximumBytes: maximumFileBytes, followingSymlinks: false),
                 total + data.count <= maximumTotalBytes
             else {
                 if strict { throw UserConfigError(entry.path, .tooLarge) }
@@ -142,7 +144,8 @@ public enum RimeConfigFolder {
                     guard !blocks.isEmpty else { continue }
                 }
                 if !blocks.isEmpty {
-                    guard let text = String(data: file.data, encoding: .utf8), let joined = merged(text, blocks: blocks)
+                    guard let text = String(data: file.data, encoding: .utf8),
+                        let joined = checkedMerge(file.path, text, blocks: blocks)
                     else { continue }
                     content = Data(joined.utf8)
                     try? fm.removeItem(at: target)
@@ -160,7 +163,9 @@ public enum RimeConfigFolder {
         // A file that left the folder keeps the blocks the app put into it, as the app's own file.
         for (name, blocks) in kept where !blocks.isEmpty && !copied.contains(name) {
             let target = user.appendingPathComponent(name)
-            guard !fm.fileExists(atPath: target.path), let text = merged("", blocks: blocks) else { continue }
+            guard !fm.fileExists(atPath: target.path), let text = checkedMerge(name, "", blocks: blocks) else {
+                continue
+            }
             try fm.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
             try Data(text.utf8).write(to: target, options: .atomic)
         }
@@ -182,7 +187,17 @@ public enum RimeConfigFolder {
         let body: String
     }
 
+    /// The blocks the app wrote into `text`. The text of a copy in `user` is the user's file plus the app's
+    /// blocks, so each block is read back only if its lines are a valid patch on their own: anything else
+    /// is not something the app wrote.
     static func managedBlocks(in text: String) -> [ManagedBlock] {
+        scannedBlocks(in: text).filter { block in
+            UserConfigFiles.check(
+                "blocks.custom.yaml", Data(("__patch:\n" + block.body).utf8), allowingBlocks: true) == nil
+        }
+    }
+
+    private static func scannedBlocks(in text: String) -> [ManagedBlock] {
         var blocks: [ManagedBlock] = []
         var current: (rx: String, body: String)?
         for line in text.components(separatedBy: "\n") {
@@ -244,11 +259,20 @@ public enum RimeConfigFolder {
         return text
     }
 
+    /// `merged`, accepted only when the result passes the same checks as a file of the user's (the blocks
+    /// are the app's, but the text they land in is not), so nothing is written that no check has read.
+    static func checkedMerge(_ name: String, _ userText: String, blocks: [ManagedBlock]) -> String? {
+        guard let text = merged(userText, blocks: blocks),
+            UserConfigFiles.check(name, Data(text.utf8), allowingBlocks: true) == nil
+        else { return nil }
+        return text
+    }
+
     /// The app's blocks of a custom file alone, as the workspace reads a file the folder also has: the
     /// folder's own lines are the folder's.
     static func blocksOnly(_ data: Data) -> Data? {
         let blocks = managedBlocks(in: String(decoding: data, as: UTF8.self))
-        return blocks.isEmpty ? nil : merged("", blocks: blocks).map { Data($0.utf8) }
+        return blocks.isEmpty ? nil : checkedMerge("blocks.custom.yaml", "", blocks: blocks).map { Data($0.utf8) }
     }
 
     /// Folder files the generation at `user` does not carry, sorted by path.

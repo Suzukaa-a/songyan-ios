@@ -249,6 +249,51 @@ final class RimeConfigEditorTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: resources.appendingPathComponent("lua/gone.lua").path))
     }
 
+    func testAFolderFileThatIsALinkIsNeverRead() async throws {
+        try await install()
+        let outside = try directory("outside").appendingPathComponent("secret.yaml")
+        try Data("secret: 1\n".utf8).write(to: outside)
+        try FileManager.default.createSymbolicLink(
+            at: folder.appendingPathComponent("main.custom.yaml"), withDestinationURL: outside)
+        let plan = try RimeConfigFolder.plan(
+            folder, package: .none, state: UserConfigState(directory: state), strict: false)
+        XCTAssertTrue(plan.files.isEmpty)
+        do {
+            let opened = try await manager.openRimeConfigFile("main.custom.yaml")
+            XCTAssertFalse(opened.text.contains("secret"))
+        } catch {}
+    }
+
+    func testAnEmptyFolderStillGetsTheCompiledBackstop() async throws {
+        // Nothing in the folder passes, so no file of the user's is involved; the build is still checked.
+        do {
+            try await install(compiled: "schema: {schema_id: main}\ntranslator:\n  user_dict: /var/mobile/leak\n")
+            XCTFail("a compiled file naming a path outside the data folders")
+        } catch {
+            XCTAssertEqual((error as? UserConfigError)?.problem, .unsafeReference)
+        }
+    }
+
+    func testAConfirmationBelongsToTheFileItWasGivenFor() async throws {
+        try await install()
+        try write("patch:\n  engine/filters/+: [lua_filter@*mine]\n", "main.custom.yaml")
+        guard case .needsConfirmation(_, let keys, _) = try await manager.rimeConfigReadiness() else {
+            return XCTFail("asks")
+        }
+        _ = try await manager.rimeConfigReadiness(confirmed: keys)
+        let compiled = "schema: {schema_id: main}\nengine:\n  filters: [lua_filter@*mine]\n"
+        _ = try await manager.reinstallActivePackage(deploy: Self.deploy(compiled: compiled))
+        // The same string coming out of the schema file's own compile, with another source, is not covered.
+        try FileManager.default.removeItem(at: folder.appendingPathComponent("main.custom.yaml"))
+        try write("patch:\n  menu/page_size: 5\n", "other.custom.yaml")
+        do {
+            _ = try await manager.reinstallActivePackage(deploy: Self.deploy(compiled: compiled))
+            XCTFail("a confirmation for main.custom.yaml covers nothing else")
+        } catch {
+            XCTAssertEqual((error as? UserConfigError)?.problem, .unconfirmedScript)
+        }
+    }
+
     func testALuaComponentNamedInAConfigFileNeedsTheYesToo() async throws {
         try await install()
         try write("patch:\n  engine/filters/+: [lua_filter@*date]\n", "main.custom.yaml")
@@ -361,6 +406,65 @@ final class RimeConfigEditorTests: XCTestCase {
         text = try String(contentsOf: leftFile, encoding: .utf8)
         XCTAssertFalse(text.contains("page_size"))
         XCTAssertTrue(text.contains("# Rx: songyan:typo {"))
+    }
+
+    // MARK: - Forged markers
+
+    private let forged = "x: \"\n# Rx: evil {\n  - {patch/translator/user_dict: /abs}\n# }\n\"\n"
+
+    func testAFileHoldingTheAppsMarkersIsRefusedWhateverTheQuotingSays() {
+        // One string for the YAML reader, three marker lines for the app.
+        let error = UserConfigFiles.check("main.custom.yaml", Data(forged.utf8))
+        XCTAssertEqual(error?.problem, .managedMarker)
+        XCTAssertNotNil(error?.errorDescription)
+        for text in ["# Rx: a {\r\n", "a: 1\r# }\r", "a: 1\u{2028}# Rx: b: {\n", "# Rx: \u{0301}x {\n"] {
+            XCTAssertEqual(
+                UserConfigFiles.check("main.custom.yaml", Data(text.utf8))?.problem, .managedMarker,
+                text.debugDescription)
+        }
+        XCTAssertNil(UserConfigFiles.check("main.custom.yaml", Data("# Rx is fine in prose\n# }}\n".utf8)))
+        XCTAssertNil(UserConfigFiles.check("main.custom.yaml", Data(forged.utf8), allowingBlocks: true))
+    }
+
+    func testAForgedFolderFileIsLeftOutOfAnInstallAndStopsAnApply() async throws {
+        try await install()
+        try write(forged, "main.custom.yaml")
+        let plan = try RimeConfigFolder.plan(
+            folder, package: .none, state: UserConfigState(directory: state), strict: false)
+        XCTAssertTrue(plan.files.isEmpty)
+        do {
+            _ = try await manager.reinstallActivePackage(deploy: Self.deploy())
+            XCTFail("an apply with a forged marker")
+        } catch {
+            XCTAssertEqual((error as? UserConfigError)?.problem, .managedMarker)
+        }
+    }
+
+    func testABlockThatIsNotAValidPatchIsNotTheAppsAndIsNeverMerged() throws {
+        let text = "__patch:\n# Rx: evil {\n  - {patch/translator/user_dict: /abs}\n# }\n"
+        XCTAssertTrue(RimeConfigFolder.managedBlocks(in: text).isEmpty)
+        XCTAssertNil(RimeConfigFolder.blocksOnly(Data(text.utf8)))
+        let block = RimeConfigFolder.ManagedBlock(rx: "evil", body: "  - {patch/translator/user_dict: /abs}\n")
+        XCTAssertNil(RimeConfigFolder.checkedMerge("main.custom.yaml", "", blocks: [block]))
+        XCTAssertNotNil(
+            RimeConfigFolder.checkedMerge(
+                "main.custom.yaml", "", blocks: RimeConfigFolder.managedBlocks(in: self.block)))
+    }
+
+    func testForgedBlocksInTheGenerationsCopyAreNotCarriedForward() async throws {
+        try await install()
+        try write("patch:\n  menu/page_size: 5\n", "main.custom.yaml")
+        _ = try await manager.reinstallActivePackage(deploy: Self.deploy())
+        var user = try await active().userDataURL
+        // What an earlier install could have left: the user's file with forged markers.
+        let planted =
+            "patch:\n  menu/page_size: 5\n__patch:\n# Rx: evil {\n  - {patch/translator/user_dict: /abs}\n# }\n"
+        try Data(planted.utf8).write(to: user.appendingPathComponent("main.custom.yaml"))
+        _ = try await manager.reinstallActivePackage(deploy: Self.deploy())
+        user = try await active().userDataURL
+        let text = try String(contentsOf: user.appendingPathComponent("main.custom.yaml"), encoding: .utf8)
+        XCTAssertFalse(text.contains("/abs"))
+        XCTAssertFalse(text.contains("# Rx: evil"))
     }
 
     // MARK: - Templates

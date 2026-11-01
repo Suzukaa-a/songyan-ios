@@ -227,7 +227,7 @@ public actor RecipePackageManager {
                 try userConfigDirectory.map {
                     try RimeConfigFolder.plan(
                         $0,
-                        package: .installed(manifest.files, resources: resources, originals: nil),
+                        package: .installed(manifest.files, resources: resources, originals: nil, id: manifest.id),
                         state: userConfigState, strict: strictUserConfig)
                 }
             var overlaidScripts: [String] = []
@@ -264,12 +264,15 @@ public actor RecipePackageManager {
             let receipt = try await deploy(
                 RecipeDeployment(manifest: manifest, resourceURL: resources, userDataURL: user))
             // Whatever the user's patches spelled, no compiled file may name a file outside the data folders,
-            // and no Lua component may be one nobody shipped or agreed to.
-            if let configPlan, !configPlan.files.isEmpty {
+            // and no Lua component may be one nobody shipped or agreed to. This runs for every install with a
+            // folder, even an empty one: the user directory can carry files forward from earlier installs.
+            if let configPlan {
+                var scope = CompiledConfigGuard.shippedScope(resources: resources)
+                scope.add(
+                    configPlan, confirmed: UserScripts(state: userConfigState).confirmedComponents(package: manifest.id)
+                )
                 try CompiledConfigGuard.check(
-                    build: user.appendingPathComponent(InstalledPackageLayout.buildDirectory),
-                    shipped: CompiledConfigGuard.shippedComponents(resources: resources),
-                    confirmed: UserScripts(state: userConfigState).confirmedComponents())
+                    build: user.appendingPathComponent(InstalledPackageLayout.buildDirectory), scope: scope)
             }
             let missing = Set(manifest.requiredComponents).subtracting(receipt.availableComponents).sorted()
             guard missing.isEmpty else { throw RecipeInstallError.missingComponents(missing) }

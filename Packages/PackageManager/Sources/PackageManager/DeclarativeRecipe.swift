@@ -820,8 +820,8 @@ public extension RecipePackageManager {
                     // A custom file the folder also has keeps the user's lines and takes the plan's blocks.
                     if listed.contains(path),
                         let folderCopy = try? String(contentsOf: target, encoding: .utf8),
-                        let joined = RimeConfigFolder.merged(
-                            folderCopy,
+                        let joined = RimeConfigFolder.checkedMerge(
+                            path, folderCopy,
                             blocks: RimeConfigFolder.managedBlocks(in: String(decoding: data, as: UTF8.self)))
                     {
                         try Data(joined.utf8).write(to: target, options: .atomic)

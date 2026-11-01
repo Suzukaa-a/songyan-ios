@@ -29,6 +29,20 @@ final class BoundedLocalFileTests: XCTestCase {
         }
     }
 
+    func testASymlinkIsFollowedOnlyWhenTheCallerAsksFor() throws {
+        let root = try directory()
+        let real = root.appendingPathComponent("real.txt"), link = root.appendingPathComponent("link.txt")
+        try Data("secret".utf8).write(to: real)
+        try FileManager.default.createSymbolicLink(at: link, withDestinationURL: real)
+        XCTAssertEqual(try BoundedLocalFile.read(link, maximumBytes: 64), Data("secret".utf8))
+        XCTAssertThrowsError(try BoundedLocalFile.read(link, maximumBytes: 64, followingSymlinks: false))
+        XCTAssertEqual(
+            try BoundedLocalFile.read(real, maximumBytes: 64, followingSymlinks: false), Data("secret".utf8))
+        let fifo = root.appendingPathComponent("fifo")
+        XCTAssertEqual(mkfifo(fifo.path, S_IRUSR | S_IWUSR), 0)
+        XCTAssertThrowsError(try BoundedLocalFile.read(fifo, maximumBytes: 64, followingSymlinks: false))
+    }
+
     func testSchemeAndDictionaryRejectOversizedSparseInputs() async throws {
         let root = try directory(), file = root.appendingPathComponent("large")
         XCTAssertTrue(FileManager.default.createFile(atPath: file.path, contents: nil))
