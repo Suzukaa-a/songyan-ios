@@ -97,10 +97,14 @@ extension RecipePackageManager {
             RecipeManifest.self,
             from: Data(contentsOf: previous.appendingPathComponent(InstalledPackageLayout.sourceFile)))
         let resources = active.resourceURL
-        // The host's deploy check rewrites the package declaration after every install, so the hash
-        // recorded at import no longer matches the installed bytes; the installed copy is the truth.
+        // The host's deploy check rewrites its keyboard lists and the package declaration after every
+        // install, so the hashes recorded at import no longer match; the installed copies are the truth.
+        let hostWritten = [
+            InstalledPackageLayout.keyboardPackageFile, InstalledPackageLayout.keyboardSchemas,
+            InstalledPackageLayout.keyboardSourceSchemas,
+        ]
         let files = try recorded.files.map { file -> RecipeManifest.File in
-            guard file.path == InstalledPackageLayout.keyboardPackageFile else { return file }
+            guard hostWritten.contains(file.path) else { return file }
             let data = try Data(contentsOf: resources.appendingPathComponent(file.path))
             return RecipeManifest.File(path: file.path, sha256: sha256Hex(data), size: data.count)
         }

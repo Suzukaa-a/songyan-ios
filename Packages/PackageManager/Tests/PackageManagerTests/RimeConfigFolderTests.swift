@@ -85,19 +85,28 @@ final class RimeConfigFolderTests: XCTestCase {
                     .path))
     }
 
-    func testReapplyingSurvivesTheHostRewritingThePackageDeclaration() async throws {
+    func testReapplyingSurvivesTheHostRewritingItsOwnPackageFiles() async throws {
         let folder = try temporaryDirectory("rime-config")
         let manager = RecipePackageManager(
             rootURL: try temporaryDirectory("rime-config-store"), userConfigDirectory: folder)
-        // Like the host's deploy check, rewrite the declaration with different bytes after deploying.
+        // Like the host's deploy check, rewrite the declaration and the keyboard lists with different
+        // bytes after deploying; recipe-built packages record the lists in their manifest too.
         let rewriting: RecipePackageManager.Deploy = { deployment in
             let receipt = try await Self.deploy(deployment)
-            let declaration = deployment.resourceURL.appendingPathComponent(InstalledPackageLayout.keyboardPackageFile)
+            let resources = deployment.resourceURL
+            let declaration = resources.appendingPathComponent(InstalledPackageLayout.keyboardPackageFile)
             try Data((String(contentsOf: declaration, encoding: .utf8) + "\n").utf8).write(to: declaration)
+            for list in [InstalledPackageLayout.keyboardSchemas, InstalledPackageLayout.keyboardSourceSchemas] {
+                try Data("[\"main\"]".utf8).write(to: resources.appendingPathComponent(list))
+            }
             return receipt
         }
+        let source = try scheme()
+        for list in [InstalledPackageLayout.keyboardSchemas, InstalledPackageLayout.keyboardSourceSchemas] {
+            try write("[]", list, in: source)
+        }
         _ = try await manager.installSchemeImport(
-            try manager.prepareSchemeImport(directory: try scheme()), deploy: rewriting)
+            try manager.prepareSchemeImport(directory: source), deploy: rewriting)
         let first = try await installed(manager)
         try write("patch: {}\n", "main.custom.yaml", in: folder)
 
