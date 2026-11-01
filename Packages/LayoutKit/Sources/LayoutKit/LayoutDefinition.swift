@@ -298,7 +298,12 @@ public struct LayoutDefinition: Codable, Equatable, Sendable, Identifiable {
     public let longPressDelay: Double?
     public var effectiveLongPressDelay: Double { longPressDelay ?? 0.35 }
     public var sendsEngineCode: Bool {
-        let keys = rows.flatMap(\.keys) + (auxiliaryAreas ?? []).flatMap(\.keys)
+        // The union of both arrangements: a key only the split halves carry still sends codes. The
+        // shape recognisers (phone keypad, compact spelling, letter groups, known shells) read the
+        // whole rows only, because they describe the layout as typed on one board.
+        let keys =
+            rows.flatMap(\.keys) + (split?.halves ?? []).flatMap(\.keys)
+            + (auxiliaryAreas ?? []).flatMap(\.keys)
         return keys.contains { key in
             key.action.type == .code || (key.longPress ?? []).contains { $0.action.type == .code }
         }
@@ -353,7 +358,7 @@ public struct LayoutDefinition: Codable, Equatable, Sendable, Identifiable {
     /// layout a second time.
     func validatedUsage() throws -> LayoutResourceBudget.Usage {
         let usage = try LayoutResourceBudget.usage(self)
-        try split?.validate(rowKeyCounts: rows.map { $0.keys.count })
+        try split?.validate(rowKeyCounts: rows.map { $0.keys.count }, allowsHalves: true)
         guard effectiveLongPressDelay.isFinite, effectiveLongPressDelay > 0 else {
             throw LayoutError.invalid("长按等待时间要大于 0 秒，请修改后保存。")
         }
@@ -387,7 +392,8 @@ public struct LayoutDefinition: Codable, Equatable, Sendable, Identifiable {
                 throw LayoutError.invalid("选字辅助区的按键由输入法自动提供，请清空其中的按键后保存。")
             }
         }
-        for key in rows.flatMap(\.keys) + (auxiliaryAreas ?? []).flatMap(\.keys) {
+        let halfKeys = (split?.halves ?? []).flatMap(\.keys)
+        for key in rows.flatMap(\.keys) + halfKeys + (auxiliaryAreas ?? []).flatMap(\.keys) {
             guard !key.label.isEmpty, key.widthWeight.isFinite, key.widthWeight > 0 else {
                 throw LayoutError.invalid("请填写按键标题，并把宽度设为大于 0 的数字。")
             }

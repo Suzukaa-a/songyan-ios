@@ -12,7 +12,10 @@ public extension LayoutDefinition {
     /// area that is not engine-owned; a configured/DIY layout draws both side columns.
     var hasInputModeSwitchKey: Bool {
         let areas = (auxiliaryAreas ?? []).filter { !$0.requiresEngineDisambiguation }
-        return (rows.flatMap(\.keys) + areas.flatMap(\.keys)).contains { $0.action.type == .globe }
+        let whole = (rows.flatMap(\.keys) + areas.flatMap(\.keys)).contains { $0.action.type == .globe }
+        // A split arrangement draws its own keys, so it needs its own way to switch keyboards.
+        guard let halves = split?.halves else { return whole }
+        return whole && halves.flatMap(\.keys).contains { $0.action.type == .globe }
     }
 
     /// Callers pass the host's `needsInputModeSwitchKey`. A requirement failure names the missing

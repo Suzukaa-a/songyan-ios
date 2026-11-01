@@ -105,6 +105,12 @@ public enum LayoutResourceBudget {
         try usage.text(layout.input.schemaID)
         try usage.text(layout.note, maximum: noteBytes)
         for row in layout.rows { try usage.region(row.keys) }
+        let halves = layout.split?.halves ?? []
+        try check(halves.count <= rows, "最多 \(rows) 行，请删掉多出来的行。")
+        for row in halves {
+            try usage.region(row.left)
+            try usage.region(row.right)
+        }
         for area in layout.auxiliaryAreas ?? [] { try usage.region(area.keys) }
         try usage.checkTotals(keys: keys, alternates: alternates, textBytes: textBytes)
         return usage
