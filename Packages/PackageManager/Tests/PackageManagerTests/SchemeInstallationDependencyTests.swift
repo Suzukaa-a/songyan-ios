@@ -51,6 +51,39 @@ final class SchemeInstallationDependencyTests: XCTestCase {
             ), [])
     }
 
+    func testAReverseLookupSchemeAndThePresetVocabularyMayLackWhatADesktopRimeShares() throws {
+        // 薄荷's stroke lookup needs luna_pinyin and essay.txt, which neither 薄荷 nor 白霜 ships.
+        var files = [
+            "default.yaml": Data("schema_list:\n  - schema: mint\n".utf8),
+            "mint.schema.yaml": Data(
+                """
+                schema: {schema_id: mint, dependencies: [stroke, absent_lookup]}
+                translator: {dictionary: mint}
+
+                """.utf8),
+            "mint.dict.yaml": Data("---\nname: mint\nversion: '1'\n...\n".utf8),
+            "stroke.schema.yaml": Data(
+                """
+                schema: {schema_id: stroke, dependencies: [luna_pinyin]}
+                translator: {dictionary: stroke}
+                reverse_lookup: {dictionary: luna_pinyin}
+
+                """.utf8),
+            "stroke.dict.yaml": Data("---\nname: stroke\nuse_preset_vocabulary: true\n...\n".utf8),
+        ]
+        let closure = try SchemeSourceCheck.dependencyClosure(files)
+        XCTAssertEqual(closure.required, [])
+        XCTAssertEqual(
+            closure.optional,
+            ["absent_lookup.schema.yaml", "essay.txt", "luna_pinyin.dict.yaml", "luna_pinyin.schema.yaml"])
+        XCTAssertNoThrow(try SchemeSourceCheck.dependencies(files))
+
+        // What the input method in the list needs itself still stops the installation.
+        files["mint.dict.yaml"] = nil
+        XCTAssertEqual(try SchemeSourceCheck.dependencyClosure(files).required, ["mint.dict.yaml"])
+        XCTAssertThrowsError(try SchemeSourceCheck.dependencies(files))
+    }
+
     func testInactiveVariantDoesNotBlockSelectedSourceButCompanionsRemainRequired() throws {
         var files = [
             "default.yaml": Data("schema_list:\n  - schema: main\n".utf8),

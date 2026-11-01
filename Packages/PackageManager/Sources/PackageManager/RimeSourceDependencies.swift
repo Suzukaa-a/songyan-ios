@@ -30,12 +30,14 @@ public enum RimeSourceDependencies {
                     files[resource.path] = Data()
                 }
             }
-            let missing = try SchemeSourceCheck.missingDependencies(files).filter { path in
+            let closure = try SchemeSourceCheck.dependencyClosure(files)
+            let missing = (closure.required + closure.optional).filter { path in
                 guard path.hasPrefix("opencc/"), let sharedOpenCCDirectory else { return true }
                 return !FileManager.default.fileExists(
                     atPath: sharedOpenCCDirectory.appendingPathComponent(String(path.dropFirst(7))).path)
             }
             if missing.isEmpty { return sources }
+            let optional = Set(closure.optional)
             if inventories == nil {
                 progress("正在查询官方依赖列表…")
                 var found: [String: Set<String>] = [:]
@@ -64,10 +66,13 @@ public enum RimeSourceDependencies {
             for path in missing {
                 let matches = inventories!.filter { $0.value.contains(path) }.map(\.key)
                 guard matches.count == 1, let provider = matches.first, !acquired.contains(provider) else {
+                    // A reverse lookup or preset vocabulary nobody provides is left out, as librime leaves it.
+                    if optional.contains(path) { continue }
                     throw RecipeInstallError.invalidResource("依赖项 \(path) 没有唯一可用的官方来源；请在来源列表中明确添加提供该文件的仓库。")
                 }
                 providers.insert(provider)
             }
+            if providers.isEmpty { return sources }
             for repository in providers.sorted() {
                 let sourceBytes = (dependencies + explicit).reduce(0) {
                     $0 + $1.files.values.reduce(0) { $0 + $1.count }

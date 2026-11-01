@@ -52,7 +52,8 @@ final class SharedRimePresetTests: XCTestCase {
         try SharedRimePresets.supplement(&files)
         XCTAssertThrowsError(try SchemeSourceCheck.dependencies(files)) { error in
             XCTAssertTrue(String(describing: error).contains("luna_pinyin.dict.yaml"))
-            XCTAssertTrue(String(describing: error).contains("luna_pinyin.schema.yaml"))
+            // A reverse-lookup dependency alone never stops an installation; the translator's dictionary does.
+            XCTAssertFalse(String(describing: error).contains("luna_pinyin.schema.yaml"))
         }
         files = ["sample.schema.yaml": Data("key_binder:\n  import_preset: private_keys\n".utf8)]
         try SharedRimePresets.supplement(&files)

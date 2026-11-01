@@ -557,7 +557,7 @@ enum SchemeSourceCheck {
         }
     }
     static func dependencies(_ files: [String: Data]) throws {
-        let missing = try missingDependencies(files)
+        let missing = try dependencyClosure(files).required
         guard missing.isEmpty else {
             if missing.allSatisfy({ $0.hasSuffix(".schema.yaml") }) {
                 throw RecipeInstallError.missingSchemaFiles(missing)
@@ -565,8 +565,24 @@ enum SchemeSourceCheck {
             throw RecipeInstallError.invalidResource("缺少输入方案依赖项：" + missing.joined(separator: "、"))
         }
     }
+    /// Every referenced path the tree lacks, the optional ones included, so a source download can fetch them all.
     static func missingDependencies(_ files: [String: Data], inventory: [String: Data]? = nil) throws -> [String] {
+        let closure = try dependencyClosure(files, inventory: inventory)
+        return (closure.required + closure.optional).sorted()
+    }
+
+    /// What the tree lacks. `required` stops an installation; `optional` does not: files reached only
+    /// through a schema's `dependencies` (a reverse-lookup scheme librime builds when present) or a
+    /// dictionary's `use_preset_vocabulary`. librime deploys the input method without them and only that
+    /// lookup, or the preset vocabulary, is absent; packages such as 薄荷 and 白霜 rely on the shared
+    /// `luna_pinyin` and `essay` that a desktop Rime installs.
+    static func dependencyClosure(_ files: [String: Data], inventory: [String: Data]? = nil) throws -> (
+        required: [String], optional: [String]
+    ) {
         var missing = Set<String>()
+        var optional = Set<String>()
+        var softPending: [String] = []
+        var soft = false
         // Source inventory can include variants which are not deployment roots.
         // Follow the actual plain schema_list when available; includes/patches
         // and absent defaults conservatively retain the full inventory scan.
@@ -618,7 +634,16 @@ enum SchemeSourceCheck {
         var visited = Set<String>()
         func require(_ name: String) throws {
             guard safe(name) else { throw RecipeInstallError.invalidResource("依赖项路径非法：\(name)") }
-            if files[name] == nil { missing.insert(name) } else if !visited.contains(name) { pending.append(name) }
+            if files[name] == nil {
+                if soft { optional.insert(name) } else { missing.insert(name) }
+            } else if !visited.contains(name) {
+                pending.append(name)
+            }
+        }
+        func requireOptional(_ name: String) throws {
+            if soft { return try require(name) }
+            guard safe(name) else { throw RecipeInstallError.invalidResource("依赖项路径非法：\(name)") }
+            softPending.append(name)
         }
         func requireModule(_ module: String) throws {
             let base = "lua/" + module.replacingOccurrences(of: ".", with: "/")
@@ -631,7 +656,14 @@ enum SchemeSourceCheck {
                 : available[base + "/init.lua"] != nil ? base + "/init.lua" : base + ".lua"
             try require(path)
         }
-        while let path = pending.popLast() {
+        while true {
+            guard let path = pending.popLast() else {
+                // The required closure is complete; what only the optional edges reach comes after it.
+                if soft || softPending.isEmpty { break }
+                soft = true
+                for name in softPending { try require(name) }
+                continue
+            }
             guard visited.insert(path).inserted, let data = files[path] else { continue }
             // Repository documentation, workflows and examples are not deployed Rime configs.
             let yaml = path.hasSuffix(".yaml")
@@ -687,7 +719,7 @@ enum SchemeSourceCheck {
                             case "dictionary":
                                 if let name = scalar(value), !name.isEmpty { try require(name + ".dict.yaml") }
                             case "use_preset_vocabulary":
-                                if value.bool == true { try require("essay.txt") }
+                                if value.bool == true { try requireOptional("essay.txt") }
                             case "import_preset":
                                 if let name = scalar(value), !name.isEmpty { try require(name + ".yaml") }
                             case "opencc_config":
@@ -695,11 +727,11 @@ enum SchemeSourceCheck {
                             case "import_tables", "dependencies":
                                 if let list = value.sequence {
                                     for item in list {
-                                        if let name = scalar(item), !name.isEmpty {
-                                            try require(
-                                                name
-                                                    + (key.string == "dependencies"
-                                                        ? InstalledPackageLayout.schemaFileSuffix : ".dict.yaml"))
+                                        guard let name = scalar(item), !name.isEmpty else { continue }
+                                        if key.string == "dependencies" {
+                                            try requireOptional(name + InstalledPackageLayout.schemaFileSuffix)
+                                        } else {
+                                            try require(name + ".dict.yaml")
                                         }
                                     }
                                 }
@@ -752,7 +784,7 @@ enum SchemeSourceCheck {
                 try visit(object)
             }
         }
-        return missing.sorted()
+        return (missing.sorted(), optional.subtracting(missing).sorted())
     }
 }
 
