@@ -526,6 +526,18 @@ final class KeyboardControlPolicyTests: XCTestCase {
         XCTAssertEqual(letters.metrics(width: 390)[.symbolPage], letters.metrics(width: 390)[.page])
     }
 
+    /// An imported keypad keeps its declared trailing rail on 123, which has no 0, so its utility
+    /// slot types 0; the bundled digit pad carries 0 in its own right column instead.
+    func testImportedKeypadTypesZeroInTheUtilitySlot() {
+        for digitPadRow in [false, true] {
+            let policy = KeyboardControlPolicy(
+                page: .numeric, isEnglishMode: false, hasGlobe: true,
+                isPhoneLayout: true, usesASCIIPunctuation: false, includesBottomEnter: false,
+                usesDigitPadRow: digitPadRow)
+            XCTAssertEqual(policy.utility, digitPadRow ? .punctuation("，") : .digit("0"))
+        }
+    }
+
     /// The letter and row pages share one comma key in the utility position, with the other
     /// sentence marks on long press, so it stays put when the page flips.
     func testRowPagesAndLettersShareTheCommaKey() {

@@ -93,14 +93,22 @@ struct ControlRow<ModeKey: View>: View {
                 layoutHintToken: layoutHintToken,
                 onTap: { onKey(.space) }, moveCursor: moveCursor)
         case .utility:
-            let text = policy.utilityText
-            AlternateCharacterKey(
-                cap: KeyCap(id: "control-period", title: text, action: .literal(text)),
-                alternates: policy.utilityAlternates.enumerated().map {
-                    KeyCap(id: "control-punctuation-\($0.offset)", title: $0.element, action: .literal($0.element))
-                }
-            ) { onKey($0.action) }
-            .accessibilityLabel("\(text)，长按选择标点")
+            switch policy.utility {
+            case .punctuation(let text):
+                AlternateCharacterKey(
+                    cap: KeyCap(id: "control-period", title: text, action: .literal(text)),
+                    alternates: policy.utilityAlternates.enumerated().map {
+                        KeyCap(
+                            id: "control-punctuation-\($0.offset)", title: $0.element, action: .literal($0.element))
+                    }
+                ) { onKey($0.action) }
+                .accessibilityLabel("\(text)，长按选择标点")
+            case .digit(let digit):
+                AlternateCharacterKey(
+                    cap: KeyCap(id: "control-digit-\(digit)", title: digit, action: .literal(digit)),
+                    alternates: []
+                ) { onKey($0.action) }
+            }
         case .enter:
             ReturnKey(title: returnTitle, isEnabled: returnEnabled) { onKey($0.action) }
         }

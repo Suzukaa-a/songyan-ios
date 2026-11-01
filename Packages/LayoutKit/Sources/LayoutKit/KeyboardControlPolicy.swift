@@ -23,6 +23,8 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
     }
     public enum Utility: Equatable, Sendable {
         case punctuation(String)
+        /// An imported keypad's 123 page: its declared trailing rail has no 0, so the slot types it.
+        case digit(String)
     }
 
     public let page: Page
@@ -204,7 +206,9 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
         case .returnToLetters: return "返回主键盘"
         }
     }
-    public var utility: Utility { .punctuation(utilityText) }
+    public var utility: Utility {
+        isBundledPhonePad && page == .numeric && !isDigitPad ? .digit("0") : .punctuation(utilityText)
+    }
 
     /// Only the effective symbol branch decides the mark: an English input language with an
     /// explicit Chinese symbol state must keep Chinese punctuation.
