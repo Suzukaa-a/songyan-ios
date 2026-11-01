@@ -201,3 +201,33 @@ final class SplitArrangementTests: XCTestCase {
         XCTAssertEqual(halves[3].wholeKeys, whole?.keys)
     }
 }
+
+final class SplitHalvesGeometryTests: XCTestCase {
+    private func key(_ weight: Double = 1) -> LayoutKey {
+        LayoutKey(label: "a", width: weight, action: LayoutAction(.code, value: "a"))
+    }
+
+    func testTheWidestCutRowFillsTheWidthAndShorterRowsKeepTheSameKeySize() throws {
+        let rows = [
+            LayoutSplitRow(left: Array(repeating: key(), count: 6), right: Array(repeating: key(), count: 5)),
+            LayoutSplitRow(left: Array(repeating: key(), count: 5), right: Array(repeating: key(), count: 4)),
+        ]
+        let split = try XCTUnwrap(LayoutSplitConfiguration(activation: .always).resolved(forWidth: 1000))
+        let geometry = SplitHalvesGeometry(width: 1000, rows: rows, split: split)
+        XCTAssertGreaterThan(geometry.gap, 0)
+        // The gutter is solved for 11 keys, not for the ten the whole rows have.
+        XCTAssertEqual(geometry.gap, split.gap(width: 1000, keyCount: 11))
+        XCTAssertEqual(geometry.unit * 11 + 9 * 4 + geometry.gap, 1000, accuracy: 0.001)
+        XCTAssertLessThan(geometry.unit * 9 + 7 * 4 + geometry.gap, 1000)
+    }
+
+    func testWeightsScaleKeysWithinTheSolvedWidth() throws {
+        let rows = [LayoutSplitRow(left: [key(1.5), key()], right: [key(), key(1.5)])]
+        let split = try XCTUnwrap(LayoutSplitConfiguration(activation: .always).resolved(forWidth: 300))
+        let narrow = SplitHalvesGeometry(width: 300, rows: rows, split: split)
+        XCTAssertEqual(narrow.width(of: rows[0].left[0]), narrow.unit * 1.5, accuracy: 1e-9)
+        // The gutter stands in for one key spacing; without a gutter the keys are simply spaced.
+        let spacings = narrow.gap > 0 ? 2.0 * 4 + narrow.gap : 3.0 * 4
+        XCTAssertEqual(narrow.unit * 5 + spacings, 300, accuracy: 0.001)
+    }
+}

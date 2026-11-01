@@ -239,6 +239,15 @@ public struct ActiveLayoutSplit: Equatable, Sendable {
         return parent?.withoutRowBreaks
     }
 
+    /// The same split with one row cut moved; earlier rows without a cut keep the middle.
+    public func settingBreak(row: Int, to value: Int) -> ActiveLayoutSplit {
+        var breaks = rowBreaks
+        while breaks.count <= row { breaks.append(0) }
+        breaks[row] = value
+        return ActiveLayoutSplit(
+            rowBreaks: breaks, gapFraction: gapFraction, automaticGap: automaticGap, halves: halves)
+    }
+
     /// The same spacing for an area with different key counts, which picks its own row cuts.
     public var withoutRowBreaks: ActiveLayoutSplit {
         ActiveLayoutSplit(rowBreaks: [], gapFraction: gapFraction, automaticGap: automaticGap)
