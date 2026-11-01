@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		HS2611020000000000000002 /* RimeConfigView.swift in Sources */ = {isa = PBXBuildFile; fileRef = HS2611020000000000000001 /* RimeConfigView.swift */; };
 		2A2902328E0C51CE3950B287 /* KeyboardRowsEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EE4CFD1E2CDBCF323B9A7FA /* KeyboardRowsEditor.swift */; };
 		D2145277F77256AEBB36B400 /* KeyboardPageEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF399D5C03710EA6A3FC4E3C /* KeyboardPageEditorView.swift */; };
 		EDBB7F062B2E9F2B1F63EC93 /* KeyboardPageManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 375CAB1BE2039787E0D69687 /* KeyboardPageManagementView.swift */; };
@@ -257,6 +258,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		HS2611020000000000000001 /* RimeConfigView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RimeConfigView.swift; sourceTree = "<group>"; };
 		7EE4CFD1E2CDBCF323B9A7FA /* KeyboardRowsEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "KeyboardRowsEditor.swift"; sourceTree = "<group>"; };
 		CF399D5C03710EA6A3FC4E3C /* KeyboardPageEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "KeyboardPageEditorView.swift"; sourceTree = "<group>"; };
 		375CAB1BE2039787E0D69687 /* KeyboardPageManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "KeyboardPageManagementView.swift"; sourceTree = "<group>"; };
@@ -492,6 +494,7 @@
 				HS2610230000000000000019 /* SchemePackageImportView+Configuration.swift */,
 				HS2610230000000000000021 /* RimeSourceInstallView.swift */,
 				HS2610230000000000000023 /* GrammarModelManagementView.swift */,
+				HS2611020000000000000001 /* RimeConfigView.swift */,
 				HS2610230000000000000025 /* LearningBackupModel.swift */,
 				D10000000000000000000004 /* DictionaryImportView.swift */,
 				A0000000000000000000000052 /* EngineDeployVerification.swift */,
@@ -880,6 +883,7 @@
 				HS2610230000000000000020 /* SchemePackageImportView+Configuration.swift in Sources */,
 				HS2610230000000000000022 /* RimeSourceInstallView.swift in Sources */,
 				HS2610230000000000000024 /* GrammarModelManagementView.swift in Sources */,
+				HS2611020000000000000002 /* RimeConfigView.swift in Sources */,
 				HS2610230000000000000026 /* LearningBackupModel.swift in Sources */,
 				D10000000000000000000003 /* DictionaryImportView.swift in Sources */,
 				A0000000000000000000000053 /* EngineDeployVerification.swift in Sources */,

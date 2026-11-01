@@ -39,7 +39,13 @@ public enum BoundedYAML {
     /// the last one wins; real schemes ship such files (薄荷's `wubi86_jidian` repeats
     /// `enable_user_dict`). Yams refuses them, so each earlier occurrence is renamed to a key no
     /// Rime config reads and the text parsed again. The renaming only exists in this parse.
-    static func lastKeyWins<T>(_ text: String, _ parse: (String) throws -> T) throws -> T {
+    ///
+    /// `shadow` names an earlier occurrence from its key and how many occurrences follow it; the default
+    /// is a placeholder no config reads. The user's own files rename each repeat to the key with
+    /// `/=` after it, which a patch operator reads as the same key, so every pair is still checked.
+    static func lastKeyWins<T>(
+        _ text: String, shadow: ((String, Int) -> String)? = nil, _ parse: (String) throws -> T
+    ) throws -> T {
         var current = text
         var repairs = 0
         while true {
@@ -53,7 +59,7 @@ public enum BoundedYAML {
                     let earlier = nodes.compactMap(\.mark).sorted { ($0.line, $0.column) < ($1.line, $1.column) }
                         .dropLast()
                     // Right to left, so a rename never moves an occurrence still to come on the same line.
-                    for mark in earlier.reversed() {
+                    for (index, mark) in zip(earlier.indices, earlier).reversed() {
                         repairs += 1
                         guard repairs <= maximumDuplicateRepairs,
                             mark.line >= 1, mark.line <= lines.count
@@ -66,10 +72,14 @@ public enum BoundedYAML {
                             let range = line.range(of: name, range: from..<line.endIndex)
                                 ?? line.range(of: name)
                         else { continue }
-                        var placeholder: String
-                        repeat {
-                            placeholder = "songyan_shadowed_" + UUID().uuidString.prefix(8)
-                        } while current.contains(placeholder)
+                        var placeholder = ""
+                        if let shadow {
+                            placeholder = shadow(name, earlier.count - index)
+                        } else {
+                            repeat {
+                                placeholder = "songyan_shadowed_" + UUID().uuidString.prefix(8)
+                            } while current.contains(placeholder)
+                        }
                         lines[mark.line - 1] = line.replacingCharacters(in: range, with: placeholder)
                         changed = true
                     }
@@ -90,7 +100,7 @@ public enum BoundedYAML {
     /// Maximum size of the alias-free preflight text, before allocating it.
     static let maximumShadowBytes = 32 * 1024 * 1024
 
-    private static func strictCompose(yaml text: String) throws -> Node? {
+    static func strictCompose(yaml text: String) throws -> Node? {
         guard try requiresExpansionCheck(text) else { return try Yams.compose(yaml: text) }
         guard let node = try Yams.compose(yaml: text) else { return nil }
         try checkExpandedSize(node)
@@ -186,6 +196,65 @@ public enum BoundedYAML {
             default:
                 break
             }
+        }
+    }
+
+    /// A document read as text, the way librime's yaml-cpp reads what a file names: every scalar, key
+    /// or value, is its text whatever tag it carries (`!!null x` stays `x`), and mappings keep their order.
+    enum TextNode {
+        case scalar(String)
+        case list([TextNode])
+        case map([(key: String, value: TextNode)])
+
+        var isCollection: Bool {
+            if case .scalar = self { return false }
+            return true
+        }
+    }
+
+    /// Most nodes `loadAsText` converts.
+    static let maximumTextNodes = 500_000
+
+    /// For the user's own files and the compiled build files. A key a mapping repeats is kept too, as
+    /// `key/=`, `key/=/=`: yaml-cpp keeps every pair and librime acts on each (every `__patch` and
+    /// `__include`), so a check must see each one. A key that is not a scalar is dropped.
+    static func loadAsText(yaml text: String) throws -> TextNode? {
+        guard
+            let root = try lastKeyWins(
+                text, shadow: { name, following in name + String(repeating: "/=", count: following) },
+                { try strictCompose(yaml: $0) })
+        else { return nil }
+        var budget = maximumTextNodes
+        func convert(_ node: Node) throws -> TextNode? {
+            budget -= 1
+            guard budget >= 0 else { throw LimitExceeded(reason: "要读取的节点超过 \(maximumTextNodes) 个") }
+            if budget & 0xFFF == 0 { try Task.checkCancellation() }
+            switch node {
+            case .scalar(let scalar):
+                return .scalar(scalar.string)
+            case .sequence(let sequence):
+                return .list(try sequence.compactMap { try convert($0) })
+            case .mapping(let mapping):
+                var entries: [(key: String, value: TextNode)] = []
+                for (key, value) in mapping {
+                    guard case .scalar(let name) = key, let converted = try convert(value) else { continue }
+                    entries.append((name.string, converted))
+                }
+                return .map(entries)
+            case .alias:
+                return nil
+            }
+        }
+        return try convert(root)
+    }
+
+    /// The 1-based line a parse error points at, when the parser says.
+    static func errorLine(_ error: Error) -> Int? {
+        switch error as? YamlError {
+        case .scanner(_, _, let mark, _), .parser(_, _, let mark, _), .composer(_, _, let mark, _): return mark.line
+        case .duplicatedKeysInMapping(let duplicates, _):
+            return duplicates.values.flatMap { $0 }.compactMap(\.mark?.line).min()
+        default: return nil
         }
     }
 }

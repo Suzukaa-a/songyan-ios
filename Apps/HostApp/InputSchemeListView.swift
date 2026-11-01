@@ -20,6 +20,7 @@ struct InputSchemeListView: View {
     @StateObject private var center = KeyboardSelectionCenter.shared
     @StateObject private var imports = DictionaryImportCenter.shared
     @StateObject private var schemeImports = SchemeImportCenter.shared
+    @StateObject private var rimeConfig = RimeConfigModel()
     @State private var selectedKind: KeyboardRecipeStore.ResourceKind?
     @State private var selectedRevision: String?
     @State private var selectedPackageID: String?
@@ -66,13 +67,14 @@ struct InputSchemeListView: View {
         List {
             installedSection
             importEntrySection
-            rimeConfigSection
+            RimeConfigRows(model: rimeConfig)
             statusSection
             if developerOptions {
                 developerSection
                     .task { if engineCapabilities == nil { engineCapabilities = await EngineCapabilities.load() } }
             }
         }
+        .rimeConfigHost(rimeConfig)
         .navigationTitle(UserTerminology.inputScheme)
         .navigationBarTitleDisplayMode(.inline)
         // Structured: refreshTick is bumped on apply/install state changes; .task(id:) cancels the old task and reruns.
@@ -90,7 +92,6 @@ struct InputSchemeListView: View {
     }
 
     @State private var refreshTick = 0
-    @State private var rimeConfigResult: String?
     /// Latest-wins token for selection reads: a late read never overwrites a newer value.
     @State private var selectionGeneration: UInt64 = 0
 
@@ -264,31 +265,6 @@ struct InputSchemeListView: View {
                 }
             }
             .buttonStyle(.plain)
-        }
-    }
-
-    // MARK: - Rime config folder
-
-    private var rimeConfigSection: some View {
-        Section {
-            Button("应用更改") {
-                rimeConfigResult = nil
-                Task { rimeConfigResult = await schemeImports.applyRimeConfig() }
-            }
-            .disabled(schemeImports.busy)
-            if let rimeConfigResult {
-                Text(rimeConfigResult).font(.footnote).foregroundStyle(.secondary)
-            }
-        } header: {
-            Text("Rime 配置")
-        } footer: {
-            Text("用 xxx.custom.yaml 等文件修改输入方案，和电脑上的 Rime 一样。文件在「文件」App 的「我的 iPhone › 松烟 › Rime 配置」里，改完轻点「应用更改」才会生效。")
-        }
-        .task {
-            await Task.detached {
-                try? FileManager.default.createDirectory(
-                    at: HostStorePaths.rimeConfig, withIntermediateDirectories: true)
-            }.value
         }
     }
 

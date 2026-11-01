@@ -706,9 +706,19 @@ public extension RecipePackageManager {
                 at: directory,
                 includingPropertiesForKeys: [.isDirectoryKey, .isRegularFileKey, .isSymbolicLinkKey, .fileSizeKey])
             {
-                if [".git", ".DS_Store"].contains(url.lastPathComponent) || url.lastPathComponent.contains(".userdb")
-                    || configured.contains(url.lastPathComponent)
-                {
+                if [".git", ".DS_Store"].contains(url.lastPathComponent) || url.lastPathComponent.contains(".userdb") {
+                    continue
+                }
+                if configured.contains(url.lastPathComponent) {
+                    // The folder owns this file; only the blocks the app keeps in it belong to the workspace.
+                    let name = prefix + url.lastPathComponent
+                    if name.hasSuffix(".custom.yaml"),
+                        let data = try? BoundedLocalFile.read(url, maximumBytes: RimeConfigFolder.maximumFileBytes),
+                        let blocks = RimeConfigFolder.blocksOnly(data)
+                    {
+                        files[name] = blocks
+                        userCustomFiles[name] = blocks
+                    }
                     continue
                 }
                 if url.lastPathComponent == "build" {
@@ -801,15 +811,27 @@ public extension RecipePackageManager {
                     throw RecipeInstallError.invalidResource("安装准备期间自定义配置发生改变，请重新尝试安装。")
                 }
                 try catalog.write(to: deployment.userDataURL.deletingLastPathComponent())
+                var owned: [String] = []
+                let listed = RimeConfigFolder.names(in: deployment.userDataURL)
                 for (path, data) in plan.files where path.hasSuffix(".custom.yaml") {
                     let target = deployment.userDataURL.appendingPathComponent(path)
                     try FileManager.default.createDirectory(
                         at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
+                    // A custom file the folder also has keeps the user's lines and takes the plan's blocks.
+                    if listed.contains(path),
+                        let folderCopy = try? String(contentsOf: target, encoding: .utf8),
+                        let joined = RimeConfigFolder.checkedMerge(
+                            path, folderCopy,
+                            blocks: RimeConfigFolder.managedBlocks(in: String(decoding: data, as: UTF8.self)))
+                    {
+                        try Data(joined.utf8).write(to: target, options: .atomic)
+                        continue
+                    }
                     try data.write(to: target, options: .atomic)
+                    owned.append(path)
                 }
-                // The app's own custom files win over a same-named copy from the 「Rime 配置」 folder.
-                try RimeConfigFolder.release(
-                    plan.files.keys.filter { $0.hasSuffix(".custom.yaml") }, in: deployment.userDataURL)
+                // Otherwise the app's own custom files win over a same-named copy from the 「Rime 配置」 folder.
+                try RimeConfigFolder.release(owned, in: deployment.userDataURL)
                 return try await deploy(deployment)
             }, fileResources: plan.fileResources,
             expectedActiveGeneration: .some(plan.expectedGeneration),
@@ -827,10 +849,17 @@ public extension RecipePackageManager {
                 at: url, includingPropertiesForKeys: [.isDirectoryKey, .isSymbolicLinkKey])
             {
                 if child.lastPathComponent == "build" || child.lastPathComponent.contains(".userdb") { continue }
-                if prefix.isEmpty && configured.contains(child.lastPathComponent) { continue }
                 let info = try child.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
                 guard info.isSymbolicLink != true else { throw RecipeInstallError.invalidResource(child.path) }
                 let path = prefix + child.lastPathComponent
+                if prefix.isEmpty && configured.contains(path) {
+                    if path.hasSuffix(".custom.yaml"),
+                        let blocks = RimeConfigFolder.blocksOnly(try Data(contentsOf: child))
+                    {
+                        result[path] = blocks
+                    }
+                    continue
+                }
                 if info.isDirectory == true {
                     try walk(child, path + "/")
                 } else if path.hasSuffix(".custom.yaml") {

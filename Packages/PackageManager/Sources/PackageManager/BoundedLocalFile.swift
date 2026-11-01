@@ -9,24 +9,33 @@ extension SHA256Digest {
 /// The one lowercase-hex SHA-256 helper of the install pipeline.
 func sha256Hex(_ data: Data) -> String { SHA256.hash(data: data).hex }
 
-/// Size-capped read of a user-imported file. Symlinks are followed (Files providers use them);
-/// only regular files are accepted, so a FIFO or directory is rejected before it is opened.
+/// Size-capped read of a user-imported file. Symlinks are followed by default (Files providers use
+/// them); a caller reading a file another app can swap for a link passes `followingSymlinks: false`.
+/// Only regular files are accepted: the type and size come from `fstat` on the descriptor that is
+/// read, so the checked file is the opened one and a FIFO or directory is rejected without blocking.
 final class BoundedLocalFile {
     private let input: FileHandle
     private let maximumBytes: Int
     let size: Int
 
-    init(_ url: URL, maximumBytes: Int) throws {
+    init(_ url: URL, maximumBytes: Int, followingSymlinks: Bool = true) throws {
         guard url.isFileURL, maximumBytes >= 0 else {
             throw RecipeInstallError.invalidResource("本地文件路径或大小限制无效")
         }
-        let resolved = url.resolvingSymlinksInPath()
-        let values = try resolved.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey])
-        guard values.isRegularFile == true, let fileSize = values.fileSize, fileSize <= maximumBytes else {
+        let path = followingSymlinks ? url.resolvingSymlinksInPath().path : url.path
+        // O_NONBLOCK keeps the open of a FIFO from waiting for a writer; it has no effect on a regular file.
+        let flags = O_RDONLY | O_CLOEXEC | O_NONBLOCK | (followingSymlinks ? 0 : O_NOFOLLOW)
+        let descriptor = open(path, flags)
+        guard descriptor >= 0 else {
             throw RecipeInstallError.invalidResource("文件类型不支持或文件过大：\(url.lastPathComponent)")
         }
-        input = try FileHandle(forReadingFrom: resolved)
-        size = fileSize
+        var info = stat()
+        guard fstat(descriptor, &info) == 0, info.st_mode & S_IFMT == S_IFREG, info.st_size <= maximumBytes else {
+            close(descriptor)
+            throw RecipeInstallError.invalidResource("文件类型不支持或文件过大：\(url.lastPathComponent)")
+        }
+        input = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
+        size = Int(info.st_size)
         self.maximumBytes = maximumBytes
     }
 
@@ -50,8 +59,8 @@ final class BoundedLocalFile {
         return try input.read(upToCount: min(max(count, 0), size)) ?? Data()
     }
 
-    static func read(_ url: URL, maximumBytes: Int) throws -> Data {
-        let file = try BoundedLocalFile(url, maximumBytes: maximumBytes)
+    static func read(_ url: URL, maximumBytes: Int, followingSymlinks: Bool = true) throws -> Data {
+        let file = try BoundedLocalFile(url, maximumBytes: maximumBytes, followingSymlinks: followingSymlinks)
         var data = Data()
         data.reserveCapacity(min(file.size, RecipeResourceBudget.bufferBytes))
         try file.consume { data.append($0) }

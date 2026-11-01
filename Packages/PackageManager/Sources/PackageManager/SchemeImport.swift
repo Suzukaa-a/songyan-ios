@@ -528,12 +528,14 @@ enum SchemeSourceCheck {
             paths.formUnion(local)
         }
     }
+    /// Read on bytes, the way librime reads a path: a combining mark after `/`, `:` or `\` must not hide it.
     static func safe(_ path: String) -> Bool {
-        !path.isEmpty && !path.hasPrefix("/")
-            && path.split(separator: "/", omittingEmptySubsequences: false).allSatisfy {
-                !$0.isEmpty && $0 != "." && $0 != ".." && !$0.contains("\\") && !$0.contains(":")
-                    && $0.unicodeScalars.allSatisfy { !CharacterSet.controlCharacters.contains($0) }
-            }
+        let bytes = path.utf8
+        return !bytes.isEmpty && bytes.first != 0x2F
+            && bytes.split(separator: 0x2F, omittingEmptySubsequences: false).allSatisfy { part in
+                !part.isEmpty && !part.elementsEqual(".".utf8) && !part.elementsEqual("..".utf8)
+                    && !part.contains(0x5C) && !part.contains(0x3A)
+            } && path.unicodeScalars.allSatisfy { !CharacterSet.controlCharacters.contains($0) }
     }
     /// macOS Finder/Archive Utility artifacts: `__MACOSX/` resource-fork trees,
     /// `._*` AppleDouble files and `.DS_Store`.
