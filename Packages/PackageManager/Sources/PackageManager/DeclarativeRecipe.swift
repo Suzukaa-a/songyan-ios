@@ -807,6 +807,9 @@ public extension RecipePackageManager {
                         at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
                     try data.write(to: target, options: .atomic)
                 }
+                // The app's own custom files win over a same-named copy from the 「Rime 配置」 folder.
+                try RimeConfigFolder.release(
+                    plan.files.keys.filter { $0.hasSuffix(".custom.yaml") }, in: deployment.userDataURL)
                 return try await deploy(deployment)
             }, fileResources: plan.fileResources,
             expectedActiveGeneration: .some(plan.expectedGeneration),

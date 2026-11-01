@@ -81,7 +81,8 @@ final class RimeConfigFolderTests: XCTestCase {
         // Files the host wrote beside the package are carried into the new generation.
         XCTAssertTrue(
             FileManager.default.fileExists(
-                atPath: second.resourceURL.deletingLastPathComponent().appendingPathComponent("recipe-catalog.json").path))
+                atPath: second.resourceURL.deletingLastPathComponent().appendingPathComponent("recipe-catalog.json")
+                    .path))
     }
 
     func testOnlyFlatYamlAndTextFilesAreCopied() async throws {
@@ -103,21 +104,59 @@ final class RimeConfigFolderTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: user.appendingPathComponent("deep.custom.yaml").path))
     }
 
-    func testAnOversizeFileIsRefusedByNameAndNothingIsInstalled() async throws {
+    func testAnUnusableFileIsSkippedAndReportedWithoutBlockingTheInstall() async throws {
         let folder = try temporaryDirectory("rime-config")
         try Data(repeating: 0x61, count: RimeConfigFolder.maximumFileBytes + 1)
             .write(to: folder.appendingPathComponent("huge.dict.yaml"))
+        try Data([0xFF, 0xFE, 0x00]).write(to: folder.appendingPathComponent("latin1.txt"))
+        try write("patch: {}\n", "main.custom.yaml", in: folder)
         let manager = RecipePackageManager(
             rootURL: try temporaryDirectory("rime-config-store"), userConfigDirectory: folder)
-        do {
-            _ = try await manager.installSchemeImport(
-                try manager.prepareSchemeImport(directory: try scheme()), deploy: Self.deploy)
-            XCTFail("an oversize file must refuse the install")
-        } catch let error as RimeConfigFolder.RejectedFile {
-            XCTAssertEqual(error.name, "huge.dict.yaml")
-        }
-        let active = try await manager.activeInstallation()
-        XCTAssertNil(active)
+        _ = try await manager.installSchemeImport(
+            try manager.prepareSchemeImport(directory: try scheme()), deploy: Self.deploy)
+
+        let user = try await installed(manager).userDataURL
+        XCTAssertTrue(FileManager.default.fileExists(atPath: user.appendingPathComponent("main.custom.yaml").path))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: user.appendingPathComponent("huge.dict.yaml").path))
+        let unused = try await manager.unusedRimeConfigFiles()
+        XCTAssertEqual(unused, ["huge.dict.yaml", "latin1.txt"])
+    }
+
+    func testAFileNamedLikeOneTheAppKeepsIsLeftToTheApp() async throws {
+        let manager = RecipePackageManager(
+            rootURL: try temporaryDirectory("rime-config-store"), userConfigDirectory: nil)
+        _ = try await manager.installSchemeImport(
+            try manager.prepareSchemeImport(directory: try scheme()), deploy: Self.deploy)
+        let user = try await installed(manager).userDataURL
+        try Data("patch: {managed: true}\n".utf8).write(to: user.appendingPathComponent("main.custom.yaml"))
+
+        let folder = try temporaryDirectory("rime-config")
+        try write("patch: {mine: true}\n", "main.custom.yaml", in: folder)
+        try write("installation_id: x\n", "installation.yaml", in: folder)
+        try RimeConfigFolder.apply(folder, to: user)
+        XCTAssertEqual(
+            try String(contentsOf: user.appendingPathComponent("main.custom.yaml"), encoding: .utf8),
+            "patch: {managed: true}\n")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: user.appendingPathComponent("installation.yaml").path))
+        XCTAssertEqual(
+            RimeConfigFolder.unusedNames(in: folder, user: user), ["installation.yaml", "main.custom.yaml"])
+    }
+
+    func testAReleasedFileIsNoLongerReplacedOrDeleted() throws {
+        let user = try temporaryDirectory("rime-config-user")
+        let folder = try temporaryDirectory("rime-config")
+        try write("patch: {mine: true}\n", "main.custom.yaml", in: folder)
+        try RimeConfigFolder.apply(folder, to: user)
+        XCTAssertEqual(RimeConfigFolder.names(in: user), ["main.custom.yaml"])
+
+        // The app then writes its own copy and takes the name back.
+        try Data("patch: {managed: true}\n".utf8).write(to: user.appendingPathComponent("main.custom.yaml"))
+        try RimeConfigFolder.release(["main.custom.yaml"], in: user)
+        try RimeConfigFolder.apply(folder, to: user)
+        XCTAssertEqual(
+            try String(contentsOf: user.appendingPathComponent("main.custom.yaml"), encoding: .utf8),
+            "patch: {managed: true}\n")
+        XCTAssertEqual(RimeConfigFolder.names(in: user), [])
     }
 
     func testABrokenFileThatFailsTheDeployKeepsThePreviousGeneration() async throws {
@@ -151,6 +190,7 @@ final class RimeConfigFolderTests: XCTestCase {
         _ = try await manager.reinstallActivePackage(deploy: Self.deploy)
         let user = try await installed(manager).userDataURL
         XCTAssertTrue(FileManager.default.fileExists(atPath: user.appendingPathComponent("main.custom.yaml").path))
-        XCTAssertFalse(FileManager.default.fileExists(atPath: user.appendingPathComponent(RimeConfigFolder.listFile).path))
+        XCTAssertFalse(
+            FileManager.default.fileExists(atPath: user.appendingPathComponent(RimeConfigFolder.listFile).path))
     }
 }

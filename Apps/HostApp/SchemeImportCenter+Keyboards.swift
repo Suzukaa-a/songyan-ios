@@ -147,7 +147,7 @@ extension SchemeImportCenter {
     /// Reinstalls the scheme in use from its own files so the 「Rime 配置」 folder takes effect, then
     /// republishes its keyboards as `rebuildAdaptersIfOutdated` does. Returns the text to show.
     func applyRimeConfig() async -> String {
-        guard !busy else { return "另一项操作正在进行，请稍后再试。" }
+        guard !busy else { return "还有别的操作没做完，请稍后再试。" }
         busy = true
         defer { busy = false }
         let failed = "改动没能生效，键盘仍用原来的设置。"
@@ -174,9 +174,10 @@ extension SchemeImportCenter {
             try await publishRoster(
                 packageID: packageID, roster: shared.keyboards, selection: nil,
                 prepare: false, added: nil, baseline: .publication(shared), preservingSelection: true)
-            return "已应用更改。"
-        } catch let rejected as RimeConfigFolder.RejectedFile {
-            return failed + "「\(rejected.name)」不能使用，检查这个文件后再试。"
+            let unused = (try? await store.unusedRimeConfigFiles()) ?? []
+            guard !unused.isEmpty else { return "已应用更改。" }
+            let names = unused.map { "「\($0)」" }.joined(separator: "")
+            return "已应用更改，但\(names)没有用上。文件不能超过 4 MB，要用 UTF-8 编码，也不能和松烟自己的设置文件同名。"
         } catch {
             HostLog.append("rime config apply failed: \(error.localizedDescription)")
             return failed + "检查最近改过的文件后再试。"
