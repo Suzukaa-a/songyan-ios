@@ -25,7 +25,8 @@ public enum CompactSchemaAdapter {
         compiled: Data, sourceID: String, fold compactFold: CompactFold,
         canonicalTelephoneDerive: Bool = false,
         prependAlgebra: [String]? = nil,
-        extraAlphabet: String = ""
+        extraAlphabet: String = "",
+        eraseSourceDigitSpellings: Bool = false
     ) throws -> Data {
         guard compiled.count <= RecipeResourceBudget.sourceFile,
             let text = String(data: compiled, encoding: .utf8),
@@ -56,8 +57,6 @@ public enum CompactSchemaAdapter {
             throw RecipeInstallError.invalidResource("输入方案的字母表无法适配紧凑键盘布局")
         }
         let presentLetters = Self.foldableLetters.filter { alphabet.contains($0) }
-        // Non-letter characters the source declares (pass-through punctuation).
-        let sourceExtras = String(alphabet.filter { !presentLetters.contains($0) })
         // Merge over the source's OWN letters only.
         let mergeSource = presentLetters
         let mergeTarget = String(presentLetters.map { foldMap[$0] ?? $0 })
@@ -83,6 +82,11 @@ public enum CompactSchemaAdapter {
             // opaque aliases are digits no source rule is expected to touch; the
             // runtime re-proves each alias against the live prism regardless.
             algebra.insert(contentsOf: prependAlgebra, at: 0)
+        }
+        if nineKey && eraseSourceDigitSpellings {
+            // Before the fold: once letters become digits, a source digit could no
+            // longer be told apart from a telephone key.
+            algebra.append(Self.sourceDigitSpellingErase)
         }
         if preserveCanonical {
             // Preserve canonical pinyin keys and ADD the telephone digits. A
@@ -114,10 +118,10 @@ public enum CompactSchemaAdapter {
         // The companion alphabet is the union of the compact physical keys, the
         // source's own (present) letters, its pass-through punctuation, and the
         // alias characters when the alias layer is used. No inventing: only keys
-        // that exist in the source or in the compact layout are accepted.
+        // that exist in the source or in the compact layout are accepted, and the
+        // source characters the layout never sends are left out.
         let typeable = String(
             Set(fold.typeableAlphabet)
-                .union(Set(sourceExtras))
                 .union(Set(extraAlphabet)).sorted())
         speller["alphabet"] = typeable
         speller["initials"] = typeable

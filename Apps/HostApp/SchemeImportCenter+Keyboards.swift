@@ -73,7 +73,8 @@ extension SchemeImportCenter {
                     // Every requested combination must be provably available in THIS
                     // generation: the enabled descriptors were just proven by the live
                     // engine. A combination that cannot be produced aborts the whole
-                    // transaction, so a failed keyboard is never published.
+                    // transaction, so a failed keyboard is never published, and the
+                    // published list is unchanged, which lets the reason reach the user.
                     let enabledSchemas = (verification.receipt.validatedEnabledSchemaIDs ?? []).map {
                         KeyboardSchemaDescriptor(id: $0, name: "", alphabet: "")
                     }
@@ -85,7 +86,8 @@ extension SchemeImportCenter {
                                 enabledSchemas: enabledSchemas,
                                 requested: combo)
                         else {
-                            throw RecipeInstallError.deployment(UserTerminology.layoutUnavailableReason(combo.layout))
+                            throw UserKeyboardPublicationError.unavailable(
+                                UserTerminology.layoutUnavailableReason(combo.layout))
                         }
                     }
                     return verification.receipt

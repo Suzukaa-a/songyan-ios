@@ -256,10 +256,16 @@ extension KeyboardAdapterDisplayCapabilityTests {
                 sourceAlphabet: "abc", fold: .merged14))
         XCTAssertEqual(Set(sparse.rules), [], "no partner letter, no exact token")
         XCTAssertTrue(sparse.typeableAlphabet.contains("b"))
-        // Invalid / empty fail closed.
+        // No lowercase key at all fails closed.
         XCTAssertNil(CompactSchemaAdapter.physicalFold(sourceAlphabet: "", fold: .merged14))
-        XCTAssertNil(CompactSchemaAdapter.physicalFold(sourceAlphabet: "abc\u{4e2d}", fold: .merged14))
-        XCTAssertNil(CompactSchemaAdapter.physicalFold(sourceAlphabet: "ab c", fold: .merged14))
+        XCTAssertNil(CompactSchemaAdapter.physicalFold(sourceAlphabet: "\u{4e2d}", fold: .merged14))
+        XCTAssertNil(CompactSchemaAdapter.physicalFold(sourceAlphabet: "23456789", fold: .phone9))
+        // A key the compact layout never sends is ignored, not folded and not accepted.
+        for alphabet in ["abc\u{4e2d}", "ab c"] {
+            let fold = try XCTUnwrap(CompactSchemaAdapter.physicalFold(sourceAlphabet: alphabet, fold: .merged14))
+            XCTAssertEqual(fold.ignoredCharacters, String(alphabet.filter { !"abc".contains($0) }))
+            XCTAssertFalse(fold.typeableAlphabet.contains { fold.ignoredCharacters.contains($0) })
+        }
 
         // Real Rime schemas commonly append uppercase aliases to the same physical
         // lowercase alphabet. They remain adaptable; an uppercase-only key does not.
@@ -276,7 +282,11 @@ extension KeyboardAdapterDisplayCapabilityTests {
             caseAliases.typeableAlphabet.contains("W"),
             "exact direct-token rewrite must be accepted by the companion")
         XCTAssertTrue(caseAliases.typeableAlphabet.contains("`"))
-        XCTAssertNil(CompactSchemaAdapter.physicalFold(sourceAlphabet: "abcZ", fold: .merged14))
+        // An uppercase-only key is ignored; an uppercase-only alphabet has nothing to fold.
+        let unpaired = try XCTUnwrap(CompactSchemaAdapter.physicalFold(sourceAlphabet: "abcZ", fold: .merged14))
+        XCTAssertEqual(unpaired.ignoredCharacters, "Z")
+        XCTAssertFalse(unpaired.rules.contains { $0.hasPrefix("derive/Z/") })
+        XCTAssertFalse(unpaired.typeableAlphabet.contains("Z"))
         XCTAssertNil(CompactSchemaAdapter.physicalFold(sourceAlphabet: "ABC", fold: .merged14))
     }
 
@@ -301,26 +311,24 @@ extension KeyboardAdapterDisplayCapabilityTests {
                     compiled: source, sourceID: "sparse_test", fold: .merged14,
                     displayCapability: nil, sourceProjection: projection), "alphabet=\(alphabet)")
         }
-        // Non-foldable physical alphabet fails BOTH consistently.
-        let bad = tableSource("bad_test", alphabet: "abc\u{4e2d}")
+        // An alphabet without a lowercase key fails BOTH consistently.
+        let bad = tableSource("bad_test", alphabet: "\u{4e2d}\u{6587}")
         XCTAssertEqual(
             try CompactSchemaAdapter.adaptability(compiled: bad, sourceID: "bad_test"),
-            .unsupported("speller alphabet is not a foldable latin/numeric input alphabet"))
-        // A numeric (2–9) physical key space is typeable on the 9-key layout only: it
-        // is adaptable (a 9-key companion exists) while the 14-key fold is not
-        // constructible, so `prepare` skips ONLY that layout instead of writing the
-        // whole source off as unsupported (a digit-coded 9-key scheme).
+            .unsupported("speller alphabet has no lowercase latin key to fold"))
+        // A numeric (2–9) physical key space is typeable on the 9-key layout only. The
+        // letter-group fold is constructible (its letters fold) but ignores the digits.
         let numeric = tableSource("numeric_test", alphabet: "23456789abcdefghijklmnopqrstuvwxyz")
         XCTAssertEqual(
             try CompactSchemaAdapter.adaptability(compiled: numeric, sourceID: "numeric_test"),
             .adaptable)
-        XCTAssertNil(
+        XCTAssertEqual(
             CompactSchemaAdapter.physicalFold(
-                sourceAlphabet: "23456789abcdefghijklmnopqrstuvwxyz", fold: .merged14),
-            "the 14-key layout cannot type a source's numeric keys")
-        XCTAssertNotNil(
+                sourceAlphabet: "23456789abcdefghijklmnopqrstuvwxyz", fold: .merged14)?.ignoredCharacters,
+            "23456789", "the 14-key layout cannot type a source's numeric keys")
+        XCTAssertEqual(
             CompactSchemaAdapter.physicalFold(
-                sourceAlphabet: "23456789abcdefghijklmnopqrstuvwxyz", fold: .phone9))
+                sourceAlphabet: "23456789abcdefghijklmnopqrstuvwxyz", fold: .phone9)?.ignoredCharacters, "")
     }
 
     func testTableUppercaseTokenGetsAReachableCompactDeriveAndMatchingSample() throws {

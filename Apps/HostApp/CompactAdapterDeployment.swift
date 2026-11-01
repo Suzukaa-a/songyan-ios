@@ -188,6 +188,12 @@ enum CompactAdapterDeployment {
                     ofItemAtPath: generated.path)
                 try engine.deploySchemaFile(generated)
                 try engine.validateSchemaForActivation(schemaID: target)
+                guard try compactKeysCompose(engine: engine, fold: fold) else {
+                    let name = engine.schemaValue(source, key: "schema/name") ?? source
+                    HostLog.append("「\(name)」不能用在\(layout.userTitle)上：它把数字键用作选字或其他功能（\(source)）")
+                    try? fm.removeItem(at: generated)
+                    continue
+                }
                 // Prediction follows the source exactly (whoever wired it).
                 guard Prediction.sameWiring(engine.schemaComponents(source), engine.schemaComponents(target)),
                     engine.schemaValue(source, key: "predictor/db") == engine.schemaValue(target, key: "predictor/db")
@@ -211,6 +217,24 @@ enum CompactAdapterDeployment {
             try engine.validateSchemaForActivation(schemaID: first)
             engine.clearComposition()
         }
+    }
+
+    /// Whether every key the layout sends reaches the composition of the selected companion.
+    /// Only the 9-key layout is probed: its keys are digits, which a scheme's own processors
+    /// may claim (a Lua processor that picks candidates with digits, say), while letter-group
+    /// keys are letters the source already composes with. Each key is pressed twice so the
+    /// second press arrives while a candidate menu is open. A swallowed press may commit a
+    /// candidate; the probe stops at the first failure.
+    static func compactKeysCompose(engine: RimeEngine, fold: CompactFold) throws -> Bool {
+        guard fold.isPhoneDigits else { return true }
+        defer { engine.clearComposition() }
+        for character in fold.keysSent.sorted() {
+            guard let key = RimeKey(character: character) else { return false }
+            engine.clearComposition()
+            try engine.processKey(key)
+            guard try engine.processKey(key).state.input == String([character, character]) else { return false }
+        }
+        return true
     }
 
     /// One route per source/layout pair, since the registry rejects duplicates: a phone-digit

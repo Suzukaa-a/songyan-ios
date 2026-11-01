@@ -23,7 +23,7 @@ public extension CompactSchemaAdapter {
     /// to `display_generator_version` in `keyboard-adapter-display.json` and, with the source's
     /// compiled digest, decides whether an installed generation must be rebuilt. The wire
     /// `keyboard_adapter` `version` is controlled separately by `SchemaDisplayCapability.supportedVersion`.
-    static let displayGeneratorVersion = 9
+    static let displayGeneratorVersion = 10
 
     /// One spelling after source-algebra projection. `isNormal`/`isCorrection` come from librime's
     /// `Spelling.properties.type == kNormalSpelling` and `is_correction`, tagged by the native
@@ -588,7 +588,8 @@ public extension CompactSchemaAdapter {
             compiled: compiled, sourceID: sourceID, fold: compactFold,
             canonicalTelephoneDerive: preserveCanonical,
             prependAlgebra: prependAlgebra,
-            extraAlphabet: aliasRewrite ? tokenAliasCharacters(sourceProjection!) : "")
+            extraAlphabet: aliasRewrite ? tokenAliasCharacters(sourceProjection!) : "",
+            eraseSourceDigitSpellings: sourceProjection.map(erasesSourceDigitSpellings) ?? false)
         let target = identifier(sourceID: sourceID, fold: compactFold)
         // The rewrite capability is authorized only when the companion's OWN baked
         // layer is exactly what this generator intended. It is independent of

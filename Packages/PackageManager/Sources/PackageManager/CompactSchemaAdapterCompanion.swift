@@ -46,12 +46,14 @@ public extension CompactSchemaAdapter {
             }
         }
 
-        /// The companion schema for `fold`, or nil when the fold cannot type this source's own
-        /// alphabet (a numeric key space only fits the 9-key layout), so the layout is skipped.
+        /// The companion schema for `fold`, or nil when typing on that layout cannot reach any
+        /// of this source's spellings (a numeric key space only fits the 9-key layout), so the
+        /// layout is skipped.
         public func companion(fold: CompactFold) throws -> Data? {
-            guard CompactSchemaAdapter.physicalFold(sourceAlphabet: projection.alphabet, fold: fold) != nil else {
-                return nil
-            }
+            guard
+                let physical = CompactSchemaAdapter.physicalFold(sourceAlphabet: projection.alphabet, fold: fold),
+                CompactSchemaAdapter.hasReachableSpelling(projection, fold: physical, compactFold: fold)
+            else { return nil }
             return try CompactSchemaAdapter.generate(
                 compiled: compiled, sourceID: sourceID, fold: fold,
                 displayCapability: fold.isPhoneDigits ? phoneDisplay : letterGroupDisplay,

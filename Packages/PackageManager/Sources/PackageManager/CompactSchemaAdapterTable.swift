@@ -35,6 +35,26 @@ public extension CompactSchemaAdapter {
     /// Pass-through punctuation the compact layouts use; never folded.
     static let foldablePunctuation = ";'/`"
 
+    /// Removes, ahead of a 9-key fold, every spelling that carries a source digit. On
+    /// the 9-key layout the digits are the letter keys, so a digit the source spells
+    /// with (a tone mark, for example) would read as a key press once the letters fold:
+    /// third-tone `hao9` would become `4269`, the code of `hao` followed by w/x/y/z.
+    /// Alias spellings (`90…`, prepended by the alias layer) are kept for the rewrite;
+    /// each contains `0`, which no compact key sends, so typing never reaches them.
+    static let sourceDigitSpellingErase = "erase/^(?!\(tokenAliasSentinel)[0-9]*$).*[0-9].*$/"
+
+    /// Whether the 9-key companion of this source must apply `sourceDigitSpellingErase`:
+    /// the source spells with digits but is not itself a telephone-digit code space,
+    /// whose digits already mean what the keys mean.
+    static func erasesSourceDigitSpellings(_ projection: SourceProjection) -> Bool {
+        guard !isNumericCodeSource(projection) else { return false }
+        return projection.syllables.contains { syllable in
+            syllable.spellings.contains { spelling in
+                spelling.text.contains { $0.isASCII && $0.isNumber }
+            }
+        }
+    }
+
     /// A validated physical fold for one source alphabet.
     struct PhysicalFold: Equatable, Sendable {
         /// `exactTokenRules`, then `derive/<source letter>/<compact key>/`, one per
@@ -53,46 +73,50 @@ public extension CompactSchemaAdapter {
         /// The alphabet the companion must accept so both the compact keys and the
         /// direct source codes can re-syllabify.
         public let typeableAlphabet: String
+        /// Declared source characters the compact layout never sends, sorted. They are
+        /// neither folded nor accepted by the companion.
+        public let ignoredCharacters: String
     }
 
     /// The SINGLE physical-alphabet contract consumed by BOTH `adaptability` and
     /// `generate`, so a source can never pass one and fail the other.
     ///
-    /// Returns nil when the declared physical input alphabet is not foldable:
-    /// empty, or containing a character outside the foldable Latin set plus the
-    /// pass-through punctuation (and the 2–9 digits for a 9-key fold). Rime commonly
-    /// declares both cases in `speller/alphabet` (for example `zyx...aZYX...A`). An
-    /// uppercase variant is accepted only when its lowercase physical key is also
-    /// declared; this preserves the source's case alias without pretending an
-    /// uppercase-only code space is typeable from a lowercase compact keyboard.
+    /// Returns nil only when the source declares no lowercase Latin letter at all:
+    /// there is then nothing a compact layout can fold. Every other declared
+    /// character is either typeable on the compact layout or ignored:
+    ///   * typeable: the lowercase letters (folded), the pass-through punctuation,
+    ///     uppercase letters whose lowercase key is also declared (Rime's common
+    ///     `zyx...aZYX...A` case alias), and the 2–9 digits on a 9-key fold (whether
+    ///     a source digit means the same as the telephone key is decided by the
+    ///     generator, see `sourceDigitSpellingErase`);
+    ///   * ignored: anything else, such as tone digits, `\`, an uppercase-only key or
+    ///     a non-Latin character. Compact layouts commit digits and symbols directly
+    ///     and never send these characters into the composition, so the companion
+    ///     neither folds them nor accepts them. Spellings that need them stay
+    ///     unreachable on the compact layout, exactly as if the key did not exist.
     /// Fold rules are generated only for physical keys actually present. Paired
     /// uppercase keys get their own derive to the same compact key: table dictionaries
     /// may use case-significant codes, so accepting an uppercase declaration must not
     /// make those tokens unreachable. A key the source does not have is never invented
     /// (a lowercase present-letter fold is a no-op when it maps to itself).
     static func physicalFold(sourceAlphabet: String, fold compactFold: CompactFold) -> PhysicalFold? {
-        guard !sourceAlphabet.isEmpty else { return nil }
         let nineKey = compactFold.isPhoneDigits
-        var foldable = Set(foldableLetters)
-        foldable.formUnion(foldablePunctuation)
-        if nineKey { foldable.formUnion("23456789") }
         let source = Set(sourceAlphabet)
         let uppercaseLetters = Set(foldableLetters.uppercased())
-        guard
-            sourceAlphabet.allSatisfy({ character in
-                if foldable.contains(character) { return true }
-                guard uppercaseLetters.contains(character),
-                    let lowercase = character.lowercased().first
-                else { return false }
-                return source.contains(lowercase)
-            })
-        else { return nil }
-
-        let foldMap = compactFold.map
         // Deterministic order over the canonical letter order, restricted to the
         // letters this source actually declares.
         let present = foldableLetters.filter { sourceAlphabet.contains($0) }
         guard !present.isEmpty else { return nil }
+        var passThrough = Set(foldablePunctuation)
+        if nineKey { passThrough.formUnion("23456789") }
+        let ignored = sourceAlphabet.filter { character in
+            if character.isLowercase, present.contains(character) { return false }
+            if passThrough.contains(character) { return false }
+            guard uppercaseLetters.contains(character), let lowercase = character.lowercased().first else { return true }
+            return !source.contains(lowercase)
+        }
+
+        let foldMap = compactFold.map
         // A key letter needs an exact token only when another present letter shares its key.
         let sharedKeys = Set(present.compactMap { letter in foldMap[letter].flatMap { $0 == letter ? nil : $0 } })
         let exactTokens = present.filter(sharedKeys.contains).compactMap { letter in
@@ -115,7 +139,9 @@ public extension CompactSchemaAdapter {
         // source keys must nevertheless stay in the companion alphabet because the
         // direct-rewrite transaction sets the chosen exact source token before asking
         // librime to re-syllabify it.
-        let declaredUppercase = source.filter { uppercaseLetters.contains($0) }
+        let declaredUppercase = source.filter {
+            uppercaseLetters.contains($0) && !ignored.contains($0)
+        }
         let typeable = String(
             Set(compactKeys).union(Set(present))
                 .union(exactTokens.map(\.1))
@@ -129,7 +155,27 @@ public extension CompactSchemaAdapter {
                 ? nil
                 : "xlit/\(String(exactTokens.map(\.1)))/\(String(exactTokens.map(\.0)))/",
             sourceAlphabet: sourceAlphabet,
-            typeableAlphabet: typeable)
+            typeableAlphabet: typeable,
+            ignoredCharacters: String(Set(ignored).sorted()))
+    }
+
+    /// Whether typing on the compact layout can reach at least one of the source's
+    /// spellings: one made only of keys the layout sends (and, when the 9-key companion
+    /// erases digit spellings, free of digits). A source that spells only with ignored
+    /// keys, such as a telephone-digit scheme on a letter-group layout whose letters
+    /// were all turned into digits, gets no companion for that layout.
+    static func hasReachableSpelling(_ projection: SourceProjection, fold: PhysicalFold, compactFold: CompactFold)
+        -> Bool
+    {
+        let ignored = Set(fold.ignoredCharacters)
+        let keys = Set(fold.sourceAlphabet).subtracting(ignored)
+        let digitsErased = compactFold.isPhoneDigits && erasesSourceDigitSpellings(projection)
+        return projection.syllables.contains { syllable in
+            syllable.spellings.contains { spelling in
+                !spelling.text.isEmpty
+                    && spelling.text.allSatisfy { keys.contains($0) && !(digitsErased && $0.isASCII && $0.isNumber) }
+            }
+        }
     }
 
     /// Runs before the source's own preedit rules, which then see the letters a tap
@@ -232,6 +278,9 @@ public extension CompactSchemaAdapter {
         root[producer.namespace] = translator
 
         var algebra = root["speller"].flatMap { ($0 as? [String: Any])?["algebra"] as? [String] } ?? []
+        if compactFold.isPhoneDigits && erasesSourceDigitSpellings(projection) {
+            algebra.append(sourceDigitSpellingErase)
+        }
         algebra.append(contentsOf: fold.rules)
         var speller = (root["speller"] as? [String: Any]) ?? [:]
         speller["algebra"] = algebra

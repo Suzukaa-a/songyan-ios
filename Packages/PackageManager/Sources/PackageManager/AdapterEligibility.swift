@@ -171,21 +171,18 @@ public extension CompactSchemaAdapter {
         // be judged adaptable here and then rejected there. It is unrelated to the
         // dictionary TOKENS, which may be Unicode (Bopomofo, dialect, ...): a
         // schema whose tokens are non-Latin but whose input keys are Latin is still
-        // adaptable, while a schema whose physical input alphabet is itself
-        // non-Latin (or empty) cannot be truthfully auto-folded and fails closed.
+        // adaptable. Declared keys a compact layout never sends (tone digits, `\`,
+        // ...) are left out of the companion rather than disqualifying the source;
+        // only a source with no lowercase Latin key at all fails closed.
         //
         // A source is adaptable when AT LEAST ONE compact layout can fold its own
-        // physical alphabet. A scheme whose keys are already numeric (a native
-        // 9-key code space, e.g. `23456789`) folds for the 9-key companion only:
-        // the 14-key layout cannot even type its keys, so only the 9-key companion
-        // is generated (`prepare` skips the other layout) rather than the whole
-        // source being written off as unsupported.
+        // physical alphabet.
         let alphabet = speller["alphabet"] as? String ?? "abcdefghijklmnopqrstuvwxyz"
         let folds = KeyboardLayoutKind.allCases.compactMap(\.compactFold).contains {
             CompactSchemaAdapter.physicalFold(sourceAlphabet: alphabet, fold: $0) != nil
         }
         guard folds else {
-            return .unsupported("speller alphabet is not a foldable latin/numeric input alphabet")
+            return .unsupported("speller alphabet has no lowercase latin key to fold")
         }
         return .adaptable
     }
