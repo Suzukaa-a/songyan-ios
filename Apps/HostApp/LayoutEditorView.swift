@@ -9,6 +9,9 @@ struct LayoutEditorView: View {
     @ObservedObject private var manager = LayoutManager.shared
     @State private var draft: LayoutDefinition
     @State private var selected: LayoutKeyPath = .row(0, key: 0)
+    /// The split view edits the keys as they are when the keyboard splits; the other view the whole rows.
+    @State private var splitView = false
+    @State private var splitSelected = SplitKeyAddress(row: 0, key: 0)
     @State private var error: String?
     @State private var confirmingDiscard = false
     @State private var saving = false
@@ -55,28 +58,33 @@ struct LayoutEditorView: View {
                 )
                 .disabled(!draft.effectiveCandidateArea.candidates || PhoneKeypadStructure.matches(draft))
             }
-            Section("点键编辑") {
-                KeyboardPreviewView(layout: draft, onSelectKey: { selected = $0 })
-            }
-            // The selected key's fields sit right under the preview that selects it.
-            if let key = draft.key(at: selected) {
-                // Main-layout function keys draw custom titles at runtime too.
-                LayoutKeyFields(key: key, allowsTitleMode: true) { updated in
-                    draft = draft.replacingKey(at: selected, with: updated)
+            if !PhoneKeypadStructure.matches(draft) {
+                Section("键盘排列") {
+                    Picker(
+                        "键盘排列",
+                        selection: Binding(
+                            get: { splitView },
+                            set: { showSplit in
+                                splitView = showSplit
+                                selected = .row(0, key: 0)
+                                splitSelected = SplitKeyAddress(row: 0, key: 0)
+                            })
+                    ) {
+                        Text("不拆分").tag(false)
+                        Text("拆分时").tag(true)
+                    }
+                    .pickerStyle(.segmented)
+                    .accessibilityIdentifier("layoutEditor.arrangement")
                 }
-                .id(selected)
             }
-            SelectedRowKeyActions(rows: rowsBinding, selected: $selected)
-            if !draft.hasInputModeSwitchKey {
-                Section {
-                    Button("添加\(UserTerminology.globeKey)", systemImage: "globe") { addInputModeSwitchKey() }
-                        .disabled((draft.rows.last?.keys.count ?? 0) >= LayoutResourceBudget.keysPerRegion)
-                }
+            if splitView && !PhoneKeypadStructure.matches(draft) {
+                splitSections
+            } else {
+                wholeSections
             }
-            KeyboardRowsEditor(rows: rowsBinding, selected: $selected)
             KeyboardSplitEditor(
                 rows: draft.rows, split: Binding(get: { draft.split }, set: { draft = replacingSplit($0) }),
-                defaultBreaks: BuiltinLayouts.handSplit(for: draft)?.rowBreaks)
+                activationOnly: true)
             Section {
                 Button("另存为副本") { save(asCopy: true) }
             }
@@ -110,6 +118,51 @@ struct LayoutEditorView: View {
             Button("好", role: .cancel) {}
         } message: {
             Text(error ?? "")
+        }
+    }
+
+    @ViewBuilder
+    private var wholeSections: some View {
+        Section("点键编辑") {
+            KeyboardPreviewView(layout: draft, onSelectKey: { selected = $0 })
+        }
+        // The selected key's fields sit right under the preview that selects it.
+        if let key = draft.key(at: selected) {
+            // Main-layout function keys draw custom titles at runtime too.
+            LayoutKeyFields(key: key, allowsTitleMode: true) { updated in
+                draft = draft.replacingKey(at: selected, with: updated)
+            }
+            .id(selected)
+        }
+        SelectedRowKeyActions(rows: rowsBinding, selected: $selected)
+        if !draft.hasInputModeSwitchKey {
+            Section {
+                Button("添加\(UserTerminology.globeKey)", systemImage: "globe") { addInputModeSwitchKey() }
+                    .disabled((draft.rows.last?.keys.count ?? 0) >= LayoutResourceBudget.keysPerRegion)
+            }
+        }
+        KeyboardRowsEditor(rows: rowsBinding, selected: $selected)
+        if draft.hasExplicitSplit && !PhoneKeypadStructure.matches(draft) {
+            Section {
+                Text("拆分时的键盘有自己的一套按键，这里的改动不会同步过去。")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private var splitDefaultBreaks: [Int]? { BuiltinLayouts.handSplit(for: draft)?.rowBreaks }
+
+    @ViewBuilder
+    private var splitSections: some View {
+        SplitArrangementEditor(
+            layout: Binding(get: { draft }, set: { draft = $0 }), selected: $splitSelected,
+            defaultBreaks: splitDefaultBreaks,
+            setSplit: { draft = replacingSplit($0) })
+        if let key = draft.splitKey(at: splitSelected, defaultBreaks: splitDefaultBreaks) {
+            LayoutKeyFields(key: key, allowsTitleMode: true) { updated in
+                draft = draft.replacingSplitKey(at: splitSelected, with: updated, defaultBreaks: splitDefaultBreaks)
+            }
+            .id(splitSelected)
         }
     }
 
@@ -153,11 +206,8 @@ struct LayoutEditorView: View {
     }
 
     private func replacingRows(_ rows: [LayoutRow]) -> LayoutDefinition {
-        LayoutDefinition(
-            id: draft.id, name: draft.name, input: draft.input, rows: rows,
-            auxiliaryAreas: draft.auxiliaryAreas, note: draft.note,
-            longPressDelay: draft.longPressDelay, candidateArea: draft.candidateArea,
-            split: KeyboardSplitEditor.adjusted(draft.split, rows: rows))
+        // A saved split arrangement keeps one entry per row as rows are added, removed or moved.
+        draft.replacingRowsFollowingSplit(rows)
     }
 
     private func replacingSplit(_ split: LayoutSplitConfiguration?) -> LayoutDefinition {

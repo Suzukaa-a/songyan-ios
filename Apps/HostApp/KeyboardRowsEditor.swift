@@ -181,6 +181,8 @@ struct KeyboardSplitEditor: View {
     @Binding var split: LayoutSplitConfiguration?
     var allowsInheritance = false
     var inheritanceTitle = "和主键盘一样拆分"
+    /// A main layout only chooses when it splits; the gap and the cuts live in its split view.
+    var activationOnly = false
     /// The cuts the keyboard draws before any is saved (the bundled 26/18-key hand cuts).
     var defaultBreaks: [Int]? = nil
     /// No stored split means the split is off, never the initializer's default-on value.
@@ -192,6 +194,29 @@ struct KeyboardSplitEditor: View {
     }
 
     var body: some View {
+        if activationOnly {
+            Section {
+                Picker(
+                    "拆分时机",
+                    selection: Binding(
+                        get: { configuration.activation },
+                        set: { activation in update { $0.activation = activation } })
+                ) {
+                    Text("不拆分").tag(LayoutSplitConfiguration.Activation.off)
+                    Text("宽屏时").tag(LayoutSplitConfiguration.Activation.automatic)
+                    Text("始终").tag(LayoutSplitConfiguration.Activation.always)
+                }
+            } header: {
+                Text("大屏拆分")
+            } footer: {
+                Text("拆分后，键盘分成左右两边，各自靠近一只手。")
+            }
+        } else {
+            fullSection
+        }
+    }
+
+    private var fullSection: some View {
         Section("拆分") {
             if allowsInheritance {
                 Toggle(
@@ -460,5 +485,186 @@ struct OptionalWidthField: View {
         guard invalid else { return }
         text = value.map(format) ?? ""
         mark(false)
+    }
+}
+
+/// The split view of the layout editor: the keys as they are when the keyboard splits, left keys,
+/// the gap, right keys, row by row. Editing is the whole-view key tools applied to the halves; the
+/// logic lives in `LayoutDefinition` (see `SplitArrangementEditing`).
+struct SplitArrangementEditor: View {
+    @Binding var layout: LayoutDefinition
+    @Binding var selected: SplitKeyAddress
+    let defaultBreaks: [Int]?
+    let setSplit: (LayoutSplitConfiguration) -> Void
+
+    private var configuration: LayoutSplitConfiguration { layout.split ?? LayoutSplitConfiguration(activation: .off) }
+    private var rows: [LayoutRow] { layout.splitLetterRows(defaultBreaks: defaultBreaks) }
+    private var cuts: [Int] { layout.splitCuts(defaultBreaks: defaultBreaks) }
+
+    var body: some View {
+        let rows = rows
+        let cuts = cuts
+        Section {
+            SplitKeyGrid(
+                rows: rows, cuts: cuts,
+                gapFraction: configuration.automaticGap
+                    ? LayoutSplitConfiguration.defaultGapFraction : configuration.gapFraction,
+                selected: selected
+            ) { selected = $0 }
+        } header: {
+            Text("拆分时的按键")
+        } footer: {
+            Text("左边、间距、右边。在这里改的键只在键盘拆分时使用。")
+        }
+        keyActions(rows: rows, cuts: cuts)
+        Section("两边的间距") {
+            Toggle(
+                "自动间距",
+                isOn: Binding(
+                    get: { configuration.automaticGap },
+                    set: { automatic in
+                        var updated = configuration
+                        updated.automaticGap = automatic
+                        setSplit(updated)
+                    }))
+            if !configuration.automaticGap {
+                VStack(alignment: .leading) {
+                    Text("间距：\(Int((configuration.gapFraction * 100).rounded()))%")
+                    Slider(
+                        value: Binding(
+                            get: { configuration.gapFraction },
+                            set: { fraction in
+                                var updated = configuration
+                                updated.gapFraction = fraction
+                                setSplit(updated)
+                            }), in: 0.05...0.85)
+                }
+            }
+        }
+        Section("每行在哪里分开") {
+            ForEach(rows.indices, id: \.self) { row in
+                HStack {
+                    Text("第 \(row + 1) 行：左边 \(cuts[row]) 个键")
+                    Spacer()
+                    Button("左边少一个键") { moveCut(row, by: -1) }
+                        .disabled(layout.movingSplitCut(row: row, by: -1, defaultBreaks: defaultBreaks) == nil)
+                    Button("左边多一个键") { moveCut(row, by: 1) }
+                        .disabled(layout.movingSplitCut(row: row, by: 1, defaultBreaks: defaultBreaks) == nil)
+                }
+                .buttonStyle(.borderless).font(.footnote)
+            }
+        }
+        if layout.hasExplicitSplit {
+            Section {
+                Button("恢复为自动拆分") {
+                    layout = layout.restoringAutomaticSplit()
+                    selected = SplitKeyAddress(row: 0, key: 0)
+                }
+            } footer: {
+                Text("丢掉拆分时单独改过的按键，按键盘的行和分开的位置自动拆分。")
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func keyActions(rows: [LayoutRow], cuts: [Int]) -> some View {
+        if rows.indices.contains(selected.row), rows[selected.row].keys.indices.contains(selected.key) {
+            let key = rows[selected.row].keys[selected.key]
+            Section("移动选中按键") {
+                HStack {
+                    Button("左移") { apply(layout.movingSplitKey(at: selected, by: -1, defaultBreaks: defaultBreaks)) }
+                        .disabled(selected.key == 0)
+                    Spacer()
+                    Button("右移") { apply(layout.movingSplitKey(at: selected, by: 1, defaultBreaks: defaultBreaks)) }
+                        .disabled(selected.key == rows[selected.row].keys.count - 1)
+                }
+                Button("在后面添加按键") {
+                    apply(
+                        layout.addingSplitKey(
+                            after: selected, key: LayoutKey(label: "新键", action: .init(.literal, value: "。")),
+                            defaultBreaks: defaultBreaks))
+                }
+                .disabled(rows[selected.row].keys.count >= LayoutResourceBudget.keysPerRegion)
+                Button("复制按键") {
+                    apply(layout.addingSplitKey(after: selected, key: key, defaultBreaks: defaultBreaks))
+                }
+                .disabled(rows[selected.row].keys.count >= LayoutResourceBudget.keysPerRegion)
+                Button("删除按键", role: .destructive) {
+                    apply(layout.removingSplitKey(at: selected, defaultBreaks: defaultBreaks))
+                }
+                .disabled(layout.removingSplitKey(at: selected, defaultBreaks: defaultBreaks) == nil)
+            }
+            .buttonStyle(.borderless)
+        }
+    }
+
+    private func apply(_ edit: (layout: LayoutDefinition, selected: SplitKeyAddress)?) {
+        guard let edit else { return }
+        layout = edit.layout
+        selected = edit.selected
+    }
+
+    private func moveCut(_ row: Int, by delta: Int) {
+        if let moved = layout.movingSplitCut(row: row, by: delta, defaultBreaks: defaultBreaks) { layout = moved }
+    }
+}
+
+/// The letter rows of the split view: left keys, a gap drawn in proportion to the keys, right keys.
+private struct SplitKeyGrid: View {
+    let rows: [LayoutRow]
+    let cuts: [Int]
+    let gapFraction: Double
+    let selected: SplitKeyAddress
+    let select: (SplitKeyAddress) -> Void
+    private let spacing: CGFloat = 3
+
+    /// The gap as key widths: the share of the widest row the gap takes of the whole width.
+    private var gapWeight: Double {
+        let widest = rows.map { $0.keys.reduce(0) { $0 + $1.widthWeight } }.max() ?? 1
+        return gapFraction * widest / (1 - gapFraction)
+    }
+
+    var body: some View {
+        let widest = rows.map { $0.keys.reduce(0) { $0 + $1.widthWeight } }.max() ?? 1
+        let widestCount = rows.map { $0.keys.count }.max() ?? 1
+        VStack(spacing: spacing) {
+            ForEach(rows.indices, id: \.self) { row in
+                GeometryReader { proxy in
+                    let unit = max(
+                        1, (proxy.size.width - spacing * CGFloat(widestCount - 1)) / CGFloat(widest + gapWeight))
+                    let keys = rows[row].keys
+                    let cut = min(cuts[row], keys.count)
+                    HStack(spacing: spacing) {
+                        ForEach(0..<cut, id: \.self) { chip(row, $0, keys[$0], unit) }
+                        if cut < keys.count {
+                            Spacer(minLength: CGFloat(gapWeight) * unit)
+                            ForEach(cut..<keys.count, id: \.self) { chip(row, $0, keys[$0], unit) }
+                        } else {
+                            Spacer(minLength: 0)
+                        }
+                    }
+                }
+                .frame(height: 36)
+            }
+        }
+    }
+
+    private func chip(_ row: Int, _ index: Int, _ key: LayoutKey, _ unit: CGFloat) -> some View {
+        let isSelected = selected == SplitKeyAddress(row: row, key: index)
+        return Button {
+            select(SplitKeyAddress(row: row, key: index))
+        } label: {
+            Text(key.label).font(.footnote).lineLimit(1).minimumScaleFactor(0.5)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .buttonStyle(.plain)
+        .background(
+            RoundedRectangle(cornerRadius: 6).fill(
+                isSelected ? Color.accentColor.opacity(0.3) : Color.secondary.opacity(0.15))
+        )
+        .overlay(RoundedRectangle(cornerRadius: 6).stroke(isSelected ? Color.accentColor : .clear, lineWidth: 1.5))
+        .frame(width: max(1, CGFloat(key.widthWeight) * unit))
+        .accessibilityLabel(key.label)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
