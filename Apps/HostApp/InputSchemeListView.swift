@@ -285,8 +285,10 @@ struct InputSchemeListView: View {
             Text("用 xxx.custom.yaml 等文件修改输入方案，和电脑上的 Rime 一样。文件在「文件」App 的「我的 iPhone › 松烟 › Rime 配置」里，改完轻点「应用更改」才会生效。")
         }
         .task {
-            await Task.detached { try? FileManager.default.createDirectory(
-                at: HostStorePaths.rimeConfig, withIntermediateDirectories: true) }.value
+            await Task.detached {
+                try? FileManager.default.createDirectory(
+                    at: HostStorePaths.rimeConfig, withIntermediateDirectories: true)
+            }.value
         }
     }
 
