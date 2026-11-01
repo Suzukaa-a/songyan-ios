@@ -881,6 +881,8 @@ public struct KeyboardPanelView: View {
                     clearSymbolMarksOverride()
                     // Every 返回 path lands here, including the 9 键 123 pad's own key.
                     endLayoutJumpVisit()
+                } else {
+                    leaveLayoutJumpVisit(for: page)
                 }
                 if authoredPageMissingInputModeSwitchFallback { showAuthoredPageNeedsGlobeHint() }
                 // Decided once per visit: committing the composition with the first symbol

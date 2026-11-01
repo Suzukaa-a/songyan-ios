@@ -37,13 +37,23 @@ public struct LayoutPageJumpVisit: Equatable, Sendable {
     public let origin: Place
     /// What the last jump switched to.
     public let visited: Place
+    /// The page the last jump opened on `visited`.
+    public let visitedPage: LayoutAction.PageTarget
 
     /// The visit a jump from `running` starts or continues, once it landed on `visited`.
     public static func after(
-        jumpingFrom running: Place, landedOn visited: Place, continuing existing: LayoutPageJumpVisit?
+        jumpingFrom running: Place, landedOn visited: Place, opening page: LayoutAction.PageTarget = .numeric,
+        continuing existing: LayoutPageJumpVisit?
     ) -> LayoutPageJumpVisit {
         let origin = existing.flatMap { $0.visited == running ? $0.origin : nil } ?? running
-        return LayoutPageJumpVisit(origin: origin, visited: visited)
+        return LayoutPageJumpVisit(origin: origin, visited: visited, visitedPage: page)
+    }
+
+    /// The page to open on the user's own layout when the visited layout switches to `requested`
+    /// (e.g. 符 on a visited 123 page), or nil when that is the visited page itself. Without this the
+    /// visited layout's own symbol page would hide the user's, and a jump key there could not loop.
+    public func pageAfterLeaving(requested: LayoutAction.PageTarget) -> LayoutAction.PageTarget? {
+        requested == .letters || requested == visitedPage ? nil : requested
     }
 
     /// Where to switch back to, or nil when the user already left the visited layout some other way

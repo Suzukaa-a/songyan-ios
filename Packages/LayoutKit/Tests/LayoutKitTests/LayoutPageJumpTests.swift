@@ -185,4 +185,15 @@ final class LayoutPageJumpTests: XCTestCase {
         let visit = LayoutPageJumpVisit.after(jumpingFrom: own, landedOn: own, continuing: nil)
         XCTAssertNil(visit.restoreTarget(running: own))
     }
+
+    func testAnotherPageOnTheVisitedLayoutOpensOnTheUsersOwnLayout() {
+        let visit = LayoutPageJumpVisit.after(
+            jumpingFrom: own, landedOn: nine, opening: .numeric, continuing: nil)
+        XCTAssertEqual(visit.pageAfterLeaving(requested: .symbols), .symbols)
+        XCTAssertNil(visit.pageAfterLeaving(requested: .numeric))
+        XCTAssertNil(visit.pageAfterLeaving(requested: .letters))
+        let symbols = LayoutPageJumpVisit.after(
+            jumpingFrom: own, landedOn: nine, opening: .symbols, continuing: nil)
+        XCTAssertEqual(symbols.pageAfterLeaving(requested: .numeric), .numeric)
+    }
 }

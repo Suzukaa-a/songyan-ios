@@ -472,7 +472,7 @@ extension KeyboardPanelView {
             guard controller.layout == kind else { return }
             controller.layoutJumpVisit = .after(
                 jumpingFrom: from, landedOn: .init(layout: layout, schemaID: controller.selectedSchemaID),
-                continuing: controller.layoutJumpVisit)
+                opening: target, continuing: controller.layoutJumpVisit)
             openJumpPage(target)
         }
     }
@@ -496,6 +496,16 @@ extension KeyboardPanelView {
             let kind = KeyboardLayoutKind(rawValue: target.layout.rawValue)
         else { return }
         switchLayoutForJump(kind, target.schemaID)
+    }
+
+    /// A page switch other than 返回 while visiting: the visited layout's own page would hide the
+    /// user's, so the visit ends and that page opens on the user's layout instead.
+    func leaveLayoutJumpVisit(for page: KeyboardPage) {
+        guard let visit = controller.layoutJumpVisit else { return }
+        let requested: LayoutAction.PageTarget = page == .symbols ? .symbols : .numeric
+        guard let target = visit.pageAfterLeaving(requested: requested) else { return }
+        endLayoutJumpVisit()
+        openJumpPage(target)
     }
 
     private func openJumpPage(_ target: LayoutAction.PageTarget) {
