@@ -36,11 +36,14 @@ final class UserConfigFilesTests: XCTestCase {
     }
 
     func testPathsMirrorAPackageButNeverReachTheBuildFolderOrEscape() {
-        for path in ["main.custom.yaml", "cn_dicts/base.dict.yaml", "a/b/c/d/e.yaml", "lua/date.lua", "rime.lua", "lua/x/y.lua"] {
+        for path in [
+            "main.custom.yaml", "cn_dicts/base.dict.yaml", "a/b/c/d/e.yaml", "lua/date.lua", "rime.lua", "lua/x/y.lua",
+        ] {
             XCTAssertTrue(UserConfigFiles.isAllowedPath(path), path)
         }
         for path in [
-            "build/default.yaml", "a/build/x.yaml", "../x.yaml", "a/../x.yaml", "/abs.yaml", "a//b.yaml", "a/b/c/d/e/f.yaml",
+            "build/default.yaml", "a/build/x.yaml", "../x.yaml", "a/../x.yaml", "/abs.yaml", "a//b.yaml",
+            "a/b/c/d/e/f.yaml",
             "x.lua", "cn_dicts/x.lua", "a\\b.yaml", ".git/config.yaml",
         ] {
             XCTAssertFalse(UserConfigFiles.isAllowedPath(path), path)
@@ -60,7 +63,8 @@ final class UserConfigFilesTests: XCTestCase {
         let elsewhere = try temporaryDirectory("target")
         try put("patch: {}\n", "x.yaml", in: elsewhere)
         try FileManager.default.createSymbolicLink(
-            at: folder.appendingPathComponent("linked.yaml"), withDestinationURL: elsewhere.appendingPathComponent("x.yaml"))
+            at: folder.appendingPathComponent("linked.yaml"),
+            withDestinationURL: elsewhere.appendingPathComponent("x.yaml"))
         try FileManager.default.createSymbolicLink(
             at: folder.appendingPathComponent("linked"), withDestinationURL: elsewhere)
 
@@ -95,7 +99,8 @@ final class UserConfigFilesTests: XCTestCase {
         let error = problem("x.custom.yaml", "patch:\n  translator/user_dict: /var/mobile/leak\n")
         XCTAssertEqual(error?.problem, .unsafeReference)
         XCTAssertEqual(error?.file, "x.custom.yaml")
-        XCTAssertEqual(problem("x.custom.yaml", "patch:\n  translator/dictionary: !!null ../../x\n")?.problem, .unsafeReference)
+        XCTAssertEqual(
+            problem("x.custom.yaml", "patch:\n  translator/dictionary: !!null ../../x\n")?.problem, .unsafeReference)
         XCTAssertEqual(problem("x.custom.yaml", "patch:\n  menu/title/+: abc\n")?.problem, .unsafeReference)
         // The same value in a dictionary's header counts, its rows do not.
         XCTAssertEqual(

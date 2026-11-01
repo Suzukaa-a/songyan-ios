@@ -136,7 +136,8 @@ final class UserConfigSafetyTests: XCTestCase {
     }
 
     func testARepeatedKeyIsKeptSoTheHiddenPairIsChecked() throws {
-        let doubled = "__patch:\n  translator/user_dict: /abs/leak\n  engine/filters/@next: lua_filter@*x\n__patch: {}\n"
+        let doubled =
+            "__patch:\n  translator/user_dict: /abs/leak\n  engine/filters/@next: lua_filter@*x\n__patch: {}\n"
         guard case .map(let entries)? = try load(doubled) else { return XCTFail("a mapping") }
         XCTAssertEqual(entries.map(\.key).sorted(), ["__patch", "__patch/="])
         XCTAssertNotNil(UserConfigSafety.unsafeReference(try load(doubled)))

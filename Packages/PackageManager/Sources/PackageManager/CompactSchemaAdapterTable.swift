@@ -112,7 +112,9 @@ public extension CompactSchemaAdapter {
         let ignored = sourceAlphabet.filter { character in
             if character.isLowercase, present.contains(character) { return false }
             if passThrough.contains(character) { return false }
-            guard uppercaseLetters.contains(character), let lowercase = character.lowercased().first else { return true }
+            guard uppercaseLetters.contains(character), let lowercase = character.lowercased().first else {
+                return true
+            }
             return !source.contains(lowercase)
         }
 

@@ -34,7 +34,9 @@ final class UserOverridesTests: XCTestCase {
     }
 
     func testACopyStartsFromThePackagesBytesAndLeavesThePackageAlone() throws {
-        let source = package(["main.schema.yaml": "schema: {schema_id: main}\n", "cn_dicts/base.dict.yaml": "---\nname: base\n...\n"])
+        let source = package([
+            "main.schema.yaml": "schema: {schema_id: main}\n", "cn_dicts/base.dict.yaml": "---\nname: base\n...\n",
+        ])
         let copy = try overrides.copyOf("cn_dicts/base.dict.yaml", package: source)
         XCTAssertEqual(try String(contentsOf: copy, encoding: .utf8), "---\nname: base\n...\n")
         XCTAssertEqual(copy.path, folder.appendingPathComponent("cn_dicts/base.dict.yaml").path)
@@ -59,13 +61,15 @@ final class UserOverridesTests: XCTestCase {
 
     func testAFileOverTheLimitOrOneTooManyIsRefused() throws {
         let big = String(repeating: "a", count: UserConfigFiles.maximumFileBytes + 1)
-        XCTAssertEqual(refusal { _ = try overrides.copyOf("big.txt", package: package(["big.txt": big])) }?.problem, .tooLarge)
+        XCTAssertEqual(
+            refusal { _ = try overrides.copyOf("big.txt", package: package(["big.txt": big])) }?.problem, .tooLarge)
 
         for index in 0..<UserConfigFiles.maximumFiles {
             try Data("a".utf8).write(to: folder.appendingPathComponent("f\(index).txt"))
         }
         XCTAssertEqual(
-            refusal { _ = try overrides.copyOf("main.schema.yaml", package: package(["main.schema.yaml": "a: 1\n"])) }?.problem,
+            refusal { _ = try overrides.copyOf("main.schema.yaml", package: package(["main.schema.yaml": "a: 1\n"])) }?
+                .problem,
             .tooMany)
     }
 
@@ -107,15 +111,20 @@ final class UserOverridesTests: XCTestCase {
 
     func testAFileTheUserMadeHasNoBaseSoItIsNeverCalledUpdated() throws {
         try Data("a: 2\n".utf8).write(to: folder.appendingPathComponent("main.schema.yaml"))
-        XCTAssertEqual(overrides.entries(package(["main.schema.yaml": "a: 3\n"])), [.init(path: "main.schema.yaml", updated: false)])
+        XCTAssertEqual(
+            overrides.entries(package(["main.schema.yaml": "a: 3\n"])),
+            [.init(path: "main.schema.yaml", updated: false)])
     }
 
     func testANameThatDiffersOnlyInCaseIsRefusedWhenBothCanExist() throws {
         try Data("a: 1\n".utf8).write(to: folder.appendingPathComponent("Main.schema.yaml"))
         // A case-insensitive volume maps both names to one file, so the copy is the existing file.
-        guard !FileManager.default.fileExists(atPath: folder.appendingPathComponent("main.schema.yaml").path) else { return }
+        guard !FileManager.default.fileExists(atPath: folder.appendingPathComponent("main.schema.yaml").path) else {
+            return
+        }
         XCTAssertEqual(
-            refusal { _ = try overrides.copyOf("main.schema.yaml", package: package(["main.schema.yaml": "a: 1\n"])) }?.problem,
+            refusal { _ = try overrides.copyOf("main.schema.yaml", package: package(["main.schema.yaml": "a: 1\n"])) }?
+                .problem,
             .name)
     }
 
@@ -127,9 +136,14 @@ final class UserOverridesTests: XCTestCase {
         XCTAssertNil(overrides.overrideFile("cn_dicts/main.schema.yaml"))
         XCTAssertNil(UserOverrides.inside(folder, "cn_dicts/main.schema.yaml"))
         XCTAssertEqual(
-            refusal { _ = try overrides.copyOf("cn_dicts/main.schema.yaml", package: package(["cn_dicts/main.schema.yaml": "a: 1\n"])) }?.problem,
+            refusal {
+                _ = try overrides.copyOf(
+                    "cn_dicts/main.schema.yaml", package: package(["cn_dicts/main.schema.yaml": "a: 1\n"]))
+            }?.problem,
             .name)
-        XCTAssertEqual(try String(contentsOf: elsewhere.appendingPathComponent("main.schema.yaml"), encoding: .utf8), "secret: 1\n")
+        XCTAssertEqual(
+            try String(contentsOf: elsewhere.appendingPathComponent("main.schema.yaml"), encoding: .utf8), "secret: 1\n"
+        )
     }
 
     func testRestoringRemovesTheFoldersItEmptiedAndOnlyThose() throws {

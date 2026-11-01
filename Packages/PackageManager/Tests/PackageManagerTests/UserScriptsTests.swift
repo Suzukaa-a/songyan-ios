@@ -33,7 +33,9 @@ final class UserScriptsTests: XCTestCase {
     }
 
     func testWhatThePackageShipsItselfIsNotAskedAbout() {
-        let source = package(["lua/own.lua": "return 1\n", "rime_ice.schema.yaml": "engine:\n  filters:\n    - lua_filter@*own\n"])
+        let source = package([
+            "lua/own.lua": "return 1\n", "rime_ice.schema.yaml": "engine:\n  filters:\n    - lua_filter@*own\n",
+        ])
         XCTAssertTrue(
             UserScripts.entries(
                 files([
@@ -109,9 +111,12 @@ final class UserScriptsTests: XCTestCase {
     func testShippedComponentsComeFromThePackagesOwnYamlAndNeverFromBuild() throws {
         let resources = FileManager.default.temporaryDirectory.appendingPathComponent("res-\(UUID().uuidString)")
         addTeardownBlock { try? FileManager.default.removeItem(at: resources) }
-        try FileManager.default.createDirectory(at: resources.appendingPathComponent("build"), withIntermediateDirectories: true)
-        try Data("engine:\n  filters:\n    - lua_filter@*shipped\n".utf8).write(to: resources.appendingPathComponent("p.schema.yaml"))
-        try Data("engine:\n  filters:\n    - lua_filter@*compiled\n".utf8).write(to: resources.appendingPathComponent("build/x.yaml"))
+        try FileManager.default.createDirectory(
+            at: resources.appendingPathComponent("build"), withIntermediateDirectories: true)
+        try Data("engine:\n  filters:\n    - lua_filter@*shipped\n".utf8).write(
+            to: resources.appendingPathComponent("p.schema.yaml"))
+        try Data("engine:\n  filters:\n    - lua_filter@*compiled\n".utf8).write(
+            to: resources.appendingPathComponent("build/x.yaml"))
         XCTAssertEqual(CompiledConfigGuard.shippedComponents(resources: resources), ["lua_filter@*shipped"])
     }
 }
