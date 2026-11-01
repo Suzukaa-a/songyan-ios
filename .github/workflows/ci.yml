@@ -1,7 +1,8 @@
 name: CI
 
 # Lint and tests on every run; which device builds run depends on the trigger
-# (see the build matrix). release.yml calls this for every release tag.
+# (see the build matrix). release.yml publishes a tag only after this passed
+# on the same commit.
 on:
   pull_request:
     paths-ignore:
@@ -16,13 +17,10 @@ on:
       - '.github/screenshots/**'
       - 'LICENSE'
   workflow_dispatch:
-  workflow_call:
 
 permissions:
   contents: read
 
-# A fixed prefix: under workflow_call github.workflow is the caller's name,
-# and sharing the caller's group would deadlock.
 concurrency:
   group: ci-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -96,12 +94,11 @@ jobs:
     timeout-minutes: 30
     strategy:
       fail-fast: false
-      # Device only: the simulator build compiles the same sources. A push to a
-      # branch or a pull request builds Release (warnings are errors, the
-      # strictest single build); a release tag builds Debug, since release.yml
-      # builds the versioned Release itself; a manual run builds both.
+      # Device only: the simulator build compiles the same sources. A push or a
+      # pull request builds Release (warnings are errors, the strictest single
+      # build); a manual run builds both.
       matrix:
-        configuration: ${{ fromJSON(((github.event_name == 'push' && github.ref_type == 'branch') || github.event_name == 'pull_request') && '["Release"]' || (github.ref_type == 'tag' && '["Debug"]' || '["Debug", "Release"]')) }}
+        configuration: ${{ fromJSON(github.event_name == 'workflow_dispatch' && '["Debug", "Release"]' || '["Release"]') }}
         platform: [device]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

@@ -1,9 +1,9 @@
 name: Release
 
 # Pushing a tag vX.Y.Z (or vX.Y.Z-suffix for a pre-release) on a commit of
-# main runs CI (lint, tests, Debug device build), then publishes a GitHub
-# Release with an ad-hoc signed IPA for re-signing installers (AltStore,
-# Sideloadly).
+# main waits for that commit's CI run on main to pass (it is not run a second
+# time), then publishes a GitHub Release with an ad-hoc signed IPA for
+# re-signing installers (AltStore, Sideloadly).
 on:
   push:
     tags:
@@ -18,8 +18,39 @@ env:
 
 jobs:
   checks:
-    name: Checks
-    uses: ./.github/workflows/ci.yml
+    name: Wait for CI
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      actions: read
+    steps:
+      - name: Wait for the CI run of this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        # A manual run (workflow_dispatch) counts too, for a commit whose push did not run CI.
+        run: |
+          while :; do
+            run="$(gh run list -R "${REPO}" --workflow ci.yml --commit "${SHA}" --limit 20 \
+              --json status,conclusion,event,url \
+              --jq '[.[] | select(.event == "push" or .event == "workflow_dispatch")][0] // empty')"
+            if [[ -z "${run}" ]]; then
+              echo "::error::no CI run on main for ${SHA}; run the CI workflow on main, then push the tag again"
+              exit 1
+            fi
+            status="$(jq -r .status <<<"${run}")"
+            conclusion="$(jq -r .conclusion <<<"${run}")"
+            url="$(jq -r .url <<<"${run}")"
+            if [[ "${status}" == completed ]]; then
+              [[ "${conclusion}" == success ]] \
+                || { echo "::error::CI for ${SHA} ended ${conclusion}: ${url}"; exit 1; }
+              echo "CI passed: ${url}"
+              exit 0
+            fi
+            echo "CI ${status}: ${url}"
+            sleep 60
+          done
 
   publish:
     name: Publish
