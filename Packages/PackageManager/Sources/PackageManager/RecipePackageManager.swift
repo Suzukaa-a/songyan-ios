@@ -16,6 +16,8 @@ public actor RecipePackageManager {
     nonisolated let sharedOpenCCDirectory: URL?
     /// The user's Rime config folder laid over every new generation; nil leaves user snapshots as they are.
     nonisolated let userConfigDirectory: URL?
+    /// Private to the app: which of the user's files replace the package's and which scripts the user agreed to.
+    nonisolated let userConfigState: UserConfigState
     /// One ephemeral transport per manager, so a prefetch/install batch reuses one
     /// session. Never a global singleton and never invalidated while a caller may
     /// still be reading: ARC releases it with the manager.
@@ -28,22 +30,25 @@ public actor RecipePackageManager {
     /// closure reads through this manager's own transport (batch reuse); an injected
     /// closure remains fully in control and is never bypassed.
     public init(
-        rootURL: URL, sharedOpenCCDirectory: URL? = nil, userConfigDirectory: URL? = nil, fetch: FetchResource? = nil
+        rootURL: URL, sharedOpenCCDirectory: URL? = nil, userConfigDirectory: URL? = nil,
+        userConfigStateDirectory: URL? = nil, fetch: FetchResource? = nil
     ) {
         self.init(
             rootURL: rootURL, sharedOpenCCDirectory: sharedOpenCCDirectory, userConfigDirectory: userConfigDirectory,
-            fetch: fetch, configuration: .ephemeral)
+            userConfigStateDirectory: userConfigStateDirectory, fetch: fetch, configuration: .ephemeral)
     }
 
     /// Designated initializer. Internal so offline tests can inject a `URLProtocol`
     /// fixture session; production always uses `.ephemeral`.
     init(
-        rootURL: URL, sharedOpenCCDirectory: URL? = nil, userConfigDirectory: URL? = nil, fetch: FetchResource? = nil,
+        rootURL: URL, sharedOpenCCDirectory: URL? = nil, userConfigDirectory: URL? = nil,
+        userConfigStateDirectory: URL? = nil, fetch: FetchResource? = nil,
         configuration: URLSessionConfiguration
     ) {
         root = rootURL.standardizedFileURL
         self.sharedOpenCCDirectory = sharedOpenCCDirectory
         self.userConfigDirectory = userConfigDirectory
+        userConfigState = UserConfigState(directory: userConfigStateDirectory)
         let transport = HTTPSResourceTransport(configuration: configuration)
         self.transport = transport
         self.fetch =
@@ -170,6 +175,7 @@ public actor RecipePackageManager {
         _ manifest: RecipeManifest, initialUserDataURL: URL?, deploy: @escaping Deploy,
         fileResources: [String: RecipeFileResource] = [:],
         expectedActiveGeneration: String?? = nil,
+        strictUserConfig: Bool = false,
         read: @escaping @Sendable (RecipeManifest.File) async throws -> Data
     ) async throws -> InstalledRecipe {
         guard !installing else { throw RecipeInstallError.busy }
@@ -215,10 +221,25 @@ public actor RecipePackageManager {
                 try fm.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
                 try data.write(to: target, options: .atomic)
             }
+            // The user's folder is read and checked once; a file that fails is left out of an import or an
+            // update, and stops an explicit apply (`strictUserConfig`) before anything of it is used.
+            let configPlan: RimeConfigFolder.Plan? =
+                try userConfigDirectory.map {
+                    try RimeConfigFolder.plan(
+                        $0,
+                        package: .installed(manifest.files, resources: resources, originals: nil),
+                        state: userConfigState, strict: strictUserConfig)
+                }
+            var overlaidScripts: [String] = []
+            if let configPlan {
+                overlaidScripts = try RimeConfigFolder.overlayScripts(
+                    configPlan, resources: resources,
+                    originals: directory.appendingPathComponent(RimeConfigFolder.originalsDirectory, isDirectory: true))
+            }
             // Imported Lua runs inside librime-lua with the full standard library. The
             // engine loads <shared>/rime.lua before any lua_* module, so every generation
             // carrying Lua gets the generated sandbox entry (prelude + package rime.lua).
-            if LuaSandbox.requiresSandbox(paths: manifest.files.map(\.path)) {
+            if LuaSandbox.requiresSandbox(paths: manifest.files.map(\.path) + overlaidScripts) {
                 let entry = resources.appendingPathComponent(LuaSandbox.entryPath)
                 let original = fm.fileExists(atPath: entry.path) ? try Data(contentsOf: entry) : nil
                 try LuaSandbox.wrap(original).write(to: entry, options: .atomic)
@@ -237,11 +258,19 @@ public actor RecipePackageManager {
                     manifest.files.filter { RecipeResourceBudget.isModel($0.path) }.map { $0.path.lowercased() })
                 try copyUserDirectory(source, to: user, topLevel: true, excludedModels: models)
             }
-            if let userConfigDirectory { try RimeConfigFolder.apply(userConfigDirectory, to: user) }
+            if let configPlan { try RimeConfigFolder.write(configPlan, to: user, overlaid: overlaidScripts) }
             try JSONEncoder().encode(manifest).write(
                 to: directory.appendingPathComponent(InstalledPackageLayout.sourceFile), options: .atomic)
             let receipt = try await deploy(
                 RecipeDeployment(manifest: manifest, resourceURL: resources, userDataURL: user))
+            // Whatever the user's patches spelled, no compiled file may name a file outside the data folders,
+            // and no Lua component may be one nobody shipped or agreed to.
+            if let configPlan, !configPlan.files.isEmpty {
+                try CompiledConfigGuard.check(
+                    build: user.appendingPathComponent(InstalledPackageLayout.buildDirectory),
+                    shipped: CompiledConfigGuard.shippedComponents(resources: resources),
+                    confirmed: UserScripts(state: userConfigState).confirmedComponents())
+            }
             let missing = Set(manifest.requiredComponents).subtracting(receipt.availableComponents).sorted()
             guard missing.isEmpty else { throw RecipeInstallError.missingComponents(missing) }
             let entry = receipt.validatedSchemaID

@@ -116,7 +116,7 @@ final class RimeConfigFolderTests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: user.appendingPathComponent("main.custom.yaml").path))
     }
 
-    func testOnlyFlatYamlAndTextFilesAreCopied() async throws {
+    func testFoldersMirrorThePackageAndOtherFileTypesAreLeftOut() async throws {
         let folder = try temporaryDirectory("rime-config")
         try write("patch: {}\n", "main.custom.yaml", in: folder)
         try write("x", "notes.md", in: folder)
@@ -131,7 +131,8 @@ final class RimeConfigFolderTests: XCTestCase {
         let user = try await installed(manager).userDataURL
         XCTAssertTrue(FileManager.default.fileExists(atPath: user.appendingPathComponent("main.custom.yaml").path))
         XCTAssertFalse(FileManager.default.fileExists(atPath: user.appendingPathComponent("notes.md").path))
-        XCTAssertFalse(FileManager.default.fileExists(atPath: user.appendingPathComponent("nested").path))
+        let nested = user.appendingPathComponent("nested/deep.custom.yaml")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: nested.path))
         XCTAssertFalse(FileManager.default.fileExists(atPath: user.appendingPathComponent("deep.custom.yaml").path))
     }
 
