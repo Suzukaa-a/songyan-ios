@@ -68,7 +68,8 @@ enum KeyboardPanelRules {
     /// come before the letter shells, and the phone pad wins over the bundled 26-key shell.
     static func keyAreaRenderer(
         page: KeyboardPage, isEnglishMode: Bool, authoredPage: KeyboardPageDefinition?,
-        facts: DefinitionResolutionMemo.Facts, showsCategorySymbolPage: @autoclosure () -> Bool
+        facts: DefinitionResolutionMemo.Facts, showsCategorySymbolPage: @autoclosure () -> Bool,
+        splitHalves: Bool = false
     ) -> KeyAreaRenderer {
         if authoredPage?.chrome != nil { return .authoredChromePage }
         if authoredPage == nil && page == .numeric && facts.isPhone { return .phoneDigitPad }
@@ -76,6 +77,8 @@ enum KeyboardPanelRules {
         if authoredPage != nil { return .authoredRows }
         guard page == .letters else { return .symbolRows }
         if !isEnglishMode && facts.isPhone { return .phonePad }
+        // The Chinese letters of a split layout draw its own split keys; English follows the rows.
+        if !isEnglishMode && splitHalves && facts.splitLetters != nil { return .splitHalves }
         if isEnglishMode || facts.isBundledQwertyMainShell { return .standardQwerty }
         return facts.isBundledMergedPad ? .mergedPad : .configuredRows
     }
@@ -198,6 +201,8 @@ enum KeyAreaRenderer: Equatable {
     case authoredRows
     /// The phone-keypad letter shell (bundled T9 and imported definitions of the same structure).
     case phonePad
+    /// The layout's own split keys, one arrangement for both halves (see `SplitLetterPage`).
+    case splitHalves
     case standardQwerty
     case mergedPad
     case configuredRows

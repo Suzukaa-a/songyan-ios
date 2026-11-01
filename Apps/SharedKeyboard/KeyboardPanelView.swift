@@ -737,7 +737,7 @@ public struct KeyboardPanelView: View {
                     phoneCategorySymbolKeypad
                 case .phonePad:
                     standardT9Keypad
-                case .authoredRows, .standardQwerty, .mergedPad, .configuredRows, .symbolRows:
+                case .authoredRows, .standardQwerty, .mergedPad, .configuredRows, .symbolRows, .splitHalves:
                     VStack(spacing: 4) {
                         if showsAllCandidates && !controller.snapshot.candidates.isEmpty {
                             expandedCandidates

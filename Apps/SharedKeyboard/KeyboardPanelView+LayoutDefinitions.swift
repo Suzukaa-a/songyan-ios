@@ -353,6 +353,12 @@ final class DefinitionResolutionMemo {
         let candidateAreaRequired: Bool
         let controlRow: LayoutRow?
         let mainRows: [LayoutRow]
+        /// The layout's own split keys dressed for the letters page (resolved here once, never per
+        /// key press), or nil without explicit halves or when they do not fit the layout.
+        let splitLetters: SplitLetterPage.Arrangement?
+        /// The cut of the author control row when the split arrangement edited the footer: the
+        /// number of its keys left of the gutter. Nil keeps the bundled or whole-row footer.
+        let splitFooterBreak: Int?
         let hasGlobe: Bool
         /// A main-row or side key draws from the composition (Return, clear input, the
         /// `'` separator); see `keyRowsReadComposition`.
@@ -382,19 +388,27 @@ final class DefinitionResolutionMemo {
             isBundledQwertyMainShell = active.map { BuiltinLayouts.matchesMainShell($0, as: .qwerty26) } == true
             usesStandardQwertyColumns =
                 active.map { BuiltinLayouts.matchesMainShellColumns($0, as: .qwerty26) } == true
+            // A footer the split arrangement edited is the author's row, so the bundled footer
+            // policy (which ignores declared keys) no longer applies.
+            let splitFooter = active.flatMap { definition in
+                definition.split?.halves.flatMap { halves in
+                    halves.count == definition.rows.count ? halves.last : nil
+                }
+            }
+            let footerEdited = splitFooter.map { LayoutRow(keys: $0.wholeKeys) != active?.rows.last } ?? false
             switch active?.input.builtinLayout {
             case .some(.merged14):
                 isBundledMergedPad = active.map { BuiltinLayouts.matchesMainShell($0, as: .merged14) } == true
                 isBundledControlRowPolicy =
-                    active.map { BuiltinLayouts.matchesControlRowPolicy($0, as: .merged14) } == true
+                    !footerEdited && active.map { BuiltinLayouts.matchesControlRowPolicy($0, as: .merged14) } == true
             case .some(.merged18):
                 isBundledMergedPad = active.map { BuiltinLayouts.matchesMainShell($0, as: .merged18) } == true
                 isBundledControlRowPolicy =
-                    active.map { BuiltinLayouts.matchesControlRowPolicy($0, as: .merged18) } == true
+                    !footerEdited && active.map { BuiltinLayouts.matchesControlRowPolicy($0, as: .merged18) } == true
             case .some(.qwerty26):
                 isBundledMergedPad = false
                 isBundledControlRowPolicy =
-                    active.map { BuiltinLayouts.matchesControlRowPolicy($0, as: .qwerty26) } == true
+                    !footerEdited && active.map { BuiltinLayouts.matchesControlRowPolicy($0, as: .qwerty26) } == true
             default:
                 isBundledMergedPad = false
                 isBundledControlRowPolicy = false
@@ -409,10 +423,26 @@ final class DefinitionResolutionMemo {
             let controlRow = Self.controlRow(
                 of: active,
                 isBundled: isBundled || isBuiltinPhonePad || isBundledControlRowPolicy)
-            self.controlRow = controlRow
             let rows = active?.rows ?? []
             let mainRows = controlRow == nil ? rows : Array(rows.dropLast())
             self.mainRows = mainRows
+            if footerEdited, controlRow != nil, let splitFooter {
+                self.controlRow = LayoutRow(keys: splitFooter.wholeKeys)
+                splitFooterBreak = splitFooter.left.filter { $0.action.type != .space }.count
+            } else {
+                self.controlRow = controlRow
+                splitFooterBreak = nil
+            }
+            // The shape recognisers above read the whole rows; only drawing reads the halves.
+            let shell: SplitLetterPage.Shell =
+                isBundledQwertyMainShell ? .qwerty : (isBundledMergedPad ? .merged : .declared)
+            splitLetters =
+                isPhone
+                ? nil
+                : active?.split?.halves.flatMap {
+                    SplitLetterPage.arrangement(
+                        halves: $0, mainRowCount: mainRows.count, hasControlRow: controlRow != nil, shell: shell)
+                }
             mainKeysReadComposition = (mainRows.flatMap(\.keys) + (active?.auxiliaryAreas ?? []).flatMap(\.keys))
                 .contains {
                     $0.action.type == .enter || $0.action.type == .clearInput

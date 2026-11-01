@@ -13,6 +13,8 @@ extension KeyboardPanelView {
         switch keyAreaRenderer {
         case .authoredRows:
             if let pageDefinition { authoredPage(pageDefinition) }
+        case .splitHalves:
+            splitHalvesKeypad
         case .standardQwerty:
             standardQwertyKeypad
         case .mergedPad:
@@ -197,7 +199,44 @@ extension KeyboardPanelView {
         if everydayMarkRows != nil { return .symbolRows }
         return KeyboardPanelRules.keyAreaRenderer(
             page: page, isEnglishMode: controller.isEnglishMode, authoredPage: pageDefinition,
-            facts: definitionFacts, showsCategorySymbolPage: showsCategorySymbolPage)
+            facts: definitionFacts, showsCategorySymbolPage: showsCategorySymbolPage,
+            splitHalves: activeSplit?.halves != nil)
+    }
+
+    /// The Chinese letters of a layout with its own split keys. The bundled shells keep their native
+    /// Shift (or word split) and Delete; an author's rows draw as declared.
+    @ViewBuilder
+    private var splitHalvesKeypad: some View {
+        if let split = activeSplit, let rows = definitionFacts.splitLetters?.rows {
+            let reachable = jumpLayouts
+            let hasSwitch = systemKeyboardSwitch != nil
+            KeyboardSplitHalvesPad(
+                rows: rows, split: split,
+                isVisible: { ($0.action.type != .globe || hasSwitch) && $0.action.isUsableJump(among: reachable) },
+                key: { key, row, index in splitHalvesKey(key, id: "split-\(row)-\(index)") })
+        }
+    }
+
+    @ViewBuilder
+    private func splitHalvesKey(_ key: LayoutKey, id: String) -> some View {
+        let facts = definitionFacts
+        let native = facts.isBundledQwertyMainShell || facts.isBundledMergedPad
+        if native && key.action.type == .shift {
+            if facts.isBundledMergedPad {
+                KeyboardMergedSeparatorKey(isComposing: controller.snapshot.isComposing) {
+                    handleDefinitionAction(.code("'"))
+                }
+            } else {
+                ShiftKey(
+                    state: controller.shiftState, isEnglishMode: false,
+                    tap: { keyFeedbackAfterEffect { controller.handleShiftTap() } },
+                    doubleTap: { keyFeedbackAfterEffect { controller.handleShiftDoubleTap() } })
+            }
+        } else if native && key.action.type == .backspace {
+            RepeatingDeleteKey { repeating in handleKey(.backspace, emitFeedback: !repeating) }
+        } else {
+            definitionKey(key, id: id)
+        }
     }
 
     private var standardQwertyKeypad: some View {

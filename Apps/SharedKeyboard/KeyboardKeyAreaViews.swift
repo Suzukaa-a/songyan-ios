@@ -156,6 +156,51 @@ struct KeyboardStandardQwertyPad<Row: View, Shift: View, Delete: View>: View {
     }
 }
 
+/// The letter rows of a layout's own split arrangement: each row is its left keys, the gutter and
+/// its right keys. One key unit and one gutter are solved for the widest row (`SplitHalvesGeometry`),
+/// so the halves keep their outer edges and every row has the same key size.
+struct KeyboardSplitHalvesPad<Key: View>: View {
+    @Environment(\.keyboardKeyHeight) private var keyHeight
+    let rows: [LayoutSplitRow]
+    let split: ActiveLayoutSplit
+    /// Keys that cannot work here (a globe without a system switcher) are left out of their half.
+    var isVisible: (LayoutKey) -> Bool = { _ in true }
+    /// Receives the key, its row and its index in the whole row.
+    @ViewBuilder var key: (LayoutKey, Int, Int) -> Key
+
+    var body: some View {
+        let shown = rows.map {
+            LayoutSplitRow(left: $0.left.filter(isVisible), right: $0.right.filter(isVisible))
+        }
+        GeometryReader { proxy in
+            let geometry = SplitHalvesGeometry(width: Double(proxy.size.width), rows: shown, split: split)
+            VStack(spacing: 4) {
+                ForEach(shown.indices, id: \.self) { row in
+                    let cut = shown[row]
+                    let opensGutter = geometry.gap > 0 && !cut.left.isEmpty && !cut.right.isEmpty
+                    HStack(spacing: 4) {
+                        half(cut.left, row: row, first: 0, geometry: geometry)
+                        if opensGutter { Spacer(minLength: max(0, geometry.gap - 8)) }
+                        half(cut.right, row: row, first: cut.left.count, geometry: geometry)
+                    }
+                    .frame(
+                        width: proxy.size.width, height: keyHeight,
+                        alignment: opensGutter ? .center : (cut.left.isEmpty ? .trailing : .leading))
+                }
+            }
+        }
+        .frame(height: CGFloat(max(1, rows.count)) * (keyHeight + 4) - 4)
+    }
+
+    @ViewBuilder
+    private func half(_ keys: [LayoutKey], row: Int, first: Int, geometry: SplitHalvesGeometry) -> some View {
+        ForEach(Array(keys.enumerated()), id: \.offset) { index, value in
+            key(value, row, first + index)
+                .frame(width: CGFloat(geometry.width(of: value)), height: keyHeight)
+        }
+    }
+}
+
 /// Bundled merged letter pad (14-key, 18-key): the definition's rows at their weighted widths
 /// (`MergedKeypadGeometry`), with the separator in the Shift slot and Delete closing the last row.
 struct KeyboardMergedPad<Key: View, Separator: View, Delete: View>: View {

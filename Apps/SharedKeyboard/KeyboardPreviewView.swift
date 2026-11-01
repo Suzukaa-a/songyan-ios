@@ -129,7 +129,14 @@ private struct KeyboardMainLayoutPreview: View {
     private var renderer: KeyAreaRenderer {
         KeyboardPanelRules.keyAreaRenderer(
             page: page, isEnglishMode: isEnglishMode, authoredPage: nil, facts: facts,
-            showsCategorySymbolPage: false)
+            showsCategorySymbolPage: false, splitHalves: activeSplit?.halves != nil)
+    }
+
+    private var activeSplit: ActiveLayoutSplit? {
+        KeyboardPanelRules.activeSplit(
+            main: facts.handSplit ?? definition.split, mainWidth: widths.mainSplit,
+            showsMainLetters: usesConfiguredLayout, pageSplit: nil, contentWidth: widths.content,
+            showsEnglishLetters: page == .letters && isEnglishMode && facts.handSplit != nil)
     }
     private var usesConfiguredLayout: Bool { page == .letters && !isEnglishMode }
     private var usesStandardT9: Bool { renderer == .phonePad }
@@ -159,10 +166,7 @@ private struct KeyboardMainLayoutPreview: View {
     }
 
     var body: some View {
-        let split = KeyboardPanelRules.activeSplit(
-            main: facts.handSplit ?? definition.split, mainWidth: widths.mainSplit,
-            showsMainLetters: usesConfiguredLayout, pageSplit: nil, contentWidth: widths.content,
-            showsEnglishLetters: page == .letters && isEnglishMode && facts.handSplit != nil)
+        let split = activeSplit
         let geometry = geometry
         VStack(spacing: 0) {
             Group {
@@ -212,6 +216,12 @@ private struct KeyboardMainLayoutPreview: View {
     @ViewBuilder
     private func keyRows(split: ActiveLayoutSplit?) -> some View {
         switch renderer {
+        case .splitHalves:
+            if let split, let rows = facts.splitLetters?.rows {
+                KeyboardSplitHalvesPad(
+                    rows: rows, split: split, isVisible: { showsGlobe || $0.action.type != .globe },
+                    key: { key, row, index in keyFace(key, path: nil, id: "split-\(row)-\(index)") })
+            }
         case .standardQwerty:
             KeyboardStandardQwertyPad(
                 split: split,
@@ -411,8 +421,12 @@ private struct KeyboardMainLayoutPreview: View {
     private func layoutUtilityBar(split: ActiveLayoutSplit?) -> some View {
         let row = editing ? (facts.controlRow == nil ? nil : definition.rows.last) : facts.controlRow
         let rowIndex = definition.rows.count - 1
+        // A footer the split arrangement edited has its own cut.
+        let footerSplit = facts.splitFooterBreak.flatMap { cut in
+            split?.settingBreak(row: facts.mainRows.count, to: cut)
+        }
         return KeyboardLayoutUtilityBar(
-            controlRow: row, rowIndex: facts.mainRows.count, split: split,
+            controlRow: row, rowIndex: facts.mainRows.count, split: footerSplit ?? split,
             showsGlobe: showsGlobe, definitionHasGlobe: facts.hasGlobe, onPage: { _ in },
             key: { key, id, index in keyFace(key, path: index < 0 ? nil : .row(rowIndex, key: index), id: id) },
             globe: { NativeInputModeKey(handleEvent: { _, _ in }, accessibilitySwitch: {}) },

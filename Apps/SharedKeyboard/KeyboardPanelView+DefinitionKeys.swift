@@ -47,6 +47,12 @@ extension KeyboardPanelView {
         }
     }
 
+    /// The footer's cut: the split arrangement's own when it edited the footer, else the split's.
+    var footerSplit: ActiveLayoutSplit? {
+        guard let split = activeSplit, let cut = definitionFacts.splitFooterBreak else { return activeSplit }
+        return split.settingBreak(row: definitionMainRows.count, to: cut)
+    }
+
     @ViewBuilder
     func auxiliaryColumn(_ position: LayoutAuxiliaryArea.Position) -> some View {
         // Called only by `configuredKeypad` (i.e. `usesStandardT9 == false`), so no always-true condition such as
@@ -686,7 +692,7 @@ extension KeyboardPanelView {
 
     var layoutUtilityBar: some View {
         KeyboardLayoutUtilityBar(
-            controlRow: definitionControlRow, rowIndex: definitionMainRows.count, split: activeSplit,
+            controlRow: definitionControlRow, rowIndex: definitionMainRows.count, split: footerSplit,
             showsGlobe: systemKeyboardSwitch != nil, definitionHasGlobe: definitionHasGlobe,
             onPage: { target in
                 emitKeyFeedback()
