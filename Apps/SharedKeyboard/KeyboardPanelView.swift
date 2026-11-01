@@ -852,6 +852,13 @@ public struct KeyboardPanelView: View {
             // successfulChange; the real definition content and pairing values are the source of truth.
             .onChange(of: selectedComposition) { clearSymbolMarksOverride() }
             .onChange(of: controller.successfulChange) {
+                // A switch the jump did not make (the keyboard menu) ends the visit for good.
+                if let visit = controller.layoutJumpVisit, let change = controller.successfulChange,
+                    change.layout.rawValue != visit.visited.layout.rawValue
+                        || change.schemaID != visit.visited.schemaID
+                {
+                    controller.layoutJumpVisit = nil
+                }
                 consumeLayoutChange()
                 clearSymbolMarksOverride()
             }
@@ -870,7 +877,11 @@ public struct KeyboardPanelView: View {
                 showsAllCandidates = false
                 typedOnSymbolPage = false
                 showsEverydayMarksPage = true
-                if page == .letters { clearSymbolMarksOverride() }
+                if page == .letters {
+                    clearSymbolMarksOverride()
+                    // Every 返回 path lands here, including the 9 键 123 pad's own key.
+                    endLayoutJumpVisit()
+                }
                 if authoredPageMissingInputModeSwitchFallback { showAuthoredPageNeedsGlobeHint() }
                 // Decided once per visit: committing the composition with the first symbol
                 // must not resize every key row under the finger.

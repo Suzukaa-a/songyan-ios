@@ -244,6 +244,9 @@ public final class KeyboardController: ObservableObject {
         }
     }
     public var onSelectionChanged: ((KeyboardSelectionChange) -> Void)?
+    /// The user's own layout while a jump key has them on another one. Lives here, not in the
+    /// panel, so a panel rebuilt for a new field still finds it.
+    var layoutJumpVisit: LayoutPageJumpVisit?
 
     // MARK: ABC word guessing state (see KeyboardController+EnglishSuggestions.swift)
 

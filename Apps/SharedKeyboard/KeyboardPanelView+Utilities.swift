@@ -139,6 +139,7 @@ extension KeyboardPanelView {
     }
 
     func syncHostPage() {
+        endLayoutJumpVisit()
         page = controller.hostPreferredInput == .numeric ? .numeric : .letters
     }
 }

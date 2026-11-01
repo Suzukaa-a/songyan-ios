@@ -451,8 +451,10 @@ extension KeyboardPanelView {
     var jumpLayouts: Set<LayoutInput.Builtin> { jumpMemo.reachable(for: controller) }
 
     /// A jump key: the target layout becomes the running one through the same joint switch the
-    /// keyboard menu uses (the input method follows, e.g. 9 键 runs its compact companion), then its
-    /// page opens. Its 返回 lands on that layout's letters, which stay until the user switches back.
+    /// keyboard menu does (the input method follows, e.g. 9 键 runs its compact companion), then its
+    /// page opens. The jump is a visit, not the user's choice: the layout they came from is kept in
+    /// `controller.layoutJumpVisit` and 返回 (or a new field) switches back to it. The switch is
+    /// still remembered like a menu switch while the visit lasts, so the visit must end first.
     /// A target the running input method cannot use, or a switch the session refused, changes nothing.
     func performLayoutPageJump(_ action: LayoutAction) {
         guard let running = LayoutInput.Builtin(rawValue: controller.layout.rawValue) else { return }
@@ -464,17 +466,36 @@ extension KeyboardPanelView {
             openJumpPage(target)
         case .switchLayout(let layout, let target):
             guard let kind = KeyboardLayoutKind(rawValue: layout.rawValue) else { return }
-            let schemaID = controller.selectedSchemaID
-            selectionFeedbackAfterEffect {
-                if let onSelectLayoutBound {
-                    onSelectLayoutBound(kind, schemaID)
-                } else {
-                    controller.selectLayout(kind, boundSchemaID: schemaID)
-                }
-            }
+            let from = LayoutPageJumpVisit.Place(layout: running, schemaID: controller.selectedSchemaID)
+            let schemaID = from.schemaID
+            selectionFeedbackAfterEffect { switchLayoutForJump(kind, schemaID) }
             guard controller.layout == kind else { return }
+            controller.layoutJumpVisit = .after(
+                jumpingFrom: from, landedOn: .init(layout: layout, schemaID: controller.selectedSchemaID),
+                continuing: controller.layoutJumpVisit)
             openJumpPage(target)
         }
+    }
+
+    private func switchLayoutForJump(_ kind: KeyboardLayoutKind, _ schemaID: String) {
+        if let onSelectLayoutBound {
+            onSelectLayoutBound(kind, schemaID)
+        } else {
+            controller.selectLayout(kind, boundSchemaID: schemaID)
+        }
+    }
+
+    /// Ends a jump visit: the user's own layout comes back. Does nothing when no visit is open or
+    /// the user already left the visited layout another way.
+    func endLayoutJumpVisit() {
+        guard let visit = controller.layoutJumpVisit else { return }
+        controller.layoutJumpVisit = nil
+        guard let running = LayoutInput.Builtin(rawValue: controller.layout.rawValue),
+            let target = visit.restoreTarget(
+                running: .init(layout: running, schemaID: controller.selectedSchemaID)),
+            let kind = KeyboardLayoutKind(rawValue: target.layout.rawValue)
+        else { return }
+        switchLayoutForJump(kind, target.schemaID)
     }
 
     private func openJumpPage(_ target: LayoutAction.PageTarget) {

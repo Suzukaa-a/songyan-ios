@@ -155,4 +155,34 @@ final class LayoutPageJumpTests: XCTestCase {
                 for: LayoutAction(.layoutPageSwitch, value: "phone9:letters"), running: .qwerty26, reachable: all),
             .ignore)
     }
+
+    // MARK: A jump is a visit
+
+    private typealias Place = LayoutPageJumpVisit.Place
+    private let own = Place(layout: .qwerty26, schemaID: "own")
+    private let nine = Place(layout: .phone9, schemaID: "nine")
+    private let other = Place(layout: .merged14, schemaID: "other")
+
+    func testReturnGoesBackToTheLayoutTheUserJumpedFrom() {
+        let visit = LayoutPageJumpVisit.after(jumpingFrom: own, landedOn: nine, continuing: nil)
+        XCTAssertEqual(visit.restoreTarget(running: nine), own)
+    }
+
+    func testAJumpFromTheVisitedLayoutKeepsTheUsersOwnLayout() {
+        let first = LayoutPageJumpVisit.after(jumpingFrom: own, landedOn: nine, continuing: nil)
+        let second = LayoutPageJumpVisit.after(jumpingFrom: nine, landedOn: other, continuing: first)
+        XCTAssertEqual(second.restoreTarget(running: other), own)
+    }
+
+    func testAStaleVisitDoesNotOverrideALayoutChosenSince() {
+        let stale = LayoutPageJumpVisit.after(jumpingFrom: own, landedOn: nine, continuing: nil)
+        let fresh = LayoutPageJumpVisit.after(jumpingFrom: other, landedOn: nine, continuing: stale)
+        XCTAssertEqual(fresh.restoreTarget(running: nine), other)
+        XCTAssertNil(stale.restoreTarget(running: other))
+    }
+
+    func testNothingToRestoreWhenAlreadyOnTheOwnLayout() {
+        let visit = LayoutPageJumpVisit.after(jumpingFrom: own, landedOn: own, continuing: nil)
+        XCTAssertNil(visit.restoreTarget(running: own))
+    }
 }

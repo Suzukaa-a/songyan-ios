@@ -20,3 +20,35 @@ public enum LayoutPageJumpPlan: Equatable, Sendable {
         return reachable.contains(jump.layout) ? .switchLayout(jump.layout, thenOpen: jump.page) : .ignore
     }
 }
+
+/// A jump to another layout is a visit: the user's own layout and input method come back when the
+/// visit ends. Pure so where 返回 goes is tested without a keyboard.
+public struct LayoutPageJumpVisit: Equatable, Sendable {
+    public struct Place: Equatable, Sendable {
+        public let layout: LayoutInput.Builtin
+        public let schemaID: String
+        public init(layout: LayoutInput.Builtin, schemaID: String) {
+            self.layout = layout
+            self.schemaID = schemaID
+        }
+    }
+
+    /// The user's own layout, kept from the first jump of a chain.
+    public let origin: Place
+    /// What the last jump switched to.
+    public let visited: Place
+
+    /// The visit a jump from `running` starts or continues, once it landed on `visited`.
+    public static func after(
+        jumpingFrom running: Place, landedOn visited: Place, continuing existing: LayoutPageJumpVisit?
+    ) -> LayoutPageJumpVisit {
+        let origin = existing.flatMap { $0.visited == running ? $0.origin : nil } ?? running
+        return LayoutPageJumpVisit(origin: origin, visited: visited)
+    }
+
+    /// Where to switch back to, or nil when the user already left the visited layout some other way
+    /// (the visit is over and nothing is restored) or is on the origin already.
+    public func restoreTarget(running: Place) -> Place? {
+        running == visited && running != origin ? origin : nil
+    }
+}
