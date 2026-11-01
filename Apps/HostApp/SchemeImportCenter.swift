@@ -278,7 +278,7 @@ final class SchemeImportCenter: ObservableObject {
             rootURL: Self.storeRoot.appendingPathComponent(id),
             sharedOpenCCDirectory: Bundle.main.url(
                 forResource: "opencc", withExtension: nil, subdirectory: "EngineResources"),
-            userConfigDirectory: HostStorePaths.rimeConfig)
+            userConfigDirectory: HostStorePaths.rimeConfig, userConfigStateDirectory: HostStorePaths.rimeConfigState)
     }
 
     /// An installed package's quiescent workspace captured for recipe planning: the effective

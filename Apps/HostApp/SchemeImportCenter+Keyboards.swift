@@ -146,23 +146,48 @@ extension SchemeImportCenter {
         }
     }
 
+    /// How applying the 「Rime 配置」 folder ended.
+    enum RimeConfigApplyResult: Equatable {
+        /// Applied or refused; the text is ready to show. `overrides` are the user's files that replace a
+        /// package file and that the user has not been told about yet.
+        case finished(String, applied: Bool, overrides: [String])
+        /// Scripts that are new or changed need the user's yes first; nothing was applied.
+        case needsConfirmation(scripts: [String], keys: [String], firstTime: Bool)
+    }
+
+    /// The package the keyboard uses and its manager, for the user's own Rime files; nil when the keyboard
+    /// is not on an input scheme.
+    func rimeConfigTarget() async -> (packageID: String, manager: RecipePackageManager)? {
+        guard let shared = try? await loadSharedActivation(), shared.kind == .userScheme,
+            let packageID = shared.packageID
+        else { return nil }
+        return (packageID, manager(packageID))
+    }
+
     /// Reinstalls the scheme in use from its own files so the 「Rime 配置」 folder takes effect, then
-    /// republishes its keyboards as `rebuildAdaptersIfOutdated` does. Returns the text to show.
-    func applyRimeConfig() async -> String {
-        guard !busy else { return "还有别的操作没做完，请稍后再试。" }
+    /// republishes its keyboards as `rebuildAdaptersIfOutdated` does. Scripts the user has not agreed to
+    /// yet come back as `needsConfirmation`; the keys it carries go back with the yes.
+    func applyRimeConfig(confirmed: [String] = []) async -> RimeConfigApplyResult {
+        guard !busy else { return .finished("还有别的操作没做完，请稍后再试。", applied: false, overrides: []) }
         busy = true
         defer { busy = false }
         let failed = "改动没能生效，键盘仍用原来的设置。"
+        func refused(_ text: String) -> RimeConfigApplyResult { .finished(text, applied: false, overrides: []) }
         do {
             guard let shared = try await loadSharedActivation(), shared.kind == .userScheme,
                 let packageID = shared.packageID
-            else { return "正在使用的键盘不是来自输入方案，这里的文件对它不起作用。" }
+            else { return refused("正在使用的键盘不是来自输入方案，这里的文件对它不起作用。") }
             let active = try await activeRecipe(packageID: packageID)
             // A pending update the user has not chosen is never applied on the side.
             guard shared.revision == active.installation.revision else {
-                return "这个输入方案有新版本还没使用，先使用新版本再应用更改。"
+                return refused("这个输入方案有新版本还没使用，先使用新版本再应用更改。")
             }
             let store = manager(packageID)
+            if case .needsConfirmation(let scripts, let keys, let firstTime) = try await store.rimeConfigReadiness(
+                confirmed: confirmed)
+            {
+                return .needsConfirmation(scripts: scripts, keys: keys, firstTime: firstTime)
+            }
             let name = installedPackages.first { $0.id == packageID }?.name ?? packageID
             let tasks = PublishedKeyboard.generationTasks(for: shared.keyboards)
             try await EngineOwnershipCoordinator.shared.withExclusive {
@@ -176,13 +201,19 @@ extension SchemeImportCenter {
             try await publishRoster(
                 packageID: packageID, roster: shared.keyboards, selection: nil,
                 prepare: false, added: nil, baseline: .publication(shared), preservingSelection: true)
+            let told = (try? await store.rimeConfigOverview().unacknowledged) ?? []
             let unused = (try? await store.unusedRimeConfigFiles()) ?? []
-            guard !unused.isEmpty else { return "已应用更改。" }
+            guard !unused.isEmpty else { return .finished("已应用更改。", applied: true, overrides: told) }
             let names = unused.map { "「\($0)」" }.joined(separator: "")
-            return "已应用更改，但\(names)没有用上。文件不能超过 4 MB，要用 UTF-8 编码，也不能和松烟自己的设置文件同名。"
+            return .finished(
+                "已应用更改，但\(names)没有用上。文件不能超过 4 MB，要用 UTF-8 编码，也不能和松烟自己的设置文件同名。",
+                applied: true, overrides: told)
+        } catch let error as UserConfigError {
+            HostLog.append("rime config refused: \(error.problem) \(error.file ?? "")")
+            return refused(error.errorDescription ?? failed)
         } catch {
             HostLog.append("rime config apply failed: \(error.localizedDescription)")
-            return failed + "检查最近改过的文件后再试。"
+            return refused(failed + "检查最近改过的文件后再试。")
         }
     }
 

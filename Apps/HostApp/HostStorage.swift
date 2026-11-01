@@ -15,6 +15,11 @@ enum HostStorePaths {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
             .appendingPathComponent(RimeConfigFolder.name, isDirectory: true)
     }
+    /// What the app knows about those files (which replace a package file, which scripts the user agreed to);
+    /// private, because any app the user lets into the folder can write the files themselves.
+    static var rimeConfigState: URL {
+        applicationSupport.appendingPathComponent("RimeConfigState", isDirectory: true)
+    }
 }
 
 extension HostStorePaths {
