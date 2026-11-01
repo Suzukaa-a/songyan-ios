@@ -201,6 +201,9 @@ extension RimeEngine {
                 let sources = [configuration.userDirectory, configuration.sharedDirectory]
                     .map { $0.appendingPathComponent(id + ".schema.yaml") }
                 guard let source = sources.first(where: { fm.fileExists(atPath: $0.path) }) else {
+                    // A dependency the package does not ship (a reverse lookup relying on a desktop
+                    // Rime's shared luna_pinyin, say) is skipped as librime skips it.
+                    if !schemaIDs.contains(id) { return }
                     throw RimeEngineError.operationFailed("缺少配套方案文件：\(id).schema.yaml")
                 }
                 try deploySchemaFile(source)
@@ -218,6 +221,7 @@ extension RimeEngine {
         var visited = Set<String>()
         func visit(_ id: String) throws {
             guard visited.insert(id).inserted else { return }
+            if id != schemaID, isUnshippedDependency(id, build: build) { return }
             guard !id.isEmpty, !id.contains("/"), !id.contains(".."),
                 FileManager.default.fileExists(atPath: build.appendingPathComponent(id + ".schema.yaml").path),
                 schemaValue(id, key: "schema/schema_id") == id
@@ -227,6 +231,16 @@ extension RimeEngine {
             for dependency in schemaStringList(id, key: "schema/dependencies") ?? [] { try visit(dependency) }
         }
         try visit(schemaID)
+    }
+
+    /// A declared dependency with neither a build nor a source anywhere: librime deploys the schema
+    /// without it, and only the lookup that needed it is absent. One whose source exists must build.
+    private func isUnshippedDependency(_ id: String, build: URL) -> Bool {
+        guard !id.isEmpty, !id.contains("/"), !id.contains("\\"), !id.contains("..") else { return false }
+        let name = id + ".schema.yaml"
+        return [build, configuration.userDirectory, configuration.sharedDirectory].allSatisfy {
+            !FileManager.default.fileExists(atPath: $0.appendingPathComponent(name).path)
+        }
     }
 
     /// Copies an effective scalar list from the deployed config. nil means absent/non-list or
