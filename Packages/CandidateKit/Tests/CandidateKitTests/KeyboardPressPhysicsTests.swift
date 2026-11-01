@@ -13,25 +13,27 @@ final class KeyboardPressPhysicsTests: XCTestCase {
 
     // MARK: Reused key view
 
-    /// A page switch keeps the key view in its slot; the release spring started by the old
-    /// key's lift must not keep playing on the key that now fills the slot.
-    func testCancelReleaseDropsTheInFlightSpringOfTheOldKey() {
-        let container = CALayer()
-        container.bounds = CGRect(x: 0, y: 0, width: 40, height: 40)
-        let cap = CALayer()
-        cap.frame = container.bounds
-        let animator = KeyboardKeyReleaseAnimator()
-        animator.updatePressVisual(container: container, layers: [cap], isPressed: true)
-        animator.updatePressVisual(container: container, layers: [cap], isPressed: false)
-        XCTAssertNotNil(cap.animationKeys(), "the lift starts a release spring")
+    #if canImport(UIKit)
+        /// A page switch keeps the key view in its slot; the release spring started by the old
+        /// key's lift must not keep playing on the key that now fills the slot.
+        func testCancelReleaseDropsTheInFlightSpringOfTheOldKey() {
+            let container = CALayer()
+            container.bounds = CGRect(x: 0, y: 0, width: 40, height: 40)
+            let cap = CALayer()
+            cap.frame = container.bounds
+            let animator = KeyboardKeyReleaseAnimator()
+            animator.updatePressVisual(container: container, layers: [cap], isPressed: true)
+            animator.updatePressVisual(container: container, layers: [cap], isPressed: false)
+            XCTAssertNotNil(cap.animationKeys(), "the lift starts a release spring")
 
-        animator.cancelRelease(layers: [cap])
-        XCTAssertNil(cap.animationKeys())
-        XCTAssertTrue(CATransform3DIsIdentity(cap.transform))
+            animator.cancelRelease(layers: [cap])
+            XCTAssertNil(cap.animationKeys())
+            XCTAssertTrue(CATransform3DIsIdentity(cap.transform))
 
-        animator.updatePressVisual(container: container, layers: [cap], isPressed: false)
-        XCTAssertNil(cap.animationKeys(), "the new key is not treated as just released")
-    }
+            animator.updatePressVisual(container: container, layers: [cap], isPressed: false)
+            XCTAssertNil(cap.animationKeys(), "the new key is not treated as just released")
+        }
+    #endif
 
     // MARK: Feel
 
