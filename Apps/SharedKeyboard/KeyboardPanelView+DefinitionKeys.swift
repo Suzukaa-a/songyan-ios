@@ -394,9 +394,11 @@ extension KeyboardPanelView {
             let letterGroup = LetterGroupLayout.group(of: key) ?? []
             let presetKey = knownMainShellPresetKey(for: id, key: key)
             let knownShellFaceUnchanged = presetKey.map { bundledKeyFaceUnchanged(key, preset: $0) } == true
-            let groupHints =
+            let showsLetterHints =
                 page == .letters && !controller.isEnglishMode
-                    && ShuangpinHintOverlay.letterGroups(for: activeDefinition) != nil
+                && ShuangpinHintOverlay.letterGroups(for: activeDefinition) != nil
+            let groupHints =
+                showsLetterHints
                 ? ShuangpinHintOverlay.hints(
                     for: key, labels: shuangpinHints?.activePreset?.hints ?? [:],
                     // A known bundled main shell keeps its bundled hint policy while its face is
@@ -515,6 +517,8 @@ extension KeyboardPanelView {
                 swipeDown: flick.down,
                 flickEligible: digitFlick != nil || flick.eligible,
                 syllableHintBelow: overlayHint != nil,
+                // A letter without a hint keeps the band, so the row's letters share one baseline.
+                reservesHintBand: showsLetterHints && !letterGroup.isEmpty && shuangpinHints?.activePreset != nil,
                 accessibilityHintOverride: cycleHint
             ) { selected in
                 // Only a **short press of the main key** cycles. The long-press `1` popup (and any future alternate) must take

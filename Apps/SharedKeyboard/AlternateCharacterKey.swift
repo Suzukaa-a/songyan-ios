@@ -68,6 +68,9 @@ struct AlternateCharacterKey: UIViewRepresentable {
     /// letter and keep the corner for the first long-press alternate (the digit),
     /// as on the quanpin 26-key.
     var syllableHintBelow = false
+    /// The layout shows hints on its letter keys: a key without a hint still keeps the band, so the
+    /// letters of a row share one baseline.
+    var reservesHintBand = false
     /// Overrides the default AX hint. The default only describes "long-press alternate", which is wrong for a tap-cycling key
     /// (the 9-key idle first key); that key must announce the real cycling order.
     var accessibilityHintOverride: String? = nil
@@ -88,7 +91,7 @@ struct AlternateCharacterKey: UIViewRepresentable {
             visualRole: visualRole, titleSize: titleSize, letterGroup: letterGroup,
             groupHints: groupHints, letterSwipe: letterSwipe,
             swipeUp: swipeUp, swipeDown: swipeDown, flickEligible: flickEligible,
-            syllableHintBelow: syllableHintBelow,
+            syllableHintBelow: syllableHintBelow, reservesHintBand: reservesHintBand,
             accessibilityHintOverride: accessibilityHintOverride, onSelect: onSelect)
         button.isEnabled = isEnabled
         return button
@@ -107,7 +110,7 @@ struct AlternateCharacterKey: UIViewRepresentable {
             visualRole: visualRole, titleSize: titleSize, letterGroup: letterGroup,
             groupHints: groupHints, letterSwipe: letterSwipe,
             swipeUp: swipeUp, swipeDown: swipeDown, flickEligible: flickEligible,
-            syllableHintBelow: syllableHintBelow,
+            syllableHintBelow: syllableHintBelow, reservesHintBand: reservesHintBand,
             accessibilityHintOverride: accessibilityHintOverride, onSelect: onSelect)
         // `isEnabled` repaints the cap in its setter; only write a real change.
         if button.isEnabled != isEnabled { button.isEnabled = isEnabled }
@@ -167,12 +170,6 @@ struct AlternateCharacterKey: UIViewRepresentable {
         var motionGuard: AlternateDragPicker.MotionGuard?
         /// The opening default: horizontal travel steps through options from it.
         var dragAnchor: Int?
-        /// Which hint policy each secondary label obeys (`KeyHintLayoutPolicy`).
-        private var subtitleHintKind = KeyHintLayoutPolicy.Kind.syllableHint
-        private var hintKind = KeyHintLayoutPolicy.Kind.alternate
-        /// Line counts resolved by the hint policy, used for the label frames.
-        private var subtitleLines = 1
-        private var hintLines = 1
         private var previousSize = CGSize.zero
         var layoutPicker = false
         private var phoneKey = false
@@ -187,7 +184,6 @@ struct AlternateCharacterKey: UIViewRepresentable {
         private var letterSwipe: [KeyCap] = []
         /// Per-letter hint labels of a merged cap, one per letter while any hint shows.
         private var columnHints: [UILabel] = []
-        private var columnHintLines = 1
         /// Least space between the title's line and a bottom hint on a short key (a landscape row).
         private static let stackedTitleGap: CGFloat = 1
         /// Sideways pick on a two-letter key (`LetterSwipeTracker`).
@@ -203,6 +199,9 @@ struct AlternateCharacterKey: UIViewRepresentable {
         /// The direction the armed flick went; nil until one arms.
         var flickDirection: KeyFlick.Direction?
         private var syllableHintBelow = false
+        private var reservesHintBand = false
+        /// The key font the row's letters are aligned to, so a shrunk merged cap keeps the shared baseline.
+        private var referenceTitleFont = UIFont.systemFont(ofSize: 17)
         /// Overrides the default AX hint (the default only describes "long-press alternate", wrong for a tap-cycling key).
         /// Assigned only from `configure`; takes no part in state outside `Configuration`.
         private var accessibilityHintOverride: String?
@@ -246,6 +245,7 @@ struct AlternateCharacterKey: UIViewRepresentable {
             let swipeDown: KeyCap?
             let flickEligible: Bool
             let syllableHintBelow: Bool
+            let reservesHintBand: Bool
             let accessibilityHintOverride: String?
             let appearance: KeyboardAppearance
         }
@@ -285,7 +285,7 @@ struct AlternateCharacterKey: UIViewRepresentable {
             visualRole: String?, titleSize: Double? = nil,
             letterGroup: [String] = [], groupHints: [String?] = [],
             letterSwipe: [KeyCap] = [], swipeUp: KeyCap? = nil, swipeDown: KeyCap? = nil, flickEligible: Bool = false,
-            syllableHintBelow: Bool = false,
+            syllableHintBelow: Bool = false, reservesHintBand: Bool = false,
             accessibilityHintOverride: String? = nil,
             onSelect: @escaping (KeyCap) -> Void
         ) {
@@ -299,7 +299,7 @@ struct AlternateCharacterKey: UIViewRepresentable {
                 visualRole: visualRole, titleSize: titleSize, letterGroup: letterGroup,
                 groupHints: groupHints, letterSwipe: letterSwipe,
                 swipeUp: swipeUp, swipeDown: swipeDown, flickEligible: flickEligible,
-                syllableHintBelow: syllableHintBelow,
+                syllableHintBelow: syllableHintBelow, reservesHintBand: reservesHintBand,
                 accessibilityHintOverride: accessibilityHintOverride,
                 appearance: appearance)
             guard next != configuration else { return }
@@ -332,23 +332,19 @@ struct AlternateCharacterKey: UIViewRepresentable {
             self.swipeDown = swipeDown
             self.flickEligible = flickEligible
             self.syllableHintBelow = syllableHintBelow
+            self.reservesHintBand = reservesHintBand
             self.accessibilityHintOverride = accessibilityHintOverride
             title.text = cap.title
             subtitle.text =
                 cap.subtitle == cap.title
                 ? nil
-                : syllableHintBelow ? cap.subtitle?.replacingOccurrences(of: "/", with: "/\u{200B}") : cap.subtitle
+                : cap.subtitle
             alternateHint.text = alternates.first?.title == cap.subtitle ? nil : alternates.first?.title
-            // Hint policy: only the label that carries `KeyCap.subtitle` (the
-            // shuangpin syllable table) may wrap to a second line; the first
-            // long-press alternate and the phone-key digit stay single-line.
-            subtitleHintKind = .syllableHint
-            hintKind = alternates.first?.title == cap.subtitle ? .syllableHint : .alternate
+            // Hint policy: every hint is one line (`KeyHintLayoutPolicy`).
             if phoneKey {
                 subtitle.text = nil
                 alternateHint.text = phoneSideKey ? alternates.first?.title : cap.subtitle
                 alternateHint.font = .systemFont(ofSize: 11)
-                hintKind = .phoneLetters
             } else {
                 alternateHint.font = .systemFont(ofSize: 9)
             }
@@ -362,7 +358,6 @@ struct AlternateCharacterKey: UIViewRepresentable {
             }
             if appearance.isSystemDefault, !phoneKey, !layoutPicker, !syllableHintBelow {
                 // Secondary codes/digits live in the corner, not a second centered baseline.
-                if subtitle.text != nil { hintKind = .syllableHint }
                 alternateHint.text = subtitle.text ?? alternateHint.text
                 subtitle.text = nil
             }
@@ -419,58 +414,36 @@ struct AlternateCharacterKey: UIViewRepresentable {
             }
             let visual = appearance.visualRect(in: bounds)
             let content = visual.insetBy(dx: 3, dy: 2)
-            // Hint policy (`KeyHintLayoutPolicy`): a shuangpin syllable hint may
-            // use two lines when one is not enough, everything else keeps its
-            // single-line semantics. Only the hint label's own frame is touched.
-            if appearance.isSystemDefault {
-                // Primary labels share one baseline even when a key has a secondary label.
-                // A shuangpin final line under the letter lifts the letter slightly so both read.
-                let lifted = (syllableHintBelow && !(subtitle.text ?? "").isEmpty) || !columnHints.isEmpty
-                title.frame = lifted ? content.offsetBy(dx: 0, dy: -4) : content
-                // A wrapped shuangpin hint grows upward into the lifted letter's room.
-                let subtitleHeight = CGFloat(
-                    KeyHintLayoutPolicy.height(
-                        lines: subtitleLines, lineHeight: Double(subtitle.font.lineHeight)))
-                subtitle.frame = CGRect(
-                    x: content.minX, y: content.maxY - subtitleHeight,
-                    width: content.width, height: subtitleHeight)
-                alternateHint.frame = CGRect(
-                    x: content.minX, y: content.minY,
-                    width: content.width,
-                    height: CGFloat(
-                        KeyHintLayoutPolicy.height(
-                            lines: hintLines,
-                            lineHeight: Double(alternateHint.font.lineHeight))))
-            } else {
-                let hasSubtitle = !(subtitle.text ?? "").isEmpty || !columnHints.isEmpty
-                title.frame = CGRect(
-                    x: content.minX, y: hasSubtitle ? content.minY + 4 : content.minY,
-                    width: content.width, height: hasSubtitle ? 29 : content.height)
-                // The centered secondary baseline grows upward so its bottom edge
-                // (and therefore nothing about the primary label) stays put.
-                let subtitleHeight = CGFloat(
-                    KeyHintLayoutPolicy.height(
-                        lines: subtitleLines, lineHeight: Double(subtitle.font.lineHeight)))
-                subtitle.frame = CGRect(
-                    x: content.minX, y: content.maxY - subtitleHeight,
-                    width: content.width, height: subtitleHeight)
-                alternateHint.frame = CGRect(
-                    x: content.minX, y: content.minY, width: content.width,
-                    height: CGFloat(
-                        KeyHintLayoutPolicy.height(
-                            lines: hintLines,
-                            lineHeight: Double(alternateHint.font.lineHeight))))
-            }
-            // On a short key the title's line would reach into the bottom hint: it moves up just
-            // enough (into the content's top margin if needed) and the hint keeps its place.
+            // Hint policy (`KeyHintLayoutPolicy`): every hint is one line and bottom-aligned, and a
+            // key that shows or reserves a hint band puts its letter at the row's shared baseline.
             let hintHeight = bottomHintHeight
-            if hintHeight > 0 {
-                let lineHeight = title.font.lineHeight
-                let limit = content.maxY - hintHeight - Self.stackedTitleGap
-                if title.frame.midY + lineHeight / 2 > limit {
-                    let top = max(content.minY - 2, limit - lineHeight)
-                    title.frame = CGRect(x: content.minX, y: top, width: content.width, height: lineHeight)
+            let subtitleHeight = CGFloat(KeyHintLayoutPolicy.height(lineHeight: Double(subtitle.font.lineHeight)))
+            subtitle.frame = CGRect(
+                x: content.minX, y: content.maxY - subtitleHeight, width: content.width, height: subtitleHeight)
+            alternateHint.frame = CGRect(
+                x: content.minX, y: content.minY, width: content.width,
+                height: CGFloat(KeyHintLayoutPolicy.height(lineHeight: Double(alternateHint.font.lineHeight))))
+            if appearance.isSystemDefault {
+                // Primary labels share one baseline even when a key has no secondary label.
+                if hintHeight > 0 {
+                    let mid = CGFloat(
+                        KeyHintLayoutPolicy.titleMidY(
+                            contentHeight: Double(content.height), lineHeight: Double(referenceTitleFont.lineHeight),
+                            hintHeight: Double(hintHeight), gap: Double(Self.stackedTitleGap)))
+                    // A key whose letter is set smaller than the row's reference font keeps the reference baseline.
+                    let offset =
+                        (referenceTitleFont.ascender + referenceTitleFont.descender) / 2
+                        - (title.font.ascender + title.font.descender) / 2
+                    title.frame = CGRect(
+                        x: content.minX, y: content.minY + mid - content.height / 2 + offset,
+                        width: content.width, height: content.height)
+                } else {
+                    title.frame = content
                 }
+            } else {
+                title.frame = CGRect(
+                    x: content.minX, y: hintHeight > 0 ? content.minY + 4 : content.minY,
+                    width: content.width, height: hintHeight > 0 ? 29 : content.height)
             }
             layoutColumnHints(in: content)
             // Under a callout the keycap keeps its full size so the callout's stem meets its edges.
@@ -479,40 +452,15 @@ struct AlternateCharacterKey: UIViewRepresentable {
                 isPressed: isHighlighted, scales: !showsCallout)
         }
 
-        /// Applies the shared hint policy to an already-populated hint label and
-        /// returns its line count. `natural` is the label's intended one-line font;
-        /// a short hint keeps it exactly, a wrapped hint steps down and shrinks.
-        @discardableResult
-        private func applyHintLayout(
-            to label: UILabel, kind: KeyHintLayoutPolicy.Kind,
-            availableWidth: CGFloat, natural: UIFont
-        ) -> Int {
-            let text = label.text ?? ""
-            let measured = text.isEmpty ? 0 : KeyboardTextMeasure.width(of: text, font: natural)
-            let lines = KeyHintLayoutPolicy.lineCount(
-                kind: kind,
-                measuredWidth: Double(measured),
-                availableWidth: Double(availableWidth))
-            let scale = CGFloat(KeyHintLayoutPolicy.fontScale(lines: lines))
-            let targetSize = natural.pointSize * scale
-            // Only touch the font when it actually changes: the label font setter
-            // invalidates layout, and this runs on every appearance refresh.
-            if abs((label.font?.pointSize ?? 0) - targetSize) > 0.01 {
-                label.font = natural.withSize(targetSize)
-            }
-            label.numberOfLines = lines
-            if lines > 1 {
-                label.lineBreakMode = text.contains("\u{200B}") ? .byWordWrapping : .byCharWrapping
-                label.adjustsFontSizeToFitWidth = true
-                label.minimumScaleFactor = CGFloat(KeyHintLayoutPolicy.minimumScaleFactor)
-            } else {
-                // Restore the label's original one-line behaviour exactly:
-                // `subtitle` shrinks to fit, `alternateHint` truncates.
-                label.lineBreakMode = .byTruncatingTail
-                label.adjustsFontSizeToFitWidth = (label === subtitle) || columnHints.contains(label)
-                label.minimumScaleFactor = 0
-            }
-            return lines
+        /// Applies the shared hint policy to a hint label: one line at the natural size, shrunk to fit
+        /// down to the policy floor, then truncated. The baseline stays where the natural font puts it.
+        private func applyHintLayout(to label: UILabel, availableWidth: CGFloat, natural: UIFont, shrinks: Bool) {
+            if label.font != natural { label.font = natural }
+            label.numberOfLines = 1
+            label.lineBreakMode = .byTruncatingTail
+            label.baselineAdjustment = .alignBaselines
+            label.adjustsFontSizeToFitWidth = shrinks
+            label.minimumScaleFactor = shrinks ? CGFloat(KeyHintLayoutPolicy.minimumScaleFactor) : 0
         }
 
         /// The cap surface and its glyphs move together. The button's own layer is
@@ -550,13 +498,8 @@ struct AlternateCharacterKey: UIViewRepresentable {
             let secondaryFont = appearance.uiFont(appearance.skin.typography.secondarySize)
             let content = appearance.visualRect(in: bounds).insetBy(dx: 3, dy: 2)
             let contentWidth = content.width
-            subtitleLines = applyHintLayout(
-                to: subtitle, kind: subtitleHintKind,
-                availableWidth: contentWidth, natural: secondaryFont)
-            hintLines = applyHintLayout(
-                to: alternateHint, kind: hintKind,
-                availableWidth: contentWidth, natural: secondaryFont)
-            columnHintLines = 1
+            applyHintLayout(to: subtitle, availableWidth: contentWidth, natural: secondaryFont, shrinks: true)
+            applyHintLayout(to: alternateHint, availableWidth: contentWidth, natural: secondaryFont, shrinks: false)
             let columnWidth = CGFloat(
                 KeyHintLayoutPolicy.columnWidth(
                     total: Double(contentWidth),
@@ -567,10 +510,7 @@ struct AlternateCharacterKey: UIViewRepresentable {
                     swipeChoice.map { $0 == index ? hintColour : hintColour.withAlphaComponent(0.3) }
                     ?? hintColour
                 label.textAlignment = .center
-                columnHintLines = max(
-                    columnHintLines,
-                    applyHintLayout(
-                        to: label, kind: .syllableHint, availableWidth: columnWidth, natural: secondaryFont))
+                applyHintLayout(to: label, availableWidth: columnWidth, natural: secondaryFont, shrinks: true)
             }
             // Merged keys / letter clusters shrink to the actual available width (QQ scaling floor: see scaledFontSize),
             // while a single letter keeps the default key font size; the label's own adjustsFontSizeToFitWidth remains the fallback.
@@ -578,12 +518,17 @@ struct AlternateCharacterKey: UIViewRepresentable {
             var titleFont = appearance.uiFont(
                 appearance.scaledFontSize(
                     base, label: title.text ?? "", availableWidth: bounds.width - 10))
+            var referenceFont = appearance.uiFont(base)
             // Only when even the top margin leaves no room above the hint does the title shrink.
             let hintHeight = bottomHintHeight
             let titleRoom = content.height + 2 - Self.stackedTitleGap - hintHeight
-            if hintHeight > 0, titleFont.lineHeight > titleRoom {
-                titleFont = titleFont.withSize(titleFont.pointSize * max(0.75, titleRoom / titleFont.lineHeight))
+            func fitted(_ font: UIFont) -> UIFont {
+                hintHeight > 0 && font.lineHeight > titleRoom
+                    ? font.withSize(font.pointSize * max(0.75, titleRoom / font.lineHeight)) : font
             }
+            titleFont = fitted(titleFont)
+            referenceFont = fitted(referenceFont)
+            referenceTitleFont = referenceFont
             if title.font != titleFont { title.font = titleFont }
             if letterGroup.count > 1 {
                 let merged = mergedTitle(font: titleFont, role: role, contentWidth: contentWidth)
@@ -591,15 +536,14 @@ struct AlternateCharacterKey: UIViewRepresentable {
             }
         }
 
-        /// Height of the hint line under the title (the subtitle or per-letter columns); 0 without one.
+        /// Height of the hint line under the title: the subtitle, the per-letter columns, or the band a
+        /// key without a hint keeps so its letter stays level with its row; 0 when the layout has none.
         private var bottomHintHeight: CGFloat {
             if let first = columnHints.first {
-                return CGFloat(
-                    KeyHintLayoutPolicy.height(lines: columnHintLines, lineHeight: Double(first.font.lineHeight)))
+                return CGFloat(KeyHintLayoutPolicy.height(lineHeight: Double(first.font.lineHeight)))
             }
-            guard !(subtitle.text ?? "").isEmpty else { return 0 }
-            return CGFloat(
-                KeyHintLayoutPolicy.height(lines: subtitleLines, lineHeight: Double(subtitle.font.lineHeight)))
+            guard !(subtitle.text ?? "").isEmpty || reservesHintBand else { return 0 }
+            return CGFloat(KeyHintLayoutPolicy.height(lineHeight: Double(subtitle.font.lineHeight)))
         }
 
         /// The letters of a merged cap: the picked (or first) letter in the primary tone.
@@ -670,7 +614,7 @@ struct AlternateCharacterKey: UIViewRepresentable {
                     columns: columnHints.count))
             let gap = CGFloat(KeyHintLayoutPolicy.columnGap)
             let lineHeight = Double(columnHints.first?.font.lineHeight ?? 12)
-            let height = CGFloat(KeyHintLayoutPolicy.height(lines: columnHintLines, lineHeight: lineHeight))
+            let height = CGFloat(KeyHintLayoutPolicy.height(lineHeight: lineHeight))
             for (index, label) in columnHints.enumerated() {
                 label.frame = CGRect(
                     x: content.minX + CGFloat(index) * (width + gap),

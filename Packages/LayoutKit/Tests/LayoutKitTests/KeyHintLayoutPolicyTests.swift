@@ -2,169 +2,89 @@ import XCTest
 
 @testable import LayoutKit
 
-/// The two-line syllable-hint policy: long shuangpin hints stay meaningful,
-/// everything else keeps its current single-line semantics.
+/// A hint is one line, so the letters and hints of a row share two baselines: a long shuangpin
+/// final shrinks or truncates, it never wraps and never lifts its letter above its neighbours.
 final class KeyHintLayoutPolicyTests: XCTestCase {
 
-    /// Deterministic stand-in for `NSString.size(withAttributes:)`: a fixed
-    /// advance per character. The policy only consumes the resulting width.
+    /// Deterministic stand-in for `NSString.size(withAttributes:)`: a fixed advance per character.
     private func width(_ text: String, advance: Double = 5) -> Double {
         Double(text.count) * advance
     }
 
-    // MARK: Shuangpin syllable hints
+    // MARK: One line, shrink then truncate
 
-    func testLongShuangpinHintsWrapToTwoLines() {
-        // Real Xiaohe hints, measured in the 9pt corner font (~5pt advance).
-        for hint in ["ong/iong", "ing/uai", "iang/uang", "ia/ua", "zh/ui"] {
-            let measured = width(hint)
-            XCTAssertEqual(
-                KeyHintLayoutPolicy.lineCount(
-                    kind: .syllableHint,
-                    measuredWidth: measured,
-                    availableWidth: 24),
-                2, "\(hint) must not be truncated to meaninglessness")
-        }
+    func testHintsNeverWrap() {
+        XCTAssertEqual(KeyHintLayoutPolicy.maximumLines, 1)
+        // The 9-character Xiaohe hint in a 24pt column is far too wide for one line; it still takes one.
+        XCTAssertLessThan(KeyHintLayoutPolicy.fitScale(measuredWidth: width("iang/uang"), availableWidth: 24), 1)
+        XCTAssertEqual(
+            KeyHintLayoutPolicy.height(lineHeight: 11), KeyHintLayoutPolicy.singleLineHeight,
+            "a hint's band is one line tall however long its text is")
     }
 
-    func testShortShuangpinHintsStayOnOneLine() {
+    func testAHintThatFitsKeepsItsSize() {
         for hint in ["iu", "ei", "sh", "ch", "an", "ou"] {
-            XCTAssertEqual(
-                KeyHintLayoutPolicy.lineCount(
-                    kind: .syllableHint,
-                    measuredWidth: width(hint),
-                    availableWidth: 24),
-                1, "\(hint) stays a single line")
+            XCTAssertEqual(KeyHintLayoutPolicy.fitScale(measuredWidth: width(hint), availableWidth: 24), 1)
         }
+        XCTAssertEqual(KeyHintLayoutPolicy.fitScale(measuredWidth: 40, availableWidth: 40), 1)
     }
 
-    func testShuangpinHintWrapsOnlyOnceTheWidthIsActuallyTooSmall() {
-        let measured = width("ong/iong")  // 40pt
-        XCTAssertEqual(
-            KeyHintLayoutPolicy.lineCount(
-                kind: .syllableHint,
-                measuredWidth: measured, availableWidth: 44), 1)
-        XCTAssertEqual(
-            KeyHintLayoutPolicy.lineCount(
-                kind: .syllableHint,
-                measuredWidth: measured, availableWidth: 40), 1,
-            "exactly fitting is not a reason to wrap")
-        XCTAssertEqual(
-            KeyHintLayoutPolicy.lineCount(
-                kind: .syllableHint,
-                measuredWidth: measured, availableWidth: 39), 2)
+    func testALongHintShrinksToFitDownToTheFloor() {
+        let scale = KeyHintLayoutPolicy.fitScale(measuredWidth: 50, availableWidth: 40)
+        XCTAssertEqual(scale, 0.8, accuracy: 0.0001)
+        XCTAssertFalse(KeyHintLayoutPolicy.truncates(measuredWidth: 50, availableWidth: 40))
     }
 
-    func testNarrowKeyWidthStillYieldsAReadableTwoLineHint() {
-        // A 26-key on a 320pt-wide keyboard: ~24pt of content width.
-        let advance = 6.0
-        let text = "iang/uang"  // 9 characters, Xiaohe's longest hint
-        let measured = width(text, advance: advance)  // 54pt
-        XCTAssertEqual(
-            KeyHintLayoutPolicy.lineCount(
-                kind: .syllableHint,
-                measuredWidth: measured, availableWidth: 24), 2)
-        let scale = KeyHintLayoutPolicy.requiredScaleFactor(
-            measuredWidth: measured,
-            availableWidth: 24, lines: 2)
-        XCTAssertLessThan(scale, 1)
-        XCTAssertGreaterThanOrEqual(
-            scale, KeyHintLayoutPolicy.minimumScaleFactor,
-            "the hint stays legible instead of shrinking without limit")
-        XCTAssertLessThanOrEqual(
-            measured * scale, 24 * 2 + 0.0001,
-            "two scaled lines can hold the whole hint")
-
-        // Character wrapping is discrete: the longest line holds half the hint,
-        // and the policy floor must be enough to fit that line.
-        let longestLineWidth = Double((text.count + 1) / 2) * advance * KeyHintLayoutPolicy.minimumScaleFactor
-        XCTAssertLessThanOrEqual(
-            longestLineWidth, 24 + 0.0001,
-            "even the floor scale keeps the wrapped line inside a narrow key")
-    }
-
-    func testVeryLongHintNeverShrinksBelowTheFloor() {
-        let measured = width("这是一个超长的提示文本不会出现")
-        let scale = KeyHintLayoutPolicy.requiredScaleFactor(
-            measuredWidth: measured,
-            availableWidth: 20, lines: 2)
+    func testATooLongHintStopsAtTheFloorAndTruncates() {
+        let scale = KeyHintLayoutPolicy.fitScale(measuredWidth: 100, availableWidth: 40)
         XCTAssertEqual(scale, KeyHintLayoutPolicy.minimumScaleFactor, accuracy: 0.0001)
-    }
-
-    // MARK: Non-syllable hints keep their current semantics
-
-    func testAlternateAndPhoneHintsNeverWrap() {
-        for kind in [KeyHintLayoutPolicy.Kind.alternate, .phoneLetters] {
-            XCTAssertFalse(KeyHintLayoutPolicy.allowsWrapping(kind))
-            XCTAssertEqual(
-                KeyHintLayoutPolicy.lineCount(
-                    kind: kind,
-                    measuredWidth: 200,
-                    availableWidth: 10), 1,
-                "a long-press digit / phone label is never split across lines")
-        }
-        XCTAssertTrue(KeyHintLayoutPolicy.allowsWrapping(.syllableHint))
-    }
-
-    func testAlternateHintsAreUnaffectedEvenWhenTheyLookLikeAHint() {
-        // The 14-key merged key's "1 !" and "合并键" are secondary labels, but the
-        // label that draws the first long-press alternate must stay one line.
-        XCTAssertEqual(
-            KeyHintLayoutPolicy.lineCount(
-                kind: .alternate,
-                measuredWidth: width("1 !"), availableWidth: 12), 1)
-        XCTAssertEqual(
-            KeyHintLayoutPolicy.lineCount(
-                kind: .phoneLetters,
-                measuredWidth: width("2"), availableWidth: 8), 1)
-    }
-
-    // MARK: Geometry
-
-    func testSingleLineHeightIsUnchanged() {
-        XCTAssertEqual(KeyHintLayoutPolicy.height(lines: 1, lineHeight: 12), 12)
-        XCTAssertEqual(
-            KeyHintLayoutPolicy.height(lines: 1, lineHeight: 99), 12,
-            "a one-line hint keeps the existing 12pt band")
-    }
-
-    func testWrappedHeightGrowsToFitTwoLines() {
-        let height = KeyHintLayoutPolicy.height(lines: 2, lineHeight: 11)
-        XCTAssertGreaterThan(height, 12)
-        XCTAssertEqual(height, 2 * 11 + KeyHintLayoutPolicy.wrappedLineSpacing, accuracy: 0.0001)
-        XCTAssertEqual(KeyHintLayoutPolicy.height(lines: 0, lineHeight: 11), 12)
-        XCTAssertEqual(
-            KeyHintLayoutPolicy.height(lines: 2, lineHeight: 0), 12,
-            "a degenerate font metric can never produce a zero-height label")
-    }
-
-    func testWrappedHintsStepDownInSizeButShortHintsDoNot() {
-        XCTAssertEqual(KeyHintLayoutPolicy.fontScale(lines: 1), 1)
-        XCTAssertEqual(
-            KeyHintLayoutPolicy.fontScale(lines: 2), KeyHintLayoutPolicy.wrappedFontScale,
-            accuracy: 0.0001)
-        XCTAssertLessThan(KeyHintLayoutPolicy.wrappedFontScale, 1)
-        XCTAssertGreaterThan(KeyHintLayoutPolicy.wrappedFontScale, KeyHintLayoutPolicy.minimumScaleFactor)
-        // Two wrapped lines at the stepped-down size still fit the corner band of
-        // a 54pt key (top ~24pt before the centred 18pt letter's cap height).
-        let block = KeyHintLayoutPolicy.height(lines: 2, lineHeight: 11 * KeyHintLayoutPolicy.wrappedFontScale)
-        XCTAssertLessThanOrEqual(block, 24)
-    }
-
-    func testRequiredScaleFactorIsOneWhenTheTextFits() {
-        XCTAssertEqual(KeyHintLayoutPolicy.requiredScaleFactor(measuredWidth: 10, availableWidth: 24, lines: 1), 1)
-        XCTAssertEqual(KeyHintLayoutPolicy.requiredScaleFactor(measuredWidth: 48, availableWidth: 24, lines: 2), 1)
-        XCTAssertEqual(
-            KeyHintLayoutPolicy.requiredScaleFactor(measuredWidth: 60, availableWidth: 24, lines: 2), 0.8,
-            accuracy: 0.0001)
+        XCTAssertTrue(KeyHintLayoutPolicy.truncates(measuredWidth: 100, availableWidth: 40))
     }
 
     func testDegenerateInputsAreSafe() {
-        XCTAssertEqual(KeyHintLayoutPolicy.lineCount(kind: .syllableHint, measuredWidth: 40, availableWidth: 0), 1)
-        XCTAssertEqual(
-            KeyHintLayoutPolicy.lineCount(kind: .syllableHint, measuredWidth: .infinity, availableWidth: 24), 1)
-        XCTAssertEqual(KeyHintLayoutPolicy.lineCount(kind: .syllableHint, measuredWidth: 40, availableWidth: .nan), 1)
-        XCTAssertEqual(KeyHintLayoutPolicy.requiredScaleFactor(measuredWidth: 0, availableWidth: 0, lines: 2), 1)
+        XCTAssertEqual(KeyHintLayoutPolicy.fitScale(measuredWidth: 40, availableWidth: 0), 1)
+        XCTAssertEqual(KeyHintLayoutPolicy.fitScale(measuredWidth: .infinity, availableWidth: 24), 1)
+        XCTAssertEqual(KeyHintLayoutPolicy.fitScale(measuredWidth: 40, availableWidth: .nan), 1)
+        XCTAssertFalse(KeyHintLayoutPolicy.truncates(measuredWidth: 40, availableWidth: 0))
+        XCTAssertEqual(KeyHintLayoutPolicy.height(lineHeight: 0), KeyHintLayoutPolicy.singleLineHeight)
+        XCTAssertEqual(KeyHintLayoutPolicy.height(lineHeight: .nan), KeyHintLayoutPolicy.singleLineHeight)
+    }
+
+    // MARK: Shared baselines
+
+    /// Key content heights of a portrait and a landscape row, and the letter fonts of the cases below.
+    private let contentHeights = [50.0, 42.0, 34.0]
+
+    func testEveryLetterOfARowSitsOnOneBaselineWhateverItsHint() {
+        let hint = KeyHintLayoutPolicy.height(lineHeight: 11)
+        for height in contentHeights {
+            // "a" keeps the band without a hint; "s d" and "l" show a long one, which is one line too.
+            let reserved = KeyHintLayoutPolicy.titleMidY(contentHeight: height, lineHeight: 20, hintHeight: hint)
+            let shown = KeyHintLayoutPolicy.titleMidY(
+                contentHeight: height, lineHeight: 20, hintHeight: KeyHintLayoutPolicy.height(lineHeight: 11))
+            XCTAssertEqual(reserved, shown, "content height \(height)")
+        }
+    }
+
+    func testTheLetterStaysAboveTheHintOnAShortKey() {
+        let hint = KeyHintLayoutPolicy.singleLineHeight
+        for height in contentHeights {
+            let mid = KeyHintLayoutPolicy.titleMidY(contentHeight: height, lineHeight: 20, hintHeight: hint)
+            let bottom = mid + 10
+            XCTAssertLessThanOrEqual(
+                bottom, height - hint - 1 + 0.0001,
+                "the letter's line ends above the hint at content height \(height)")
+            XCTAssertGreaterThanOrEqual(mid - 10, -2 - 0.0001, "and never rises past the top margin")
+        }
+    }
+
+    func testAKeyWithoutABandKeepsItsLetterCentred() {
+        XCTAssertEqual(KeyHintLayoutPolicy.titleMidY(contentHeight: 50, lineHeight: 20, hintHeight: 0), 25)
+    }
+
+    func testABandLiftsTheLetterByTheSameAmountOnEveryTallKey() {
+        XCTAssertEqual(KeyHintLayoutPolicy.titleMidY(contentHeight: 50, lineHeight: 20, hintHeight: 12), 21)
+        XCTAssertEqual(KeyHintLayoutPolicy.titleMidY(contentHeight: 60, lineHeight: 20, hintHeight: 12), 26)
     }
 
     // MARK: Per-letter columns on merged keys
@@ -179,17 +99,9 @@ final class KeyHintLayoutPolicyTests: XCTestCase {
             let column = KeyHintLayoutPolicy.columnWidth(total: cap - 6, columns: 2)
             XCTAssertGreaterThan(column, 30)
             for hint in ["ing/uai", "iang/uang", "ong/iong"] {
-                let measured = width(hint)
-                let lines = KeyHintLayoutPolicy.lineCount(
-                    kind: .syllableHint,
-                    measuredWidth: measured, availableWidth: column)
-                XCTAssertLessThanOrEqual(lines, 2)
-                let scale = KeyHintLayoutPolicy.requiredScaleFactor(
-                    measuredWidth: measured,
-                    availableWidth: column, lines: lines)
-                XCTAssertGreaterThanOrEqual(
-                    scale, KeyHintLayoutPolicy.minimumScaleFactor,
-                    "\(hint) fits its column without truncation")
+                XCTAssertFalse(
+                    KeyHintLayoutPolicy.truncates(measuredWidth: width(hint), availableWidth: column),
+                    "\(hint) fits its column by shrinking alone")
             }
         }
     }
