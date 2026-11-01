@@ -93,10 +93,21 @@ extension RecipePackageManager {
     public func reinstallActivePackage(deploy: @escaping Deploy) async throws -> InstalledRecipe? {
         guard let active = try activeInstallation() else { return nil }
         let previous = active.resourceURL.deletingLastPathComponent()
-        let manifest = try JSONDecoder().decode(
+        let recorded = try JSONDecoder().decode(
             RecipeManifest.self,
             from: Data(contentsOf: previous.appendingPathComponent(InstalledPackageLayout.sourceFile)))
         let resources = active.resourceURL
+        // The host's deploy check rewrites the package declaration after every install, so the hash
+        // recorded at import no longer matches the installed bytes; the installed copy is the truth.
+        let files = try recorded.files.map { file -> RecipeManifest.File in
+            guard file.path == InstalledPackageLayout.keyboardPackageFile else { return file }
+            let data = try Data(contentsOf: resources.appendingPathComponent(file.path))
+            return RecipeManifest.File(path: file.path, sha256: sha256Hex(data), size: data.count)
+        }
+        let manifest = RecipeManifest(
+            id: recorded.id, repository: recorded.repository, revision: recorded.revision,
+            recipePath: recorded.recipePath, license: recorded.license, schemaID: recorded.schemaID,
+            requiredComponents: recorded.requiredComponents, files: files, origin: recorded.origin)
         var models: [String: RecipeFileResource] = [:]
         for file in manifest.files where RecipeResourceBudget.isModel(file.path) {
             models[file.path] = RecipeFileResource(

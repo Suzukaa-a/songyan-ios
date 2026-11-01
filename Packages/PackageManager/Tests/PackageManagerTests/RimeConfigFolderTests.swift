@@ -85,6 +85,28 @@ final class RimeConfigFolderTests: XCTestCase {
                     .path))
     }
 
+    func testReapplyingSurvivesTheHostRewritingThePackageDeclaration() async throws {
+        let folder = try temporaryDirectory("rime-config")
+        let manager = RecipePackageManager(
+            rootURL: try temporaryDirectory("rime-config-store"), userConfigDirectory: folder)
+        // Like the host's deploy check, rewrite the declaration with different bytes after deploying.
+        let rewriting: RecipePackageManager.Deploy = { deployment in
+            let receipt = try await Self.deploy(deployment)
+            let declaration = deployment.resourceURL.appendingPathComponent(InstalledPackageLayout.keyboardPackageFile)
+            try Data((String(contentsOf: declaration, encoding: .utf8) + "\n").utf8).write(to: declaration)
+            return receipt
+        }
+        _ = try await manager.installSchemeImport(
+            try manager.prepareSchemeImport(directory: try scheme()), deploy: rewriting)
+        let first = try await installed(manager)
+        try write("patch: {}\n", "main.custom.yaml", in: folder)
+
+        let reinstalled = try await manager.reinstallActivePackage(deploy: rewriting)
+        XCTAssertNotEqual(reinstalled?.generation, first.installation.generation)
+        let user = try await installed(manager).userDataURL
+        XCTAssertTrue(FileManager.default.fileExists(atPath: user.appendingPathComponent("main.custom.yaml").path))
+    }
+
     func testOnlyFlatYamlAndTextFilesAreCopied() async throws {
         let folder = try temporaryDirectory("rime-config")
         try write("patch: {}\n", "main.custom.yaml", in: folder)
