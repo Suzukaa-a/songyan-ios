@@ -362,4 +362,25 @@ final class AppearancePresetTests: XCTestCase {
             XCTAssertEqual(try AppearanceDocument.decode(preset.encoded()).skin, preset.skin)
         }
     }
+
+    /// Presets keep their hue but must sit on iOS like the default look: surfaces stay near the system
+    /// default's lightness, and the accent keeps the text colour the preset names (no silent flip to black).
+    func testBuiltinPresetsSitNextToTheSystemKeyboard() {
+        func lightness(_ color: SkinColor) -> Double { 0.2126 * color.red + 0.7152 * color.green + 0.0722 * color.blue }
+        for dark in [false, true] {
+            let base = SkinDefinition.systemDefault.resolvedColors(dark: dark)
+            for preset in AppearanceDocument.builtinPresets {
+                let colors = preset.skin.resolvedColors(dark: dark)
+                let named = (dark ? preset.skin.variants.dark : preset.skin.variants.light)?.colors ?? [:]
+                for key in ["panel", "key", "control"] {
+                    XCTAssertEqual(
+                        lightness(colors[key]!), lightness(base[key]!), accuracy: 0.05,
+                        "\(preset.id) \(key) dark=\(dark)")
+                }
+                XCTAssertEqual(colors["accentText"]?.hex, named["accentText"], "\(preset.id) accentText dark=\(dark)")
+                XCTAssertGreaterThanOrEqual(
+                    colors["text"]!.contrast(on: colors["key"]!), 7, "\(preset.id) dark=\(dark)")
+            }
+        }
+    }
 }
