@@ -23,6 +23,7 @@ SCRIPTS=(
   32-bridge-contracts-harness.sh
   34-t9-letter-lock-harness.sh
   25-ambiguity-harness.sh
+  38-resource-id-harness.sh
 )
 
 for harness in "${SCRIPTS[@]}"; do

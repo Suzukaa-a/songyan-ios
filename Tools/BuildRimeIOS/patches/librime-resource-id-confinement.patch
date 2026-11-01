@@ -1,0 +1,86 @@
+diff --git a/src/rime/lever/deployment_tasks.cc b/src/rime/lever/deployment_tasks.cc
+index 6e6ff89..7b26969 100644
+--- a/src/rime/lever/deployment_tasks.cc
++++ b/src/rime/lever/deployment_tasks.cc
+@@ -429,6 +429,12 @@ static bool ConfigNeedsUpdate(Config* config) {
+ }
+ 
+ bool ConfigFileUpdate::Run(Deployer* deployer) {
++  // file_name_ may carry a schema id read from a schema file; it is joined to
++  // the data folders below without going through a resource resolver.
++  if (!ResourceResolver::IsSafeResourceId(file_name_)) {
++    LOG(ERROR) << "refused config file name '" << file_name_ << "'.";
++    return false;
++  }
+   const path shared_data_path(deployer->shared_data_dir);
+   const path user_data_path(deployer->user_data_dir);
+   // trash deprecated user copy created by an older version of Rime
+diff --git a/src/rime/resource.cc b/src/rime/resource.cc
+index 045e047..dfcc6f9 100644
+--- a/src/rime/resource.cc
++++ b/src/rime/resource.cc
+@@ -26,12 +26,43 @@ string ResourceResolver::ToFilePath(const string& resource_id) const {
+          (missing_suffix ? type_.suffix : "");
+ }
+ 
++bool ResourceResolver::IsSafeResourceId(const string& resource_id) {
++  if (resource_id.find('\\') != string::npos ||
++      resource_id.find('\0') != string::npos ||
++      boost::starts_with(resource_id, "/")) {
++    return false;
++  }
++  vector<string> components;
++  boost::split(components, resource_id, boost::is_any_of("/"));
++  for (const auto& component : components) {
++    if (component == "..")
++      return false;
++  }
++  return true;
++}
++
++// Ids come from configuration (user_dict, dictionary, __include ...), so an
++// absolute or parent-relative id would make the engine read or write outside
++// its data folders. A refused id resolves under a folder that no valid id can
++// name and nothing creates, so lookups fail as if the resource were missing
++// and writes fail instead of escaping.
++path ResourceResolver::RefusedPath(const string& resource_id) const {
++  LOG(ERROR) << "refused " << type_.name << " resource id '" << resource_id
++             << "': it leaves the data folder.";
++  return std::filesystem::absolute(root_path_ / "\\refused-resource-id\\" /
++                                   "missing");
++}
++
+ path ResourceResolver::ResolvePath(const string& resource_id) {
++  if (!IsSafeResourceId(resource_id))
++    return RefusedPath(resource_id);
+   return std::filesystem::absolute(root_path_ /
+                                    (type_.prefix + resource_id + type_.suffix));
+ }
+ 
+ path FallbackResourceResolver::ResolvePath(const string& resource_id) {
++  if (!IsSafeResourceId(resource_id))
++    return RefusedPath(resource_id);
+   auto default_path = ResourceResolver::ResolvePath(resource_id);
+   if (!std::filesystem::exists(default_path)) {
+     auto fallback_path = std::filesystem::absolute(
+diff --git a/src/rime/resource.h b/src/rime/resource.h
+index 7ffa2ef..2ce5a75 100644
+--- a/src/rime/resource.h
++++ b/src/rime/resource.h
+@@ -26,12 +26,16 @@ class RIME_DLL ResourceResolver {
+   virtual path ResolvePath(const string& resource_id);
+   string ToResourceId(const string& file_path) const;
+   string ToFilePath(const string& resource_id) const;
++  // False for ids that would leave the data folders: absolute ids, ids with a
++  // ".." component, a backslash or a NUL.
++  static bool IsSafeResourceId(const string& resource_id);
+   void set_root_path(path root_path) { root_path_ = root_path; }
+   path root_path() const { return root_path_; }
+ 
+  protected:
+   const ResourceType type_;
+   path root_path_;
++  path RefusedPath(const string& resource_id) const;
+ };
+ 
+ // try fallback path if target file doesn't exist in root path
