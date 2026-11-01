@@ -263,6 +263,14 @@ enum SchemaOptionCapabilities {
                     resourceID: resourceID, schemaID: schemaID, name: name,
                     title: labels.0, disabledLabel: labels.1, enabledLabel: labels.2))
         }
+        // librime always loads the shape processor and formatter, so a schema that declares the switch
+        // really gets full-width letters, digits and punctuation from it.
+        if switches.contains("full_shape") {
+            result.append(
+                .init(
+                    resourceID: resourceID, schemaID: schemaID, name: "full_shape",
+                    title: "全角", disabledLabel: "关闭", enabledLabel: "开启"))
+        }
         return result
     }
 }
