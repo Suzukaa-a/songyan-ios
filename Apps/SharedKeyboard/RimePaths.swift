@@ -45,7 +45,7 @@ public enum RimePaths {
     static func writableBase(subdir: String) -> URL? {
         let fm = FileManager.default
         let dirs = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask)
-        let base = dirs.first ?? fm.urls(for: .documentDirectory, in: .userDomainMask).first
+        let base = dirs.first ?? fm.urls(for: .libraryDirectory, in: .userDomainMask).first
         guard let base else { return nil }
         return base.appendingPathComponent(subdir, isDirectory: true)
     }

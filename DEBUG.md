@@ -86,7 +86,7 @@ Pass `--udid` for your simulator and export `DEVELOPER_DIR` first.
 
 ## 6. Host app log
 
-The host app appends install, import and selection results to `Documents/host.log` in its container (`HostLog` in [HostStorage.swift](Apps/HostApp/HostStorage.swift)). Read it with `cat "$(xcrun simctl get_app_container "$UDID" app.songyan.ime data)/Documents/host.log"`, or in the app under 设置 > 高级 > 诊断日志.
+The host app appends install, import and selection results to `Library/Application Support/host.log` in its container (`HostLog` in [HostStorage.swift](Apps/HostApp/HostStorage.swift)). Read it with `cat "$(xcrun simctl get_app_container "$UDID" app.songyan.ime data)/Library/Application Support/host.log"`, or in the app under 设置 > 高级 > 诊断日志.
 
 ## 7. Adding a probe
 

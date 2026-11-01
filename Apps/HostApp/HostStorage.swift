@@ -4,10 +4,11 @@ import PackageManager
 
 /// Roots of the host app's private stores (never shared with the keyboard through the App Group).
 enum HostStorePaths {
+    /// Falls back to Library, never Documents: Documents is listed in the Files app.
     static var applicationSupport: URL {
         let fm = FileManager.default
         return fm.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-            ?? fm.urls(for: .documentDirectory, in: .userDomainMask).first!
+            ?? fm.urls(for: .libraryDirectory, in: .userDomainMask).first!
     }
     /// The user's Rime files; Documents is shown in the Files app under the app's name.
     static var rimeConfig: URL {
@@ -23,7 +24,7 @@ extension HostStorePaths {
     }
 }
 
-/// On-disk diagnostic log of the host app (Documents/host.log), shown under Settings > Advanced.
+/// On-disk diagnostic log of the host app (Application Support/host.log), shown under Settings > Advanced.
 ///
 /// Callers only enqueue; `DiskLogWriter` writes on its own serial queue, so logging from the
 /// main actor never blocks on file I/O.
@@ -41,7 +42,14 @@ enum HostLog {
     }
 
     private nonisolated static let writer = DiskLogWriter()
-    private nonisolated static var url: URL? {
-        DiskLogWriter.documentsLogURL(named: "host.log")
-    }
+    private nonisolated static let url: URL? = {
+        // Earlier builds logged into Documents, which the Files app now lists; drop that copy once.
+        if let old = DiskLogWriter.documentsLogURL(named: "host.log") {
+            DispatchQueue.global(qos: .utility).async {
+                try? FileManager.default.removeItem(at: old)
+                try? FileManager.default.removeItem(at: old.appendingPathExtension("previous"))
+            }
+        }
+        return HostStorePaths.applicationSupport.appendingPathComponent("host.log")
+    }()
 }
