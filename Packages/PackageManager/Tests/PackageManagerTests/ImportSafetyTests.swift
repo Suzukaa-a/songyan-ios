@@ -38,6 +38,33 @@ final class ImportSafetyTests: XCTestCase {
 
         """
 
+    func testARepeatedKeyIsReadAsLibrimeReadsIt() throws {
+        // 薄荷's wubi86_jidian.schema.yaml repeats enable_user_dict; yaml-cpp keeps the last one.
+        let text = """
+            translator:
+              dictionary: wubi86
+              enable_user_dict: true
+              enable_sentence: false
+              enable_user_dict: false
+            flow: {a: 1, a: 2}
+
+            """
+        let root = try XCTUnwrap(BoundedYAML.load(yaml: text) as? [String: Any])
+        let translator = try XCTUnwrap(root["translator"] as? [String: Any])
+        XCTAssertEqual(translator["enable_user_dict"] as? Bool, false)
+        XCTAssertEqual(translator["dictionary"] as? String, "wubi86")
+        XCTAssertEqual((root["flow"] as? [String: Any])?["a"] as? Int, 2)
+        XCTAssertNotNil(try BoundedYAML.compose(yaml: text))
+
+        let files = [
+            "default.yaml": Data("schema_list:\n  - schema: wubi\n".utf8),
+            "wubi.schema.yaml": Data(
+                "schema: {schema_id: wubi}\ntranslator:\n  dictionary: wubi\n  dictionary: wubi86\n".utf8),
+            "wubi86.dict.yaml": Data("---\nname: wubi86\n...\n".utf8),
+        ]
+        XCTAssertEqual(try SchemeSourceCheck.missingDependencies(files), [])
+    }
+
     func testBillionLaughsRejectedQuickly() throws {
         let started = Date()
         XCTAssertThrowsError(try BoundedYAML.load(yaml: Self.billionLaughs)) { error in
@@ -177,7 +204,9 @@ final class ImportSafetyTests: XCTestCase {
         let root = try XCTUnwrap(try BoundedYAML.load(yaml: tags) as? [String: Any])
         XCTAssertEqual(root["plain"] as? String, "x*y")
         XCTAssertEqual(root["quoted"] as? String, ".*")
-        XCTAssertThrowsError(try BoundedYAML.load(yaml: "same: '*a'\nsame: '*b'\n"))
+        // A repeated key reads as librime reads it: the last one wins, and stars inside it stay text.
+        XCTAssertEqual(
+            (try BoundedYAML.load(yaml: "same: '*a'\nsame: '*b'\n") as? [String: Any])?["same"] as? String, "*b")
         XCTAssertThrowsError(try BoundedYAML.load(yaml: "base: &a*b value\n"))
         let unicode = "说明: |\n  ' 😀\n根: &base [你好]\n副本: *base\n".replacingOccurrences(of: "\n", with: "\r\n")
         XCTAssertTrue(try BoundedYAML.requiresExpansionCheck(unicode))

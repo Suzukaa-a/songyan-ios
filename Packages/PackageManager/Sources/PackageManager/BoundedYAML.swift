@@ -23,6 +23,64 @@ public enum BoundedYAML {
 
     /// Drop-in replacement for `Yams.load(yaml:)`.
     public static func load(yaml text: String) throws -> Any? {
+        try lastKeyWins(text) { try strictLoad(yaml: $0) }
+    }
+
+    /// Drop-in replacement for `Yams.compose(yaml:)`; documents using aliases
+    /// are guaranteed to expand to at most `maximumExpandedNodes` nodes.
+    public static func compose(yaml text: String) throws -> Node? {
+        try lastKeyWins(text) { try strictCompose(yaml: $0) }
+    }
+
+    /// Most repeated keys one document may have before it is refused.
+    static let maximumDuplicateRepairs = 256
+
+    /// librime reads YAML with yaml-cpp, where a key repeated in one mapping is not an error and
+    /// the last one wins; real schemes ship such files (薄荷's `wubi86_jidian` repeats
+    /// `enable_user_dict`). Yams refuses them, so each earlier occurrence is renamed to a key no
+    /// Rime config reads and the text parsed again. The renaming only exists in this parse.
+    static func lastKeyWins<T>(_ text: String, _ parse: (String) throws -> T) throws -> T {
+        var current = text
+        var repairs = 0
+        while true {
+            do {
+                return try parse(current)
+            } catch YamlError.duplicatedKeysInMapping(let duplicates, _) {
+                var lines = current.components(separatedBy: "\n")
+                var changed = false
+                for (key, nodes) in duplicates {
+                    guard let name = key.string, !name.isEmpty else { continue }
+                    let earlier = nodes.compactMap(\.mark).sorted { ($0.line, $0.column) < ($1.line, $1.column) }
+                        .dropLast()
+                    // Right to left, so a rename never moves an occurrence still to come on the same line.
+                    for mark in earlier.reversed() {
+                        repairs += 1
+                        guard repairs <= maximumDuplicateRepairs,
+                            mark.line >= 1, mark.line <= lines.count
+                        else {
+                            throw LimitExceeded(reason: "重复的键超过 \(maximumDuplicateRepairs) 个")
+                        }
+                        let line = lines[mark.line - 1]
+                        let from = line.index(line.startIndex, offsetBy: min(mark.column - 1, line.count))
+                        guard
+                            let range = line.range(of: name, range: from..<line.endIndex)
+                                ?? line.range(of: name)
+                        else { continue }
+                        var placeholder: String
+                        repeat {
+                            placeholder = "songyan_shadowed_" + UUID().uuidString.prefix(8)
+                        } while current.contains(placeholder)
+                        lines[mark.line - 1] = line.replacingCharacters(in: range, with: placeholder)
+                        changed = true
+                    }
+                }
+                guard changed else { throw YamlError.duplicatedKeysInMapping(duplicates: duplicates, yaml: current) }
+                current = lines.joined(separator: "\n")
+            }
+        }
+    }
+
+    private static func strictLoad(yaml text: String) throws -> Any? {
         guard try requiresExpansionCheck(text) else { return try Yams.load(yaml: text) }
         guard let node = try Yams.compose(yaml: text) else { return nil }
         try checkExpandedSize(node)
@@ -32,9 +90,7 @@ public enum BoundedYAML {
     /// Maximum size of the alias-free preflight text, before allocating it.
     static let maximumShadowBytes = 32 * 1024 * 1024
 
-    /// Drop-in replacement for `Yams.compose(yaml:)`; documents using aliases
-    /// are guaranteed to expand to at most `maximumExpandedNodes` nodes.
-    public static func compose(yaml text: String) throws -> Node? {
+    private static func strictCompose(yaml text: String) throws -> Node? {
         guard try requiresExpansionCheck(text) else { return try Yams.compose(yaml: text) }
         guard let node = try Yams.compose(yaml: text) else { return nil }
         try checkExpandedSize(node)
