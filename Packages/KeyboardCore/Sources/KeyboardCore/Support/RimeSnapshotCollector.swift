@@ -216,8 +216,6 @@ public enum RimeSnapshotCollector {
                 skipped.append(SkippedSnapshot(fileName: name, reason: .tooLarge))
                 return
             }
-            total += data.count
-            if total > maximumTotalBytes || snapshots.count >= maximumFiles { throw TooLarge() }
             let body = RimeUserDbText.strippingBOM(data)
             let info: RimeUserDbSnapshotInfo
             do { info = try RimeUserDbText.inspect(body) } catch {
@@ -228,6 +226,9 @@ public enum RimeSnapshotCollector {
                 skipped.append(SkippedSnapshot(fileName: name, reason: .empty))
                 return
             }
+            // Only snapshots that will be merged count toward the limits.
+            total += data.count
+            if total > maximumTotalBytes || snapshots.count >= maximumFiles { throw TooLarge() }
             snapshots.append(
                 CollectedSnapshot(
                     fileName: name, dictionary: info.dictionary, entryCount: info.entryCount, data: Data(body)))

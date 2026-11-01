@@ -79,6 +79,15 @@ final class RimeSnapshotCollectorTests: XCTestCase {
         XCTAssertThrowsError(try RimeSnapshotCollector.collect(files: big, byContent: true))
     }
 
+    func testSkippedFilesDoNotCountTowardThePickLimit() throws {
+        let body = Data(repeating: 0x20, count: RimeSnapshotCollector.maximumFileBytes - 1_000)
+        let empty = (0..<3).map { picked("e\($0).userdb.txt", snapshot(rows: 0) + body) }
+        let result = try RimeSnapshotCollector.collect(
+            files: empty + [picked("kept.userdb.txt", snapshot())], byContent: true)
+        XCTAssertEqual(result.snapshots.map(\.fileName), ["kept.userdb.txt"])
+        XCTAssertEqual(result.skipped.map(\.reason), [.empty, .empty, .empty])
+    }
+
     func testSeveralSnapshotsOfOneDictionaryAreAllKept() throws {
         let files = (0..<3).map { picked("p\($0).userdb.txt", snapshot()) }
         XCTAssertEqual(try RimeSnapshotCollector.collect(files: files, byContent: true).snapshots.count, 3)
