@@ -38,6 +38,13 @@ final class LayoutCatalogFormatTests: XCTestCase {
         let copy = try XCTUnwrap(registry.layout(id: copyID))
         XCTAssertEqual(copy.name, "我的 14 键")
         XCTAssertEqual(copy.rows[0].keys[0].secondaryLabel, "1")
+        // An older edited copy kept the stand-in bottom row; the keyboard draws its own row for it.
+        XCTAssertTrue(BuiltinLayouts.matchesControlRowPolicy(copy, as: .merged14))
+        for id in ["qwerty26", "merged14", "merged18"] {
+            let stored = try XCTUnwrap(registry.layout(id: id))
+            XCTAssertTrue(BuiltinLayouts.matchesControlRowPolicy(stored, as: stored.input.builtinLayout!), id)
+        }
+        XCTAssertTrue(BuiltinLayouts.matchesPhone9Chrome(try XCTUnwrap(registry.layout(id: "phone9"))))
         let bound = try XCTUnwrap(registry.layout(id: "luna-26"))
         XCTAssertEqual(bound.input, LayoutInput(schemaID: "luna_pinyin", builtinLayout: .qwerty26))
         XCTAssertEqual(bound.longPressDelay, 0.5)

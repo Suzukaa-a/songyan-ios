@@ -121,19 +121,19 @@ enum KeyboardPanelRules {
         return nil
     }
 
-    /// The preset key at the same declared address, for the per-key face/long-press comparison.
-    /// The merged shell addresses its keys by action (the layout data has no stable row address),
-    /// so those ids are resolved by the unchanged main-row action.
+    /// The preset key at the same declared address (`row-<row>-<key>` or `merged-<row>-<key>`), for
+    /// the per-key face/long-press comparison. The address, not the action, identifies a key: an
+    /// edited action must still compare against the key it replaced.
     static func mainShellPresetKey(in preset: LayoutDefinition, id: String, key: LayoutKey) -> LayoutKey? {
-        // Runs per rendered key: scan in place instead of building arrays.
-        if id.hasPrefix("merged-") {
-            for row in preset.rows.prefix(PhoneKeypadMetrics.mainRowCount) {
-                if let match = row.keys.first(where: { $0.action == key.action }) { return match }
-            }
+        // Runs per rendered key: parse in place instead of building arrays.
+        let address: Substring
+        if id.hasPrefix("row-") {
+            address = id.dropFirst(4)
+        } else if id.hasPrefix("merged-") {
+            address = id.dropFirst(7)
+        } else {
             return nil
         }
-        guard id.hasPrefix("row-") else { return nil }
-        let address = id.dropFirst(4)
         guard let dash = address.firstIndex(of: "-"),
             let row = Int(address[..<dash]), let column = Int(address[address.index(after: dash)...]),
             preset.rows.indices.contains(row), preset.rows[row].keys.indices.contains(column)

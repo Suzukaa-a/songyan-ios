@@ -10,7 +10,7 @@ extension KeyboardPanelView {
         KeyboardMergedPad(
             rows: definitionMainRows, split: activeSplit,
             key: { key, index, keyIndex in
-                definitionKey(key, id: "merged-\(key.action.value ?? "\(index)-\(keyIndex)")")
+                definitionKey(key, id: "merged-\(index)-\(keyIndex)")
             },
             separator: {
                 KeyboardMergedSeparatorKey(isComposing: controller.snapshot.isComposing) {
@@ -342,7 +342,7 @@ extension KeyboardPanelView {
         // A custom title always wins. The live cycle title is a native-shell state, so a primary-only
         // match (metadata edited, shell not injected) keeps the author's stored label instead.
         let firstKeyTitle: String = {
-            guard key.titleMode != .custom, let dynamicFirstKey, isBuiltinPhonePad else {
+            guard key.titleMode != .custom, let dynamicFirstKey, isBuiltinPhoneFace else {
                 return key.label
             }
             return dynamicFirstKey.title
@@ -481,7 +481,7 @@ extension KeyboardPanelView {
             let cycleHint: String? =
                 !isT9FirstKey
                 ? nil
-                : !isBuiltinPhonePad
+                : !isBuiltinPhoneFace
                     ? (isComposing ? "轻点分词" : "连续点按轮换符号")
                     : (isComposing
                         ? "轻点分词，长按输入 1"

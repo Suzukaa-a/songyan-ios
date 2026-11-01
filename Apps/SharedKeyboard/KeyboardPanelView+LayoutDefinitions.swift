@@ -326,17 +326,26 @@ final class DefinitionResolutionMemo {
         let isBundled: Bool
         /// The hands' row cuts for the unedited bundled 26/18-key layout (see `BuiltinLayouts.handSplit`).
         let handSplit: LayoutSplitConfiguration?
+        /// The bundled 9-key chrome (quick-symbol rail, fixed editing rail, control row): its rails
+        /// and stand-in control row are still the preset's (see `BuiltinLayouts.matchesPhone9Chrome`).
         let isBuiltinPhonePad: Bool
+        /// The bundled 9-key whose first key face is the preset's: only then may the live first key
+        /// replace the stored title (see `BuiltinLayouts.matchesPhone9LiveFirstKey`).
+        let isBuiltinPhoneFace: Bool
         /// Known bundled phone9 primary-gesture semantics, independent of the visual shell. Only
         /// first-key cycling / digit up-flick / declared alternates may read it; it must never gate
         /// the injected control row or rails.
         let isKnownPhone9Primary: Bool
         /// Structural main-shell identity for the bundled 26-key (letters + synthesized Shift/Delete).
         let isBundledQwertyMainShell: Bool
+        /// The 26-key shell's letters keep the preset counts and widths, so they sit in the standard
+        /// equal columns; otherwise they are drawn at their declared weights.
+        let usesStandardQwertyColumns: Bool
         /// Structural main-shell identity for the bundled 14/18-key merged pads (geometry + synthesized separator/Delete).
         let isBundledMergedPad: Bool
-        /// The bundled footer policy draws its own control row; true only while the declared control
-        /// row is still the preset (any footer edit falls back to the author row).
+        /// The bundled footer policy draws its own control row; true while the declared control row
+        /// is still the preset's stand-in, whatever the main keys say (any footer edit falls back to
+        /// the author row).
         let isBundledControlRowPolicy: Bool
         let isPhone: Bool
         let needsEngineSpelling: Bool
@@ -361,15 +370,18 @@ final class DefinitionResolutionMemo {
             let isBundled = bundled != nil
             self.isBundled = isBundled
             handSplit = active.flatMap(BuiltinLayouts.handSplit(for:))
-            // Shell/chrome identity stays narrow: only the rendered main-row long-press menus may
-            // differ, because injecting the fixed control row/rails would otherwise cover up authored
-            // edits there. Primary gestures are a separate, shell-free predicate.
-            isBuiltinPhonePad = active.map(BuiltinLayouts.matchesPhone9VisualShell) == true
+            // Chrome identity covers only what the chrome replaces (rails and control row); the live
+            // first key also needs its own preset face. Primary gestures are a separate, shell-free
+            // predicate.
+            isBuiltinPhonePad = active.map(BuiltinLayouts.matchesPhone9Chrome) == true
+            isBuiltinPhoneFace = active.map(BuiltinLayouts.matchesPhone9LiveFirstKey) == true
             isKnownPhone9Primary = active.map(BuiltinLayouts.matchesPhone9PrimarySemantics) == true
-            // The 26/14/18 shells are structural: main-row long-press, label and title edits keep
-            // the native columns/Shift/Delete/separator geometry, while the footer identity below
-            // stays separate so an edited control row is rendered instead of covered up.
+            // The 26/14/18 shells are structural: edits to main keys keep Shift/Delete/separator and
+            // the keyboard's own bottom row, while an edited control row is rendered instead of
+            // covered up.
             isBundledQwertyMainShell = active.map { BuiltinLayouts.matchesMainShell($0, as: .qwerty26) } == true
+            usesStandardQwertyColumns =
+                active.map { BuiltinLayouts.matchesMainShellColumns($0, as: .qwerty26) } == true
             switch active?.input.builtinLayout {
             case .some(.merged14):
                 isBundledMergedPad = active.map { BuiltinLayouts.matchesMainShell($0, as: .merged14) } == true

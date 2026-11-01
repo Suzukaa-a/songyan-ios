@@ -2,10 +2,10 @@ import XCTest
 
 @testable import LayoutKit
 
-/// The two bundled 9-key identities stay separate:
-///  * visual shell identity tolerates only the main rows' long-press menus, because the native shell
-///    renders those keys from the definition; it rejects every control-row/rail edit that the shell
-///    would otherwise cover up by synthesizing its own keys.
+/// The bundled 9-key identities stay separate:
+///  * chrome identity rejects every control-row/rail edit that the chrome would otherwise cover up
+///    by drawing its own keys; main keys are drawn from the definition, so their edits keep it.
+///  * the live first key also needs the first key's own preset face.
 ///  * primary-gesture semantics ignores main-row metadata so first-key cycling and digit up-flick
 ///    survive label/secondary/title edits, but never gates injected chrome. Control-row/rail
 ///    long-press edits also keep the gestures alive (only their non-LP fields must match).
@@ -56,19 +56,19 @@ final class Phone9SemanticsTests: XCTestCase {
         _ definition: LayoutDefinition, file: StaticString = #filePath, line: UInt = #line
     ) {
         XCTAssertFalse(
-            BuiltinLayouts.matchesPhone9VisualShell(definition), "visual shell must fall back",
+            BuiltinLayouts.matchesPhone9LiveFirstKey(definition), "the live first key must fall back",
             file: file, line: line)
     }
 
     // MARK: Pristine
 
     func testBundledPhone9MatchesBoth() {
-        XCTAssertTrue(BuiltinLayouts.matchesPhone9VisualShell(preset))
+        XCTAssertTrue(BuiltinLayouts.matchesPhone9LiveFirstKey(preset))
         XCTAssertTrue(BuiltinLayouts.matchesPhone9PrimarySemantics(preset))
     }
 
     func testRenamedCloneMatchesBoth() {
-        XCTAssertTrue(BuiltinLayouts.matchesPhone9VisualShell(clone()))
+        XCTAssertTrue(BuiltinLayouts.matchesPhone9LiveFirstKey(clone()))
         XCTAssertTrue(BuiltinLayouts.matchesPhone9PrimarySemantics(clone()))
     }
 
@@ -81,21 +81,31 @@ final class Phone9SemanticsTests: XCTestCase {
             key.settingLongPress([])
         }
         let edited = clone(rows: rows)
-        XCTAssertTrue(BuiltinLayouts.matchesPhone9VisualShell(edited))
+        XCTAssertTrue(BuiltinLayouts.matchesPhone9LiveFirstKey(edited))
         XCTAssertTrue(BuiltinLayouts.matchesPhone9PrimarySemantics(edited))
     }
 
     // MARK: Main-row metadata
 
-    func testMainLabelSecondaryTitleEditsKeepPrimaryOnly() {
-        let label = clone(rows: replacingKey(in: preset.rows, row: 1, key: 0) { $0.title("RET") })
+    func testFirstKeyLabelSecondaryTitleEditsKeepPrimaryOnly() {
+        let label = clone(rows: replacingKey(in: preset.rows, row: 0, key: 0) { $0.title("RET") })
         let secondary = clone(
-            rows: replacingKey(in: preset.rows, row: 1, key: 1) { $0.settingSecondaryLabel("x") })
+            rows: replacingKey(in: preset.rows, row: 0, key: 0) { $0.settingSecondaryLabel("x") })
         let title = clone(
-            rows: replacingKey(in: preset.rows, row: 1, key: 2) { $0.settingTitleMode(.automatic) })
+            rows: replacingKey(in: preset.rows, row: 0, key: 0) { $0.settingTitleMode(.automatic) })
         for definition in [label, secondary, title] {
             assertVisualOnlyIsBroken(definition)
             XCTAssertTrue(BuiltinLayouts.matchesPhone9PrimarySemantics(definition))
+            XCTAssertTrue(BuiltinLayouts.matchesPhone9Chrome(definition))
+        }
+    }
+
+    func testOtherKeyFaceEditsKeepTheLiveFirstKey() {
+        let label = clone(rows: replacingKey(in: preset.rows, row: 1, key: 0) { $0.title("RET") })
+        let secondary = clone(
+            rows: replacingKey(in: preset.rows, row: 1, key: 1) { $0.settingSecondaryLabel("x") })
+        for definition in [label, secondary] {
+            XCTAssertTrue(BuiltinLayouts.matchesPhone9LiveFirstKey(definition))
         }
     }
 
@@ -115,7 +125,7 @@ final class Phone9SemanticsTests: XCTestCase {
         }
         // The three-row phone shape keeps the canonical main rows. Its shell identity is false, but
         // primary gestures are main-row only, so they survive the author's structure edit.
-        XCTAssertFalse(BuiltinLayouts.matchesPhone9VisualShell(fewerRows))
+        XCTAssertFalse(BuiltinLayouts.matchesPhone9LiveFirstKey(fewerRows))
         XCTAssertTrue(BuiltinLayouts.matchesPhone9PrimarySemantics(fewerRows))
     }
 
@@ -195,19 +205,52 @@ final class Phone9SemanticsTests: XCTestCase {
         }
     }
 
+    // MARK: Chrome
+
+    /// An edited 9-key key keeps the keyboard's rails and bottom row: the chrome replaces only the
+    /// stand-in rails and control row, never the main keys the author changed.
+    func testMainKeyEditsKeepTheChrome() {
+        let label = clone(rows: replacingKey(in: preset.rows, row: 0, key: 1) { $0.title("AB") })
+        let secondary = clone(
+            rows: replacingKey(in: preset.rows, row: 1, key: 1) { $0.settingSecondaryLabel("x") })
+        let firstKey = clone(
+            rows: replacingKey(in: preset.rows, row: 0, key: 0) { $0.settingAction(.init(.literal, value: "。")) })
+        let width = clone(rows: replacingKey(in: preset.rows, row: 1, key: 0) { $0.settingWidth(2) })
+        for definition in [label, secondary, firstKey, width] {
+            XCTAssertTrue(BuiltinLayouts.matchesPhone9Chrome(definition))
+            XCTAssertTrue(PhoneKeypadStructure.matches(definition))
+        }
+        XCTAssertTrue(BuiltinLayouts.matchesPhone9Chrome(preset))
+        XCTAssertTrue(BuiltinLayouts.matchesPhone9Chrome(clone()))
+    }
+
+    func testChromeEditsAndOtherShapesLeaveTheChrome() {
+        guard let areas = preset.auxiliaryAreas else { return XCTFail("preset has rails") }
+        var footer = preset.rows
+        footer[3] = LayoutRow(keys: footer[3].keys.enumerated().map { $0 == 0 ? $1.title("布局!") : $1 })
+        let rail = clone(areas: replacingAuxKey(in: areas, area: 0, key: 0) { $0.title("Del") })
+        let digit = clone(
+            rows: replacingKey(in: preset.rows, row: 1, key: 0) { $0.settingAction(.init(.code, value: "0")) })
+        let threeRows = clone(rows: Array(preset.rows.prefix(3)))
+        let bound = clone(input: .init(schemaID: "unknown_t9", builtinLayout: .phone9))
+        for definition in [clone(rows: footer), rail, digit, threeRows, bound] {
+            XCTAssertFalse(BuiltinLayouts.matchesPhone9Chrome(definition))
+        }
+    }
+
     // MARK: Unknown / other builtin layouts
 
     func testUnknownSchemaNeverMatches() {
         let bound = clone(input: .init(schemaID: "unknown_t9", builtinLayout: .phone9))
         for definition in [bound] {
-            XCTAssertFalse(BuiltinLayouts.matchesPhone9VisualShell(definition))
+            XCTAssertFalse(BuiltinLayouts.matchesPhone9LiveFirstKey(definition))
             XCTAssertFalse(BuiltinLayouts.matchesPhone9PrimarySemantics(definition))
         }
     }
 
     func testOtherBuiltinLayoutsNeverMatch() {
         for definition in [BuiltinLayouts.qwerty26, BuiltinLayouts.merged14, BuiltinLayouts.merged18] {
-            XCTAssertFalse(BuiltinLayouts.matchesPhone9VisualShell(definition))
+            XCTAssertFalse(BuiltinLayouts.matchesPhone9LiveFirstKey(definition))
             XCTAssertFalse(BuiltinLayouts.matchesPhone9PrimarySemantics(definition))
         }
     }
@@ -216,7 +259,7 @@ final class Phone9SemanticsTests: XCTestCase {
         let imported = LayoutDefinition(
             id: "imported-t9", name: "导入九键", input: .init(),
             rows: preset.rows, auxiliaryAreas: preset.auxiliaryAreas)
-        XCTAssertFalse(BuiltinLayouts.matchesPhone9VisualShell(imported))
+        XCTAssertFalse(BuiltinLayouts.matchesPhone9LiveFirstKey(imported))
         XCTAssertFalse(BuiltinLayouts.matchesPhone9PrimarySemantics(imported))
     }
 }

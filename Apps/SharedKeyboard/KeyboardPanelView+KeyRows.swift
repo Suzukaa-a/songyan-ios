@@ -146,6 +146,9 @@ extension KeyboardPanelView {
     /// long-press menus may differ from the preset.
     var isBuiltinPhonePad: Bool { definitionFacts.isBuiltinPhonePad }
 
+    /// The bundled 9-key with its preset first-key face: gates the live first-key title and hints.
+    var isBuiltinPhoneFace: Bool { definitionFacts.isBuiltinPhoneFace }
+
     /// The known bundled phone9 primary gestures (first-key cycle, digit up-flick, declared
     /// alternates) without any shell assumption. Never use it to gate injected chrome.
     var isKnownPhone9Primary: Bool { definitionFacts.isKnownPhone9Primary }
@@ -221,7 +224,8 @@ extension KeyboardPanelView {
         } else if definitionMainRows.indices.contains(index) {
             definitionRow(
                 definitionMainRows[index], id: "row-\(index)",
-                split: activeSplit, rowIndex: index, fixedKeyWidth: CGFloat(metrics.keyWidth),
+                split: activeSplit, rowIndex: index,
+                fixedKeyWidth: definitionFacts.usesStandardQwertyColumns ? CGFloat(metrics.keyWidth) : nil,
                 splitGap: CGFloat(metrics.gap))
         }
     }

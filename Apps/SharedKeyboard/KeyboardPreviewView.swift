@@ -135,8 +135,9 @@ private struct KeyboardMainLayoutPreview: View {
     private var usesStandardT9: Bool { renderer == .phonePad }
     private var usesStandardQwerty: Bool { isEnglishMode || facts.isBundledQwertyMainShell }
     private var usesBundledMergedPad: Bool { usesConfiguredLayout && facts.isBundledMergedPad }
-    /// An editor shows the declared rails and footer, so every stored key can be selected.
-    private var showsBundledPhoneShell: Bool { facts.isBuiltinPhonePad && !editing }
+    /// The editor draws the chrome the keyboard draws; the stand-ins it replaces stay editable in
+    /// the row list, and editing them hands the rails or footer back to the stored keys.
+    private var showsBundledPhoneShell: Bool { facts.isBuiltinPhonePad }
 
     private var geometry: KeyboardPanelGeometry {
         KeyboardPanelGeometry(
@@ -188,7 +189,8 @@ private struct KeyboardMainLayoutPreview: View {
                         }
                     }
                     .frame(height: mainAreaHeight, alignment: .top)
-                    if editing || (usesConfiguredLayout && !facts.isBundledControlRowPolicy) {
+                    // The editor shows the bottom row the keyboard draws, decided by the same rule.
+                    if usesConfiguredLayout && !facts.isBundledControlRowPolicy {
                         layoutUtilityBar(split: split)
                     } else {
                         controlRow(split: split, columns: nil)
@@ -222,7 +224,7 @@ private struct KeyboardMainLayoutPreview: View {
                 key: { key, row, index in
                     keyFace(
                         key, path: .row(row, key: index),
-                        id: "merged-\(key.action.value ?? "\(row)-\(index)")")
+                        id: "merged-\(row)-\(index)")
                 },
                 separator: { KeyboardMergedSeparatorKey(isComposing: composing) {} },
                 delete: { RepeatingDeleteKey {} })
@@ -259,7 +261,9 @@ private struct KeyboardMainLayoutPreview: View {
             ) { _ in }
         } else if facts.mainRows.indices.contains(index) {
             definitionRow(
-                index, split: split, fixedKeyWidth: CGFloat(metrics.keyWidth), splitGap: CGFloat(metrics.gap))
+                index, split: split,
+                fixedKeyWidth: facts.usesStandardQwertyColumns ? CGFloat(metrics.keyWidth) : nil,
+                splitGap: CGFloat(metrics.gap))
         }
     }
 
@@ -443,7 +447,7 @@ private struct KeyboardMainLayoutPreview: View {
         // The live first key shows its cycle while idle and the separator while composing.
         let title: String =
             if isT9FirstKey {
-                key.titleMode != .custom && facts.isBuiltinPhonePad
+                key.titleMode != .custom && facts.isBuiltinPhoneFace
                     ? (composing
                         ? "分词"
                         : SymbolPageTable.quickCycle(

@@ -2,8 +2,8 @@ import XCTest
 
 @testable import LayoutKit
 
-/// Structural main-shell identity for the bundled 26/14/18 layouts: metadata and main-row
-/// long-press edits keep the native columns/side keys, while width/action/shape/aux edits and an
+/// Structural main-shell identity for the bundled 26/14/18 layouts: edits to main keys keep the
+/// native side keys and the keyboard's own bottom row, while aux edits, a changed row shape and an
 /// edited control row must fall back to the author renderer (never silently hidden).
 final class KnownShellIdentityTests: XCTestCase {
     private var qwerty: LayoutDefinition { BuiltinLayouts.qwerty26 }
@@ -58,18 +58,51 @@ final class KnownShellIdentityTests: XCTestCase {
         }
     }
 
-    func testMainWidthActionOrderAndCountEditsBreakMainShell() {
+    func testEditedMainKeysKeepTheShellAndTheKeyboardsBottomRow() {
         for preset in [qwerty, merged14, merged18] {
-            let width = clone(
-                preset, rows: replacingKey(in: preset.rows, row: 0, key: 0) { $0.settingWidth(9) })
-            XCTAssertFalse(expectedMain(width))
             let action = clone(
                 preset,
                 rows: replacingKey(in: preset.rows, row: 0, key: 0) { $0.settingAction(.init(.literal, value: "x")) })
-            XCTAssertFalse(expectedMain(action))
+            let width = clone(
+                preset, rows: replacingKey(in: preset.rows, row: 0, key: 0) { $0.settingWidth(2) })
             var swapped = preset.rows
             swapped[0] = LayoutRow(keys: Array(swapped[0].keys.reversed()))
-            XCTAssertFalse(expectedMain(clone(preset, rows: swapped)))
+            var fewer = preset.rows
+            fewer[2] = LayoutRow(keys: Array(fewer[2].keys.dropLast()))
+            for edited in [action, width, clone(preset, rows: swapped), clone(preset, rows: fewer)] {
+                XCTAssertTrue(expectedMain(edited), preset.id)
+                XCTAssertTrue(expectedControl(edited), "\(preset.id): the stand-in bottom row is still unedited")
+            }
+            // Only an unchanged key shape keeps the standard columns; edited widths and counts are
+            // drawn at their declared weights.
+            XCTAssertTrue(BuiltinLayouts.matchesMainShellColumns(action, as: preset.input.builtinLayout!))
+            XCTAssertFalse(BuiltinLayouts.matchesMainShellColumns(width, as: preset.input.builtinLayout!))
+            XCTAssertFalse(BuiltinLayouts.matchesMainShellColumns(clone(preset, rows: fewer), as: preset.input.builtinLayout!))
+        }
+    }
+
+    /// What the layout editor writes: an edited key, saved through the catalog's JSON and read
+    /// back, still gets the keyboard's own bottom row instead of the stand-in row drawn literally.
+    func testSavedEditedLayoutKeepsTheKeyboardsBottomRow() throws {
+        for preset in [qwerty, merged14, merged18] {
+            let edited = BuiltinLayouts.persistingHandCuts(in: preset).copy()
+                .replacingKey(at: .row(0, key: 0), with: preset.rows[0].keys[0].settingAction(.init(.code, value: "z")))
+            let stored = try LayoutDefinition.decode(edited.encoded())
+            XCTAssertEqual(stored, edited)
+            XCTAssertTrue(expectedMain(stored), preset.id)
+            XCTAssertTrue(expectedControl(stored), preset.id)
+            let unchanged = try LayoutDefinition.decode(preset.encoded())
+            XCTAssertTrue(BuiltinLayouts.matchesMainShellColumns(unchanged, as: preset.input.builtinLayout!))
+            XCTAssertTrue(expectedControl(unchanged), preset.id)
+        }
+    }
+
+    func testEmptiedMainRowLeavesTheShell() {
+        for preset in [qwerty, merged14, merged18] {
+            var rows = preset.rows
+            rows[1] = LayoutRow(keys: [])
+            XCTAssertFalse(expectedMain(clone(preset, rows: rows)))
+            XCTAssertFalse(expectedControl(clone(preset, rows: rows)))
         }
     }
 
@@ -150,7 +183,9 @@ final class KnownShellIdentityTests: XCTestCase {
         let mergedWithQwertyShell = LayoutDefinition(
             id: "cross", name: "cross", input: .init(builtinLayout: .qwerty26),
             rows: merged14.rows, auxiliaryAreas: nil)
-        XCTAssertFalse(expectedMain(mergedWithQwertyShell))
+        // A 26-key layout whose letter rows were reshaped keeps Shift/Delete but not the columns.
+        XCTAssertTrue(expectedMain(mergedWithQwertyShell))
+        XCTAssertFalse(BuiltinLayouts.matchesMainShellColumns(mergedWithQwertyShell, as: .qwerty26))
     }
 
     // MARK: Helpers
