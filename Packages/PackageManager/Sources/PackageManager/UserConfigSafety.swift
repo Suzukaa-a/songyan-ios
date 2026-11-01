@@ -109,7 +109,8 @@ enum UserConfigSafety {
             String(decoding: $0, as: UTF8.self)
         }
         // A string can be built from pieces (`@next: lu`, then `@last/+: a_filter@*x`): lists are what Rime appends to.
-        let appends = parts.last?.utf8Equals("+") == true
+        // A lone `+` is a symbol the punctuator maps to a mark, not an operator: it acts on a key before it.
+        let appends = parts.count > 1 && parts.last?.utf8Equals("+") == true
         if case .scalar = value, appends || base.utf8Equals("__append") || base.utf8Equals("__merge") { return key }
         // The key the operators act on: without `=`, `+` and list selectors.
         guard

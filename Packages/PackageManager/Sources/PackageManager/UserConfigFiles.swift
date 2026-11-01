@@ -60,6 +60,15 @@ public struct UserConfigError: Error, LocalizedError, Equatable, Sendable {
     }
 }
 
+/// The Chinese text for an error that comes from the 「Rime 配置」 folder; nil for any other error.
+public func rimeConfigUserMessage(_ error: Error) -> String? {
+    switch error {
+    case let error as UserConfigError: return error.errorDescription
+    case let error as RimeScriptNameTaken: return error.errorDescription
+    default: return nil
+    }
+}
+
 /// The user's own Rime configuration: the files a desktop Rime user keeps in the user data folder
 /// (`*.custom.yaml` patches, `custom_phrase.txt`, their own `.dict.yaml`), kept in the 「Rime 配置」
 /// folder. The folder mirrors a package's own layout (`lua/foo.lua` overrides the package's

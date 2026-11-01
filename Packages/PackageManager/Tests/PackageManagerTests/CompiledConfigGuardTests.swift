@@ -33,6 +33,21 @@ final class CompiledConfigGuardTests: XCTestCase {
         XCTAssertNil(refusal())
     }
 
+    func testPunctuationKeysThatLookLikePatchOperatorsPass() throws {
+        // A compiled default.yaml keys the punctuator map by the symbol itself, `+` among them.
+        try write(
+            "punctuator:\n  half_shape:\n    \"+\": \"+\"\n    \"=\": \"=\"\n    \"@\": \"@\"\nschema_list:\n  - schema: rime_ice\n",
+            "default.yaml")
+        XCTAssertNil(refusal())
+    }
+
+    func testRimeConfigErrorsCarryTheirOwnMessage() {
+        let error = UserConfigError("default.yaml", .unsafeReference)
+        XCTAssertEqual(rimeConfigUserMessage(error), error.errorDescription)
+        XCTAssertNotNil(rimeConfigUserMessage(RimeScriptNameTaken(name: "x")))
+        XCTAssertNil(rimeConfigUserMessage(CocoaError(.fileNoSuchFile)))
+    }
+
     func testAnUnsafeValueIsNamedWithItsFile() throws {
         try write("menu:\n  page_size: 5\n", "default.yaml")
         try write("translator:\n  user_dict: /var/mobile/Documents/Rime 配置/leak\n", "x.schema.yaml")

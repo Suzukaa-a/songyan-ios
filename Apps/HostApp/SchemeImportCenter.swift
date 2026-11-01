@@ -464,7 +464,8 @@ final class SchemeImportCenter: ObservableObject {
             // ones are internal and stay behind the generic message.
             return "无法完成安装：\(detail)。"
         default:
-            return "操作未完成，请重试。"
+            // The 「Rime 配置」 folder's own errors already carry their text.
+            return rimeConfigUserMessage(failure) ?? "操作未完成，请重试。"
         }
     }
 
