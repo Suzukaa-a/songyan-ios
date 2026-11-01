@@ -323,6 +323,8 @@ final class RimeFileEditorModel: ObservableObject {
     @Published private(set) var loadFailure: String?
     @Published private(set) var failure: Failure?
     @Published private(set) var saved = false
+    /// Set with each refused save so the refusal is announced once; the inline line stays below the text.
+    @Published var failureAlert = false
     private let manager: RecipePackageManager
     let route: RimeEditRoute
 
@@ -353,6 +355,7 @@ final class RimeFileEditorModel: ObservableObject {
     func save() async {
         guard dirty else { return }
         failure = nil
+        defer { failureAlert = failure != nil }
         do {
             switch try await manager.saveRimeConfigFile(route.path, text: text) {
             case .saved:
@@ -374,6 +377,7 @@ struct RimeFileEditorView: View {
     @ObservedObject var model: RimeConfigModel
     @Environment(\.dismiss) private var dismiss
     @State private var confirmDiscard = false
+    @State private var toast: String?
 
     init(route: RimeEditRoute, model: RimeConfigModel) {
         _editor = StateObject(wrappedValue: RimeFileEditorModel(route: route))
@@ -429,23 +433,31 @@ struct RimeFileEditorView: View {
         }
         .interactiveDismissDisabled(editor.dirty)
         .rimeConfigAlerts(model)
+        .onChange(of: editor.saved) { _, saved in if saved { toast = "已保存" } }
+        .alert("没有保存", isPresented: $editor.failureAlert) {
+            Button("好", role: .cancel) {}
+        } message: {
+            Text(failureText ?? "")
+        }
+        .savedToast($toast)
         .task { await editor.load() }
+    }
+
+    private var failureText: String? {
+        switch editor.failure {
+        case .invalid(let line?): return "第 \(line) 行格式有误，没有保存。"
+        case .invalid(nil): return "格式有误，没有保存。"
+        case .message(let text): return text
+        case nil: return nil
+        }
     }
 
     @ViewBuilder
     private var status: some View {
-        if let failure = editor.failure {
-            Text(
-                {
-                    switch failure {
-                    case .invalid(let line?): return "第 \(line) 行格式有误，没有保存。"
-                    case .invalid(nil): return "格式有误，没有保存。"
-                    case .message(let text): return text
-                    }
-                }()
-            )
-            .font(.footnote).foregroundStyle(.red)
-            .frame(maxWidth: .infinity, alignment: .leading).padding(10)
+        if let text = failureText {
+            Text(text)
+                .font(.footnote).foregroundStyle(.red)
+                .frame(maxWidth: .infinity, alignment: .leading).padding(10)
         } else if editor.saved {
             HStack {
                 Text("已保存。应用更改后生效。").font(.footnote).foregroundStyle(.secondary)

@@ -109,11 +109,16 @@ struct SkinManagementView: View {
                     importError = nil
                 } catch { importError = error.localizedDescription }
             }
-            .sheet(item: $draft, onDismiss: { if savedDestination != nil { showsSaved = true } }) {
+            .sheet(
+                item: $draft,
+                onDismiss: {
+                    if savedDestination != nil { showsSaved = true }
+                }
+            ) {
                 SkinEditorView(document: $0) { savedDestination = $0 }
             }
             .navigationDestination(isPresented: $showsSaved) {
-                if let savedDestination { AppearanceDetailView(document: savedDestination) }
+                if let savedDestination { AppearanceDetailView(document: savedDestination, notice: "已保存") }
             }
             .onChange(of: showsSaved) { if !showsSaved { savedDestination = nil } }
     }
@@ -123,7 +128,13 @@ struct SkinManagementView: View {
 /// The candidate-bar layout and skin belong to this one document, so there is no second "Apply" here.
 struct AppearanceDetailView: View {
     private let initialDocument: AppearanceDocument
-    init(document: AppearanceDocument) { initialDocument = document }
+    /// `notice` is shown once when the page appears, for a save that led here.
+    init(document: AppearanceDocument, notice: String? = nil) {
+        initialDocument = document
+        _toast = State(initialValue: notice)
+    }
+    @State private var toast: String?
+    @State private var savedInPlace = false
     @ObservedObject private var manager = AppearanceManager.shared
     private var document: AppearanceDocument {
         manager.projects.first(where: { $0.id == initialDocument.id }) ?? initialDocument
@@ -206,14 +217,26 @@ struct AppearanceDetailView: View {
             .background(.regularMaterial)
         }
         .navigationTitle(document.name)
-        .sheet(item: $draft, onDismiss: { if savedDestination != nil { showsSaved = true } }) {
+        .sheet(
+            item: $draft,
+            onDismiss: {
+                if savedDestination != nil {
+                    showsSaved = true
+                } else if savedInPlace {
+                    // Shown after the sheet is gone, so the confirmation is not hidden behind it.
+                    savedInPlace = false
+                    toast = "已保存"
+                }
+            }
+        ) {
             SkinEditorView(document: $0) { saved in
-                if saved.id != document.id { savedDestination = saved }
+                if saved.id != document.id { savedDestination = saved } else { savedInPlace = true }
             }
         }
         .navigationDestination(isPresented: $showsSaved) {
-            if let savedDestination { AppearanceDetailView(document: savedDestination) }
+            if let savedDestination { AppearanceDetailView(document: savedDestination, notice: "已保存") }
         }
+        .savedToast($toast)
         .onChange(of: showsSaved) { if !showsSaved { savedDestination = nil } }
         .fileExporter(
             isPresented: $exporting, document: exportDocument, contentType: .json,

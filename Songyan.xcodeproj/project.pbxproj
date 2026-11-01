@@ -58,6 +58,7 @@
         E90000000000000000000104 = {isa = PBXBuildFile; fileRef = E90000000000000000000004; };
         E90000000000000000000105 = {isa = PBXBuildFile; fileRef = E90000000000000000000005; };
         E90000000000000000000106 = {isa = PBXBuildFile; fileRef = E90000000000000000000006; };
+        E9000000000000000000F101 = {isa = PBXBuildFile; fileRef = E9000000000000000000F001; };
         E90000000000000000000107 = {isa = PBXBuildFile; fileRef = E90000000000000000000007; };
         E90000000000000000000207 = {isa = PBXBuildFile; fileRef = E90000000000000000000007; };
         E90000000000000000000108 = {isa = PBXBuildFile; fileRef = E90000000000000000000008; };
@@ -282,6 +283,7 @@
         E90000000000000000000004 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkinManagementView.swift; sourceTree = "<group>"; };
         E90000000000000000000005 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkinEditorView.swift; sourceTree = "<group>"; };
         E90000000000000000000006 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutEditorView.swift; sourceTree = "<group>"; };
+        E9000000000000000000F001 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedToast.swift; sourceTree = "<group>"; };
         E90000000000000000000007 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OptionStore.swift; sourceTree = "<group>"; };
         E90000000000000000000008 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardOptionsView.swift; sourceTree = "<group>"; };
         E90000000000000000000009 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardFeedbackService.swift; sourceTree = "<group>"; };
@@ -522,6 +524,7 @@
                 E90000000000000000000004 /* SkinManagementView.swift */,
                 E90000000000000000000005 /* SkinEditorView.swift */,
                 E90000000000000000000006 /* LayoutEditorView.swift */,
+                E9000000000000000000F001 /* SavedToast.swift */,
                 7EE4CFD1E2CDBCF323B9A7FA /* KeyboardRowsEditor.swift */,
                 CF399D5C03710EA6A3FC4E3C /* KeyboardPageEditorView.swift */,
                 375CAB1BE2039787E0D69687 /* KeyboardPageManagementView.swift */,
@@ -826,6 +829,7 @@
                 E90000000000000000000104 /* SkinManagementView.swift in Sources */,
                 E90000000000000000000105 /* SkinEditorView.swift in Sources */,
                 E90000000000000000000106 /* LayoutEditorView.swift in Sources */,
+                E9000000000000000000F101 /* SavedToast.swift in Sources */,
                 2A2902328E0C51CE3950B287 /* KeyboardRowsEditor.swift in Sources */,
                 D2145277F77256AEBB36B400 /* KeyboardPageEditorView.swift in Sources */,
                 EDBB7F062B2E9F2B1F63EC93 /* KeyboardPageManagementView.swift in Sources */,

@@ -12,6 +12,8 @@ struct LayoutManagementView: View {
     @State private var showingImporter = false
     @State private var importError: String?
     @State private var importedDraft: LayoutDefinition?
+    @State private var savedFromSheet = false
+    @State private var toast: String?
     @State private var pendingRemoval: [LayoutDefinition] = []
 
     var body: some View {
@@ -57,9 +59,18 @@ struct LayoutManagementView: View {
             Text(importError ?? manager.lastError ?? "")
         }
         .onAppear { manager.reload() }
-        .sheet(item: $importedDraft) { draft in
-            NavigationStack { LayoutEditorView(layout: draft) }
+        .sheet(
+            item: $importedDraft,
+            onDismiss: {
+                if savedFromSheet {
+                    savedFromSheet = false
+                    toast = "已保存"
+                }
+            }
+        ) { draft in
+            NavigationStack { LayoutEditorView(layout: draft) { _ in savedFromSheet = true } }
         }
+        .savedToast($toast)
         .confirmationDialog(removalTitle, isPresented: removalBinding, titleVisibility: .visible) {
             Button("移除布局", role: .destructive) {
                 let ids = pendingRemoval.map(\.id)
@@ -232,6 +243,8 @@ struct LayoutDetailView: View {
     @State private var exporting = false
     @State private var exportError: String?
     @State private var editingDraft: LayoutDefinition?
+    @State private var savedFromSheet = false
+    @State private var toast: String?
 
     private var layout: LayoutDefinition? {
         manager.registry.layout(id: layoutID)
@@ -308,9 +321,18 @@ struct LayoutDetailView: View {
         } message: {
             Text("你对这个布局的修改会被清除。")
         }
-        .sheet(item: $editingDraft) { draft in
-            NavigationStack { LayoutEditorView(layout: draft) }
+        .sheet(
+            item: $editingDraft,
+            onDismiss: {
+                if savedFromSheet {
+                    savedFromSheet = false
+                    toast = "已保存"
+                }
+            }
+        ) { draft in
+            NavigationStack { LayoutEditorView(layout: draft) { _ in savedFromSheet = true } }
         }
+        .savedToast($toast)
         .fileExporter(
             isPresented: $exporting,
             document: exportDocument,

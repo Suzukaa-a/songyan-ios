@@ -145,7 +145,7 @@ enum HostConfigIOQueue {
         isLoading = false
         try local.save(document, replacing: replacing)
         projects = try local.list()
-        message = "已保存"
+        message = nil
     }
 
     /// Deletes an appearance item: removes only the project file in the local draft store (shared-container files

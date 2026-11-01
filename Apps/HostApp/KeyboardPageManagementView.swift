@@ -6,6 +6,8 @@ struct KeyboardPageManagementView: View {
     var keyboardNames = KeyboardNames()
     @ObservedObject private var manager = LayoutManager.shared
     @State private var editing: KeyboardPageDefinition?
+    @State private var savedFromSheet = false
+    @State private var toast: String?
     @State private var removing: KeyboardPageDefinition?
     @State private var restoring: KeyboardPageDefinition?
     @State private var error: String?
@@ -25,7 +27,18 @@ struct KeyboardPageManagementView: View {
         .overlay { if let busyMessage { ProgressView(busyMessage) } }
         .navigationTitle(UserTerminology.pageLibrary)
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(item: $editing) { page in NavigationStack { KeyboardPageEditorView(page: page) } }
+        .sheet(
+            item: $editing,
+            onDismiss: {
+                if savedFromSheet {
+                    savedFromSheet = false
+                    toast = "已保存"
+                }
+            }
+        ) { page in
+            NavigationStack { KeyboardPageEditorView(page: page) { _ in savedFromSheet = true } }
+        }
+        .savedToast($toast)
         .confirmationDialog(
             "删除「\(removing?.name ?? "")」？",
             isPresented: Binding(get: { removing != nil }, set: { if !$0 { removing = nil } }),
