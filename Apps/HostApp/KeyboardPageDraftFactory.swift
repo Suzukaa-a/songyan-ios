@@ -61,7 +61,7 @@ enum KeyboardPageDraftFactory {
                 // knows whether the stored rows are still the canonical preset (then it may take the
                 // initial-language snapshot) or author-modified (then it keeps them, along with the
                 // author's split). Hand-picking a preset here would discard both.
-                var copy = base.copy(
+                let copy = base.copy(
                     name: page.name + " 副本", numericMarks: numericMarks, numericForm: numericForm ?? .rows)
                 try copy.validate()
                 return copy
@@ -81,7 +81,7 @@ enum KeyboardPageDraftFactory {
         }
         // Runtime-resolved pages never pick a branch on their own; only a caller's explicit choice
         // pins the copy. Authored pages keep the initial branch they were saved with.
-        var copy = base.copy(numericMarks: numericMarks, numericForm: numericForm ?? .rows)
+        let copy = base.copy(numericMarks: numericMarks, numericForm: numericForm ?? .rows)
         try copy.validate()
         return copy
     }
