@@ -214,7 +214,7 @@ struct SkinEditorView: View {
             defer { saving = false }
             do {
                 let saved = (copy ? draft.copy() : draft).normalized()
-                try manager.save(saved, replacing: !copy)
+                try await manager.save(saved, replacing: !copy)
                 onSaved?(saved)
                 dismiss()
             } catch { self.error = error.localizedDescription }

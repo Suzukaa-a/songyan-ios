@@ -12,9 +12,9 @@ import Foundation
         let dictionary = opencc.appendingPathComponent("table.txt")
         try "开心\t😄\n".write(to: dictionary, atomically: true, encoding: .utf8)
         let config = """
-        {"name":"Emoji","segmentation":{"type":"mmseg","dict":{"type":"text","file":"table.txt"}},
-         "conversion_chain":[{"dict":{"type":"group","dicts":[{"type":"text","file":"table.txt"}]}}]}
-        """
+            {"name":"Emoji","segmentation":{"type":"mmseg","dict":{"type":"text","file":"table.txt"}},
+             "conversion_chain":[{"dict":{"type":"group","dicts":[{"type":"text","file":"table.txt"}]}}]}
+            """
         try config.write(to: opencc.appendingPathComponent("arbitrary.json"), atomically: true, encoding: .utf8)
         try check(SchemaOptionCapabilities.verifiedOpenCC("arbitrary.json", sharedDirectory: root) == "Emoji 候选")
         try config.replacingOccurrences(of: "\"Emoji\"", with: "\"Cantonese to Emoji\"").write(
@@ -24,37 +24,37 @@ import Foundation
         try check(SchemaOptionCapabilities.verifiedOpenCC("arbitrary.json", sharedDirectory: root) == nil)
         print("PASS arbitrary OpenCC filename uses config semantics and rejects missing nested dependency")
         let yaml = """
-        switches:
-          - options:
-              - unchanged
-              - traditional
-              - hongkong
-              - taiwan
-            states:
-              - 简体
-              - 通繁
-              - 港繁
-              - 臺繁
-          - name: emoji
-        engine:
-          filters:
-            - simplifier@trad
-            - simplifier@hk
-            - simplifier@tw
-            - simplifier@faces
-        trad:
-          option_name: traditional
-          opencc_config: custom-a.json
-        hk:
-          option_name: hongkong
-          opencc_config: t2hk.json
-        tw:
-          option_name: taiwan
-          opencc_config: t2tw.json
-        faces:
-          option_name: emoji
-          opencc_config: arbitrary.json
-        """
+            switches:
+              - options:
+                  - unchanged
+                  - traditional
+                  - hongkong
+                  - taiwan
+                states:
+                  - 简体
+                  - 通繁
+                  - 港繁
+                  - 臺繁
+              - name: emoji
+            engine:
+              filters:
+                - simplifier@trad
+                - simplifier@hk
+                - simplifier@tw
+                - simplifier@faces
+            trad:
+              option_name: traditional
+              opencc_config: custom-a.json
+            hk:
+              option_name: hongkong
+              opencc_config: t2hk.json
+            tw:
+              option_name: taiwan
+              opencc_config: t2tw.json
+            faces:
+              option_name: emoji
+              opencc_config: arbitrary.json
+            """
         let descriptors = SchemaOptionCapabilities.parse(resourceID: "r", schemaID: "s", yaml: yaml) { config in
             config == "arbitrary.json" ? "Emoji 候选" : "繁体输出"
         }
@@ -85,13 +85,16 @@ import Foundation
         try await cache.beginRefresh(group).value
         try check(try cache.value(for: group[3]) == true)
         print("PASS group saves and cache restore keep exactly the last selected member")
-        let defaults = SchemaOptionCapabilities.parse(resourceID: "r", schemaID: "s", yaml: """
-        switches:
-          - name: simplification
-        engine:
-          filters:
-            - simplifier
-        """) { $0 == "t2s.json" ? "简体输出" : nil }
+        let defaults = SchemaOptionCapabilities.parse(
+            resourceID: "r", schemaID: "s",
+            yaml: """
+                switches:
+                  - name: simplification
+                engine:
+                  filters:
+                    - simplifier
+                """
+        ) { $0 == "t2s.json" ? "简体输出" : nil }
         try check(defaults.first?.title == "简体输出")
         print("PASS bare simplifier uses librime default t2s.json")
     }

@@ -22,6 +22,8 @@ final class RimeConfigModel: ObservableObject {
     @Published var confirmation: ScriptConfirmation?
     /// The file to open in the editor, and the new-script prompt: state of the screen the rows sit in.
     @Published var editing: RimeEditRoute?
+    @Published var restoringPath: String?
+    @Published private(set) var restoring = false
     @Published var newScript = false
     @Published var scriptName = ""
 
@@ -74,10 +76,18 @@ final class RimeConfigModel: ObservableObject {
     }
 
     func restore(_ path: String) async {
-        guard let packageID else { return }
-        try? await center.manager(packageID).restoreRimeConfigFile(path)
-        result = "已恢复原样。应用更改后生效。"
-        await refresh()
+        guard let packageID, !restoring else { return }
+        restoring = true
+        result = nil
+        defer { restoring = false }
+        do {
+            let removed = try await center.manager(packageID).restoreRimeConfigFile(path)
+            result = removed ? "已恢复原样。应用更改后生效。" : "这个文件已经是原样。"
+            await refresh()
+        } catch {
+            HostLog.append("restore config failed: \(error.localizedDescription)")
+            result = "没能恢复这个文件，请重试。"
+        }
     }
 
     func acknowledgeNotice() async {
@@ -145,7 +155,7 @@ struct RimeConfigRows: View {
     var body: some View {
         Section {
             Button("应用更改") { Task { await model.apply() } }
-                .disabled(center.busy || model.applying)
+                .disabled(center.busy || model.applying || model.restoring)
             if model.applying { ProgressView("正在应用…") }
             if let result = model.result {
                 Text(result).font(.footnote).foregroundStyle(.secondary)
@@ -179,7 +189,8 @@ struct RimeConfigRows: View {
                             }
                         }
                         Spacer(minLength: 8)
-                        Button("恢复原样") { Task { await model.restore(entry.path) } }
+                        Button("恢复原样") { model.restoringPath = entry.path }
+                            .disabled(model.restoring || model.applying || center.busy)
                             .font(.footnote).buttonStyle(.borderless)
                     }
                 }
@@ -205,6 +216,22 @@ private struct RimeConfigHost: ViewModifier {
                 if phase == .active { Task { await model.refresh() } }
             }
             .rimeConfigAlerts(model)
+            .confirmationDialog(
+                "恢复「\(model.restoringPath ?? "")」？",
+                isPresented: Binding(
+                    get: { model.restoringPath != nil }, set: { if !$0 { model.restoringPath = nil } }),
+                titleVisibility: .visible
+            ) {
+                if let path = model.restoringPath {
+                    Button("恢复原样", role: .destructive) {
+                        model.restoringPath = nil
+                        Task { await model.restore(path) }
+                    }
+                }
+                Button("取消", role: .cancel) { model.restoringPath = nil }
+            } message: {
+                Text("你对这个文件的修改会删除。")
+            }
             .alert("新建扩展脚本", isPresented: $model.newScript) {
                 TextField("名字", text: $model.scriptName)
                     .textInputAutocapitalization(.never).autocorrectionDisabled()
@@ -323,6 +350,7 @@ final class RimeFileEditorModel: ObservableObject {
     @Published private(set) var loadFailure: String?
     @Published private(set) var failure: Failure?
     @Published private(set) var saved = false
+    @Published private(set) var saving = false
     /// Set with each refused save so the refusal is announced once; the inline line stays below the text.
     @Published var failureAlert = false
     private let manager: RecipePackageManager
@@ -353,14 +381,20 @@ final class RimeFileEditorModel: ObservableObject {
     }
 
     func save() async {
-        guard dirty else { return }
+        guard dirty, !saving else { return }
+        let snapshot = text
+        saving = true
+        saved = false
         failure = nil
-        defer { failureAlert = failure != nil }
+        defer {
+            saving = false
+            failureAlert = failure != nil
+        }
         do {
-            switch try await manager.saveRimeConfigFile(route.path, text: text) {
+            switch try await manager.saveRimeConfigFile(route.path, text: snapshot) {
             case .saved:
-                baseline = text
-                saved = true
+                baseline = snapshot
+                saved = text == snapshot
             case .invalid(let line): failure = .invalid(line: line)
             case .refused(let message): failure = .message(message)
             }
@@ -419,10 +453,11 @@ struct RimeFileEditorView: View {
                     Image(systemName: "chevron.backward")
                 }
                 .accessibilityLabel("返回")
+                .disabled(editor.saving)
             }
             ToolbarItem(placement: .confirmationAction) {
                 Button("保存") { Task { await editor.save() } }
-                    .disabled(!editor.dirty || editor.loading || editor.loadFailure != nil)
+                    .disabled(!editor.dirty || editor.loading || editor.saving || editor.loadFailure != nil)
             }
         }
         .confirmationDialog("放弃修改？", isPresented: $confirmDiscard, titleVisibility: .visible) {
@@ -431,7 +466,7 @@ struct RimeFileEditorView: View {
         } message: {
             Text("你改的内容还没有保存。")
         }
-        .interactiveDismissDisabled(editor.dirty)
+        .interactiveDismissDisabled(editor.dirty || editor.saving)
         .rimeConfigAlerts(model)
         .onChange(of: editor.saved) { _, saved in if saved { toast = "已保存" } }
         .alert("没有保存", isPresented: $editor.failureAlert) {
@@ -454,7 +489,9 @@ struct RimeFileEditorView: View {
 
     @ViewBuilder
     private var status: some View {
-        if let text = failureText {
+        if editor.saving {
+            ProgressView("正在保存…").padding(10)
+        } else if let text = failureText {
             Text(text)
                 .font(.footnote).foregroundStyle(.red)
                 .frame(maxWidth: .infinity, alignment: .leading).padding(10)

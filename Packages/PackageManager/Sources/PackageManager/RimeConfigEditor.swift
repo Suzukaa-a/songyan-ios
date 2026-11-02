@@ -175,8 +175,10 @@ extension RecipePackageManager {
     }
 
     /// Deletes the user's version of `path`, so the package's own file is used again after the next apply.
-    public func restoreRimeConfigFile(_ path: String) throws {
-        try rimeConfigContext()?.overrides.restore(path)
+    @discardableResult
+    public func restoreRimeConfigFile(_ path: String) throws -> Bool {
+        guard let context = try rimeConfigContext() else { throw UserConfigError(path, .name) }
+        return try context.overrides.restore(path)
     }
 
     /// Records that the user has been told about these `paths`.

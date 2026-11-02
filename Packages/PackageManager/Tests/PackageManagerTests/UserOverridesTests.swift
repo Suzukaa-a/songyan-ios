@@ -87,7 +87,7 @@ final class UserOverridesTests: XCTestCase {
         XCTAssertEqual(overrides.unacknowledged(source), ["default.yaml", "main.schema.yaml"])
         overrides.acknowledge(["main.schema.yaml"])
         XCTAssertEqual(overrides.unacknowledged(source), ["default.yaml"])
-        XCTAssertTrue(overrides.restore("main.schema.yaml"))
+        XCTAssertTrue(try overrides.restore("main.schema.yaml"))
         _ = try overrides.copyOf("main.schema.yaml", package: source)
         XCTAssertEqual(overrides.unacknowledged(source), ["default.yaml", "main.schema.yaml"])
     }
@@ -104,7 +104,13 @@ final class UserOverridesTests: XCTestCase {
         overrides.recordBase("main.schema.yaml", package: updated)
         XCTAssertEqual(overrides.entries(updated), [.init(path: "main.schema.yaml", updated: true)])
 
-        XCTAssertTrue(overrides.restore("main.schema.yaml"))
+        try FileManager.default.setAttributes([.posixPermissions: 0o555], ofItemAtPath: folder.path)
+        defer { try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: folder.path) }
+        XCTAssertThrowsError(try overrides.restore("main.schema.yaml"))
+        XCTAssertEqual(try String(contentsOf: copy, encoding: .utf8), "a: 2\n")
+        XCTAssertEqual(overrides.entries(updated), [.init(path: "main.schema.yaml", updated: true)])
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: folder.path)
+        XCTAssertTrue(try overrides.restore("main.schema.yaml"))
         XCTAssertFalse(FileManager.default.fileExists(atPath: copy.path))
         XCTAssertTrue(overrides.entries(updated).isEmpty)
     }
@@ -150,7 +156,7 @@ final class UserOverridesTests: XCTestCase {
         let source = package(["cn_dicts/base.dict.yaml": "---\nname: base\n...\n"])
         _ = try overrides.copyOf("cn_dicts/base.dict.yaml", package: source)
         try Data("x".utf8).write(to: folder.appendingPathComponent("keep.txt"))
-        XCTAssertTrue(overrides.restore("cn_dicts/base.dict.yaml"))
+        XCTAssertTrue(try overrides.restore("cn_dicts/base.dict.yaml"))
         XCTAssertFalse(FileManager.default.fileExists(atPath: folder.appendingPathComponent("cn_dicts").path))
         XCTAssertTrue(FileManager.default.fileExists(atPath: folder.appendingPathComponent("keep.txt").path))
     }

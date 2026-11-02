@@ -144,9 +144,9 @@ struct UserOverrides: Sendable {
 
     /// Deletes the user's copy at `path`, so the package's own file is used again.
     @discardableResult
-    func restore(_ path: String) -> Bool {
+    func restore(_ path: String) throws -> Bool {
         guard let file = overrideFile(path) else { return false }
-        do { try FileManager.default.removeItem(at: file) } catch { return false }
+        try FileManager.default.removeItem(at: file)
         pruneEmptyFolders(from: file.deletingLastPathComponent())
         forget(path)
         return true

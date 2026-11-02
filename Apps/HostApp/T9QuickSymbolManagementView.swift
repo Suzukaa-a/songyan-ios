@@ -2,6 +2,8 @@ import LayoutKit
 import SwiftUI
 
 struct T9QuickSymbolManagementView: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var confirmingDiscard = false
     @StateObject private var model = T9QuickSymbolModel()
     @State private var draftSymbols = ""
     @State private var hasLoaded = false
@@ -42,7 +44,9 @@ struct T9QuickSymbolManagementView: View {
             }
             Section {
                 Button {
-                    save(T9QuickSymbolStore.defaultSymbols)
+                    draftSymbols = T9QuickSymbolStore.defaultSymbols
+                    saveMessage = nil
+                    saveFailure = nil
                 } label: {
                     Label("恢复默认", systemImage: "arrow.counterclockwise")
                 }
@@ -63,12 +67,23 @@ struct T9QuickSymbolManagementView: View {
         }
         .navigationTitle("九键快捷符号")
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(hasChanges || isSaving)
+        .interactiveDismissDisabled(hasChanges || isSaving)
+        .confirmationDialog("放弃未保存的更改？", isPresented: $confirmingDiscard, titleVisibility: .visible) {
+            Button("放弃更改", role: .destructive) { dismiss() }
+            Button("继续编辑", role: .cancel) {}
+        }
         .toolbar {
+            if hasChanges || isSaving {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("取消") { confirmingDiscard = true }.disabled(isSaving)
+                }
+            }
             ToolbarItem(placement: .confirmationAction) {
                 Button {
                     save(draftSymbols)
                 } label: {
-                    Image(systemName: "checkmark")
+                    Text("保存")
                 }
                 .accessibilityLabel("保存")
                 .accessibilityIdentifier("t9QuickSymbols.save")
@@ -78,6 +93,8 @@ struct T9QuickSymbolManagementView: View {
         }
         .task { await reload() }
     }
+
+    private var hasChanges: Bool { hasLoaded && draftSymbols != model.symbols }
 
     private var validationError: String? {
         guard T9QuickSymbolStore.isValid(draftSymbols) else {

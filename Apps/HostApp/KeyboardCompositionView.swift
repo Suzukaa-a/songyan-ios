@@ -206,7 +206,7 @@ struct KeyboardCompositionView: View {
                     Button("编辑页面") { openPageEditor(page) }
                 }
                 if page.numericPresentation == .automatic {
-                    Menu("复制并编辑页面") {
+                    Menu {
                         // A phone main layout's automatic page is a digit pad: its keys do not
                         // depend on the punctuation width, so one copy is enough.
                         if mainNumericForm == .phoneDigitPad {
@@ -221,11 +221,15 @@ struct KeyboardCompositionView: View {
                                 copyPage(page, numericMarks: .ascii, numericForm: .rows)
                             }
                         }
+                    } label: {
+                        pageCopyLabel
                     }
                 } else if page.symbolPresentation == .automatic {
-                    Menu("复制并编辑页面") {
+                    Menu {
                         Button("复制多行符号页") { copyPage(page, presentation: .rows) }
                         Button("复制分类符号页") { copyPage(page, presentation: .categorized) }
+                    } label: {
+                        pageCopyLabel
                     }
                 } else {
                     Button("复制并编辑页面") { copyPage(page) }
@@ -233,6 +237,12 @@ struct KeyboardCompositionView: View {
                 if preparingPage { ProgressView("正在准备页面…") }
             }
         }
+    }
+
+    private var pageCopyLabel: some View {
+        Label("复制并编辑页面", systemImage: "plus.square.on.square")
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
     }
 
     /// One line about what a page follows or how it pairs; nil when the page draws its own content.

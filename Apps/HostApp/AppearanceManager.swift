@@ -35,13 +35,14 @@ enum HostConfigIOQueue {
 ///     `HostConfigIOQueue` while the main thread only applies results;
 ///   - reads use a latest-wins gate plus a cancellation gate: a late read never overwrites a newer read or a
 ///     completed save/apply (user actions invalidate in-flight reads first);
-///   - user-initiated draft operations (`save`/`remove`/`apply` writes and list reloads) still run synchronously
-///     on the main thread because `AdvancedSettingsView` calls `try manager.save(...)` synchronously.
+///   - saves, deletes and applies finish on the same background queue before their results update the UI.
 @MainActor final class AppearanceManager: ObservableObject {
     static let shared = AppearanceManager()
 
     /// Local draft store (including read-only built-in defaults).
     @Published private(set) var projects: [AppearanceDocument] = [.systemDefault]
+    @Published private(set) var unreadable: [UnreadableAppearance] = []
+    @Published private(set) var isMutating = false
     /// The currently applied appearance (the one in the shared snapshot).
     @Published private(set) var applied: AppearanceDocument = .systemDefault
     /// Where the applied snapshot came from (applied snapshot / built-in default).
@@ -56,8 +57,6 @@ enum HostConfigIOQueue {
     @Published private(set) var isLoading = true
     /// The local placeholder default is not the keyboard's applied state; "in use" is shown only once a shared read confirms it.
     @Published private(set) var sharedReadConfirmed = false
-
-    private var local: AppearanceStore { RimePaths.localAppearanceStore() }
 
     /// Latest-wins gate for background reads: a late read must not overwrite a newer read or a completed user action.
     private var loadGate = LatestWinsReadGate()
@@ -74,6 +73,7 @@ enum HostConfigIOQueue {
     /// `message` carries only operation results; the notice for an appearance from a degraded
     /// source comes from `appliedSourceNotice`, to avoid duplication.
     func reload() {
+        guard !isMutating else { return }
         message = nil
         error = nil
         isLoading = true
@@ -111,7 +111,9 @@ enum HostConfigIOQueue {
                 }
 
                 do {
-                    result.projects = try local.list()
+                    let catalog = try local.catalog()
+                    result.projects = catalog.documents
+                    result.unreadable = catalog.unreadable
                 } catch {
                     result.projects = [.systemDefault]
                     if result.error == nil { result.error = "无法读取外观。" }
@@ -129,6 +131,7 @@ enum HostConfigIOQueue {
     /// Applies the background result on the main thread.
     private func applyLoadedState(_ result: AppearanceLoadResult) {
         projects = result.projects
+        unreadable = result.unreadable
         applied = result.applied
         appliedSource = result.appliedSource
         sharedReadConfirmed = result.sharedReadConfirmed
@@ -137,65 +140,148 @@ enum HostConfigIOQueue {
         isLoading = false
     }
 
-    /// Saves a draft (does not affect the applied appearance until it is explicitly applied).
-    ///
-    /// User actions take priority: invalidate in-flight reads first so a stale read cannot overwrite the draft just saved.
-    func save(_ document: AppearanceDocument, replacing: Bool) throws {
+    private func beginMutation() throws {
+        guard !isMutating else { throw AppearanceApplyFailure(text: "另一项操作正在进行，请稍后再试。") }
         loadGate.invalidate()
+        loadTask?.cancel()
         isLoading = false
-        try local.save(document, replacing: replacing)
-        projects = try local.list()
+        isMutating = true
         message = nil
+        error = nil
     }
 
-    /// Deletes an appearance item: removes only the project file in the local draft store (shared-container files
-    /// are untouched); the applied snapshot keeps its content until the next apply.
-    func remove(_ id: String) {
-        loadGate.invalidate()
-        isLoading = false
+    private func updateCatalog(_ catalog: AppearanceCatalog) {
+        projects = catalog.documents
+        unreadable = catalog.unreadable
+    }
+
+    func save(_ document: AppearanceDocument, replacing: Bool) async throws {
+        try beginMutation()
+        defer { isMutating = false }
+        let catalog = try await HostConfigIOQueue.async {
+            let store = RimePaths.localAppearanceStore()
+            try store.save(document, replacing: replacing)
+            return try store.catalog()
+        }
+        updateCatalog(catalog)
+    }
+
+    @discardableResult
+    func remove(_ id: String) async -> Bool {
         do {
-            try local.remove(id)
-            projects = try local.list()
-            message = nil
+            try beginMutation()
+            defer { isMutating = false }
+            let catalog = try await HostConfigIOQueue.async {
+                let store = RimePaths.localAppearanceStore()
+                try store.remove(id)
+                return try store.catalog()
+            }
+            updateCatalog(catalog)
+            return true
         } catch {
-            self.error = error.localizedDescription
+            self.error = "外观没有删除，请重试。"
+            return false
         }
     }
 
-    /// Apply: display mode, skin and candidate-area layout take effect in one atomic commit.
-    ///
-    /// Order: validate, backfill draft store, backfill shared store, atomically apply shared snapshot, notify keyboard.
-    /// A failure at any step never leaves a half-applied state.
-    ///
-    /// User actions take priority: invalidate in-flight reads first so a stale read cannot roll back a completed apply.
-    /// - Parameter persistDraft: when false, the local draft store is not written back (used only when switching light/dark,
-    ///   so applied content does not overwrite unapplied draft edits in the same item).
-    func apply(_ document: AppearanceDocument, persistDraft: Bool = true) {
-        loadGate.invalidate()
-        isLoading = false
+    /// Display mode is captured with the document; a failed apply keeps the previous UI selection.
+    @discardableResult
+    func apply(_ document: AppearanceDocument, persistDraft: Bool = true, appearance: SkinAppearance? = nil) async
+        -> Bool
+    {
+        var target = document
+        target.appearance = appearance ?? editingAppearance
+        let snapshot = target
         do {
-            var target = document
-            target.appearance = editingAppearance
-            guard let shared = RimePaths.sharedAppearanceStore() else {
-                throw AppearanceApplyFailure(text: "键盘暂时无法读取外观，外观已保存在本机。")
+            try beginMutation()
+            defer { isMutating = false }
+            let catalog = try await HostConfigIOQueue.async {
+                let local = RimePaths.localAppearanceStore()
+                guard let shared = RimePaths.sharedAppearanceStore() else {
+                    throw AppearanceApplyFailure(text: "键盘暂时无法读取外观，请稍后重试。")
+                }
+                if !snapshot.isSystemDefault {
+                    if persistDraft, !snapshot.isBuiltin { try local.save(snapshot, replacing: true) }
+                    try shared.save(snapshot, replacing: true)
+                }
+                let catalog = try local.catalog()
+                try shared.apply(snapshot)
+                return catalog
             }
-            if !target.isSystemDefault {
-                // Built-in presets are read-only: nothing is written to the local draft store; content is only committed to the shared store for the keyboard.
-                if persistDraft, !target.isBuiltin { try local.save(target, replacing: true) }
-                try shared.save(target, replacing: true)
-            }
-            try shared.apply(target)
-            applied = target.normalized()
+            applied = snapshot.normalized()
             appliedSource = .applied
             sharedReadConfirmed = true
             editingAppearance = applied.appearance
-            projects = try local.list()
+            updateCatalog(catalog)
             message = "已应用，下次打开键盘时生效。"
-            error = nil
             NotificationCenter.default.post(name: .keyboardAppearanceChanged, object: nil)
+            return true
         } catch {
             HostLog.append("appearance apply failed: \(error.localizedDescription)")
-            self.error = (error as? AppearanceApplyFailure)?.text ?? "应用失败，请重试。"
+            self.error = (error as? AppearanceApplyFailure)?.text ?? "外观没有应用，请重试。"
+            return false
+        }
+    }
+
+    func recoveryDocument(for item: UnreadableAppearance) -> AppearanceDocument? {
+        let id = String(item.fileName.dropLast(AppearanceDocument.fileExtension.count))
+        if sharedReadConfirmed, applied.id == id { return applied }
+        return ([AppearanceDocument.systemDefault] + AppearanceDocument.builtinPresets).first { $0.id == id }
+    }
+
+    func exportUnreadable(_ item: UnreadableAppearance) async throws -> Data {
+        try await HostConfigIOQueue.async { try RimePaths.localAppearanceStore().readUnreadable(item) }
+    }
+
+    @discardableResult
+    func removeUnreadable(_ item: UnreadableAppearance) async -> Bool {
+        do {
+            try beginMutation()
+            defer { isMutating = false }
+            let catalog = try await HostConfigIOQueue.async {
+                let store = RimePaths.localAppearanceStore()
+                try store.removeUnreadable(item)
+                return try store.catalog()
+            }
+            updateCatalog(catalog)
+            return true
+        } catch {
+            self.error = "文件没有删除，请重试。"
+            return false
+        }
+    }
+
+    func restoreUnreadable(_ item: UnreadableAppearance, from url: URL? = nil) async -> Bool {
+        let recovery = recoveryDocument(for: item)
+        do {
+            try beginMutation()
+            defer { isMutating = false }
+            let catalog = try await HostConfigIOQueue.async {
+                let store = RimePaths.localAppearanceStore()
+                let document: AppearanceDocument
+                if let url {
+                    document = try AppearanceImportSupport.decode(documentAt: url)
+                } else if let recovery {
+                    document = recovery
+                } else {
+                    throw AppearanceApplyFailure(text: "请先选择要恢复的外观文件。")
+                }
+                guard document.id + AppearanceDocument.fileExtension == item.fileName else {
+                    throw AppearanceApplyFailure(text: "这个文件属于另一个外观，请选择原来的外观文件。")
+                }
+                if document.isSystemDefault {
+                    try store.removeUnreadable(item)
+                } else {
+                    try store.save(document, replacing: true)
+                }
+                return try store.catalog()
+            }
+            updateCatalog(catalog)
+            message = "已恢复外观。"
+            return true
+        } catch {
+            self.error = (error as? AppearanceApplyFailure)?.text ?? "外观没有恢复，请检查文件后重试。"
+            return false
         }
     }
 
@@ -227,11 +313,15 @@ enum HostConfigIOQueue {
 }
 
 /// User-facing explanation for an apply failure (raw errors go only to the diagnostic log).
-private struct AppearanceApplyFailure: Error { let text: String }
+private struct AppearanceApplyFailure: LocalizedError {
+    let text: String
+    var errorDescription: String? { text }
+}
 
 /// Full result of a background read (Sendable values; passed across queues, the closure holds no MainActor objects).
 private struct AppearanceLoadResult: Sendable {
     var projects: [AppearanceDocument] = [.systemDefault]
+    var unreadable: [UnreadableAppearance] = []
     var applied: AppearanceDocument = .systemDefault
     var appliedSource: AppearanceSnapshotSource = .systemDefault
     var sharedReadConfirmed = false

@@ -39,15 +39,14 @@ struct SkinManagementView: View {
                         get: { manager.editingAppearance },
                         set: { mode in
                             guard mode != manager.editingAppearance else { return }
-                            manager.editingAppearance = mode
-                            manager.apply(manager.applied, persistDraft: false)
+                            Task { await manager.apply(manager.applied, persistDraft: false, appearance: mode) }
                         })
                 ) {
                     Text("跟随系统").tag(SkinAppearance.system)
                     Text("浅色").tag(SkinAppearance.light)
                     Text("深色").tag(SkinAppearance.dark)
                 }
-                .disabled(manager.isLoading)
+                .disabled(manager.isLoading || manager.isMutating)
                 if let message = manager.message { Text(message).font(.footnote) }
                 if let error = manager.error { Text(error).font(.footnote).foregroundStyle(.red) }
                 if let degraded = manager.appliedSourceNotice {
@@ -56,8 +55,19 @@ struct SkinManagementView: View {
                 if manager.error != nil {
                     Button("重试") { manager.reload() }
                 }
-            } footer: {
-                Text("选择外观后，在详情页轻点「应用」。")
+                if manager.isMutating { ProgressView("正在保存外观…") }
+            }
+            if !manager.unreadable.isEmpty {
+                Section("无法读取的外观") {
+                    ForEach(manager.unreadable) { item in
+                        NavigationLink {
+                            UnreadableAppearanceView(item: item)
+                        } label: {
+                            Label(item.fileName, systemImage: "exclamationmark.triangle")
+                                .foregroundStyle(.orange)
+                        }
+                    }
+                }
             }
             Section("外观") {
                 ForEach(manager.projects) { project in
@@ -103,6 +113,7 @@ struct SkinManagementView: View {
             }
             if let importError { Text(importError).foregroundStyle(.red) }
         }.navigationTitle(UserTerminology.keyboardAppearance)
+            .onAppear { manager.reload() }
             .fileImporter(isPresented: $importing, allowedContentTypes: [.json]) { result in
                 do {
                     draft = try AppearanceImportSupport.decode(documentAt: result.get())
@@ -121,6 +132,82 @@ struct SkinManagementView: View {
                 if let savedDestination { AppearanceDetailView(document: savedDestination, notice: "已保存") }
             }
             .onChange(of: showsSaved) { if !showsSaved { savedDestination = nil } }
+    }
+}
+
+private struct UnreadableAppearanceView: View {
+    let item: UnreadableAppearance
+    @ObservedObject private var manager = AppearanceManager.shared
+    @Environment(\.dismiss) private var dismiss
+    @State private var importing = false
+    @State private var exporting = false
+    @State private var readingExport = false
+    @State private var exportDocument = SkinFileDocument(data: Data())
+    @State private var error: String?
+    @State private var confirmingDelete = false
+    @State private var confirmingRestore = false
+
+    var body: some View {
+        Form {
+            Section {
+                Label("这个外观文件无法读取。", systemImage: "exclamationmark.triangle")
+                    .foregroundStyle(.orange)
+                Text(item.fileName).font(.footnote.monospaced()).textSelection(.enabled)
+                DisclosureGroup("详细信息") { Text(item.reason).font(.footnote).textSelection(.enabled) }
+            }
+            Section("恢复") {
+                if let recovery = manager.recoveryDocument(for: item) {
+                    Button(recovery.isBuiltin ? "恢复内置外观" : "从正在使用的外观恢复") { confirmingRestore = true }
+                }
+                Button("从文件恢复") { importing = true }
+            }
+            Section {
+                Button("导出原文件", systemImage: "square.and.arrow.up") {
+                    readingExport = true
+                    Task {
+                        defer { readingExport = false }
+                        do {
+                            exportDocument = SkinFileDocument(data: try await manager.exportUnreadable(item))
+                            exporting = true
+                        } catch { self.error = "文件没有导出，请重试。" }
+                    }
+                }
+                Button("删除文件", systemImage: "trash", role: .destructive) { confirmingDelete = true }
+            }
+            if manager.isMutating || readingExport { ProgressView("正在处理…") }
+            if let error = error ?? manager.error { Text(error).foregroundStyle(.red) }
+        }
+        .disabled(manager.isMutating || readingExport)
+        .navigationTitle("恢复外观")
+        .navigationBarTitleDisplayMode(.inline)
+        .confirmationDialog("恢复这个外观？", isPresented: $confirmingRestore, titleVisibility: .visible) {
+            Button("恢复外观", role: .destructive) {
+                Task { if await manager.restoreUnreadable(item) { dismiss() } }
+            }
+            Button("取消", role: .cancel) {}
+        } message: {
+            Text("原文件会替换为保存的外观。")
+        }
+        .confirmationDialog("删除这个外观文件？", isPresented: $confirmingDelete, titleVisibility: .visible) {
+            Button("删除文件", role: .destructive) {
+                Task { if await manager.removeUnreadable(item) { dismiss() } }
+            }
+            Button("取消", role: .cancel) {}
+        } message: {
+            Text("删除后无法恢复。你可以先导出原文件。")
+        }
+        .fileImporter(isPresented: $importing, allowedContentTypes: [.json]) { result in
+            switch result {
+            case .success(let url):
+                Task { if await manager.restoreUnreadable(item, from: url) { dismiss() } }
+            case .failure: error = "文件没有打开，请重新选择。"
+            }
+        }
+        .fileExporter(
+            isPresented: $exporting, document: exportDocument, contentType: .json, defaultFilename: item.fileName
+        ) { result in
+            if case .failure = result { error = "文件没有导出，请重试。" }
+        }
     }
 }
 
@@ -153,70 +240,86 @@ struct AppearanceDetailView: View {
     @Environment(\.colorScheme) private var colorScheme
     private var layouts: [LayoutDefinition] { LayoutManager.shared.registry.layouts }
     var body: some View {
-        ScrollView {
-            VStack(spacing: 16) {
-                Picker("预览布局", selection: $layoutID) { ForEach(layouts) { Text($0.name).tag($0.id) } }
+        Form {
+            Section("预览") {
+                Picker("键盘布局", selection: $layoutID) { ForEach(layouts) { Text($0.name).tag($0.id) } }
                 Toggle("深色预览", isOn: $dark)
-                // One preview shows both the skin and the candidate-bar layout (the same appearance project).
                 KeyboardPreviewView(
                     layout: layouts.first(where: { $0.id == layoutID }) ?? BuiltinLayouts.merged14,
                     skin: document.skin, candidateBar: document.candidateBar, previewDark: dark)
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("候选栏").font(.footnote).foregroundStyle(.secondary)
-                    CandidateBarPreviewView(
-                        bar: document.candidateBar, skin: document.skin,
-                        expanded: showsExpandedCandidates, dark: dark)
-                    Button(showsExpandedCandidates ? "预览收起" : "预览展开") {
-                        showsExpandedCandidates.toggle()
-                    }.buttonStyle(.bordered)
+            }
+            Section("候选栏") {
+                Toggle("展开预览", isOn: $showsExpandedCandidates)
+                CandidateBarPreviewView(
+                    bar: document.candidateBar, skin: document.skin,
+                    expanded: showsExpandedCandidates, dark: dark)
+            }
+            Section {
+                if let status = manager.applicationStatus(for: document) {
+                    Label(status, systemImage: "checkmark.circle").foregroundStyle(.secondary)
                 }
-                Button("复制并编辑") { draft = document.copy() }.buttonStyle(.bordered)
-                if !document.isBuiltin { Button("编辑外观") { draft = document } }
-                if let status = manager.applicationStatus(for: document) { Text(status).font(.footnote) }
                 if !document.isBuiltin {
-                    Button("删除", role: .destructive) { confirmingDelete = true }
-                        .confirmationDialog(
-                            "删除外观「\(document.name)」？", isPresented: $confirmingDelete, titleVisibility: .visible
-                        ) {
-                            Button("删除", role: .destructive) {
-                                manager.remove(document.id)
-                                dismiss()
-                            }
-                        } message: {
-                            Text(
-                                manager.applicationStatus(for: document) != nil
-                                    ? "将从列表中删除，键盘会继续使用当前外观。"
-                                    : "删除后无法恢复。")
-                        }
+                    Button("编辑外观", systemImage: "pencil") { draft = document }
                 }
-                Button("导出文件") {
+                if !document.isBuiltin {
+                    Button("复制并编辑", systemImage: "plus.square.on.square") { draft = document.copy() }
+                }
+                Button("导出文件", systemImage: "square.and.arrow.up") {
                     do {
                         exportDocument = SkinFileDocument(data: try document.encoded())
                         exporting = true
                     } catch { self.error = error.localizedDescription }
                 }
-                if let message = manager.message { Text(message).font(.footnote) }
-                if let managerError = manager.error { Text(managerError).font(.footnote).foregroundStyle(.red) }
-                if let error { Text(error).foregroundStyle(.red) }
-            }.padding()
+                if !document.isBuiltin {
+                    Button("删除外观", systemImage: "trash", role: .destructive) { confirmingDelete = true }
+                }
+            }
+            if manager.isMutating || manager.message != nil || manager.error != nil || error != nil {
+                Section {
+                    if manager.isMutating { ProgressView("正在保存外观…") }
+                    if let message = manager.message { Text(message).font(.footnote) }
+                    if let error = error ?? manager.error { Text(error).foregroundStyle(.red) }
+                }
+            }
         }
+        .confirmationDialog("删除外观「\(document.name)」？", isPresented: $confirmingDelete, titleVisibility: .visible) {
+            Button("删除外观", role: .destructive) {
+                Task { if await manager.remove(document.id) { dismiss() } }
+            }
+            Button("取消", role: .cancel) {}
+        } message: {
+            Text(
+                manager.applicationStatus(for: document) != nil
+                    ? "将从列表中删除，键盘会继续使用当前外观。" : "删除后无法恢复。")
+        }
+        .disabled(manager.isMutating)
         // The preview follows the system light/dark by default, matching the keyboard's actual behavior under "Follow System".
         .onAppear { dark = colorScheme == .dark }
         .safeAreaInset(edge: .bottom) {
             Button {
-                manager.apply(document)
+                Task { await manager.apply(document) }
             } label: {
                 Label("应用", systemImage: "checkmark")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
+            .disabled(manager.isLoading || manager.isMutating)
             .accessibilityIdentifier("appearance.apply")
             .padding(.horizontal)
             .padding(.vertical, 8)
             .background(.regularMaterial)
         }
         .navigationTitle(document.name)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button(document.isBuiltin ? "复制并编辑" : "编辑") {
+                    draft = document.isBuiltin ? document.copy() : document
+                }
+                .disabled(manager.isLoading || manager.isMutating)
+            }
+        }
         .sheet(
             item: $draft,
             onDismiss: {

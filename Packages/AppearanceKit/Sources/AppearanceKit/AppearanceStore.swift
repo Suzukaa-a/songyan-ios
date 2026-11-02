@@ -48,6 +48,27 @@ public struct AppearanceReadResult: Equatable, Sendable {
     public var identityIsConsistent: Bool { snapshot.identityIsConsistent }
 }
 
+public struct AppearanceCatalog: Sendable {
+    public let documents: [AppearanceDocument]
+    public let unreadable: [UnreadableAppearance]
+
+    public init(documents: [AppearanceDocument], unreadable: [UnreadableAppearance]) {
+        self.documents = documents
+        self.unreadable = unreadable
+    }
+}
+
+public struct UnreadableAppearance: Identifiable, Equatable, Sendable {
+    public let fileName: String
+    public let reason: String
+    public var id: String { fileName }
+
+    public init(fileName: String, reason: String) {
+        self.fileName = fileName
+        self.reason = reason
+    }
+}
+
 /// The host writes; the extension only reads. Selection and content commit atomically in one file, so
 /// one snapshot read yields a consistent skin + candidate layout.
 public struct AppearanceStore: Sendable {
@@ -62,21 +83,58 @@ public struct AppearanceStore: Sendable {
     // MARK: - List / save / delete
 
     public func list() throws -> [AppearanceDocument] {
+        try catalog().documents
+    }
+
+    public func catalog() throws -> AppearanceCatalog {
         let builtins = [AppearanceDocument.systemDefault] + AppearanceDocument.builtinPresets
-        guard FileManager.default.fileExists(atPath: directory.path) else { return builtins }
+        guard FileManager.default.fileExists(atPath: directory.path) else {
+            return AppearanceCatalog(documents: builtins, unreadable: [])
+        }
         let files = try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)
             .filter { $0.lastPathComponent.hasSuffix(AppearanceDocument.fileExtension) }
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
-        let documents = try files.map { file -> AppearanceDocument in
-            let document = try AppearanceDocument.decode(try Data(contentsOf: file))
-            let stem = String(file.lastPathComponent.dropLast(AppearanceDocument.fileExtension.count))
-            guard stem == document.id else {
-                throw AppearanceError("外观项目文件名与标识不一致：\(file.lastPathComponent)")
+        var documents: [AppearanceDocument] = []
+        var unreadable: [UnreadableAppearance] = []
+        for file in files {
+            do {
+                let file = try libraryFile(named: file.lastPathComponent)
+                let document = try AppearanceDocument.decode(try Data(contentsOf: file))
+                let stem = String(file.lastPathComponent.dropLast(AppearanceDocument.fileExtension.count))
+                guard stem == document.id else {
+                    throw AppearanceError("外观项目文件名与标识不一致：\(file.lastPathComponent)")
+                }
+                documents.append(document)
+            } catch {
+                unreadable.append(
+                    UnreadableAppearance(fileName: file.lastPathComponent, reason: error.localizedDescription))
             }
-            return document
         }
         // Built-in preset copies saved in the shared library for application are not listed twice.
-        return builtins + documents.filter { !$0.isBuiltin }.sorted { $0.name < $1.name }
+        return AppearanceCatalog(
+            documents: builtins + documents.filter { !$0.isBuiltin }.sorted { $0.name < $1.name },
+            unreadable: unreadable)
+    }
+
+    public func readUnreadable(_ item: UnreadableAppearance) throws -> Data {
+        try Data(contentsOf: libraryFile(named: item.fileName))
+    }
+
+    public func removeUnreadable(_ item: UnreadableAppearance) throws {
+        try FileManager.default.removeItem(at: libraryFile(named: item.fileName))
+    }
+
+    private func libraryFile(named fileName: String) throws -> URL {
+        guard fileName.hasSuffix(AppearanceDocument.fileExtension),
+            fileName.count > AppearanceDocument.fileExtension.count,
+            !fileName.contains("/"), !fileName.contains("\\"), !fileName.contains("\0")
+        else { throw AppearanceError("外观文件名无效，请重新选择文件。") }
+        let file = directory.appendingPathComponent(fileName)
+        let values = try file.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey])
+        guard values.isRegularFile == true, values.isSymbolicLink != true else {
+            throw AppearanceError("无法读取外观文件，请选择普通文件。")
+        }
+        return file
     }
 
     public func save(_ document: AppearanceDocument, replacing: Bool = false) throws {

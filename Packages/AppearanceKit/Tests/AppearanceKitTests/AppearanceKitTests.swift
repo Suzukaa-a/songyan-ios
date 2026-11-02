@@ -268,15 +268,65 @@ final class AppearanceKitTests: XCTestCase {
         XCTAssertEqual(try host.readSnapshot().selectedID, AppearanceDocument.systemDefaultID)
     }
 
-    func testListRejectsFileNameIdentityMismatch() throws {
-        let directory = temporaryDirectory("filename")
-        let document = makeDocument(
-            id: "look-a", name: "A", accent: "#145ACC",
-            candidateSize: 22, collapsedHeight: 44)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        try document.encoded().write(
-            to: directory.appendingPathComponent("someone-else.songyanappearance.json"), options: .atomic)
-        XCTAssertThrowsError(try store(directory).list(), "the file name must match the identity")
+    func testCatalogIsolatesUnreadableFilesAndSupportsRecovery() throws {
+        let directory = temporaryDirectory("catalog")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let library = directory.appendingPathComponent("library")
+        let appearance = store(library)
+        let good = AppearanceDocument(id: "good", name: "Good").normalized()
+        try appearance.save(good)
+        try appearance.apply(good)
+        let suffix = AppearanceDocument.fileExtension
+        let brokenName = "broken" + suffix
+        let brokenData = Data("broken JSON".utf8)
+        try brokenData.write(to: library.appendingPathComponent(brokenName))
+        let filenameMismatch = "wrong-name" + suffix
+        try good.encoded().write(to: library.appendingPathComponent(filenameMismatch))
+        var internalMismatch = good
+        internalMismatch.skin.id = "other"
+        let internalName = "internal" + suffix
+        try JSONEncoder().encode(internalMismatch).write(to: library.appendingPathComponent(internalName))
+        try Data("unrelated".utf8).write(to: library.appendingPathComponent("notes.json"))
+
+        let catalog = try appearance.catalog()
+        let builtins = [AppearanceDocument.systemDefault] + AppearanceDocument.builtinPresets
+        XCTAssertEqual(catalog.documents, builtins + [good])
+        XCTAssertEqual(try appearance.list(), catalog.documents)
+        XCTAssertEqual(catalog.unreadable.map(\.fileName), [brokenName, internalName, filenameMismatch].sorted())
+        XCTAssertTrue(catalog.unreadable.allSatisfy { !$0.reason.isEmpty && $0.id == $0.fileName })
+        let broken = try XCTUnwrap(catalog.unreadable.first { $0.fileName == brokenName })
+        XCTAssertEqual(try appearance.readUnreadable(broken), brokenData)
+        let mismatch = try XCTUnwrap(catalog.unreadable.first { $0.fileName == filenameMismatch })
+        XCTAssertEqual(try AppearanceDocument.decode(appearance.readUnreadable(mismatch)), good)
+        let internalItem = try XCTUnwrap(catalog.unreadable.first { $0.fileName == internalName })
+        XCTAssertThrowsError(try AppearanceDocument.decode(appearance.readUnreadable(internalItem)))
+
+        let outside = directory.appendingPathComponent("outside" + suffix)
+        try brokenData.write(to: outside)
+        let linkName = "link" + suffix
+        try FileManager.default.createSymbolicLink(
+            at: library.appendingPathComponent(linkName), withDestinationURL: outside)
+        for fileName in [
+            "../outside" + suffix, outside.path, "folder/" + brokenName,
+            "folder\\" + brokenName, "active.json", suffix, linkName,
+        ] {
+            let invalid = UnreadableAppearance(fileName: fileName, reason: "")
+            XCTAssertThrowsError(try appearance.readUnreadable(invalid))
+            XCTAssertThrowsError(try appearance.removeUnreadable(invalid))
+        }
+        XCTAssertEqual(try Data(contentsOf: outside), brokenData)
+        try FileManager.default.removeItem(at: library.appendingPathComponent(linkName))
+
+        try appearance.removeUnreadable(broken)
+        try appearance.removeUnreadable(mismatch)
+        let recovered = AppearanceDocument(id: "internal", name: "Recovered").normalized()
+        try appearance.save(recovered, replacing: true)
+        XCTAssertEqual(try appearance.catalog().documents, builtins + [good, recovered])
+        XCTAssertTrue(try appearance.catalog().unreadable.isEmpty)
+        XCTAssertEqual(try appearance.readSnapshot().document, good)
+
+        XCTAssertThrowsError(try store(outside).catalog())
+        XCTAssertThrowsError(try store(outside).list())
     }
 
     func testRemoveKeepsAppliedSnapshotUntilNextApply() throws {

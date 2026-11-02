@@ -56,7 +56,7 @@ struct SchemeURLImportView: View {
         .navigationTitle("从链接导入")
         .navigationBarTitleDisplayMode(.inline)
         // Navigating back cancels the download (onDisappear), so there is no separate duplicate cancel button.
-        .onAppear { addressFocused = true }
+        .onAppear { addressFocused = address.isEmpty }
         .onDisappear { service.cancel() }
     }
 
