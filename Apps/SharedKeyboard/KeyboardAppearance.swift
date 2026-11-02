@@ -234,10 +234,12 @@ public struct KeyboardInitialPresentation {
     }
 
     public func appearance(systemDark: Bool) -> KeyboardAppearance {
-        KeyboardAppearance(
+        var result = KeyboardAppearance(
             skin: skin,
             dark: appearance.document.appearance == .dark
                 || (appearance.document.appearance == .system && systemDark))
+        result.surfaceFollowsSystem = appearance.document.surfaceFollowsSystem
+        return result
     }
 }
 
@@ -260,6 +262,9 @@ public struct KeyboardAppearance: Equatable, Sendable {
     /// keyboard it shows a wider seam between caps. Only the painted cap narrows; touch areas
     /// still meet, so no tap lands in a dead gap.
     public var widensKeyGaps = false
+    /// False when the document forces light or dark: the system surface may then disagree with the
+    /// skin's palette, so the skin paints its own panel.
+    public var surfaceFollowsSystem = true
     /// Extra inset on each side of a cap when `widensKeyGaps` is set.
     static let landscapeGapInset: Double = 1.5
     public init(skin: SkinDefinition = .systemDefault, dark: Bool = false) {
@@ -275,28 +280,29 @@ public struct KeyboardAppearance: Equatable, Sendable {
     /// an identical appearance.
     public static func == (lhs: KeyboardAppearance, rhs: KeyboardAppearance) -> Bool {
         lhs.dark == rhs.dark && lhs.skin == rhs.skin && lhs.widensKeyGaps == rhs.widensKeyGaps
+            && lhs.surfaceFollowsSystem == rhs.surfaceFollowsSystem
     }
 
     public var isSystemDefault: Bool { skin.id == SkinDefinition.systemDefault.id }
 
     /// Whether this appearance paints its own keyboard surface.
     ///
-    /// The **system default** appearance owns no background: iOS (`UIInputView` /
-    /// the keyboard host) supplies the keyboard surface, its rounded corners and
-    /// the bottom input-mode bar. Painting an approximate opaque panel there is
-    /// exactly the second, mismatched background the Apple contract forbids. Only a
-    /// user-authored skin overrides a surface the product actually owns.
-    public var drawsOwnSurface: Bool { !isSystemDefault }
+    /// iOS supplies the keyboard surface (translucent material, rounded corners and the bottom
+    /// input-mode bar). An opaque tinted panel over our part of it looks pasted on, so only a skin
+    /// that authors a background for the current mode, or forces a look the system surface may not
+    /// match, paints its own. Key colours, accent and text keep the skin's identity either way.
+    public var drawsOwnSurface: Bool {
+        !isSystemDefault && (!surfaceFollowsSystem || skin.hasExplicitBackground(dark: dark))
+    }
 
-    /// The panel's full-field backing. System default = transparent so the iOS
-    /// keyboard surface shows through; a custom skin = its authored background.
+    /// The panel's full-field backing: transparent so the iOS keyboard surface shows through,
+    /// unless the skin paints its own surface (see `drawsOwnSurface`).
     @ViewBuilder public var panelBackground: some View {
         if drawsOwnSurface { background } else { Color.clear }
     }
 
-    /// Backing for the candidate/status header. System default = transparent
-    /// (candidates sit on the iOS keyboard surface); a custom skin paints its
-    /// own panel colour.
+    /// Backing for the candidate/status header: transparent on the iOS keyboard surface, the
+    /// skin's panel colour when it paints its own surface.
     public var headerBacking: Color { drawsOwnSurface ? color("panel") : .clear }
 
     /// Accent for glyphs drawn directly on the panel (status icons, the chosen

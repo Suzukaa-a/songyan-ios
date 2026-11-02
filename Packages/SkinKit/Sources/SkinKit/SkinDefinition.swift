@@ -185,6 +185,12 @@ public struct SkinDefinition: Codable, Equatable, Identifiable, Sendable {
         guard data.count <= 128 * 1024 else { throw SkinError("$: JSON 超过 128KB") }
         return data
     }
+    /// Whether the skin authors a background for this mode. Without one the keyboard shows the
+    /// system keyboard surface behind the keys, so the area under and around them reads as one
+    /// surface with the system-drawn bottom row.
+    public func hasExplicitBackground(dark: Bool) -> Bool {
+        (dark ? variants.dark : variants.light)?.background != nil
+    }
     public func resolvedColors(dark: Bool) -> [String: SkinColor] {
         let values =
             dark

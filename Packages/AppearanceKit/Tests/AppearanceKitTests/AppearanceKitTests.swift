@@ -362,4 +362,53 @@ final class AppearancePresetTests: XCTestCase {
             XCTAssertEqual(try AppearanceDocument.decode(preset.encoded()).skin, preset.skin)
         }
     }
+
+    // MARK: - Built-in looks
+
+    func testPresetsLeaveTheKeyboardSurfaceToTheSystem() {
+        for preset in AppearanceDocument.builtinPresets {
+            XCTAssertTrue(preset.surfaceFollowsSystem, preset.id)
+            for dark in [false, true] {
+                XCTAssertFalse(preset.skin.hasExplicitBackground(dark: dark), "\(preset.id) dark=\(dark)")
+            }
+        }
+    }
+
+    func testExplicitBackgroundAndForcedLookAreNotLeftToTheSystem() throws {
+        var skin = SkinDefinition.systemDefault.copy()
+        XCTAssertFalse(skin.hasExplicitBackground(dark: false))
+        var background = SkinDefinition.Background()
+        background.color = "#112233"
+        var light = skin.variants.light ?? SkinDefinition.Variant()
+        light.background = background
+        skin.variants.light = light
+        XCTAssertTrue(skin.hasExplicitBackground(dark: false))
+        XCTAssertFalse(skin.hasExplicitBackground(dark: true))
+        XCTAssertFalse(
+            AppearanceDocument(id: "forced", name: "forced", appearance: .dark, skin: skin).surfaceFollowsSystem)
+    }
+
+    func testDarkPresetKeysStandOutFromTheSystemPanel() throws {
+        // The dark system keyboard panel the presets now sit on, sampled from the simulator.
+        let systemPanel = try XCTUnwrap(SkinColor(hex: "#222223"))
+        for preset in AppearanceDocument.builtinPresets {
+            let colors = preset.skin.resolvedColors(dark: true)
+            let key = try XCTUnwrap(colors["key"]), control = try XCTUnwrap(colors["control"])
+            XCTAssertGreaterThanOrEqual(key.contrast(on: systemPanel), 1.45, "\(preset.id) key")
+            XCTAssertGreaterThanOrEqual(control.contrast(on: systemPanel), 1.25, "\(preset.id) control")
+            XCTAssertGreaterThan(key.contrast(on: systemPanel), control.contrast(on: systemPanel), preset.id)
+        }
+    }
+
+    func testPresetAccentsCarryWhiteTextWithoutTheFlip() throws {
+        for preset in AppearanceDocument.builtinPresets {
+            for dark in [false, true] {
+                let colors = preset.skin.resolvedColors(dark: dark)
+                let authored = (dark ? preset.skin.variants.dark : preset.skin.variants.light)?.colors?["accentText"]
+                XCTAssertEqual(colors["accentText"]?.hex, authored, "\(preset.id) dark=\(dark) text was flipped")
+                XCTAssertGreaterThanOrEqual(
+                    colors["accentText"]!.contrast(on: colors["accent"]!), 4.5, "\(preset.id) dark=\(dark)")
+            }
+        }
+    }
 }

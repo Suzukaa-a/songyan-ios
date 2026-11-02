@@ -268,6 +268,9 @@ public struct AppearanceError: LocalizedError {
 
 extension AppearanceDocument {
     /// Built-in appearances besides the system default. Identities are fixed and not deletable; users "duplicate and edit" to get their own.
+    /// Accents are deep enough for white text (4.5:1); `SkinDefinition` would otherwise flip the text to black.
+    /// Dark keys and controls keep each preset's hue at the system keyboard's lightness: the panel
+    /// behind them is the system's own, so darker keys would vanish into it.
     public static let builtinPresets: [AppearanceDocument] = [
         preset(
             id: "builtin-songyan", name: "松烟墨韵", appearance: .system,
@@ -278,12 +281,12 @@ extension AppearanceDocument {
                 "border": "#D5DDD4",
             ],
             dark: [
-                "panel": "#121513", "key": "#232724", "control": "#1B1E1C",
+                "panel": "#121513", "key": "#454D47", "control": "#383E3A",
                 "accent": "#8FD7AA", "accentText": "#003820", "text": "#E2E5E0",
-                "secondaryText": "#959F96", "selected": "#1C3426", "pressed": "#3B433D",
+                "secondaryText": "#959F96", "selected": "#1C3426", "pressed": "#57635A",
                 "border": "#272C28",
             ],
-            // Dark keys sit close to the panel; the stroke keeps them apart.
+            // A fine stroke keeps the dark keys apart.
             borderWidth: 1),
         preset(
             id: "builtin-ink", name: "墨夜", appearance: .system,
@@ -293,9 +296,9 @@ extension AppearanceDocument {
                 "secondaryText": "#4B5563", "selected": "#D1D5DB", "pressed": "#9CA3AF",
             ],
             dark: [
-                "panel": "#141518", "key": "#2B2D33", "control": "#1F2126",
+                "panel": "#141518", "key": "#43464F", "control": "#353841",
                 "accent": "#3A6EA5", "accentText": "#FFFFFF", "text": "#F2F3F5",
-                "secondaryText": "#A7ADB8", "selected": "#3A6EA5", "pressed": "#454952",
+                "secondaryText": "#A7ADB8", "selected": "#3A6EA5", "pressed": "#555A65",
             ]),
         preset(
             id: "builtin-bamboo", name: "青竹", appearance: .system,
@@ -305,21 +308,21 @@ extension AppearanceDocument {
                 "secondaryText": "#4C5E53", "selected": "#BFDCCB", "pressed": "#B3CBBB",
             ],
             dark: [
-                "panel": "#1B2520", "key": "#34443B", "control": "#27342D",
-                "accent": "#3F9A71", "accentText": "#FFFFFF", "text": "#EEF5F0",
-                "secondaryText": "#AFC2B6", "selected": "#2F5F48", "pressed": "#4A5E52",
+                "panel": "#1B2520", "key": "#3F5348", "control": "#33433A",
+                "accent": "#368461", "accentText": "#FFFFFF", "text": "#EEF5F0",
+                "secondaryText": "#AFC2B6", "selected": "#2F5F48", "pressed": "#52695B",
             ]),
         preset(
             id: "builtin-paper", name: "暖纸", appearance: .system,
             light: [
                 "panel": "#EDE6DA", "key": "#FFFCF6", "control": "#DCD1BF",
-                "accent": "#B5652B", "accentText": "#FFFFFF", "text": "#2E261D",
+                "accent": "#B0622A", "accentText": "#FFFFFF", "text": "#2E261D",
                 "secondaryText": "#6A5C4B", "selected": "#EAD3BC", "pressed": "#D6C9B4",
             ],
             dark: [
-                "panel": "#2A2520", "key": "#4A423A", "control": "#3A332C",
-                "accent": "#C8773A", "accentText": "#FFFFFF", "text": "#F6EFE6",
-                "secondaryText": "#C9BBAA", "selected": "#6A4A30", "pressed": "#5C534A",
+                "panel": "#2A2520", "key": "#524940", "control": "#433B33",
+                "accent": "#AA6531", "accentText": "#FFFFFF", "text": "#F6EFE6",
+                "secondaryText": "#C9BBAA", "selected": "#6A4A30", "pressed": "#685D53",
             ]),
         preset(
             id: "builtin-galaxy", name: "星河", appearance: .system,
@@ -329,9 +332,9 @@ extension AppearanceDocument {
                 "secondaryText": "#465975", "selected": "#C7D8ED", "pressed": "#B5C8DE",
             ],
             dark: [
-                "panel": "#111827", "key": "#1F2937", "control": "#182234",
-                "accent": "#3B82F6", "accentText": "#FFFFFF", "text": "#F3F4F6",
-                "secondaryText": "#8FA3BF", "selected": "#28436B", "pressed": "#364761",
+                "panel": "#111827", "key": "#394659", "control": "#2E3748",
+                "accent": "#3472D8", "accentText": "#FFFFFF", "text": "#F3F4F6",
+                "secondaryText": "#8FA3BF", "selected": "#28436B", "pressed": "#495972",
             ]),
         preset(
             id: "builtin-twilight", name: "薄暮", appearance: .system,
@@ -341,11 +344,15 @@ extension AppearanceDocument {
                 "secondaryText": "#635570", "selected": "#DDD4E8", "pressed": "#C5BDD0",
             ],
             dark: [
-                "panel": "#1A1625", "key": "#2D243A", "control": "#221C2E",
-                "accent": "#A855F7", "accentText": "#FFFFFF", "text": "#F3EEF9",
-                "secondaryText": "#AFA3BF", "selected": "#4E3A63", "pressed": "#493F59",
+                "panel": "#1A1625", "key": "#463959", "control": "#3A314C",
+                "accent": "#9B4EE3", "accentText": "#FFFFFF", "text": "#F3EEF9",
+                "secondaryText": "#AFA3BF", "selected": "#4E3A63", "pressed": "#5A4D6D",
             ]),
     ]
+
+    /// Whether the keyboard may leave its background to the system keyboard surface. A forced light
+    /// or dark look can disagree with the system surface (light keys on a dark panel), so it paints its own.
+    public var surfaceFollowsSystem: Bool { appearance == .system }
 
     public static let builtinPresetIDs: Set<String> = Set(builtinPresets.map(\.id))
 
