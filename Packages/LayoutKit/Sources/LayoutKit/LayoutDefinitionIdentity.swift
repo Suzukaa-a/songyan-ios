@@ -59,6 +59,9 @@ public enum LayoutIdentityEncoder {
         let candidateArea: LayoutCandidateArea?
         let longPressDelay: Double?
         let split: LayoutSplitConfiguration?
+        /// Nil is omitted, so layouts without these settings keep their earlier identity.
+        let t9FirstKeyBehavior: T9FirstKeyBehavior?
+        let t9QuickSymbols: String?
     }
 
     /// The only identity entry point. `encode` is injectable; a throw yields `.unproven(id:)`,
@@ -81,7 +84,8 @@ public enum LayoutIdentityEncoder {
             rows: definition.rows,
             auxiliaryAreas: definition.auxiliaryAreas,
             candidateArea: definition.candidateArea,
-            longPressDelay: definition.longPressDelay, split: definition.split)
+            longPressDelay: definition.longPressDelay, split: definition.split,
+            t9FirstKeyBehavior: definition.t9FirstKeyBehavior, t9QuickSymbols: definition.t9QuickSymbols)
         let data = try encoder.encode(canonical)
         return String(decoding: data, as: UTF8.self)
     }

@@ -105,7 +105,7 @@ extension KeyboardPanelView {
         // The known phone9 first key keeps its native cycle/separator behavior even when an authored
         // long press adds page UI actions; route it through the engine face with control-option
         // dispatch instead of the mixed UI face, which would lose cycling.
-        if activeDefinition.map(BuiltinLayouts.usesPhone9QuickSymbols) == true && id == "row-0-0" {
+        if definitionFacts.usesPhone9QuickSymbols && id == "row-0-0" {
             definitionEngineKey(
                 key, id: id, perform: perform,
                 onControlOption: { action in
@@ -333,7 +333,7 @@ extension KeyboardPanelView {
         // The known phone9 first key cycles punctuation while idle and separates syllables while
         // composing. Only its dynamic action/title is overridden here: the authored key keeps its
         // label, secondary label, long-press list and declared width.
-        let isT9FirstKey = activeDefinition.map(BuiltinLayouts.usesPhone9QuickSymbols) == true && id == "row-0-0"
+        let isT9FirstKey = definitionFacts.usesPhone9QuickSymbols && id == "row-0-0"
         let isComposing = controller.snapshot.isComposing
         let cycleValues = isT9FirstKey ? t9FirstKeyCycleValues : []
         let dynamicFirstKey: (title: String, action: LayoutAction)? =

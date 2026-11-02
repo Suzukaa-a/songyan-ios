@@ -136,11 +136,11 @@ struct LayoutEditorView: View {
             KeyboardPreviewView(layout: draft, onSelectKey: { selected = $0 })
         }
         // The selected key's fields sit right under the preview that selects it.
-        if let key = draft.key(at: selected),
-            !(selected == .row(0, key: 0) && BuiltinLayouts.usesPhone9QuickSymbols(draft))
-        {
+        if let key = draft.key(at: selected) {
+            // The quick-symbol cycle replaces the first key's tap; its face, width and long press still apply.
+            let cyclesQuickSymbols = selected == .row(0, key: 0) && BuiltinLayouts.usesPhone9QuickSymbols(draft)
             // Main-layout function keys draw custom titles at runtime too.
-            LayoutKeyFields(key: key, allowsTitleMode: true) { updated in
+            LayoutKeyFields(key: key, allowsTitleMode: true, editsAction: !cyclesQuickSymbols) { updated in
                 draft = draft.replacingKey(at: selected, with: updated)
             }
             .id(selected)
@@ -268,7 +268,11 @@ struct LayoutEditorView: View {
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
         Task { @MainActor in
             await Task.yield()
-            let snapshot = asCopy ? BuiltinLayouts.persistingHandCuts(in: draft).copy() : draft
+            var snapshot = asCopy ? BuiltinLayouts.persistingHandCuts(in: draft).copy() : draft
+            // Key edits can leave the 9-key shape, which hides the 九键 section; its settings no longer apply.
+            if !PhoneKeypadStructure.matches(snapshot) {
+                snapshot = snapshot.settingT9FirstKeyBehavior(nil).settingT9QuickSymbols(nil)
+            }
             defer { saving = false }
             if await manager.saveDraft(snapshot) {
                 onSaved?(snapshot)
@@ -317,6 +321,7 @@ struct LayoutKeyFields: View {
     var allowsFunctionActions = true
     /// Only a page's keys may jump to another layout's page, never a main layout's.
     var allowsJump = false
+    var editsAction = true
     let update: (LayoutKey) -> Void
 
     var body: some View {
@@ -356,11 +361,13 @@ struct LayoutKeyFields: View {
             OptionalWidthField(
                 title: widthLabel,
                 value: Binding(get: { key.width }, set: { update(key.settingWidth($0)) }))
-            LayoutActionFields(
-                action: key.action, allowsCode: allowsCode, allowsFunctionActions: allowsFunctionActions,
-                allowsJump: allowsJump
-            ) { action in
-                update(key.editingAction(action, allowsTitleMode: allowsTitleMode))
+            if editsAction {
+                LayoutActionFields(
+                    action: key.action, allowsCode: allowsCode, allowsFunctionActions: allowsFunctionActions,
+                    allowsJump: allowsJump
+                ) { action in
+                    update(key.editingAction(action, allowsTitleMode: allowsTitleMode))
+                }
             }
         }
         Section {

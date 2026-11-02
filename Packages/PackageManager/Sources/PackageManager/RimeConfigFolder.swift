@@ -275,6 +275,16 @@ public enum RimeConfigFolder {
         return blocks.isEmpty ? nil : checkedMerge("blocks.custom.yaml", "", blocks: blocks).map { Data($0.utf8) }
     }
 
+    /// A text file `write` leaves to the app: `user` already has it outside the list, and it holds none
+    /// of the app's blocks to merge the folder's lines into.
+    static func isLeftToApp(_ path: String, in user: URL) -> Bool {
+        guard !UserConfigFiles.isScriptPath(path) else { return false }
+        let target = user.appendingPathComponent(path)
+        guard FileManager.default.fileExists(atPath: target.path) else { return false }
+        guard path.hasSuffix(".custom.yaml") else { return true }
+        return managedBlocks(in: (try? String(contentsOf: target, encoding: .utf8)) ?? "").isEmpty
+    }
+
     /// Folder files the generation at `user` does not carry, sorted by path.
     static func unusedNames(in folder: URL, user: URL) -> [String] {
         let used = names(in: user)

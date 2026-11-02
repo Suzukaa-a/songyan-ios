@@ -686,7 +686,14 @@ public struct KeyboardPanelView: View {
             }
             if let clipboardPasteError { Text(clipboardPasteError).font(.footnote).foregroundStyle(.red) }
         }
-        .onDisappear { clipboardPasteSlot.updateEligibility(false) }
+        // An old failure belongs to that attempt; it must not greet the next opening of the clipboard.
+        .onChange(of: clipboardPasteAllowed) { _, allowed in
+            if !allowed { clipboardPasteError = nil }
+        }
+        .onDisappear {
+            clipboardPasteSlot.updateEligibility(false)
+            clipboardPasteError = nil
+        }
     }
 
     private var quickPasteIdleInput: QuickPasteIdleInput {

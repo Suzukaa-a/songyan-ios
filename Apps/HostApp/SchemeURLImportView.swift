@@ -32,7 +32,7 @@ struct SchemeURLImportView: View {
             if let source {
                 Section {
                     Text(source.detail).foregroundStyle(.secondary)
-                    Link("查看下载来源", destination: source.url)
+                    Link("查看项目主页", destination: source.homepage)
                 }
             }
             Section {

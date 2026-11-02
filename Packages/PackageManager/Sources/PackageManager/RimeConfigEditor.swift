@@ -116,19 +116,22 @@ extension RecipePackageManager {
             unacknowledged: context.overrides.unacknowledged(context.package),
             unusedScripts: Array(Set(plan.unconfirmed.map(\.path))).sorted(),
             fileCount: UserConfigFiles.files(in: context.folder).count,
-            hasPendingChanges: try rimeConfigHasPendingChanges(folder: context.folder))
+            hasPendingChanges: try rimeConfigHasPendingChanges(plan))
     }
 
-    /// Compare the editable folder with the installed copies, including deletions and external edits.
-    private func rimeConfigHasPendingChanges(folder: URL) throws -> Bool {
+    /// Compare what the next install would take from the folder with the installed copies, including
+    /// deletions and external edits. Files every install leaves out are reported by `unusedNames` instead.
+    private func rimeConfigHasPendingChanges(_ plan: RimeConfigFolder.Plan) throws -> Bool {
         guard let active = try activeInstallation() else { return false }
-        let files = UserConfigFiles.files(in: folder).filter { !RimeConfigFolder.reservedNames.contains($0.path) }
-        guard Set(files.map(\.path)) == RimeConfigFolder.names(in: active.userDataURL) else { return true }
+        let listed = RimeConfigFolder.names(in: active.userDataURL)
+        let files = plan.files.filter {
+            listed.contains($0.path) || !RimeConfigFolder.isLeftToApp($0.path, in: active.userDataURL)
+        }
+        guard Set(files.map(\.path)) == listed else { return true }
         return files.contains { file in
             let directory = UserConfigFiles.isScriptPath(file.path) ? active.resourceURL : active.userDataURL
+            let editable = file.data
             guard
-                let editable = try? BoundedLocalFile.read(
-                    file.url, maximumBytes: UserConfigFiles.maximumFileBytes, followingSymlinks: false),
                 var installed = try? BoundedLocalFile.read(
                     directory.appendingPathComponent(file.path), maximumBytes: UserConfigFiles.maximumFileBytes)
             else { return true }

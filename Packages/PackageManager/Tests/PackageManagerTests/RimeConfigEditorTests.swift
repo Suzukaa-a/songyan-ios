@@ -109,6 +109,19 @@ final class RimeConfigEditorTests: XCTestCase {
             FileManager.default.fileExists(atPath: restoredUser.appendingPathComponent("main.schema.yaml").path))
     }
 
+    func testFilesEveryInstallLeavesOutAreNotPendingChanges() async throws {
+        try await install()
+        try write("patch:\n  a: [1\n", "broken.custom.yaml")
+        try write("return {}\n", "lua/mine.lua")
+        let overview = try await manager.rimeConfigOverview()
+        XCTAssertEqual(overview.unusedScripts, ["lua/mine.lua"])
+        XCTAssertFalse(overview.hasPendingChanges)
+
+        try write("patch:\n  menu/page_size: 5\n", "main.custom.yaml")
+        let edited = try await manager.rimeConfigOverview()
+        XCTAssertTrue(edited.hasPendingChanges)
+    }
+
     func testAnInputMethodFileStartsAsTheTemplateAndSavingChecksIt() async throws {
         try await install()
         let opened = try await manager.openRimeConfigFile("main.custom.yaml")

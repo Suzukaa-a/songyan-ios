@@ -453,7 +453,7 @@ private struct KeyboardMainLayoutPreview: View {
 
     @ViewBuilder
     private func engineKeyFace(_ key: LayoutKey, id: String, select: @escaping () -> Void) -> some View {
-        let isT9FirstKey = facts.isKnownPhone9Primary && id == "row-0-0"
+        let isT9FirstKey = facts.usesPhone9QuickSymbols && id == "row-0-0"
         let presetKey = KeyboardPanelRules.knownMainShellPreset(facts).flatMap {
             KeyboardPanelRules.mainShellPresetKey(in: $0, id: id, key: key)
         }

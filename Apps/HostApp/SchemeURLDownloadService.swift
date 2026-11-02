@@ -373,13 +373,17 @@ struct RecommendedSchemeSource: Identifiable, Sendable {
     let name: String
     let detail: String
     let url: URL
+    /// The project page; `url` is the archive itself, which a browser would just download.
+    let homepage: URL
     var id: String { url.absoluteString }
 
     static let catalog: [RecommendedSchemeSource] = [
         RecommendedSchemeSource(
             name: "雾凇拼音",
             detail: "全拼与多种双拼，词库丰富 · GPL-3.0",
-            url: URL(string: "https://codeload.github.com/iDvel/rime-ice/zip/fbb516b2786e4d5444383706d13c31c2e4d10c08")!
+            url: URL(
+                string: "https://codeload.github.com/iDvel/rime-ice/zip/fbb516b2786e4d5444383706d13c31c2e4d10c08")!,
+            homepage: URL(string: "https://github.com/iDvel/rime-ice")!
         ),
         RecommendedSchemeSource(
             name: "万象拼音",
@@ -387,6 +391,7 @@ struct RecommendedSchemeSource: Identifiable, Sendable {
             // Release asset, not the repository zip: the repository only has OpenCC text sources, while the
             // compiled .ocd2 dictionaries that its opencc/*.json files reference ship only in the release.
             url: URL(
-                string: "https://github.com/amzxyz/rime-wanxiang/releases/download/v18.1.3/rime-wanxiang-base.zip")!),
+                string: "https://github.com/amzxyz/rime-wanxiang/releases/download/v18.1.3/rime-wanxiang-base.zip")!,
+            homepage: URL(string: "https://github.com/amzxyz/rime-wanxiang")!),
     ]
 }

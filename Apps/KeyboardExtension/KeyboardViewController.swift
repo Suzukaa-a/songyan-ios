@@ -93,6 +93,7 @@ class KeyboardViewController: UIInputViewController {
     var hostingController: UIHostingController<ExtensionKeyboardPanel>?
     var panelHeightConstraint: NSLayoutConstraint?
     var panelInputView: FeedbackInputView?
+    var lastLandscapeHeightLimit: (compact: Bool, limit: CGFloat?)?
     var hostingHeightConstraint: NSLayoutConstraint?
     var lastLayoutGeometry = ""
     var lifecycleGeometryEnabled = KeyboardLifecycleDiagnostics.isEnabled
@@ -216,14 +217,10 @@ class KeyboardViewController: UIInputViewController {
         }
     }
 
-    /// Installs a typed `inputView` during controlled view creation.
-    /// `UIInputViewController.inputView` is publicly a `UIInputView?` (the system supplies an empty one); it is
-    /// replaced with a FeedbackInputView (a UIInputView subclass), and the
-    /// controller's view points at the same instance:
-    ///   - view and inputView are always the same instance, so system styling and sizing stay with the input view pipeline;
-    ///   - the child controller (UIHostingController) and constraints are attached by viewDidLoad as usual,
-    ///     with no plain-UIView root replacement;
-    ///   - the `.default` style keeps the existing look (the panel paints its own background).
+    /// Keeps UIKit's own root input view and puts a FeedbackInputView inside it:
+    ///   - the root's height constraint is how the system measures the keyboard;
+    ///   - the child carries the current content budget and hosts the SwiftUI panel;
+    ///   - the child's `.default` style keeps the existing look (the panel paints its own background).
     override func loadView() {
         super.loadView()
         let height = initialPresentation.shellHeight(compact: traitCollection.verticalSizeClass == .compact)
@@ -247,10 +244,12 @@ class KeyboardViewController: UIInputViewController {
             content.topAnchor.constraint(equalTo: view.topAnchor),
             content.bottomAnchor.constraint(equalTo: view.bottomAnchor),
         ])
-        // Keep UIKit's registered root and size it through the standard height constraint.
+        // Keep UIKit's registered root and size it through the standard height constraint. Below
+        // required: during presentation and rotation UIKit holds its own required encapsulated height
+        // on the root, and a required budget would break an arbitrary constraint to resolve the clash.
         let heightConstraint = view.heightAnchor.constraint(equalToConstant: height)
         heightConstraint.identifier = "KeyboardPanel.primaryBudget"
-        heightConstraint.priority = .required
+        heightConstraint.priority = UILayoutPriority(999)
         panelHeightConstraint = heightConstraint
         heightConstraint.isActive = true
         logPanelGeometry("loadView")

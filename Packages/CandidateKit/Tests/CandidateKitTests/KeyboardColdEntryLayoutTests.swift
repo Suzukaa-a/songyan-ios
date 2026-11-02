@@ -141,7 +141,7 @@ final class KeyboardColdEntryLayoutTests: XCTestCase {
         func testNativeFittingAndHostingLoadingShareBudgetBeforeFirstAppearance() async throws {
             let budget = fixedHeight(keyHeight: 54)
             XCTAssertEqual(budget, 276, accuracy: 0.01)
-            let parent = UIView(frame: CGRect(x: 0, y: 0, width: 402, height: 900))
+            let parent = UIWindow(frame: CGRect(x: 0, y: 0, width: 402, height: 900))
             let input = KeyboardPanelInputView(
                 frame: CGRect(x: 0, y: 0, width: 402, height: budget),
                 inputViewStyle: .default)
@@ -154,12 +154,23 @@ final class KeyboardColdEntryLayoutTests: XCTestCase {
             hosting.sizingOptions = []
             input.translatesAutoresizingMaskIntoConstraints = false
             hosting.view.translatesAutoresizingMaskIntoConstraints = false
-            parent.addSubview(input)
+            // As in production, the content fills UIKit's root, which carries the budget.
+            let root = UIView()
+            root.translatesAutoresizingMaskIntoConstraints = false
+            let rootHeight = root.heightAnchor.constraint(equalToConstant: budget)
+            rootHeight.priority = UILayoutPriority(999)
+            parent.addSubview(root)
+            root.addSubview(input)
             input.addSubview(hosting.view)
             NSLayoutConstraint.activate([
-                input.topAnchor.constraint(equalTo: parent.topAnchor),
-                input.leadingAnchor.constraint(equalTo: parent.leadingAnchor),
-                input.trailingAnchor.constraint(equalTo: parent.trailingAnchor),
+                root.topAnchor.constraint(equalTo: parent.topAnchor),
+                root.leadingAnchor.constraint(equalTo: parent.leadingAnchor),
+                root.trailingAnchor.constraint(equalTo: parent.trailingAnchor),
+                rootHeight,
+                input.topAnchor.constraint(equalTo: root.topAnchor),
+                input.bottomAnchor.constraint(equalTo: root.bottomAnchor),
+                input.leadingAnchor.constraint(equalTo: root.leadingAnchor),
+                input.trailingAnchor.constraint(equalTo: root.trailingAnchor),
                 hosting.view.topAnchor.constraint(equalTo: input.topAnchor),
                 hosting.view.bottomAnchor.constraint(equalTo: input.bottomAnchor),
                 hosting.view.leadingAnchor.constraint(equalTo: input.leadingAnchor),
@@ -169,7 +180,8 @@ final class KeyboardColdEntryLayoutTests: XCTestCase {
             XCTAssertEqual(input.bounds.height, budget, accuracy: 0.01)
             XCTAssertEqual(hosting.view.bounds.height, budget, accuracy: 0.01)
             XCTAssertEqual(input.intrinsicContentSize.height, budget)
-            XCTAssertTrue(input.allowsSelfSizing)
+            // The native root is what the system sizes; the content view never self-sizes.
+            XCTAssertFalse(input.allowsSelfSizing)
             XCTAssertEqual(input.budgetHeightConstraint.priority, UILayoutPriority(999))
             for proposed in [0.0, 509.0, 900.0] {
                 XCTAssertEqual(input.systemLayoutSizeFitting(CGSize(width: 402, height: proposed)).height, budget)
@@ -182,6 +194,7 @@ final class KeyboardColdEntryLayoutTests: XCTestCase {
                     ).height, budget)
             }
             input.setPanelHeight(240)
+            rootHeight.constant = 240
             hosting.rootView = VStack {
                 Text("正在准备键盘…")
                 Spacer()
@@ -191,6 +204,7 @@ final class KeyboardColdEntryLayoutTests: XCTestCase {
             XCTAssertEqual(hosting.view.bounds.height, 240, accuracy: 0.01)
             for height in [280.0, 316.0, 280.0] as [CGFloat] {
                 input.setPanelHeight(height)
+                rootHeight.constant = height
                 hosting.rootView = VStack {
                     Text("正在准备键盘…")
                     Spacer()

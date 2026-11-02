@@ -135,6 +135,17 @@ final class LayoutDefinitionIdentityTests: XCTestCase {
     }
 
     /// A different id (even with identical content) gives a different identity.
+    func testNineKeyFirstKeySettingsChangeIdentity() {
+        let preset = BuiltinLayouts.phone9
+        let custom = preset.settingT9FirstKeyBehavior(.custom)
+        let symbols = preset.settingT9QuickSymbols("；：")
+        XCTAssertFalse(preset.runtimeIdentity.isProvablySame(as: custom.runtimeIdentity))
+        XCTAssertFalse(preset.runtimeIdentity.isProvablySame(as: symbols.runtimeIdentity))
+        XCTAssertTrue(
+            preset.runtimeIdentity.isProvablySame(
+                as: custom.settingT9FirstKeyBehavior(nil).runtimeIdentity))
+    }
+
     func testDifferentIDChangesIdentity() {
         let a = LayoutDefinition(
             id: "a", name: "n", input: .init(builtinLayout: .merged14),

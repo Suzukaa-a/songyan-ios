@@ -336,6 +336,9 @@ final class DefinitionResolutionMemo {
         /// first-key cycling / digit up-flick / declared alternates may read it; it must never gate
         /// the injected control row or rails.
         let isKnownPhone9Primary: Bool
+        /// The 9-key first key cycles quick symbols and separates syllables, explicitly or by the
+        /// legacy inference (see `BuiltinLayouts.usesPhone9QuickSymbols`).
+        let usesPhone9QuickSymbols: Bool
         /// Structural main-shell identity for the bundled 26-key (letters + synthesized Shift/Delete).
         let isBundledQwertyMainShell: Bool
         /// The 26-key shell's letters keep the preset counts and widths, so they sit in the standard
@@ -382,6 +385,7 @@ final class DefinitionResolutionMemo {
             isBuiltinPhonePad = active.map(BuiltinLayouts.matchesPhone9Chrome) == true
             isBuiltinPhoneFace = active.map(BuiltinLayouts.matchesPhone9LiveFirstKey) == true
             isKnownPhone9Primary = active.map(BuiltinLayouts.matchesPhone9PrimarySemantics) == true
+            usesPhone9QuickSymbols = active.map(BuiltinLayouts.usesPhone9QuickSymbols) == true
             // The 26/14/18 shells are structural: edits to main keys keep Shift/Delete/separator and
             // the keyboard's own bottom row, while an edited control row is rendered instead of
             // covered up.

@@ -89,7 +89,10 @@ struct InputSchemeListView: View {
                     .task { if engineCapabilities == nil { engineCapabilities = await EngineCapabilities.load() } }
             }
         }
-        .task { await rimeConfig.refresh() }
+        .task {
+            await RimeConfigModel.createFolder()
+            await rimeConfig.refresh()
+        }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
             Task { await rimeConfig.refresh() }
         }

@@ -240,6 +240,7 @@ public struct KeyboardPanelHost: View {
                     readingPlacement = KeyboardReadingPlacementPreferences.current
                 }
                 onPanelHeightChange?(fixedShellHeight)
+                adoptBudgetedShell()
                 reportPresentationBudget()
             }
             .onChange(of: fixedShellHeight) { _, height in onPanelHeightChange?(height) }
@@ -274,6 +275,7 @@ public struct KeyboardPanelHost: View {
             // area does not inject it (`nil`) and keeps reading on onAppear.
             // A new host binding is a new presentation: re-read shared preferences.
             .onChange(of: hostBindingTick) {
+                adoptBudgetedShell()
                 KeyboardKeyFeelPreferences.refresh()
                 oneHandMode = KeyboardOneHandPreferences.current
                 storedHeightPreset = KeyboardHeightPreferences.current
@@ -646,6 +648,15 @@ public struct KeyboardPanelHost: View {
                         candidateHeight, candidateSize: candidateSize)),
                 "shell": String(format: "%.1f", Double(fixedShellHeight)),
             ])
+    }
+
+    /// A new presentation starts from the shell the extension budgeted for the current selection;
+    /// reporting the previous presentation's shell would grow and then shrink the keyboard.
+    private func adoptBudgetedShell() {
+        guard let presentationBudget else { return }
+        let shell = KeyboardPresentationShell(
+            readingRow: presentationBudget.readingRow, candidateArea: presentationBudget.candidateArea)
+        if definitionShell != shell { definitionShell = shell }
     }
 
     private func reportPresentationBudget() {

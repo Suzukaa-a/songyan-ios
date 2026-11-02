@@ -15,7 +15,10 @@ enum AppearancePreviewLoader {
             let key = KeyboardCompositionKey(
                 inputMethodID: activation?.selectedSchemaID ?? "songyan_quanpin",
                 layout: (activation?.selectedLayout ?? .qwerty26).builtinLayout)
-            return (registry.layouts, registry.composition(for: key).mainLayoutID)
+            // An older catalog can lack a bundled preset the composition still selects.
+            let layouts = registry.usableLayouts { _ in true }
+            let selected = registry.composition(for: key).mainLayoutID
+            return (layouts, layouts.contains { $0.id == selected } ? selected : layouts.first?.id ?? selected)
         }
     }
 

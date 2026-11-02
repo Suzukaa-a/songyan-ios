@@ -181,15 +181,23 @@ extension KeyboardViewController {
         return input.constrainedPanelHeight(budgetHeight) < budgetHeight ? input.panelHeight : nil
     }
 
+    /// Off screen (viewDidDisappear, viewWillAppear) there is no window to measure, so the last limit
+    /// measured for the same size class stands in; otherwise every landscape presentation would start
+    /// at the uncapped height and shrink once laid out.
     private var landscapePanelHeightLimit: CGFloat? {
-        guard let window = viewIfLoaded?.window, let scene = window.windowScene else { return nil }
+        let compact = traitCollection.verticalSizeClass == .compact
+        guard let window = viewIfLoaded?.window, let scene = window.windowScene else {
+            return lastLandscapeHeightLimit?.compact == compact ? lastLandscapeHeightLimit?.limit : nil
+        }
         let viewport = scene.coordinateSpace.bounds
-        return KeyboardPanelGeometry.landscapeHeightLimit(
+        let limit = KeyboardPanelGeometry.landscapeHeightLimit(
             viewportWidth: Double(viewport.width), viewportHeight: Double(viewport.height),
             topInset: Double(window.safeAreaInsets.top), bottomInset: Double(window.safeAreaInsets.bottom),
             isPhone: traitCollection.userInterfaceIdiom == .phone,
-            compact: traitCollection.verticalSizeClass == .compact
+            compact: compact
         ).map { CGFloat($0) }
+        lastLandscapeHeightLimit = (compact, limit)
+        return limit
     }
 
     private func syncLandscapeHeightLimit(_ input: KeyboardPanelInputView) {

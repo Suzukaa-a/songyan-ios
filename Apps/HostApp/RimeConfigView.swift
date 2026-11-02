@@ -30,6 +30,13 @@ final class RimeConfigModel: ObservableObject {
     private let center = SchemeImportCenter.shared
 
     /// The files are edited in other apps too, so this runs on every return to the screen.
+    /// The folder must exist before the user opens the Files app to drop files into it.
+    static func createFolder() async {
+        await Task.detached {
+            try? FileManager.default.createDirectory(at: HostStorePaths.rimeConfig, withIntermediateDirectories: true)
+        }.value
+    }
+
     func refresh() async {
         guard let target = await center.rimeConfigTarget() else {
             packageID = nil
@@ -206,10 +213,7 @@ private struct RimeConfigHost: ViewModifier {
     func body(content: Content) -> some View {
         content
             .task {
-                await Task.detached {
-                    try? FileManager.default.createDirectory(
-                        at: HostStorePaths.rimeConfig, withIntermediateDirectories: true)
-                }.value
+                await RimeConfigModel.createFolder()
                 await model.refresh()
             }
             .onChange(of: scenePhase) { _, phase in
