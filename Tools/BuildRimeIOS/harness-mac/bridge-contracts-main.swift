@@ -82,6 +82,108 @@ struct BridgeContractsMain {
         backend.shutdown()
     }
 
+    static func checkSchemaOptionGroups(user: String) {
+        let root = URL(fileURLWithPath: user).appendingPathComponent("schema-options")
+        let shared = root.appendingPathComponent("shared")
+        try! FileManager.default.createDirectory(
+            at: shared.appendingPathComponent("opencc"), withIntermediateDirectories: true)
+        func write(_ name: String, _ text: String) {
+            try! text.write(to: shared.appendingPathComponent(name), atomically: true, encoding: .utf8)
+        }
+        write("default.yaml", "config_version: '1'\nschema_list:\n  - schema: options_fixture\n")
+        write(
+            "options_fixture.dict.yaml",
+            "---\nname: options_fixture\nversion: '1'\nsort: original\n...\n汉\than\t100\n开心\tkaixin\t100\n")
+        write(
+            "options_fixture.schema.yaml",
+            """
+            schema:
+              schema_id: options_fixture
+              name: Option fixture
+              version: '1'
+            switches:
+              - options: [original, traditional, hongkong, taiwan]
+                states: [简体, 通繁, 港繁, 臺繁]
+                reset: 0
+              - name: faces
+                reset: 0
+            engine:
+              processors: [speller, selector, express_editor]
+              segmentors: [abc_segmentor, fallback_segmentor]
+              translators: [table_translator]
+              filters:
+                - simplifier@trad
+                - simplifier@hk
+                - simplifier@tw
+                - simplifier@emoji
+            speller:
+              alphabet: abcdefghijklmnopqrstuvwxyz
+            translator:
+              dictionary: options_fixture
+              enable_user_dict: false
+            trad:
+              option_name: traditional
+              opencc_config: arbitrary-a.json
+            hk:
+              option_name: hongkong
+              opencc_config: arbitrary-b.json
+            tw:
+              option_name: taiwan
+              opencc_config: arbitrary-c.json
+            emoji:
+              option_name: faces
+              opencc_config: arbitrary-d.json
+            """)
+        for (config, name, entry) in [
+            ("arbitrary-a", "Simplified Chinese to Traditional Chinese", "汉\t漢\n"),
+            ("arbitrary-b", "Simplified Chinese to Traditional Chinese (Hong Kong variant)", "汉\t漢港\n"),
+            ("arbitrary-c", "Simplified Chinese to Traditional Chinese (Taiwan variant)", "汉\t漢臺\n"),
+            ("arbitrary-d", "Emoji", "开心\t😄\n"),
+        ] {
+            write("opencc/\(config).txt", entry)
+            write(
+                "opencc/\(config).json",
+                """
+                {"name":"\(name)","segmentation":{"type":"mmseg","dict":{"type":"text","file":"\(config).txt"}},
+                 "conversion_chain":[{"dict":{"type":"text","file":"\(config).txt"}}]}
+                """)
+        }
+        let backend = RimeBackend(
+            sharedDirectory: shared, userDirectory: root.appendingPathComponent("user"),
+            resourceID: "options", optionStore: OptionStore(directory: root.appendingPathComponent("preferences")))
+        try! backend.startIfNeeded()
+        try! backend.selectSchema("options_fixture")
+        let names = ["original", "traditional", "hongkong", "taiwan"]
+        let states = try! backend.optionStates()
+        check(
+            states.filter { !$0.descriptor.choiceGroup.isEmpty }.map { $0.descriptor.name } == names,
+            "native radio descriptors retain original order and no-conversion member")
+        _ = try! backend.processKey("h")
+        _ = try! backend.processKey("a")
+        _ = try! backend.processKey("n")
+        for (name, text) in zip(names, ["汉", "漢", "漢港", "漢臺"]) {
+            let snapshot = try! backend.setOption(name, value: true)
+            let current = try! backend.optionStates().filter { $0.descriptor.choiceGroup == names }
+            check(
+                current.filter(\.value).map { $0.descriptor.name } == [name],
+                "native radio selection is mutually exclusive: \(name)")
+            check(
+                snapshot.rawInput == "han" && snapshot.committed.isEmpty
+                    && snapshot.candidates.contains(where: { $0.text == text }),
+                "radio selection refreshes live candidates without committing: \(name)")
+        }
+        check(try! backend.processKey(" ").committed == "漢臺", "traditional group choice commits the engine candidate")
+        for key in "kaixin" { _ = try! backend.processKey(String(key)) }
+        let emoji = try! backend.setOption("faces", value: true)
+        check(emoji.candidates.contains(where: { $0.text == "😄" }), "custom OpenCC config produces emoji candidates")
+        let off = try! backend.setOption("faces", value: false)
+        check(
+            !off.candidates.contains(where: { $0.text == "😄" }) && off.rawInput == "kaixin",
+            "emoji disabled refreshes candidates without losing composition")
+        _ = try! backend.cancelComposition()
+        backend.shutdown()
+    }
+
     static func main() {
         var shared = "", user = "", prebuilt = ""
         var args = CommandLine.arguments.dropFirst().makeIterator()
@@ -94,6 +196,13 @@ struct BridgeContractsMain {
             }
         }
         guard !shared.isEmpty, !user.isEmpty else { fail("args required") }
+        let optionChecks = DispatchSemaphore(value: 0)
+        let optionUser = user
+        DispatchQueue.global().async {
+            checkSchemaOptionGroups(user: optionUser)
+            optionChecks.signal()
+        }
+        optionChecks.wait()
         checkKeyBatches(shared: shared, user: user)
 
         let engine = RimeEngine(

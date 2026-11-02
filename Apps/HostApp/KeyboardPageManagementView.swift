@@ -83,31 +83,53 @@ struct KeyboardPageManagementView: View {
         }
     }
 
-    /// Tapping a row opens its actions; a custom page can also be deleted by swiping. A page a
-    /// keyboard uses says which one and offers no delete.
+    /// Custom pages open directly for editing; presets expose their copy choices. Secondary actions
+    /// stay in an explicit menu, and a page in use cannot be deleted.
     private func row(_ page: KeyboardPageDefinition, usage: String?) -> some View {
-        Menu {
-            actions(page, usage: usage)
-        } label: {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(page.name).font(.headline).foregroundStyle(.primary)
-                Text(summary(page)).font(.caption).foregroundStyle(.secondary)
-                if let usage {
-                    Text(usage).font(.caption).foregroundStyle(.secondary)
+        HStack(spacing: 12) {
+            if isPreset(page) {
+                Menu {
+                    actions(page, usage: usage)
+                } label: {
+                    pageLabel(page, usage: usage)
                 }
+                .buttonStyle(.plain)
+            } else {
+                Button {
+                    openEditor(page)
+                } label: {
+                    pageLabel(page, usage: usage)
+                }
+                .buttonStyle(.plain)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(Rectangle())
+            Menu {
+                actions(page, usage: usage)
+            } label: {
+                Image(systemName: "ellipsis.circle")
+                    .font(.title3)
+                    .frame(minWidth: 44, minHeight: 44)
+            }
+            .buttonStyle(.borderless)
+            .accessibilityLabel("\(page.name)的更多操作")
         }
-        // A Menu tints its label with the accent colour; the plain style keeps the row looking
-        // like an ordinary list row while a tap still opens the menu.
-        .buttonStyle(.plain)
         .padding(.vertical, 2)
         .swipeActions {
             if !isPreset(page), usage == nil {
                 Button("删除", role: .destructive) { removing = page }
             }
         }
+    }
+
+    private func pageLabel(_ page: KeyboardPageDefinition, usage: String?) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(page.name).font(.headline).foregroundStyle(.primary)
+            Text(summary(page)).font(.caption).foregroundStyle(.secondary)
+            if let usage { Text(usage).font(.caption).foregroundStyle(.secondary) }
+            Label(isPreset(page) ? "复制并编辑" : "编辑页面", systemImage: isPreset(page) ? "plus.square.on.square" : "pencil")
+                .font(.caption).foregroundStyle(Color.accentColor)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
     }
 
     @ViewBuilder

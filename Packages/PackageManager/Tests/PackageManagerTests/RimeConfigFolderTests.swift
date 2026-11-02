@@ -85,6 +85,40 @@ final class RimeConfigFolderTests: XCTestCase {
                     .path))
     }
 
+    func testDeletingAModelPatchTakesEffectOnApplyAndKeepsTheAppsOtherSettings() async throws {
+        let folder = try temporaryDirectory("rime-config")
+        let name = "main.custom.yaml"
+        let modelPatch = "patch:\n  grammar/language: \"\"\n"
+        try write(modelPatch, name, in: folder)
+        let manager = RecipePackageManager(
+            rootURL: try temporaryDirectory("rime-config-store"), userConfigDirectory: folder)
+        _ = try await manager.installSchemeImport(
+            try manager.prepareSchemeImport(directory: try scheme()), deploy: Self.deploy)
+        let first = try await installed(manager)
+        let block = RimeConfigFolder.ManagedBlock(
+            rx: "songyan:typo:", body: "  - patch/+:\n      translator/enable_correction: true\n")
+        let merged = try XCTUnwrap(RimeConfigFolder.checkedMerge(name, modelPatch, blocks: [block]))
+        try Data(merged.utf8).write(to: first.userDataURL.appendingPathComponent(name))
+
+        try FileManager.default.removeItem(at: folder.appendingPathComponent(name))
+        XCTAssertEqual(
+            try String(contentsOf: first.userDataURL.appendingPathComponent(name), encoding: .utf8), merged)
+        _ = try await manager.reinstallActivePackage(deploy: Self.deploy)
+
+        let second = try await installed(manager)
+        let remaining = try String(contentsOf: second.userDataURL.appendingPathComponent(name), encoding: .utf8)
+        XCTAssertNotEqual(first.installation.generation, second.installation.generation)
+        XCTAssertTrue(
+            RimeConfigFolder.withoutManagedBlocks(remaining).trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        XCTAssertEqual(RimeConfigFolder.managedBlocks(in: remaining), [block])
+        XCTAssertTrue(RimeConfigFolder.names(in: second.userDataURL).isEmpty)
+
+        _ = try await manager.reinstallActivePackage(deploy: Self.deploy)
+        let third = try await installed(manager)
+        XCTAssertEqual(
+            try String(contentsOf: third.userDataURL.appendingPathComponent(name), encoding: .utf8), remaining)
+    }
+
     func testReapplyingSurvivesTheHostRewritingItsOwnPackageFiles() async throws {
         let folder = try temporaryDirectory("rime-config")
         let manager = RecipePackageManager(

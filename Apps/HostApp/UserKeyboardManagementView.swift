@@ -49,6 +49,14 @@ struct UserKeyboardManagementView: View {
                         ForEach(selectedItems) { item in addedRow(item) }
                     }
                 }
+                Section("自定义键盘") {
+                    NavigationLink(UserTerminology.pageLibrary) {
+                        KeyboardPageManagementView(keyboardNames: keyboardNames)
+                    }
+                    NavigationLink(UserTerminology.keyboardLayout) {
+                        LayoutManagementView(keyboardNames: keyboardNames)
+                    }
+                }
                 if !groups.isEmpty {
                     Section(UserTerminology.addUserKeyboard) {
                         ForEach(groups, id: \.id) { group in
@@ -110,6 +118,7 @@ struct UserKeyboardManagementView: View {
             }
         }
         .task {
+            guard !hasChanges else { return }
             await center.refresh()
             resetDraft()
         }
@@ -290,7 +299,7 @@ struct UserKeyboardManagementView: View {
                 HStack(spacing: 12) {
                     LayoutThumbnail(definition: main).accessibilityHidden(true)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(item.keyboard.title).foregroundStyle(.primary).lineLimit(1)
+                        Text(item.keyboard.title).foregroundStyle(.primary).fixedSize(horizontal: false, vertical: true)
                         // Names the destination so the row reads as the way into 页面搭配.
                         HStack(spacing: 3) {
                             Image(systemName: "square.stack.3d.up")
@@ -300,9 +309,13 @@ struct UserKeyboardManagementView: View {
                         }
                         .font(.caption)
                         .foregroundStyle(Color.accentColor)
-                        .lineLimit(1)
+                        .fixedSize(horizontal: false, vertical: true)
                     }
                     Spacer(minLength: 4)
+                    Image(systemName: "chevron.right")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.tertiary)
+                        .accessibilityHidden(true)
                 }
                 .contentShape(Rectangle())
             }
@@ -329,10 +342,6 @@ struct UserKeyboardManagementView: View {
                     .accessibilityIdentifier("userKeyboard.use." + item.id)
                     .accessibilityLabel("\(UserTerminology.startUsing)\(item.keyboard.title)")
             }
-            Image(systemName: "chevron.right")
-                .font(.footnote.weight(.semibold))
-                .foregroundStyle(.tertiary)
-                .accessibilityHidden(true)
         }
         .alignmentGuide(.listRowSeparatorLeading) { _ in LayoutThumbnail.width + 12 }
         .swipeActions {

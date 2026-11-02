@@ -14,6 +14,12 @@ struct KeyboardPageEditorView: View {
     @State private var selected: KeyboardPageKeyPath = .row(0, key: 0)
     /// Which branch the preview draws; a view of the page, never saved with it.
     @State private var previewMarks: KeyboardNumericMarks
+    private enum EditorSection: String, CaseIterable {
+        case keys = "按键"
+        case arrangement = "页面"
+    }
+
+    @State private var editorSection: EditorSection = .keys
     @State private var saving = false
     @State private var error: String?
     @State private var confirmingDiscard = false
@@ -54,26 +60,15 @@ struct KeyboardPageEditorView: View {
 
     var body: some View {
         Form {
-            Section(draft.kind.title) {
-                TextField("名称", text: $draft.name)
-                if showsInitialSymbolChoice {
-                    // Nil follows the input language; an explicit choice pins the branch the page opens in.
-                    Picker(
-                        "初始符号",
-                        selection: Binding(
-                            get: { draft.defaultSymbolMarks },
-                            set: {
-                                draft.defaultSymbolMarks = $0
-                                if let marks = $0 { previewMarks = marks }
-                            })
-                    ) {
-                        Text("跟随输入").tag(Optional<KeyboardNumericMarks>.none)
-                        Text("中文").tag(Optional(KeyboardNumericMarks.chinese))
-                        Text("英文").tag(Optional(KeyboardNumericMarks.ascii))
+            Section {
+                Picker("编辑内容", selection: $editorSection) {
+                    ForEach(EditorSection.allCases, id: \.self) { section in
+                        Text(section.rawValue).tag(section)
                     }
                 }
+                .pickerStyle(.segmented)
             }
-            Section("预览") {
+            Section {
                 if showsInitialSymbolChoice {
                     Picker("预览符号", selection: $previewMarks) {
                         Text("中文").tag(KeyboardNumericMarks.chinese)
@@ -86,42 +81,74 @@ struct KeyboardPageEditorView: View {
                     isPhoneLayout: isPhoneLayout,
                     mainLayout: mainLayout, skin: AppearanceManager.shared.applied.skin,
                     previewMarks: showsInitialSymbolChoice ? previewMarks : nil,
-                    onSelectKey: { selected = $0 },
+                    onSelectKey: {
+                        selected = $0
+                        editorSection = .keys
+                    },
                     selectedPageKey: selected)
+            } header: {
+                Text("预览")
+            } footer: {
+                Text("轻点预览中的按键即可编辑。")
             }
             // The selected key's fields and position sit right under the preview that selects it.
-            selectedKeyFields
-            if !categorized {
-                SelectedRowKeyActions(rows: rowsBinding, selected: selectedRowBinding)
-            }
-            if draft.key(at: selected) != nil {
-                keyPositionSection
-            }
-            if draft.chrome != nil, !draft.hasInputModeSwitchKey {
-                Section {
-                    Button("添加\(UserTerminology.globeKey)", systemImage: "globe") { addInputModeSwitchKey() }
-                        .disabled(!draft.canAppendKey(to: .chrome(.bottom)))
+            if editorSection == .keys {
+                selectedKeyFields
+                if !categorized {
+                    SelectedRowKeyActions(rows: rowsBinding, selected: selectedRowBinding)
+                }
+                if draft.key(at: selected) != nil {
+                    keyPositionSection
                 }
             }
-            if categorized {
-                KeyboardCategoryEditorView(
-                    categories: Binding(get: { draft.categories ?? [] }, set: { draft.categories = $0 }),
-                    inheritedSplit: .resolving(page: draft.split, main: inheritedSplit), mainLayout: mainLayout)
-            } else {
-                KeyboardRowsEditor(rows: rowsBinding, selected: selectedRowBinding)
+            if editorSection == .arrangement {
+                Section(draft.kind.title) {
+                    LabeledContent("名称") {
+                        TextField("名称", text: $draft.name).multilineTextAlignment(.trailing)
+                    }
+                    if showsInitialSymbolChoice {
+                        // Nil follows the input language; an explicit choice pins the branch the page opens in.
+                        Picker(
+                            "初始符号",
+                            selection: Binding(
+                                get: { draft.defaultSymbolMarks },
+                                set: {
+                                    draft.defaultSymbolMarks = $0
+                                    if let marks = $0 { previewMarks = marks }
+                                })
+                        ) {
+                            Text("跟随输入").tag(Optional<KeyboardNumericMarks>.none)
+                            Text("中文").tag(Optional(KeyboardNumericMarks.chinese))
+                            Text("英文").tag(Optional(KeyboardNumericMarks.ascii))
+                        }
+                    }
+                }
+                if draft.chrome != nil, !draft.hasInputModeSwitchKey {
+                    Section {
+                        Button("添加\(UserTerminology.globeKey)", systemImage: "globe") { addInputModeSwitchKey() }
+                            .disabled(!draft.canAppendKey(to: .chrome(.bottom)))
+                    }
+                }
+                if categorized {
+                    KeyboardCategoryEditorView(
+                        categories: Binding(get: { draft.categories ?? [] }, set: { draft.categories = $0 }),
+                        inheritedSplit: .resolving(page: draft.split, main: inheritedSplit), mainLayout: mainLayout)
+                } else {
+                    KeyboardRowsEditor(rows: rowsBinding, selected: selectedRowBinding)
+                }
+                if draft.chrome != nil {
+                    KeyboardChromeKeysEditor(
+                        chrome: Binding(
+                            get: { draft.chrome ?? KeyboardPageChrome() },
+                            set: { chrome in draft = draft.settingChrome(chrome).settingSplitAdjusted(draft.split) }),
+                        selected: $selected, allowsLeading: !categorized)
+                }
+                // The footer cut lives at index rows.count, so its authored row joins the cut list.
+                KeyboardSplitEditor(
+                    rows: draft.splitRows, rowTitles: splitEditorRowTitles,
+                    split: Binding(get: { draft.split }, set: { draft = draft.settingSplit($0) }),
+                    allowsInheritance: true)
             }
-            if draft.chrome != nil {
-                KeyboardChromeKeysEditor(
-                    chrome: Binding(
-                        get: { draft.chrome ?? KeyboardPageChrome() },
-                        set: { chrome in draft = draft.settingChrome(chrome).settingSplitAdjusted(draft.split) }),
-                    selected: $selected, allowsLeading: !categorized)
-            }
-            // The footer cut lives at index rows.count, so its authored row joins the cut list.
-            KeyboardSplitEditor(
-                rows: draft.splitRows, rowTitles: splitEditorRowTitles,
-                split: Binding(get: { draft.split }, set: { draft = draft.settingSplit($0) }),
-                allowsInheritance: true)
         }
         .disabled(saving)
         .environment(\.widthFieldValidity, widthValidity)

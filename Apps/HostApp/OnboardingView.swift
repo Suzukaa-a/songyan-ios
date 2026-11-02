@@ -14,7 +14,7 @@ import SwiftUI
 ///  - `.standalone`: owned by first launch (`HostRootView`); this page creates its own `NavigationStack`.
 ///  - `.pushed`: entered from Settings (which already has an outer stack); this page creates no stack and registers path navigation on the outer one.
 ///
-/// With no usable scheme yet it says so explicitly ("no usable input scheme configured") instead of claiming availability; Release offers no built-in package shortcut.
+/// With no published scheme, the keyboard uses its bundled pinyin; the guide keeps that default visible alongside downloads.
 /// "Skip" only enters the home page and does not mark the guide completed; only finishing the guide does.
 struct OnboardingView: View {
     /// Navigation ownership: standalone on first launch (own stack), pushed when reused from Settings (outer stack).
@@ -125,7 +125,7 @@ struct OnboardingView: View {
                 Button {
                     if step < steps.count - 1 { withAnimation { step += 1 } } else { finish() }
                 } label: {
-                    Text(step < steps.count - 1 ? "下一步" : "完成")
+                    Text(step == 1 ? "继续试打" : (step < steps.count - 1 ? "下一步" : "完成"))
                         .frame(maxWidth: dynamicTypeSize.isAccessibilitySize ? .infinity : nil)
                 }
                 .buttonStyle(.borderedProminent)
@@ -190,11 +190,11 @@ struct OnboardingView: View {
                 """
             ),
             (
-                "选择输入方案",
+                "下载输入方案",
                 """
                 \(statusLine)
 
-                内置输入方案的词库较小。日常使用建议添加完整的输入方案。
+                内置拼音已默认启用，可以直接试打。下载完整的输入方案，获得更丰富的词库和输入方式。
                 """
             ),
             (
@@ -287,7 +287,7 @@ struct OnboardingView: View {
                         NavigationLink {
                             destinationView(.addScheme)
                         } label: {
-                            Label(UserTerminology.addInputScheme, systemImage: "plus.circle.fill")
+                            Label("浏览并下载输入方案", systemImage: "arrow.down.circle.fill")
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
                         .buttonStyle(.borderedProminent)
@@ -363,7 +363,7 @@ struct OnboardingView: View {
         if let onSkip { onSkip() } else { dismiss() }
     }
 
-    /// The status line reports only real records: with no real applied scheme it says not configured (does not claim availability).
+    /// A published scheme takes precedence; otherwise the bundled pinyin remains available.
     /// Driven by structured `.task(id:)`; once the task is cancelled (view disappears / key changes and reruns),
     /// nothing is written after a mid-way await, avoiding late writes.
     ///
@@ -378,7 +378,7 @@ struct OnboardingView: View {
         let inputs = await AppliedSelectionDisplayLoader.load()
         guard !Task.isCancelled else { return }
         let summary = AppliedSelectionDisplaySummary.make(from: inputs)
-        statusLine = summary.statusLine
+        statusLine = summary.hasRealScheme ? summary.statusLine : "正在使用：内置拼音"
         hasRealScheme = summary.hasRealScheme
         activeSupportsUserKeyboards =
             summary.hasRealScheme

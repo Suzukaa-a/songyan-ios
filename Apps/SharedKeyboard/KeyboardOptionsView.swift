@@ -79,9 +79,13 @@ public struct KeyboardOptionsView: View {
             }
             if !controller.options.isEmpty {
                 KeyboardToolsSection(title: "输入方式选项") {
-                    ForEach(Array(controller.options.enumerated()), id: \.element.id) { index, state in
+                    ForEach(Array(optionRows.enumerated()), id: \.element.id) { index, state in
                         if index > 0 { KeyboardToolsSeparator() }
-                        optionRow(state)
+                        if state.descriptor.choiceGroup.isEmpty {
+                            optionRow(state)
+                        } else {
+                            choiceRows(state)
+                        }
                     }
                 }
             }
@@ -147,6 +151,34 @@ public struct KeyboardOptionsView: View {
         KeyboardFeedbackService.shared.setHapticLevel(newLevel)
         hapticLevel = newLevel
         KeyboardFeedbackService.shared.previewKeyFeedback(sound: false, haptic: true, level: newLevel)
+    }
+
+    private var optionRows: [EngineOptionState] {
+        controller.options.filter { state in
+            state.descriptor.choiceGroup.isEmpty || state.descriptor.choiceGroup.first == state.descriptor.name
+        }
+    }
+
+    private func choiceRows(_ representative: EngineOptionState) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(representative.descriptor.title)
+                .font(.footnote.weight(.medium))
+                .foregroundStyle(Color(uiColor: appearance.text(on: "key", secondary: true)))
+                .padding(.horizontal, KeyboardToolsStyle.contentHorizontalInset)
+                .padding(.vertical, 10)
+            ForEach(controller.options.filter { $0.descriptor.choiceGroup == representative.descriptor.choiceGroup }) {
+                state in
+                KeyboardToolsRow(
+                    icon: "character",
+                    title: state.descriptor.choiceLabel ?? state.descriptor.enabledLabel,
+                    mark: .check(state.value),
+                    accessibilityLabel: state.descriptor.choiceLabel ?? state.descriptor.enabledLabel,
+                    accessibilityValue: state.value ? "已选择" : "未选择"
+                ) {
+                    controller.setOption(state.descriptor.name, value: true)
+                }
+            }
+        }
     }
 
     private func optionRow(_ state: EngineOptionState) -> some View {

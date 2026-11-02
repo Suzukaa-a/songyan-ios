@@ -498,14 +498,53 @@ struct InputOptionsView: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             } else {
-                ForEach(rows) { row in
-                    optionRow(row)
+                ForEach(
+                    rows.filter {
+                        $0.descriptor.choiceGroup.isEmpty || $0.descriptor.choiceGroup.first == $0.descriptor.name
+                    }
+                ) { row in
+                    if row.descriptor.choiceGroup.isEmpty {
+                        optionRow(row)
+                    } else {
+                        choiceRow(row)
+                    }
                 }
             }
         } header: {
             Text("输入方式选项")
         } footer: {
             Text("下次打开键盘时生效。")
+        }
+    }
+
+    private func choiceRow(_ representative: OptionRow) -> some View {
+        let members = rows.filter { $0.descriptor.choiceGroup == representative.descriptor.choiceGroup }
+        return VStack(alignment: .leading, spacing: 6) {
+            Picker(
+                representative.descriptor.title,
+                selection: Binding(
+                    get: { members.first(where: { $0.state.value })?.descriptor.name ?? "" },
+                    set: { name in
+                        if let selected = members.first(where: { $0.descriptor.name == name }) {
+                            binding(for: selected).wrappedValue = true
+                        }
+                    }
+                )
+            ) {
+                if !members.contains(where: { $0.state.value }) { Text("选择").tag("") }
+                ForEach(members) { row in
+                    Text(row.descriptor.choiceLabel ?? row.descriptor.enabledLabel).tag(row.descriptor.name)
+                }
+            }
+            .disabled(members.contains { saveRequests[$0.id] != nil })
+            .accessibilityIdentifier("inputOptions.engine.\(representative.descriptor.name)")
+            if members.contains(where: { saveRequests[$0.id] != nil }) {
+                ProgressView("正在保存…").font(.caption)
+            }
+            if let error = members.compactMap({ saveErrors[$0.id] }).first {
+                Label(error, systemImage: "exclamationmark.triangle")
+                    .font(.caption).foregroundStyle(.red)
+            }
         }
     }
 
@@ -548,9 +587,20 @@ struct InputOptionsView: View {
                     guard let index = rows.firstIndex(where: { $0.id == row.id }) else { return }
                     switch result {
                     case .success:
-                        rows[index] = OptionRow(
-                            state: EngineOptionState(descriptor: row.descriptor, value: newValue),
-                            descriptor: row.descriptor)
+                        if !row.descriptor.choiceGroup.isEmpty, newValue {
+                            for member in rows.indices
+                            where rows[member].descriptor.choiceGroup == row.descriptor.choiceGroup {
+                                let descriptor = rows[member].descriptor
+                                rows[member] = OptionRow(
+                                    state: EngineOptionState(
+                                        descriptor: descriptor, value: descriptor.name == row.descriptor.name),
+                                    descriptor: descriptor)
+                            }
+                        } else {
+                            rows[index] = OptionRow(
+                                state: EngineOptionState(descriptor: row.descriptor, value: newValue),
+                                descriptor: row.descriptor)
+                        }
                         saveErrors[row.id] = nil
                     case .failure(let error):
                         HostLog.append("input option save failed: \(error.localizedDescription)")

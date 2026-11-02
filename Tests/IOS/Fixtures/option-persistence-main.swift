@@ -4,6 +4,7 @@ public struct EngineOptionDescriptor: Sendable {
     let resourceID: String
     let schemaID: String
     let name: String
+    var choiceGroup: [String] = []
     var id: String { name }
 }
 enum Failure: Error { case denied }

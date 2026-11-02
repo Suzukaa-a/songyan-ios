@@ -233,13 +233,16 @@ struct LayoutKeyFields: View {
 
     var body: some View {
         Section("所选按键 · \(key.label)") {
-            TextField(
-                "主标题",
-                text: Binding(
-                    get: { key.label }, set: { update(key.editingLabel($0, allowsTitleMode: allowsTitleMode)) })
-            )
-            .textInputAutocapitalization(.never).autocorrectionDisabled()
-            .accessibilityIdentifier("layoutEditor.key.label")
+            LabeledContent("按键文字") {
+                TextField(
+                    "主标题",
+                    text: Binding(
+                        get: { key.label }, set: { update(key.editingLabel($0, allowsTitleMode: allowsTitleMode)) })
+                )
+                .textInputAutocapitalization(.never).autocorrectionDisabled()
+                .accessibilityIdentifier("layoutEditor.key.label")
+                .multilineTextAlignment(.trailing)
+            }
             if allowsTitleMode && key.supportsLiveTitle {
                 Picker(
                     "标题内容",
@@ -251,14 +254,17 @@ struct LayoutKeyFields: View {
                     Text("自定义").tag(LayoutKeyTitleMode.custom)
                 }
             }
-            TextField(
-                "副标题",
-                text: Binding(
-                    get: { key.secondaryLabel ?? "" },
-                    set: { update(key.settingSecondaryLabel($0.isEmpty ? nil : $0)) })
-            )
-            .textInputAutocapitalization(.never).autocorrectionDisabled()
-            .accessibilityIdentifier("layoutEditor.key.secondaryLabel")
+            LabeledContent("副标题") {
+                TextField(
+                    "可选",
+                    text: Binding(
+                        get: { key.secondaryLabel ?? "" },
+                        set: { update(key.settingSecondaryLabel($0.isEmpty ? nil : $0)) })
+                )
+                .textInputAutocapitalization(.never).autocorrectionDisabled()
+                .accessibilityIdentifier("layoutEditor.key.secondaryLabel")
+                .multilineTextAlignment(.trailing)
+            }
             OptionalWidthField(
                 title: widthLabel,
                 value: Binding(get: { key.width }, set: { update(key.settingWidth($0)) }))
@@ -461,28 +467,34 @@ private struct LayoutActionFields: View {
             .accessibilityIdentifier("layoutEditor.key.actionValue")
         }
         if action.type == .literal {
-            TextField(
-                action.asciiValue == nil ? "要输入的文字" : "中文符号时输入",
-                text: Binding(
-                    get: { action.value ?? "" },
-                    set: { update(LayoutAction(.literal, value: $0, asciiValue: action.asciiValue)) }),
-                axis: .vertical
-            )
-            .keyboardType(.default)
-            .textInputAutocapitalization(.never).autocorrectionDisabled()
-            .accessibilityIdentifier("layoutEditor.key.actionValue")
+            LabeledContent(action.asciiValue == nil ? "输入文字" : "中文符号") {
+                TextField(
+                    action.asciiValue == nil ? "要输入的文字" : "中文符号时输入",
+                    text: Binding(
+                        get: { action.value ?? "" },
+                        set: { update(LayoutAction(.literal, value: $0, asciiValue: action.asciiValue)) }),
+                    axis: .vertical
+                )
+                .keyboardType(.default)
+                .textInputAutocapitalization(.never).autocorrectionDisabled()
+                .accessibilityIdentifier("layoutEditor.key.actionValue")
+                .multilineTextAlignment(.trailing)
+            }
             // One optional field is both the pair switch and the ASCII-side value: typing fills it,
             // clearing writes nil back to a fixed literal. A pair only ever stores non-empty text.
-            TextField(
-                "英文符号时输入（可选）",
-                text: Binding(
-                    get: { action.asciiValue ?? "" },
-                    set: { update(action.settingAsciiValue($0.isEmpty ? nil : $0)) }),
-                axis: .vertical
-            )
-            .keyboardType(.default)
-            .textInputAutocapitalization(.never).autocorrectionDisabled()
-            .accessibilityIdentifier("layoutEditor.key.actionASCIIValue")
+            LabeledContent("英文符号") {
+                TextField(
+                    "可选",
+                    text: Binding(
+                        get: { action.asciiValue ?? "" },
+                        set: { update(action.settingAsciiValue($0.isEmpty ? nil : $0)) }),
+                    axis: .vertical
+                )
+                .keyboardType(.default)
+                .textInputAutocapitalization(.never).autocorrectionDisabled()
+                .accessibilityIdentifier("layoutEditor.key.actionASCIIValue")
+                .multilineTextAlignment(.trailing)
+            }
         }
     }
 }

@@ -106,7 +106,9 @@ struct KeyboardCompositionView: View {
                     ForEach(layouts) { layout in Text(layout.name).tag(layout.id) }
                 }
                 if let layout = mainLayout {
-                    KeyboardPreviewView(layout: layout, skin: AppearanceManager.shared.applied.skin)
+                    DisclosureGroup("预览") {
+                        KeyboardPreviewView(layout: layout, skin: AppearanceManager.shared.applied.skin)
+                    }
                     Button("编辑\(UserTerminology.mainLayout)") { editingMain = layout }
                     Button("复制并编辑\(UserTerminology.mainLayout)") {
                         editingMain = BuiltinLayouts.persistingHandCuts(in: layout).copy()
@@ -187,10 +189,13 @@ struct KeyboardCompositionView: View {
                 ForEach(manager.registry.pages.filter { $0.kind == kind }) { page in Text(page.name).tag(page.id) }
             }
             if let page = manager.registry.page(id: draft.pageID(for: kind)) {
-                KeyboardPagePreviewView(
-                    page: page, inheritedSplit: mainHandSplit ?? mainLayout?.split, usesHandCuts: mainHandSplit != nil,
-                    isPhoneLayout: mainLayoutIsPhoneKeypad,
-                    mainLayout: keyboard.layout, skin: AppearanceManager.shared.applied.skin)
+                DisclosureGroup("预览") {
+                    KeyboardPagePreviewView(
+                        page: page, inheritedSplit: mainHandSplit ?? mainLayout?.split,
+                        usesHandCuts: mainHandSplit != nil,
+                        isPhoneLayout: mainLayoutIsPhoneKeypad,
+                        mainLayout: keyboard.layout, skin: AppearanceManager.shared.applied.skin)
+                }
                 if let note = pageNote(page) {
                     Text(note).font(.footnote).foregroundStyle(.secondary)
                 }

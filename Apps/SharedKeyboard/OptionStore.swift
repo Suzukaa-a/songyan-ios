@@ -10,7 +10,7 @@ public struct OptionStore: Sendable {
     public init(directory: URL) { self.directory = directory }
 
     private func file(_ option: EngineOptionDescriptor) -> URL {
-        [option.resourceID, option.schemaID, option.name].reduce(directory) { url, key in
+        [option.resourceID, option.schemaID, option.choiceGroup.first ?? option.name].reduce(directory) { url, key in
             url.appendingPathComponent(key.utf8.map { String(format: "%02x", $0) }.joined())
         }.appendingPathExtension("json")
     }
@@ -18,13 +18,24 @@ public struct OptionStore: Sendable {
     public func value(for option: EngineOptionDescriptor) throws -> Bool? {
         let url = file(option)
         guard FileManager.default.fileExists(atPath: url.path) else { return nil }
-        return try JSONDecoder().decode(Bool.self, from: Data(contentsOf: url))
+        let data = try Data(contentsOf: url)
+        if !option.choiceGroup.isEmpty {
+            let selected = try JSONDecoder().decode(String.self, from: data)
+            guard option.choiceGroup.contains(selected) else { return nil }
+            return selected == option.name
+        }
+        return try JSONDecoder().decode(Bool.self, from: data)
     }
 
     public func save(_ value: Bool, for option: EngineOptionDescriptor) throws {
         try FileManager.default.createDirectory(
             at: file(option).deletingLastPathComponent(), withIntermediateDirectories: true)
-        try JSONEncoder().encode(value).write(to: file(option), options: .atomic)
+        if !option.choiceGroup.isEmpty {
+            guard value else { throw CocoaError(.fileWriteInvalidFileName) }
+            try JSONEncoder().encode(option.name).write(to: file(option), options: .atomic)
+        } else {
+            try JSONEncoder().encode(value).write(to: file(option), options: .atomic)
+        }
     }
 }
 
@@ -74,10 +85,10 @@ struct OptionPreferenceKey: Hashable, Sendable {
     let resourceID: String
     let schemaID: String
     let name: String
-    init(_ descriptor: EngineOptionDescriptor) {
+    init(_ descriptor: EngineOptionDescriptor, name: String? = nil) {
         resourceID = descriptor.resourceID
         schemaID = descriptor.schemaID
-        name = descriptor.name
+        self.name = name ?? descriptor.name
     }
 }
 
@@ -155,19 +166,27 @@ final class OptionPreferenceCache: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         let revision = revisions[OptionPreferenceKey(descriptor), default: 0] &+ 1
-        revisions[OptionPreferenceKey(descriptor)] = revision
-        values[OptionPreferenceKey(descriptor)] = .success(value)
+        let keys =
+            descriptor.choiceGroup.isEmpty
+            ? [OptionPreferenceKey(descriptor)]
+            : descriptor.choiceGroup.map { OptionPreferenceKey(descriptor, name: $0) }
+        for key in keys {
+            revisions[key] = revision
+            values[key] = .success(descriptor.choiceGroup.isEmpty ? value : key.name == descriptor.name)
+        }
         guard persists() else {
-            sessionOnly.insert(OptionPreferenceKey(descriptor))
+            sessionOnly.formUnion(keys)
             return Task { SaveOutcome(isCurrent: true, result: .success(())) }
         }
-        sessionOnly.remove(OptionPreferenceKey(descriptor))
+        sessionOnly.subtract(keys)
         return OptionPersistenceIO.enqueue { [self] in
             let result = Result { try write(value, descriptor) }
             lock.lock()
             defer { lock.unlock() }
             let current = revisions[OptionPreferenceKey(descriptor)] == revision
-            if current, case .failure(let error) = result { values[OptionPreferenceKey(descriptor)] = .failure(error) }
+            if current, case .failure(let error) = result {
+                for key in keys { values[key] = .failure(error) }
+            }
             return SaveOutcome(isCurrent: current, result: result)
         }
     }
@@ -193,6 +212,19 @@ enum SchemaOptionCapabilities {
             let name = (path + "/name").withCString { key in
                 api.pointee.config_get_cstring(&config, key).map { String(cString: $0) }
             }
+            if !option.choiceGroup.isEmpty {
+                let members = Int(api.pointee.config_list_size(&config, (path + "/options")))
+                for member in 0..<members {
+                    let value = (path + "/options/@\(member)").withCString { key in
+                        api.pointee.config_get_cstring(&config, key).map { String(cString: $0) }
+                    }
+                    if value == option.name {
+                        var reset: Int32 = 0
+                        _ = (path + "/reset").withCString { api.pointee.config_get_int(&config, $0, &reset) }
+                        return Int(reset) == member
+                    }
+                }
+            }
             if name == option.name {
                 var value: Int32 = 0
                 _ = (path + "/reset").withCString { api.pointee.config_get_int(&config, $0, &value) }
@@ -211,66 +243,159 @@ enum SchemaOptionCapabilities {
                 contentsOf: compiledDirectory.appendingPathComponent(schemaID + ".schema.yaml"),
                 encoding: .utf8)
         else { return [] }
+        return parse(resourceID: resourceID, schemaID: schemaID, yaml: yaml) {
+            verifiedOpenCC($0, sharedDirectory: sharedDirectory)
+        }
+    }
+
+    static func parse(
+        resourceID: String, schemaID: String, yaml: String,
+        openccKind: (String) -> String?
+    ) -> [EngineOptionDescriptor] {
         var sections: [String: [String]] = [:]
         var section = ""
-        for line in yaml.components(separatedBy: .newlines) {
+        for line in yaml.components(separatedBy: .newlines) where !line.isEmpty {
             if !line.hasPrefix(" "), line.hasSuffix(":"), !line.hasPrefix("#") {
                 section = String(line.dropLast())
-            } else {
+            } else if !line.hasPrefix("#") {
                 sections[section, default: []].append(line)
             }
         }
         func scalar(_ text: String) -> String {
             text.trimmingCharacters(in: .whitespaces).trimmingCharacters(in: CharacterSet(charactersIn: "\"'"))
         }
-        let switches = (sections["switches"] ?? []).compactMap { line -> String? in
-            guard line.hasPrefix("  - name: ") else { return nil }
-            return scalar(String(line.dropFirst("  - name: ".count)))
+        func depth(_ text: String) -> Int { text.prefix(while: { $0 == " " }).count }
+        func field(_ lines: [String], _ key: String) -> String? {
+            guard let top = lines.filter({ !$0.trimmingCharacters(in: .whitespaces).isEmpty }).map(depth).min(),
+                let line = lines.first(where: {
+                    depth($0) == top && $0.trimmingCharacters(in: .whitespaces).hasPrefix(key + ":")
+                })
+            else { return nil }
+            let value = scalar(String(line.trimmingCharacters(in: .whitespaces).dropFirst(key.count + 1)))
+            return value.isEmpty ? nil : value
+        }
+        func list(_ lines: [String], _ key: String) -> [String] {
+            if let value = field(lines, key), value.hasPrefix("["), value.hasSuffix("]") {
+                return value.dropFirst().dropLast().split(separator: ",").map { scalar(String($0)) }
+            }
+            guard let start = lines.firstIndex(where: { $0.trimmingCharacters(in: .whitespaces) == key + ":" }) else {
+                return []
+            }
+            let indent = depth(lines[start])
+            return lines.dropFirst(start + 1).prefix(while: {
+                depth($0) > indent || (depth($0) == indent && $0.trimmingCharacters(in: .whitespaces).hasPrefix("- "))
+            })
+            .filter { $0.trimmingCharacters(in: .whitespaces).hasPrefix("- ") }
+            .map { scalar(String($0.trimmingCharacters(in: .whitespaces).dropFirst(2))) }
+        }
+        let switchLines = sections["switches"] ?? []
+        let itemDepth = switchLines.filter { $0.trimmingCharacters(in: .whitespaces).hasPrefix("- ") }.map(depth).min()
+        var items: [[String]] = []
+        for line in switchLines {
+            if depth(line) == itemDepth, line.trimmingCharacters(in: .whitespaces).hasPrefix("- ") {
+                items.append([
+                    String(repeating: " ", count: depth(line) + 2)
+                        + String(line.trimmingCharacters(in: .whitespaces).dropFirst(2))
+                ])
+            } else if !items.isEmpty {
+                items[items.count - 1].append(line)
+            }
         }
         var filters: [String] = []
-        var inFilters = false
+        var filterDepth: Int?
         for line in sections["engine"] ?? [] {
-            if line == "  filters:" {
-                inFilters = true
+            let text = line.trimmingCharacters(in: .whitespaces)
+            if text == "filters:" {
+                filterDepth = depth(line)
                 continue
             }
-            if inFilters && line.hasPrefix("  ") && !line.hasPrefix("    ") { inFilters = false }
-            if inFilters && line.hasPrefix("    - ") { filters.append(scalar(String(line.dropFirst(6)))) }
+            guard let indent = filterDepth else { continue }
+            if text.hasPrefix("- "), depth(line) >= indent {
+                filters.append(scalar(String(text.dropFirst(2))))
+            } else if depth(line) <= indent {
+                break
+            }
+        }
+        var conversions: [String: String] = [:]
+        var driven = Set<String>()
+        for filter in filters where filter == "simplifier" || filter.hasPrefix("simplifier@") {
+            let namespace = filter == "simplifier" ? filter : String(filter.dropFirst("simplifier@".count))
+            let fields = sections[namespace] ?? []
+            let name = field(fields, "option_name") ?? "simplification"
+            if driven.insert(name).inserted {
+                conversions[name] = openccKind(field(fields, "opencc_config") ?? "t2s.json")
+            }
         }
         var result: [EngineOptionDescriptor] = []
-        for filter in filters where filter.hasPrefix("simplifier@") || filter == "simplifier" {
-            let namespace = filter == "simplifier" ? "simplifier" : String(filter.dropFirst("simplifier@".count))
-            func field(_ name: String) -> String? {
-                let prefix = "  \(name): "
-                return sections[namespace]?.first(where: { $0.hasPrefix(prefix) }).map {
-                    scalar(String($0.dropFirst(prefix.count)))
-                }
+        for item in items {
+            if let name = field(item, "name") {
+                guard let title = name == "full_shape" ? "全角" : conversions[name] else { continue }
+                result.append(
+                    .init(
+                        resourceID: resourceID, schemaID: schemaID, name: name,
+                        title: title, disabledLabel: "关闭", enabledLabel: "开启"))
+                continue
             }
-            let name = field("option_name") ?? "simplification"
-            guard switches.contains(name), let config = field("opencc_config"),
-                FileManager.default.fileExists(atPath: sharedDirectory.appendingPathComponent("opencc/" + config).path)
+            let options = list(item, "options"), labels = list(item, "states")
+            guard options.count >= 2, labels.count == options.count, labels.allSatisfy({ !$0.isEmpty }),
+                Set(options).count == options.count
             else { continue }
-            let labels: (String, String, String)
-            switch config {
-            case "s2t.json", "s2tw.json", "s2hk.json": labels = ("繁体输出", "关闭", "开启")
-            case "t2s.json": labels = ("简体输出", "关闭", "开启")
-            case "emoji.json": labels = ("Emoji 候选", "关闭", "开启")
-            default: continue
+            let kinds = options.compactMap { conversions[$0] }
+            guard !kinds.isEmpty, kinds.allSatisfy({ $0 == "繁体输出" || $0 == "简体输出" }),
+                !options.contains(where: { driven.contains($0) && conversions[$0] == nil })
+            else { continue }
+            for (index, option) in options.enumerated() {
+                result.append(
+                    .init(
+                        resourceID: resourceID, schemaID: schemaID, name: option,
+                        title: "字形", disabledLabel: labels[index], enabledLabel: labels[index],
+                        choiceGroup: options, choiceLabel: labels[index]))
             }
-            guard !result.contains(where: { $0.name == name }) else { continue }
-            result.append(
-                .init(
-                    resourceID: resourceID, schemaID: schemaID, name: name,
-                    title: labels.0, disabledLabel: labels.1, enabledLabel: labels.2))
         }
-        // librime always loads the shape processor and formatter, so a schema that declares the switch
-        // really gets full-width letters, digits and punctuation from it.
-        if switches.contains("full_shape") {
-            result.append(
-                .init(
-                    resourceID: resourceID, schemaID: schemaID, name: "full_shape",
-                    title: "全角", disabledLabel: "关闭", enabledLabel: "开启"))
+        var seen = Set<String>()
+        return result.filter { seen.insert($0.name).inserted }
+    }
+
+    static func verifiedOpenCC(_ config: String, sharedDirectory: URL) -> String? {
+        let root = sharedDirectory.appendingPathComponent("opencc").standardizedFileURL
+        func resolve(_ path: String) -> URL? {
+            let url = root.appendingPathComponent(path).standardizedFileURL
+            return url.path.hasPrefix(root.path + "/") && FileManager.default.fileExists(atPath: url.path) ? url : nil
         }
-        return result
+        guard let url = resolve(config), let data = try? Data(contentsOf: url),
+            let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+        else { return nil }
+        func validDict(_ dict: [String: Any]) -> Bool {
+            switch dict["type"] as? String {
+            case "group":
+                guard let dicts = dict["dicts"] as? [[String: Any]], !dicts.isEmpty else { return false }
+                return dicts.allSatisfy(validDict)
+            case "text", "ocd2", "ocd":
+                guard let path = dict["file"] as? String, let file = resolve(path),
+                    let size = try? file.resourceValues(forKeys: [.fileSizeKey]).fileSize
+                else { return false }
+                return size > 0
+            default: return false
+            }
+        }
+        guard let chain = json["conversion_chain"] as? [[String: Any]], !chain.isEmpty,
+            chain.allSatisfy({ ($0["dict"] as? [String: Any]).map(validDict) == true }),
+            let segmentation = json["segmentation"] as? [String: Any],
+            let dict = segmentation["dict"] as? [String: Any], validDict(dict)
+        else { return nil }
+        let name = json["name"] as? String ?? ""
+        if name == "Emoji" || name.hasSuffix(" to Emoji") { return "Emoji 候选" }
+        if name.contains("Simplified Chinese to Traditional Chinese")
+            || name.contains("Traditional Chinese to Traditional Chinese")
+        {
+            return "繁体输出"
+        }
+        if name.contains("Traditional Chinese to Simplified Chinese") { return "简体输出" }
+        switch config {
+        case "s2t.json", "s2tw.json", "s2hk.json", "t2tw.json", "t2hk.json", "t2hkf.json": return "繁体输出"
+        case "t2s.json": return "简体输出"
+        case "emoji.json": return "Emoji 候选"
+        default: return nil
+        }
     }
 }

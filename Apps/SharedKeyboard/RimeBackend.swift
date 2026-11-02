@@ -367,12 +367,24 @@ public final class RimeBackend: EngineBackend, @unchecked Sendable {
         lastState = try Self.verifiedState(from: engine)
     }
 
+    private func applyChoice(_ descriptor: EngineOptionDescriptor, on engine: RimeEngine) {
+        // Match librime key_binder radio_select_option, including schema order.
+        for name in descriptor.choiceGroup {
+            let selected = name == descriptor.name
+            if engine.option(name) != selected { engine.setOption(name, value: selected) }
+        }
+    }
+
     private func restoreCachedOptions(on engine: RimeEngine) {
         lastErrorText = nil
         do {
             for descriptor in optionDescriptors {
                 if let value = try optionPreferences?.value(for: descriptor) {
-                    engine.setOption(descriptor.name, value: value)
+                    if descriptor.choiceGroup.isEmpty {
+                        engine.setOption(descriptor.name, value: value)
+                    } else if value {
+                        applyChoice(descriptor, on: engine)
+                    }
                 }
             }
         } catch { lastErrorText = "选项恢复失败：\(error)" }
@@ -422,6 +434,12 @@ public final class RimeBackend: EngineBackend, @unchecked Sendable {
 
     public func optionStates() throws -> [EngineOptionState] {
         guard let engine = rime else { throw EngineBackendError.engineNotStarted }
+        var seen = Set<[String]>()
+        for descriptor in optionDescriptors
+        where !descriptor.choiceGroup.isEmpty && seen.insert(descriptor.choiceGroup).inserted {
+            let selected = descriptor.choiceGroup.first(where: { engine.option($0) }) ?? descriptor.choiceGroup[0]
+            if let choice = optionDescriptors.first(where: { $0.name == selected }) { applyChoice(choice, on: engine) }
+        }
         return optionDescriptors.map { .init(descriptor: $0, value: engine.option($0.name)) }
     }
 
@@ -431,7 +449,12 @@ public final class RimeBackend: EngineBackend, @unchecked Sendable {
         guard let descriptor = optionDescriptors.first(where: { $0.name == name }) else {
             throw EngineBackendError.operationFailed("当前输入方案不支持选项 \(name)")
         }
-        engine.setOption(name, value: value)
+        if descriptor.choiceGroup.isEmpty {
+            engine.setOption(name, value: value)
+        } else {
+            guard value else { throw EngineBackendError.operationFailed("请选择一种字形") }
+            applyChoice(descriptor, on: engine)
+        }
         // librime's option notification refreshes the context without synthetic keys.
         lastState = try Self.verifiedState(from: engine)
         guard let optionPreferences else {
