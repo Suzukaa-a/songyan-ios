@@ -14,12 +14,12 @@ final class Phone9SemanticsTests: XCTestCase {
 
     private func clone(
         rows: [LayoutRow]? = nil, areas: [LayoutAuxiliaryArea]?? = nil,
-        input: LayoutInput? = nil
+        input: LayoutInput? = nil, behavior: T9FirstKeyBehavior? = nil
     ) -> LayoutDefinition {
         LayoutDefinition(
             id: "phone9-lp-clone", name: "9 键 LP 副本",
             input: input ?? preset.input, rows: rows ?? preset.rows,
-            auxiliaryAreas: areas ?? preset.auxiliaryAreas)
+            auxiliaryAreas: areas ?? preset.auxiliaryAreas, t9FirstKeyBehavior: behavior)
     }
 
     private func replacingKey(
@@ -70,6 +70,165 @@ final class Phone9SemanticsTests: XCTestCase {
     func testRenamedCloneMatchesBoth() {
         XCTAssertTrue(BuiltinLayouts.matchesPhone9LiveFirstKey(clone()))
         XCTAssertTrue(BuiltinLayouts.matchesPhone9PrimarySemantics(clone()))
+    }
+
+    func testLegacyFirstKeyBehaviorUsesPrimarySemantics() throws {
+        let changed = preset.replacingKey(
+            at: .row(0, key: 0),
+            with: preset.rows[0].keys[0].settingAction(.init(.literal, value: "!")))
+        let bound = clone(input: .init(schemaID: "unknown_t9", builtinLayout: .phone9))
+        for definition in [preset, clone(), changed, bound] {
+            let decoded = try LayoutDefinition.decode(definition.encoded())
+            XCTAssertNil(decoded.t9FirstKeyBehavior)
+            XCTAssertEqual(
+                BuiltinLayouts.usesPhone9QuickSymbols(decoded),
+                BuiltinLayouts.matchesPhone9PrimarySemantics(definition))
+        }
+    }
+
+    func testExplicitCustomCommaKeepsOrdinaryAction() {
+        let custom = clone(behavior: .custom)
+        XCTAssertEqual(custom.rows[0].keys[0].action, .init(.literal, value: "，"))
+        XCTAssertTrue(BuiltinLayouts.matchesPhone9PrimarySemantics(custom))
+        XCTAssertFalse(BuiltinLayouts.usesPhone9QuickSymbols(custom))
+        XCTAssertFalse(BuiltinLayouts.matchesPhone9LiveFirstKey(custom))
+        XCTAssertTrue(BuiltinLayouts.matchesPhone9Chrome(custom))
+    }
+
+    func testExplicitQuickSymbolsOverridesLegacyInferenceOnlyForPhone9() {
+        let changed = preset.replacingKey(
+            at: .row(0, key: 0),
+            with: preset.rows[0].keys[0].settingAction(.init(.literal, value: "!")))
+        XCTAssertFalse(BuiltinLayouts.matchesPhone9PrimarySemantics(changed))
+        XCTAssertTrue(BuiltinLayouts.usesPhone9QuickSymbols(changed.settingT9FirstKeyBehavior(.quickSymbols)))
+        XCTAssertTrue(
+            BuiltinLayouts.usesPhone9QuickSymbols(
+                clone(input: .init(schemaID: "unknown_t9", builtinLayout: .phone9), behavior: .quickSymbols)))
+        XCTAssertTrue(
+            BuiltinLayouts.usesPhone9QuickSymbols(clone(input: .init(schemaID: "custom_t9"), behavior: .quickSymbols)))
+        for definition in [BuiltinLayouts.qwerty26, BuiltinLayouts.merged14, BuiltinLayouts.merged18] {
+            XCTAssertFalse(BuiltinLayouts.usesPhone9QuickSymbols(definition.settingT9FirstKeyBehavior(.quickSymbols)))
+        }
+    }
+
+    func testFirstKeyBehaviorWireRoundTrip() throws {
+        for (behavior, wire) in [(T9FirstKeyBehavior.quickSymbols, "quickSymbols"), (.custom, "custom")] {
+            let definition = clone(behavior: behavior)
+            let encoded = try definition.encoded()
+            let json = try XCTUnwrap(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+            XCTAssertEqual(json["t9FirstKeyBehavior"] as? String, wire)
+            XCTAssertEqual(try LayoutDefinition.decode(encoded), definition)
+        }
+    }
+
+    func testFirstKeyBehaviorSurvivesValueEdits() {
+        for behavior in [T9FirstKeyBehavior.quickSymbols, .custom] {
+            let definition = clone(behavior: behavior)
+            let key = definition.rows[0].keys[0].title("首键")
+            let edited = [
+                definition.copy(), definition.renamed("新名称"),
+                definition.replacingKey(at: .row(0, key: 0), with: key),
+                definition.replacingKey(at: .auxiliary(0, key: 0), with: key),
+                definition.replacingRowsFollowingSplit(definition.rows),
+                definition.settingSplit(.init(activation: .off)),
+                definition.settingCandidateArea(.init(candidates: true, reading: false)),
+            ]
+            for result in edited {
+                XCTAssertEqual(result.t9FirstKeyBehavior, behavior)
+            }
+            XCTAssertNil(definition.settingT9FirstKeyBehavior(nil).t9FirstKeyBehavior)
+        }
+    }
+
+    func testQuickSymbolsWireRoundTrip() throws {
+        for symbols: String? in [nil, "；：！", ""] {
+            let definition = clone().settingT9QuickSymbols(symbols)
+            let encoded = try definition.encoded()
+            let json = try XCTUnwrap(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+            XCTAssertEqual(json["t9QuickSymbols"] as? String, symbols)
+            let decoded = try LayoutDefinition.decode(encoded)
+            XCTAssertEqual(decoded.t9QuickSymbols, symbols)
+            XCTAssertEqual(decoded, definition)
+        }
+    }
+
+    func testQuickSymbolsSurviveValueEdits() {
+        for symbols in ["；：！", ""] {
+            let definition = clone(behavior: .custom).settingT9QuickSymbols(symbols)
+            let key = definition.rows[0].keys[0].title("首键")
+            let edited = [
+                definition.copy(), definition.renamed("新名称"),
+                definition.replacingKey(at: .row(0, key: 0), with: key),
+                definition.replacingKey(at: .auxiliary(0, key: 0), with: key),
+                definition.replacingRowsFollowingSplit(definition.rows),
+                definition.settingSplit(.init(activation: .off)),
+                definition.settingCandidateArea(.init(candidates: true, reading: false)),
+                definition.settingT9FirstKeyBehavior(.quickSymbols),
+            ]
+            for result in edited {
+                XCTAssertEqual(result.t9QuickSymbols, symbols)
+            }
+            XCTAssertEqual(definition.t9FirstKeyBehavior, .custom)
+            XCTAssertNil(definition.settingT9QuickSymbols(nil).t9QuickSymbols)
+        }
+    }
+
+    func testEffectiveQuickSymbolsResolveInheritanceAndASCII() {
+        XCTAssertEqual(
+            Array(
+                BuiltinLayouts.t9QuickSymbolValues(
+                    for: clone(input: .init(schemaID: "custom_t9")).settingT9QuickSymbols("；：！"), inherited: "【】？",
+                    ascii: true
+                ).prefix(3)),
+            [";", ":", "!"])
+        for ascii in [false, true] {
+            for symbols: String? in [nil, "；：！", ""] {
+                let definition = clone().settingT9QuickSymbols(symbols)
+                XCTAssertEqual(
+                    BuiltinLayouts.t9QuickSymbolValues(for: definition, inherited: "【】？", ascii: ascii),
+                    BuiltinLayouts.t9QuickSymbolValues(saved: symbols ?? "【】？", ascii: ascii))
+            }
+        }
+        XCTAssertEqual(
+            Array(
+                BuiltinLayouts.t9QuickSymbolValues(
+                    for: clone().settingT9QuickSymbols("；：！"), inherited: "【】？", ascii: true
+                ).prefix(3)),
+            [";", ":", "!"])
+        for definition in [
+            BuiltinLayouts.qwerty26, BuiltinLayouts.merged14, BuiltinLayouts.merged18,
+        ] {
+            XCTAssertEqual(
+                BuiltinLayouts.t9QuickSymbolValues(
+                    for: definition.settingT9QuickSymbols("；：！"), inherited: "【】？", ascii: false), [])
+        }
+    }
+
+    func testQuickSymbolValidationRejectsInvalidAndDuplicateValues() throws {
+        for layout in [BuiltinLayouts.qwerty26, BuiltinLayouts.merged14, BuiltinLayouts.merged18] {
+            XCTAssertNoThrow(try layout.validate())
+            for symbols in ["", "；：！"] {
+                let invalid = layout.settingT9QuickSymbols(symbols)
+                XCTAssertThrowsError(try invalid.validate())
+                XCTAssertThrowsError(try LayoutDefinition.decode(JSONEncoder().encode(invalid)))
+            }
+            for behavior in [T9FirstKeyBehavior.quickSymbols, .custom] {
+                let invalid = layout.settingT9FirstKeyBehavior(behavior)
+                XCTAssertThrowsError(try invalid.validate())
+                XCTAssertThrowsError(try LayoutDefinition.decode(JSONEncoder().encode(invalid)))
+            }
+        }
+        let oversizedGrapheme = "a" + String(repeating: "\u{0301}", count: T9QuickSymbolStore.maximumFileBytes)
+        for symbols in ["！！", "a b", "a\n", "a\u{0000}", "abcdefghijklm", oversizedGrapheme] {
+            let definition = clone().settingT9QuickSymbols(symbols)
+            XCTAssertThrowsError(try definition.validate())
+            XCTAssertThrowsError(try definition.encoded())
+            let encoded = try JSONEncoder().encode(definition)
+            XCTAssertThrowsError(try LayoutDefinition.decode(encoded))
+        }
+        for symbols: String? in [nil, "", "；：！", "abcdefghijkl"] {
+            XCTAssertNoThrow(try clone().settingT9QuickSymbols(symbols).validate())
+        }
     }
 
     // MARK: Long-press edits on the rendered main rows

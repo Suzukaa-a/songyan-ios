@@ -10,22 +10,14 @@ MEMO = SHARED / "KeyboardPanelView+LayoutDefinitions.swift"
 FIXTURE = ROOT / "Tests/IOS/Fixtures/IdlePastePolicy.swift"
 
 
-def closure_body(source, opener):
-    """The body of the closure `opener`, cut at its matching closing brace."""
-    start = source.index(opener)
-    depth = 0
-    for index in range(source.index("{", start), len(source)):
-        if source[index] == "{":
-            depth += 1
-        elif source[index] == "}":
-            depth -= 1
-            if depth == 0:
-                return source[start + len(opener):index]
-    raise AssertionError("unterminated closure: " + opener[:40])
-
-
 def panel_fragments(source, memo):
     return {
+        "/* PRODUCTION_NATIVE_SHELL_HEIGHT */": section(
+            (SHARED / "KeyboardPanelHost.swift").read_text(encoding="utf-8"),
+            "    private var layoutShellHeight:", "    private var layoutFit:"),
+        "/* PRODUCTION_TOOLBAR_PREFERENCES */": section(
+            (SHARED / "KeyboardAppearance.swift").read_text(encoding="utf-8"),
+            "public enum KeyboardIdleToolbarPreferences {", "public enum KeyboardHeightPreferences {"),
         # The memo closes its file.
         "/* PRODUCTION_DEFINITION_MEMO */": memo[memo.index("final class DefinitionResolutionMemo {"):],
         "/* PRODUCTION_DEFINITION_CHROME */": section(source, "    var usesConfiguredLayout:",
@@ -34,11 +26,6 @@ def panel_fragments(source, memo):
                                                 "    private func panelSurface("),
         "/* PRODUCTION_SYMBOL_ERROR_GETTER */": section(source, "    var t9QuickSymbolsError:",
                                                         "    // MARK: Key feedback"),
-        "/* PRODUCTION_RENDER_OBSERVATION */": section(source, "        quickPasteSlot.observe(",
-                                                       "        return VStack(spacing: 0)"),
-        "/* PRODUCTION_INPUT_CONTEXT */": closure_body(source, "inputContext: {"),
-        "/* PRODUCTION_INSERT_OUTLET */": closure_body(source, "insertLiteral: { [weak controller] text in"),
-        "/* PRODUCTION_ERROR_RESULT */": closure_body(source, "onError: { error in"),
     }
 
 

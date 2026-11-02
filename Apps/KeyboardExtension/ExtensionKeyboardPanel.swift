@@ -71,6 +71,7 @@ struct ExtensionKeyboardPanel: View {
     let initialPresentation: KeyboardInitialPresentation
     @ObservedObject var presentation: ExtensionPresentationStatus
     let onAppearanceChange: (KeyboardAppearance) -> Void
+    let onPresentationBudgetChange: (KeyboardPanelPresentationBudget) -> Void
     /// Opens the host app; the extension itself has no application object to send a URL to.
     let openHostApp: (URL, @escaping @MainActor (Bool) -> Void) -> Void
     let dismissKeyboard: () -> Void
@@ -84,6 +85,7 @@ struct ExtensionKeyboardPanel: View {
             loadsStoredLayouts: false,
             additionalTools: AnyView(routeTools), statusMessage: noticeSummary,
             onStatusDetails: { showsRouteDetails = true },
+            onPresentationBudgetChange: onPresentationBudgetChange,
             initialPresentation: initialPresentation,
             onAppearanceChange: onAppearanceChange,
             systemTraitKnown: route.hasResolvedSystemColorScheme,

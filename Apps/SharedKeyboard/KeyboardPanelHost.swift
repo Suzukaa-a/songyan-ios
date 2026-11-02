@@ -62,8 +62,8 @@ public struct KeyboardPanelHost: View {
     private let systemTraitKnown: Bool
     /// Optional reporting for embedded hosts; the extension adopts its own native budget.
     private let onPanelHeightChange: ((CGFloat) -> Void)?
-    /// Embedded hosts follow accepted appearance geometry. An extension keeps its external
-    /// budget fixed, and fits these live content inputs inside that presentation's shell.
+    private let onPresentationBudgetChange: ((KeyboardPanelPresentationBudget) -> Void)?
+    /// Accepted geometry seeds cold entry; explicit layout and appearance events update the native budget.
     @State private var initialGeometryBudget: (height: Double, size: Double)?
     private var candidateHeight: Double {
         if presentationBudget != nil { return appearanceSnapshot.document.candidateBar.collapsed.height }
@@ -81,8 +81,7 @@ public struct KeyboardPanelHost: View {
     /// The extension's budget carries the preset it was measured with; the app trial reads it live.
     private var heightPreset: KeyboardHeightPreset { presentationBudget?.heightPreset ?? storedHeightPreset }
 
-    /// Layout/page changes only re-fit inside the extension's frozen presentation.
-    /// Embedded trials follow accepted definition facts without UIKit's restriction.
+    /// Physical definitions submit new budgets; transient pages keep fitting the current definition.
     private var fixedShellHeight: CGFloat {
         if let presentationBudget { return CGFloat(presentationBudget.shellHeight) }
         let shell = definitionShell
@@ -100,17 +99,10 @@ public struct KeyboardPanelHost: View {
     @State private var oneHandMode = KeyboardOneHandPreferences.current
     /// The selected definition's own page facts (ABC/123 grants excluded).
     @State private var definitionShell = KeyboardPresentationShell(readingRow: false, candidateArea: true)
-    /// The extension reports when iOS keeps presenting an earlier budget of ours
-    /// (e.g. a cold-start hint before the candidate-bar settings resolve). That
-    /// presentation is laid out at its real height, the candidate area (or keys, when
-    /// it is shorter) absorbing the difference; the next presentation adopts
-    /// `fixedShellHeight`. Out-of-range heights are ignored.
+    /// Fit the current native height while UIKit applies a new configuration budget.
+    /// The next geometry receipt adopts the requested height within the same presentation.
     private let presentedHeight: CGFloat?
-    private var layoutShellHeight: CGFloat {
-        guard let presentedHeight else { return fixedShellHeight }
-        let key = panelFit(shellHeight: presentedHeight).keyHeight
-        return (30...72).contains(key) ? presentedHeight : fixedShellHeight
-    }
+    private var layoutShellHeight: CGFloat { presentedHeight ?? fixedShellHeight }
     private func panelFit(shellHeight: CGFloat) -> KeyboardPanelFit {
         // A shell taller than this budget (presented before a rotation to landscape) first lets
         // the rows grow back toward the portrait height, so the surplus does not all become a
@@ -188,6 +180,7 @@ public struct KeyboardPanelHost: View {
         loadsStoredLayouts: Bool = true, additionalTools: AnyView? = nil,
         statusMessage: String? = nil, onStatusDetails: (() -> Void)? = nil,
         onPanelHeightChange: ((CGFloat) -> Void)? = nil,
+        onPresentationBudgetChange: ((KeyboardPanelPresentationBudget) -> Void)? = nil,
         initialPresentation: KeyboardInitialPresentation? = nil,
         onAppearanceChange: ((KeyboardAppearance) -> Void)? = nil,
         systemTraitKnown: Bool = false,
@@ -214,6 +207,7 @@ public struct KeyboardPanelHost: View {
         self.systemTraitKnown = systemTraitKnown
         self.hostBindingTick = hostBindingTick
         self.onPanelHeightChange = onPanelHeightChange
+        self.onPresentationBudgetChange = onPresentationBudgetChange
         self.layoutSourceSettled = layoutSourceSettled
         self.presentedHeight = presentedHeight
         self.presentationBudget = presentationBudget
@@ -241,11 +235,12 @@ public struct KeyboardPanelHost: View {
             // is replaced in the same SwiftUI update.
             .onAppear {
                 KeyboardKeyFeelPreferences.refresh()
+                storedHeightPreset = KeyboardHeightPreferences.current
                 if presentationBudget == nil {
-                    storedHeightPreset = KeyboardHeightPreferences.current
                     readingPlacement = KeyboardReadingPlacementPreferences.current
                 }
                 onPanelHeightChange?(fixedShellHeight)
+                reportPresentationBudget()
             }
             .onChange(of: fixedShellHeight) { _, height in onPanelHeightChange?(height) }
             .onChange(of: session.phase) {
@@ -281,6 +276,7 @@ public struct KeyboardPanelHost: View {
             .onChange(of: hostBindingTick) {
                 KeyboardKeyFeelPreferences.refresh()
                 oneHandMode = KeyboardOneHandPreferences.current
+                storedHeightPreset = KeyboardHeightPreferences.current
                 readingPlacement = KeyboardReadingPlacementPreferences.current
                 reloadStoredLayouts()
                 reloadAppearance()
@@ -633,6 +629,7 @@ public struct KeyboardPanelHost: View {
                 eligible: report.eligible,
                 candidateAreaRequired: report.candidateAreaRequired,
                 layout: session.layout)
+            reportPresentationBudget()
         }
         KeyboardLifecycleDiagnostics.emit(
             "readingRowGrant",
@@ -649,6 +646,18 @@ public struct KeyboardPanelHost: View {
                         candidateHeight, candidateSize: candidateSize)),
                 "shell": String(format: "%.1f", Double(fixedShellHeight)),
             ])
+    }
+
+    private func reportPresentationBudget() {
+        guard let onPresentationBudgetChange else { return }
+        // Until the appearance read succeeds, keep the accepted first-frame geometry seed.
+        let height = hasValidAppearance ? candidateHeight : (presentationBudget?.candidateHeight ?? candidateHeight)
+        let size = hasValidAppearance ? candidateSize : (presentationBudget?.candidateSize ?? candidateSize)
+        onPresentationBudgetChange(
+            KeyboardPanelPresentationBudget(
+                candidateHeight: height, candidateSize: size,
+                readingRow: definitionShell.readingRow, candidateArea: definitionShell.candidateArea,
+                compact: compactReadingRow, heightPreset: storedHeightPreset))
     }
 
     private func reloadShuangpinHints() {
@@ -724,6 +733,7 @@ public struct KeyboardPanelHost: View {
                 }
             }
             guard appearanceReadGate.accepts(token) else { return }
+            defer { reportPresentationBudget() }
             guard let read else {
                 if !hasValidAppearance {
                     appearanceSnapshot = AppearanceSnapshot()

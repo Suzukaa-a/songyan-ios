@@ -66,14 +66,18 @@ public struct KeyboardPanelView: View {
     let openHostApp: ((URL, @escaping @MainActor (Bool) -> Void) -> Void)?
     /// Extension-only real dismissal for the wide-screen header button. Nil in the app trial.
     let dismissKeyboard: (() -> Void)?
-    @State private var quickPasteError: String?
-    @State private var quickPasteSlot = QuickPasteSlotLease()
     /// Candidate-area presentation config (the third user-customizable layer: the candidate area beyond key layout and skin).
     /// The stored property is named apart from the same-named candidate bar view.
     private let candidateBarDefinition: CandidateBarDefinition
     @State private var popupSurface = UIView()
     @State var showsUtilitiesMenu = false
     @State var showsSymbolLibrary = false
+    @State var quickContentSection = "symbols"
+    @State var quickContentCategory: String?
+    @State private var idleToolbarEnabled = KeyboardIdleToolbarPreferences.defaultEnabled
+    @State private var clipboardPasteSlot = QuickPasteSlotLease()
+    @State private var clipboardPasteError: String?
+    @State private var clipboardPasteRevision = 0
     /// Set only when the system refused the hop to the app; nothing is claimed on success.
     @State var hostAppUnavailable = false
     @AccessibilityFocusState var utilitiesTitleFocused: Bool
@@ -254,11 +258,16 @@ public struct KeyboardPanelView: View {
                     // opacity 0, so on device a drag starting between cells never reached the scroll view.
                     if showsSymbolLibrary {
                         // A new controller identity (session reconnect) rebuilds the model wholesale, so no stale onInsert callback survives.
-                        SymbolLibraryPanel(controller: controller) { showsSymbolLibrary = false }
-                            .id(ObjectIdentifier(controller))
-                            .frame(width: contentWidth, height: geometry.size.height)
-                            .background(Color.black.opacity(0.001))
-                            .clipped()
+                        SymbolLibraryPanel(
+                            controller: controller, initialSection: quickContentSection,
+                            initialCategory: quickContentCategory,
+                            clipboardPaste: AnyView(clipboardPasteControl),
+                            clipboardPasteRevision: clipboardPasteRevision
+                        ) { showsSymbolLibrary = false }
+                        .id(ObjectIdentifier(controller))
+                        .frame(width: contentWidth, height: geometry.size.height)
+                        .background(Color.black.opacity(0.001))
+                        .clipped()
                     } else if showsUtilitiesMenu {
                         utilitiesPanel
                             .frame(width: contentWidth, height: geometry.size.height)
@@ -522,7 +531,9 @@ public struct KeyboardPanelView: View {
     /// A real persistence error uses the already-reserved header, not a new
     /// row in the 9-key punctuation/reading rail or a taller keyboard shell.
     var t9QuickSymbolsError: String? {
-        guard usesStandardT9, isBuiltinPhonePad, !controller.snapshot.isComposing else { return nil }
+        guard usesStandardT9, isBuiltinPhonePad, activeDefinition?.t9QuickSymbols == nil,
+            !controller.snapshot.isComposing
+        else { return nil }
         return quickSymbols.error
     }
 
@@ -602,6 +613,82 @@ public struct KeyboardPanelView: View {
     /// Key-type pure UI actions (page switch and other control keys that cannot fail): key haptic (feedback on touch).
     func emitKeyFeedback() { feedback.keyPressed() }
 
+    private func openQuickContent(section: String, category: String? = nil) {
+        quickContentSection = section
+        quickContentCategory = category
+        showsSymbolLibrary = true
+    }
+
+    private func idleTool(_ title: String, icon: String, action: @escaping () -> Void) -> some View {
+        Button {
+            emitSelectionFeedback()
+            action()
+        } label: {
+            Image(systemName: icon)
+                .font(.system(size: 19))
+                .frame(maxWidth: .infinity, minHeight: min(44, CGFloat(layoutPlan.headerHeight)))
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(Color(uiColor: appearance.text(on: "panel", secondary: true)))
+        .accessibilityLabel(title)
+        .accessibilityIdentifier("keyboard.toolbar." + title)
+    }
+
+    private var clipboardPasteAllowed: Bool {
+        var input = quickPasteIdleInput
+        input.isCovered = showsUtilitiesMenu
+        return showsSymbolLibrary && input.allowsPaste
+    }
+
+    private var clipboardPasteControl: some View {
+        clipboardPasteSlot.observe(
+            identity: ObjectIdentifier(controller),
+            changes: controller.objectWillChange.merge(with: quickSymbols.objectWillChange).eraseToAnyPublisher())
+        clipboardPasteSlot.updateEligibility(clipboardPasteAllowed)
+        return VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text("粘贴当前剪贴板")
+                Spacer()
+                QuickPasteView(
+                    inputContext: {
+                        guard let asyncInsertionContext,
+                            clipboardPasteSlot.isCurrent(identity: ObjectIdentifier(controller)), clipboardPasteAllowed
+                        else { return nil }
+                        return clipboardPasteSlot.context(host: asyncInsertionContext())
+                    },
+                    insertLiteral: { [weak controller] text in
+                        guard let controller, clipboardPasteSlot.isCurrent(identity: ObjectIdentifier(controller)),
+                            clipboardPasteAllowed
+                        else { return false }
+                        if let pasteLiteral { return pasteLiteral(text) }
+                        return controller.insertExternalLiteral(text)
+                    }, foreground: appearance.text(on: "panel"),
+                    onError: { error in
+                        guard clipboardPasteSlot.isCurrent(identity: ObjectIdentifier(controller)),
+                            clipboardPasteAllowed
+                        else { return }
+                        clipboardPasteError = error
+                    },
+                    didDispatchUserPaste: { text in
+                        Task { @MainActor in
+                            let note = await SharedQuickContentStorage.recordExplicitPaste(text)
+                            guard clipboardPasteSlot.isCurrent(identity: ObjectIdentifier(controller)),
+                                clipboardPasteAllowed
+                            else { return }
+                            clipboardPasteError = note
+                            clipboardPasteRevision &+= 1
+                        }
+                    }
+                )
+                .id("\(ObjectIdentifier(controller))-\(hostBindingTick)")
+                .frame(width: 44, height: 44)
+            }
+            if let clipboardPasteError { Text(clipboardPasteError).font(.footnote).foregroundStyle(.red) }
+        }
+        .onDisappear { clipboardPasteSlot.updateEligibility(false) }
+    }
+
     private var quickPasteIdleInput: QuickPasteIdleInput {
         QuickPasteIdleInput(
             isComposing: controller.snapshot.isComposing,
@@ -623,15 +710,10 @@ public struct KeyboardPanelView: View {
     private func panelSurface(isWide: Bool) -> some View {
         let plan = layoutPlan
         let showsWideDismiss = isWide && dismissKeyboard != nil
-        quickPasteSlot.observe(
-            identity: ObjectIdentifier(controller),
-            changes:
-                controller.objectWillChange.merge(with: quickSymbols.objectWillChange).eraseToAnyPublisher())
         let idle = quickPasteIdleInput.allowsPaste
-        quickPasteSlot.updateEligibility(idle && quickPasteError == nil && plan.headerHeight >= 44)
         return VStack(spacing: 0) {
             // While composing, the full original budget for candidates, readings, status and fallback badge is kept;
-            // paste shows in the blank area only when strictly idle, without splitting candidate width.
+            // Optional tools use the blank band only when strictly idle, without splitting candidate width.
             // Height belongs solely to `CandidateHeaderSurface` (`surfaceHeight == effectiveHeight`).
             // The standalone reading row is granted only for the selected definition and sits above the candidate row; phone structures use the left rail instead.
             // The topmost band lays out `topTrim` taller and hangs off the top edge: the cut
@@ -644,59 +726,17 @@ public struct KeyboardPanelView: View {
                 compositionArea
                     .padding(.trailing, showsWideDismiss ? 44 : 0)
                     .overlay(alignment: .trailing) {
-                        if idle, plan.headerHeight >= 44 {
-                            if let error = quickPasteError {
-                                HStack(spacing: 8) {
-                                    Text(error).font(appearance.font(min(appearance.skin.typography.secondarySize, 18)))
-                                        .lineLimit(2)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                    Button {
-                                        quickPasteError = nil
-                                    } label: {
-                                        Image(systemName: "xmark").frame(width: 44, height: 44)
-                                    }
-                                    .accessibilityLabel("关闭粘贴提示")
+                        if idleToolbarEnabled, idle, plan.headerHeight >= 32 {
+                            HStack(spacing: 4) {
+                                idleTool("剪贴板", icon: "list.clipboard") { openQuickContent(section: "clipboard") }
+                                idleTool("颜文字", icon: "face.smiling") {
+                                    openQuickContent(section: "symbols", category: "kaomoji")
                                 }
-                                .foregroundStyle(Color(uiColor: appearance.text(on: "panel")))
-                                .padding(.leading, 8)
-                                .padding(.trailing, showsWideDismiss ? 44 : 0)
-                                .frame(height: plan.headerHeight)
-                            } else if let asyncInsertionContext {
-                                QuickPasteView(
-                                    inputContext: {
-                                        guard quickPasteSlot.isCurrent(identity: ObjectIdentifier(controller)),
-                                            quickPasteIdleInput.allowsPaste
-                                        else { return nil }
-                                        return quickPasteSlot.context(host: asyncInsertionContext())
-                                    },
-                                    insertLiteral: { [weak controller] text in
-                                        guard let controller,
-                                            quickPasteSlot.isCurrent(identity: ObjectIdentifier(controller)),
-                                            quickPasteIdleInput.allowsPaste
-                                        else { return false }
-                                        if let pasteLiteral { return pasteLiteral(text) }
-                                        return controller.insertExternalLiteral(text)
-                                    }, foreground: appearance.text(on: "panel", secondary: true),
-                                    onError: { error in
-                                        guard quickPasteSlot.isCurrent(identity: ObjectIdentifier(controller)),
-                                            quickPasteIdleInput.allowsPaste, let error
-                                        else { return }
-                                        quickPasteError = error
-                                    },
-                                    didDispatchUserPaste: { text in
-                                        Task { @MainActor in
-                                            let note = await SharedQuickContentStorage.recordExplicitPaste(text)
-                                            guard quickPasteSlot.isCurrent(identity: ObjectIdentifier(controller)),
-                                                quickPasteIdleInput.allowsPaste, let note
-                                            else { return }
-                                            quickPasteError = note
-                                        }
-                                    }
-                                )
-                                .id("\(ObjectIdentifier(controller))-\(hostBindingTick)")
-                                .frame(width: 44, height: plan.headerHeight)
-                                .padding(.trailing, showsWideDismiss ? 56 : 12)
+                                idleTool("键盘设置", icon: "gearshape") { showsUtilitiesMenu = true }
                             }
+                            .frame(maxWidth: .infinity)
+                            .padding(.horizontal, 8)
+                            .padding(.trailing, showsWideDismiss ? 44 : 0)
                         }
                     }
                     .overlay(alignment: .trailing) {
@@ -896,10 +936,6 @@ public struct KeyboardPanelView: View {
                 refreshContentDock()
                 clearSymbolMarksOverride()
             }
-            .onChange(of: quickPasteIdleInput) { _, input in
-                if !input.allowsPaste { quickPasteError = nil }
-            }
-            .onDisappear { quickPasteSlot.updateEligibility(false) }
     }
 
     private func observeDefinitionChanges<Content: View>(_ content: Content) -> some View {
@@ -926,6 +962,7 @@ public struct KeyboardPanelView: View {
 
     /// Presentation, layout and dock-change hooks only; never per key.
     private func refreshContentDock() {
+        idleToolbarEnabled = KeyboardIdleToolbarPreferences.read(from: KeyboardIdleToolbarPreferences.defaults)
         let dock = KeyboardContentDockPreferences.dock(for: controller.layout)
         ContentDockCache.docks[controller.layout] = dock
         if contentDock != dock { contentDock = dock }

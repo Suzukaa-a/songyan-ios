@@ -41,6 +41,16 @@ public struct PreparedSchemeImport: Sendable {
     public let declaration: SchemePackageDeclaration
     public let manifest: RecipeManifest
     public let schemaIDs: [String]
+    /// Names read from the exact source files that will be installed; callers parse off the main thread.
+    public var schemaNames: [String: String] {
+        Dictionary(
+            uniqueKeysWithValues: schemaIDs.compactMap { id in
+                guard let data = bytes[id + ".schema.yaml"], let name = FuzzyPinyin.schemaName(compiled: data) else {
+                    return nil
+                }
+                return (id, name)
+            })
+    }
     public let resourceBytes: Int
     public let diagnostics: [String]
     private let bytes: [String: Data]

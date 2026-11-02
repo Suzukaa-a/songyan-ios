@@ -1,13 +1,12 @@
 import CandidateKit
 import UIKit
 
-// The controller's view and inputView (same instance), created in KeyboardViewController.loadView.
+// Content hosted inside UIKit's registered root, created in KeyboardViewController.loadView.
 // It does not adopt UIInputViewAudioFeedback: key clicks play through AVAudioPlayer
 // (KeyboardFeedbackService), and the conformance only added one more system
 // reference to every input view UIKit replaces.
 
-/// Root container of the keyboard extension's input view; installed as both
-/// `KeyboardViewController`'s view and inputView (same instance).
+/// Touch-routing content container inside the keyboard extension's native input view.
 public final class FeedbackInputView: KeyboardPanelInputView {
 
     public override init(frame: CGRect, inputViewStyle: UIInputView.Style) {

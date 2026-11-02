@@ -15,20 +15,36 @@ struct SchemeURLImportView: View {
     @State private var addressError: String?
     @FocusState private var addressFocused: Bool
 
+    private let source: RecommendedSchemeSource?
+
+    init(source: RecommendedSchemeSource) {
+        self.source = source
+        _address = State(initialValue: source.url.absoluteString)
+    }
+
     init(initialURL: URL? = nil) {
+        source = nil
         _address = State(initialValue: initialURL?.absoluteString ?? "")
     }
 
     var body: some View {
         Form {
+            if let source {
+                Section {
+                    Text(source.detail).foregroundStyle(.secondary)
+                    Link("查看下载来源", destination: source.url)
+                }
+            }
             Section {
-                TextField("ZIP 链接或 GitHub 仓库地址", text: $address)
-                    .keyboardType(.URL)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .focused($addressFocused)
-                    .disabled(service.isDownloading)
-                    .onSubmit { submit() }
+                if source == nil {
+                    TextField("ZIP 链接或 GitHub 仓库地址", text: $address)
+                        .keyboardType(.URL)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .focused($addressFocused)
+                        .disabled(service.isDownloading)
+                        .onSubmit { submit() }
+                }
                 if let addressError {
                     Label(addressError, systemImage: "exclamationmark.circle")
                         .font(.footnote)
@@ -48,12 +64,12 @@ struct SchemeURLImportView: View {
                         .disabled(address.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || center.busy)
                 }
             } header: {
-                Text("链接")
+                if source == nil { Text("链接") }
             } footer: {
-                Text("支持 ZIP 下载链接或 GitHub 仓库地址。")
+                if source == nil { Text("支持 ZIP 下载链接或 GitHub 仓库地址。") }
             }
         }
-        .navigationTitle("从链接导入")
+        .navigationTitle(source?.name ?? "从链接导入")
         .navigationBarTitleDisplayMode(.inline)
         // Navigating back cancels the download (onDisappear), so there is no separate duplicate cancel button.
         .onAppear { addressFocused = address.isEmpty }

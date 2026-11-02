@@ -5,7 +5,6 @@ import unittest
 from swift_probe import ROOT, run_swift
 
 MODEL = ROOT / "Apps/SharedKeyboard/T9QuickSymbolModel.swift"
-VIEW = ROOT / "Apps/HostApp/T9QuickSymbolManagementView.swift"
 
 MODEL_CHECKS = r'''
 import Foundation
@@ -121,24 +120,6 @@ enum KeyboardFeedbackPreferences { static var defaults: UserDefaults { .standard
     }
 }
 '''
-
-
-class QuickSymbolManagementStructureTests(unittest.TestCase):
-    def test_preview_appends_defaults_without_changing_stored_list(self):
-        view = VIEW.read_text(encoding="utf-8")
-        # The preview delegates to the production ordering source (UX04 fix):
-        # saved-first + defaults + ASCII mapping + dedup + trailing first-key
-        # punctuation, all defined in one place (BuiltinLayouts).
-        self.assertIn("BuiltinLayouts.t9QuickSymbolValues(saved: draftSymbols, ascii: false)", view)
-        # The stored list is only the user's own draft — the preview never
-        # feeds back into it.
-        self.assertIn("previewSymbols.prefix(3)", view)
-        self.assertIn("previewSymbols.dropFirst(3)", view)
-        self.assertIn("Set(draftSymbols).count == draftSymbols.count", view)
-        self.assertNotIn("replaceSymbols(previewSymbols", view)
-        # The old hand-rolled duplication is gone.
-        self.assertNotIn("draftSymbols + T9QuickSymbolStore.defaultSymbols", view)
-        self.assertNotIn("seen.insert($0).inserted", view)
 
 
 @unittest.skipUnless(sys.platform == "darwin", "requires the macOS Swift toolchain")

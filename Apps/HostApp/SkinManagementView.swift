@@ -6,6 +6,21 @@ import SkinKit
 import SwiftUI
 import UniformTypeIdentifiers
 
+enum AppearancePreviewLoader {
+    /// Reads the selected keyboard and its saved composition together for appearance previews.
+    static func load() async throws -> (layouts: [LayoutDefinition], selectedID: String) {
+        try await KeyboardResourceReadQueue.async {
+            let activation = try KeyboardRecipeStore.activation()
+            let registry = try LayoutStore(directoryURL: RimePaths.layoutStoreReadLocation().url).load()
+            let key = KeyboardCompositionKey(
+                inputMethodID: activation?.selectedSchemaID ?? "songyan_quanpin",
+                layout: (activation?.selectedLayout ?? .qwerty26).builtinLayout)
+            return (registry.layouts, registry.composition(for: key).mainLayoutID)
+        }
+    }
+
+}
+
 /// Appearance project file document (for export/import; one file = skin + candidate-bar layout + display mode).
 struct SkinFileDocument: FileDocument {
     static var readableContentTypes: [UTType] { [.json] }
@@ -226,7 +241,8 @@ struct AppearanceDetailView: View {
     private var document: AppearanceDocument {
         manager.projects.first(where: { $0.id == initialDocument.id }) ?? initialDocument
     }
-    @State private var layoutID = BuiltinLayouts.merged14.id
+    @State private var layoutID = ""
+    @State private var layouts: [LayoutDefinition] = []
     @State private var dark = false
     @State private var showsExpandedCandidates = false
     @State private var draft: AppearanceDocument?
@@ -238,15 +254,16 @@ struct AppearanceDetailView: View {
     @State private var confirmingDelete = false
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
-    private var layouts: [LayoutDefinition] { LayoutManager.shared.registry.layouts }
     var body: some View {
         Form {
             Section("预览") {
+                if layouts.isEmpty { ProgressView("正在读取布局…") }
                 Picker("键盘布局", selection: $layoutID) { ForEach(layouts) { Text($0.name).tag($0.id) } }
                 Toggle("深色预览", isOn: $dark)
-                KeyboardPreviewView(
-                    layout: layouts.first(where: { $0.id == layoutID }) ?? BuiltinLayouts.merged14,
-                    skin: document.skin, candidateBar: document.candidateBar, previewDark: dark)
+                if let layout = layouts.first(where: { $0.id == layoutID }) {
+                    KeyboardPreviewView(
+                        layout: layout, skin: document.skin, candidateBar: document.candidateBar, previewDark: dark)
+                }
             }
             Section("候选栏") {
                 Toggle("展开预览", isOn: $showsExpandedCandidates)
@@ -295,6 +312,15 @@ struct AppearanceDetailView: View {
         .disabled(manager.isMutating)
         // The preview follows the system light/dark by default, matching the keyboard's actual behavior under "Follow System".
         .onAppear { dark = colorScheme == .dark }
+        .task {
+            guard layouts.isEmpty else { return }
+            do {
+                let preview = try await AppearancePreviewLoader.load()
+                guard !Task.isCancelled else { return }
+                layouts = preview.layouts
+                layoutID = preview.selectedID
+            } catch { self.error = "无法读取预览布局，请重新打开外观。" }
+        }
         .safeAreaInset(edge: .bottom) {
             Button {
                 Task { await manager.apply(document) }
@@ -332,7 +358,8 @@ struct AppearanceDetailView: View {
                 }
             }
         ) {
-            SkinEditorView(document: $0) { saved in
+            SkinEditorView(document: $0, previewLayoutID: layoutID.isEmpty ? nil : layoutID, previewDark: dark) {
+                saved in
                 if saved.id != document.id { savedDestination = saved } else { savedInPlace = true }
             }
         }

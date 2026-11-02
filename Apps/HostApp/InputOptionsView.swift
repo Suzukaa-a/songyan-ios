@@ -31,6 +31,8 @@ struct InputOptionsView: View {
         KeyboardCompositionPreferences.enabledKey,
         store: KeyboardCompositionPreferences.defaults)
     private var inlineEnabled = KeyboardCompositionPreferences.defaultInlineEnabled
+    @AppStorage(KeyboardIdleToolbarPreferences.key, store: KeyboardIdleToolbarPreferences.defaults)
+    private var idleToolbarEnabled = KeyboardIdleToolbarPreferences.defaultEnabled
     /// Key feedback: the same App Group keys (KeyboardFeedbackPreferences) as the keyboard's
     /// instant settings.
     @AppStorage(
@@ -71,6 +73,10 @@ struct InputOptionsView: View {
     var body: some View {
         List {
             inlineCompositionSection
+            Section {
+                Toggle("快捷工具栏", isOn: $idleToolbarEnabled)
+                    .accessibilityIdentifier("inputOptions.idleToolbar")
+            }
             keyboardHeightSection
             readingPlacementSection
             wideDockSection
@@ -83,7 +89,6 @@ struct InputOptionsView: View {
             }
             typoCorrectionSection
             predictionSection
-            quickSymbolsSection
             feedbackSection
             keyFeelSection
             optionSection
@@ -367,17 +372,6 @@ struct InputOptionsView: View {
         case .noDatabase: return "导入联想词库后即可开启。"
         case .databaseMissing: return "联想词库缺失或已损坏，请重新导入。"
         case .on, .off: return nil
-        }
-    }
-
-    private var quickSymbolsSection: some View {
-        Section("九键") {
-            NavigationLink {
-                T9QuickSymbolManagementView()
-            } label: {
-                Label("快捷符号", systemImage: "ellipsis.rectangle")
-            }
-            .accessibilityIdentifier("inputOptions.quickSymbols")
         }
     }
 

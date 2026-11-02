@@ -51,8 +51,9 @@ final class RimeConfigEditorTests: XCTestCase {
     }
 
     private func install(lua: Bool = false, compiled: String = "schema: {schema_id: main}\n") async throws {
-        _ = try await manager.installSchemeImport(
-            try manager.prepareSchemeImport(directory: try scheme(lua: lua)), deploy: Self.deploy(compiled: compiled))
+        let prepared = try manager.prepareSchemeImport(directory: try scheme(lua: lua))
+        XCTAssertEqual(prepared.schemaNames["main"], "主方案")
+        _ = try await manager.installSchemeImport(prepared, deploy: Self.deploy(compiled: compiled))
     }
 
     private func write(_ text: String, _ path: String) throws {
@@ -81,6 +82,7 @@ final class RimeConfigEditorTests: XCTestCase {
             try String(contentsOf: resources.appendingPathComponent("main.schema.yaml"), encoding: .utf8).contains(
                 "page_size: 7"))
         let overview = try await manager.rimeConfigOverview()
+        XCTAssertTrue(overview.hasPendingChanges)
         XCTAssertEqual(overview.overrides, [RimeConfigOverride(path: "main.schema.yaml", updated: false)])
         XCTAssertEqual(overview.unacknowledged, ["main.schema.yaml"])
 
@@ -90,6 +92,8 @@ final class RimeConfigEditorTests: XCTestCase {
         XCTAssertTrue(
             try String(contentsOf: user.appendingPathComponent("main.schema.yaml"), encoding: .utf8).contains(
                 "page_size: 5"))
+        let appliedOverview = try await manager.rimeConfigOverview()
+        XCTAssertFalse(appliedOverview.hasPendingChanges)
         let againResources = try await active().resourceURL
         XCTAssertTrue(
             try String(contentsOf: againResources.appendingPathComponent("main.schema.yaml"), encoding: .utf8)
@@ -97,6 +101,8 @@ final class RimeConfigEditorTests: XCTestCase {
 
         // Restoring brings the package's file back after the next apply.
         try await manager.restoreRimeConfigFile("main.schema.yaml")
+        let restoredOverview = try await manager.rimeConfigOverview()
+        XCTAssertTrue(restoredOverview.hasPendingChanges)
         _ = try await manager.reinstallActivePackage(deploy: Self.deploy())
         let restoredUser = try await active().userDataURL
         XCTAssertFalse(

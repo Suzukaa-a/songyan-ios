@@ -121,90 +121,94 @@ extension KeyboardViewController {
             ])
     }
 
-    /// Ends this controller's presentation. The shell keeps its budget while the keyboard
-    /// animates out; nothing is resized here.
+    /// End only this controller's receipts; the last budget stays stable while hiding.
     func endPresentationGeometry() {
-        (viewIfLoaded as? KeyboardPanelInputView)?.endPresentation()
+        panelInputView?.endPresentation()
     }
 
-    /// A new presentation is the only time iOS measures a new height: budget it for the
-    /// definition selected now (a layout switched during the last presentation was
-    /// only re-fitted inside that one's shell). UIKit can measure the reused input view
-    /// before the next viewWillAppear, so the caller runs this once the keyboard is off
-    /// screen; the hosting constraint follows in `adoptPresentationShell`.
     func prepareNextPresentationGeometry() {
-        guard let input = viewIfLoaded as? KeyboardPanelInputView else { return }
+        guard let input = panelInputView else { return }
         let budget = KeyboardInitialPresentation.load().presentationBudget(
             compact: traitCollection.verticalSizeClass == .compact)
-        let height = CGFloat(budget.shellHeight)
-        input.setPanelHeight(height)
-        preferredContentSize.height = height
+        input.setPanelHeight(CGFloat(budget.shellHeight))
+        syncLandscapeHeightLimit(input)
     }
 
     func adoptPresentationShell() {
-        let budget = KeyboardInitialPresentation.load().presentationBudget(
-            compact: traitCollection.verticalSizeClass == .compact)
-        applyPresentationBudget(budget)
+        applyPresentationBudget(
+            KeyboardInitialPresentation.load().presentationBudget(
+                compact: traitCollection.verticalSizeClass == .compact))
     }
 
     private func applyPresentationBudget(_ budget: KeyboardPanelPresentationBudget) {
-        guard let input = view as? KeyboardPanelInputView else { return }
-        let height = CGFloat(budget.shellHeight)
-        input.beginPresentation(height: height)
+        guard let input = panelInputView else { return }
+        input.setMaximumPanelHeight(landscapePanelHeightLimit)
+        input.beginPresentation(height: CGFloat(budget.shellHeight))
+        let height = input.panelHeight
+        panelHeightConstraint?.constant = height
         hostingHeightConstraint?.constant = height
-        preferredContentSize.height = height
-        presentation.presentedHeight = nil
+        presentation.presentedHeight = height == CGFloat(budget.shellHeight) ? nil : height
         presentation.budget = budget
         logPanelGeometry("budget")
     }
 
-    /// A size-class change before the keyboard is on screen still belongs to the measured
-    /// presentation, so it re-budgets the shell. Once visible, iOS keeps the height it
-    /// measured (a rotation sends no sizing query, and a new budget is ignored until the
-    /// next presentation): only the budget's orientation follows, and `syncPresentedHeight`
-    /// hands the kept shell height to the panel, which re-fits the new orientation inside it.
-    func syncPresentationSizeClass() {
-        guard isBoundHost,
-            let input = viewIfLoaded as? KeyboardPanelInputView,
-            input.acceptsPresentation(input.presentationRevision)
+    func updatePresentationBudget(_ proposedBudget: KeyboardPanelPresentationBudget) {
+        let budget = proposedBudget.withCompact(traitCollection.verticalSizeClass == .compact)
+        guard isBoundHost, let input = panelInputView,
+            input.acceptsPresentation(input.presentationRevision), presentation.budget != budget
         else { return }
-        let compact = traitCollection.verticalSizeClass == .compact
-        guard presentation.budget.compact != compact else { return }
-        guard isPresentationSettled else {
-            applyPresentationBudget(presentation.budget.withCompact(compact))
-            return
-        }
-        presentation.budget = presentation.budget.withCompact(compact)
-        // Same transaction as the budget, so the panel never lays the new orientation out at the wrong height.
+        input.setPanelHeight(CGFloat(budget.shellHeight))
+        presentation.budget = budget
+        syncLandscapeHeightLimit(input)
         let presented = presentedShellHeight(of: input)
         presentation.presentedHeight = presented
         hostingHeightConstraint?.constant = presented ?? input.panelHeight
         view.setNeedsLayout()
-        logPanelGeometry("sizeClass")
+        logPanelGeometry("budgetChanged")
     }
 
-    /// The height iOS is actually presenting when it differs from the current budget: an earlier
-    /// request of this presentation it kept, or, once the keyboard is on screen, whatever height it
-    /// settled on (the one measured before a rotation, or an earlier one kept when the keyboard
-    /// re-appears without leaving the screen). Before that the root can still pass through
-    /// transient heights, so only this presentation's own requests count.
+    func syncPresentationSizeClass() {
+        updatePresentationBudget(presentation.budget.withCompact(traitCollection.verticalSizeClass == .compact))
+    }
+
     private func presentedShellHeight(of input: KeyboardPanelInputView) -> CGFloat? {
-        if let retained = input.retainedPresentedHeight { return retained }
-        guard isPresentationSettled, view.window != nil else { return nil }
-        let height = view.bounds.height
-        return height > 0 && abs(height - CGFloat(presentation.budget.shellHeight)) >= 0.5 ? height : nil
+        if let retained = input.retainedPresentedHeight { return input.constrainedPanelHeight(retained) }
+        if isPresentationSettled, view.window != nil {
+            let height = input.constrainedPanelHeight(view.bounds.height)
+            return height > 0 && abs(height - CGFloat(presentation.budget.shellHeight)) >= 0.5 ? height : nil
+        }
+        let budgetHeight = CGFloat(presentation.budget.shellHeight)
+        return input.constrainedPanelHeight(budgetHeight) < budgetHeight ? input.panelHeight : nil
+    }
+
+    private var landscapePanelHeightLimit: CGFloat? {
+        guard let window = viewIfLoaded?.window, let scene = window.windowScene else { return nil }
+        let viewport = scene.coordinateSpace.bounds
+        return KeyboardPanelGeometry.landscapeHeightLimit(
+            viewportWidth: Double(viewport.width), viewportHeight: Double(viewport.height),
+            topInset: Double(window.safeAreaInsets.top), bottomInset: Double(window.safeAreaInsets.bottom),
+            isPhone: traitCollection.userInterfaceIdiom == .phone,
+            compact: traitCollection.verticalSizeClass == .compact
+        ).map { CGFloat($0) }
+    }
+
+    private func syncLandscapeHeightLimit(_ input: KeyboardPanelInputView) {
+        input.setMaximumPanelHeight(landscapePanelHeightLimit)
+        if panelHeightConstraint?.constant != input.panelHeight {
+            panelHeightConstraint?.constant = input.panelHeight
+        }
     }
 
     /// Deferred receipts may only change the controller and presentation that observed them.
     func syncPresentedHeight() {
-        guard isBoundHost, let input = view as? KeyboardPanelInputView else { return }
+        guard isBoundHost, let input = panelInputView else { return }
         let revision = input.presentationRevision
         guard input.acceptsPresentation(revision) else { return }
+        syncLandscapeHeightLimit(input)
         let presented = presentedShellHeight(of: input)
         guard presentation.presentedHeight != presented else { return }
         DispatchQueue.main.async { [weak self] in
-            guard let self, isBoundHost,
-                let input = self.view as? KeyboardPanelInputView,
+            guard let self, isBoundHost, let input = self.panelInputView,
                 input.acceptsPresentation(revision),
                 self.presentedShellHeight(of: input) == presented,
                 self.presentation.presentedHeight != presented
@@ -223,10 +227,10 @@ extension KeyboardViewController {
     /// off the real bottom (top band clipped, empty band under the keys). Correct
     /// the frame after Auto Layout ran; constraints stay for the system measure.
     func placeHostingView() {
-        guard let hosted = hostingController?.view,
+        guard let hosted = hostingController?.view, let content = panelInputView,
             let height = hostingHeightConstraint?.constant
         else { return }
-        let bounds = view.bounds
+        let bounds = content.bounds
         let frame = CGRect(
             x: bounds.minX, y: bounds.maxY - height,
             width: bounds.width, height: height)
@@ -250,9 +254,12 @@ extension KeyboardViewController {
         let windowRect = view.convert(view.bounds, to: view.window)
         let hostingRect =
             hostingController?.view.convert(hostingController?.view.bounds ?? .zero, to: view.window) ?? .zero
-        let input = inputView as? KeyboardPanelInputView
+        let input = panelInputView
+        let ownHeightConstraint = panelHeightConstraint
+        let constraintOnInput = view.constraints.contains { $0 === ownHeightConstraint }
+        let viewportLimit = landscapePanelHeightLimit
         let details =
-            "phase=\(phase) budget=\(input?.panelHeight ?? -1) constraint=\(panelHeightConstraint?.constant ?? -1) priority=\(panelHeightConstraint?.priority.rawValue ?? -1) root=\(view.bounds) windowRect=\(windowRect) windowBounds=\(view.window?.bounds ?? .zero) hosting=\(hostingController?.view.bounds ?? .zero) hostingInWindow=\(hostingRect) safe=\(view.safeAreaInsets) vertical=\(traitCollection.verticalSizeClass.rawValue) selfSizing=\(input?.allowsSelfSizing ?? false)"
+            "phase=\(phase) budget=\(input?.panelHeight ?? -1) constraint=\(panelHeightConstraint?.constant ?? -1) priority=\(panelHeightConstraint?.priority.rawValue ?? -1) constraintActive=\(ownHeightConstraint?.isActive ?? false) constraintOnInput=\(constraintOnInput) root=\(view.bounds) windowRect=\(windowRect) windowBounds=\(view.window?.bounds ?? .zero) hosting=\(hostingController?.view.bounds ?? .zero) hostingInWindow=\(hostingRect) safe=\(view.safeAreaInsets) vertical=\(traitCollection.verticalSizeClass.rawValue) selfSizing=\(inputView?.allowsSelfSizing ?? false) rootType=\(String(describing: type(of: view!))) rootStyle=\(inputView?.inputViewStyle.rawValue ?? -1) viewportLimit=\(viewportLimit ?? -1) registeredInputIsRoot=\(inputView === view) rootAutoresizing=\(view.translatesAutoresizingMaskIntoConstraints) preferred=\(preferredContentSize) scene=\(view.window?.windowScene?.coordinateSpace.bounds ?? .zero) sceneOrientation=\(view.window?.windowScene?.interfaceOrientation.rawValue ?? -1)"
         if deduplicate, details == lastLayoutGeometry { return }
         lastLayoutGeometry = details
         if geometryEnabled { KeyboardGeometryDiagnostics.emit("\(event) \(details)") }
@@ -265,10 +272,21 @@ extension KeyboardViewController {
                     "controller": KeyboardLifecycleDiagnostics.identity(self),
                     "presentation": String(input?.presentationRevision ?? 0),
                     "retainedH": points(input?.retainedPresentedHeight ?? -1),
+                    "viewportLimitH": points(viewportLimit ?? -1),
                     "phase": phase,
                     "layout": session?.layout.rawValue ?? "unknown",
                     "budget": points(input?.panelHeight ?? -1),
                     "constraint": points(panelHeightConstraint?.constant ?? -1),
+                    "priority": points(CGFloat(panelHeightConstraint?.priority.rawValue ?? -1)),
+                    "constraintActive": ownHeightConstraint?.isActive == true ? "1" : "0",
+                    "constraintOnInput": constraintOnInput ? "1" : "0",
+                    "preferredW": points(preferredContentSize.width),
+                    "preferredH": points(preferredContentSize.height),
+                    "registeredInputIsRoot": inputView === view ? "1" : "0",
+                    "rootAutoresizing": view.translatesAutoresizingMaskIntoConstraints ? "1" : "0",
+                    "sceneW": points(view.window?.windowScene?.coordinateSpace.bounds.width ?? -1),
+                    "sceneH": points(view.window?.windowScene?.coordinateSpace.bounds.height ?? -1),
+                    "sceneOrientation": String(view.window?.windowScene?.interfaceOrientation.rawValue ?? -1),
                     "rootH": points(view.bounds.height),
                     "windowH": points(windowRect.height),
                     "windowBoundsH": points(view.window?.bounds.height ?? -1),

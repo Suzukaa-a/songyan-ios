@@ -67,14 +67,32 @@ struct InputSchemeListView: View {
         List {
             installedSection
             importEntrySection
-            RimeConfigRows(model: rimeConfig)
+            Section {
+                NavigationLink {
+                    List { RimeConfigRows(model: rimeConfig) }
+                        .navigationTitle("Rime 配置")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .rimeConfigHost(rimeConfig)
+                } label: {
+                    HStack {
+                        Text("Rime 配置")
+                        Spacer()
+                        if rimeConfig.overview?.hasPendingChanges == true {
+                            Text("有更改待应用").font(.caption).foregroundStyle(.orange)
+                        }
+                    }
+                }
+            }
             statusSection
             if developerOptions {
                 developerSection
                     .task { if engineCapabilities == nil { engineCapabilities = await EngineCapabilities.load() } }
             }
         }
-        .rimeConfigHost(rimeConfig)
+        .task { await rimeConfig.refresh() }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+            Task { await rimeConfig.refresh() }
+        }
         .navigationTitle(UserTerminology.inputScheme)
         .navigationBarTitleDisplayMode(.inline)
         // Structured: refreshTick is bumped on apply/install state changes; .task(id:) cancels the old task and reruns.

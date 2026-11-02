@@ -17,6 +17,7 @@ import UIKit
 struct KeyboardPreviewPreferences: Equatable, Sendable {
     var heightPreset = KeyboardHeightPreset.standard
     var needsInputModeSwitchKey = true
+    var t9QuickSymbols = T9QuickSymbolStore.defaultSymbols
     var docks: [KeyboardLayoutKind: KeyboardContentDock] = [:]
 
     @MainActor static var cached = KeyboardPreviewPreferences()
@@ -41,6 +42,11 @@ struct KeyboardPreviewPreferences: Equatable, Sendable {
         return Self(
             heightPreset: KeyboardHeightPreferences.current,
             needsInputModeSwitchKey: KeyboardSystemRequirements.requiresKeyboardSwitchEntry(),
+            t9QuickSymbols: KeyboardRecipeStore.sharedContainerURL().flatMap {
+                try? T9QuickSymbolStore(
+                    directory: $0.appendingPathComponent(T9QuickSymbolStore.directoryName, isDirectory: true)
+                ).load().symbols
+            } ?? T9QuickSymbolStore.defaultSymbols,
             docks: docks)
     }
 }

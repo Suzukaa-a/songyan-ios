@@ -3,6 +3,41 @@ import XCTest
 @testable import CandidateKit
 
 final class KeyboardPanelHeightStateTests: XCTestCase {
+    func testLandscapeViewportClampsAndRestoresTheFrozenRequestWithoutStartingAPresentation() {
+        var state = KeyboardPanelHeightState(height: 380)
+        state.beginPresentation(height: 380)
+        let revision = state.revision
+        let limit = KeyboardPanelGeometry.landscapeHeightLimit(
+            viewportWidth: 568, viewportHeight: 320,
+            topInset: 0, bottomInset: 21, isPhone: true, compact: true)
+        state.setMaximumPanelHeight(limit)
+        XCTAssertEqual(state.panelHeight, 149)
+        XCTAssertTrue(state.accepts(revision: revision))
+        let retained = state.retainedHeight(boundsHeight: 380, attachedToWindow: true)
+        XCTAssertEqual(retained, 380)
+        XCTAssertEqual(state.constrainedHeight(retained!), 149)
+        XCTAssertEqual(state.constrainedHeight(140), 140)
+        state.setMaximumPanelHeight(nil)
+        XCTAssertEqual(state.panelHeight, 380)
+        XCTAssertTrue(state.accepts(revision: revision))
+    }
+
+    func testColdLandscapeAndLaterRequestsShareTheViewportLimit() {
+        var state = KeyboardPanelHeightState(height: 380)
+        state.setMaximumPanelHeight(299)
+        state.beginPresentation(height: 380)
+        XCTAssertEqual(state.panelHeight, 299)
+        state.setPanelHeight(280)
+        XCTAssertEqual(state.panelHeight, 280)
+        state.setPanelHeight(360)
+        XCTAssertEqual(state.panelHeight, 299)
+        state.endPresentation()
+        state.beginPresentation(height: 350)
+        XCTAssertEqual(state.panelHeight, 299)
+        state.setMaximumPanelHeight(nil)
+        XCTAssertEqual(state.panelHeight, 350)
+    }
+
     private func budget(
         height: Double = 40, size: Double = 21,
         reading: Bool = false, compact: Bool = false

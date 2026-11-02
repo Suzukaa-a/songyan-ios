@@ -92,6 +92,7 @@ class KeyboardViewController: UIInputViewController {
     var restartedDuringAppearance = false
     var hostingController: UIHostingController<ExtensionKeyboardPanel>?
     var panelHeightConstraint: NSLayoutConstraint?
+    var panelInputView: FeedbackInputView?
     var hostingHeightConstraint: NSLayoutConstraint?
     var lastLayoutGeometry = ""
     var lifecycleGeometryEnabled = KeyboardLifecycleDiagnostics.isEnabled
@@ -224,39 +225,34 @@ class KeyboardViewController: UIInputViewController {
     ///     with no plain-UIView root replacement;
     ///   - the `.default` style keeps the existing look (the panel paints its own background).
     override func loadView() {
-        // Give a reasonable initial frame (the system lays it out to the keyboard geometry afterwards) to avoid
-        // the deprecated UIScreen.main; the height constraint takes over the final height.
-        // Fixed shell height: identical for every phase (starting/failed/unconfigured/ready), so cold start has no
-        // header height jump.
+        super.loadView()
         let height = initialPresentation.shellHeight(compact: traitCollection.verticalSizeClass == .compact)
-        let inputView = FeedbackInputView(
-            frame: CGRect(x: 0, y: 0, width: 320, height: height),
-            inputViewStyle: .default)
-        // The root input view stays transparent. The system applies a transient
-        // oversized frame to it during keyboard presentation; an opaque root
-        // would render that entire transient as a full-width background slab
-        // (the large gray slab). The fixed-height content uses the iOS-owned surface
-        // for the default skin; only a user-authored skin paints its own area.
-        // Either way the root adds no extra slab outside the keyboard budget.
-        inputView.backgroundColor = .clear
+        let content = FeedbackInputView(
+            frame: CGRect(x: 0, y: 0, width: 320, height: height), inputViewStyle: .default)
+        content.backgroundColor = .clear
+        content.clipsToBounds = true
+        content.translatesAutoresizingMaskIntoConstraints = false
+        panelInputView = content
+        view.backgroundColor = .clear
+        view.clipsToBounds = true
         #if DEBUG
-            // Attribution probe (default off, Debug only): paints the root input
-            // view a unique color so a recorded frame can prove whether the
-            // transient oversized band is drawn *by this root view* or by the
-            // system keyboard window behind it. Read once at load; no production
-            // path changes when the key is absent.
             if UserDefaults.standard.bool(forKey: "keyboard.transientAttributionProbe") {
-                inputView.backgroundColor = .magenta
+                view.backgroundColor = .magenta
             }
         #endif
-        // The keyboard sits above the home indicator: the bottom edge is the
-        // stable screen anchor. Clip so any system-side transient sizing can
-        // never drag content outside the final keyboard area.
-        inputView.clipsToBounds = true
-        view = inputView
-        self.inputView = inputView
-        panelHeightConstraint = inputView.budgetHeightConstraint
-        preferredContentSize.height = height
+        view.addSubview(content)
+        NSLayoutConstraint.activate([
+            content.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            content.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            content.topAnchor.constraint(equalTo: view.topAnchor),
+            content.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+        ])
+        // Keep UIKit's registered root and size it through the standard height constraint.
+        let heightConstraint = view.heightAnchor.constraint(equalToConstant: height)
+        heightConstraint.identifier = "KeyboardPanel.primaryBudget"
+        heightConstraint.priority = .required
+        panelHeightConstraint = heightConstraint
+        heightConstraint.isActive = true
         logPanelGeometry("loadView")
     }
 
@@ -345,6 +341,9 @@ class KeyboardViewController: UIInputViewController {
                 // paints the opaque skin surface itself, so an appearance change
                 // needs no root-side repaint.
             },
+            onPresentationBudgetChange: { [weak self] budget in
+                self?.updatePresentationBudget(budget)
+            },
             openHostApp: { [weak self] url, completion in
                 HostAppLink.open(url, from: self, completion: completion)
             },
@@ -360,7 +359,7 @@ class KeyboardViewController: UIInputViewController {
         // so the system's transient oversized frame is never filled.
         hosting.view.backgroundColor = .clear
         addChild(hosting)
-        view.addSubview(hosting.view)
+        panelInputView!.addSubview(hosting.view)
         hosting.didMove(toParent: self)
         hostingController = hosting
         KeyboardLiveObjects.panels.increment()
@@ -369,19 +368,17 @@ class KeyboardViewController: UIInputViewController {
         // position when the view service applies a transient oversized frame
         // during keyboard launch.
         // Same source as loadView: the initial hosting height is the fixed shell height.
-        // `view` was already replaced by KeyboardPanelInputView in loadView; the fallback applies only if that cast fails.
-        // These constraints also keep the hosting subtree in the root's layout
-        // engine, which the system's presentation measure relies on
-        // (`systemLayoutSizeFitting` is not queried for a frame-placed child).
+        // The native root owns external height; the feedback child carries the current content budget.
+        // Keep the hosting subtree in Auto Layout while the native root handles external sizing.
         let hostingHeight = hosting.view.heightAnchor.constraint(
-            equalToConstant: (view as? KeyboardPanelInputView)?.panelHeight
+            equalToConstant: panelInputView?.panelHeight
                 ?? initialPresentation.shellHeight(compact: traitCollection.verticalSizeClass == .compact))
         hostingHeight.priority = .required
         hostingHeightConstraint = hostingHeight
         NSLayoutConstraint.activate([
-            hosting.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            hosting.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            hosting.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            hosting.view.leadingAnchor.constraint(equalTo: panelInputView!.leadingAnchor),
+            hosting.view.trailingAnchor.constraint(equalTo: panelInputView!.trailingAnchor),
+            hosting.view.bottomAnchor.constraint(equalTo: panelInputView!.bottomAnchor),
             hostingHeight,
         ])
         logPanelGeometry("hostAttached")

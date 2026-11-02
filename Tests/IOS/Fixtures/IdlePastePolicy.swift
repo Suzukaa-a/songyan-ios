@@ -61,6 +61,8 @@ private final class IdleEngine: EngineBackend {
     }
 }
 
+/* PRODUCTION_TOOLBAR_PREFERENCES */
+
 /* PRODUCTION_DEFINITION_MEMO */
 
 // Only SwiftUI-owned state is substituted. Layout facts and the getter and
@@ -69,15 +71,13 @@ private final class IdleEngine: EngineBackend {
     struct HeaderPlan { var headerHeight: Double }
     let controller: KeyboardController
     let quickSymbols: T9QuickSymbolModel
-    let quickPasteSlot: QuickPasteSlotLease
-    var host: AnyHashable? = "same-document:same-selection"
     var statusMessage: String?
-    var quickPasteError: String?
     var showsAllCandidates = false
     var showsUtilitiesMenu = false
     var showsSymbolLibrary = false
     var page: KeyboardControlPolicy.Page = .letters
     var selectedDefinition: LayoutDefinition? = BuiltinLayouts.phone9
+    var activeDefinition: LayoutDefinition? { selectedDefinition }
     var pageDefinition: KeyboardPageDefinition?
     var activeSplit: LayoutSplitConfiguration? { selectedDefinition?.split }
     private var definitionFacts: DefinitionResolutionMemo.Facts {
@@ -87,34 +87,16 @@ private final class IdleEngine: EngineBackend {
     /* PRODUCTION_DEFINITION_CHROME */
 
     init(
-        controller: KeyboardController, quickSymbols: T9QuickSymbolModel,
-        lease: QuickPasteSlotLease? = nil
+        controller: KeyboardController, quickSymbols: T9QuickSymbolModel
     ) {
         self.controller = controller
         self.quickSymbols = quickSymbols
-        quickPasteSlot = lease ?? QuickPasteSlotLease()
     }
 
     /* PRODUCTION_IDLE_GETTER */
     /* PRODUCTION_SYMBOL_ERROR_GETTER */
 
     var input: QuickPasteIdleInput { quickPasteIdleInput }
-    func render(headerHeight: Double = 44) {
-        let plan = HeaderPlan(headerHeight: headerHeight)
-        /* PRODUCTION_RENDER_OBSERVATION */
-    }
-    func asyncInsertionContext() -> AnyHashable? { host }
-    func context() -> AnyHashable? {
-        /* PRODUCTION_INPUT_CONTEXT */
-    }
-    func insert(_ text: String) -> Bool {
-        let controller: KeyboardController? = self.controller
-        let pasteLiteral: ((String) -> Bool)? = nil
-        /* PRODUCTION_INSERT_OUTLET */
-    }
-    func receiveError(_ error: String?) {
-        /* PRODUCTION_ERROR_RESULT */
-    }
 }
 
 private final class CancelFlag: @unchecked Sendable {
@@ -166,6 +148,27 @@ private final class IdlePasteFeed: @unchecked Sendable {
         precondition(pending != nil)
         pending?.resume(returning: try! String(contentsOf: url, encoding: .utf8))
     }
+}
+
+private struct NativeHeightProbe {
+    let presentedHeight: CGFloat?
+    let candidateHeight: Double = 56
+    let candidateSize: Double = 30
+    let readingRowGranted = true
+    let candidateAreaGranted = true
+    let compactReadingRow = true
+    let heightPreset = KeyboardHeightPreset.standard
+    let keyHeight: CGFloat = 38
+    var fixedShellHeight: CGFloat {
+        CGFloat(
+            KeyboardPanelPresentationBudget(
+                candidateHeight: candidateHeight, candidateSize: candidateSize,
+                readingRow: true, candidateArea: true, compact: true
+            ).shellHeight)
+    }
+    /* PRODUCTION_NATIVE_SHELL_HEIGHT */
+    var resolved: CGFloat { layoutShellHeight }
+    var fittedKeyHeight: Double { panelFit(shellHeight: presentedHeight!).keyHeight }
 }
 
 @main struct IdlePasteChecks {
@@ -337,18 +340,6 @@ private final class IdlePasteFeed: @unchecked Sendable {
         precondition(!failedSave && qs.error != nil && panel.input.hasStatus && !panel.input.allowsPaste)
         _ = await qs.replaceSymbols("[]")
         precondition(qs.error == nil && panel.input.allowsPaste)
-        panel.render(headerHeight: 43)
-        precondition(panel.input.allowsPaste && panel.context() == nil)
-        panel.render()
-        let eligible = panel.context()!
-        panel.render()
-        precondition(panel.context() == eligible)
-        panel.quickPasteError = "non-modal paste error"
-        panel.render()
-        precondition(panel.context() == nil)
-        panel.quickPasteError = nil
-        panel.render()
-        precondition(panel.context() != eligible)
         controller.retire()
         let suggestedController = KeyboardController(engine: ProbeEngine())
         suggestedController.onDispatchCommit = { _ in true }
@@ -363,7 +354,7 @@ private final class IdlePasteFeed: @unchecked Sendable {
         precondition(suggestedPanel.input.hasEnglishSuggestions && !suggestedPanel.input.allowsPaste)
         suggestedController.retire()
         print(
-            "PASS I4: production root getter maps real snapshot, English suggestions, status, failure, fallback and quick-symbol errors; covers/expansion and header budget gate the slot"
+            "PASS I4: production root getter maps real snapshot, English suggestions, status, failure, fallback and quick-symbol errors; covers and expansion gate the idle toolbar"
         )
     }
 
@@ -438,183 +429,62 @@ private final class IdlePasteFeed: @unchecked Sendable {
         )
     }
 
-    @MainActor static func englishBoundaries(_ root: URL, file: URL) async {
+    @MainActor static func englishBoundaries(_ root: URL) async {
         let qs = await symbols(root, name: "english-symbols")
-        let engine = IdleEngine()
-        let controller = KeyboardController(engine: engine)
-        var commits: [String] = []
-        controller.onDispatchCommit = {
-            commits.append($0)
-            return true
-        }
+        let controller = KeyboardController(engine: IdleEngine())
+        controller.onDispatchCommit = { _ in true }
         controller.onRequestDeleteBackward = {}
         controller.setInputMode(.english)
         await eventually("unsupported English suggestions did not settle") {
             controller.englishSuggestionsSupported == false
         }
         let panel = IdlePanelProbe(controller: controller, quickSymbols: qs)
-        panel.render()
-        let host = panel.host
-        let baseline = panel.context()!
+        precondition(panel.input.allowsPaste)
         var published: [Bool] = []
         let subscription = controller.$hasActiveEnglishInput.sink { published.append($0) }
-        let model = QuickPasteModel(inputContext: panel.context, insertLiteral: panel.insert)
-        model.activate()
-        let feed = IdlePasteFeed()
-        model.receiveUserPaste([feed.item()])
-        await wait(feed.entered)
         controller.handle(.code("q"))
         precondition(controller.hasActiveEnglishInput && controller.englishSuggestions.isEmpty)
         precondition(panel.input.hasActiveEnglishInput && !panel.input.allowsPaste)
         controller.handle(.code("x"))
         controller.handle(.code("z"))
-        precondition(published == [false, true], "additional characters must not republish the active-word flag")
+        precondition(published == [false, true])
         controller.handle(.backspace)
         controller.handle(.backspace)
         precondition(published == [false, true] && controller.hasActiveEnglishInput)
         controller.handle(.backspace)
         precondition(published == [false, true, false] && !controller.hasActiveEnglishInput)
         controller.resetEnglishWord()
-        precondition(published == [false, true, false], "empty reset must not republish a word boundary")
-        precondition(
-            panel.input.allowsPaste && panel.host == host && panel.context() != baseline,
-            "real publisher epochs must fence ABA without render/deactivate")
-        feed.emit(file)
-        await eventually("English ABA provider did not finish") { !model.isLoading }
-        precondition(!commits.contains("fixed idle payload") && model.error == QuickPasteFailure.contextChanged.message)
-        precondition(!feed.progress.isCancelled)
-        await paste(model, file: file)
-        precondition(
-            commits.last == "fixed idle payload" && !controller.hasActiveEnglishInput,
-            "fresh external paste must not seed unfinished English learning")
-        precondition(model.error == nil && controller.englishSuggestions.isEmpty)
+        precondition(published == [false, true, false] && panel.input.allowsPaste)
         _ = subscription
         controller.retire()
-        print(
-            "PASS I6: production private englishWord publishes only first/last boundaries; typing without suggestions blocks; English ABA before UI teardown rejects late files"
-        )
-    }
-
-    @MainActor static func livePublisherABA(_ root: URL, file: URL) async {
-        let qs = await symbols(root, name: "live-symbols")
-        let engine = IdleEngine()
-        let controller = KeyboardController(engine: engine)
-        var delivered: [String] = []
-        controller.onDispatchCommit = {
-            delivered.append($0)
-            return true
-        }
-        let panel = IdlePanelProbe(controller: controller, quickSymbols: qs)
-        panel.render()
-        let fixedHost = panel.host
-        let model = QuickPasteModel(inputContext: panel.context, insertLiteral: panel.insert)
-        model.activate()
-        for source in [controller.objectWillChange, qs.objectWillChange] {
-            let baseline = panel.context()!
-            let feed = IdlePasteFeed()
-            model.receiveUserPaste([feed.item()])
-            await wait(feed.entered)
-            source.send()
-            precondition(
-                panel.input.allowsPaste && panel.context() != baseline && panel.host == fixedHost,
-                "will-change must invalidate the stamp synchronously while state is still idle")
-            feed.emit(file)
-            await eventually("will-change provider did not finish") { !model.isLoading }
-            precondition(delivered.isEmpty && model.error == QuickPasteFailure.contextChanged.message)
-            precondition(!feed.progress.isCancelled)
-        }
-        let baseline = panel.context()!
-        let feed = IdlePasteFeed()
-        model.receiveUserPaste([feed.item()])
-        await wait(feed.entered)
-        engine.state.isPrediction = true
-        controller.session.refresh()
-        precondition(!panel.input.allowsPaste)
-        engine.state.isPrediction = false
-        controller.session.refresh()
-        precondition(panel.input.allowsPaste && panel.host == fixedHost && panel.context() != baseline)
-        feed.emit(file)
-        await eventually("snapshot ABA provider did not finish") { !model.isLoading }
-        precondition(delivered.isEmpty && model.error == QuickPasteFailure.contextChanged.message)
-
-        let symbolBaseline = panel.context()!
-        let originalSymbols = qs.symbols
-        let symbolFeed = IdlePasteFeed()
-        model.receiveUserPaste([symbolFeed.item()])
-        await wait(symbolFeed.entered)
-        _ = await qs.replaceSymbols("[]")
-        _ = await qs.replaceSymbols(originalSymbols)
-        precondition(qs.symbols == originalSymbols && panel.input.allowsPaste && panel.host == fixedHost)
-        precondition(panel.context() != symbolBaseline)
-        symbolFeed.emit(file)
-        await eventually("quick-symbol ABA provider did not finish") { !model.isLoading }
-        precondition(delivered.isEmpty && model.error == QuickPasteFailure.contextChanged.message)
-        await paste(model, file: file)
-        precondition(delivered == ["fixed idle payload"] && model.error == nil)
-
-        let hostFeed = IdlePasteFeed()
-        model.receiveUserPaste([hostFeed.item()])
-        await wait(hostFeed.entered)
-        panel.host = "different-document:selection"
-        hostFeed.emit(file)
-        await eventually("host-change provider did not finish") { !model.isLoading }
-        precondition(delivered.count == 1 && model.error == QuickPasteFailure.contextChanged.message)
-        await paste(model, file: file)
-        precondition(delivered.count == 2 && model.error == nil)
-        let staleControllerFeed = IdlePasteFeed()
-        model.receiveUserPaste([staleControllerFeed.item()])
-        await wait(staleControllerFeed.entered)
-        let replacement = KeyboardController(engine: IdleEngine())
-        replacement.onDispatchCommit = {
-            delivered.append($0)
-            return true
-        }
-        let replacementSymbols = await symbols(root, name: "replacement-symbols")
-        let replacementPanel = IdlePanelProbe(
-            controller: replacement, quickSymbols: replacementSymbols,
-            lease: panel.quickPasteSlot)
-        replacementPanel.host = panel.host
-        let oldStamp = panel.context()!
-        replacementPanel.render()
-        let replacementStamp = replacementPanel.context()!
-        precondition(replacementStamp != oldStamp && panel.context() == nil)
-        precondition(!panel.insert("stale controller dispatch"))
-        controller.objectWillChange.send()
-        qs.objectWillChange.send()
-        precondition(replacementPanel.context() == replacementStamp, "both retired publisher sources must detach")
-        replacement.objectWillChange.send()
-        precondition(replacementPanel.context() != replacementStamp)
-        staleControllerFeed.emit(file)
-        await eventually("controller replacement did not reject old provider") { !model.isLoading }
-        precondition(delivered.count == 2 && model.error == QuickPasteFailure.contextChanged.message)
-        precondition(!staleControllerFeed.progress.isCancelled)
-        panel.receiveError(model.error)
-        precondition(
-            panel.quickPasteError == nil && replacementPanel.quickPasteError == nil,
-            "an old active component's onError must not populate the replacement header")
-        let currentModel = QuickPasteModel(
-            inputContext: replacementPanel.context, insertLiteral: replacementPanel.insert)
-        currentModel.activate()
-        await paste(currentModel, file: file)
-        precondition(delivered.count == 3 && currentModel.error == nil)
-        replacementPanel.receiveError("current non-modal error")
-        precondition(replacementPanel.quickPasteError == "current non-modal error" && panel.quickPasteError == nil)
-        controller.retire()
-        replacement.retire()
-        print(
-            "PASS I7: merged actual controller/QS publishers fence same-document ABA synchronously before UI render/unmount; old identities cannot insert or leak errors into a new header"
-        )
+        print("PASS unfinished English input hides idle tools and publishes only word boundaries")
     }
 
     @MainActor static func main() async throws {
         let root = URL(fileURLWithPath: CommandLine.arguments[1])
+        let suite = "IdleToolbarProbe-" + UUID().uuidString
+        let preferences = UserDefaults(suiteName: suite)!
+        defer { preferences.removePersistentDomain(forName: suite) }
+        precondition(!KeyboardIdleToolbarPreferences.read(from: preferences))
+        preferences.set(true, forKey: KeyboardIdleToolbarPreferences.key)
+        precondition(KeyboardIdleToolbarPreferences.read(from: UserDefaults(suiteName: suite)!))
+        preferences.set(false, forKey: KeyboardIdleToolbarPreferences.key)
+        precondition(!KeyboardIdleToolbarPreferences.read(from: UserDefaults(suiteName: suite)!))
+        print("PASS toolbar defaults off and persists explicit enable/disable")
+        for height: CGFloat in [160, 201] {
+            let panel = NativeHeightProbe(presentedHeight: height)
+            precondition(panel.fittedKeyHeight > 0 && panel.fittedKeyHeight < 30)
+            precondition(panel.resolved == height, "a real short viewport must not use the taller nominal shell")
+        }
+        let initial = NativeHeightProbe(presentedHeight: nil)
+        precondition(initial.resolved == initial.fixedShellHeight)
+        print("PASS native short viewport fits the actual height with tall candidates and readings")
         let file = root.appendingPathComponent("payload.txt")
         try Data("fixed idle payload".utf8).write(to: file)
         await atomicPolicies(file)
         leaseProperties()
         await controllerGetter(root)
         await browsingAndReadings(root)
-        await englishBoundaries(root, file: file)
-        await livePublisherABA(root, file: file)
+        await englishBoundaries(root)
     }
 }

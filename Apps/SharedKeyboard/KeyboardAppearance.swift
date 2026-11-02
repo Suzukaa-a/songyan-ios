@@ -6,7 +6,17 @@ import SkinKit
 import SwiftUI
 import os
 
-/// The extension reads this preference before freezing each presentation's geometry.
+public enum KeyboardIdleToolbarPreferences {
+    public static let key = "keyboard.idleToolbarEnabled.v1"
+    public static let defaultEnabled = false
+    public static var defaults: UserDefaults { KeyboardRecipeStore.sharedDefaults() ?? .standard }
+
+    public static func read(from defaults: UserDefaults) -> Bool {
+        defaults.object(forKey: key) as? Bool ?? defaultEnabled
+    }
+}
+
+/// Read on presentation and explicit configuration events, never per key.
 public enum KeyboardHeightPreferences {
     public static let presetKey = "keyboard.heightPreset.v1"
     public static var defaults: UserDefaults { KeyboardRecipeStore.sharedDefaults() ?? .standard }
@@ -215,7 +225,7 @@ public struct KeyboardInitialPresentation {
     public var skin: SkinDefinition { appearance.document.skin }
     public var candidateBar: CandidateBarDefinition { appearance.document.candidateBar }
 
-    /// Cached inputs are adopted before presentation; an accepted async read seeds the next one.
+    /// Cached inputs seed first presentation; accepted live reports update the visible budget separately.
     public func shellHeight(compact: Bool) -> CGFloat {
         CGFloat(presentationBudget(compact: compact).shellHeight)
     }

@@ -91,6 +91,17 @@ public struct KeyboardPanelGeometry: Equatable, Sendable {
 }
 
 public extension KeyboardPanelGeometry {
+    /// Use the scene viewport, never the keyboard root whose height UIKit can retain during rotation.
+    static func landscapeHeightLimit(
+        viewportWidth: Double, viewportHeight: Double,
+        topInset: Double, bottomInset: Double, isPhone: Bool, compact: Bool
+    ) -> Double? {
+        guard isPhone, compact, viewportWidth > viewportHeight else { return nil }
+        let available = viewportHeight - topInset - bottomInset
+        // The system-owned strip sits outside this root; leave room for it and the host editor.
+        return available.isFinite && available > 0 ? (available * 0.5).rounded(.down) : nil
+    }
+
     /// The panel's **standard main key area budget** (three rows): Chinese compact layouts (9/14) match the Latin/numeric
     /// pages in height; it is also the row count used when the host looks only at "candidate budget + key height".
     static let standardMainRowCount: Int = 3
@@ -156,15 +167,10 @@ public extension KeyboardPanelGeometry {
             candidateSize: candidateSize)
     }
 
-    /// **Shell height of one presentation**: the standard key height budget for the selected definition's main page
-    /// (reading row, candidate area) at the start of the presentation.
-    ///
-    /// iOS measures the extension keyboard height only at each presentation; changing constraints,
-    /// `preferredContentSize` or self-sizing during a presentation has no effect (observed on the iOS 26 simulator),
-    /// and the extension cannot ask the host to re-present the keyboard. Switching layout/page during a presentation
-    /// therefore leaves the shell alone and only redistributes inside it (`fit`); the next presentation after
-    /// dismissal starts at the newly selected definition's height. A definition with a candidate area also gets
-    /// `candidateAreaBonus` (key rows never exceed the standard key height, so `fit` hands it to the candidate area).
+    /// The accepted physical definition and appearance determine the nominal shell height.
+    /// Explicit configuration changes submit a new native budget while temporary pages
+    /// and composition/candidate changes keep fitting the current definition.
+    /// A candidate area also receives `candidateAreaBonus`; key rows never exceed the standard height.
     static func presentationShellHeight(
         candidateHeight: Double, keyHeight: Double,
         candidateSize: Double = 17, readingRow: Bool,

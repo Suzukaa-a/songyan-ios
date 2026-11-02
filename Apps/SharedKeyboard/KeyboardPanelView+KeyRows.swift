@@ -117,7 +117,7 @@ extension KeyboardPanelView {
             isReturnKeyEnabled: readsComposition && controller.isReturnKeyEnabled,
             schemaAlphabet: controller.activeSchemaAlphabet,
             publishedKeyboards: controller.publishedKeyboards,
-            quickSymbols: quickSymbols.symbols,
+            quickSymbols: activeDefinition?.t9QuickSymbols ?? quickSymbols.symbols,
             layoutHintName: layoutHintName,
             layoutHintToken: layoutHintToken,
             hasKeyAlternates: keyAlternates != nil,

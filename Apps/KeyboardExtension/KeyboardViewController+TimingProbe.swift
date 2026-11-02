@@ -77,10 +77,10 @@ import UIKit
             } else {
                 parts.append("winM[nil]")
             }
-            let input = inputView as? KeyboardPanelInputView
+            let input = panelInputView
             let bg = view.backgroundColor.map { "\($0)" } ?? "nil"
             parts.append(
-                "opaque=\(view.isOpaque) bg=\(bg) selfSizing=\(input?.allowsSelfSizing ?? false) budget=\(input?.panelHeight ?? -1)"
+                "opaque=\(view.isOpaque) bg=\(bg) selfSizing=\(inputView?.allowsSelfSizing ?? false) budget=\(input?.panelHeight ?? -1)"
             )
             return parts.joined(separator: " ")
         }

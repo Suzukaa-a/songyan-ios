@@ -16,6 +16,7 @@ public struct RimeConfigOverview: Equatable, Sendable {
     /// Files with scripts the next install leaves out because the user has not agreed to them.
     public let unusedScripts: [String]
     public let fileCount: Int
+    public var hasPendingChanges = false
 }
 
 /// A file of the user's, opened for editing.
@@ -114,7 +115,35 @@ extension RecipePackageManager {
             },
             unacknowledged: context.overrides.unacknowledged(context.package),
             unusedScripts: Array(Set(plan.unconfirmed.map(\.path))).sorted(),
-            fileCount: UserConfigFiles.files(in: context.folder).count)
+            fileCount: UserConfigFiles.files(in: context.folder).count,
+            hasPendingChanges: try rimeConfigHasPendingChanges(folder: context.folder))
+    }
+
+    /// Compare the editable folder with the installed copies, including deletions and external edits.
+    private func rimeConfigHasPendingChanges(folder: URL) throws -> Bool {
+        guard let active = try activeInstallation() else { return false }
+        let files = UserConfigFiles.files(in: folder).filter { !RimeConfigFolder.reservedNames.contains($0.path) }
+        guard Set(files.map(\.path)) == RimeConfigFolder.names(in: active.userDataURL) else { return true }
+        return files.contains { file in
+            let directory = UserConfigFiles.isScriptPath(file.path) ? active.resourceURL : active.userDataURL
+            guard
+                let editable = try? BoundedLocalFile.read(
+                    file.url, maximumBytes: UserConfigFiles.maximumFileBytes, followingSymlinks: false),
+                var installed = try? BoundedLocalFile.read(
+                    directory.appendingPathComponent(file.path), maximumBytes: UserConfigFiles.maximumFileBytes)
+            else { return true }
+            if file.path == LuaSandbox.entryPath {
+                guard let original = LuaSandbox.restoreOriginal(installed) else { return true }
+                installed = original
+            }
+            if file.path.hasSuffix(".custom.yaml") {
+                let own = RimeConfigFolder.withoutManagedBlocks(String(decoding: editable, as: UTF8.self))
+                let used = RimeConfigFolder.withoutManagedBlocks(String(decoding: installed, as: UTF8.self))
+                return own.trimmingCharacters(in: .whitespacesAndNewlines)
+                    != used.trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+            return editable != installed
+        }
     }
 
     /// Opens the user's file at `path` (relative to the package) for editing. A package file gets the

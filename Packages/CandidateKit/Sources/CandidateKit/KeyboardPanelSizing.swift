@@ -31,7 +31,6 @@ public enum KeyboardGeometryDiagnostics {
     private static let placementLogger = Logger(subsystem: "app.songyan.ime", category: "KeyboardPlacement")
     private static var limiter = KeyboardGeometryLogLimiter()
     private static let logger = Logger(subsystem: "app.songyan.ime", category: "KeyboardGeometry")
-
     public static func emit(_ message: @autoclosure () -> String) {
         guard isEnabled else { return }
         // A bounded key also bounds retained diagnostic text (128 * 1024 chars).
@@ -60,14 +59,21 @@ public extension View {
 
 /// Requested heights and deferred receipts belong to one presentation, not the view lifetime.
 public struct KeyboardPanelHeightState: Sendable {
-    public private(set) var panelHeight: Double
+    private var requestedPanelHeight: Double
+    private var maximumPanelHeight: Double?
+    public var panelHeight: Double { constrainedHeight(requestedPanelHeight) }
+
+    /// Apply the same viewport bound to requests and heights retained by UIKit.
+    public func constrainedHeight(_ height: Double) -> Double {
+        min(height, maximumPanelHeight ?? height)
+    }
     public private(set) var revision: UInt64 = 0
     public private(set) var isActive = false
     public private(set) var requestedHeights: [Double] = []
     private static let capacity = 8
 
     public init(height: Double) {
-        panelHeight = height
+        requestedPanelHeight = height
     }
 
     public mutating func beginPresentation(height: Double) {
@@ -75,8 +81,18 @@ public struct KeyboardPanelHeightState: Sendable {
         revision &+= 1
         isActive = true
         requestedHeights.removeAll(keepingCapacity: true)
-        panelHeight = height
-        record(height)
+        requestedPanelHeight = height
+        record(panelHeight)
+    }
+
+    /// Keep the original request so leaving a constrained viewport restores it.
+    @discardableResult
+    public mutating func setMaximumPanelHeight(_ height: Double?) -> Bool {
+        let previous = panelHeight
+        maximumPanelHeight = height
+        guard panelHeight != previous else { return false }
+        if isActive { record(panelHeight) }
+        return true
     }
 
     public mutating func endPresentation() {
@@ -86,9 +102,9 @@ public struct KeyboardPanelHeightState: Sendable {
 
     @discardableResult
     public mutating func setPanelHeight(_ height: Double) -> Bool {
-        guard height.isFinite, height > 0, panelHeight != height else { return false }
-        panelHeight = height
-        if isActive { record(height) }
+        guard height.isFinite, height > 0, requestedPanelHeight != height else { return false }
+        requestedPanelHeight = height
+        if isActive { record(panelHeight) }
         return true
     }
 
@@ -116,15 +132,18 @@ public struct KeyboardPanelHeightState: Sendable {
 #if canImport(UIKit)
     import UIKit
 
-    /// The system's self-sizing query and Auto Layout read the same explicit budget.
-    /// Child hosting content (including an unbounded loading view) never chooses the
-    /// external keyboard height. UIKit still owns horizontal placement and transitions.
+    /// Tracks the content budget while the keyboard controller applies that height to UIKit's native root.
+    /// Loading and error content use the same budget as the ready keyboard.
     @MainActor
     open class KeyboardPanelInputView: UIInputView {
         private var heightState: KeyboardPanelHeightState
         public var panelHeight: CGFloat { CGFloat(heightState.panelHeight) }
         public private(set) var budgetHeightConstraint: NSLayoutConstraint!
         public var presentationRevision: UInt64 { heightState.revision }
+
+        public func constrainedPanelHeight(_ height: CGFloat) -> CGFloat {
+            CGFloat(heightState.constrainedHeight(Double(height)))
+        }
 
         public func acceptsPresentation(_ revision: UInt64) -> Bool {
             heightState.accepts(revision: revision)
@@ -210,10 +229,10 @@ public struct KeyboardPanelHeightState: Sendable {
         }
 
         private func configureSizing() {
-            allowsSelfSizing = true
+            allowsSelfSizing = false
             budgetHeightConstraint = heightAnchor.constraint(equalToConstant: panelHeight)
             budgetHeightConstraint.identifier = "KeyboardPanel.externalBudget"
-            // UIKit may retain its required encapsulated height during a keyboard transition.
+            // The native root owns required height; content follows its layout during transitions.
             budgetHeightConstraint.priority = UILayoutPriority(999)
             budgetHeightConstraint.isActive = true
             setContentHuggingPriority(UILayoutPriority(999), for: .vertical)
@@ -233,6 +252,13 @@ public struct KeyboardPanelHeightState: Sendable {
             heightState.endPresentation()
         }
 
+        public func setMaximumPanelHeight(_ height: CGFloat?) {
+            guard heightState.setMaximumPanelHeight(height.map { Double($0) }) else { return }
+            budgetHeightConstraint.constant = panelHeight
+            invalidateIntrinsicContentSize()
+            setNeedsLayout()
+        }
+
         public func setPanelHeight(_ height: CGFloat) {
             guard heightState.setPanelHeight(Double(height)) else { return }
             budgetHeightConstraint.constant = panelHeight
@@ -243,7 +269,6 @@ public struct KeyboardPanelHeightState: Sendable {
         open override var intrinsicContentSize: CGSize {
             CGSize(width: UIView.noIntrinsicMetric, height: panelHeight)
         }
-
         open override func systemLayoutSizeFitting(_ targetSize: CGSize) -> CGSize {
             fittingSize(targetSize, source: "systemLayoutSizeFitting")
         }
@@ -266,7 +291,9 @@ public struct KeyboardPanelHeightState: Sendable {
 
         private func fittingSize(_ proposed: CGSize, source: String) -> CGSize {
             let result = CGSize(width: proposed.width, height: panelHeight)
-            KeyboardGeometryDiagnostics.emit("\(source) proposed=\(proposed) returned=\(result)")
+            KeyboardGeometryDiagnostics.emit(
+                "\(source) input=\(ObjectIdentifier(self)) presentation=\(presentationRevision) proposed=\(proposed) returned=\(result)"
+            )
             return result
         }
     }

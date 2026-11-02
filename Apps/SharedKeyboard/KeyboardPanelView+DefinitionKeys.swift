@@ -78,7 +78,7 @@ extension KeyboardPanelView {
     /// address punctuation rather than leaving a dead key that does nothing on tap; title and action share a source, so they never disagree.
     private var t9FirstKeyCycleValues: [String] {
         let values = SymbolPageTable.quickCycle(
-            symbols: quickSymbols.symbols,
+            symbols: activeDefinition?.t9QuickSymbols ?? quickSymbols.symbols,
             ascii: controller.usesASCIIPunctuation)
         return values.isEmpty
             ? BuiltinLayouts.t9PunctuationSymbols()
@@ -105,7 +105,7 @@ extension KeyboardPanelView {
         // The known phone9 first key keeps its native cycle/separator behavior even when an authored
         // long press adds page UI actions; route it through the engine face with control-option
         // dispatch instead of the mixed UI face, which would lose cycling.
-        if isKnownPhone9Primary && id == "row-0-0" {
+        if activeDefinition.map(BuiltinLayouts.usesPhone9QuickSymbols) == true && id == "row-0-0" {
             definitionEngineKey(
                 key, id: id, perform: perform,
                 onControlOption: { action in
@@ -333,7 +333,7 @@ extension KeyboardPanelView {
         // The known phone9 first key cycles punctuation while idle and separates syllables while
         // composing. Only its dynamic action/title is overridden here: the authored key keeps its
         // label, secondary label, long-press list and declared width.
-        let isT9FirstKey = isKnownPhone9Primary && id == "row-0-0"
+        let isT9FirstKey = activeDefinition.map(BuiltinLayouts.usesPhone9QuickSymbols) == true && id == "row-0-0"
         let isComposing = controller.snapshot.isComposing
         let cycleValues = isT9FirstKey ? t9FirstKeyCycleValues : []
         let dynamicFirstKey: (title: String, action: LayoutAction)? =
@@ -355,7 +355,7 @@ extension KeyboardPanelView {
         }()
         let firstKeyAction: LayoutAction = dynamicFirstKey?.action ?? key.action
         let customTitle = key.titleMode == .custom ? key.label : nil
-        if key.action.type == .globe {
+        if !isT9FirstKey && key.action.type == .globe {
             if let systemKeyboardSwitch {
                 NativeInputModeKey(
                     title: customTitle, subtitle: key.secondaryLabel,
@@ -366,7 +366,7 @@ extension KeyboardPanelView {
             RepeatingDeleteKey(title: customTitle, subtitle: key.secondaryLabel) { isRepeating in
                 perform(.backspace, !isRepeating)
             }
-        } else if key.action.type == .enter {
+        } else if !isT9FirstKey && key.action.type == .enter {
             ReturnKey(
                 title: customTitle ?? controller.returnKeyTitle,
                 isEnabled: controller.isReturnKeyEnabled,
@@ -377,7 +377,7 @@ extension KeyboardPanelView {
             ) {
                 perform($0.action, true)
             }
-        } else if key.action.type == .space {
+        } else if !isT9FirstKey && key.action.type == .space {
             CursorSpaceKey(
                 title: customTitle
                     ?? (key.titleMode == .automatic ? (controller.isEnglishMode ? "space" : "空格") : key.label),

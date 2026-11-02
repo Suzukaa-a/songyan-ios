@@ -44,9 +44,17 @@ public struct SymbolLibraryView: View {
     @State private var confirmsClearHistory = false
     @State private var insertionError: String?
     private let onClose: () -> Void
+    private let clipboardPaste: AnyView?
+    private let clipboardPasteRevision: Int
     @Environment(\.keyboardAppearance) private var appearance
 
-    public init(model: SymbolLibraryModel, onClose: @escaping () -> Void) {
+    public init(
+        model: SymbolLibraryModel, initialSection: String = "symbols", clipboardPaste: AnyView? = nil,
+        clipboardPasteRevision: Int = 0, onClose: @escaping () -> Void
+    ) {
+        self.clipboardPaste = clipboardPaste
+        self.clipboardPasteRevision = clipboardPasteRevision
+        _section = State(initialValue: initialSection)
         self.model = model
         self.onClose = onClose
     }
@@ -96,6 +104,7 @@ public struct SymbolLibraryView: View {
         }
         .tint(appearance.accentForeground)
         .onAppear { local.reload() }
+        .onChange(of: clipboardPasteRevision) { _, _ in local.reload() }
         // Symbol names/browse text honour the user's text size. The grid cells and the
         // search keypad keep their own explicit minimum hit sizes below.
         .dynamicTypeSize(.small ... .accessibility3)
@@ -228,6 +237,7 @@ public struct SymbolLibraryView: View {
     private var localContent: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 8) {
+                if section == "clipboard", let clipboardPaste { clipboardPaste }
                 if local.isBusy { ProgressView("正在读取…") }
                 if let insertionError { Text(insertionError).font(.footnote) }
                 if let error = local.error {
@@ -269,7 +279,7 @@ public struct SymbolLibraryView: View {
                             .accessibilityIdentifier("quickContent.clearHistory")
                     }
                     if local.content.clipboard.isEmpty {
-                        Text("还没有历史记录。返回键盘后轻点「粘贴」即可保存。")
+                        Text("还没有历史记录，轻点上方「粘贴」后会保存。")
                             .font(.footnote).foregroundStyle(.secondary)
                     }
                     ForEach(local.content.clipboard, id: \.self) { text in
@@ -681,9 +691,21 @@ private struct SymbolPanelKeyStyle: ButtonStyle {
 struct SymbolLibraryPanel: View {
     @ObservedObject private var controller: KeyboardController
     private let onClose: () -> Void
+    private let initialSection: String
+    private let initialCategory: String?
+    private let clipboardPaste: AnyView?
+    private let clipboardPasteRevision: Int
     @StateObject private var model: SymbolLibraryModel
 
-    init(controller: KeyboardController, onClose: @escaping () -> Void) {
+    init(
+        controller: KeyboardController, initialSection: String = "symbols", initialCategory: String? = nil,
+        clipboardPaste: AnyView? = nil, clipboardPasteRevision: Int = 0,
+        onClose: @escaping () -> Void
+    ) {
+        self.initialSection = initialSection
+        self.initialCategory = initialCategory
+        self.clipboardPaste = clipboardPaste
+        self.clipboardPasteRevision = clipboardPasteRevision
         self.controller = controller
         self.onClose = onClose
         // onInsert/onInserted hold only a weak reference to the controller; when it is nil (released),
@@ -702,6 +724,10 @@ struct SymbolLibraryPanel: View {
     }
 
     var body: some View {
-        SymbolLibraryView(model: model, onClose: onClose)
+        SymbolLibraryView(
+            model: model, initialSection: initialSection, clipboardPaste: clipboardPaste,
+            clipboardPasteRevision: clipboardPasteRevision, onClose: onClose
+        )
+        .onAppear { model.selectCategory(initialCategory) }
     }
 }

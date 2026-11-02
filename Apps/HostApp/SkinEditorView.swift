@@ -15,29 +15,36 @@ struct SkinEditorView: View {
     @ObservedObject private var manager = AppearanceManager.shared
     @State private var draft: AppearanceDocument
     @State private var dark = false
-    @State private var layoutID = BuiltinLayouts.merged14.id
+    @State private var layoutID: String
+    @State private var layouts: [LayoutDefinition] = []
     @State private var error: String?
     @State private var confirmingDiscard = false
     @State private var saving = false
     /// Draft at open time: used to detect unsaved changes (confirm before cancel/swipe-down dismissal).
     private let original: AppearanceDocument
     private let onSaved: ((AppearanceDocument) -> Void)?
-    init(document: AppearanceDocument, onSaved: ((AppearanceDocument) -> Void)? = nil) {
+    init(
+        document: AppearanceDocument, previewLayoutID: String? = nil, previewDark: Bool = false,
+        onSaved: ((AppearanceDocument) -> Void)? = nil
+    ) {
+        _dark = State(initialValue: previewDark)
+        _layoutID = State(initialValue: previewLayoutID ?? "")
         original = document.normalized()
         _draft = State(initialValue: original)
         self.onSaved = onSaved
     }
     private var hasChanges: Bool { draft != original }
-    private var layouts: [LayoutDefinition] { LayoutManager.shared.registry.layouts }
     var body: some View {
         NavigationStack {
             Form {
                 Section("预览") {
+                    if layouts.isEmpty { ProgressView("正在读取布局…") }
                     Picker("布局", selection: $layoutID) { ForEach(layouts) { Text($0.name).tag($0.id) } }
                     Toggle("编辑深色", isOn: $dark)
-                    KeyboardPreviewView(
-                        layout: layouts.first(where: { $0.id == layoutID }) ?? BuiltinLayouts.merged14,
-                        skin: draft.skin, candidateBar: draft.candidateBar, previewDark: dark)
+                    if let layout = layouts.first(where: { $0.id == layoutID }) {
+                        KeyboardPreviewView(
+                            layout: layout, skin: draft.skin, candidateBar: draft.candidateBar, previewDark: dark)
+                    }
                 }
                 Section("候选栏预览") {
                     CandidateBarPreviewView(bar: draft.candidateBar, skin: draft.skin, dark: dark)
@@ -139,6 +146,15 @@ struct SkinEditorView: View {
             }
         }
         .interactiveDismissDisabled(hasChanges || saving)
+        .task {
+            guard layouts.isEmpty else { return }
+            do {
+                let preview = try await AppearancePreviewLoader.load()
+                guard !Task.isCancelled else { return }
+                layouts = preview.layouts
+                if layoutID.isEmpty { layoutID = preview.selectedID }
+            } catch { self.error = "无法读取预览布局，请重新打开外观。" }
+        }
     }
     /// Display mode belongs to this appearance project: editing only changes the draft, committed together on save/apply.
     private var variant: SkinDefinition.Variant {

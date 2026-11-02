@@ -161,7 +161,7 @@ struct KeyboardPageEditorView: View {
                 Button("取消") { if draft != original { confirmingDiscard = true } else { dismiss() } }.disabled(saving)
             }
             ToolbarItem(placement: .confirmationAction) {
-                Button("保存") { save() }.disabled(saving)
+                Button("保存页面") { save() }.disabled(saving)
             }
         }
         .confirmationDialog("放弃未保存的更改？", isPresented: $confirmingDiscard, titleVisibility: .visible) {

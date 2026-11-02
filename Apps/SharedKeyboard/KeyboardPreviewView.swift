@@ -59,6 +59,7 @@ public struct KeyboardPreviewView: View {
                     definition: layout, facts: facts,
                     language: editing ? .chinese : language, sample: editing ? .idle : sample,
                     editing: editing, showsGlobe: preferences.showsGlobe(editing: editing), widths: widths,
+                    quickSymbols: layout.t9QuickSymbols ?? preferences.t9QuickSymbols,
                     candidateBar: candidateBar, inspected: inspected,
                     onSelect: { path, key in
                         inspected = key
@@ -115,6 +116,7 @@ private struct KeyboardMainLayoutPreview: View {
     let editing: Bool
     let showsGlobe: Bool
     let widths: KeyboardPreviewWidths
+    let quickSymbols: String
     let candidateBar: CandidateBarDefinition
     let inspected: LayoutKey?
     let onSelect: (LayoutKeyPath, LayoutKey) -> Void
@@ -391,7 +393,7 @@ private struct KeyboardMainLayoutPreview: View {
             } else {
                 KeyboardPhoneSymbolRail(
                     caps: SymbolPageTable.quickRail(
-                        symbols: T9QuickSymbolStore.defaultSymbols, ascii: usesASCIIPunctuation),
+                        symbols: quickSymbols, ascii: usesASCIIPunctuation),
                     metrics: metrics, onSelect: { _ in })
             }
         case .declared:
@@ -465,7 +467,7 @@ private struct KeyboardMainLayoutPreview: View {
                     ? (composing
                         ? "分词"
                         : SymbolPageTable.quickCycle(
-                            symbols: T9QuickSymbolStore.defaultSymbols, ascii: usesASCIIPunctuation
+                            symbols: quickSymbols, ascii: usesASCIIPunctuation
                         ).prefix(3).joined())
                     : key.label
             } else if bundledMergedFace {

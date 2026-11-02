@@ -20,6 +20,7 @@ struct SchemePackageImportView: View {
     var installedPackageID: String?
     var initialSourceURL: URL?
     @State private var initialized = false
+    @State private var recognizedNames: [String: String] = [:]
 
     /// One use of fileImporter: pick a scheme package source, or supply a local file for a declared external resource.
     enum ImporterPurpose: Equatable {
@@ -294,7 +295,7 @@ struct SchemePackageImportView: View {
         Section {
             ForEach(RecommendedSchemeSource.catalog) { source in
                 NavigationLink {
-                    SchemeURLImportView(initialURL: source.url)
+                    SchemeURLImportView(source: source)
                 } label: {
                     VStack(alignment: .leading, spacing: 3) {
                         Label(source.name, systemImage: "star")
@@ -385,9 +386,18 @@ struct SchemePackageImportView: View {
                         .font(.caption).foregroundStyle(.secondary)
                 }
             }
-            // The raw schema ID list shows only under developer options; the normal flow gives only the count (previous row).
+            recognizedInputMethods(Array(prepared.schemaIDs.prefix(5)))
+            if prepared.schemaIDs.count > 5 {
+                DisclosureGroup("其余 \(prepared.schemaIDs.count - 5) 种输入方式") {
+                    recognizedInputMethods(Array(prepared.schemaIDs.dropFirst(5)))
+                }
+            }
             if developerOptions {
-                LabeledRow(label: "包含的输入方式", value: prepared.schemaIDs.joined(separator: "、"))
+                DisclosureGroup("输入方式标识") {
+                    ForEach(prepared.schemaIDs, id: \.self) { id in
+                        LabeledRow(label: recognizedNames[id] ?? "未命名输入方式", value: id)
+                    }
+                }
             }
             LabeledRow(label: "来自", value: sourceSummary)
             LabeledRow(
@@ -450,6 +460,17 @@ struct SchemePackageImportView: View {
             Text("方案信息")
         } footer: {
             Text(center.preparedUpdatesInstalledPackage ? "更新后在「我的键盘」中换用新版本。" : "安装后在「我的键盘」中选择使用。")
+        }
+        .task(id: prepared.manifest.revision) {
+            let names = await Task.detached(priority: .userInitiated) { prepared.schemaNames }.value
+            guard !Task.isCancelled else { return }
+            recognizedNames = names
+        }
+    }
+
+    private func recognizedInputMethods(_ ids: [String]) -> some View {
+        ForEach(Array(ids.enumerated()), id: \.element) { index, id in
+            Text(recognizedNames[id] ?? "未命名输入方式 \(index + 1)")
         }
     }
 

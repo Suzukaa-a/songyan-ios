@@ -15,6 +15,8 @@ struct LayoutEditorView: View {
     @State private var error: String?
     @State private var confirmingDiscard = false
     @State private var saving = false
+    @StateObject private var inheritedQuickSymbols = T9QuickSymbolModel()
+    @State private var quickSymbolsLoaded = false
     @StateObject private var widthValidity = WidthFieldValidity()
     /// Layout at open time: used to detect unsaved changes (confirm before cancel/swipe-down dismissal).
     private let original: LayoutDefinition
@@ -80,6 +82,7 @@ struct LayoutEditorView: View {
             if splitView && !PhoneKeypadStructure.matches(draft) {
                 splitSections
             } else {
+                if PhoneKeypadStructure.matches(draft) { nineKeySections }
                 wholeSections
             }
             KeyboardSplitEditor(
@@ -102,7 +105,7 @@ struct LayoutEditorView: View {
                     .accessibilityIdentifier("layoutEditor.cancel")
             }
             ToolbarItem(placement: .confirmationAction) {
-                Button("保存") { save(asCopy: false) }
+                Button("保存布局") { save(asCopy: false) }
                     .disabled(saving)
                     .accessibilityIdentifier("layoutEditor.save")
             }
@@ -112,6 +115,12 @@ struct LayoutEditorView: View {
             Button("继续编辑", role: .cancel) {}
         }
         .interactiveDismissDisabled(hasChanges || saving)
+        .task {
+            if PhoneKeypadStructure.matches(draft) {
+                await inheritedQuickSymbols.reload().value
+                quickSymbolsLoaded = true
+            }
+        }
         .alert(
             UserTerminology.keyboardLayout, isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })
         ) {
@@ -127,7 +136,9 @@ struct LayoutEditorView: View {
             KeyboardPreviewView(layout: draft, onSelectKey: { selected = $0 })
         }
         // The selected key's fields sit right under the preview that selects it.
-        if let key = draft.key(at: selected) {
+        if let key = draft.key(at: selected),
+            !(selected == .row(0, key: 0) && BuiltinLayouts.usesPhone9QuickSymbols(draft))
+        {
             // Main-layout function keys draw custom titles at runtime too.
             LayoutKeyFields(key: key, allowsTitleMode: true) { updated in
                 draft = draft.replacingKey(at: selected, with: updated)
@@ -148,6 +159,82 @@ struct LayoutEditorView: View {
                     .font(.footnote).foregroundStyle(.secondary)
             }
         }
+    }
+
+    @ViewBuilder
+    private var nineKeySections: some View {
+        Section {
+            Picker(
+                "首键",
+                selection: Binding(
+                    get: { BuiltinLayouts.usesPhone9QuickSymbols(draft) ? T9FirstKeyBehavior.quickSymbols : .custom },
+                    set: { draft = draft.settingT9FirstKeyBehavior($0) }
+                )
+            ) {
+                Text("快捷符号与分词").tag(T9FirstKeyBehavior.quickSymbols)
+                Text("自定义按键").tag(T9FirstKeyBehavior.custom)
+            }
+            TextField(
+                "默认快捷符号",
+                text: Binding(
+                    get: { draft.t9QuickSymbols ?? inheritedQuickSymbols.symbols },
+                    set: { draft = draft.settingT9QuickSymbols($0) }
+                ), axis: .vertical
+            )
+            .lineLimit(1...3)
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+            .disabled(!quickSymbolsLoaded)
+            .accessibilityIdentifier("t9QuickSymbols.editor")
+            let values = BuiltinLayouts.t9QuickSymbolValues(
+                for: draft, inherited: inheritedQuickSymbols.symbols, ascii: false)
+            LabeledContent("侧键", value: values.prefix(3).joined(separator: " "))
+            if BuiltinLayouts.usesPhone9QuickSymbols(draft) {
+                LabeledContent("首键连续点按", value: values.dropFirst(3).joined(separator: " "))
+            }
+            Button("恢复默认快捷符号") { draft = draft.settingT9QuickSymbols("") }
+                .accessibilityIdentifier("t9QuickSymbols.restore")
+            Toggle(
+                "自定义侧栏",
+                isOn: Binding(
+                    get: { draft.auxiliaryAreas != BuiltinLayouts.phone9.auxiliaryAreas },
+                    set: { custom in
+                        draft = replacingAuxiliaryAreas(
+                            custom ? frozenPhoneRails() : BuiltinLayouts.phone9.auxiliaryAreas)
+                    }
+                )
+            )
+            .disabled(!quickSymbolsLoaded)
+        } header: {
+            Text("九键")
+        } footer: {
+            Text("快捷符号随布局保存。自定义侧栏后，在预览中轻点侧键可编辑。")
+        }
+    }
+
+    private func frozenPhoneRails() -> [LayoutAuxiliaryArea] {
+        let chinese = BuiltinLayouts.t9QuickSymbolValues(
+            for: draft, inherited: inheritedQuickSymbols.symbols, ascii: false)
+        let ascii = BuiltinLayouts.t9QuickSymbolValues(
+            for: draft, inherited: inheritedQuickSymbols.symbols, ascii: true)
+        let keys = zip(chinese.prefix(3), ascii.prefix(3)).map { value, asciiValue in
+            LayoutKey(
+                label: value, action: .init(.literal, value: value, asciiValue: asciiValue), titleMode: .automatic)
+        }
+        return [
+            .init(position: .leading, role: .punctuation, keys: keys),
+            .init(
+                position: .trailing, role: .editing,
+                keys: PhoneKeypadRailPolicy.declaredKeys(in: BuiltinLayouts.phone9, position: .trailing)),
+        ]
+    }
+
+    private func replacingAuxiliaryAreas(_ areas: [LayoutAuxiliaryArea]?) -> LayoutDefinition {
+        LayoutDefinition(
+            id: draft.id, name: draft.name, input: draft.input, rows: draft.rows,
+            auxiliaryAreas: areas, note: draft.note, longPressDelay: draft.longPressDelay,
+            candidateArea: draft.candidateArea, split: draft.split,
+            t9FirstKeyBehavior: draft.t9FirstKeyBehavior, t9QuickSymbols: draft.t9QuickSymbols)
     }
 
     private var splitDefaultBreaks: [Int]? { BuiltinLayouts.handSplit(for: draft)?.rowBreaks }
@@ -214,7 +301,8 @@ struct LayoutEditorView: View {
         LayoutDefinition(
             id: draft.id, name: draft.name, input: draft.input, rows: draft.rows,
             auxiliaryAreas: draft.auxiliaryAreas, note: draft.note,
-            longPressDelay: draft.longPressDelay, candidateArea: draft.candidateArea, split: split)
+            longPressDelay: draft.longPressDelay, candidateArea: draft.candidateArea, split: split,
+            t9FirstKeyBehavior: draft.t9FirstKeyBehavior, t9QuickSymbols: draft.t9QuickSymbols)
     }
 }
 

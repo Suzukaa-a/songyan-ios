@@ -62,7 +62,7 @@ extension KeyboardPanelView {
                 // The first three type directly; from the fourth on, there is no long press here: tapping the main-area first key cycles through them.
                 KeyboardPhoneSymbolRail(
                     caps: SymbolPageTable.quickRail(
-                        symbols: quickSymbols.symbols,
+                        symbols: activeDefinition?.t9QuickSymbols ?? quickSymbols.symbols,
                         ascii: controller.usesASCIIPunctuation), metrics: metrics,
                     onSelect: { handleKey($0.action) })
             }

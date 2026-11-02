@@ -114,6 +114,8 @@ extension KeyboardPanelView {
             ) {
                 emitSelectionFeedback()
                 showsUtilitiesMenu = false
+                quickContentSection = "symbols"
+                quickContentCategory = nil
                 showsSymbolLibrary = true
             }
             .accessibilityIdentifier("keyboard.quickContent")

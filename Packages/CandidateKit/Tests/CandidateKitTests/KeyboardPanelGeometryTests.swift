@@ -7,6 +7,30 @@ import XCTest
 /// (the real input of `KeyboardPanelView.panelBody`) and assert the exact frames of the header / first key row / control row /
 /// bottom, plus that the key area stays fixed relative to the screen bottom under stateful real heights.
 final class KeyboardPanelGeometryTests: XCTestCase {
+    func testLandscapeHeightLimitUsesTheAvailableViewportAndTraits() {
+        for (width, height, top, bottom, expected) in [
+            (568.0, 320.0, 0.0, 0.0, 160.0),
+            (667.0, 375.0, 0.0, 21.0, 177.0),
+            (852.0, 393.0, 12.0, 21.0, 180.0),
+        ] {
+            XCTAssertEqual(
+                KeyboardPanelGeometry.landscapeHeightLimit(
+                    viewportWidth: width, viewportHeight: height,
+                    topInset: top, bottomInset: bottom, isPhone: true, compact: true), expected)
+        }
+        XCTAssertNil(
+            KeyboardPanelGeometry.landscapeHeightLimit(
+                viewportWidth: 393, viewportHeight: 852,
+                topInset: 59, bottomInset: 34, isPhone: true, compact: false))
+        XCTAssertNil(
+            KeyboardPanelGeometry.landscapeHeightLimit(
+                viewportWidth: 1194, viewportHeight: 834,
+                topInset: 24, bottomInset: 20, isPhone: false, compact: true))
+        XCTAssertNil(
+            KeyboardPanelGeometry.landscapeHeightLimit(
+                viewportWidth: 852, viewportHeight: 393,
+                topInset: 0, bottomInset: 21, isPhone: true, compact: false))
+    }
 
     /// With a candidate area the top padding changes from `verticalPadding` (4) to `candidateTopPadding` (0),
     /// so "full height with header - base height without header" = header - this saving.

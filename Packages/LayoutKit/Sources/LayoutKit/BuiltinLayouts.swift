@@ -132,6 +132,14 @@ public enum BuiltinLayouts {
         return (userOrdered + t9PunctuationSymbols()).filter { seen.insert($0).inserted }
     }
 
+    /// Resolves a phone9 override before applying the shared ordering and ASCII conversion.
+    public static func t9QuickSymbolValues(
+        for definition: LayoutDefinition, inherited: String, ascii: Bool
+    ) -> [String] {
+        guard PhoneKeypadStructure.matches(definition) else { return [] }
+        return t9QuickSymbolValues(saved: definition.t9QuickSymbols ?? inherited, ascii: ascii)
+    }
+
     /// The first three items typed directly by the leading rail, top to bottom.
     public static func t9QuickRailValues(saved: String, ascii: Bool) -> [String] {
         Array(t9QuickSymbolValues(saved: saved, ascii: ascii).prefix(3))
@@ -374,16 +382,26 @@ public extension BuiltinLayouts {
     }
 
     /// The bundled 9-key whose first key may show its live face (the cycling symbols, or 分词
-    /// while composing) and hints: the chrome and the primary gestures are the preset's, and the
+    /// while composing) and hints: quick symbols are enabled, the chrome is the preset's, and the
     /// first key's own face is unedited. The live title replaces the stored one, so an edited
     /// first-key face is shown as authored instead of being covered up; edits to other keys do
     /// not matter here.
     static func matchesPhone9LiveFirstKey(_ definition: LayoutDefinition) -> Bool {
-        guard matchesPhone9PrimarySemantics(definition), matchesPhone9Chrome(definition),
+        guard usesPhone9QuickSymbols(definition), matchesPhone9Chrome(definition),
             let key = definition.rows.first?.keys.first, let preset = phone9.rows.first?.keys.first
         else { return false }
         return key.label == preset.label && key.secondaryLabel == preset.secondaryLabel
             && key.titleMode == preset.titleMode
+    }
+
+    /// Shared by previews and runtime so an explicit custom comma remains an ordinary action.
+    static func usesPhone9QuickSymbols(_ definition: LayoutDefinition) -> Bool {
+        guard PhoneKeypadStructure.matches(definition) else { return false }
+        switch definition.t9FirstKeyBehavior {
+        case .quickSymbols: return true
+        case .custom: return false
+        case nil: return matchesPhone9PrimarySemantics(definition)
+        }
     }
 
     /// Pure primary-gesture semantics for the known bundled 9-key.

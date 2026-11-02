@@ -284,6 +284,11 @@ public struct LayoutCandidateArea: Codable, Equatable, Sendable {
     }
 }
 
+/// The phone9 first key either uses the quick-symbol cycle or its declared action.
+public enum T9FirstKeyBehavior: String, Codable, Sendable {
+    case quickSymbols, custom
+}
+
 public struct LayoutDefinition: Codable, Equatable, Sendable, Identifiable {
     public internal(set) var id: String
     public internal(set) var name: String
@@ -293,6 +298,10 @@ public struct LayoutDefinition: Codable, Equatable, Sendable, Identifiable {
     /// Nil lets the key structure decide (see `effectiveCandidateArea`).
     public internal(set) var candidateArea: LayoutCandidateArea?
     public internal(set) var split: LayoutSplitConfiguration?
+    /// Nil preserves legacy inference; ignored outside phone9.
+    public internal(set) var t9FirstKeyBehavior: T9FirstKeyBehavior?
+    /// Nil inherits the caller’s legacy list; empty uses builtin defaults. Ignored outside phone9.
+    public internal(set) var t9QuickSymbols: String?
     public let note: String?
     /// Seconds until the alternate picker opens. Release commits one selected alternate only.
     public let longPressDelay: Double?
@@ -319,7 +328,8 @@ public struct LayoutDefinition: Codable, Equatable, Sendable, Identifiable {
         id: String, name: String, input: LayoutInput, rows: [LayoutRow],
         auxiliaryAreas: [LayoutAuxiliaryArea]? = nil, note: String? = nil,
         longPressDelay: Double? = nil, candidateArea: LayoutCandidateArea? = nil,
-        split: LayoutSplitConfiguration? = nil
+        split: LayoutSplitConfiguration? = nil, t9FirstKeyBehavior: T9FirstKeyBehavior? = nil,
+        t9QuickSymbols: String? = nil
     ) {
         self.id = id
         self.name = name
@@ -328,6 +338,8 @@ public struct LayoutDefinition: Codable, Equatable, Sendable, Identifiable {
         self.auxiliaryAreas = auxiliaryAreas
         self.candidateArea = candidateArea
         self.split = split
+        self.t9FirstKeyBehavior = t9FirstKeyBehavior
+        self.t9QuickSymbols = t9QuickSymbols
         self.note = note
         self.longPressDelay = longPressDelay
     }
@@ -359,6 +371,14 @@ public struct LayoutDefinition: Codable, Equatable, Sendable, Identifiable {
     func validatedUsage() throws -> LayoutResourceBudget.Usage {
         let usage = try LayoutResourceBudget.usage(self)
         try split?.validate(rowKeyCounts: rows.map { $0.keys.count }, allowsHalves: true)
+        if (t9FirstKeyBehavior != nil || t9QuickSymbols != nil), !PhoneKeypadStructure.matches(self) {
+            throw LayoutError.invalid("首键与快捷符号设置只适用于九键布局，请移除后再导入。")
+        }
+        if let symbols = t9QuickSymbols, !symbols.isEmpty {
+            guard T9QuickSymbolStore.isValid(symbols), Set(symbols).count == symbols.count else {
+                throw LayoutError.invalid("快捷符号最多填写 12 个，不能重复或包含空白，请修改后保存。")
+            }
+        }
         guard effectiveLongPressDelay.isFinite, effectiveLongPressDelay > 0 else {
             throw LayoutError.invalid("长按等待时间要大于 0 秒，请修改后保存。")
         }
@@ -462,6 +482,18 @@ public extension LayoutDefinition {
                     position: original.position, role: original.role, keys: keys)
             }
         }
+        return copy
+    }
+
+    func settingT9FirstKeyBehavior(_ behavior: T9FirstKeyBehavior?) -> LayoutDefinition {
+        var copy = self
+        copy.t9FirstKeyBehavior = behavior
+        return copy
+    }
+
+    func settingT9QuickSymbols(_ symbols: String?) -> LayoutDefinition {
+        var copy = self
+        copy.t9QuickSymbols = symbols
         return copy
     }
 

@@ -66,6 +66,7 @@ struct KeyboardCompositionView: View {
     @State private var initialized = false
     @State private var alert: CompositionAlert?
     @State private var confirmingDiscard = false
+    @State private var libraryNotice: String?
 
     private struct CompositionAlert {
         let title: String
@@ -98,6 +99,11 @@ struct KeyboardCompositionView: View {
         Form {
             Section {
                 Text(keyboard.title)
+                Text("页面与布局单独保存到库中；选好后轻点「保存搭配」。")
+                    .font(.footnote).foregroundStyle(.secondary)
+                if let libraryNotice {
+                    Label(libraryNotice, systemImage: "checkmark.circle").font(.footnote)
+                }
                 if !initialized { ProgressView("正在读取布局…") }
                 if let message = manager.lastError { Text(message).foregroundStyle(.orange) }
             }
@@ -108,6 +114,11 @@ struct KeyboardCompositionView: View {
                 if let layout = mainLayout {
                     DisclosureGroup("预览") {
                         KeyboardPreviewView(layout: layout, skin: AppearanceManager.shared.applied.skin)
+                    }
+                    if let usage = keyboardNames.usage(
+                        manager.registry.keyboards(usingLayout: layout.id, among: keyboardNames.active))
+                    {
+                        Text(usage).font(.footnote).foregroundStyle(.secondary)
                     }
                     Button("编辑\(UserTerminology.mainLayout)") { editingMain = layout }
                     Button("复制并编辑\(UserTerminology.mainLayout)") {
@@ -151,7 +162,7 @@ struct KeyboardCompositionView: View {
                 }
             }
             ToolbarItem(placement: .confirmationAction) {
-                Button("保存") { save() }.disabled(saving || !initialized || layouts.isEmpty)
+                Button("保存搭配") { save() }.disabled(saving || !initialized || layouts.isEmpty)
             }
         }
         .sheet(item: $editingPage) { page in
@@ -160,18 +171,26 @@ struct KeyboardCompositionView: View {
                     page: page, inheritedSplit: mainHandSplit ?? mainLayout?.split, usesHandCuts: mainHandSplit != nil,
                     isPhoneLayout: mainLayoutIsPhoneKeypad,
                     mainLayout: keyboard.layout
-                ) { saved in draft.setPageID(saved.id, for: saved.kind) }
+                ) { saved in
+                    draft.setPageID(saved.id, for: saved.kind)
+                    libraryNotice = "「\(saved.name)」已保存到页面库。"
+                }
             }
         }
         .sheet(item: $editingMain) { layout in
             NavigationStack {
                 // A saved copy (from either copy button) becomes this keyboard's main layout.
-                LayoutEditorView(layout: layout) { saved in draft.mainLayoutID = saved.id }
+                LayoutEditorView(layout: layout) { saved in
+                    draft.mainLayoutID = saved.id
+                    libraryNotice = "「\(saved.name)」已保存到键盘布局。"
+                }
             }
         }
-        .confirmationDialog("放弃未保存的更改？", isPresented: $confirmingDiscard, titleVisibility: .visible) {
-            Button("放弃更改", role: .destructive) { dismiss() }
+        .confirmationDialog("放弃未保存的搭配？", isPresented: $confirmingDiscard, titleVisibility: .visible) {
+            Button("放弃搭配", role: .destructive) { dismiss() }
             Button("继续编辑", role: .cancel) {}
+        } message: {
+            Text("已保存到库中的页面和布局会保留。")
         }
         .alert(
             alert?.title ?? "", isPresented: Binding(get: { alert != nil }, set: { if !$0 { alert = nil } })
@@ -195,6 +214,9 @@ struct KeyboardCompositionView: View {
                         usesHandCuts: mainHandSplit != nil,
                         isPhoneLayout: mainLayoutIsPhoneKeypad,
                         mainLayout: keyboard.layout, skin: AppearanceManager.shared.applied.skin)
+                }
+                if let usage = keyboardNames.usage(manager.registry.keyboards(usingPage: page.id)) {
+                    Text(usage).font(.footnote).foregroundStyle(.secondary)
                 }
                 if let note = pageNote(page) {
                     Text(note).font(.footnote).foregroundStyle(.secondary)
