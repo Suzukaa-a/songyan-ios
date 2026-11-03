@@ -169,7 +169,7 @@ extension RecipePackageManager {
         let text: String
         if let existing = context.overrides.overrideFile(path) {
             let loaded = try Self.rimeConfigText(existing, path)
-            text = path.hasSuffix(".custom.yaml") ? RimeConfigFolder.withoutManagedBlocks(loaded) : loaded
+            text = path.hasSuffix(".custom.yaml") ? Self.editableCustomText(loaded) : loaded
             // A file the user's copy shadows keeps its base from the first edit; one made before the marks existed gets it now.
             if context.package.hashes[path] != nil { context.overrides.recordBase(path, package: context.package) }
         } else if !path.contains("/"), path.hasSuffix(".custom.yaml"), UserConfigFiles.isCreatableName(path) {
@@ -183,10 +183,7 @@ extension RecipePackageManager {
             } else {
                 original = ""
             }
-            let editable = RimeConfigFolder.withoutManagedBlocks(original)
-            text =
-                editable.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                ? RimeConfigTemplates.customPatch() : editable
+            text = Self.editableCustomText(original)
         } else if context.package.hashes[path] != nil {
             text = try Self.rimeConfigText(try context.overrides.copyOf(path, package: context.package), path)
         } else {
@@ -260,6 +257,12 @@ extension RecipePackageManager {
         }
         scripts.accept(plan.unconfirmed)
         return .ready
+    }
+
+    private static func editableCustomText(_ text: String) -> String {
+        let editable = RimeConfigFolder.withoutManagedBlocks(text)
+        return editable.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            ? RimeConfigTemplates.customPatch() : editable
     }
 
     private static func rimeConfigText(_ file: URL, _ path: String) throws -> String {

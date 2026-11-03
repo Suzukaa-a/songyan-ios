@@ -206,6 +206,10 @@ final class RimeConfigEditorTests: XCTestCase {
         var overview = try await manager.rimeConfigOverview()
         XCTAssertTrue(overview.overrides.isEmpty)
         try write(block, "main.custom.yaml")
+        let legacy = try await manager.openRimeConfigFile("main.custom.yaml")
+        XCTAssertEqual(legacy.text, RimeConfigTemplates.customPatch())
+        XCTAssertEqual(
+            try String(contentsOf: folder.appendingPathComponent("main.custom.yaml"), encoding: .utf8), block)
         overview = try await manager.rimeConfigOverview()
         XCTAssertTrue(overview.overrides.isEmpty)
         XCTAssertTrue(overview.unacknowledged.isEmpty)
