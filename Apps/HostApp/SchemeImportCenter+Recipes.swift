@@ -353,8 +353,9 @@ extension SchemeImportCenter {
             // The only trigger for adapter generation: `nil` = ordinary install/update (adapter registry untouched, never generated);
             // non-nil (including an empty array) = add/remove a user keyboard, or a model transaction refreshing existing registered combinations;
             // the registry is rewritten atomically from that full set and never adds layouts automatically.
+            var generatedAdapters: [KeyboardResourceSet.EncodingAdapter] = []
             if let requestedAdapters {
-                try CompactAdapterDeployment.prepare(
+                generatedAdapters = try CompactAdapterDeployment.prepare(
                     engine: engine, deployment: deployment, requested: requestedAdapters)
             }
             // Runnable list: only enabled items covered by this validation loop become trial-typeable/publishable schemes.
@@ -404,7 +405,11 @@ extension SchemeImportCenter {
             return DeployVerification(
                 receipt: RecipeDeploymentReceipt(
                     availableComponents: [], validatedSchemaID: entrySchemaID,
-                    validatedEnabledSchemaIDs: enabled))
+                    validatedEnabledSchemaIDs: enabled,
+                    generatedSchemaSources: Dictionary(
+                        uniqueKeysWithValues: generatedAdapters.map {
+                            ($0.schemaID, $0.sourceSchemaID)
+                        })))
         }
     }
 

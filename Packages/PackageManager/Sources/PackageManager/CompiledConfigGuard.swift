@@ -93,6 +93,13 @@ struct ScriptScope {
         }
     }
 
+    /// Companions inherit the source's shipped and confirmed components, just as their generated YAML does.
+    mutating func inherit(generated: String, source: String) {
+        references[generated + ".schema.yaml", default: []].formUnion([
+            source + ".schema.yaml", source + ".custom.yaml",
+        ])
+    }
+
     func allowed(compiled name: String) -> Set<String> {
         var pending = [name]
         if name.hasSuffix(".yaml") {

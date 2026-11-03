@@ -51,6 +51,7 @@ public struct UserConfigError: Error, LocalizedError, Equatable, Sendable {
         case .unsafeReference:
             return "\(name)里有指向别处文件的写法，改动没有应用，键盘仍用原来的设置。"
         case .unconfirmedScript:
+            if detail != nil { return "\(name)使用了尚未允许的扩展脚本，请检查配置文件。" }
             return "扩展脚本在你确认之后又有改动，改动没有应用。再点一次「应用更改」。"
         case .managedMarker:
             return "\(name)里有以「# Rx: 」开头的行或单独的「# }」行，这是松烟自己用的标记，改动没有应用。删掉这些行后再试。"

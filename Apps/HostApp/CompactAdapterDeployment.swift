@@ -60,10 +60,11 @@ enum CompactAdapterDeployment {
     }
 
     /// Deploy-callback entry point.
+    @discardableResult
     static func prepare(
         engine: RimeEngine, deployment: RecipeDeployment,
         requested: [PublishedKeyboard]
-    ) throws {
+    ) throws -> [KeyboardResourceSet.EncodingAdapter] {
         try prepare(
             engine: engine, resourceURL: deployment.resourceURL,
             userDataURL: deployment.userDataURL, requested: requested)
@@ -76,10 +77,11 @@ enum CompactAdapterDeployment {
     /// skipped and keeps the native display.
     /// Generation depends only on the compiled schema's structure and the native source
     /// projection; it never samples candidates.
+    @discardableResult
     static func prepare(
         engine: RimeEngine, resourceURL: URL, userDataURL: URL,
         requested: [PublishedKeyboard]
-    ) throws {
+    ) throws -> [KeyboardResourceSet.EncodingAdapter] {
         let build = userDataURL.appendingPathComponent("build")
         let fm = FileManager.default
 
@@ -217,6 +219,7 @@ enum CompactAdapterDeployment {
             try engine.validateSchemaForActivation(schemaID: first)
             engine.clearComposition()
         }
+        return adapters
     }
 
     /// Whether every key the layout sends reaches the composition of the selected companion.

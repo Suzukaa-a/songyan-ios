@@ -109,7 +109,7 @@ extension RecipePackageManager {
         }
         let plan = try RimeConfigFolder.plan(
             context.folder, package: context.package, state: userConfigState, strict: false)
-        let editedFiles = context.overrides.entries(context.package, excluding: plan.generatedOnly)
+        let editedFiles = context.overrides.entries(context.package, excluding: plan.unmodifiedCustom)
         return RimeConfigOverview(
             overrides: editedFiles.map {
                 RimeConfigOverride(path: $0.path, updated: $0.updated)
@@ -126,28 +126,37 @@ extension RecipePackageManager {
         guard let active = try activeInstallation() else { return false }
         let listed = RimeConfigFolder.names(in: active.userDataURL)
         let files = plan.files.filter {
-            listed.contains($0.path) || !RimeConfigFolder.isLeftToApp($0.path, in: active.userDataURL)
+            !plan.unmodifiedCustom.contains($0.path)
+                && (listed.contains($0.path) || !RimeConfigFolder.isLeftToApp($0.path, in: active.userDataURL))
         }
-        guard Set(files.map(\.path)) == listed else { return true }
-        return files.contains { file in
-            let directory = UserConfigFiles.isScriptPath(file.path) ? active.resourceURL : active.userDataURL
-            let editable = file.data
+        var remaining = Dictionary(uniqueKeysWithValues: files.map { ($0.path, $0.data) })
+        for path in listed {
+            let directory = UserConfigFiles.isScriptPath(path) ? active.resourceURL : active.userDataURL
             guard
                 var installed = try? BoundedLocalFile.read(
-                    directory.appendingPathComponent(file.path), maximumBytes: UserConfigFiles.maximumFileBytes)
+                    directory.appendingPathComponent(path), maximumBytes: UserConfigFiles.maximumFileBytes)
             else { return true }
-            if file.path == LuaSandbox.entryPath {
+            let editable = remaining.removeValue(forKey: path)
+            // Older editors copied empty templates and generated settings into the user's folder.
+            if RimeConfigFolder.isUnmodifiedCustom(path, data: installed), editable == nil { continue }
+            guard let editable else { return true }
+            if path == LuaSandbox.entryPath {
                 guard let original = LuaSandbox.restoreOriginal(installed) else { return true }
                 installed = original
             }
-            if file.path.hasSuffix(".custom.yaml") {
+            if path.hasSuffix(".custom.yaml") {
                 let own = RimeConfigFolder.withoutManagedBlocks(String(decoding: editable, as: UTF8.self))
                 let used = RimeConfigFolder.withoutManagedBlocks(String(decoding: installed, as: UTF8.self))
-                return own.trimmingCharacters(in: .whitespacesAndNewlines)
+                if own.trimmingCharacters(in: .whitespacesAndNewlines)
                     != used.trimmingCharacters(in: .whitespacesAndNewlines)
+                {
+                    return true
+                }
+            } else if editable != installed {
+                return true
             }
-            return editable != installed
         }
+        return !remaining.isEmpty
     }
 
     /// Opens the user's file at `path` (relative to the package) for editing. A package file gets the

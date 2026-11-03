@@ -67,6 +67,43 @@ final class RimeConfigEditorTests: XCTestCase {
         return try XCTUnwrap(current)
     }
 
+    func testLegacyAppSettingsAndEmptyTemplateDoNotNeedApplying() async throws {
+        try await install()
+        try write(RimeConfigTemplates.customPatch(), "default.custom.yaml")
+        try write(block, "main.custom.yaml")
+        let user = try await active().userDataURL
+        // Recreate an older installation that listed generated settings as user edits.
+        try Data(block.utf8).write(to: user.appendingPathComponent("main.custom.yaml"))
+        try Data("main.custom.yaml".utf8).write(to: user.appendingPathComponent(RimeConfigFolder.listFile))
+        let unchanged = try await manager.rimeConfigOverview()
+        XCTAssertFalse(unchanged.hasPendingChanges)
+        XCTAssertTrue(unchanged.overrides.isEmpty)
+        try write("patch:\n  menu/page_size: 5\n", "main.custom.yaml")
+        let edited = try await manager.rimeConfigOverview()
+        XCTAssertTrue(edited.hasPendingChanges)
+    }
+
+    func testGeneratedCompanionInheritsItsSourcesLuaComponents() async throws {
+        let source = try scheme(lua: true)
+        let schema = source.appendingPathComponent("main.schema.yaml")
+        var text = try String(contentsOf: schema, encoding: .utf8)
+        text += "engine:\n  filters: [lua_filter@*own]\n"
+        try Data(text.utf8).write(to: schema)
+        let prepared = try manager.prepareSchemeImport(directory: source)
+        _ = try await manager.installSchemeImport(prepared) { deployment in
+            _ = try await Self.deploy()(deployment)
+            let compiled = "schema: {schema_id: keyboard_main_9}\nengine:\n  filters: [lua_filter@*own]\n"
+            try Data(compiled.utf8).write(
+                to: deployment.userDataURL.appendingPathComponent("build/keyboard_main_9.schema.yaml"))
+            return RecipeDeploymentReceipt(
+                availableComponents: [], validatedSchemaID: "main", validatedEnabledSchemaIDs: ["main"],
+                generatedSchemaSources: ["keyboard_main_9": "main"])
+        }
+        let overview = try await manager.rimeConfigOverview()
+        XCTAssertFalse(overview.hasPendingChanges)
+        _ = try await manager.reinstallActivePackage(deploy: Self.deploy())
+    }
+
     func testEditingAPackageFileMakesACopyAndLeavesThePackageAlone() async throws {
         try await install()
         let opened = try await manager.openRimeConfigFile("main.schema.yaml")

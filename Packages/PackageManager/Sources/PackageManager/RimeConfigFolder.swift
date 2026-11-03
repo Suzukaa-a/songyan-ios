@@ -43,7 +43,7 @@ public enum RimeConfigFolder {
         var files: [(path: String, data: Data)] = []
         /// Scripts left out because the user has not agreed to them.
         var unconfirmed: [UserScripts.Entry] = []
-        var generatedOnly: Set<String> = []
+        var unmodifiedCustom: Set<String> = []
 
         var scripts: [(path: String, data: Data)] { files.filter { UserConfigFiles.isScriptPath($0.path) } }
         var text: [(path: String, data: Data)] { files.filter { !UserConfigFiles.isScriptPath($0.path) } }
@@ -56,7 +56,7 @@ public enum RimeConfigFolder {
     /// app or librime keeps in `user` are left out either way; `unusedNames` reports them.
     static func plan(_ folder: URL, package: PackageFiles, state: UserConfigState, strict: Bool) throws -> Plan {
         var accepted: [(path: String, data: Data)] = []
-        var generatedOnly = Set<String>()
+        var unmodifiedCustom = Set<String>()
         var total = 0
         var lowered = Set<String>()
         for entry in UserConfigFiles.files(in: folder) {
@@ -76,9 +76,10 @@ public enum RimeConfigFolder {
             }
             // An older editor could copy the app's generated settings into the editable folder.
             // Ignoring that copy leaves the active settings with their original owner.
-            if isGeneratedOnly(entry.path, data: data) {
-                generatedOnly.insert(entry.path)
-                continue
+            if isUnmodifiedCustom(entry.path, data: data) {
+                unmodifiedCustom.insert(entry.path)
+                // An empty template can stay a regular Rime file; generated blocks belong to the app.
+                if String(decoding: data, as: UTF8.self).contains("# Rx: ") { continue }
             }
             if let error = UserConfigFiles.check(entry.path, data) {
                 if strict { throw error }
@@ -97,7 +98,7 @@ public enum RimeConfigFolder {
         let blocked = Set(unconfirmed.map(\.path))
         return Plan(
             files: accepted.filter { !blocked.contains($0.path) }, unconfirmed: unconfirmed,
-            generatedOnly: generatedOnly)
+            unmodifiedCustom: unmodifiedCustom)
     }
 
     /// Puts the plan's scripts into `resources`, keeping the package's own bytes of a script it replaces
@@ -255,24 +256,24 @@ public enum RimeConfigFolder {
         return lines.joined(separator: "\n")
     }
 
-    static func isGeneratedOnly(_ path: String, data: Data) -> Bool {
+    static func isUnmodifiedCustom(_ path: String, data: Data) -> Bool {
         guard path.hasSuffix(".custom.yaml"), let text = UserConfigFiles.decode(data) else { return false }
         var inside = false
-        var found = false
         for line in text.split(separator: "\n") {
             if inside {
                 if line == "# }" {
                     inside = false
-                    found = true
                 }
             } else if line.hasPrefix("# Rx: "), line.hasSuffix(" {") {
                 inside = true
             } else {
                 let trimmed = line.trimmingCharacters(in: .whitespaces)
-                if line != "__patch:", !trimmed.isEmpty, !trimmed.hasPrefix("#") { return false }
+                if line != "__patch:", trimmed != "patch: {}", !trimmed.isEmpty, !trimmed.hasPrefix("#") {
+                    return false
+                }
             }
         }
-        return found && !inside
+        return !inside
     }
 
     /// The user's custom file with the app's `blocks` put back in, or nil when the two cannot be
@@ -318,7 +319,14 @@ public enum RimeConfigFolder {
     /// Folder files the generation at `user` does not carry, sorted by path.
     static func unusedNames(in folder: URL, user: URL) -> [String] {
         let used = names(in: user)
-        return UserConfigFiles.listed(in: folder).filter { !used.contains($0) }
+        return UserConfigFiles.files(in: folder).filter { entry in
+            guard !used.contains(entry.path) else { return false }
+            guard entry.path.hasSuffix(".custom.yaml"),
+                let data = try? BoundedLocalFile.read(
+                    entry.url, maximumBytes: maximumFileBytes, followingSymlinks: false)
+            else { return true }
+            return !isUnmodifiedCustom(entry.path, data: data)
+        }.map(\.path)
     }
 }
 

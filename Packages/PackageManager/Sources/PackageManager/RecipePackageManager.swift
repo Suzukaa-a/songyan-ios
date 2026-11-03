@@ -271,6 +271,9 @@ public actor RecipePackageManager {
                 scope.add(
                     configPlan, confirmed: UserScripts(state: userConfigState).confirmedComponents(package: manifest.id)
                 )
+                for (generated, source) in receipt.generatedSchemaSources {
+                    scope.inherit(generated: generated, source: source)
+                }
                 try CompiledConfigGuard.check(
                     build: user.appendingPathComponent(InstalledPackageLayout.buildDirectory), scope: scope)
             }
