@@ -25,6 +25,9 @@ import UIKit
 /// The system can terminate the extension at any time; engine startup (including first deployment) runs in the
 /// background while the UI shows loading/error.
 class KeyboardViewController: UIInputViewController {
+    #if SONGYAN_PERF
+        private var endPerformanceAppearance: (@Sendable () -> Void)?
+    #endif
     nonisolated static let diagnosticLogger = Logger.keyboardExtension
 
     // UIKit may retain a dismissed input controller while creating its successor
@@ -411,6 +414,9 @@ class KeyboardViewController: UIInputViewController {
     }
 
     override func viewWillAppear(_ animated: Bool) {
+        #if SONGYAN_PERF
+            endPerformanceAppearance = KeyboardPerformanceTrace.interval("appearance")
+        #endif
         super.viewWillAppear(animated)
         // No proxy read is safe until the host state arrives (viewDidAppear or the first
         // text/selection callback); reading earlier crashes in documentIdentifier.
@@ -653,6 +659,12 @@ class KeyboardViewController: UIInputViewController {
     }
 
     override func viewDidAppear(_ animated: Bool) {
+        #if SONGYAN_PERF
+            defer {
+                endPerformanceAppearance?()
+                endPerformanceAppearance = nil
+            }
+        #endif
         super.viewDidAppear(animated)
         // The keyboard window's system edge-gesture gate holds touch-down for keys in the
         // outer columns (the 9-key rails, Delete, Return) until it gives up on an edge

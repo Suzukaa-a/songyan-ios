@@ -9,7 +9,7 @@ In this guide the *built-in package* is the offline input scheme bundled with th
 ## 1. Setup
 
 - Full Xcode 27 or later, selected with `DEVELOPER_DIR` or `xcode-select`. The scripts fall back to an installed `/Applications/Xcode*.app`.
-- [`axe`](https://github.com/cameroncooke/AXe) for simulator input (`axe -h` lists the commands). Only the UI automation and `make sim-perf` need it.
+- [`axe`](https://github.com/cameroncooke/AXe) for simulator input (`axe -h` lists the commands). Only manual UI automation and `make sim-perf MODE=cold` need it.
 - A dedicated simulator. Every `sim-*` script resolves it by name: `Songyan-Dev` by default, `SIM_NAME` to choose another, or `UDID` to target one directly. Use a separate `SIM_NAME` per parallel session so scripts never touch each other's simulator.
 
 Always run the app from `make sim-stage`. Builds from `make build-simulator`, `make build-device`, CI or any `CODE_SIGNING_ALLOWED=NO` build carry no entitlements: the App Group container is `nil` and all shared data looks empty. Those builds only check that the code compiles.
@@ -33,7 +33,8 @@ Options: `--no-build`, `--no-launch` (run the script directly). `CONFIGURATION=R
 | `make sim-state` | Print the extension and host state snapshots as JSON |
 | `make sim-layout LAYOUT=<qwerty26\|merged14\|merged18\|phone9\|clear>` | Force the layout the extension starts with (Debug only) |
 | `make sim-probe PROBE=touch [STATE=on\|off]` | Toggle the touch-routing probe |
-| `make sim-perf [MODE=typing\|cold] [ARG=...]` | Profile the extension, see section 8 |
+| `make benchmark` | Run Release XCTest/XCUITest keyboard performance tests |
+| `make sim-perf [MODE=typing\|cold] [ARG=...]` | Native performance tests or cold-start diagnostics, see section 8 |
 
 `sim-layout` and `sim-probe` write to the App Group defaults through the simulator's own `cfprefsd` and kill the extension process; the new value applies the next time the keyboard appears. Killing the extension makes iOS fall back to its own keyboard, so select Songyan again from the globe key. A layout the active input scheme does not offer falls back to `qwerty26`.
 
@@ -94,12 +95,20 @@ Add probes to `DebugProbe` in [KeyboardLifecycleDiagnostics.swift](Apps/SharedKe
 
 ## 8. Performance
 
-[sim-perf.sh](Tools/CI/scripts/sim-perf.sh) drives the keyboard and [perf_trace.py](Tools/CI/scripts/lib/perf_trace.py) summarises the trace; output goes to `.scratch/perf-<mode>-<time>/`. Measure Release builds (`CONFIGURATION=Release make sim-stage`); Debug is unoptimised and only useful for the signposts.
+`make benchmark` runs the shared `KeyboardPerformance` scheme through `xcodebuild test`. [sim-benchmark.sh](Tools/CI/scripts/sim-benchmark.sh) stages an ad-hoc signed Release build with `SONGYAN_PERF`, disables coverage, and runs [KeyboardPerformanceTests.swift](Tests/Performance/KeyboardPerformanceTests.swift) serially. Ordinary builds omit these performance signposts and the fixture reset button.
 
-- `make sim-perf MODE=typing ARG=<label>`: types a fixed 58-key pinyin text while recording Time Profiler and signposts on the extension, then reports main-thread milliseconds per key, UIKit update-cycle p50/p95 and a coarse split (SwiftUI updates, Core Animation commits, `KeyboardController.handle`, engine, hit testing). Before running, open “试打” with Songyan on the built-in 26-key full pinyin layout. The key coordinates in the script match the default `iPhone-17-Pro` device type only. Simulator noise is large: run each variant at least twice and compare runs of the same build.
-- `make sim-perf MODE=cold ARG=<runs>`: relaunches the host, opens “试打”, focuses the field and prints the extension's launch, `Prepare received`, `viewWillAppear` and `engineReady` timeline. It turns on `keyboard.lifecycleDiagnosticsEnabled` itself.
-- Memory: `footprint <extension pid>`. Simulator memory does not match a device; check memory on hardware.
-- `keyAreaRenderToken` in `KeyboardPanelView` decides when key areas are rebuilt. Any new input that changes how keys are drawn must be folded into it, or key caps keep a stale state.
+The fixture uses a dedicated `Songyan-Perf-Isolated` iPhone 17 Pro simulator on iOS 27.0, the built-in full pinyin scheme and its 26-key layout. It verifies that typing `nihao` commits `你好` through the real extension and engine. Each measurement runs 10 iterations after XCTest's warm-up:
+
+- `appearance`: `viewWillAppear` through the end of `viewDidAppear`.
+- `key`: synchronous key dispatch in `KeyboardController.handle`.
+- `engineOp`: queue wait, engine execution and asynchronous return through `EngineOpQueue`.
+- `refresh`: controller state publication.
+
+These intervals describe their named code boundaries; first-frame and touch-to-visible latency need separate frame instrumentation. Results and raw samples are in `.local/ci/keyboard-performance-*/<run>/KeyboardPerformance.xcresult` and `metrics.json`. Compare repeated runs on the same simulator, runtime and build settings before drawing conclusions about a change. `make sim-perf MODE=typing ARG=<label>` runs the same native suite with a result label.
+
+`make sim-perf MODE=cold ARG=<runs>` retains the AXe lifecycle diagnostic: restart the extension, open “试打” and print launch, appearance and `engineReady` events. Stage Release first with `CONFIGURATION=Release make sim-stage`. Its output is a diagnostic timeline, not a performance assertion. Results go under `.local/ci/perf-cold/`.
+
+For memory use `footprint <extension pid>` on hardware. Simulator memory does not match a device. `keyAreaRenderToken` in `KeyboardPanelView` decides when key areas are rebuilt; new input that changes key drawing must be folded into it.
 
 ## 9. Device crash logs
 

@@ -583,6 +583,10 @@ public final class KeyboardController: ObservableObject {
     public func handle(_ action: KeyAction) {
         guard !retired else { return }
         punctuationCycle.reset()
+        #if SONGYAN_PERF
+            let endPerformanceInterval = KeyboardPerformanceTrace.interval("key")
+            defer { endPerformanceInterval() }
+        #endif
         let endStallWatch = KeyboardStallReport.begin(Self.actionKind(of: action))
         defer { endStallWatch() }
         #if DEBUG

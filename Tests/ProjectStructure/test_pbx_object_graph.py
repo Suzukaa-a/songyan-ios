@@ -127,8 +127,9 @@ class PBXObjectGraphTests(unittest.TestCase):
                     names.append(file_references[file_reference])
             target_sources[target_name] = collections.Counter(names)
 
-        self.assertEqual(set(target_sources), {"HostApp", "KeyboardExtension"})
-        for target_name, sources in target_sources.items():
+        self.assertEqual(set(target_sources), {"HostApp", "KeyboardExtension", "KeyboardPerformanceTests"})
+        for target_name in ("HostApp", "KeyboardExtension"):
+            sources = target_sources[target_name]
             for shared_name in shared_names:
                 self.assertEqual(sources[shared_name], 1, f"{target_name}: {shared_name}")
         extension_names = {path.name for path in (ROOT / "Apps/KeyboardExtension").glob("*.swift")}

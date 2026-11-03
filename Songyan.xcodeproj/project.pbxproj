@@ -232,6 +232,7 @@
 		BB8D82E84373D9E08762BBD7 /* KeyboardAuthoredPageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAC31C39A89A7272F4308B91; };
 		91447F0DFACEDA6EA76F3DA5 /* KeyboardSystemRequirements.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1A992B99E56ED8915138994; };
 		5CBED1F7984DA89294D01903 /* KeyboardSystemRequirements.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1A992B99E56ED8915138994; };
+		C0F000000000000000000002 = {isa = PBXBuildFile; fileRef = C0F000000000000000000003; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -242,6 +243,13 @@
 			remoteGlobalIDString = A0000000000000000000000013;
 			remoteInfo = KeyboardExtension;
 		};
+		C0F000000000000000000008 = {
+            isa = PBXContainerItemProxy;
+            containerPortal = A0000000000000000000000001;
+            proxyType = 1;
+            remoteGlobalIDString = A000000000000000000000000B;
+            remoteInfo = HostApp;
+        };
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -406,6 +414,8 @@
 		D5114CB229011A3DDF49037D /* KeyboardAuthoredPageChrome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "KeyboardAuthoredPageChrome.swift"; sourceTree = "<group>"; };
 		DAC31C39A89A7272F4308B91 /* KeyboardAuthoredPageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "KeyboardAuthoredPageView.swift"; sourceTree = "<group>"; };
 		B1A992B99E56ED8915138994 /* KeyboardSystemRequirements.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "KeyboardSystemRequirements.swift"; sourceTree = "<group>"; };
+		C0F000000000000000000003 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardPerformanceTests.swift; sourceTree = "<group>"; };
+		C0F000000000000000000004 = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KeyboardPerformanceTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -438,6 +448,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C0F00000000000000000000A = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -450,6 +461,7 @@
                 KF2610160000000000000001 /* KeyFeedback */,
 				A0000000000000000000000058 /* EngineResources */,
 				B1000000000000000000000002 /* Legal */,
+				C0F000000000000000000005 /* Performance tests */,
 				A0000000000000000000000003 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -630,10 +642,14 @@
 			children = (
 				A000000000000000000000001A /* HostApp.app */,
 				A000000000000000000000001B /* KeyboardExtension.appex */,
+				C0F000000000000000000004 /* KeyboardPerformanceTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
+		C0F000000000000000000005 = {isa = PBXGroup; children = (
+                C0F000000000000000000003,
+            ); path = Tests/Performance; sourceTree = "<group>"; };
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -692,6 +708,23 @@
 			productReference = A000000000000000000000001B /* KeyboardExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		C0F000000000000000000001 /* KeyboardPerformanceTests */ = {
+            isa = PBXNativeTarget;
+            buildConfigurationList = C0F000000000000000000009;
+            buildPhases = (
+                C0F000000000000000000006,
+                C0F00000000000000000000A,
+                C0F00000000000000000000B,
+            );
+            buildRules = ();
+            dependencies = (
+                C0F000000000000000000007,
+            );
+            name = KeyboardPerformanceTests;
+            productName = KeyboardPerformanceTests;
+            productReference = C0F000000000000000000004;
+            productType = "com.apple.product-type.bundle.ui-testing";
+        };
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -702,6 +735,7 @@
 				LastSwiftUpdateCheck = 2600;
 				LastUpgradeCheck = 2600;
 				TargetAttributes = {
+                    C0F000000000000000000001 = {CreatedOnToolsVersion = 27.0; TestTargetID = A000000000000000000000000B; };
 					A000000000000000000000000B = {
 						CreatedOnToolsVersion = 26.0;
 						SystemCapabilities = {
@@ -746,6 +780,7 @@
 			targets = (
 				A000000000000000000000000B /* HostApp */,
 				A0000000000000000000000013 /* KeyboardExtension */,
+				C0F000000000000000000001 /* KeyboardPerformanceTests */,
 			);
 		};
 /* End PBXProject section */
@@ -774,6 +809,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C0F00000000000000000000B = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -992,6 +1028,9 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C0F000000000000000000006 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (
+                C0F000000000000000000002,
+            ); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -1000,6 +1039,7 @@
 			target = A0000000000000000000000013 /* KeyboardExtension */;
 			targetProxy = A0000000000000000000000022 /* PBXContainerItemProxy */;
 		};
+		C0F000000000000000000007 = {isa = PBXTargetDependency; target = A000000000000000000000000B; targetProxy = C0F000000000000000000008; };
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
@@ -1261,6 +1301,34 @@
 			};
 			name = Release;
 		};
+		C0F00000000000000000000C = {
+            isa = XCBuildConfiguration;
+            buildSettings = {
+                CODE_SIGN_STYLE = Automatic;
+                GENERATE_INFOPLIST_FILE = YES;
+                IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+                PRODUCT_BUNDLE_IDENTIFIER = "$(SONGYAN_BUNDLE_ID).performance";
+                PRODUCT_NAME = "$(TARGET_NAME)";
+                SWIFT_VERSION = 6.0;
+                TARGETED_DEVICE_FAMILY = "1,2";
+                TEST_TARGET_NAME = HostApp;
+            };
+            name = Debug;
+        };
+		C0F00000000000000000000D = {
+            isa = XCBuildConfiguration;
+            buildSettings = {
+                CODE_SIGN_STYLE = Automatic;
+                GENERATE_INFOPLIST_FILE = YES;
+                IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+                PRODUCT_BUNDLE_IDENTIFIER = "$(SONGYAN_BUNDLE_ID).performance";
+                PRODUCT_NAME = "$(TARGET_NAME)";
+                SWIFT_VERSION = 6.0;
+                TARGETED_DEVICE_FAMILY = "1,2";
+                TEST_TARGET_NAME = HostApp;
+            };
+            name = Release;
+        };
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1291,6 +1359,10 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		C0F000000000000000000009 = {isa = XCConfigurationList; buildConfigurations = (
+                C0F00000000000000000000C,
+                C0F00000000000000000000D,
+            ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */

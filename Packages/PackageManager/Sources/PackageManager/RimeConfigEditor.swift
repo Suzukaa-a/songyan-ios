@@ -109,11 +109,12 @@ extension RecipePackageManager {
         }
         let plan = try RimeConfigFolder.plan(
             context.folder, package: context.package, state: userConfigState, strict: false)
+        let editedFiles = context.overrides.entries(context.package, excluding: plan.generatedOnly)
         return RimeConfigOverview(
-            overrides: context.overrides.entries(context.package).map {
+            overrides: editedFiles.map {
                 RimeConfigOverride(path: $0.path, updated: $0.updated)
             },
-            unacknowledged: context.overrides.unacknowledged(context.package),
+            unacknowledged: context.overrides.unacknowledged(context.package, paths: editedFiles.map(\.path)),
             unusedScripts: Array(Set(plan.unconfirmed.map(\.path))).sorted(),
             fileCount: UserConfigFiles.files(in: context.folder).count,
             hasPendingChanges: try rimeConfigHasPendingChanges(plan))
@@ -150,20 +151,35 @@ extension RecipePackageManager {
     }
 
     /// Opens the user's file at `path` (relative to the package) for editing. A package file gets the
-    /// user's copy made first, which then replaces it (the package itself is never touched); a missing
-    /// `xxx.custom.yaml` is made from the template. With `grammarExample` the text ends with commented-out
+    /// user's copy made first, which then replaces it (the package itself is never touched). Custom
+    /// patches stay in memory until saved so reading settings does not pin source defaults.
+    /// With `grammarExample` the text ends with commented-out
     /// grammar model parameters unless it has some; nothing of that is written before a save.
     public func openRimeConfigFile(_ path: String, grammarExample: Bool = false) throws -> RimeConfigText {
         guard let context = try rimeConfigContext() else { throw UserConfigError(path, .name) }
         let text: String
         if let existing = context.overrides.overrideFile(path) {
-            text = try Self.rimeConfigText(existing, path)
+            let loaded = try Self.rimeConfigText(existing, path)
+            text = path.hasSuffix(".custom.yaml") ? RimeConfigFolder.withoutManagedBlocks(loaded) : loaded
             // A file the user's copy shadows keeps its base from the first edit; one made before the marks existed gets it now.
             if context.package.hashes[path] != nil { context.overrides.recordBase(path, package: context.package) }
+        } else if !path.contains("/"), path.hasSuffix(".custom.yaml"), UserConfigFiles.isCreatableName(path) {
+            // Generated settings stay owned by the app; opening the editor must not pin a copy.
+            let original: String
+            if context.package.hashes[path] != nil {
+                guard let data = context.package.read(path) else { throw UserConfigError(path, .notText) }
+                guard data.count <= UserConfigFiles.maximumFileBytes else { throw UserConfigError(path, .tooLarge) }
+                guard let decoded = UserConfigFiles.decode(data) else { throw UserConfigError(path, .notText) }
+                original = decoded
+            } else {
+                original = ""
+            }
+            let editable = RimeConfigFolder.withoutManagedBlocks(original)
+            text =
+                editable.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                ? RimeConfigTemplates.customPatch() : editable
         } else if context.package.hashes[path] != nil {
             text = try Self.rimeConfigText(try context.overrides.copyOf(path, package: context.package), path)
-        } else if !path.contains("/"), path.hasSuffix(".custom.yaml"), UserConfigFiles.isCreatableName(path) {
-            text = try Self.create(path, RimeConfigTemplates.customPatch(), folder: context.folder)
         } else {
             throw UserConfigError(path, .name)
         }

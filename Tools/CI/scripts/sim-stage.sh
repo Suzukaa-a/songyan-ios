@@ -10,7 +10,7 @@
 # Usage: sim-stage.sh [--no-build] [--no-launch]
 # Env:   SIM_NAME (default Songyan-Dev; give parallel runs distinct names), SIM_RUNTIME (default: newest iOS),
 #        SIM_DEVICE_TYPE (default iPhone-17-Pro), DEVELOPER_DIR, SOURCE_PACKAGES_DIR (optional cache),
-#        CONFIGURATION (default Debug; Release for performance measurement, no Debug probes).
+#        CONFIGURATION (default Debug), PERF_MEASUREMENT=1 (Release-only timing intervals).
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -33,6 +33,10 @@ done
 SIM_NAME="${SIM_NAME:-Songyan-Dev}"
 CONFIGURATION="${CONFIGURATION:-Debug}"
 case "${CONFIGURATION}" in Debug|Release) ;; *) echo "CONFIGURATION must be Debug|Release" >&2; exit 64 ;; esac
+if [[ "${PERF_MEASUREMENT:-0}" == 1 && "${CONFIGURATION}" != Release ]]; then
+  echo "PERF_MEASUREMENT requires CONFIGURATION=Release" >&2
+  exit 64
+fi
 DERIVED="${CI_ROOT}/.local/dev-derived"
 APP="${DERIVED}/Build/Products/${CONFIGURATION}-iphonesimulator/HostApp.app"
 
@@ -44,14 +48,21 @@ if ((BUILD)); then
   echo "[stage] building (ad-hoc signed, entitlements embedded)"
   mkdir -p "${DERIVED}"
   BUILD_HOME="${CI_ROOT}/.local/xcode-build-home"
-  SWIFT_SANDBOX_OPTIONS=()
+  SWIFT_OPTIONS=()
+  # shellcheck disable=SC2016  # Xcode expands this build-setting expression.
+  SWIFT_FLAGS='$(inherited)'
+  if [[ "${PERF_MEASUREMENT:-0}" == 1 ]]; then
+    SWIFT_FLAGS+=' -D SONGYAN_PERF'
+  fi
   mkdir -p "${BUILD_HOME}/Library/Preferences"
   if [[ "${CI_SWIFTPM_DISABLE_SANDBOX:-0}" == 1 ]]; then
     defaults write "${BUILD_HOME}/Library/Preferences/.GlobalPreferences" IDEPackageSupportDisableManifestSandbox -bool YES
-    # shellcheck disable=SC2016  # $(inherited) is an Xcode build setting, not a shell expansion
-    SWIFT_SANDBOX_OPTIONS=('OTHER_SWIFT_FLAGS=$(inherited) -disable-sandbox')
+    SWIFT_FLAGS+=' -disable-sandbox'
   else
     defaults write "${BUILD_HOME}/Library/Preferences/.GlobalPreferences" IDEPackageSupportDisableManifestSandbox -bool NO
+  fi
+  if [[ "${PERF_MEASUREMENT:-0}" == 1 || "${CI_SWIFTPM_DISABLE_SANDBOX:-0}" == 1 ]]; then
+    SWIFT_OPTIONS=("OTHER_SWIFT_FLAGS=${SWIFT_FLAGS}")
   fi
   CFFIXED_USER_HOME="${BUILD_HOME}" \
   "${DEVELOPER_DIR}/usr/bin/xcodebuild" \
@@ -62,7 +73,7 @@ if ((BUILD)); then
     -skipPackageUpdates -onlyUsePackageVersionsFromResolvedFile \
     -clonedSourcePackagesDirPath "${SOURCE_PACKAGES_DIR:-${DERIVED}/SourcePackages}" \
     CODE_SIGN_IDENTITY=- CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=NO \
-    ${SWIFT_SANDBOX_OPTIONS[@]+"${SWIFT_SANDBOX_OPTIONS[@]}"} \
+    ${SWIFT_OPTIONS[@]+"${SWIFT_OPTIONS[@]}"} \
     DEVELOPMENT_TEAM='' ARCHS=arm64 ONLY_ACTIVE_ARCH=YES build \
     > "${DERIVED}/xcodebuild.log" 2>&1 || { tail -40 "${DERIVED}/xcodebuild.log" >&2; exit 1; }
 fi

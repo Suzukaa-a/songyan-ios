@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: help fast test extended release structure lint format clean build-simulator build-device prune-scratch sim-stage sim-log sim-state sim-layout sim-probe sim-perf
+.PHONY: help fast test extended release structure lint format clean build-simulator build-device prune-scratch sim-stage sim-log sim-state sim-layout sim-probe sim-perf benchmark
 
 help:
 	@echo "Targets:"
@@ -19,7 +19,8 @@ help:
 	@echo "  sim-state        Print Debug state snapshots (phase/layout/latency/memory) as JSON"
 	@echo "  sim-layout       Force keyboard layout on the dev simulator: make sim-layout LAYOUT=merged14|merged18|phone9|qwerty26|clear"
 	@echo "  sim-probe        Toggle a Debug keyboard probe: make sim-probe PROBE=touch STATE=on|off"
-	@echo "  sim-perf         Profile the keyboard extension: make sim-perf [MODE=typing|cold] [ARG=label|runs] (DEBUG.md)"
+	@echo "  benchmark        Release XCTest/XCUITest keyboard performance tests (DEBUG.md)"
+	@echo "  sim-perf         typing runs native performance tests; cold prints engine-ready timings (DEBUG.md)"
 	@echo "  prune-scratch    Remove .scratch entries older than 7 days"
 
 fast:
@@ -74,3 +75,6 @@ sim-probe:
 
 sim-perf:
 	Tools/CI/scripts/sim-perf.sh $(or $(MODE),typing) $(ARG)
+
+benchmark:
+	Tools/CI/scripts/sim-benchmark.sh

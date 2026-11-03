@@ -16,6 +16,10 @@ public enum EngineOpQueue {
 
     /// Runs an engine operation synchronously on the serial queue (blocks the calling thread; call only from a background thread).
     public static func sync<T>(_ body: () throws -> T) throws -> T {
+        #if SONGYAN_PERF
+            let endPerformanceInterval = KeyboardPerformanceTrace.interval("engineOp")
+            defer { endPerformanceInterval() }
+        #endif
         #if DEBUG
             let probe = DebugProbe.engineOp("sync")
             defer { probe(false) }
@@ -24,12 +28,15 @@ public enum EngineOpQueue {
                 return try body()
             }
         #else
-            try serial.sync { try body() }
+            return try serial.sync { try body() }
         #endif
     }
 
     /// Enqueues an engine operation on the serial queue without waiting for the result (`body` hands the result back itself).
     public static func enqueue(_ body: @escaping @Sendable () -> Void) {
+        #if SONGYAN_PERF
+            let endPerformanceInterval = KeyboardPerformanceTrace.interval("engineOp")
+        #endif
         #if DEBUG
             let probe = DebugProbe.engineOp("enqueue")
             serial.async {
@@ -38,12 +45,21 @@ public enum EngineOpQueue {
                 probe(false)
             }
         #else
-            serial.async { body() }
+            serial.async {
+                #if SONGYAN_PERF
+                    defer { endPerformanceInterval() }
+                #endif
+                body()
+            }
         #endif
     }
 
     /// Runs an engine operation asynchronously on the serial queue (does not block the calling thread).
     public static func async<T>(_ body: @escaping @Sendable () throws -> T) async throws -> sending T {
+        #if SONGYAN_PERF
+            let endPerformanceInterval = KeyboardPerformanceTrace.interval("engineOp")
+            defer { endPerformanceInterval() }
+        #endif
         #if DEBUG
             let probe = DebugProbe.engineOp("async")
             defer { probe(false) }

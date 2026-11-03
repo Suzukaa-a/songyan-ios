@@ -82,7 +82,6 @@ struct GrammarModelManagementView: View {
     /// Toggle positions the user just set, shown until the saved state is read back.
     @State private var pendingToggles: [String: Bool] = [:]
     @State private var lastWorkspace: SchemeImportCenter.InstalledRecipeWorkspace?
-    @StateObject private var rimeConfig = RimeConfigModel()
 
     private var package: SchemeImportCenter.InstalledPackage? { center.installedPackages.first { $0.id == packageID } }
     /// A saved change replaces the workspace and reads it again; the page keeps showing
@@ -213,31 +212,6 @@ struct GrammarModelManagementView: View {
                     modelImportButtons
                 } header: {
                     Text("模型文件")
-                }
-            }
-            if workspace != nil, !selectableBindings.isEmpty {
-                Section {
-                    ForEach(selectableBindings, id: \.schemaID) { binding in
-                        if let path = RimeConfigEditor.customPath(inputMethod: binding.schemaID) {
-                            NavigationLink {
-                                RimeFileEditorView(
-                                    route: RimeEditRoute(
-                                        packageID: packageID, path: path, title: schemaName(binding.schemaID),
-                                        grammarExample: true),
-                                    model: rimeConfig)
-                            } label: {
-                                VStack(alignment: .leading, spacing: 3) {
-                                    Text("调整语法模型参数")
-                                    Text(
-                                        selectableBindings.count > 1
-                                            ? schemaName(binding.schemaID) : "用文件写法调整整句排序的细节。"
-                                    )
-                                    .font(.caption).foregroundStyle(.secondary)
-                                }
-                            }
-                            .accessibilityIdentifier("sentence-model.tune.\(binding.schemaID)")
-                        }
-                    }
                 }
             }
             if let package {

@@ -131,9 +131,7 @@ final class RimeConfigEditorTests: XCTestCase {
         let broken = try await manager.saveRimeConfigFile("main.custom.yaml", text: "patch:\n  a: 1\n  b: [1\n")
         guard case .invalid(let line) = broken else { return XCTFail("refused with a line: \(broken)") }
         XCTAssertNotNil(line)
-        XCTAssertEqual(
-            try String(contentsOf: folder.appendingPathComponent("main.custom.yaml"), encoding: .utf8),
-            RimeConfigTemplates.customPatch())
+        XCTAssertFalse(FileManager.default.fileExists(atPath: folder.appendingPathComponent("main.custom.yaml").path))
 
         let attempt = try await manager.saveRimeConfigFile(
             "main.custom.yaml", text: "patch:\n  translator/user_dict/=: /tmp/x\n")
@@ -157,9 +155,30 @@ final class RimeConfigEditorTests: XCTestCase {
         try await install()
         let opened = try await manager.openRimeConfigFile("main.custom.yaml", grammarExample: true)
         XCTAssertTrue(opened.text.contains("grammar/collocation_penalty: -14"))
-        XCTAssertEqual(
-            try String(contentsOf: folder.appendingPathComponent("main.custom.yaml"), encoding: .utf8),
-            RimeConfigTemplates.customPatch())
+        XCTAssertFalse(FileManager.default.fileExists(atPath: folder.appendingPathComponent("main.custom.yaml").path))
+    }
+
+    func testOpeningGeneratedSettingsDoesNotMakeAUserOverride() async throws {
+        let source = try scheme()
+        try Data(block.utf8).write(to: source.appendingPathComponent("main.custom.yaml"))
+        let prepared = try manager.prepareSchemeImport(directory: source)
+        _ = try await manager.installSchemeImport(prepared, deploy: Self.deploy())
+        let opened = try await manager.openRimeConfigFile("main.custom.yaml")
+        XCTAssertEqual(opened.text, RimeConfigTemplates.customPatch())
+        XCTAssertFalse(FileManager.default.fileExists(atPath: folder.appendingPathComponent("main.custom.yaml").path))
+        var overview = try await manager.rimeConfigOverview()
+        XCTAssertTrue(overview.overrides.isEmpty)
+        try write(block, "main.custom.yaml")
+        overview = try await manager.rimeConfigOverview()
+        XCTAssertTrue(overview.overrides.isEmpty)
+        XCTAssertTrue(overview.unacknowledged.isEmpty)
+        let plan = try RimeConfigFolder.plan(
+            folder, package: .none, state: UserConfigState(directory: state), strict: true)
+        XCTAssertTrue(plan.files.isEmpty)
+        let saved = try await manager.saveRimeConfigFile("main.custom.yaml", text: "patch:\n  menu/page_size: 5\n")
+        XCTAssertEqual(saved, .saved)
+        overview = try await manager.rimeConfigOverview()
+        XCTAssertEqual(overview.overrides.map(\.path), ["main.custom.yaml"])
     }
 
     func testANewScriptIsMadeUnderLuaAndNeverReplacesThePackagesOwn() async throws {

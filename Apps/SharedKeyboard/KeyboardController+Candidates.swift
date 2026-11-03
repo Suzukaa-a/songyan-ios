@@ -202,6 +202,10 @@ extension KeyboardController {
 
     func refresh() {
         guard !retired else { return }
+        #if SONGYAN_PERF
+            let endPerformanceInterval = KeyboardPerformanceTrace.interval("refresh")
+            defer { endPerformanceInterval() }
+        #endif
         #if DEBUG
             let endRefreshInterval = DebugProbe.refreshInterval()
             defer {

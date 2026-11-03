@@ -87,6 +87,17 @@ struct SystemKeyboardTestView: View {
                 }
             }
         }
+        #if SONGYAN_PERF
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("重置") {
+                        text = ""
+                        focused = false
+                    }
+                    .accessibilityIdentifier("perf.resetTryout")
+                }
+            }
+        #endif
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
         .task { focused = true }

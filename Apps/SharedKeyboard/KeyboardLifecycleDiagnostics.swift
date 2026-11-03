@@ -234,6 +234,23 @@ public final class LiveObjectCounter: Sendable {
     public func decrement() { count.withLock { $0 -= 1 } }
 }
 
+#if SONGYAN_PERF
+    #if DEBUG
+        #error("Performance measurements require an optimized Release build")
+    #endif
+
+    // Kept out of shipping builds so profiling adds no work to ordinary input.
+    public enum KeyboardPerformanceTrace {
+        private static let signposter = OSSignposter(
+            logger: Logger(subsystem: Logger.songyanSubsystem, category: "KeyboardPerformance"))
+
+        public static func interval(_ name: StaticString) -> @Sendable () -> Void {
+            let state = signposter.beginInterval(name, id: signposter.makeSignpostID())
+            return { signposter.endInterval(name, state) }
+        }
+    }
+#endif
+
 #if DEBUG
     // MARK: - Debug probe (Debug builds only; logs and signposts never contain user input)
     //

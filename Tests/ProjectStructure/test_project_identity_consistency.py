@@ -22,7 +22,8 @@ class ProjectIdentityConsistencyTests(unittest.TestCase):
         self.assertEqual(project.count("baseConfigurationReference = A0000000000000000000000072"), 2)
         bundle_ids = re.findall(r"PRODUCT_BUNDLE_IDENTIFIER = ([^;]+);", project)
         self.assertEqual(sorted(bundle_ids), sorted(['"$(SONGYAN_BUNDLE_ID)"'] * 2
-                                                    + ['"$(SONGYAN_BUNDLE_ID).keyboard"'] * 2))
+                                                    + ['"$(SONGYAN_BUNDLE_ID).keyboard"'] * 2
+                                                    + ['"$(SONGYAN_BUNDLE_ID).performance"'] * 2))
         self.assertNotIn("DEVELOPMENT_TEAM", project)
         self.assertEqual(set(re.findall(r"IPHONEOS_DEPLOYMENT_TARGET = ([^;]+);", project)), {"17.0"})
         self.assertEqual(set(re.findall(r"MARKETING_VERSION = ([^;]+);", project)), {"0.1.0"})

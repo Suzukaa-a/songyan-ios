@@ -43,6 +43,7 @@ public enum RimeConfigFolder {
         var files: [(path: String, data: Data)] = []
         /// Scripts left out because the user has not agreed to them.
         var unconfirmed: [UserScripts.Entry] = []
+        var generatedOnly: Set<String> = []
 
         var scripts: [(path: String, data: Data)] { files.filter { UserConfigFiles.isScriptPath($0.path) } }
         var text: [(path: String, data: Data)] { files.filter { !UserConfigFiles.isScriptPath($0.path) } }
@@ -55,6 +56,7 @@ public enum RimeConfigFolder {
     /// app or librime keeps in `user` are left out either way; `unusedNames` reports them.
     static func plan(_ folder: URL, package: PackageFiles, state: UserConfigState, strict: Bool) throws -> Plan {
         var accepted: [(path: String, data: Data)] = []
+        var generatedOnly = Set<String>()
         var total = 0
         var lowered = Set<String>()
         for entry in UserConfigFiles.files(in: folder) {
@@ -72,6 +74,12 @@ public enum RimeConfigFolder {
                 if strict { throw UserConfigError(entry.path, .tooLarge) }
                 continue
             }
+            // An older editor could copy the app's generated settings into the editable folder.
+            // Ignoring that copy leaves the active settings with their original owner.
+            if isGeneratedOnly(entry.path, data: data) {
+                generatedOnly.insert(entry.path)
+                continue
+            }
             if let error = UserConfigFiles.check(entry.path, data) {
                 if strict { throw error }
                 continue
@@ -87,7 +95,9 @@ public enum RimeConfigFolder {
             Dictionary(accepted.map { ($0.path, $0.data) }, uniquingKeysWith: { first, _ in first }), package: package)
         if strict, let first = unconfirmed.first { throw UserConfigError(first.path, .unconfirmedScript) }
         let blocked = Set(unconfirmed.map(\.path))
-        return Plan(files: accepted.filter { !blocked.contains($0.path) }, unconfirmed: unconfirmed)
+        return Plan(
+            files: accepted.filter { !blocked.contains($0.path) }, unconfirmed: unconfirmed,
+            generatedOnly: generatedOnly)
     }
 
     /// Puts the plan's scripts into `resources`, keeping the package's own bytes of a script it replaces
@@ -243,6 +253,26 @@ public enum RimeConfigFolder {
             if !remaining { lines.remove(at: begin) }
         }
         return lines.joined(separator: "\n")
+    }
+
+    static func isGeneratedOnly(_ path: String, data: Data) -> Bool {
+        guard path.hasSuffix(".custom.yaml"), let text = UserConfigFiles.decode(data) else { return false }
+        var inside = false
+        var found = false
+        for line in text.split(separator: "\n") {
+            if inside {
+                if line == "# }" {
+                    inside = false
+                    found = true
+                }
+            } else if line.hasPrefix("# Rx: "), line.hasSuffix(" {") {
+                inside = true
+            } else {
+                let trimmed = line.trimmingCharacters(in: .whitespaces)
+                if line != "__patch:", !trimmed.isEmpty, !trimmed.hasPrefix("#") { return false }
+            }
+        }
+        return found && !inside
     }
 
     /// The user's custom file with the app's `blocks` put back in, or nil when the two cannot be

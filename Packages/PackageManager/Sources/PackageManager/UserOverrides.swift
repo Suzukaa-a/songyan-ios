@@ -76,9 +76,9 @@ struct UserOverrides: Sendable {
     }
 
     /// The files of the user's folder that shadow a file of the package, by relative path.
-    func entries(_ package: PackageFiles) -> [Entry] {
+    func entries(_ package: PackageFiles, excluding: Set<String> = []) -> [Entry] {
         let marks = readMarks()
-        return shadowed(package).map { path in
+        return shadowed(package).filter { !excluding.contains($0) }.map { path in
             let base = marks.bases[path]
             let current = package.hashes[path]
             return Entry(path: path, updated: base != nil && current != nil && base != current)
@@ -86,9 +86,9 @@ struct UserOverrides: Sendable {
     }
 
     /// The shadowing files the user has not been told about yet.
-    func unacknowledged(_ package: PackageFiles) -> [String] {
+    func unacknowledged(_ package: PackageFiles, paths: [String]? = nil) -> [String] {
         let told = Set(readMarks().acknowledged)
-        return shadowed(package).filter { !told.contains($0) }
+        return (paths ?? shadowed(package)).filter { !told.contains($0) }
     }
 
     func acknowledge(_ paths: [String]) {
