@@ -450,8 +450,19 @@ struct QuickContentManagementView: View {
                     .disabled(model.content.clipboard.isEmpty)
                     .accessibilityIdentifier("quickContent.clearHistory")
                 ForEach(model.content.clipboard, id: \.self) { text in
-                    Text(text).lineLimit(4)
-                        .swipeActions { Button("删除", role: .destructive) { model.deleteClipboard(text) } }
+                    NavigationLink {
+                        ScrollView {
+                            Text(text)
+                                .textSelection(.enabled)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding()
+                        }
+                        .navigationTitle("剪贴板内容")
+                        .navigationBarTitleDisplayMode(.inline)
+                    } label: {
+                        Text(text).foregroundStyle(.primary).lineLimit(4)
+                    }
+                    .swipeActions { Button("删除", role: .destructive) { model.deleteClipboard(text) } }
                 }
                 if model.content.clipboard.isEmpty { Text("还没有历史记录").foregroundStyle(.secondary) }
             }
