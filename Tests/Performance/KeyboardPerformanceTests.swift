@@ -13,8 +13,9 @@ final class KeyboardPerformanceTests: XCTestCase {
     func testKeyboardAppearance() {
         let app = prepareKeyboard()
         let field = app.textViews["试打输入框"]
+        let keyboard = XCUIApplication(bundleIdentifier: "app.songyan.ime.keyboard")
         measure(metrics: [metric("appearance")], options: options()) {
-            app.buttons["perf.resetTryout"].tap()
+            dismissKeyboard(app, keyboard: keyboard)
             startMeasuring()
             field.tap()
             stopMeasuring()
@@ -27,8 +28,9 @@ final class KeyboardPerformanceTests: XCTestCase {
         let field = app.textViews["试打输入框"]
         let keyboard = XCUIApplication(bundleIdentifier: "app.songyan.ime.keyboard")
         measure(metrics: [metric("key"), metric("engineOp"), metric("refresh")], options: options()) {
-            app.buttons["perf.resetTryout"].tap()
+            dismissKeyboard(app, keyboard: keyboard)
             field.tap()
+            XCTAssertTrue(keyboard.keys["n"].waitForExistence(timeout: 5))
             for letter in ["n", "i", "h", "a"] {
                 keyboard.keys[letter].tap()
             }
@@ -71,6 +73,13 @@ final class KeyboardPerformanceTests: XCTestCase {
         let committed = expectation(for: NSPredicate(format: "value == %@", "你好"), evaluatedWith: field)
         wait(for: [committed], timeout: 10)
         return app
+    }
+
+    @MainActor
+    private func dismissKeyboard(_ app: XCUIApplication, keyboard: XCUIApplication) {
+        app.buttons["perf.resetTryout"].tap()
+        // A new focus request can overlap the previous keyboard disappearance.
+        XCTAssertTrue(keyboard.keys["n"].waitForNonExistence(timeout: 5))
     }
 
     @MainActor
