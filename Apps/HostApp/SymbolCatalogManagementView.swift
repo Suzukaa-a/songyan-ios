@@ -192,6 +192,8 @@ final class SymbolCatalogManagementModel: ObservableObject {
 /// Host-side JSON catalog management. A corrupt custom file remains removable,
 /// while its displayed source truthfully identifies the default fallback.
 struct SymbolCatalogManagementView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @StateObject private var model = SymbolCatalogManagementModel()
     @State private var confirmingRestore = false
     @State private var showingImporter = false
@@ -243,14 +245,23 @@ struct SymbolCatalogManagementView: View {
                 HStack {
                     Button("全部") { model.selectedCategory = nil }
                         .buttonStyle(.bordered).tint(model.selectedCategory == nil ? .accentColor : .secondary)
+                        .accessibilityAddTraits(model.selectedCategory == nil ? .isSelected : [])
+                        .animation(reduceMotion ? nil : .easeInOut(duration: 0.15), value: model.selectedCategory)
                     ForEach(model.catalog.orderedCategories, id: \.id) { value in
                         Button(value.name) { model.selectedCategory = value.id }
                             .buttonStyle(.bordered).tint(model.selectedCategory == value.id ? .accentColor : .secondary)
+                            .accessibilityAddTraits(model.selectedCategory == value.id ? .isSelected : [])
+                            .animation(reduceMotion ? nil : .easeInOut(duration: 0.15), value: model.selectedCategory)
                     }
                 }
             }
+            .controlSize(.large)
             ForEach(browseItems) { item in
-                HStack(spacing: 16) {
+                let rowLayout =
+                    dynamicTypeSize.isAccessibilitySize
+                    ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+                    : AnyLayout(HStackLayout(spacing: 16))
+                rowLayout {
                     Text(item.text).font(.title3).frame(minWidth: 64)
                     VStack(alignment: .leading) {
                         Text(item.name)
@@ -274,13 +285,11 @@ struct SymbolCatalogManagementView: View {
     private var statusSection: some View {
         Section {
             LabeledRow(label: "当前符号库", value: model.sourceText)
-            LabeledRow(label: "符号", value: "\(model.itemCount) 条")
-            LabeledRow(label: "分类", value: "\(model.categoryCount) 个")
             if model.isBusy { ProgressView("正在处理符号库…") }
         } header: {
             Text("符号库")
         } footer: {
-            Text(model.sourceText == "自定义" ? "正在使用自定义符号库。" : model.sourceText == "默认" ? "正在使用默认符号库。" : "正在读取符号库。")
+            Text("\(model.itemCount) 个符号 · \(model.categoryCount) 个分类")
         }
     }
 
@@ -301,11 +310,11 @@ struct SymbolCatalogManagementView: View {
                     .confirmationDialog("恢复默认符号库？", isPresented: $confirmingRestore, titleVisibility: .visible) {
                         Button("恢复默认", role: .destructive) { model.restoreDefault() }
                     } message: {
-                        Text("将移除自定义符号库，恢复为系统默认符号。")
+                        Text("将移除自定义符号库，改用内置符号库。")
                     }
             }
         } header: {
-            Text("导入 / 导出")
+            Text("导入与导出")
         } footer: {
             Text("支持松烟符号库文件（.json）。可先导出当前符号库作为模板。")
         }
