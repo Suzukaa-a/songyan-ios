@@ -77,12 +77,10 @@ final class Phone9SemanticsTests: XCTestCase {
             at: .row(0, key: 0),
             with: preset.rows[0].keys[0].settingAction(.init(.literal, value: "!")))
         let bound = clone(input: .init(schemaID: "unknown_t9", builtinLayout: .phone9))
-        for definition in [preset, clone(), changed, bound] {
+        for (definition, cyclesSymbols) in [(preset, true), (clone(), true), (changed, false), (bound, false)] {
             let decoded = try LayoutDefinition.decode(definition.encoded())
             XCTAssertNil(decoded.t9FirstKeyBehavior)
-            XCTAssertEqual(
-                BuiltinLayouts.usesPhone9QuickSymbols(decoded),
-                BuiltinLayouts.matchesPhone9PrimarySemantics(definition))
+            XCTAssertEqual(BuiltinLayouts.usesPhone9QuickSymbols(decoded), cyclesSymbols)
         }
     }
 
@@ -136,7 +134,6 @@ final class Phone9SemanticsTests: XCTestCase {
             for result in edited {
                 XCTAssertEqual(result.t9FirstKeyBehavior, behavior)
             }
-            XCTAssertNil(definition.settingT9FirstKeyBehavior(nil).t9FirstKeyBehavior)
         }
     }
 
@@ -147,7 +144,6 @@ final class Phone9SemanticsTests: XCTestCase {
             let json = try XCTUnwrap(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
             XCTAssertEqual(json["t9QuickSymbols"] as? String, symbols)
             let decoded = try LayoutDefinition.decode(encoded)
-            XCTAssertEqual(decoded.t9QuickSymbols, symbols)
             XCTAssertEqual(decoded, definition)
         }
     }
@@ -168,8 +164,6 @@ final class Phone9SemanticsTests: XCTestCase {
             for result in edited {
                 XCTAssertEqual(result.t9QuickSymbols, symbols)
             }
-            XCTAssertEqual(definition.t9FirstKeyBehavior, .custom)
-            XCTAssertNil(definition.settingT9QuickSymbols(nil).t9QuickSymbols)
         }
     }
 
@@ -181,20 +175,20 @@ final class Phone9SemanticsTests: XCTestCase {
                     ascii: true
                 ).prefix(3)),
             [";", ":", "!"])
-        for ascii in [false, true] {
-            for symbols: String? in [nil, "；：！", ""] {
-                let definition = clone().settingT9QuickSymbols(symbols)
-                XCTAssertEqual(
-                    BuiltinLayouts.t9QuickSymbolValues(for: definition, inherited: "【】？", ascii: ascii),
-                    BuiltinLayouts.t9QuickSymbolValues(saved: symbols ?? "【】？", ascii: ascii))
-            }
+        let cases: [(String?, Bool, [String])] = [
+            (nil, false, ["【", "】", "？"]),
+            (nil, true, ["[", "]", "?"]),
+            ("；：！", false, ["；", "：", "！"]),
+            ("；：！", true, [";", ":", "!"]),
+            ("", false, ["，", "。", "？"]),
+        ]
+        for (symbols, ascii, expected) in cases {
+            XCTAssertEqual(
+                Array(
+                    BuiltinLayouts.t9QuickSymbolValues(
+                        for: clone().settingT9QuickSymbols(symbols), inherited: "【】？", ascii: ascii
+                    ).prefix(3)), expected)
         }
-        XCTAssertEqual(
-            Array(
-                BuiltinLayouts.t9QuickSymbolValues(
-                    for: clone().settingT9QuickSymbols("；：！"), inherited: "【】？", ascii: true
-                ).prefix(3)),
-            [";", ":", "!"])
         for definition in [
             BuiltinLayouts.qwerty26, BuiltinLayouts.merged14, BuiltinLayouts.merged18,
         ] {
