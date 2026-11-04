@@ -92,6 +92,53 @@ final class KeyboardPerformanceTests: XCTestCase {
     }
 
     @MainActor
+    func testPairedNumericKeypadKeepsSymbolPagesCycling() {
+        selectNumericPage("数字九宫格")
+        defer { selectNumericPage("自动 123") }
+        let app = prepareKeyboard()
+        let keyboard = XCUIApplication(bundleIdentifier: "app.songyan.ime.keyboard")
+        app.buttons["清空"].tap()
+        point(app, 36, 768).tap()
+        XCTAssertTrue(keyboard.keys["1"].waitForExistence(timeout: 5))
+        point(app, 288, 768).tap()
+        XCTAssertFalse(keyboard.keys["1"].exists)
+        let firstPage = keyboard.keys.allElementsBoundByIndex.map(\.label)
+        for turn in 0..<4 {
+            point(app, 36, 710).tap()
+            XCTAssertFalse(keyboard.keys["1"].exists)
+            let current = keyboard.keys.allElementsBoundByIndex.map(\.label)
+            if turn.isMultiple(of: 2) {
+                XCTAssertNotEqual(current, firstPage)
+            } else {
+                XCTAssertEqual(current, firstPage)
+            }
+        }
+        point(app, 36, 768).tap()
+        XCTAssertTrue(keyboard.keys["n"].waitForExistence(timeout: 5))
+        typeGreeting(keyboard)
+        let committed = expectation(
+            for: NSPredicate(format: "value == %@", "你好"), evaluatedWith: app.textViews["试打输入框"])
+        wait(for: [committed], timeout: 5)
+    }
+
+    @MainActor
+    private func selectNumericPage(_ name: String) {
+        let app = XCUIApplication()
+        app.launchArguments = ["-app.songyan.settings.onboardingCompleted", "YES", "-AppleLanguages", "(zh-Hans)"]
+        app.launch()
+        let keyboards = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "我的键盘")).firstMatch
+        XCTAssertTrue(keyboards.waitForExistence(timeout: 10))
+        keyboards.tap()
+        point(app, 175, 295).tap()
+        let picker = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "页面")).firstMatch
+        XCTAssertTrue(picker.waitForExistence(timeout: 5))
+        picker.tap()
+        app.buttons[name].tap()
+        app.buttons["保存搭配"].tap()
+        app.terminate()
+    }
+
+    @MainActor
     private func prepareKeyboard() -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-app.songyan.settings.onboardingCompleted", "YES", "-AppleLanguages", "(zh-Hans)"]

@@ -151,7 +151,11 @@ extension KeyboardPanelView {
     /// pairing reaches every everyday mark, the page is not the built-in row page, or the switch
     /// already turned to the second page.
     var everydayMarkRows: [KeyboardRow]? {
-        guard page == .symbols, showsEverydayMarksPage else { return nil }
+        showsEverydayMarksPage ? availableEverydayMarkRows : nil
+    }
+
+    private var availableEverydayMarkRows: [KeyboardRow]? {
+        guard page == .symbols else { return nil }
         let symbolPage = selectedComposition.flatMap { layoutRegistry?.page(id: $0.pageID(for: .symbols)) }
         guard
             KeyboardPageMarkCoverage.symbolPageForm(symbolPage, mainLayoutIsPhoneKeypad: usesPhoneDefinition)
@@ -249,19 +253,24 @@ extension KeyboardPanelView {
     }
 
     /// The 123 / symbol page's third-row switch.
+    @ViewBuilder
     func markPageSwitchKey(target: KeyboardPage) -> some View {
-        MarkPageSwitchKey(target: target) {
-            emitKeyFeedback()
-            page = target
-            showsAllCandidates = false
+        if target == .numeric, availableEverydayMarkRows != nil {
+            moreSymbolsKey
+        } else {
+            MarkPageSwitchKey(target: target) {
+                emitKeyFeedback()
+                page = target
+                showsAllCandidates = false
+            }
         }
     }
 
-    /// The extra everyday-marks page's switch, in the same slot: it turns to the usual symbol rows.
+    /// Both symbol pages keep the switch in the same slot so repeated taps cycle within symbols.
     var moreSymbolsKey: some View {
         MarkPageSwitchKey(target: .symbols, title: "#+=", accessibilityText: "打开更多符号") {
             emitKeyFeedback()
-            showsEverydayMarksPage = false
+            showsEverydayMarksPage.toggle()
         }
     }
 
