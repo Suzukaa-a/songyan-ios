@@ -98,6 +98,7 @@ private final class SymbolCatalogManagementWorker: @unchecked Sendable {
 @MainActor
 final class SymbolCatalogManagementModel: ObservableObject {
     @Published private(set) var catalog = SymbolCatalog(categories: [], items: [])
+    @Published var selectedCategory: String?
     @Published private(set) var hasCustomFile = false
     @Published private(set) var itemCount = 0
     @Published private(set) var categoryCount = 0
@@ -162,6 +163,11 @@ final class SymbolCatalogManagementModel: ObservableObject {
                 self.error = nil
                 if let snapshot = outcome.snapshot {
                     self.catalog = snapshot.catalog
+                    if let selectedCategory,
+                        !snapshot.catalog.categories.contains(where: { $0.id == selectedCategory })
+                    {
+                        self.selectedCategory = nil
+                    }
                     self.hasCustomFile = snapshot.hasCustomFile
                     self.itemCount = snapshot.itemCount
                     self.categoryCount = snapshot.categoryCount
@@ -190,7 +196,6 @@ struct SymbolCatalogManagementView: View {
     @State private var confirmingRestore = false
     @State private var showingImporter = false
     @State private var query = ""
-    @State private var category: String?
 
     var body: some View {
         List {
@@ -236,11 +241,11 @@ struct SymbolCatalogManagementView: View {
         Section("浏览") {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack {
-                    Button("全部") { category = nil }
-                        .buttonStyle(.bordered).tint(category == nil ? .accentColor : .secondary)
+                    Button("全部") { model.selectedCategory = nil }
+                        .buttonStyle(.bordered).tint(model.selectedCategory == nil ? .accentColor : .secondary)
                     ForEach(model.catalog.orderedCategories, id: \.id) { value in
-                        Button(value.name) { category = value.id }
-                            .buttonStyle(.bordered).tint(category == value.id ? .accentColor : .secondary)
+                        Button(value.name) { model.selectedCategory = value.id }
+                            .buttonStyle(.bordered).tint(model.selectedCategory == value.id ? .accentColor : .secondary)
                     }
                 }
             }
@@ -263,7 +268,7 @@ struct SymbolCatalogManagementView: View {
         let values =
             query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             ? model.catalog.items : model.catalog.search(query)
-        return values.filter { category == nil || $0.category == category }
+        return values.filter { model.selectedCategory == nil || $0.category == model.selectedCategory }
     }
 
     private var statusSection: some View {

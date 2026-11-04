@@ -77,8 +77,8 @@ final class AccessProbe: @unchecked Sendable {
         SymbolLibraryStorage.directory = directory
         let store = RecentSymbolStore(directory: directory)
         precondition(store.save(["seed"]) == nil)
-        let a = SymbolItem(id: "a", text: "A", name: "Alpha", aliases: ["alpha"], category: "letters")
-        let b = SymbolItem(id: "b", text: "B", name: "Beta", aliases: ["beta"], category: "letters")
+        let a = SymbolItem(id: "a", text: "A", name: "Alpha", aliases: ["alpha"], category: "custom-letters")
+        let b = SymbolItem(id: "b", text: "B", name: "Beta", aliases: ["beta"], category: "custom-letters")
         var allowInsert = true
         var inserted: [String] = []
         var feedback: [Bool] = []
@@ -156,7 +156,8 @@ final class AccessProbe: @unchecked Sendable {
         precondition(afterRejectedInsert == previousData)
         allowInsert = true
         let tooLarge = SymbolItem(
-            id: "large", text: String(repeating: "x", count: 17_000), name: "Large", aliases: [], category: "letters")
+            id: "large", text: String(repeating: "x", count: 17_000), name: "Large", aliases: [],
+            category: "custom-letters")
         model.insert(tooLarge)
         await model.reload().value
         precondition(model.recents.map(\.text) == ["B", "A"] && store.read() == ["B", "A"])
@@ -191,13 +192,17 @@ final class AccessProbe: @unchecked Sendable {
         await model.reload().value
         precondition(model.catalog.items.count >= 80 && model.catalogReadError != nil)
         let custom = SymbolCatalog(
-            categories: [SymbolCategory(id: "letters", name: "Letters", order: 0)], items: [a, b])
+            categories: [SymbolCategory(id: "custom-letters", name: "Letters", order: 0)], items: [a, b])
         _ = try SymbolCatalogStore(directory: directory).importCatalog(try custom.encoded())
         await model.reload().value
         precondition(model.catalog == custom && model.catalogReadError == nil && model.query == "jiantou")
         print(
             "PASS corrupt recent/catalog files report read errors, retain fallback data, and successful reloads recover without resetting search"
         )
+
+        model.selectCategory("custom-letters")
+        await model.reload().value
+        precondition(model.selectedCategory == "custom-letters")
 
         let access = AccessProbe()
         let manager = SymbolCatalogManagementModel(
@@ -206,6 +211,7 @@ final class AccessProbe: @unchecked Sendable {
         precondition(manager.isBusy && manager.itemCount == 0)
         await manager.reload()?.value
         precondition(!manager.isBusy && manager.itemCount == 2 && manager.sourceText == "自定义")
+        manager.selectedCategory = "custom-letters"
         let imported = SymbolCatalog(categories: custom.categories, items: [a])
         let input = directory.appendingPathComponent("import.json")
         try imported.encoded().write(to: input)
@@ -220,6 +226,7 @@ final class AccessProbe: @unchecked Sendable {
         precondition(access.counts == [1, 1, 0])
         precondition(!manager.isBusy && manager.error == nil && manager.itemCount == 1 && manager.sourceText == "自定义")
         precondition(catalogStore.loadActive() == imported)
+        precondition(manager.selectedCategory == "custom-letters")
         print(
             "PASS management initialization is asynchronous; busy gating preserves prior UI while security scope spans the real import"
         )
@@ -244,10 +251,13 @@ final class AccessProbe: @unchecked Sendable {
         let restoreKeptState =
             manager.hasCustomFile && manager.itemCount == 1 && manager.error?.contains("恢复失败") == true
         try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: directory.path)
-        precondition(restoreKeptState)
+        precondition(restoreKeptState && manager.selectedCategory == "custom-letters")
         await manager.restoreDefault()?.value
         precondition(
             !manager.hasCustomFile && manager.sourceText == "默认" && manager.itemCount >= 80 && manager.error == nil)
+        await model.reload().value
+        precondition(model.selectedCategory == nil, "a removed category must not leave the keyboard on an empty page")
+        precondition(manager.selectedCategory == nil, "management must browse the replacement library")
         try Data("broken".utf8).write(to: directory.appendingPathComponent("catalog.json"))
         await manager.reload()?.value
         precondition(manager.hasCustomFile && manager.sourceText == "默认" && manager.error != nil)

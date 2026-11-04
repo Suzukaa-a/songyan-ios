@@ -257,6 +257,9 @@ public final class SymbolLibraryModel: ObservableObject {
         storeDirectory = outcome.directory
         if let catalog = outcome.catalog {
             self.catalog = catalog
+            if let selectedCategory, !catalog.categories.contains(where: { $0.id == selectedCategory }) {
+                self.selectedCategory = nil
+            }
             catalogReadError = outcome.catalogReadError
         }
         if let use = outcome.unstoredUse {
