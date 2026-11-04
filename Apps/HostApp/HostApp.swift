@@ -98,6 +98,9 @@ struct HostApp: App {
         }
 
         private static func probe(mode: String, fixtures: URL?) -> String {
+            // Publication measurement must not touch the deployment probe's directories: it reuses
+            // the build mode B leaves there and resets only its own root.
+            if mode == "P" { return publicationProbe(fixtures: fixtures) }
             let fm = FileManager.default
             let root = fixtures ?? URL(fileURLWithPath: "/nonexistent", isDirectory: true)
             let source = root.appendingPathComponent("source", isDirectory: true)
@@ -194,6 +197,95 @@ struct HostApp: App {
             try? data?.write(to: URL(fileURLWithPath: reportPath), options: .atomic)
             print("DEPLOYMENT_PROBE_RESULT success=\(report["success"] ?? false) report=\(reportPath)")
             return reportPath
+        }
+
+        /// Repeated publication exposes large-file duplication without changing the production publisher.
+        private static func publicationProbe(fixtures: URL?) -> String {
+            let fm = FileManager.default
+            let caches = fm.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+            let base = caches.appendingPathComponent("PublicationProbe", isDirectory: true)
+            let reportPath = base.appendingPathComponent("report.json").path
+            let published = base.appendingPathComponent("root", isDirectory: true)
+            try? fm.removeItem(at: base)
+            try? fm.createDirectory(at: published, withIntermediateDirectories: true)
+
+            let fixturesRoot = fixtures ?? URL(fileURLWithPath: "/nonexistent", isDirectory: true)
+            let resources = fixturesRoot.appendingPathComponent("prebuilt", isDirectory: true)
+            let compiled = caches.appendingPathComponent("DeploymentProbe/user/build", isDirectory: true)
+            let revisions = ["1", "2"]
+            var report: [String: Any] = ["mode": "P", "publishedRoot": published.path, "revisions": revisions]
+            do {
+                guard isDirectory(resources),
+                    fm.fileExists(atPath: resources.appendingPathComponent("default.yaml").path)
+                else { throw ProbeError.message("missing \(resources.path)") }
+                guard isDirectory(compiled),
+                    fm.fileExists(atPath: compiled.appendingPathComponent("default.yaml").path)
+                else { throw ProbeError.message("missing \(compiled.path), run mode B first") }
+                var generations: [String] = []
+                for revision in revisions {
+                    try KeyboardRecipeStore.publish(
+                        resources: resources, compiledBuild: compiled, revision: revision,
+                        rootURL: published, kind: .userScheme, packageID: "kagiroi-probe",
+                        schemas: [KeyboardSchemaDescriptor(id: "kagiroi", name: "kagiroi")],
+                        selectedSchemaID: "kagiroi", layout: .qwerty26)
+                    let active = try Data(contentsOf: published.appendingPathComponent("active.json"))
+                    let record = try JSONSerialization.jsonObject(with: active) as? [String: Any]
+                    guard let generation = record?["generation"] as? String else {
+                        throw ProbeError.message("active.json has no generation after revision \(revision)")
+                    }
+                    generations.append(generation)
+                }
+                let versions = published.appendingPathComponent("versions", isDirectory: true)
+                let present = generations.filter {
+                    fm.fileExists(atPath: versions.appendingPathComponent($0).path)
+                }
+                report["generations"] = generations
+                report["versionCount"] = (try? fm.contentsOfDirectory(atPath: versions.path))?.count ?? 0
+                // Success means both publishes succeeded and both versions still exist; the ratio is
+                // reported separately and never turns a completed measurement into a failure.
+                report["success"] = present.count == generations.count
+                if present.count != generations.count {
+                    report["error"] = "published generations are missing on disk"
+                }
+            } catch {
+                report["success"] = false
+                report["error"] = "\(error)"
+            }
+            let usage = diskUsage(in: published)
+            let compiledBytes = diskUsage(in: compiled).logical
+            report["logicalBytes"] = usage.logical
+            report["uniqueBytes"] = usage.unique
+            report["compiledBytes"] = compiledBytes
+            let ratio = compiledBytes > 0 ? Double(usage.unique) / Double(compiledBytes) : 0
+            report["ratio"] = ratio
+            report["needsSharing"] = ratio > 1.3
+            let data = try? JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys])
+            try? data?.write(to: URL(fileURLWithPath: reportPath), options: .atomic)
+            print("DEPLOYMENT_PROBE_RESULT success=\(report["success"] ?? false) report=\(reportPath)")
+            return reportPath
+        }
+
+        /// Deduplicates by device/inode so entries sharing storage count once.
+        private static func diskUsage(in directory: URL) -> (logical: Int64, unique: Int64) {
+            var logical: Int64 = 0
+            var unique: Int64 = 0
+            var seen = Set<String>()
+            guard
+                let enumerator = FileManager.default.enumerator(
+                    at: directory, includingPropertiesForKeys: [.isRegularFileKey])
+            else { return (logical, unique) }
+            for case let item as URL in enumerator {
+                guard (try? item.resourceValues(forKeys: [.isRegularFileKey]))?.isRegularFile == true else {
+                    continue
+                }
+                var info = stat()
+                guard item.path.withCString({ stat($0, &info) }) == 0 else { continue }
+                logical += Int64(info.st_size)
+                if seen.insert("\(info.st_dev):\(info.st_ino)").inserted {
+                    unique += Int64(info.st_size)
+                }
+            }
+            return (logical, unique)
         }
 
         private static func nihongo(_ engine: RimeEngine) -> (preedit: String, candidates: [String]) {
