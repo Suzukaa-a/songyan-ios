@@ -61,6 +61,7 @@ extension CandidateAreaActionSink {
                 case .pageForward: controller.candidateAreaPageForward()
                 case .pageBackward: controller.candidateAreaPageBackward()
                 case .loadMore: controller.candidateAreaLoadMore()
+                case .backspace: controller.handle(.backspace)
                 case .expand: onExpand()
                 case .collapse: onCollapse()
                 case .highlightNext, .highlightPrevious: break

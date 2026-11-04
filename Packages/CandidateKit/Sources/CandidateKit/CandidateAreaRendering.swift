@@ -310,6 +310,7 @@ private struct DefaultCollapsedCandidateBar: View {
                     .padding(.leading, 10)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .accessibilityAddTraits(.isHeader)
+                pageButton("delete.left", label: "退格", disabled: false, action: .backspace)
             } else {
                 // Read-only entry for earlier pages (not engine paging): shown when unloaded pages exist before the real current
                 // page; reads them by offset without changing the engine page/highlight/marked text. If the frontier is stopped on an

@@ -117,6 +117,7 @@ public enum CandidateAreaAction: Equatable, Sendable {
     case pageForward
     case pageBackward
     case loadMore
+    case backspace
     case expand
     case collapse
 }

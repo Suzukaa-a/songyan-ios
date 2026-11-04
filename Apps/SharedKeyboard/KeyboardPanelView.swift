@@ -420,6 +420,8 @@ public struct KeyboardPanelView: View {
                 controller.loadMoreReadings()
             case .select, .selectOnPage, .pageForward, .pageBackward, .loadMore:
                 selectionFeedbackAfterEffect { live.perform(action) }
+            case .backspace:
+                keyFeedbackAfterEffect { live.perform(action) }
             case .expand, .collapse, .highlightNext, .highlightPrevious:
                 live.perform(action)
             }

@@ -62,6 +62,36 @@ final class KeyboardPerformanceTests: XCTestCase {
     }
 
     @MainActor
+    func testExpandedCandidatesAllowCorrectionAndContinuedTyping() {
+        let app = prepareKeyboard()
+        let field = app.textViews["试打输入框"]
+        let keyboard = XCUIApplication(bundleIdentifier: "app.songyan.ime.keyboard")
+        app.buttons["清空"].tap()
+        for letter in ["n", "i", "h", "a", "o"] {
+            keyboard.keys[letter].tap()
+        }
+        // SwiftUI controls in the extension report local accessibility frames on the simulator.
+        point(app, 376, 543).tap()
+        let backspace = keyboard.buttons["退格"]
+        XCTAssertTrue(backspace.waitForExistence(timeout: 5))
+        for _ in 0..<3 { point(app, 332, 543).tap() }
+        let corrected = expectation(for: NSPredicate(format: "value == %@", "ni"), evaluatedWith: field)
+        wait(for: [corrected], timeout: 5)
+        XCTAssertTrue(keyboard.buttons["收起候选"].exists)
+        XCTAssertTrue(keyboard.buttons["你"].exists)
+        point(app, 24, 596).tap()
+        let committed = expectation(for: NSPredicate(format: "value == %@", "你"), evaluatedWith: field)
+        wait(for: [committed], timeout: 5)
+        XCTAssertTrue(keyboard.keys["a"].waitForExistence(timeout: 5))
+        keyboard.keys["a"].tap()
+        point(app, 376, 543).tap()
+        point(app, 332, 543).tap()
+        let cleared = expectation(for: NSPredicate(format: "value == %@", "你"), evaluatedWith: field)
+        wait(for: [cleared], timeout: 5)
+        XCTAssertTrue(keyboard.keys["n"].waitForExistence(timeout: 5))
+    }
+
+    @MainActor
     private func prepareKeyboard() -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-app.songyan.settings.onboardingCompleted", "YES", "-AppleLanguages", "(zh-Hans)"]

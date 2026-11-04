@@ -40,7 +40,7 @@ public struct CandidateBarPreviewView: View {
             case .selectOnPage(_, let index): highlightIndex = index
             case .highlightNext: highlightIndex = min(highlightIndex + 1, 4)
             case .highlightPrevious: highlightIndex = max(highlightIndex - 1, 0)
-            case .expand, .collapse, .pageForward, .pageBackward, .loadMore: break
+            case .expand, .collapse, .pageForward, .pageBackward, .loadMore, .backspace: break
             }
         }
     }
