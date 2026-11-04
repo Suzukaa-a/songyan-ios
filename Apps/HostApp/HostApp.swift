@@ -32,7 +32,7 @@ struct HostApp: App {
             Group {
                 #if DEBUG
                     if DeploymentProbe.enabled {
-                        Color.clear.task { await DeploymentProbe.runOnce() }
+                        ProbeLaunchView()
                     } else {
                         HostRootView()
                     }
@@ -79,17 +79,20 @@ struct HostApp: App {
             !(ProcessInfo.processInfo.environment[modeKey] ?? "").trimmingCharacters(in: .whitespaces).isEmpty
         }
 
-        @MainActor static func runOnce() async {
+        /// Returns true only when the normal UI should open afterwards (mode E published successfully).
+        @MainActor static func runOnce() async -> Bool {
             let environment = ProcessInfo.processInfo.environment
             let mode = (environment[modeKey] ?? "").trimmingCharacters(in: .whitespaces).uppercased()
             let fixtures = environment[fixturesKey].map { URL(fileURLWithPath: $0, isDirectory: true) }
             do {
-                let reportPath = try await EngineOwnershipCoordinator.shared.withExclusive {
+                let outcome = try await EngineOwnershipCoordinator.shared.withExclusive {
                     try await EngineOpQueue.async { probe(mode: mode, fixtures: fixtures) }
                 }
-                print("DEPLOYMENT_PROBE_RESULT report=\(reportPath)")
+                print("DEPLOYMENT_PROBE_RESULT success=\(outcome.success) report=\(outcome.reportPath)")
+                return mode == "E" && outcome.success
             } catch {
                 print("DEPLOYMENT_PROBE_RESULT error=\(error)")
+                return false
             }
         }
 
@@ -97,7 +100,15 @@ struct HostApp: App {
             case message(String)
         }
 
-        private static func probe(mode: String, fixtures: URL?) -> String {
+        private struct Outcome {
+            let reportPath: String
+            let success: Bool
+        }
+
+        private static func probe(mode: String, fixtures: URL?) -> Outcome {
+            // Mode E publishes from the build mode A/B leaves behind, so it must branch before
+            // the directory reset below deletes that build.
+            if mode == "E" { return runtimeProbe(fixtures: fixtures) }
             // Publication measurement must not touch the deployment probe's directories: it reuses
             // the build mode B leaves there and resets only its own root.
             if mode == "P" { return publicationProbe(fixtures: fixtures) }
@@ -196,11 +207,52 @@ struct HostApp: App {
             let data = try? JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys])
             try? data?.write(to: URL(fileURLWithPath: reportPath), options: .atomic)
             print("DEPLOYMENT_PROBE_RESULT success=\(report["success"] ?? false) report=\(reportPath)")
-            return reportPath
+            return Outcome(reportPath: reportPath, success: report["success"] as? Bool ?? false)
+        }
+
+        /// Mode E: a production publish into the simulator's real App Group, so the keyboard
+        /// extension can be exercised with the kagiroi data staged for the simulator. The report
+        /// is written under the host app's caches for the operator; a missing fixture fails here
+        /// and leaves the previous publication untouched.
+        private static func runtimeProbe(fixtures: URL?) -> Outcome {
+            let fm = FileManager.default
+            let caches = fm.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+            let base = caches.appendingPathComponent("RuntimeProbe", isDirectory: true)
+            let compiled = caches.appendingPathComponent("DeploymentProbe/user/build", isDirectory: true)
+            try? fm.createDirectory(at: base, withIntermediateDirectories: true)
+            let reportPath = base.appendingPathComponent("report.json").path
+            try? fm.removeItem(at: URL(fileURLWithPath: reportPath))
+            let fixturesRoot = fixtures ?? URL(fileURLWithPath: "/nonexistent", isDirectory: true)
+            let resources = fixturesRoot.appendingPathComponent("prebuilt", isDirectory: true)
+            var report: [String: Any] = ["mode": "E", "compiled": compiled.path]
+            do {
+                guard isDirectory(resources),
+                    fm.fileExists(atPath: resources.appendingPathComponent("default.yaml").path)
+                else { throw ProbeError.message("missing \(resources.path)") }
+                guard isDirectory(compiled),
+                    fm.fileExists(atPath: compiled.appendingPathComponent("kagiroi.schema.yaml").path)
+                else { throw ProbeError.message("missing \(compiled.path), run mode A or B first") }
+                // Omitting rootURL publishes into the App Group container the extension reads.
+                report["root"] = try KeyboardRecipeStore.root().path
+                try KeyboardRecipeStore.publish(
+                    resources: resources, compiledBuild: compiled, revision: "runtime-1",
+                    kind: .userScheme, packageID: "kagiroi-perf",
+                    schemas: [KeyboardSchemaDescriptor(id: "kagiroi", name: "kagiroi")],
+                    selectedSchemaID: "kagiroi", layout: .qwerty26,
+                    publishedKeyboards: [PublishedKeyboard(schemaID: "kagiroi", layout: .qwerty26)])
+                report["success"] = true
+            } catch {
+                report["success"] = false
+                report["error"] = "\(error)"
+            }
+            let data = try? JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys])
+            try? data?.write(to: URL(fileURLWithPath: reportPath), options: .atomic)
+            print("DEPLOYMENT_PROBE_RESULT success=\(report["success"] ?? false) report=\(reportPath)")
+            return Outcome(reportPath: reportPath, success: report["success"] as? Bool ?? false)
         }
 
         /// Repeated publication exposes large-file duplication without changing the production publisher.
-        private static func publicationProbe(fixtures: URL?) -> String {
+        private static func publicationProbe(fixtures: URL?) -> Outcome {
             let fm = FileManager.default
             let caches = fm.urls(for: .cachesDirectory, in: .userDomainMask)[0]
             let base = caches.appendingPathComponent("PublicationProbe", isDirectory: true)
@@ -262,7 +314,7 @@ struct HostApp: App {
             let data = try? JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys])
             try? data?.write(to: URL(fileURLWithPath: reportPath), options: .atomic)
             print("DEPLOYMENT_PROBE_RESULT success=\(report["success"] ?? false) report=\(reportPath)")
-            return reportPath
+            return Outcome(reportPath: reportPath, success: report["success"] as? Bool ?? false)
         }
 
         /// Deduplicates by device/inode so entries sharing storage count once.
@@ -355,6 +407,23 @@ struct HostApp: App {
                 lock.lock()
                 peak = max(peak, footprint)
                 lock.unlock()
+            }
+        }
+    }
+
+    /// Host root while a deployment probe starts. Modes A/B/P only measure and keep the blank
+    /// probe screen; mode E publishes first and then opens the normal UI, so the host's engine
+    /// never starts while a publication is being written.
+    private struct ProbeLaunchView: View {
+        @State private var released = false
+
+        var body: some View {
+            if released {
+                HostRootView()
+            } else {
+                Color.clear.task {
+                    if await DeploymentProbe.runOnce() { released = true }
+                }
             }
         }
     }
