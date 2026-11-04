@@ -25,20 +25,21 @@ final class KeyboardPerformanceTests: XCTestCase {
     func testTypingWithTheRealEngine() {
         let app = prepareKeyboard()
         let field = app.textViews["试打输入框"]
+        let keyboard = XCUIApplication(bundleIdentifier: "app.songyan.ime.keyboard")
         measure(metrics: [metric("key"), metric("engineOp"), metric("refresh")], options: options()) {
             app.buttons["perf.resetTryout"].tap()
             field.tap()
-            for (x, y) in [(275.0, 710.0), (300.0, 594.0), (241.0, 652.0), (40.0, 652.0)] {
-                point(app, x, y).tap()
+            for letter in ["n", "i", "h", "a"] {
+                keyboard.keys[letter].tap()
             }
             let prefix = expectation(for: NSPredicate(format: "value ENDSWITH %@", "a"), evaluatedWith: field)
             wait(for: [prefix], timeout: 5)
             startMeasuring()
-            point(app, 340, 594).tap()
+            keyboard.keys["o"].tap()
             let decoded = expectation(for: NSPredicate(format: "value ENDSWITH %@", "o"), evaluatedWith: field)
             wait(for: [decoded], timeout: 5)
             stopMeasuring()
-            point(app, 201, 768).tap()
+            keyboard.keys["空格"].tap()
             let committed = expectation(for: NSPredicate(format: "value == %@", "你好"), evaluatedWith: field)
             wait(for: [committed], timeout: 5)
         }
@@ -57,22 +58,25 @@ final class KeyboardPerformanceTests: XCTestCase {
         field.tap()
         if app.buttons["Continue"].exists { app.buttons["Continue"].tap() }
         point(app, 43, 840).press(forDuration: 1.5)
-        let keyboard = app.staticTexts["松烟键盘 — 松烟"].firstMatch
-        XCTAssertTrue(keyboard.waitForExistence(timeout: 5), "Enable Songyan on the dedicated simulator before testing")
-        keyboard.tap()
+        let pickerItem = app.staticTexts["松烟键盘 — 松烟"].firstMatch
+        XCTAssertTrue(
+            pickerItem.waitForExistence(timeout: 5), "Enable Songyan on the dedicated simulator before testing")
+        pickerItem.tap()
+        // Custom keyboard keys belong to the extension process, outside the host app's tree.
+        let keyboard = XCUIApplication(bundleIdentifier: "app.songyan.ime.keyboard")
+        XCTAssertTrue(keyboard.keys["n"].waitForExistence(timeout: 15))
         XCTAssertEqual(app.frame.width, 402)
         XCTAssertEqual(app.frame.height, 874)
-        typeGreeting(app)
+        typeGreeting(keyboard)
         let committed = expectation(for: NSPredicate(format: "value == %@", "你好"), evaluatedWith: field)
         wait(for: [committed], timeout: 10)
         return app
     }
 
     @MainActor
-    private func typeGreeting(_ app: XCUIApplication) {
-        // Coordinates belong to the pinned iPhone 17 Pro fixture; the resulting commit checks its routing.
-        for (x, y) in [(275.0, 710.0), (300.0, 594.0), (241.0, 652.0), (40.0, 652.0), (340.0, 594.0), (201.0, 768.0)] {
-            point(app, x, y).tap()
+    private func typeGreeting(_ keyboard: XCUIApplication) {
+        for key in ["n", "i", "h", "a", "o", "空格"] {
+            keyboard.keys[key].tap()
         }
     }
 

@@ -1,0 +1,76 @@
+name: Benchmark
+
+# Match Android's nightly cadence; simulator timings need a consistent runtime and fixture.
+on:
+  schedule:
+    - cron: '0 18 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: benchmark-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  DEVELOPER_DIR: /Applications/Xcode_27.1.app/Contents/Developer
+  SIM_NAME: Songyan-Perf-CI-${{ github.run_id }}-${{ github.run_attempt }}
+  SIM_RUNTIME: com.apple.CoreSimulator.SimRuntime.iOS-27-0
+
+jobs:
+  benchmark:
+    name: Keyboard performance (Release)
+    runs-on: xcode-27
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Show Xcode version
+        run: xcodebuild -version
+      - name: Install the fixture runtime
+        run: |
+          if ! xcrun simctl list runtimes available --json | python3 -c 'import json, os, sys; sys.exit(not any(r["identifier"] == os.environ["SIM_RUNTIME"] for r in json.load(sys.stdin)["runtimes"]))'; then
+            xcodebuild -downloadPlatform iOS -buildVersion 27.0 -architectureVariant arm64
+          fi
+      - name: Measure keyboard performance
+        run: Tools/CI/scripts/sim-benchmark.sh ci
+      - name: Summarize measurements
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import statistics
+          from pathlib import Path
+
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
+              summary.write('| Test | Metric | Samples | Median (ms) | Maximum (ms) |\n')
+              summary.write('| --- | --- | ---: | ---: | ---: |\n')
+              for path in Path('.local/ci/keyboard-performance-ci').glob('*/metrics.json'):
+                  for test in json.loads(path.read_text()):
+                      for run in test['testRuns']:
+                          for metric in run['metrics']:
+                              values = [value * 1000 for value in metric['measurements']]
+                              summary.write(f"| {test['testIdentifier']} | {metric['displayName']} | {len(values)} | {statistics.median(values):.3f} | {max(values):.3f} |\n")
+          PY
+      - name: Upload measurements and logs
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: keyboard-performance
+          include-hidden-files: true
+          path: |
+            .local/ci/keyboard-performance-ci/**
+            .local/dev-derived/xcodebuild.log
+          if-no-files-found: ignore
+          retention-days: 7
+      - name: Remove the fixture simulator
+        if: always()
+        run: |
+          source Tools/CI/scripts/lib/sim.sh
+          simulator_id="$(resolve_sim_udid)"
+          if [[ -n "$simulator_id" ]]; then
+            xcrun simctl shutdown "$simulator_id"
+            xcrun simctl delete "$simulator_id"
+          fi

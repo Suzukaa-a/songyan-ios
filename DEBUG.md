@@ -77,7 +77,7 @@ Signpost intervals (subsystem `DebugProbe`): `key` (synchronous key handling), `
 
 Pass `--udid` for your simulator and export `DEVELOPER_DIR` first.
 
-- Read coordinates from the current UI (`axe describe-ui`, or a screenshot) and re-read them after each action. The keyboard extension's keys are not in the accessibility tree; tap them by screen coordinates.
+- Read coordinates from the current UI (`axe describe-ui`, or a screenshot) and re-read them after each action. AXe's full tree shows the host app; `axe describe-ui --point x,y` can inspect a keyboard key. XCTest reads keyboard keys through `XCUIApplication(bundleIdentifier: "app.songyan.ime.keyboard").keys`, separately from the host app.
 - Tap a key with one command, `axe touch -x <x> -y <y> --down --up --delay 0.05`. Separate `--down` and `--up` calls register as a short swipe. Host-app list rows often need `axe tap --tap-style physical`.
 - Long press: `axe touch -x <x> -y <y> --down --up --delay 1.5`. `--pre-delay` waits before the press; it is not a hold.
 - Judge each step by its effect (composition, candidates, committed text) rather than the command's exit code, and take a screenshot when in doubt.
@@ -105,6 +105,8 @@ The fixture uses a dedicated `Songyan-Perf-Isolated` iPhone 17 Pro simulator on 
 - `refresh`: controller state publication.
 
 These intervals describe their named code boundaries; first-frame and touch-to-visible latency need separate frame instrumentation. Results and raw samples are in `.local/ci/keyboard-performance-*/<run>/KeyboardPerformance.xcresult` and `metrics.json`. Compare repeated runs on the same simulator, runtime and build settings before drawing conclusions about a change. `make sim-perf MODE=typing ARG=<label>` runs the same native suite with a result label.
+
+[benchmark.yml](.github/workflows/benchmark.yml) runs the same suite nightly at 18:00 UTC and on manual dispatch, using Xcode 27.1 and a fresh iOS 27.0 iPhone 17 Pro simulator. It publishes medians and maxima in the job summary and retains the raw `.xcresult`, JSON metrics and build logs for seven days.
 
 `make sim-perf MODE=cold ARG=<runs>` retains the AXe lifecycle diagnostic: restart the extension, open “试打” and print launch, appearance and `engineReady` events. Stage Release first with `CONFIGURATION=Release make sim-stage`. Its output is a diagnostic timeline, not a performance assertion. Results go under `.local/ci/perf-cold/`.
 
