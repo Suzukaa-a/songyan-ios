@@ -345,9 +345,15 @@ struct SymbolCatalogDocument: FileDocument {
 }
 
 struct QuickContentManagementView: View {
+    private struct PhraseEditSelection: Identifiable {
+        var phrase: CommonPhrase
+        var isNew: Bool
+        var id: UUID { phrase.id }
+    }
+
     @StateObject private var model = LocalQuickContentModel()
     @State private var query = ""
-    @State private var editingPhrase: CommonPhrase?
+    @State private var editingPhrase: PhraseEditSelection?
     @State private var showingImporter = false
     @State private var showingExporter = false
     @State private var confirmingEnable = false
@@ -371,8 +377,8 @@ struct QuickContentManagementView: View {
         .navigationBarTitleDisplayMode(.inline)
         .searchable(text: $query, prompt: "搜索常用语")
         .onAppear { model.reload() }
-        .sheet(item: $editingPhrase) { phrase in
-            CommonPhraseEditor(phrase: phrase) { await model.savePhrase($0) }
+        .sheet(item: $editingPhrase) { selection in
+            CommonPhraseEditor(phrase: selection.phrase, isNew: selection.isNew) { await model.savePhrase($0) }
         }
         .confirmationDialog("开启剪贴板历史？", isPresented: $confirmingEnable, titleVisibility: .visible) {
             Button("开启") { model.setClipboardEnabled(true) }
@@ -412,14 +418,14 @@ struct QuickContentManagementView: View {
     private var phrasesSection: some View {
         Section {
             Button {
-                editingPhrase = CommonPhrase(text: "")
+                editingPhrase = PhraseEditSelection(phrase: CommonPhrase(text: ""), isNew: true)
             } label: {
                 Label("添加常用语", systemImage: "plus")
             }
             .accessibilityIdentifier("quickContent.addPhrase")
             ForEach(model.content.phrases.filter { $0.matches(query) }) { phrase in
                 Button {
-                    editingPhrase = phrase
+                    editingPhrase = PhraseEditSelection(phrase: phrase, isNew: false)
                 } label: {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(phrase.text).foregroundStyle(.primary).lineLimit(3)
@@ -537,8 +543,10 @@ struct CommonPhraseEditor: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var draft: CommonPhraseDraft
     @FocusState private var focused: Bool
+    private let isNew: Bool
 
-    init(phrase: CommonPhrase, save: @escaping (CommonPhrase) async -> String?) {
+    init(phrase: CommonPhrase, isNew: Bool, save: @escaping (CommonPhrase) async -> String?) {
+        self.isNew = isNew
         _draft = StateObject(wrappedValue: CommonPhraseDraft(phrase: phrase, persist: save))
     }
 
@@ -567,7 +575,7 @@ struct CommonPhraseEditor: View {
                 }
             }
             .disabled(draft.saving)
-            .navigationTitle("编辑常用语")
+            .navigationTitle(isNew ? "添加常用语" : "编辑常用语")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -589,6 +597,7 @@ struct CommonPhraseEditor: View {
             // A swipe while the write is in flight must not drop the editor that owns the result.
             .interactiveDismissDisabled(draft.saving)
         }
+        .task { focused = true }
     }
 
     private func startSave() {
