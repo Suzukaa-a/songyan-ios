@@ -14,7 +14,7 @@ struct SystemKeyboardTestView: View {
     var context: String? = nil
     @State private var text = ""
     @State private var copied = false
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @State private var clearRevision = 0
     @State private var inputKind = InputKind.text
     @FocusState private var focused: Bool
 
@@ -74,21 +74,16 @@ struct SystemKeyboardTestView: View {
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .accessibilityLabel("试打输入框")
-
-                if dynamicTypeSize.isAccessibilitySize {
-                    clearButton
-                    copyButton
-                } else {
-                    HStack {
-                        clearButton
-                        Spacer()
-                        copyButton
-                    }
-                }
+                    // A fresh native editor also ends the old marked-text session when clearing.
+                    .id(clearRevision)
             }
         }
-        #if SONGYAN_PERF
-            .toolbar {
+        .toolbar {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                clearButton
+                copyButton
+            }
+            #if SONGYAN_PERF
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("重置") {
                         text = ""
@@ -96,8 +91,8 @@ struct SystemKeyboardTestView: View {
                     }
                     .accessibilityIdentifier("perf.resetTryout")
                 }
-            }
-        #endif
+            #endif
+        }
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
         .task { focused = true }
@@ -107,12 +102,10 @@ struct SystemKeyboardTestView: View {
     private var clearButton: some View {
         Button(role: .destructive) {
             text = ""
+            clearRevision += 1
         } label: {
             Label("清空", systemImage: "trash")
-                .frame(minHeight: 44)
         }
-        .buttonStyle(.borderless)
-        .font(.subheadline)
         .disabled(text.isEmpty)
     }
 
@@ -123,10 +116,7 @@ struct SystemKeyboardTestView: View {
             UIAccessibility.post(notification: .announcement, argument: "已复制")
         } label: {
             Label(copied ? "已复制" : "复制内容", systemImage: copied ? "checkmark" : "doc.on.doc")
-                .frame(minHeight: 44)
         }
-        .buttonStyle(.borderless)
-        .font(.subheadline)
         .disabled(text.isEmpty)
     }
 }

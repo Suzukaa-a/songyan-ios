@@ -48,6 +48,20 @@ final class KeyboardPerformanceTests: XCTestCase {
     }
 
     @MainActor
+    func testClearingCompositionStartsFresh() {
+        let app = prepareKeyboard()
+        let field = app.textViews["试打输入框"]
+        let keyboard = XCUIApplication(bundleIdentifier: "app.songyan.ime.keyboard")
+        app.buttons["清空"].tap()
+        keyboard.keys["n"].tap()
+        keyboard.keys["i"].tap()
+        app.buttons["清空"].tap()
+        keyboard.keys["a"].tap()
+        let fresh = expectation(for: NSPredicate(format: "value == %@", "a"), evaluatedWith: field)
+        wait(for: [fresh], timeout: 5)
+    }
+
+    @MainActor
     private func prepareKeyboard() -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-app.songyan.settings.onboardingCompleted", "YES", "-AppleLanguages", "(zh-Hans)"]
