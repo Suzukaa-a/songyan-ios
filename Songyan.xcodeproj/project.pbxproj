@@ -219,6 +219,8 @@
 		AS1C0NBF000000000000001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AS1C0N0000000000000001 /* Assets.xcassets */; };
 		PRIVH0STBF00000000000001 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = PRIVH0ST0000000000000001 /* PrivacyInfo.xcprivacy */; };
 		PRIVE0XTBF00000000000001 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = PRIVE0XT0000000000000001 /* PrivacyInfo.xcprivacy */; };
+		LC2611050000000000000002 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = LC2611050000000000000001 /* Localizable.xcstrings */; };
+		LC2611050000000000000003 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = LC2611050000000000000001 /* Localizable.xcstrings */; };
 		LT2600000000000000000003 /* KeyboardLearningTransfer.swift in Sources */ = {isa = PBXBuildFile; fileRef = LT2600000000000000000001 /* KeyboardLearningTransfer.swift */; };
 		LT2600000000000000000004 /* KeyboardLearningTransfer.swift in Sources */ = {isa = PBXBuildFile; fileRef = LT2600000000000000000001 /* KeyboardLearningTransfer.swift */; };
 		LT2600000000000000000005 /* LearningBackupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LT2600000000000000000002 /* LearningBackupView.swift */; };
@@ -400,6 +402,7 @@
 		A0000000000000000000000054 /* InputSchemeListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputSchemeListView.swift; sourceTree = "<group>"; };
 		A0000000000000000000000058 /* EngineResources */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "Resources/EngineResources"; sourceTree = "<group>"; };
 		B1000000000000000000000002 /* Legal */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "Resources/Legal"; sourceTree = "<group>"; };
+		LC2611050000000000000001 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = "Resources/Localizable.xcstrings"; sourceTree = "<group>"; };
 		A0000000000000000000000060 /* LayoutManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutManager.swift; sourceTree = "<group>"; };
 		A0000000000000000000000061 /* LayoutManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutManagementView.swift; sourceTree = "<group>"; };
 		G20000000000000000000000002 /* InputOptionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputOptionsView.swift; sourceTree = "<group>"; };
@@ -461,6 +464,7 @@
                 KF2610160000000000000001 /* KeyFeedback */,
 				A0000000000000000000000058 /* EngineResources */,
 				B1000000000000000000000002 /* Legal */,
+				LC2611050000000000000001 /* Localizable.xcstrings */,
 				C0F000000000000000000005 /* Performance tests */,
 				A0000000000000000000000003 /* Products */,
 			);
@@ -761,6 +765,8 @@
 			knownRegions = (
 				en,
 				Base,
+				zh-Hant,
+				ja,
 				"zh-Hans",
 			);
 			mainGroup = A0000000000000000000000002 /* mainGroup */;
@@ -796,6 +802,7 @@
 				B1000000000000000000000001 /* Legal in Resources */,
 				PRIVH0STBF00000000000001 /* PrivacyInfo.xcprivacy in Resources */,
 				AS1C0NBF000000000000001 /* Assets.xcassets in Resources */,
+				LC2611050000000000000002 /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -806,6 +813,7 @@
 				A0000000000000000000000048 /* BuiltinPackages in Resources */,
                 KF2610160000000000000003 /* KeyFeedback in Resources */,
 				PRIVE0XTBF00000000000001 /* PrivacyInfo.xcprivacy in Resources */,
+				LC2611050000000000000003 /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

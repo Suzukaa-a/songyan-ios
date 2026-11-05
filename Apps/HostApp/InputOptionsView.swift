@@ -527,7 +527,12 @@ struct InputOptionsView: View {
             ) {
                 if !members.contains(where: { $0.state.value }) { Text("选择").tag("") }
                 ForEach(members) { row in
-                    Text(row.descriptor.choiceLabel ?? row.descriptor.enabledLabel).tag(row.descriptor.name)
+                    // The bundled scheme's four states are worded by the catalog; every other group
+                    // keeps the labels its author wrote in the schema.
+                    Text(
+                        row.descriptor.knownScriptState.map { ScriptStateLabels.label(for: $0) }
+                            ?? row.descriptor.choiceLabel ?? row.descriptor.enabledLabel
+                    ).tag(row.descriptor.name)
                 }
             }
             .disabled(members.contains { saveRequests[$0.id] != nil })

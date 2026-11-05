@@ -168,11 +168,16 @@ public struct KeyboardOptionsView: View {
                 .padding(.vertical, 10)
             ForEach(controller.options.filter { $0.descriptor.choiceGroup == representative.descriptor.choiceGroup }) {
                 state in
+                // The bundled scheme's four states are worded by the catalog; every other group
+                // keeps the labels its author wrote in the schema.
+                let label =
+                    state.descriptor.knownScriptState.map { ScriptStateLabels.label(for: $0) }
+                    ?? state.descriptor.choiceLabel ?? state.descriptor.enabledLabel
                 KeyboardToolsRow(
                     icon: "character",
-                    title: state.descriptor.choiceLabel ?? state.descriptor.enabledLabel,
+                    title: label,
                     mark: .check(state.value),
-                    accessibilityLabel: state.descriptor.choiceLabel ?? state.descriptor.enabledLabel,
+                    accessibilityLabel: label,
                     accessibilityValue: state.value ? "已选择" : "未选择"
                 ) {
                     controller.setOption(state.descriptor.name, value: true)

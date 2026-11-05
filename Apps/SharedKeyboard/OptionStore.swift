@@ -447,13 +447,18 @@ enum SchemaOptionCapabilities {
             guard !kinds.isEmpty, kinds.allSatisfy({ $0 == "繁体输出" || $0 == "简体输出" }),
                 !options.contains(where: { driven.contains($0) && conversions[$0] == nil })
             else { continue }
+            // Only the bundled scheme's complete, unchanged declaration is worded by the UI; every
+            // other group keeps the labels its author wrote.
+            let knownStates = BuiltinScriptState.knownStates(
+                schemaID: schemaID, options: options, labels: labels)
             for (index, option) in options.enumerated() {
                 result.append(
                     .init(
                         resourceID: resourceID, schemaID: schemaID, name: option,
                         title: "字形", disabledLabel: labels[index], enabledLabel: labels[index],
                         choiceGroup: options, choiceLabel: labels[index],
-                        declaredConversion: declaredConfigs[option]))
+                        declaredConversion: declaredConfigs[option],
+                        knownScriptState: knownStates?[index]))
             }
         }
         var seen = Set<String>()
@@ -500,6 +505,24 @@ enum SchemaOptionCapabilities {
         case "t2s.json": return "简体输出"
         case "emoji.json": return "Emoji 候选"
         default: return nil
+        }
+    }
+}
+
+/// The one shared word source for the bundled scheme's four script states. The words live in the
+/// app's compiled string catalog; the bundle stays injectable so the production-source probe reads
+/// the real compiled resources instead of a translation copy kept in code.
+enum ScriptStateLabels {
+    static func label(for state: BuiltinScriptState, in bundle: Bundle = .main) -> String {
+        String(localized: key(for: state), bundle: bundle)
+    }
+
+    private static func key(for state: BuiltinScriptState) -> String.LocalizationValue {
+        switch state {
+        case .simplified: "script.state.simplified"
+        case .traditional: "script.state.traditional"
+        case .taiwan: "script.state.taiwan"
+        case .hongKong: "script.state.hongKong"
         }
     }
 }

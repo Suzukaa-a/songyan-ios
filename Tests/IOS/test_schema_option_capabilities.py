@@ -2,7 +2,7 @@
 import sys
 import unittest
 
-from swift_probe import CORE, ROOT, run_swift
+from swift_probe import ROOT, run_swift
 
 
 @unittest.skipUnless(sys.platform == "darwin", "requires the macOS Swift toolchain")
@@ -17,10 +17,11 @@ class SchemaOptionCapabilitiesTests(unittest.TestCase):
         start = source.index("    /// Read the selected schema")
         end = source.index("    static func read(", start)
         source = source[:start] + source[end:]
-        source = source.replace("import KeyboardCore\n", "").replace("import RimeKit\n", "")
-        source += (CORE / "Engine/EngineOptionDescriptor.swift").read_text()
+        source = source.replace("import RimeKit\n", "")
         checks = (ROOT / "Tests/IOS/Fixtures/schema-options-main.swift").read_text()
-        print(run_swift(source, checks, prefix="schema-options", library=True), end="")
+        print(
+            run_swift(source, checks, prefix="schema-options", library=True, dependencies=("KeyboardCore",)),
+            end="")
 
 
 if __name__ == "__main__":

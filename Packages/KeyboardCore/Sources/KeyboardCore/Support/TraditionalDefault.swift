@@ -25,6 +25,21 @@ public enum BuiltinScriptState: String, CaseIterable, Sendable {
     case hongKong = "zh_hk"
 
     public var optionName: String { rawValue }
+
+    /// The labels the bundled scheme declares for its four states, in schema order. A scheme that
+    /// words or reorders them itself is not the bundled group, so its own labels stay as written.
+    public static let canonicalSchemaLabels = ["简体", "繁體", "臺灣", "香港"]
+
+    /// The bundled scheme's one exclusive four-state group, recognized by the scheme it belongs to
+    /// (the bundled source schemes) and its complete, unchanged declaration. nil for every other
+    /// scheme, including a custom group that happens to reuse the same option names.
+    public static func knownStates(
+        schemaID: String, options: [String], labels: [String]
+    ) -> [BuiltinScriptState]? {
+        guard BuiltinTemplateSchemas.sourceSchemaIDs.contains(schemaID) else { return nil }
+        guard options == allCases.map(\.optionName), labels == canonicalSchemaLabels else { return nil }
+        return allCases
+    }
 }
 
 /// A locale may seed a new installation, never replace an existing user's choice (including an

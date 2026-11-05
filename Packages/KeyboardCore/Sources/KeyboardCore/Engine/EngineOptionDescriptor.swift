@@ -14,13 +14,16 @@ public struct EngineOptionDescriptor: Identifiable, Equatable, Sendable {
     /// (e.g. `s2t.json`); nil for a switch that converts no script. Read at parse time so the
     /// input language never has to infer a converter from a presentation label.
     public let declaredConversion: String?
+    /// The bundled scheme's script state this member stands for, when the scheme's declaration is
+    /// the bundled one; the UI words only these, so a scheme an author words itself is untouched.
+    public let knownScriptState: BuiltinScriptState?
     public var id: String { name }
 
     public init(
         resourceID: String, schemaID: String, name: String, title: String,
         disabledLabel: String, enabledLabel: String,
         choiceGroup: [String] = [], choiceLabel: String? = nil,
-        declaredConversion: String? = nil
+        declaredConversion: String? = nil, knownScriptState: BuiltinScriptState? = nil
     ) {
         self.resourceID = resourceID
         self.schemaID = schemaID
@@ -31,6 +34,7 @@ public struct EngineOptionDescriptor: Identifiable, Equatable, Sendable {
         self.choiceGroup = choiceGroup
         self.choiceLabel = choiceLabel
         self.declaredConversion = declaredConversion
+        self.knownScriptState = knownScriptState
     }
 }
 
