@@ -97,6 +97,7 @@
 		DDD15F75F452499BB0F4C729 /* KeyboardController+DirectInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118FDDA8AEC7480CB960E21E /* KeyboardController+DirectInput.swift */; };
 		0676D30432794FCA81B377E7 /* KeyboardController+Candidates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F03C2B8FECB4216AF8486E6 /* KeyboardController+Candidates.swift */; };
 		AEC39505177B46B99FB7D453 /* SymbolLibraryModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B7A849351F044E19205F359 /* SymbolLibraryModel.swift */; };
+		22D3D3AC585C09BFEDA2ED18 /* SymbolLibraryStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 376AFDFDD9F096B7B44A1C3B /* SymbolLibraryStorage.swift */; };
 		8D65F14E6DB548E783609174 /* LocalQuickContentModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57E8E871F6FB45FCBB26745D /* LocalQuickContentModel.swift */; };
 		AE6CC525A0A44DB2986A0ACF /* KeyboardPanelView+Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9305233E190F4B2CA5663EFE /* KeyboardPanelView+Utilities.swift */; };
 		F36D883A370C4600BB7067DA /* KeyboardPanelView+KeyRows.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFE75737435B4739898F0BD5 /* KeyboardPanelView+KeyRows.swift */; };
@@ -124,6 +125,7 @@
 		FDCFC633D6C048C98B23C2F8 /* KeyboardController+DirectInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = 118FDDA8AEC7480CB960E21E /* KeyboardController+DirectInput.swift */; };
 		3238968197AA41D0B7E3CF06 /* KeyboardController+Candidates.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F03C2B8FECB4216AF8486E6 /* KeyboardController+Candidates.swift */; };
 		D787019A484A45E6AC2ED5ED /* SymbolLibraryModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B7A849351F044E19205F359 /* SymbolLibraryModel.swift */; };
+		EE96E8B39AB352B62FC88E9A /* SymbolLibraryStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 376AFDFDD9F096B7B44A1C3B /* SymbolLibraryStorage.swift */; };
 		9B40AEA4925F47509A9EEC29 /* LocalQuickContentModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57E8E871F6FB45FCBB26745D /* LocalQuickContentModel.swift */; };
 		BAA2DE65E7AC490984B04A91 /* KeyboardPanelView+Utilities.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9305233E190F4B2CA5663EFE /* KeyboardPanelView+Utilities.swift */; };
 		EFA4B5606CF141C59415308A /* KeyboardPanelView+KeyRows.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFE75737435B4739898F0BD5 /* KeyboardPanelView+KeyRows.swift */; };
@@ -335,6 +337,7 @@
 		118FDDA8AEC7480CB960E21E /* KeyboardController+DirectInput.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "KeyboardController+DirectInput.swift"; sourceTree = "<group>"; };
 		8F03C2B8FECB4216AF8486E6 /* KeyboardController+Candidates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "KeyboardController+Candidates.swift"; sourceTree = "<group>"; };
 		8B7A849351F044E19205F359 /* SymbolLibraryModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SymbolLibraryModel.swift; sourceTree = "<group>"; };
+		376AFDFDD9F096B7B44A1C3B /* SymbolLibraryStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SymbolLibraryStorage.swift; sourceTree = "<group>"; };
 		57E8E871F6FB45FCBB26745D /* LocalQuickContentModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalQuickContentModel.swift; sourceTree = "<group>"; };
 		9305233E190F4B2CA5663EFE /* KeyboardPanelView+Utilities.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "KeyboardPanelView+Utilities.swift"; sourceTree = "<group>"; };
 		CFE75737435B4739898F0BD5 /* KeyboardPanelView+KeyRows.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "KeyboardPanelView+KeyRows.swift"; sourceTree = "<group>"; };
@@ -581,6 +584,7 @@
 				118FDDA8AEC7480CB960E21E /* KeyboardController+DirectInput.swift */,
 				8F03C2B8FECB4216AF8486E6 /* KeyboardController+Candidates.swift */,
 				8B7A849351F044E19205F359 /* SymbolLibraryModel.swift */,
+				376AFDFDD9F096B7B44A1C3B /* SymbolLibraryStorage.swift */,
 				57E8E871F6FB45FCBB26745D /* LocalQuickContentModel.swift */,
 				9305233E190F4B2CA5663EFE /* KeyboardPanelView+Utilities.swift */,
 				CFE75737435B4739898F0BD5 /* KeyboardPanelView+KeyRows.swift */,
@@ -839,6 +843,7 @@
 				DDD15F75F452499BB0F4C729 /* KeyboardController+DirectInput.swift in Sources */,
 				0676D30432794FCA81B377E7 /* KeyboardController+Candidates.swift in Sources */,
 				AEC39505177B46B99FB7D453 /* SymbolLibraryModel.swift in Sources */,
+				22D3D3AC585C09BFEDA2ED18 /* SymbolLibraryStorage.swift in Sources */,
 				8D65F14E6DB548E783609174 /* LocalQuickContentModel.swift in Sources */,
 				AE6CC525A0A44DB2986A0ACF /* KeyboardPanelView+Utilities.swift in Sources */,
 				F36D883A370C4600BB7067DA /* KeyboardPanelView+KeyRows.swift in Sources */,
@@ -973,6 +978,7 @@
 				FDCFC633D6C048C98B23C2F8 /* KeyboardController+DirectInput.swift in Sources */,
 				3238968197AA41D0B7E3CF06 /* KeyboardController+Candidates.swift in Sources */,
 				D787019A484A45E6AC2ED5ED /* SymbolLibraryModel.swift in Sources */,
+				EE96E8B39AB352B62FC88E9A /* SymbolLibraryStorage.swift in Sources */,
 				9B40AEA4925F47509A9EEC29 /* LocalQuickContentModel.swift in Sources */,
 				BAA2DE65E7AC490984B04A91 /* KeyboardPanelView+Utilities.swift in Sources */,
 				EFA4B5606CF141C59415308A /* KeyboardPanelView+KeyRows.swift in Sources */,

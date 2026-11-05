@@ -13,7 +13,9 @@ from swift_probe import CORE, ROOT, compile_swift, run, scratch_directory, secti
 class SymbolLibraryModelTests(unittest.TestCase):
     def test_ordering_responsiveness_errors_and_security_scope(self):
         source = (ROOT / "Apps/SharedKeyboard/SymbolLibraryModel.swift").read_text()
-        model = source.split("// MARK: - Serial symbol store (the main thread only publishes results)", 1)[1]
+        model = source.split("// MARK: - Panel state model (render-independent; search isolation lives here)", 1)[1]
+        storage = (ROOT / "Apps/SharedKeyboard/SymbolLibraryStorage.swift").read_text()
+        worker = storage.split("// MARK: - Serial symbol store (the main thread only publishes results)", 1)[1]
         paths = (ROOT / "Apps/SharedKeyboard/KeyboardResourceReadQueue.swift").read_text()
         queue = "public enum KeyboardResourceReadQueue {" + paths.split("public enum KeyboardResourceReadQueue {", 1)[1]
         management = (ROOT / "Apps/HostApp/SymbolCatalogManagementView.swift").read_text()
@@ -24,7 +26,7 @@ class SymbolLibraryModelTests(unittest.TestCase):
         with scratch_directory("symbol-library") as directory:
             generated = directory / "SymbolModelProbe.swift"
             # Private worker queues stay in the same file as the behavioral checks.
-            generated.write_text("import Foundation\nimport Combine\n" + queue + "\n" + model + "\n" + management + "\n" + checks)
+            generated.write_text("import Foundation\nimport Combine\n" + queue + "\n" + worker + "\n" + model + "\n" + management + "\n" + checks)
             binary = compile_swift(directory, [generated, CORE / "Support/SerialIOQueue.swift",
                                            *sorted(stores.rglob("*.swift"))], library=True)
             runtime = directory / "runtime"
@@ -32,7 +34,7 @@ class SymbolLibraryModelTests(unittest.TestCase):
             print(run([str(binary), str(runtime), str(stores / "Resources")]), end="")
 
     def test_read_only_keyboard_reads_the_shared_library(self):
-        source = (ROOT / "Apps/SharedKeyboard/SymbolLibraryModel.swift").read_text()
+        source = (ROOT / "Apps/SharedKeyboard/SymbolLibraryStorage.swift").read_text()
         storage = "public enum SymbolLibraryStorage {" + source.split("public enum SymbolLibraryStorage {", 1)[1]
         storage = storage.split("// MARK: - Serial symbol store", 1)[0]
         stores = ROOT / "Packages/QuickContentKit/Sources/QuickContentKit"
