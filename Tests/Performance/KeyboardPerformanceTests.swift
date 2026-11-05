@@ -92,6 +92,28 @@ final class KeyboardPerformanceTests: XCTestCase {
     }
 
     @MainActor
+    func testHeldDeleteStopsWhenCompositionClears() {
+        let app = prepareKeyboard()
+        let field = app.textViews["试打输入框"]
+        let keyboard = XCUIApplication(bundleIdentifier: "app.songyan.ime.keyboard")
+        for spelling in [["n"], ["n", "i"]] {
+            for letter in spelling { keyboard.keys[letter].tap() }
+            let composing = expectation(
+                for: NSPredicate(format: "value == %@", "你好" + spelling.joined()), evaluatedWith: field)
+            wait(for: [composing], timeout: 5)
+            keyboard.keys["退格"].press(forDuration: 1.0)
+            let retained = expectation(for: NSPredicate(format: "value == %@", "你好"), evaluatedWith: field)
+            wait(for: [retained], timeout: 5)
+        }
+        keyboard.keys["退格"].tap()
+        let shortened = expectation(for: NSPredicate(format: "value == %@", "你"), evaluatedWith: field)
+        wait(for: [shortened], timeout: 5)
+        keyboard.keys["退格"].press(forDuration: 1.0)
+        let cleared = expectation(for: NSPredicate(format: "value == %@", ""), evaluatedWith: field)
+        wait(for: [cleared], timeout: 5)
+    }
+
+    @MainActor
     func testPairedNumericKeypadKeepsSymbolPagesCycling() {
         selectNumericPage("数字九宫格")
         defer { selectNumericPage("自动 123") }

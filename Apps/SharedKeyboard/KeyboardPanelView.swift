@@ -831,6 +831,10 @@ public struct KeyboardPanelView: View {
         .environment(\.keyboardPopupSurface, popupSurface)
         .environment(\.keyboardFlashSurface, popupSurface)
         .environment(
+            \.keyboardDeleteHasComposition,
+            { controller.snapshot.isComposing || !controller.session.pendingCodes.isEmpty }
+        )
+        .environment(
             \.candidateSkinToken,
             CandidateSkinToken(
                 candidateColor: Color(uiColor: appearance.text(on: "panel")),
