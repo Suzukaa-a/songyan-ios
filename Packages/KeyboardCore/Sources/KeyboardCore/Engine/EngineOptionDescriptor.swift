@@ -10,12 +10,17 @@ public struct EngineOptionDescriptor: Identifiable, Equatable, Sendable {
     public let enabledLabel: String
     public let choiceGroup: [String]
     public let choiceLabel: String?
+    /// The OpenCC config this switch applies when it is on, exactly as the schema declares it
+    /// (e.g. `s2t.json`); nil for a switch that converts no script. Read at parse time so the
+    /// input language never has to infer a converter from a presentation label.
+    public let declaredConversion: String?
     public var id: String { name }
 
     public init(
         resourceID: String, schemaID: String, name: String, title: String,
         disabledLabel: String, enabledLabel: String,
-        choiceGroup: [String] = [], choiceLabel: String? = nil
+        choiceGroup: [String] = [], choiceLabel: String? = nil,
+        declaredConversion: String? = nil
     ) {
         self.resourceID = resourceID
         self.schemaID = schemaID
@@ -25,6 +30,7 @@ public struct EngineOptionDescriptor: Identifiable, Equatable, Sendable {
         self.enabledLabel = enabledLabel
         self.choiceGroup = choiceGroup
         self.choiceLabel = choiceLabel
+        self.declaredConversion = declaredConversion
     }
 }
 

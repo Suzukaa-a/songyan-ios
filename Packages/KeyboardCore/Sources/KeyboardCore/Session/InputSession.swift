@@ -30,6 +30,14 @@ public final class InputSession {
     public private(set) var mode: InputMode = .chinese
     public private(set) var snapshot: EngineSnapshot = EngineSnapshot()
     public private(set) var options: [EngineOptionState] = []
+    /// The running input method's display language and keyboard family. Computed only when the
+    /// source scheme, its alphabet or the declared script switch changes (see `updateInputLanguage`),
+    /// so the key path reads one cached value and never asks the engine.
+    public private(set) var inputLanguage = InputLanguageProfile(language: .simplifiedChinese, family: .generic)
+    /// Last inputs the cached profile was resolved from; equal inputs skip the pure resolver.
+    private var languageInputs: (source: String, alphabet: String, conversion: String?)?
+    /// A scheme's alphabet is fixed for an engine generation, so it is read once per source.
+    private var alphabetBySchema: [String: String] = [:]
     /// Real engine-state version, incremented on every `apply` (real engine action/refresh).
     /// The host uses it as part of the candidate-set identity so that a set with the same raw
     /// code is invalidated when options/reconversion/learning/session change. Read-only
@@ -66,7 +74,39 @@ public final class InputSession {
             options = []
             onError?(error)
         }
+        updateInputLanguage()
         onUpdate?()
+    }
+
+    /// Recomputes the cached input language from the running source scheme, its alphabet and the
+    /// one active declared script config. Option reloads also run on every configuration prepare,
+    /// so unchanged inputs must not reach the resolver again.
+    private func updateInputLanguage() {
+        let source = resourceSet?.sourceSchemaID(selectedSchemaID) ?? selectedSchemaID
+        let inputs = (source: source, alphabet: alphabet(ofSource: source), conversion: activeDeclaredConfig())
+        if let languageInputs, languageInputs == inputs { return }
+        languageInputs = inputs
+        inputLanguage = InputLanguageResolver.resolve(
+            schemaID: inputs.source, alphabet: inputs.alphabet, declaredConversion: inputs.conversion)
+    }
+
+    private func alphabet(ofSource schemaID: String) -> String {
+        if let cached = alphabetBySchema[schemaID] { return cached }
+        // A resource descriptor may carry an empty alphabet for an imported scheme (the import
+        // metadata leaves it unset) while the backend's cached schema list already has the real
+        // one. Empty means unknown, not "accepts nothing", so it must not shadow that cache;
+        // neither read queries the engine.
+        let declared = resourceSet?.schemas.first { $0.id == schemaID }?.alphabet ?? ""
+        let alphabet =
+            declared.isEmpty
+            ? (engine.availableSchemas.first { $0.id == schemaID }?.alphabet ?? "")
+            : declared
+        alphabetBySchema[schemaID] = alphabet
+        return alphabet
+    }
+
+    private func activeDeclaredConfig() -> String? {
+        ScriptConversion.activeDeclaredConfig(in: options)
     }
 
     public func setOption(_ name: String, value: Bool) throws {
@@ -75,6 +115,7 @@ public final class InputSession {
         do {
             let updated = try engine.setOption(name, value: value)
             options = try engine.optionStates()
+            updateInputLanguage()
             apply(mode == .english ? EngineSnapshot() : updated)
         } catch {
             reloadOptions()
@@ -149,6 +190,7 @@ public final class InputSession {
         // engine's serial queue, so snapshots produced on a failed-switch fallback path still use
         // the qualification in effect at the time. DemoEngine's setter is a no-op.
         engine.spellingDemand = { @Sendable [weak self] in self?.spellingDemandEligible.withLock { $0 } ?? false }
+        updateInputLanguage()
     }
 
     /// Kind-level hint that the layout is a compact spelling layout (14-key merged / 9-key digits).
@@ -308,6 +350,7 @@ public final class InputSession {
         if inputUnavailableReason != nil {
             selectedSchemaID = resourceSet?.sourceSchemaID(state.schemaID) ?? state.schemaID
             options = []
+            updateInputLanguage()
         }
         apply(state)
         onError?(error)
@@ -787,7 +830,9 @@ public final class InputSession {
             || (numericTransportLayout
                 && CompositionDisplayPolicy.isNumericTransport(rawInput: snapshot.rawInput))
         if !newSnapshot.schemaID.isEmpty {
+            let previousSchemaID = selectedSchemaID
             selectedSchemaID = resourceSet?.sourceSchemaID(newSnapshot.schemaID) ?? newSnapshot.schemaID
+            if selectedSchemaID != previousSchemaID { updateInputLanguage() }
         }
         let delivered = !committed.isEmpty && dispatchCommit(committed)
         onUpdate?()

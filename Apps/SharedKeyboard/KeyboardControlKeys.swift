@@ -9,7 +9,11 @@ import SwiftUI
 struct ControlRow<ModeKey: View>: View {
     let policy: KeyboardControlPolicy
     let returnTitle: String
+    /// Spoken Return name; nil keeps the visible title.
+    var returnAccessibilityLabel: String? = nil
     var returnEnabled = true
+    /// Whether a composition is live, which changes the Japanese space caption (変換).
+    var isComposing = false
     let layoutName: String?
     let layoutHintName: String?
     let layoutHintToken: UUID?
@@ -52,20 +56,22 @@ struct ControlRow<ModeKey: View>: View {
                 alternates: []
             ) { _ in onPage(policy.pageTarget) }
             .accessibilityLabel(
-                policy.pageTarget == .symbols
-                    ? (policy.isBundledPhonePad ? "打开符号页" : "打开更多符号页") : "打开数字符号页")
+                policy.pageSwitchAccessibilityLabel(
+                    for: policy.pageTarget, isBundledPhonePad: policy.isBundledPhonePad))
         case .symbolPage:
             // Long press types 0 on the 9-key letter page, which has no other key for it.
             AlternateCharacterKey(
                 cap: KeyCap(
-                    id: "control-symbol-page", title: KeyboardControlPolicy.symbolPageTitle,
+                    id: "control-symbol-page", title: policy.symbolPageTitle,
                     action: .cycleLayout),
                 alternates: policy.isBundledPhonePad && policy.page == .letters
                     ? [KeyCap(id: "control-symbol-page-0", title: "0", action: .literal("0"))] : []
             ) { cap in
                 if case .literal = cap.action { onKey(cap.action) } else { onPage(.symbols) }
             }
-            .accessibilityLabel("打开符号页")
+            .accessibilityLabel(
+                policy.pageSwitchAccessibilityLabel(for: .symbols, isBundledPhonePad: policy.isBundledPhonePad)
+            )
             .accessibilityHint(policy.isBundledPhonePad && policy.page == .letters ? "长按输入 0" : "")
         case .symbolLock:
             AlternateCharacterKey(
@@ -87,7 +93,7 @@ struct ControlRow<ModeKey: View>: View {
             modeKey
         case .space:
             CursorSpaceKey(
-                title: policy.isEnglishMode ? "space" : "空格",
+                title: policy.spaceTitle(isComposing: isComposing),
                 layoutName: layoutName,
                 layoutHintName: layoutHintName,
                 layoutHintToken: layoutHintToken,
@@ -110,7 +116,10 @@ struct ControlRow<ModeKey: View>: View {
                 ) { onKey($0.action) }
             }
         case .enter:
-            ReturnKey(title: returnTitle, isEnabled: returnEnabled) { onKey($0.action) }
+            ReturnKey(
+                title: returnTitle, isEnabled: returnEnabled,
+                accessibilityLabel: returnAccessibilityLabel
+            ) { onKey($0.action) }
         }
     }
 
@@ -130,11 +139,19 @@ struct MarkPageSwitchKey: View {
         AlternateCharacterKey(
             cap: KeyCap(
                 id: "control-mark-page-switch",
-                title: title ?? (target == .symbols ? KeyboardControlPolicy.symbolPageTitle : "123"),
+                title: title
+                    ?? (target == .symbols
+                        ? KeyLabelPolicy.symbolPageTitle(script: .simplifiedChinese)
+                        : KeyLabelPolicy.numericPageTitle),
                 action: .cycleLayout),
             alternates: []
         ) { _ in onTap() }
-        .accessibilityLabel(accessibilityText ?? (target == .symbols ? "打开更多符号页" : "打开数字符号页"))
+        .accessibilityLabel(
+            accessibilityText
+                ?? KeyLabelPolicy.pageSwitchAccessibilityLabel(
+                    script: .simplifiedChinese,
+                    target: target == .symbols ? .symbols : .numeric,
+                    isBundledPhonePad: false))
     }
 }
 
@@ -142,6 +159,8 @@ struct MarkPageSwitchKey: View {
 struct ReturnKey: View {
     let title: String
     var isEnabled = true
+    /// Spoken name from the label table; nil keeps the visible title.
+    var accessibilityLabel: String? = nil
     var alternates: [KeyCap] = []
     var longPressDelay: TimeInterval = 0.35
     /// An authored page passes its own page key address so tap routing can find the action;
@@ -155,7 +174,7 @@ struct ReturnKey: View {
             cap: KeyCap(id: capID, title: title, subtitle: subtitle, action: .enter),
             alternates: alternates, longPressDelay: longPressDelay, onSelect: onSelect
         )
-        .accessibilityLabel(title == "确认" ? "确认输入" : title)
+        .accessibilityLabel(accessibilityLabel ?? title)
         // Dimmed, never disabled: the enablement is a cached host trait, so the
         // tap still reaches the controller, which re-reads the field before
         // deciding (`KeyboardController.onRequestHostTraitsRefresh`).

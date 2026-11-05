@@ -317,13 +317,18 @@ enum SchemaOptionCapabilities {
             }
         }
         var conversions: [String: String] = [:]
+        // The schema's own OpenCC config per switch: the input language reads the real declaration,
+        // never a converter guessed from the presentation kind.
+        var declaredConfigs: [String: String] = [:]
         var driven = Set<String>()
         for filter in filters where filter == "simplifier" || filter.hasPrefix("simplifier@") {
             let namespace = filter == "simplifier" ? filter : String(filter.dropFirst("simplifier@".count))
             let fields = sections[namespace] ?? []
             let name = field(fields, "option_name") ?? "simplification"
             if driven.insert(name).inserted {
-                conversions[name] = openccKind(field(fields, "opencc_config") ?? "t2s.json")
+                let config = field(fields, "opencc_config") ?? "t2s.json"
+                conversions[name] = openccKind(config)
+                if conversions[name] != nil { declaredConfigs[name] = config }
             }
         }
         var result: [EngineOptionDescriptor] = []
@@ -333,7 +338,8 @@ enum SchemaOptionCapabilities {
                 result.append(
                     .init(
                         resourceID: resourceID, schemaID: schemaID, name: name,
-                        title: title, disabledLabel: "关闭", enabledLabel: "开启"))
+                        title: title, disabledLabel: "关闭", enabledLabel: "开启",
+                        declaredConversion: declaredConfigs[name]))
                 continue
             }
             let options = list(item, "options"), labels = list(item, "states")
@@ -349,7 +355,8 @@ enum SchemaOptionCapabilities {
                     .init(
                         resourceID: resourceID, schemaID: schemaID, name: option,
                         title: "字形", disabledLabel: labels[index], enabledLabel: labels[index],
-                        choiceGroup: options, choiceLabel: labels[index]))
+                        choiceGroup: options, choiceLabel: labels[index],
+                        declaredConversion: declaredConfigs[option]))
             }
         }
         var seen = Set<String>()

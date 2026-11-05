@@ -99,7 +99,8 @@ enum KeyboardPanelRules {
         page: KeyboardPage, isEnglishMode: Bool, hasGlobe: Bool, usesASCIIPunctuation: Bool,
         phoneShellVisible: Bool, usesFixedEditingRail: Bool,
         declaredTrailingReturn: @autoclosure () -> Bool, showsCategorySymbolPage: Bool,
-        numericPageReachesSymbols: Bool = true
+        numericPageReachesSymbols: Bool = true,
+        script: KeyLabelScript = .simplifiedChinese
     ) -> KeyboardControlPolicy {
         let trailingHasReturn = !usesFixedEditingRail && phoneShellVisible && declaredTrailingReturn()
         return KeyboardControlPolicy(
@@ -107,7 +108,7 @@ enum KeyboardPanelRules {
             isPhoneLayout: phoneShellVisible, usesASCIIPunctuation: usesASCIIPunctuation,
             includesBottomEnter: !phoneShellVisible || (!usesFixedEditingRail && !trailingHasReturn),
             usesCategorySymbolPage: showsCategorySymbolPage, numericPageReachesSymbols: numericPageReachesSymbols,
-            usesDigitPadRow: usesFixedEditingRail)
+            usesDigitPadRow: usesFixedEditingRail, script: script)
     }
 
     /// The known bundled main-shell preset (26 or merged 14/18) whose main rows still provide the

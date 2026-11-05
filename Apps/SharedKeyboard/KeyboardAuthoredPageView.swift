@@ -125,6 +125,7 @@ struct KeyboardAuthoredPageKey: View {
     @ViewBuilder private var enterFace: some View {
         ReturnKey(
             title: state.title(for: key), isEnabled: state.isReturnEnabled,
+            accessibilityLabel: state.returnAccessibility,
             alternates: optionCaps, longPressDelay: 0.35,
             capID: KeyboardPageAuthoredActionTable.capID(path), subtitle: subtitle
         ) { cap in

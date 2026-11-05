@@ -389,6 +389,7 @@ extension KeyboardPanelView {
     private func t9FixedEditingRail(_ metrics: PhoneKeypadMetrics) -> some View {
         KeyboardFixedEditingRail(
             metrics: metrics, returnTitle: controller.returnKeyTitle,
+            returnAccessibilityLabel: controller.returnKeyAccessibilityLabel,
             isReturnEnabled: controller.isReturnKeyEnabled, isComposing: controller.snapshot.isComposing,
             onDelete: { isRepeating in handleKey(.backspace, emitFeedback: !isRepeating) },
             onReset: { keyFeedbackAfterEffect { _ = controller.discardComposition() } },

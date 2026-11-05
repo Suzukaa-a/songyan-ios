@@ -377,6 +377,9 @@ struct KeyboardLayoutUtilityBar<Key: View, Globe: View, ModeSwitch: View>: View 
     let showsGlobe: Bool
     /// Whether the definition already declares a globe anywhere.
     let definitionHasGlobe: Bool
+    let symbolPageTitle: String
+    let numericPageAccessibilityLabel: String
+    let symbolPageAccessibilityLabel: String
     let onPage: (KeyboardPage) -> Void
     @ViewBuilder var key: (LayoutKey, String, Int) -> Key
     @ViewBuilder var globe: () -> Globe
@@ -426,8 +429,11 @@ struct KeyboardLayoutUtilityBar<Key: View, Globe: View, ModeSwitch: View>: View 
     @ViewBuilder
     private func footerKey(_ item: LayoutFooterItem, keys: [LayoutKey]) -> some View {
         switch item {
-        case .numericShortcut: pageShortcut("123", target: .numeric)
-        case .symbolShortcut: pageShortcut(KeyboardControlPolicy.symbolPageTitle, target: .symbols)
+        case .numericShortcut:
+            pageShortcut(
+                KeyLabelPolicy.numericPageTitle, target: .numeric, accessibilityLabel: numericPageAccessibilityLabel)
+        case .symbolShortcut:
+            pageShortcut(symbolPageTitle, target: .symbols, accessibilityLabel: symbolPageAccessibilityLabel)
         case .globe: globe()
         case .layoutSwitch: modeSwitch()
         case .key(let index): key(keys[index], "controls-\(index)", index)
@@ -437,9 +443,13 @@ struct KeyboardLayoutUtilityBar<Key: View, Globe: View, ModeSwitch: View>: View 
     private var singleSpaceBar: some View {
         let dedupe = dedupe
         return HStack(spacing: 4) {
-            if !dedupe.numeric { pageShortcut("123", target: .numeric) }
+            if !dedupe.numeric {
+                pageShortcut(
+                    KeyLabelPolicy.numericPageTitle, target: .numeric, accessibilityLabel: numericPageAccessibilityLabel
+                )
+            }
             if !dedupe.symbols {
-                pageShortcut(KeyboardControlPolicy.symbolPageTitle, target: .symbols)
+                pageShortcut(symbolPageTitle, target: .symbols, accessibilityLabel: symbolPageAccessibilityLabel)
             }
             if let row = controlRow {
                 let sources = row.keys.indices.filter { showsGlobe || row.keys[$0].action.type != .globe }
@@ -461,14 +471,14 @@ struct KeyboardLayoutUtilityBar<Key: View, Globe: View, ModeSwitch: View>: View 
         .buttonStyle(KeyboardPressStyle())
     }
 
-    private func pageShortcut(_ title: String, target: KeyboardPage) -> some View {
+    private func pageShortcut(_ title: String, target: KeyboardPage, accessibilityLabel: String) -> some View {
         AlternateCharacterKey(
             cap: KeyCap(id: "layout-page-\(title)", title: title, action: .cycleLayout), alternates: []
         ) { _ in
             onPage(target)
         }
         .frame(width: 44, height: keyHeight)
-        .accessibilityLabel(target == .numeric ? "打开数字符号页" : "打开符号页")
+        .accessibilityLabel(accessibilityLabel)
     }
 }
 
@@ -479,6 +489,7 @@ struct KeyboardFixedEditingRail: View {
     @Environment(\.keyboardAppearance) private var appearance
     let metrics: PhoneKeypadMetrics
     let returnTitle: String
+    var returnAccessibilityLabel: String? = nil
     let isReturnEnabled: Bool
     let isComposing: Bool
     /// Receives whether this call is a repeat of a held Delete.
@@ -503,8 +514,11 @@ struct KeyboardFixedEditingRail: View {
             .frame(height: CGFloat(slots[1].height))
             .accessibilityLabel("重输")
             .accessibilityHint("清空当前输入")
-            ReturnKey(title: returnTitle, isEnabled: isReturnEnabled, onSelect: onReturn)
-                .frame(height: CGFloat(slots[2].height))
+            ReturnKey(
+                title: returnTitle, isEnabled: isReturnEnabled,
+                accessibilityLabel: returnAccessibilityLabel, onSelect: onReturn
+            )
+            .frame(height: CGFloat(slots[2].height))
         }
     }
 }

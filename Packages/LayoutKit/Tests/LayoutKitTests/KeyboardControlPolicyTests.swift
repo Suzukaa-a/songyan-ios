@@ -181,7 +181,7 @@ final class KeyboardControlPolicyTests: XCTestCase {
         XCTAssertEqual(policy.slots.map(policy.key(at:)), [.globe, .page, .language, .space, .symbolPage, .enter])
     }
 
-    /// Bundled 9-key: 123 | 中/英 | 空格 | 符号 on letters, so 123 and the language key stay where every layout
+    /// Bundled 9-key: 123 | 中/英 | 空格 | 符 on letters, so 123 and the language key stay where every layout
     /// has them and the symbol page is one tap away on the right; on 123 and 符号 the left corner returns to letters.
     func testBundledT9BottomRowEndsWithSymbolKey() {
         func keys(_ page: KeyboardControlPolicy.Page, globe: Bool = false) -> [KeyboardControlPolicy.Slot] {
@@ -203,7 +203,7 @@ final class KeyboardControlPolicyTests: XCTestCase {
         let numeric = KeyboardControlPolicy(
             page: .numeric, isEnglishMode: false, hasGlobe: false, isPhoneLayout: true,
             usesASCIIPunctuation: false, includesBottomEnter: false)
-        XCTAssertEqual(numeric.pageTitle, KeyboardControlPolicy.symbolPageTitle)
+        XCTAssertEqual(numeric.pageTitle, "符")
         XCTAssertEqual(numeric.pageTarget, .symbols)
         XCTAssertEqual(numeric.languageTitle, "英文")
         XCTAssertEqual(numeric.languageAction, .toggleSymbols)
@@ -211,7 +211,7 @@ final class KeyboardControlPolicyTests: XCTestCase {
         let qwertyNumeric = KeyboardControlPolicy(
             page: .numeric, isEnglishMode: false, hasGlobe: false, isPhoneLayout: false,
             usesASCIIPunctuation: false)
-        XCTAssertEqual(qwertyNumeric.pageTitle, "符号")
+        XCTAssertEqual(qwertyNumeric.pageTitle, "符")
         XCTAssertEqual(qwertyNumeric.languageTitle, "英文")
         XCTAssertEqual(qwertyNumeric.languageAction, .toggleSymbols)
     }

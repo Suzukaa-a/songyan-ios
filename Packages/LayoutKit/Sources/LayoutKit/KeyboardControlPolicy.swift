@@ -45,6 +45,8 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
     /// The 123 page is drawn as the digit pad on the nine-key letter shell's grid. An imported
     /// keypad keeps its own declared rails and bottom row, so the shell flag alone is not enough.
     public let usesDigitPadRow: Bool
+    /// The scheme's input language for automatic faces; author labels never read it.
+    public let script: KeyLabelScript
     /// The bundled phone shell's column widths. When set, the first bottom key sits
     /// under the rail and the rest share the grid's width with a wide space bar
     /// (see `Metrics.init(width:columns:includesUtility:)`) instead of the generic
@@ -70,7 +72,8 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
         page: Page, isEnglishMode: Bool, hasGlobe: Bool,
         isPhoneLayout: Bool, usesASCIIPunctuation: Bool,
         includesBottomEnter: Bool = true, usesCategorySymbolPage: Bool = true,
-        numericPageReachesSymbols: Bool = true, usesDigitPadRow: Bool = false
+        numericPageReachesSymbols: Bool = true, usesDigitPadRow: Bool = false,
+        script: KeyLabelScript = .simplifiedChinese
     ) {
         self.page = page
         self.isEnglishMode = isEnglishMode
@@ -81,6 +84,7 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
         self.usesCategorySymbolPage = usesCategorySymbolPage
         self.numericPageReachesSymbols = numericPageReachesSymbols
         self.usesDigitPadRow = usesDigitPadRow
+        self.script = script
     }
 
     /// Slot identities and count stay unchanged across all pages and languages
@@ -163,10 +167,26 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
 
     public var pageTarget: Page { page == .numeric ? .symbols : .numeric }
     public var pageTitle: String {
-        guard pageTarget == .symbols else { return "123" }
-        return Self.symbolPageTitle
+        guard pageTarget == .symbols else { return KeyLabelPolicy.numericPageTitle }
+        return symbolPageTitle
     }
-    public static let symbolPageTitle = "符号"
+    /// The automatic face of a key that opens the symbol page (the D27 符 key included).
+    public var symbolPageTitle: String { KeyLabelPolicy.symbolPageTitle(script: script) }
+
+    /// The automatic space caption; an author label is drawn by its owner instead.
+    public func spaceTitle(isComposing: Bool) -> String {
+        KeyLabelPolicy.spaceTitle(script: script, isComposing: isComposing)
+    }
+
+    public func spaceAccessibilityLabel(isComposing: Bool) -> String {
+        KeyLabelPolicy.spaceAccessibilityLabel(script: script, isComposing: isComposing)
+    }
+
+    /// Spoken name of a page switch, read by the panel and both previews.
+    public func pageSwitchAccessibilityLabel(for target: Page, isBundledPhonePad: Bool) -> String {
+        KeyLabelPolicy.pageSwitchAccessibilityLabel(
+            script: script, target: target, isBundledPhonePad: isBundledPhonePad)
+    }
 
     /// The page-following default: letters toggle the input language; 123 (the 9-key digit pad
     /// included) and the row-shaped #+= page switch the symbol language in place; the categorized
@@ -190,21 +210,16 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
 
     public var languageTitle: String { languageTitle(for: nil) }
     public func languageTitle(for behavior: LayoutAction.LanguageSwitchBehavior?) -> String {
-        switch languageAction(for: behavior) {
-        // The auto face names the target language, not the current one.
-        case .toggleLanguage: return isEnglishMode ? "中文" : "英文"
-        case .toggleSymbols: return usesASCIIPunctuation ? "中文" : "英文"
-        case .returnToLetters: return "返回"
-        }
+        KeyLabelPolicy.languageTitle(
+            script: script, action: languageAction(for: behavior),
+            isEnglishMode: isEnglishMode, usesASCIIPunctuation: usesASCIIPunctuation)
     }
 
     public var languageAccessibilityLabel: String { languageAccessibilityLabel(for: nil) }
     public func languageAccessibilityLabel(for behavior: LayoutAction.LanguageSwitchBehavior?) -> String {
-        switch languageAction(for: behavior) {
-        case .toggleLanguage: return isEnglishMode ? "切换到中文" : "切换到英文"
-        case .toggleSymbols: return usesASCIIPunctuation ? "切换到中文符号" : "切换到英文符号"
-        case .returnToLetters: return "返回主键盘"
-        }
+        KeyLabelPolicy.languageAccessibilityLabel(
+            script: script, action: languageAction(for: behavior),
+            isEnglishMode: isEnglishMode, usesASCIIPunctuation: usesASCIIPunctuation)
     }
     public var utility: Utility {
         isBundledPhonePad && page == .numeric && !isDigitPad ? .digit("0") : .punctuation(utilityText)

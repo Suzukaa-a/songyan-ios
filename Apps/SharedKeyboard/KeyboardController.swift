@@ -196,6 +196,19 @@ public final class KeyboardController: ObservableObject {
     }
     private var cachedSchemaDescriptors: [KeyboardSchemaDescriptor]?
 
+    /// The running input method's language and keyboard family, computed and cached by the
+    /// session on scheme/switch changes only. Rendering reads this value; the key path never asks.
+    public var inputLanguage: InputLanguageProfile { session.inputLanguage }
+
+    /// The same language as the label policy's value.
+    public var inputLanguageScript: KeyLabelScript {
+        switch inputLanguage.language {
+        case .simplifiedChinese: return .simplifiedChinese
+        case .traditionalChinese: return .traditionalChinese
+        case .japanese: return .japanese
+        }
+    }
+
     /// The real alphabet declared by the current source schema; empty string if not found. Long-press
     /// policy fails closed on it and never guesses sendable codes from layout names or key caps.
     public var activeSchemaAlphabet: String {

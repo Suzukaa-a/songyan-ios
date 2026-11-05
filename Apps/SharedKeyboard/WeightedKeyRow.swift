@@ -55,6 +55,8 @@ struct KeyAreaRenderToken: Equatable {
     let shiftState: ShiftState
     let isComposing: Bool
     let usesASCIIPunctuation: Bool
+    /// Automatic captions follow the scheme's language; a scheme switch must redraw the rows.
+    let inputLanguage: InputLanguageProfile
     /// Panel-local symbol language after override/page-default/controller resolution; the language
     /// key, symbol pages and paired literal faces redraw from it.
     let symbolMarks: KeyboardNumericMarks

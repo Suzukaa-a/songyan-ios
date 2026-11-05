@@ -47,7 +47,9 @@ extension KeyboardPanelView {
         ControlRow(
             policy: controlPolicy,
             returnTitle: controller.returnKeyTitle,
+            returnAccessibilityLabel: controller.returnKeyAccessibilityLabel,
             returnEnabled: controller.isReturnKeyEnabled,
+            isComposing: controller.snapshot.isComposing,
             layoutName: controller.isEnglishMode ? nil : currentKeyboardTitle,
             layoutHintName: layoutHintName,
             layoutHintToken: layoutHintToken,
@@ -186,6 +188,7 @@ extension KeyboardPanelView {
             usesFixedEditingRail: usesFixedEditingRail,
             declaredTrailingReturn: t9AuxiliaryKeys(.trailing).contains { $0.action.type == .enter },
             showsCategorySymbolPage: showsCategorySymbolPage,
-            numericPageReachesSymbols: page != .letters || numericPageReachesSymbols)
+            numericPageReachesSymbols: page != .letters || numericPageReachesSymbols,
+            script: controller.inputLanguageScript)
     }
 }

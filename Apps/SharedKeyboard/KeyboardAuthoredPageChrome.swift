@@ -141,6 +141,8 @@ struct KeyboardPageAuthoredState: Equatable {
     var isEnglishMode: Bool
     var shiftState: ShiftState
     var returnTitle: String
+    /// Spoken Return name; empty keeps the visible title.
+    var returnAccessibilityLabel = ""
     var isReturnEnabled: Bool
     var symbolLocked: Bool
     var isComposing: Bool
@@ -155,6 +157,8 @@ struct KeyboardPageAuthoredState: Equatable {
     /// Explicit category decision. A trailing rail alone must never tag a keypad/row page as the
     /// categorized grid (that changes the language key's return/toggle semantics).
     var usesCategorySymbolPage = false
+    /// The scheme's input language for automatic faces; author labels never read it.
+    var script: KeyLabelScript = .simplifiedChinese
 
     var shiftActive: Bool { shiftState.isActive }
 
@@ -164,7 +168,8 @@ struct KeyboardPageAuthoredState: Equatable {
         KeyboardControlPolicy(
             page: page, isEnglishMode: isEnglishMode, hasGlobe: hasGlobe,
             isPhoneLayout: isPhoneStyled, usesASCIIPunctuation: usesASCIIPunctuation,
-            includesBottomEnter: true, usesCategorySymbolPage: usesCategorySymbolPage)
+            includesBottomEnter: true, usesCategorySymbolPage: usesCategorySymbolPage,
+            script: script)
     }
 
     /// The real title of a key: the authored label for .custom, otherwise the live native title.
@@ -186,7 +191,7 @@ struct KeyboardPageAuthoredState: Equatable {
     private func automaticTitle(for key: LayoutKey) -> String {
         switch key.action.type {
         case .enter: return returnTitle
-        case .space: return isEnglishMode ? "space" : "空格"
+        case .space: return key.automaticSpaceTitle(policy: controlPolicy, isComposing: isComposing)
         case .literal:
             return key.literalFaceTitle(usesASCIIPunctuation: usesASCIIPunctuation)
         default:
@@ -200,6 +205,11 @@ struct KeyboardPageAuthoredState: Equatable {
         if key.action.type == .shift { return isEnglishMode }
         if key.action.type == .globe { return hasGlobe }
         return true
+    }
+
+    /// Spoken Return name: composition confirms, otherwise the visible action word.
+    var returnAccessibility: String {
+        returnAccessibilityLabel.isEmpty ? returnTitle : returnAccessibilityLabel
     }
 
     /// Extra accessible value for automatic controls (the visible face stays the native one).
@@ -222,8 +232,8 @@ enum KeyboardPageControlFace {
         case .pageSwitch:
             switch key.action.pageSwitchTarget {
             case .letters: return "返回"
-            case .numeric: return "123"
-            case .symbols: return "符号"
+            case .numeric: return KeyLabelPolicy.numericPageTitle
+            case .symbols: return policy.symbolPageTitle
             case nil: return key.label
             }
         case .layoutPageSwitch: return key.action.layoutPageJump?.pageLabel ?? key.label
@@ -238,8 +248,14 @@ enum KeyboardPageControlFace {
     /// The spoken name of a page UI control, or nil for any other action.
     static func accessibilityLabel(for key: LayoutKey, policy: KeyboardControlPolicy) -> String? {
         switch key.action.type {
-        case .pageSwitch where key.action.pageSwitchTarget == .letters: return "返回主键盘"
-        case .pageSwitch: return title(for: key, policy: policy).map { "打开\($0)页" }
+        case .pageSwitch where key.action.pageSwitchTarget == .letters:
+            return policy.pageSwitchAccessibilityLabel(for: .letters, isBundledPhonePad: policy.isBundledPhonePad)
+        case .pageSwitch:
+            guard let target = key.action.pageSwitchTarget else {
+                return title(for: key, policy: policy)
+            }
+            return policy.pageSwitchAccessibilityLabel(
+                for: target, isBundledPhonePad: policy.isBundledPhonePad)
         case .layoutPageSwitch:
             guard let jump = key.action.layoutPageJump else { return title(for: key, policy: policy) }
             let name = KeyboardLayoutKind(rawValue: jump.layout.rawValue)?.userTitle ?? jump.layout.rawValue

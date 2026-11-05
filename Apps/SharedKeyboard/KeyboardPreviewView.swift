@@ -429,7 +429,13 @@ private struct KeyboardMainLayoutPreview: View {
         }
         return KeyboardLayoutUtilityBar(
             controlRow: row, rowIndex: facts.mainRows.count, split: footerSplit ?? split,
-            showsGlobe: showsGlobe, definitionHasGlobe: facts.hasGlobe, onPage: { _ in },
+            showsGlobe: showsGlobe, definitionHasGlobe: facts.hasGlobe,
+            symbolPageTitle: controlPolicy.symbolPageTitle,
+            numericPageAccessibilityLabel: controlPolicy.pageSwitchAccessibilityLabel(
+                for: .numeric, isBundledPhonePad: controlPolicy.isBundledPhonePad),
+            symbolPageAccessibilityLabel: controlPolicy.pageSwitchAccessibilityLabel(
+                for: .symbols, isBundledPhonePad: controlPolicy.isBundledPhonePad),
+            onPage: { _ in },
             key: { key, id, index in keyFace(key, path: index < 0 ? nil : .row(rowIndex, key: index), id: id) },
             globe: { NativeInputModeKey(handleEvent: { _, _ in }, accessibilitySwitch: {}) },
             modeSwitch: { KeyboardPreviewModeKey(policy: controlPolicy) })

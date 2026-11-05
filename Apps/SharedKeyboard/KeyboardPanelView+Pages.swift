@@ -250,7 +250,13 @@ extension KeyboardPanelView {
 
     /// The 123 / symbol page's third-row switch.
     func markPageSwitchKey(target: KeyboardPage) -> some View {
-        MarkPageSwitchKey(target: target) {
+        MarkPageSwitchKey(
+            target: target,
+            title: target == .symbols ? controlPolicy.symbolPageTitle : KeyLabelPolicy.numericPageTitle,
+            accessibilityText: controlPolicy.pageSwitchAccessibilityLabel(
+                for: target == .symbols ? .symbols : .numeric,
+                isBundledPhonePad: controlPolicy.isBundledPhonePad)
+        ) {
             emitKeyFeedback()
             page = target
             showsAllCandidates = false
@@ -359,12 +365,14 @@ extension KeyboardPanelView {
         KeyboardPageAuthoredState(
             page: page, kind: definition.kind, isEnglishMode: controller.isEnglishMode,
             shiftState: controller.shiftState, returnTitle: controller.returnKeyTitle,
+            returnAccessibilityLabel: controller.returnKeyAccessibilityLabel,
             isReturnEnabled: controller.isReturnKeyEnabled, symbolLocked: symbolPageLocked,
             isComposing: controller.snapshot.isComposing, hasGlobe: systemKeyboardSwitch != nil,
             jumpLayouts: jumpLayouts,
             isPhoneStyled: !(definition.chrome?.trailing.isEmpty ?? true),
             usesASCIIPunctuation: effectiveUsesASCIIPunctuation,
-            usesCategorySymbolPage: definition.symbolPresentation == .categorized)
+            usesCategorySymbolPage: definition.symbolPresentation == .categorized,
+            script: controller.inputLanguageScript)
     }
 
     func authoredPageActions() -> KeyboardPageAuthoredActions {

@@ -245,7 +245,9 @@ extension KeyboardPanelView {
         case .enter:
             ReturnKey(
                 title: customTitle ?? controller.returnKeyTitle,
-                isEnabled: controller.isReturnKeyEnabled, alternates: optionCaps,
+                isEnabled: controller.isReturnKeyEnabled,
+                accessibilityLabel: customTitle ?? controller.returnKeyAccessibilityLabel,
+                alternates: optionCaps,
                 longPressDelay: longPressDelay, capID: primaryID, subtitle: key.secondaryLabel,
                 onSelect: select)
         case .space:
@@ -253,8 +255,8 @@ extension KeyboardPanelView {
                 cap: KeyCap(
                     id: primaryID,
                     title: customTitle
-                        ?? (key.titleMode == .automatic
-                            ? (controller.isEnglishMode ? "space" : "空格") : key.label),
+                        ?? key.automaticSpaceTitle(
+                            policy: controlPolicy, isComposing: controller.snapshot.isComposing),
                     subtitle: key.secondaryLabel, action: .space),
                 alternates: optionCaps, longPressDelay: longPressDelay, onSelect: select)
         case .globe:
@@ -370,6 +372,7 @@ extension KeyboardPanelView {
             ReturnKey(
                 title: customTitle ?? controller.returnKeyTitle,
                 isEnabled: controller.isReturnKeyEnabled,
+                accessibilityLabel: customTitle ?? controller.returnKeyAccessibilityLabel,
                 alternates: (key.longPress ?? []).enumerated().map { index, option in
                     KeyCap(id: "\(id)-option-\(index)", title: option.label, action: keyAction(option.action))
                 }, longPressDelay: keyLongPressDelay,
@@ -380,7 +383,8 @@ extension KeyboardPanelView {
         } else if !isT9FirstKey && key.action.type == .space {
             CursorSpaceKey(
                 title: customTitle
-                    ?? (key.titleMode == .automatic ? (controller.isEnglishMode ? "space" : "空格") : key.label),
+                    ?? key.automaticSpaceTitle(
+                        policy: controlPolicy, isComposing: controller.snapshot.isComposing),
                 layoutName: currentKeyboardTitle,
                 layoutHintName: layoutHintName,
                 layoutHintToken: layoutHintToken,
@@ -698,6 +702,11 @@ extension KeyboardPanelView {
         KeyboardLayoutUtilityBar(
             controlRow: definitionControlRow, rowIndex: definitionMainRows.count, split: footerSplit,
             showsGlobe: systemKeyboardSwitch != nil, definitionHasGlobe: definitionHasGlobe,
+            symbolPageTitle: controlPolicy.symbolPageTitle,
+            numericPageAccessibilityLabel: controlPolicy.pageSwitchAccessibilityLabel(
+                for: .numeric, isBundledPhonePad: controlPolicy.isBundledPhonePad),
+            symbolPageAccessibilityLabel: controlPolicy.pageSwitchAccessibilityLabel(
+                for: .symbols, isBundledPhonePad: controlPolicy.isBundledPhonePad),
             onPage: { target in
                 emitKeyFeedback()
                 page = target
