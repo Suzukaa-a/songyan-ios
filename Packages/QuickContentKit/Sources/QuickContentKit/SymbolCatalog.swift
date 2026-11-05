@@ -101,6 +101,7 @@ public struct SymbolCatalog: Codable, Equatable, Sendable {
     public func search(_ rawQuery: String) -> [SymbolItem] {
         let query = SymbolSearch.normalize(rawQuery)
         guard !query.isEmpty else { return [] }
+        let literalQuery = rawQuery.trimmingCharacters(in: .whitespacesAndNewlines)
         var byPrefixName: [SymbolItem] = []
         var byPrefixAlias: [SymbolItem] = []
         var byContainsName: [SymbolItem] = []
@@ -112,7 +113,18 @@ public struct SymbolCatalog: Codable, Equatable, Sendable {
                 byPrefixName.append(item)
                 continue
             }
-            if item.aliases.contains(where: { SymbolSearch.normalize($0).hasPrefix(query) }) {
+            // Check both alias ranks in one pass, without normalizing every alias twice.
+            var aliasPrefix = false
+            var aliasContains = false
+            for alias in item.aliases {
+                let normalized = SymbolSearch.normalize(alias)
+                if normalized.hasPrefix(query) {
+                    aliasPrefix = true
+                    break
+                }
+                if !aliasContains && normalized.contains(query) { aliasContains = true }
+            }
+            if aliasPrefix {
                 byPrefixAlias.append(item)
                 continue
             }
@@ -120,12 +132,12 @@ public struct SymbolCatalog: Codable, Equatable, Sendable {
                 byContainsName.append(item)
                 continue
             }
-            if item.aliases.contains(where: { SymbolSearch.normalize($0).contains(query) }) {
+            if aliasContains {
                 byContainsAlias.append(item)
                 continue
             }
             if SymbolSearch.normalize(item.text) == query
-                || item.text.contains(rawQuery.trimmingCharacters(in: .whitespacesAndNewlines))
+                || item.text.contains(literalQuery)
             {
                 byText.append(item)
             }

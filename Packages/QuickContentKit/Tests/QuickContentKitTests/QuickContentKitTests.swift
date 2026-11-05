@@ -50,6 +50,24 @@ final class QuickContentKitTests: XCTestCase {
         XCTAssertTrue(catalog.items.allSatisfy { categoryIDs.contains($0.category) })
     }
 
+    func testSearchKeepsRankingWhenAliasesMatchDifferentWays() {
+        let catalog = SymbolCatalog(
+            categories: [],
+            items: [
+                SymbolItem(id: "text", text: "AB", name: "Other", aliases: [], category: "c"),
+                SymbolItem(id: "alias-contains", text: "1", name: "Other", aliases: ["xx ab yy"], category: "c"),
+                SymbolItem(id: "name-contains", text: "2", name: "xx ab yy", aliases: ["zzabzz"], category: "c"),
+                SymbolItem(id: "alias-prefix", text: "3", name: "xxab", aliases: ["zzabzz", "ＡＢ tail"], category: "c"),
+                SymbolItem(id: "alias-prefix-next", text: "4", name: "Other", aliases: ["ab next"], category: "c"),
+                SymbolItem(id: "name-prefix", text: "5", name: "AB name", aliases: [], category: "c"),
+            ])
+        XCTAssertEqual(
+            catalog.search(" ＡＢ ").map(\.id),
+            [
+                "name-prefix", "alias-prefix", "alias-prefix-next", "name-contains", "alias-contains", "text",
+            ])
+    }
+
     func testStrictDecodeRejectsUnknownAndInvalid() throws {
         let valid =
             #"{"version":1,"items":[{"id":"x-1","text":"→","name":"右箭头","aliases":["jiantou"],"category":"arrows"}]}"#
