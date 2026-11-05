@@ -495,10 +495,14 @@ extension KeyboardPanelView {
                         ? "轻点分词，长按输入 1"
                         : "连续点按轮换符号，长按输入 1")
             let digitFlick = t9SwipeDigit(for: key)
-            let flick = letterFlickCaps(
-                for: key, options: options, controlOptions: controlOptions,
-                merged: letterGroup.count > 1 || !letterSwipe.isEmpty,
-                ownsUpwardFlick: isT9FirstKey || digitFlick != nil)
+            let flickSetting = KeyboardKeyFeelPreferences.flick
+            // The idle 9-key first key cycles its symbols on tap and has no flick of its own.
+            let flickEligible =
+                !isT9FirstKey
+                && KeyFlick.isEligible(
+                    actionType: key.action.type, setting: flickSetting,
+                    merged: letterGroup.count > 1 || !letterSwipe.isEmpty)
+            let flickOptions = flickEligible ? flickTypedOptions(options, controlOptions: controlOptions) : []
             AlternateCharacterKey(
                 cap: cap, alternates: options,
                 longPressDelay: keyLongPressDelay,
@@ -513,9 +517,10 @@ extension KeyboardPanelView {
                     : [],
                 groupHints: mergedHints,
                 letterSwipe: letterSwipe,
-                swipeUp: digitFlick ?? flick.up,
-                swipeDown: flick.down,
-                flickEligible: digitFlick != nil || flick.eligible,
+                flickConfigured: flickSetting.direction,
+                flickOptions: flickOptions,
+                flickDigit: flickEligible ? digitFlick : nil,
+                flickEligible: flickEligible,
                 syllableHintBelow: overlayHint != nil,
                 // A letter without a hint keeps the band, so the row's letters share one baseline.
                 reservesHintBand: showsLetterHints && !letterGroup.isEmpty && shuangpinHints?.activePreset != nil,
@@ -578,21 +583,12 @@ extension KeyboardPanelView {
         KeyboardKeyFeelPreferences.longPressDelay(layout: activeDefinition?.longPressDelay)
     }
 
-    /// Up/down flick targets of a plain character key: its first two long-press options, the way
-    /// a flick on a 26-key / 14-key / 18-key letter key types a digit or punctuation mark.
-    private func letterFlickCaps(
-        for key: LayoutKey, options: [KeyCap], controlOptions: [(KeyCap, LayoutAction)],
-        merged: Bool, ownsUpwardFlick: Bool
-    ) -> (up: KeyCap?, down: KeyCap?, eligible: Bool) {
-        guard
-            KeyFlick.isEligible(
-                actionType: key.action.type, enabled: KeyboardKeyFeelPreferences.flickEnabled,
-                merged: merged, ownsUpwardFlick: ownsUpwardFlick)
-        else { return (nil, nil, false) }
-        let typed = options.filter { option in
+    /// The long-press options a flick may type: characters only, never page or layout controls.
+    /// The key picks the one that shows its corner hint.
+    private func flickTypedOptions(_ options: [KeyCap], controlOptions: [(KeyCap, LayoutAction)]) -> [KeyCap] {
+        options.filter { option in
             option.action != .cycleLayout && !controlOptions.contains { $0.0.id == option.id }
         }
-        return (KeyFlick.option(in: typed, direction: .up), KeyFlick.option(in: typed, direction: .down), true)
     }
 
     private func t9SwipeDigit(for key: LayoutKey) -> KeyCap? {

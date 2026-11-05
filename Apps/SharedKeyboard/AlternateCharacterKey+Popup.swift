@@ -66,6 +66,7 @@ extension AlternateCharacterKey.CharacterButton {
     }
 
     @objc func cancelPress() {
+        resetFlickVisual()
         holdTimer?.invalidate()
         holdTimer = nil
         scrollTimer?.invalidate()
@@ -101,6 +102,7 @@ extension AlternateCharacterKey.CharacterButton {
             !alternates.isEmpty
         else { return }
         holdTimer = nil
+        resetFlickVisual()
         keyPreview?.hide(for: self, immediately: true)
         keyPreview = nil
         let keyFrame = convert(bounds, to: host)
@@ -288,7 +290,13 @@ extension AlternateCharacterKey.CharacterButton {
     var showsCallout: Bool { showsKeyPreview && cap?.title.count == 1 }
 
     func showKeyPreviewIfNeeded() {
-        guard showsCallout, let cap, let host = popupSurface, host.window == window else { return }
+        guard showsCallout, let cap else { return }
+        presentKeyPreview(text: cap.title)
+    }
+
+    /// Draws the callout over the key; also used by the flick transition for keys without one.
+    func presentKeyPreview(text: String) {
+        guard let host = popupSurface, host.window == window else { return }
         let safe = host.bounds.insetBy(dx: 4, dy: 4)
         guard safe.width >= 44, safe.height >= 44 else { return }
         let keyRect = convert(appearance.visualRect(in: bounds), to: host)
@@ -303,7 +311,7 @@ extension AlternateCharacterKey.CharacterButton {
         let y = max(safe.minY, keyRect.minY - height)
         let callout = KeyCalloutView.shared(in: host)
         callout.show(
-            cap.title, bubble: CGRect(x: x, y: y, width: width, height: height), key: keyRect,
+            text, bubble: CGRect(x: x, y: y, width: width, height: height), key: keyRect,
             keyRadius: appearance.skin.keycap.cornerRadius,
             fill: appearance.uiColor("key"), textColor: appearance.text(on: "key"),
             border: appearance.uiColor("border"), borderWidth: appearance.skin.keycap.borderWidth,

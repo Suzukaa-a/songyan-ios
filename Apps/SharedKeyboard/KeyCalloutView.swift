@@ -9,6 +9,9 @@ final class KeyCalloutView: UIView {
 
     private let shape = CAShapeLayer()
     private let label = UILabel()
+    private let incoming = UILabel()
+    private let clip = UIView()
+    private var bubbleRect = CGRect.zero
     private weak var owner: AnyObject?
     private var shownAt: CFTimeInterval = 0
     private var pendingHide: DispatchWorkItem?
@@ -30,10 +33,42 @@ final class KeyCalloutView: UIView {
         layer.shadowRadius = 4
         layer.shadowOffset = CGSize(width: 0, height: 2)
         layer.addSublayer(shape)
-        label.textAlignment = .center
-        label.adjustsFontSizeToFitWidth = true
-        label.minimumScaleFactor = 0.6
-        addSubview(label)
+        for text in [label, incoming] {
+            text.textAlignment = .center
+            text.adjustsFontSizeToFitWidth = true
+            text.minimumScaleFactor = 0.6
+            clip.addSubview(text)
+        }
+        incoming.isHidden = true
+        // The labels scroll through the bubble and must not draw outside it.
+        clip.clipsToBounds = true
+        addSubview(clip)
+    }
+
+    /// Scrolls the key's label out toward `direction` (a unit step) and `text` in from the
+    /// opposite side, by one bubble height (width when sideways) times `progress`.
+    /// Progress 0 restores the plain label.
+    func setTransition(incoming text: String?, direction: CGVector, progress: CGFloat, bubbleAlpha: CGFloat = 1) {
+        alpha = bubbleAlpha
+        let p = min(1, max(0, progress))
+        guard p > 0, let text else {
+            label.transform = .identity
+            label.alpha = 1
+            incoming.isHidden = true
+            return
+        }
+        let size = bubbleRect.size
+        label.transform = CGAffineTransform(
+            translationX: direction.dx * size.width * p, y: direction.dy * size.height * p)
+        label.alpha = 1 - p
+        incoming.isHidden = false
+        incoming.text = text
+        incoming.font = label.font
+        incoming.textColor = label.textColor
+        incoming.frame = label.frame
+        incoming.transform = CGAffineTransform(
+            translationX: -direction.dx * size.width * (1 - p), y: -direction.dy * size.height * (1 - p))
+        incoming.alpha = p
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
@@ -63,7 +98,13 @@ final class KeyCalloutView: UIView {
         label.text = text
         label.font = font
         label.textColor = textColor
-        label.frame = bubble.insetBy(dx: 2, dy: 2)
+        bubbleRect = bubble
+        clip.frame = bubble
+        label.transform = .identity
+        label.alpha = 1
+        label.frame = clip.bounds.insetBy(dx: 2, dy: 2)
+        incoming.isHidden = true
+        alpha = 1
         isHidden = false
         CATransaction.commit()
     }
