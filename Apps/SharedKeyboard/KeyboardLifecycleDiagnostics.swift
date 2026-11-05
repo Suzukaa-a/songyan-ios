@@ -354,7 +354,8 @@ public final class LiveObjectCounter: Sendable {
         }
 
         public static var currentRole: String {
-            (Bundle.main.bundleIdentifier ?? "").hasSuffix("KeyboardExtension") ? "keyboardExtension" : "hostApp"
+            // The extension bundle ends in `.appex`; its bundle identifier does not end in "KeyboardExtension".
+            Bundle.main.bundleURL.pathExtension == "appex" ? "keyboardExtension" : "hostApp"
         }
 
         public static let keyStats = LatencyStats()

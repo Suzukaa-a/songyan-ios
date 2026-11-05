@@ -187,6 +187,7 @@ class KeyboardViewController: UIInputViewController {
     /// later read of the same UUID cannot revive an interrupted operation.
 
     #if DEBUG
+        var translationProbeTask: Task<Void, Never>?
         var timingProbeLink: CADisplayLink?
         var timingProbeStartedAt: CFTimeInterval = 0
         var timingProbeLastEmitAt: CFTimeInterval = 0
@@ -316,6 +317,9 @@ class KeyboardViewController: UIInputViewController {
         }
         Self.liveControllers.add(self)
         installPanelHost()
+        #if DEBUG
+            startTranslationProbeIfEnabled()
+        #endif
     }
 
     /// Builds the SwiftUI panel. Also called by `viewWillAppear` when UIKit shows a
