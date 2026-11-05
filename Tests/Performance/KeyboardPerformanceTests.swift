@@ -169,7 +169,9 @@ final class KeyboardPerformanceTests: XCTestCase {
         let keyboards = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "我的键盘")).firstMatch
         XCTAssertTrue(keyboards.waitForExistence(timeout: 10))
         keyboards.tap()
-        point(app, 175, 295).tap()
+        let pages = app.buttons["userKeyboard.pages.songyan_quanpin:qwerty26"]
+        XCTAssertTrue(pages.waitForExistence(timeout: 5))
+        pages.tap()
         let picker = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "页面")).firstMatch
         XCTAssertTrue(picker.waitForExistence(timeout: 5))
         picker.tap()
