@@ -356,7 +356,8 @@ extension KeyboardPanelView {
         return symbolLibrary.pageCategories(
             authored: authored, ascii: ascii, showsGlobe: systemKeyboardSwitch != nil,
             // Only the built-in tabs take the pairing's missing marks; a user's categories stay as made.
-            leadingMarks: authored == nil ? pairingMissingMarks(ascii: ascii) : [])
+            leadingMarks: authored == nil ? pairingMissingMarks(ascii: ascii) : [],
+            script: controller.inputLanguageScript)
     }
 
     /// Both rails go through the one policy: only the bundled T9 gets the

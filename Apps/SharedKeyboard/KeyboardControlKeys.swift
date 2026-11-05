@@ -6,6 +6,19 @@ import SwiftUI
 
 // MARK: - Control row
 
+extension ControlRow {
+    /// The full stop right of the space bar while the comma sits left of it.
+    private var periodKey: some View {
+        AlternateCharacterKey(
+            cap: KeyCap(
+                id: "control-mark-right", title: KeyboardControlPolicy.fullStop,
+                action: .literal(KeyboardControlPolicy.fullStop)),
+            alternates: []
+        ) { onKey($0.action) }
+        .accessibilityLabel(KeyboardControlPolicy.fullStop)
+    }
+}
+
 struct ControlRow<ModeKey: View>: View {
     let policy: KeyboardControlPolicy
     let returnTitle: String
@@ -91,6 +104,19 @@ struct ControlRow<ModeKey: View>: View {
             .accessibilityLabel("返回主键盘")
         case .language:
             modeKey
+        case .markLeft:
+            // The runtime footer's comma left of the space bar; long press keeps the sentence marks.
+            AlternateCharacterKey(
+                cap: KeyCap(
+                    id: "control-mark-left", title: policy.utilityText,
+                    action: .literal(policy.utilityText)),
+                alternates: policy.utilityAlternates.enumerated().map { index, mark in
+                    KeyCap(id: "control-mark-left-\(index)", title: mark, action: .literal(mark))
+                }
+            ) { onKey($0.action) }
+            .accessibilityLabel("\(policy.utilityText)，长按选择标点")
+        case .markRight:
+            periodKey
         case .space:
             CursorSpaceKey(
                 title: policy.spaceTitle(isComposing: isComposing),
@@ -100,6 +126,8 @@ struct ControlRow<ModeKey: View>: View {
                 onTap: { onKey(.space) }, moveCursor: moveCursor)
         case .utility:
             switch policy.utility {
+            case .punctuation(let text) where policy.showsSpaceSideMarks:
+                periodKey
             case .punctuation(let text):
                 AlternateCharacterKey(
                     cap: KeyCap(id: "control-period", title: text, action: .literal(text)),

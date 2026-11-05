@@ -20,7 +20,8 @@ final class AlternateKeyPolicyTests: XCTestCase {
         language: AlternateKeyPolicy.Language = .chinese,
         uppercase: Bool = false,
         asciiPunctuation: Bool = false,
-        alphabet: String = ""
+        alphabet: String = "",
+        script: KeyLabelScript = .simplifiedChinese
     ) -> [AlternateKeyPolicy.Option] {
         AlternateKeyPolicy.options(
             for: .init(
@@ -29,13 +30,93 @@ final class AlternateKeyPolicyTests: XCTestCase {
                 secondaryLiterals: secondary,
                 page: page,
                 language: language,
+                script: script,
                 isUppercase: uppercase,
                 usesASCIIPunctuation: asciiPunctuation,
                 schemaAlphabet: alphabet))
     }
 
-    private func bundled(_ key: String) -> [String] {
-        AlternateKeyPolicy.defaultLetterLiterals(for: key)
+    private func bundled(_ key: String, script: KeyLabelScript = .simplifiedChinese) -> [String] {
+        AlternateKeyPolicy.defaultLetterLiterals(for: key, script: script)
+    }
+
+    // MARK: Punctuation follows the input script
+
+    /// I-D4: Traditional and Japanese name their quotes 「」/『』 first, keeping the Chinese marks behind.
+    func testTraditionalAndJapaneseQuotesComeFromTheBundledTable() {
+        XCTAssertEqual(bundled("c"), ["“", "”", "\""])
+        XCTAssertEqual(bundled("c", script: .traditionalChinese), ["「", "『", "“", "\""])
+        XCTAssertEqual(bundled("v", script: .traditionalChinese), ["」", "』", "”", "'"])
+        XCTAssertEqual(bundled("c", script: .japanese), ["「", "『"])
+        XCTAssertEqual(bundled("v", script: .japanese), ["」", "』"])
+    }
+
+    /// I-D4: Japanese moves its own marks onto the same letters and uses 、 as the comma.
+    func testJapaneseBundledLettersMoveTheCommaAndJapaneseMarks() {
+        XCTAssertEqual(bundled("a"), ["，", ","])
+        XCTAssertEqual(bundled("a", script: .japanese), ["、"])
+        XCTAssertEqual(bundled("g", script: .japanese), ["・"])
+        XCTAssertEqual(bundled("x", script: .japanese), ["ー", "～", "-", "_"])
+        XCTAssertEqual(bundled("s", script: .japanese), ["。", ".", "…"])
+    }
+
+    /// I-D4: ・ ー ～ reach the symbol page's long press; ー is a letter and is offered anyway.
+    func testJapaneseSymbolPageAddsJapaneseMarks() {
+        XCTAssertEqual(
+            options(key: "-", page: .symbols, script: .japanese).map(\.label),
+            ["ー", "～", "—", "_"])
+        XCTAssertEqual(
+            options(key: "・", page: .symbols, script: .japanese).map(\.label),
+            ["ー", "～", "·"])
+        XCTAssertEqual(
+            options(key: "。", page: .symbols, script: .japanese).map(\.label),
+            ["、", "．", "·"])
+        // Another script keeps the Chinese table untouched.
+        XCTAssertEqual(options(key: "-", page: .symbols).map(\.label), ["～", "—", "_"])
+    }
+
+    /// The ASCII field policy still filters: the full-width marks go, while ー stays because it is
+    /// a modifier letter (the same letter-variant rule Android applies).
+    func testASCIIFieldFiltersJapaneseMarks() {
+        XCTAssertEqual(
+            options(key: "-", page: .symbols, asciiPunctuation: true, script: .japanese).map(\.label),
+            ["ー", "_"])
+    }
+
+    /// Only a proven native bundled menu is re-written to the script's marks; a DIY list — an
+    /// explicitly cleared one or one that happens to equal the old defaults — stays verbatim, and
+    /// the script list replaces the old menu instead of being prepended to it (so the corner hint
+    /// is the script's first mark).
+    func testNativeBundledLetterDefaultsFollowTheScriptAndDIYStaysVerbatim() {
+        XCTAssertEqual(
+            AlternateKeyPolicy.letterLongPressLiterals(
+                declared: ["“", "”", "\""], representative: "c", script: .japanese,
+                isNativeBundledDefault: true),
+            ["「", "『"])
+        XCTAssertEqual(
+            AlternateKeyPolicy.letterLongPressLiterals(
+                declared: [], representative: "c", script: .traditionalChinese,
+                isNativeBundledDefault: true),
+            ["「", "『", "“", "\""])
+        XCTAssertEqual(
+            AlternateKeyPolicy.letterLongPressLiterals(
+                declared: [], representative: "c", script: .japanese, isNativeBundledDefault: false),
+            [])
+        XCTAssertEqual(
+            AlternateKeyPolicy.letterLongPressLiterals(
+                declared: ["“", "”", "\""], representative: "c", script: .japanese,
+                isNativeBundledDefault: false),
+            ["“", "”", "\""])
+    }
+
+    /// The engine dispatch mode stays a separate axis: direct input keeps only explicit options.
+    func testScriptDoesNotChangeTheEngineLanguageSemantics() {
+        XCTAssertEqual(
+            options(
+                key: "a", secondary: ["1", "@"], language: .english, alphabet: fullAlphabet,
+                script: .japanese
+            ).map(\.label),
+            ["1", "@"])
     }
 
     // MARK: 26-key letters keep their declared digits/symbols

@@ -467,7 +467,8 @@ extension KeyboardPanelView {
                         // Untouched menu: the bundled policy stays (qwerty menus) or stays
                         // suppressed (merged pad deliberately has none).
                         if knownMainShellPreset.input.builtinLayout == .qwerty26 {
-                            definitionAlternates(for: key, id: id) + controlOptions.map { $0.0 }
+                            definitionAlternates(
+                                for: key, id: id, nativeLetterDefaults: true) + controlOptions.map { $0.0 }
                         } else {
                             []
                         }
@@ -639,7 +640,12 @@ extension KeyboardPanelView {
     /// fixed ABC list, and a merged-key partner is emitted only when the active
     /// schema's real alphabet proves that code. Non-code custom keys retain their
     /// declared actions, with ASCII-field punctuation filtering.
-    private func definitionAlternates(for key: LayoutKey, id: String) -> [KeyCap] {
+    /// nativeLetterDefaults is true only for an untouched bundled qwerty letter menu; the
+    /// script's marks then replace the bundled Chinese defaults. Any DIY declaration keeps its
+    /// literal list as written.
+    private func definitionAlternates(
+        for key: LayoutKey, id: String, nativeLetterDefaults: Bool = false
+    ) -> [KeyCap] {
         guard key.action.type == .code else {
             // Authored non-code options are user data: keep every declared action/label/pair.
             return (key.longPress ?? []).enumerated().map { index, option in
@@ -654,13 +660,17 @@ extension KeyboardPanelView {
         let declaredLiterals = (key.longPress ?? []).compactMap {
             $0.action.type == .literal ? $0.action.value : nil
         }
+        let literals = AlternateKeyPolicy.letterLongPressLiterals(
+            declared: declaredLiterals, representative: representative,
+            script: controller.inputLanguageScript, isNativeBundledDefault: nativeLetterDefaults)
         var options = AlternateKeyPolicy.options(
             for: .init(
                 keyLabel: representative,
                 mergedGroup: merged,
-                secondaryLiterals: declaredLiterals,
+                secondaryLiterals: literals,
                 page: .letters,
                 language: controller.isEnglishMode ? .english : .chinese,
+                script: controller.inputLanguageScript,
                 isUppercase: controller.shiftState.isActive,
                 usesASCIIPunctuation: controller.usesASCIIPunctuation,
                 schemaAlphabet: controller.activeSchemaAlphabet))
@@ -733,7 +743,8 @@ extension KeyboardPanelView {
             keyLabel = value
             let group = cap.title.lowercased()
             mergedGroup = group.count > 1 && group.allSatisfy(\.isLetter) ? group : nil
-            secondaryLiterals = AlternateKeyPolicy.defaultLetterLiterals(for: value)
+            secondaryLiterals = AlternateKeyPolicy.defaultLetterLiterals(
+                for: value, script: controller.inputLanguageScript)
         case .literal(let value):
             keyLabel = value
             mergedGroup = nil
@@ -754,6 +765,7 @@ extension KeyboardPanelView {
             secondaryLiterals: secondaryLiterals,
             page: policyPage,
             language: controller.isEnglishMode ? .english : .chinese,
+            script: controller.inputLanguageScript,
             isUppercase: controller.shiftState.isActive,
             usesASCIIPunctuation: controller.usesASCIIPunctuation,
             schemaAlphabet: controller.activeSchemaAlphabet,

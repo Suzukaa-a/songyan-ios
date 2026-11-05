@@ -176,9 +176,17 @@ extension KeyboardPanelView {
         keyboard.isCurrent(schemaID: controller.selectedSchemaID, layout: controller.layout)
     }
 
+    /// The native footer puts the comma left of the space bar and the full stop right of it only
+    /// where the row is the text field's own; ASCII/English fields keep their single mark, and a
+    /// phone shell keeps its grid.
+    private var showsSpaceSideMarks: Bool {
+        !controller.isEnglishMode && !effectiveUsesASCIIPunctuation
+            && !usesPhoneDefinition && !isBuiltinPhonePad
+    }
+
     var controlPolicy: KeyboardControlPolicy {
         let showsCategorySymbolPage = showsCategorySymbolPage
-        return KeyboardPanelRules.controlPolicy(
+        let policy = KeyboardPanelRules.controlPolicy(
             page: page, isEnglishMode: controller.isEnglishMode,
             hasGlobe: systemKeyboardSwitch != nil,
             usesASCIIPunctuation: effectiveUsesASCIIPunctuation,
@@ -189,6 +197,13 @@ extension KeyboardPanelView {
             declaredTrailingReturn: t9AuxiliaryKeys(.trailing).contains { $0.action.type == .enter },
             showsCategorySymbolPage: showsCategorySymbolPage,
             numericPageReachesSymbols: page != .letters || numericPageReachesSymbols,
-            script: controller.inputLanguageScript)
+            script: controller.inputLanguageScript,
+            showsSpaceSideMarks: showsSpaceSideMarks)
+        // A row too narrow to keep a usable space bar falls back to the single mark; the layout
+        // decides, not a key branch of its own.
+        guard policy.showsSpaceSideMarks,
+            policy.metrics(width: widthBox.contentWidth).space >= 44
+        else { return policy.withSpaceSideMarks(false) }
+        return policy
     }
 }
