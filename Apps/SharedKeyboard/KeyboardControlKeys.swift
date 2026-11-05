@@ -342,6 +342,7 @@ struct ShiftKey: UIViewRepresentable {
 struct CursorSpaceKey: UIViewRepresentable {
     @Environment(\.keyboardPanelHostLifetime) private var hostLifetime
     @Environment(\.keyboardAppearance) private var appearance
+    @Environment(\.keyboardInputLanguage) private var inputLanguage
     let title: String
     var layoutName: String? = nil
     /// Brief hint driven by a real switch event (passed in by PanelView after token dedup).
@@ -371,6 +372,7 @@ struct CursorSpaceKey: UIViewRepresentable {
         button.skinRole = "key"
         if button.moveCursor != nil && moveCursor == nil { button.cancelPress() }
         button.normalTitle = title
+        button.inputLanguage = inputLanguage
         button.layoutName = layoutName
         button.authorSubtitle = subtitle
         button.onTap = onTap
@@ -395,6 +397,11 @@ struct CursorSpaceKey: UIViewRepresentable {
         }
         private let layoutLabel = UILabel()
         var normalTitle = "空格"
+        /// Scheme language of the current keyboard: the space caption ("空白", "変換") draws that
+        /// language's glyph forms. Simplified Chinese keeps the plain title as before.
+        var inputLanguage: InputLanguage = .simplifiedChinese {
+            didSet { if oldValue != inputLanguage { refreshAppearance() } }
+        }
         /// The stable layout name is for accessibility only; the visible hint is driven by applyTransientHint events.
         var layoutName: String? {
             didSet {
@@ -478,7 +485,8 @@ struct CursorSpaceKey: UIViewRepresentable {
 
         /// What the last `refreshAppearance` painted; SwiftUI calls it on every
         /// panel update, and an unchanged key must not relayout its cap.
-        private var paintedState: (title: String, hint: String?, appearance: KeyboardAppearance)?
+        private var paintedState:
+            (title: String, hint: String?, appearance: KeyboardAppearance, language: InputLanguage)?
 
         func refreshAppearance() {
             let title = isDragging ? "移动光标" : normalTitle
@@ -486,17 +494,35 @@ struct CursorSpaceKey: UIViewRepresentable {
             let hint = transientHint ?? (isDragging ? nil : authorSubtitle)
             skinRole = isDragging ? "pressed" : "key"
             if let paintedState, paintedState.title == title, paintedState.hint == hint,
-                paintedState.appearance == appearance
+                paintedState.appearance == appearance, paintedState.language == inputLanguage
             {
                 return
             }
-            paintedState = (title, hint, appearance)
+            paintedState = (title, hint, appearance, inputLanguage)
             setTitle(title, for: .normal)
             setTitleColor(appearance.text(on: "key"), for: .normal)
+            setAttributedTitle(languageTitle(title), for: .normal)
             layoutLabel.textColor = appearance.text(on: "key", secondary: true)
             layoutLabel.font = appearance.uiFont(appearance.skin.typography.secondarySize)
             layoutLabel.text = hint
             setNeedsLayout()
+        }
+
+        /// CJK captions carry the scheme language; ASCII captions keep their plain title.
+        private func languageTitle(_ title: String) -> NSAttributedString? {
+            // Only a CJK caption ("空格", "空白", "変換") can take another language's glyph forms; it uses
+            // the attributed path for all three input languages, including Simplified Chinese.
+            guard title.unicodeScalars.contains(where: { $0.value > 0x2E80 }) else { return nil }
+            let string = CandidateTextLanguage.attributed(title, language: inputLanguage)
+            guard string.length > 0 else { return nil }
+            let paragraph = NSMutableParagraphStyle()
+            paragraph.alignment = .center
+            string.addAttributes(
+                [
+                    .font: titleLabel?.font ?? UIFont.systemFont(ofSize: 15, weight: .medium),
+                    .foregroundColor: appearance.text(on: "key"), .paragraphStyle: paragraph,
+                ], range: NSRange(location: 0, length: string.length))
+            return string
         }
 
         override func beginTracking(_ touch: UITouch, with event: UIEvent?) -> Bool {

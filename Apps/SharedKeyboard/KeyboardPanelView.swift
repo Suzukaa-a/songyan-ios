@@ -16,6 +16,20 @@ extension EnvironmentValues {
     }
 }
 
+private struct KeyboardInputLanguageKey: EnvironmentKey {
+    static var defaultValue: InputLanguage { .simplifiedChinese }
+}
+
+extension EnvironmentValues {
+    /// Input language of the scheme being typed, for labels the keyboard draws itself (keycap faces,
+    /// composition badge): those need the glyph forms of Japanese / Traditional / Simplified Chinese.
+    /// The scheme decides it, not the system or app language.
+    var keyboardInputLanguage: InputLanguage {
+        get { self[KeyboardInputLanguageKey.self] }
+        set { self[KeyboardInputLanguageKey.self] = newValue }
+    }
+}
+
 func rebindPanelHostObserver(
     _ observer: Any, selector: Selector,
     from old: KeyboardPanelHostLifetime?,
@@ -448,7 +462,8 @@ public struct KeyboardPanelView: View {
             visibleEntries: readingEntries,
             visibleHasMore: filteringReadings ? controller.readingFilter.hasMore : nil,
             visibleFrontier: filteringReadings ? controller.readingFilter.nextIndex : nil,
-            contentLift: candidateContentLift)
+            contentLift: candidateContentLift,
+            inputLanguage: controller.inputLanguage.language)
         if expanded {
             CandidateRendererRegistry.renderer(id: DefaultCandidateAreaRenderer.rendererID)
                 .makeExpanded(context)
@@ -838,6 +853,7 @@ public struct KeyboardPanelView: View {
                 fontFamily: appearance.skin.typography.family,
                 fontWeight: appearance.skin.typography.weight)
         )
+        .environment(\.keyboardInputLanguage, controller.inputLanguage.language)
         .overlay { KeyboardPopupSurface(view: popupSurface).allowsHitTesting(false) }
         .background(appearance.panelBackground.ignoresSafeArea(edges: .bottom))
         .tint(appearance.accentForeground)

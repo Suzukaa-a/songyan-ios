@@ -7,6 +7,7 @@ import SwiftUI
     import Dispatch
     import Foundation
     import RimeBridge
+    import SkinKit
 #endif
 
 /// Host app preference keys (shared via AppStorage), persisted in the HostApp sandbox UserDefaults.
@@ -33,6 +34,8 @@ struct HostApp: App {
                 #if DEBUG
                     if DeploymentProbe.enabled {
                         ProbeLaunchView()
+                    } else if GlyphProbe.enabled {
+                        GlyphProbeView()
                     } else {
                         HostRootView()
                     }
@@ -427,4 +430,78 @@ struct HostApp: App {
             }
         }
     }
+    // MARK: - Glyph rendering probe (Debug only)
+
+    /// Selects the glyph rendering fixture instead of the normal UI with 'SONGYAN_GLYPH_PROBE=1'.
+    /// It exists so a simulator screenshot can compare the same fixed characters in each input language
+    /// through the production candidate renderer; it reads no user text and is not built into Release.
+    enum GlyphProbe {
+        static let modeKey = "SONGYAN_GLYPH_PROBE"
+        static var enabled: Bool {
+            (ProcessInfo.processInfo.environment[modeKey] ?? "") == "1"
+        }
+    }
+
+    /// The production candidate renderer with three fixed characters per input language: one collapsed
+    /// candidate row and one expanded flow each. Font and colours come from the same skin resolution as
+    /// the keyboard, so the screenshot shows exactly what a candidate would draw.
+    private struct GlyphProbeView: View {
+        private let texts = ["直", "骨", "海"]
+        private let languages: [InputLanguage] = [.simplifiedChinese, .traditionalChinese, .japanese]
+        private let appearance = KeyboardAppearance(skin: .systemDefault, dark: false)
+
+        var body: some View {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    Text("字形渲染检查：同样的文字，不同输入语言")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    ForEach(languages, id: \.rawValue) { language in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(verbatim: language.rawValue).font(.caption.weight(.semibold))
+                            collapsedRow(language)
+                            expandedRows(language).frame(height: 88)
+                        }
+                    }
+                }
+                .padding(16)
+            }
+            .environment(
+                \.candidateSkinToken,
+                CandidateSkinToken(
+                    candidateColor: Color(uiColor: appearance.text(on: "panel")),
+                    secondaryColor: Color(uiColor: appearance.text(on: "panel", secondary: true)),
+                    accentColor: appearance.accentForeground,
+                    panelColor: appearance.color("panel"),
+                    fontFamily: appearance.skin.typography.family,
+                    fontWeight: appearance.skin.typography.weight)
+            )
+            .background(appearance.color("panel"))
+        }
+
+        private func collapsedRow(_ language: InputLanguage) -> some View {
+            CandidateRendererRegistry.renderer(id: DefaultCandidateAreaRenderer.rendererID)
+                .makeCollapsed(context(language, expanded: false))
+                .frame(height: 44)
+        }
+
+        private func expandedRows(_ language: InputLanguage) -> some View {
+            CandidateRendererRegistry.renderer(id: DefaultCandidateAreaRenderer.rendererID)
+                .makeExpanded(context(language, expanded: true))
+        }
+
+        private func context(_ language: InputLanguage, expanded: Bool) -> CandidateAreaContext {
+            let candidates = texts.enumerated().map { Candidate(index: $0.offset, text: $0.element) }
+            let state = CandidatePresentationState(
+                preedit: "zhi gu hai", rawInput: "zhiguhai",
+                candidates: candidates, highlightedIndex: 0,
+                pageIndex: 0, canPageBackward: false, canPageForward: false, isComposing: true)
+            return CandidateAreaContext(
+                state: state, bar: .systemDefault,
+                actions: CandidateAreaActionSink { _ in },
+                typography: CandidateTypography(candidateSize: 24, secondarySize: 12),
+                isExpanded: expanded, inputLanguage: language)
+        }
+    }
+
 #endif

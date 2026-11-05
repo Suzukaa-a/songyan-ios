@@ -14,19 +14,23 @@ extension KeyboardPanelView {
     private var compositionFallbackBadge: some View {
         Group {
             if let marked = controller.keyboardCompositionFallback, !marked.text.isEmpty {
-                Text(marked.text)
-                    .font(appearance.font(appearance.skin.typography.secondarySize))
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 2)
-                    .background(Capsule().fill(appearance.color("key")).opacity(0.92))
-                    .overlay(
-                        Capsule().strokeBorder(
-                            appearance.color("border"), lineWidth: appearance.skin.keycap.borderWidth)
-                    )
-                    .foregroundStyle(Color(uiColor: appearance.text(on: "key", secondary: true)))
-                    .accessibilityLabel("当前组合：\(marked.text)")
+                CandidateLanguageText(
+                    text: marked.text, language: controller.inputLanguage.language,
+                    fontSize: appearance.skin.typography.secondarySize,
+                    fontFamily: appearance.skin.typography.family,
+                    fontWeight: appearance.skin.typography.weight,
+                    color: Color(uiColor: appearance.text(on: "key", secondary: true)),
+                    lineLimit: 1, truncation: .middle
+                )
+                .padding(.horizontal, 8)
+                .padding(.vertical, 2)
+                .background(Capsule().fill(appearance.color("key")).opacity(0.92))
+                .overlay(
+                    Capsule().strokeBorder(
+                        appearance.color("border"), lineWidth: appearance.skin.keycap.borderWidth)
+                )
+                .foregroundStyle(Color(uiColor: appearance.text(on: "key", secondary: true)))
+                .accessibilityLabel("当前组合：\(marked.text)")
             }
         }
     }

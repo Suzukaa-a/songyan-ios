@@ -145,13 +145,7 @@ extension EnvironmentValues {
 
 extension CandidateSkinToken {
     func font(_ size: Double) -> Font {
-        let weight: Font.Weight = fontWeight == "semibold" ? .semibold : fontWeight == "regular" ? .regular : .medium
-        switch fontFamily {
-        case "rounded": return .system(size: size, weight: weight, design: .rounded)
-        case "serif": return .system(size: size, weight: weight, design: .serif)
-        case "monospaced": return .system(size: size, weight: weight, design: .monospaced)
-        default: return .system(size: size, weight: weight)
-        }
+        CandidateTextFont.swiftUI(size: size, family: fontFamily, weight: fontWeight)
     }
 }
 
@@ -492,10 +486,11 @@ struct CollapsedCandidateRow: View {
                             .foregroundStyle(skin.secondaryColor)
                             .lineLimit(1)
                     }
-                    Text(entry.text)
-                        .font(skin.font(context.typography.candidateSize))
-                        .lineLimit(1)
-                        .truncationMode(.tail)
+                    CandidateLanguageText(
+                        text: entry.text, language: context.inputLanguage,
+                        fontSize: context.typography.candidateSize,
+                        fontFamily: skin.fontFamily, fontWeight: skin.fontWeight,
+                        color: skin.candidateColor, lineLimit: 1, truncation: .tail)
                 }
                 // Reserve the same baseline for every candidate, including the underline.
                 Group {
@@ -838,11 +833,16 @@ struct ExpandedCandidateRows: View {
                             .foregroundStyle(skin.secondaryColor)
                             .lineLimit(1)
                     }
-                    Text(entry.text)
-                        .font(skin.font(context.typography.candidateSize))
-                        .lineLimit(nil)
-                        .truncationMode(.tail)
-                        .fixedSize(horizontal: false, vertical: true)
+                    CandidateLanguageText(
+                        text: entry.text, language: context.inputLanguage,
+                        fontSize: context.typography.candidateSize,
+                        fontFamily: skin.fontFamily, fontWeight: skin.fontWeight,
+                        color: skin.candidateColor, lineLimit: nil, truncation: .tail
+                    )
+                    .modifier(
+                        CandidateLanguageTextBaseline(
+                            fontSize: context.typography.candidateSize,
+                            fontFamily: skin.fontFamily, fontWeight: skin.fontWeight))
                 }
                 if !entry.comment.isEmpty {
                     Text(entry.comment)

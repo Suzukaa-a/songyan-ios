@@ -36,6 +36,7 @@ import SwiftUI
 struct AlternateCharacterKey: UIViewRepresentable {
     @Environment(\.keyboardPanelHostLifetime) private var hostLifetime
     @Environment(\.keyboardAppearance) private var appearance
+    @Environment(\.keyboardInputLanguage) private var inputLanguage
     @Environment(\.isEnabled) private var isEnabled
     @Environment(\.keyboardPopupSurface) private var popupSurface
     let cap: KeyCap
@@ -92,7 +93,7 @@ struct AlternateCharacterKey: UIViewRepresentable {
             groupHints: groupHints, letterSwipe: letterSwipe,
             swipeUp: swipeUp, swipeDown: swipeDown, flickEligible: flickEligible,
             syllableHintBelow: syllableHintBelow, reservesHintBand: reservesHintBand,
-            accessibilityHintOverride: accessibilityHintOverride, onSelect: onSelect)
+            accessibilityHintOverride: accessibilityHintOverride, inputLanguage: inputLanguage, onSelect: onSelect)
         button.isEnabled = isEnabled
         return button
     }
@@ -111,7 +112,7 @@ struct AlternateCharacterKey: UIViewRepresentable {
             groupHints: groupHints, letterSwipe: letterSwipe,
             swipeUp: swipeUp, swipeDown: swipeDown, flickEligible: flickEligible,
             syllableHintBelow: syllableHintBelow, reservesHintBand: reservesHintBand,
-            accessibilityHintOverride: accessibilityHintOverride, onSelect: onSelect)
+            accessibilityHintOverride: accessibilityHintOverride, inputLanguage: inputLanguage, onSelect: onSelect)
         // `isEnabled` repaints the cap in its setter; only write a real change.
         if button.isEnabled != isEnabled { button.isEnabled = isEnabled }
         if !isEnabled { button.cancelPress() }
@@ -178,6 +179,8 @@ struct AlternateCharacterKey: UIViewRepresentable {
         var didHold = false
         var requiresExplicitAlternateSelection = false
         var showsKeyPreview = false
+        /// Scheme language of the current keyboard; the cap face asks CoreText for its glyph forms.
+        private var inputLanguage: InputLanguage = .simplifiedChinese
         private var titleSize: Double?
         private var letterGroup: [String] = []
         private var groupHints: [String?] = []
@@ -247,6 +250,7 @@ struct AlternateCharacterKey: UIViewRepresentable {
             let syllableHintBelow: Bool
             let reservesHintBand: Bool
             let accessibilityHintOverride: String?
+            let inputLanguage: InputLanguage
             let appearance: KeyboardAppearance
         }
         private var configuration: Configuration?
@@ -287,6 +291,7 @@ struct AlternateCharacterKey: UIViewRepresentable {
             letterSwipe: [KeyCap] = [], swipeUp: KeyCap? = nil, swipeDown: KeyCap? = nil, flickEligible: Bool = false,
             syllableHintBelow: Bool = false, reservesHintBand: Bool = false,
             accessibilityHintOverride: String? = nil,
+            inputLanguage: InputLanguage = .simplifiedChinese,
             onSelect: @escaping (KeyCap) -> Void
         ) {
             // The action closure is cheap to swap and must always be the latest one.
@@ -301,6 +306,7 @@ struct AlternateCharacterKey: UIViewRepresentable {
                 swipeUp: swipeUp, swipeDown: swipeDown, flickEligible: flickEligible,
                 syllableHintBelow: syllableHintBelow, reservesHintBand: reservesHintBand,
                 accessibilityHintOverride: accessibilityHintOverride,
+                inputLanguage: inputLanguage,
                 appearance: appearance)
             guard next != configuration else { return }
             configuration = next
@@ -316,6 +322,7 @@ struct AlternateCharacterKey: UIViewRepresentable {
             }
             self.cap = cap
             self.alternates = alternates
+            self.inputLanguage = inputLanguage
             self.longPressDelay = longPressDelay
             self.layoutPicker = layoutPicker
             self.phoneKey = phoneKey
@@ -517,7 +524,7 @@ struct AlternateCharacterKey: UIViewRepresentable {
             // The font setter invalidates the label's layout even for an equal font.
             var titleFont = appearance.uiFont(
                 appearance.scaledFontSize(
-                    base, label: title.text ?? "", availableWidth: bounds.width - 10))
+                    base, label: title.text ?? cap?.title ?? "", availableWidth: bounds.width - 10))
             var referenceFont = appearance.uiFont(base)
             // Only when even the top margin leaves no room above the hint does the title shrink.
             let hintHeight = bottomHintHeight
@@ -533,7 +540,32 @@ struct AlternateCharacterKey: UIViewRepresentable {
             if letterGroup.count > 1 {
                 let merged = mergedTitle(font: titleFont, role: role, contentWidth: contentWidth)
                 if title.attributedText != merged { title.attributedText = merged }
+            } else {
+                applyTitleLanguage(font: titleFont)
             }
+        }
+
+        /// The cap face follows the scheme's input language, so "空白"/"変換"/"確定" take that language's
+        /// glyph forms for all three input languages.
+        private func applyTitleLanguage(font: UIFont) {
+            guard let cap else { return }
+            // Only CJK faces can take another language's glyph forms; ASCII letters, digits and marks
+            // keep the plain-label path, so ordinary typing adds no attributed-string work. All three
+            // input languages use the attributed path, including Simplified Chinese.
+            guard cap.title.unicodeScalars.contains(where: { $0.value > 0x2E80 }) else {
+                if title.attributedText != nil { title.text = cap.title }
+                return
+            }
+            let string = CandidateTextLanguage.attributed(cap.title, language: inputLanguage)
+            guard string.length > 0 else { return }
+            let paragraph = NSMutableParagraphStyle()
+            paragraph.alignment = title.textAlignment
+            string.addAttributes(
+                [
+                    .font: font, .foregroundColor: title.textColor ?? UIColor.label,
+                    .paragraphStyle: paragraph,
+                ], range: NSRange(location: 0, length: string.length))
+            if title.attributedText != string { title.attributedText = string }
         }
 
         /// Height of the hint line under the title: the subtitle, the per-letter columns, or the band a
@@ -576,6 +608,8 @@ struct AlternateCharacterKey: UIViewRepresentable {
                 text.addAttribute(.kern, value: kern, range: NSRange(location: offset + length - 1, length: 1))
                 offset += length
             }
+            // Letters are ASCII today, but a custom layout may put CJK on a merged cap.
+            CandidateTextLanguage.apply(to: text, language: inputLanguage)
             return text
         }
 
