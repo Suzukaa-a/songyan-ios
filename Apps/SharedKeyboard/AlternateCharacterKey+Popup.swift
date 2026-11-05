@@ -71,6 +71,7 @@ extension AlternateCharacterKey.CharacterButton {
         holdTimer = nil
         scrollTimer?.invalidate()
         scrollTimer = nil
+        (popupHost as? KeyCalloutView)?.removeFromSuperview()
         popup?.removeFromSuperview()
         popup = nil
         // A released key keeps its callout for a moment, like the system keyboard;
@@ -103,19 +104,18 @@ extension AlternateCharacterKey.CharacterButton {
         else { return }
         holdTimer = nil
         resetFlickVisual()
-        keyPreview?.hide(for: self, immediately: true)
-        keyPreview = nil
         let keyFrame = convert(bounds, to: host)
         let safe = host.bounds.insetBy(dx: 6, dy: 6)
         guard safe.width >= 48, safe.height >= 48 else { return }
         // Keep the fifth choice (four keyboards plus tools) visible above the
         // language key on a standard-height keyboard. Larger lists still scroll;
         // each option retains its 44-point touch target.
-        let rowHeight: CGFloat = layoutPicker ? 44 : 46
+        let singleBubble = opensOnDefaultAlternate && alternates.count == 1 ? keyPreviewFrame(in: host) : nil
+        let rowHeight: CGFloat = singleBubble?.height ?? (layoutPicker ? 44 : 46)
         let font = appearance.uiFont(
-            layoutPicker
-                ? appearance.controlTextSize
-                : min(20, appearance.skin.typography.keySize))
+            singleBubble != nil
+                ? max(appearance.keyTextSize + 8, 28)
+                : (layoutPicker ? appearance.controlTextSize : min(20, appearance.skin.typography.keySize)))
         // Content width: measured from the longest entry's text + checkmark/insets, clamped within the available screen bounds;
         // not a fixed full width, and layout names are not force-truncated.
         let textWidth = alternates.reduce(CGFloat(0)) { longest, alternate in
@@ -123,7 +123,10 @@ extension AlternateCharacterKey.CharacterButton {
         }
         let cellWidth: CGFloat
         let columns: Int
-        if layoutPicker {
+        if let singleBubble {
+            columns = 1
+            cellWidth = singleBubble.width
+        } else if layoutPicker {
             columns = 1
             cellWidth = min(max(textWidth + 56, 150), safe.width)
         } else {
@@ -158,7 +161,7 @@ extension AlternateCharacterKey.CharacterButton {
             return row * columns + (mirrored ? inRow - 1 - column : column)
         }
         let y = max(safe.minY, min(keyFrame.minY - height - 6, safe.maxY - height))
-        let scroll = UIScrollView(frame: CGRect(x: x, y: y, width: width, height: height))
+        let scroll = UIScrollView(frame: singleBubble ?? CGRect(x: x, y: y, width: width, height: height))
         // Blind-drag grid in the popup's content space. Rows are packed edge
         // to edge (label y = row * rowHeight), columns 4pt apart — exactly the
         // label frames built below.
@@ -182,12 +185,12 @@ extension AlternateCharacterKey.CharacterButton {
             : nil
         if opensOnDefaultAlternate, openingDefault == nil { return }
         scroll.contentSize = CGSize(width: width, height: contentHeight)
-        scroll.backgroundColor = appearance.uiColor("key")
+        scroll.backgroundColor = layoutPicker ? appearance.uiColor("key") : .clear
         scroll.layer.cornerRadius =
             layoutPicker
             ? max(12, appearance.skin.keycap.cornerRadius)
-            : appearance.skin.keycap.cornerRadius
-        scroll.layer.borderWidth = appearance.skin.keycap.borderWidth
+            : max(10, appearance.skin.keycap.cornerRadius)
+        scroll.layer.borderWidth = layoutPicker ? appearance.skin.keycap.borderWidth : 0
         scroll.layer.borderColor = appearance.uiColor("border").cgColor
         scroll.isUserInteractionEnabled = false
         scroll.accessibilityElementsHidden = true  // VoiceOver uses ordered custom actions.
@@ -228,6 +231,8 @@ extension AlternateCharacterKey.CharacterButton {
             }
             label.textAlignment = layoutPicker ? .left : .center
             label.font = font
+            label.adjustsFontSizeToFitWidth = singleBubble != nil
+            label.minimumScaleFactor = 0.6
             label.numberOfLines = 1
             label.lineBreakMode = .byTruncatingTail
             label.layer.cornerRadius = 7
@@ -243,8 +248,24 @@ extension AlternateCharacterKey.CharacterButton {
             scroll.addSubview(label)
             popupLabels.append(label)
         }
-        host.addSubview(scroll)
-        popupHost = host
+        if layoutPicker {
+            host.addSubview(scroll)
+            popupHost = host
+        } else {
+            let callout = KeyCalloutView(frame: host.bounds)
+            callout.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+            host.addSubview(callout)
+            callout.show(
+                "", bubble: scroll.frame, key: convert(appearance.visualRect(in: bounds), to: host),
+                keyRadius: appearance.skin.keycap.cornerRadius,
+                fill: appearance.uiColor("key"), textColor: appearance.text(on: "key"),
+                border: appearance.uiColor("border"), borderWidth: appearance.skin.keycap.borderWidth,
+                font: font, for: self, expandingFrom: keyPreview)
+            callout.containAlternates(scroll, replacing: singleBubble != nil ? keyPreview : nil)
+            popupHost = callout
+        }
+        keyPreview?.hide(for: self, immediately: true)
+        keyPreview = nil
         popupHostSize = host.bounds.size
         popup = scroll
         // Blind drag baseline: the origin and the grid in the popup's content
@@ -300,6 +321,19 @@ extension AlternateCharacterKey.CharacterButton {
         let safe = host.bounds.insetBy(dx: 4, dy: 4)
         guard safe.width >= 44, safe.height >= 44 else { return }
         let keyRect = convert(appearance.visualRect(in: bounds), to: host)
+        let callout = KeyCalloutView.shared(in: host)
+        callout.show(
+            text, bubble: keyPreviewFrame(in: host), key: keyRect,
+            keyRadius: appearance.skin.keycap.cornerRadius,
+            fill: appearance.uiColor("key"), textColor: appearance.text(on: "key"),
+            border: appearance.uiColor("border"), borderWidth: appearance.skin.keycap.borderWidth,
+            font: appearance.uiFont(max(appearance.keyTextSize + 8, 28)), for: self)
+        keyPreview = callout
+    }
+
+    private func keyPreviewFrame(in host: UIView) -> CGRect {
+        let safe = host.bounds.insetBy(dx: 4, dy: 4)
+        let keyRect = convert(appearance.visualRect(in: bounds), to: host)
         let width = min(max(48, keyRect.width * 1.2), safe.width)
         // The top row has little room above it inside the keyboard: a shorter bubble that
         // still sits on the key keeps the joined shape; only when even that does not fit
@@ -309,14 +343,7 @@ extension AlternateCharacterKey.CharacterButton {
         let height = room >= 36 ? min(wanted, room) : wanted
         let x = min(max(keyRect.midX - width / 2, safe.minX), safe.maxX - width)
         let y = max(safe.minY, keyRect.minY - height)
-        let callout = KeyCalloutView.shared(in: host)
-        callout.show(
-            text, bubble: CGRect(x: x, y: y, width: width, height: height), key: keyRect,
-            keyRadius: appearance.skin.keycap.cornerRadius,
-            fill: appearance.uiColor("key"), textColor: appearance.text(on: "key"),
-            border: appearance.uiColor("border"), borderWidth: appearance.skin.keycap.borderWidth,
-            font: appearance.uiFont(max(appearance.keyTextSize + 8, 28)), for: self)
-        keyPreview = callout
+        return CGRect(x: x, y: y, width: width, height: height)
     }
 
     private func advancePopupScroll() {
@@ -437,6 +464,13 @@ extension AlternateCharacterKey.CharacterButton {
                 view.backgroundColor = isHighlighted ? appearance.uiAccentForeground : .clear
                 view.textColor = isHighlighted ? .white : appearance.text(on: "key")
                 layoutCheckmarks[offset]?.tintColor = isHighlighted ? .white : appearance.uiAccentForeground
+                view.layer.borderWidth = 0
+                continue
+            }
+            if opensOnDefaultAlternate, alternates.count == 1 {
+                view.backgroundColor = .clear
+                view.textColor = appearance.text(on: "key")
+                view.alpha = offset == index ? 1 : 0.45
                 view.layer.borderWidth = 0
                 continue
             }

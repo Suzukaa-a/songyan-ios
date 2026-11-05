@@ -57,15 +57,19 @@ struct AlternateCharacterKey: UIViewRepresentable {
     var groupHints: [String?] = []
     /// One cap per letter of a two-letter key: a sideways swipe types the left or right one.
     var letterSwipe: [KeyCap] = []
-    /// The user's flick direction; nil while flicking is off.
+    /// The user's flick direction; nil while flicking is off, or while the key leaves flicking to
+    /// the shared default (see `flickEligible`).
     var flickConfigured: KeyFlick.Direction? = nil
     /// The typed long-press options; a flick types the one that shows the key's corner hint.
-    var flickOptions: [KeyCap] = []
+    /// nil asks the shared default to use the drawn `alternates`.
+    var flickOptions: [KeyCap]? = nil
     /// A nine-key digit key's own digit, typed whatever the hint shows.
     var flickDigit: KeyCap? = nil
-    /// A vertical drag on this key past the threshold is a flick or voids the press, whether or
-    /// not the key has a target.
-    var flickEligible = false
+    /// Whether a vertical drag on this key past the threshold is a flick or voids the press,
+    /// whether or not the key has a target. nil asks the shared default: an ordinary character key
+    /// that draws a corner mark flicks it, every other key keeps its taps. A caller that manages
+    /// flicking itself (the definition rows) passes it explicitly, false included.
+    var flickEligible: Bool? = nil
     /// The subtitle is a shuangpin final table: draw it as a small line under the
     /// letter and keep the corner for the first long-press alternate (the digit),
     /// as on the quanpin 26-key.
@@ -281,6 +285,71 @@ struct AlternateCharacterKey: UIViewRepresentable {
         }
         private var configuration: Configuration?
 
+        /// The flick a key has once the shared default is applied (see `resolvedFlick`).
+        private struct Flick {
+            var configured: KeyFlick.Direction? = nil
+            var options: [KeyCap] = []
+            var digit: KeyCap? = nil
+            var eligible = false
+        }
+
+        /// What a vertical drag on this key types.
+        ///
+        /// The page renderers do not configure flicking: their keys hand over the drawn `alternates`
+        /// and nothing else, so only the mark the key finally shows in its corner may be typed. A
+        /// caller that manages flicking itself (the definition rows) passes at least one flick
+        /// input, and that decision is used as given, a false `flickEligible` or an empty option
+        /// list included.
+        private static func resolvedFlick(
+            cap: KeyCap, alternates: [KeyCap], flickConfigured: KeyFlick.Direction?,
+            flickOptions: [KeyCap]?, flickDigit: KeyCap?, flickEligible: Bool?,
+            layoutPicker: Bool, phoneKey: Bool, phoneSideKey: Bool,
+            systemDefault: Bool, syllableHintBelow: Bool
+        ) -> Flick {
+            if flickEligible != nil || flickConfigured != nil || flickOptions != nil || flickDigit != nil {
+                return Flick(
+                    configured: flickConfigured, options: flickOptions ?? [],
+                    digit: flickDigit, eligible: (flickEligible ?? false) && flickConfigured != nil)
+            }
+            // A menu key, a nine-key shell key and every action that is not plain text keep their
+            // taps: those keys select tools, switch keyboards or write a preference.
+            let setting = KeyboardKeyFeelPreferences.flick
+            guard let direction = setting.direction, !layoutPicker, !phoneKey, !phoneSideKey,
+                cap.action.flicksItsHint
+            else { return Flick(configured: nil) }
+            // Only text types: a page-level control option in the same list stays a long press.
+            let options = alternates.filter { $0.action.typesText }
+            let corner = cornerHintText(
+                cap: cap, alternates: alternates, systemDefault: systemDefault,
+                syllableHintBelow: syllableHintBelow)
+            guard KeyFlick.target(options: options, label: { $0.title }, hint: corner, digit: nil) != nil
+            else { return Flick(configured: nil) }
+            return Flick(configured: direction, options: options, digit: nil, eligible: true)
+        }
+
+        /// The text a key finally shows in its corner, mirroring the hint assignments in
+        /// `configure`. A flick may only type a character the user can see, so the derived default
+        /// needs the text that is actually drawn, not just the first alternate.
+        private static func cornerHintText(
+            cap: KeyCap, alternates: [KeyCap], systemDefault: Bool, syllableHintBelow: Bool
+        ) -> String? {
+            // configure: the subtitle gives way to the key's own title (nil when they match).
+            let subtitleText: String? = cap.subtitle == cap.title ? nil : cap.subtitle
+            let firstAlternate = alternates.first?.title
+            let alternateText: String? = firstAlternate == cap.subtitle ? nil : firstAlternate
+            if systemDefault, !syllableHintBelow {
+                // The system-default appearance moves whatever the subtitle holds into the corner;
+                // an empty one still takes it and draws nothing, so it must not fall back.
+                return nonEmpty(subtitleText ?? alternateText)
+            }
+            return nonEmpty(alternateText) ?? nonEmpty(subtitleText)
+        }
+
+        private static func nonEmpty(_ text: String?) -> String? {
+            guard let text, !text.isEmpty else { return nil }
+            return text
+        }
+
         override init(frame: CGRect) {
             super.init(frame: frame)
             isAccessibilityElement = true
@@ -325,13 +394,18 @@ struct AlternateCharacterKey: UIViewRepresentable {
             visualRole: String?, titleSize: Double? = nil,
             letterGroup: [String] = [], groupHints: [String?] = [],
             letterSwipe: [KeyCap] = [], flickConfigured: KeyFlick.Direction? = nil,
-            flickOptions: [KeyCap] = [], flickDigit: KeyCap? = nil, flickEligible: Bool = false,
+            flickOptions: [KeyCap]? = nil, flickDigit: KeyCap? = nil, flickEligible: Bool? = nil,
             syllableHintBelow: Bool = false, reservesHintBand: Bool = false,
             accessibilityHintOverride: String? = nil,
             onSelect: @escaping (KeyCap) -> Void
         ) {
             // The action closure is cheap to swap and must always be the latest one.
             self.onSelect = onSelect
+            let flick = Self.resolvedFlick(
+                cap: cap, alternates: alternates, flickConfigured: flickConfigured,
+                flickOptions: flickOptions, flickDigit: flickDigit, flickEligible: flickEligible,
+                layoutPicker: layoutPicker, phoneKey: phoneKey, phoneSideKey: phoneSideKey,
+                systemDefault: appearance.isSystemDefault, syllableHintBelow: syllableHintBelow)
             let next = Configuration(
                 cap: cap, alternates: alternates, longPressDelay: longPressDelay,
                 layoutPicker: layoutPicker, phoneKey: phoneKey, phoneSideKey: phoneSideKey,
@@ -339,8 +413,8 @@ struct AlternateCharacterKey: UIViewRepresentable {
                 showsKeyPreview: showsKeyPreview,
                 visualRole: visualRole, titleSize: titleSize, letterGroup: letterGroup,
                 groupHints: groupHints, letterSwipe: letterSwipe,
-                flickConfigured: flickConfigured, flickOptions: flickOptions, flickDigit: flickDigit,
-                flickEligible: flickEligible,
+                flickConfigured: flick.configured, flickOptions: flick.options,
+                flickDigit: flick.digit, flickEligible: flick.eligible,
                 syllableHintBelow: syllableHintBelow, reservesHintBand: reservesHintBand,
                 accessibilityHintOverride: accessibilityHintOverride,
                 appearance: appearance)
@@ -370,10 +444,10 @@ struct AlternateCharacterKey: UIViewRepresentable {
             self.groupHints = groupHints
             self.letterSwipe = letterSwipe.count == 2 ? letterSwipe : []
             configureColumnHints()
-            self.flickConfigured = flickConfigured
-            self.flickOptions = flickOptions
-            self.flickDigit = flickDigit
-            self.flickEligible = flickEligible && flickConfigured != nil
+            self.flickConfigured = flick.configured
+            self.flickOptions = flick.options
+            self.flickDigit = flick.digit
+            self.flickEligible = flick.eligible
             self.syllableHintBelow = syllableHintBelow
             self.reservesHintBand = reservesHintBand
             self.accessibilityHintOverride = accessibilityHintOverride
@@ -1150,5 +1224,25 @@ struct AlternateCharacterKey: UIViewRepresentable {
             if window == nil { cancelPress() }
         }
 
+    }
+}
+
+private extension KeyAction {
+    /// Whether a key carrying this action is a plain character key, the same set `KeyFlick`
+    /// treats as flick eligible.
+    var flicksItsHint: Bool {
+        switch self {
+        case .code(_), .literal(_): return true
+        default: return false
+        }
+    }
+
+    /// Whether this action types text: the only thing a flick may type. A letter variant is text
+    /// too, even though a key carrying it is not a flick key of its own.
+    var typesText: Bool {
+        switch self {
+        case .code(_), .literal(_), .letterVariant(_): return true
+        default: return false
+        }
     }
 }

@@ -162,6 +162,28 @@ final class KeyboardPerformanceTests: XCTestCase {
     }
 
     @MainActor
+    func testNumericPageFlickAndHoldUseTheVisibleAlternate() {
+        let app = prepareKeyboard()
+        let keyboard = XCUIApplication(bundleIdentifier: "app.songyan.ime.keyboard")
+        let field = app.textViews["试打输入框"]
+        app.buttons["清空"].tap()
+        point(app, 36, 768).tap()
+        let one = keyboard.keys["1"]
+        XCTAssertTrue(one.waitForExistence(timeout: 5))
+        let start = one.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        start.press(
+            forDuration: 0.05, thenDragTo: start.withOffset(CGVector(dx: 0, dy: -44)),
+            withVelocity: .fast, thenHoldForDuration: 0)
+        let flicked = expectation(for: NSPredicate(format: "value == %@", "一"), evaluatedWith: field)
+        wait(for: [flicked], timeout: 5)
+        if !one.exists { point(app, 36, 768).tap() }
+        XCTAssertTrue(one.waitForExistence(timeout: 5))
+        one.press(forDuration: 0.8)
+        let held = expectation(for: NSPredicate(format: "value == %@", "一一"), evaluatedWith: field)
+        wait(for: [held], timeout: 5)
+    }
+
+    @MainActor
     private func selectNumericPage(_ name: String) {
         let app = XCUIApplication()
         app.launchArguments = ["-app.songyan.settings.onboardingCompleted", "YES", "-AppleLanguages", "(zh-Hans)"]
