@@ -65,7 +65,11 @@ final class KeyCalloutView: UIView {
         incoming.text = text
         incoming.font = label.font
         incoming.textColor = label.textColor
-        incoming.frame = label.frame
+        // Not `frame`: the label is already translated, and copying its frame would offset the
+        // incoming text by that translation again and push it out of the clipped bubble.
+        incoming.transform = .identity
+        incoming.bounds = label.bounds
+        incoming.center = label.center
         incoming.transform = CGAffineTransform(
             translationX: -direction.dx * size.width * (1 - p), y: -direction.dy * size.height * (1 - p))
         incoming.alpha = p

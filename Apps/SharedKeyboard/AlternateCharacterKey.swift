@@ -489,7 +489,9 @@ struct AlternateCharacterKey: UIViewRepresentable {
                     width: content.width, height: hintHeight > 0 ? 29 : content.height)
             }
             layoutColumnHints(in: content)
-            flickLayer.frame = bounds
+            // Bounds and centre, not frame: the press physics may have transformed this layer.
+            flickLayer.bounds = bounds
+            flickLayer.center = CGPoint(x: bounds.midX, y: bounds.midY)
             if flickEase.targetValue > 0 || !flickLayer.isHidden {
                 applyFlick(flickEase.value(at: CACurrentMediaTime()))
             }
@@ -968,10 +970,13 @@ struct AlternateCharacterKey: UIViewRepresentable {
                     incoming: nil, direction: .zero, progress: 0, bubbleAlpha: showsCallout ? 1 : 0)
                 return
             }
-            flickLayer.isHidden = false
-            title.alpha = 0
-            let titleCentre = CGPoint(x: title.frame.midX, y: title.frame.midY)
+            // Geometry comes from bounds and centres: the press physics transforms the real labels'
+            // layers (and this overlay alike), which makes their frames unreliable.
+            let titleCentre = title.center
             if let side = flickSide {
+                guard flickLetterTexts.count >= 2 else { return }
+                flickLayer.isHidden = false
+                title.alpha = 0
                 flickHint.isHidden = true
                 flickTitle.isHidden = true
                 layoutFlickLetters(side: side, progress: p, titleCentre: titleCentre)
@@ -980,6 +985,10 @@ struct AlternateCharacterKey: UIViewRepresentable {
                     progress: p)
                 return
             }
+            guard let source = drawnHintLabel else { return }
+            flickLayer.isHidden = false
+            title.alpha = 0
+            source.alpha = 0
             flickLetters.forEach { $0.isHidden = true }
             flickTitle.isHidden = false
             flickHint.isHidden = false
@@ -987,11 +996,11 @@ struct AlternateCharacterKey: UIViewRepresentable {
             flickTitle.text = title.text
             flickTitle.font = title.font
             flickTitle.textColor = title.textColor
-            flickTitle.frame = title.frame
+            flickTitle.transform = .identity
+            flickTitle.bounds = title.bounds
+            flickTitle.center = titleCentre
             flickTitle.alpha = 1 - p
             flickTitle.transform = CGAffineTransform(scaleX: 1 - 0.4 * p, y: 1 - 0.4 * p)
-            guard let source = drawnHintLabel else { return }
-            source.alpha = 0
             let hintFont = source.font ?? .systemFont(ofSize: 9)
             let size = hintFont.pointSize + (title.font.pointSize - hintFont.pointSize) * p
             let text = source.text ?? ""
@@ -1000,13 +1009,14 @@ struct AlternateCharacterKey: UIViewRepresentable {
             flickHint.textColor = blend(source.textColor, title.textColor, p)
             // The label keeps the title's frame; only its centre glides from where the hint is drawn.
             flickHint.transform = .identity
-            flickHint.bounds = CGRect(origin: .zero, size: title.frame.size)
+            flickHint.bounds = CGRect(origin: .zero, size: title.bounds.size)
             let hintWidth = KeyboardTextMeasure.width(of: text, font: hintFont)
+            let half = source.bounds.width / 2
             let from: CGPoint
             switch source.textAlignment {
-            case .right: from = CGPoint(x: source.frame.maxX - hintWidth / 2, y: source.frame.midY)
-            case .left: from = CGPoint(x: source.frame.minX + hintWidth / 2, y: source.frame.midY)
-            default: from = CGPoint(x: source.frame.midX, y: source.frame.midY)
+            case .right: from = CGPoint(x: source.center.x + half - hintWidth / 2, y: source.center.y)
+            case .left: from = CGPoint(x: source.center.x - half + hintWidth / 2, y: source.center.y)
+            default: from = source.center
             }
             flickHint.center = CGPoint(
                 x: from.x + (titleCentre.x - from.x) * p, y: from.y + (titleCentre.y - from.y) * p)
@@ -1014,9 +1024,17 @@ struct AlternateCharacterKey: UIViewRepresentable {
             showFlickBubble(incoming: text, direction: direction, progress: p)
         }
 
+        /// The letters a merged key's swipe draws: its letter group, or the title's own characters
+        /// when the key has no group, so the title is never hidden with nothing drawn in its place.
+        private var flickLetterTexts: [String] {
+            if letterGroup.count >= 2 { return letterGroup }
+            return (title.text ?? "").filter { !$0.isWhitespace }.map(String.init)
+        }
+
         /// The letters of a merged key as separate labels: the picked one glides to the key's
         /// centre and grows, the others fade.
         private func layoutFlickLetters(side: Int, progress p: CGFloat, titleCentre: CGPoint) {
+            let letterGroup = flickLetterTexts
             while flickLetters.count < letterGroup.count {
                 let label = UILabel()
                 label.textAlignment = .center
@@ -1036,7 +1054,9 @@ struct AlternateCharacterKey: UIViewRepresentable {
                 label.text = letter
                 label.font = font
                 label.textColor = appearance.text(on: "pressed")
-                label.bounds = CGRect(origin: .zero, size: CGSize(width: widths[index] + 4, height: title.frame.height))
+                label.transform = .identity
+                label.bounds = CGRect(
+                    origin: .zero, size: CGSize(width: widths[index] + 4, height: title.bounds.height))
                 let centre = CGPoint(x: left + widths[index] / 2, y: titleCentre.y)
                 let picked = index == side
                 let target = titleCentre
