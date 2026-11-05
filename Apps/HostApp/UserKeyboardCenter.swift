@@ -19,7 +19,8 @@ final class UserKeyboardCenter: ObservableObject {
     static func scoped(to source: UserKeyboardSource) -> UserKeyboardCenter {
         UserKeyboardCenter(
             manager: DictionaryImportCenterUserKeyboards(center: .shared, source: source),
-            listProvider: SourcePublishedKeyboardProvider(source: source))
+            listProvider: SourcePublishedKeyboardProvider(source: source),
+            source: source)
     }
 
     /// Page-level state: loading / ready / read failed / view only.
@@ -38,6 +39,8 @@ final class UserKeyboardCenter: ObservableObject {
     @Published private(set) var publishedKeyboards: [UserKeyboard] = []
     /// Authoritative addable combinations (only items the transaction provides and that are not yet added).
     @Published private(set) var addableKeyboards: [UserKeyboardCandidate] = []
+    /// The schema facts of this page's own source (never another source's alphabet).
+    @Published private(set) var sourceSchemas: [KeyboardSchemaDescriptor] = []
     /// The keyboard currently in progress (add or remove); nil = idle.
     @Published private(set) var busyKeyboardID: String?
     /// User-facing note for the most recent successful action.
@@ -56,11 +59,14 @@ final class UserKeyboardCenter: ObservableObject {
 
     private let manager: UserKeyboardManaging
     private let listProvider: PublishedKeyboardListProviding
+    private let source: UserKeyboardSource
 
     init(
         manager: UserKeyboardManaging,
-        listProvider: PublishedKeyboardListProviding = ActivationPublishedKeyboardProvider()
+        listProvider: PublishedKeyboardListProviding = ActivationPublishedKeyboardProvider(),
+        source: UserKeyboardSource = .active
     ) {
+        self.source = source
         self.manager = manager
         self.listProvider = listProvider
     }
@@ -86,6 +92,7 @@ final class UserKeyboardCenter: ObservableObject {
             }
             let addable = try await manager.addableKeyboards()
             updateLists(published: published, addable: addable)
+            sourceSchemas = await UserKeyboardSourceFacts.schemas(for: source)
             viewedPublication = viewed
             currentKeyboardID = Self.currentKeyboardID(in: viewed)
             sourceIsCurrent = viewed?.isCurrent ?? true

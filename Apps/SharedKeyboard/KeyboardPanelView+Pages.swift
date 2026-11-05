@@ -180,10 +180,13 @@ extension KeyboardPanelView {
     /// registry default scans every layout while `definitionFacts` asks per key read.
     var preferredDefinitionID: String? {
         pageMemo.preferredDefinitionID(for: compositionMemoKey) {
-            if let id = selectedComposition?.mainLayoutID { return id }
             guard let builtin = LayoutInput.Builtin(rawValue: controller.layout.rawValue) else { return nil }
             let key = KeyboardCompositionKey(inputMethodID: controller.selectedSchemaID, layout: builtin)
-            return layoutRegistry?.defaultMainLayoutID(for: key) ?? BuiltinLayouts.preset(for: builtin).id
+            guard let registry = layoutRegistry else { return BuiltinLayouts.preset(for: builtin).id }
+            // The same public entry the host uses: a saved pairing whose physical definition may not
+            // be used by this family falls back at runtime, and an unsaved keyboard still resolves
+            // the registered family layout. The stored pairing itself is never rewritten here.
+            return registry.usableMainLayoutID(for: key, availability: layoutAvailability)
         }
     }
 

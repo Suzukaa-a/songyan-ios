@@ -459,7 +459,11 @@ extension SchemeImportCenter {
                         ?? .unsupported("")
                 else { continue }
                 let alphabet = resources.schemas.first { $0.id == source }?.alphabet
+                // The shared family rule gates the folded shapes too: a known family never offers
+                // 14 / 18 / 9 even when the source is structurally adaptable.
+                let family = InputLayoutPolicy.family(schemaID: source, alphabet: alphabet ?? "")
                 for layout in KeyboardLayoutKind.allCases where layout.requiresSpellingDisplay {
+                    guard InputLayoutPolicy.allows(kind: layout, family: family) else { continue }
                     let foldable =
                         layout.compactFold.flatMap { fold in
                             (alphabet.flatMap { $0.isEmpty ? nil : $0 }).map {

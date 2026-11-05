@@ -82,9 +82,15 @@ public struct LayoutRegistry: Codable, Equatable, Sendable {
         return (layouts + missing).filter(isSupported)
     }
 
-    /// The layouts 页面搭配 offers as this keyboard's main layout.
-    public func mainLayoutCandidates(for key: KeyboardCompositionKey) -> [LayoutDefinition] {
-        usableLayouts { $0.supportsComposition(inputMethodID: key.inputMethodID, layout: key.layout) }
+    /// The layouts 页面搭配 offers as this keyboard's main layout. `availability` is the host's
+    /// injected rules (the shared input-language policy); the default keeps today's behaviour.
+    public func mainLayoutCandidates(
+        for key: KeyboardCompositionKey, availability: LayoutAvailability = .unrestricted
+    ) -> [LayoutDefinition] {
+        usableLayouts {
+            $0.supportsComposition(inputMethodID: key.inputMethodID, layout: key.layout)
+                && availability.allows($0, key)
+        }
     }
 
     public func page(id: String) -> KeyboardPageDefinition? { pages.first { $0.id == id } }
@@ -115,11 +121,51 @@ public struct LayoutRegistry: Codable, Equatable, Sendable {
 
     /// The main layout of a keyboard without a saved pairing; the host and the keyboard both
     /// resolve it here. A layout of this shape bound to this input method wins (the smallest ID
-    /// when there are several, so catalog order never decides); otherwise the bundled preset of
-    /// the shape. Unbound user copies are used only once chosen in a pairing.
-    public func defaultMainLayoutID(for key: KeyboardCompositionKey) -> String {
-        layouts.filter { $0.input.schemaID == key.inputMethodID && $0.input.builtinLayout == key.layout }
-            .map(\.id).min() ?? BuiltinLayouts.preset(for: key.layout).id
+    /// when there are several, so catalog order never decides); otherwise a family-preferred
+    /// registered definition, otherwise the bundled preset of the shape. Unbound user copies are
+    /// used only once chosen in a pairing, and an explicit schema binding is never overridden by
+    /// the family preference.
+    public func defaultMainLayoutID(
+        for key: KeyboardCompositionKey, availability: LayoutAvailability = .unrestricted
+    ) -> String {
+        let bound =
+            layouts
+            .filter {
+                $0.input.schemaID == key.inputMethodID && $0.input.builtinLayout == key.layout
+                    && availability.allows($0, key)
+            }
+            .map(\.id).min()
+        if let bound { return bound }
+        if let preferred = availability.preferredMainLayoutID?(key),
+            let definition = resolvedLayout(id: preferred),
+            definition.supportsComposition(inputMethodID: key.inputMethodID, layout: key.layout),
+            availability.allows(definition, key)
+        {
+            return preferred
+        }
+        return BuiltinLayouts.preset(for: key.layout).id
+    }
+
+    /// The main layout a keyboard really uses: the saved pairing when its definition still exists,
+    /// is structurally valid and the injected availability allows it; otherwise the default.
+    /// A fallback is runtime-only: the saved pairing, the user's layout and the source data stay
+    /// untouched.
+    public func usableMainLayoutID(
+        for key: KeyboardCompositionKey, availability: LayoutAvailability = .unrestricted
+    ) -> String {
+        // Only a really stored pairing can win here. `composition(for:)` materialises the default a
+        // keyboard would use, and that default must itself be resolved with the injected
+        // availability (otherwise a family-preferred layout could never be reached unsaved).
+        guard let saved = compositions[key.rawValue]?.mainLayoutID else {
+            return defaultMainLayoutID(for: key, availability: availability)
+        }
+        if let definition = resolvedLayout(id: saved),
+            definition.supportsComposition(inputMethodID: key.inputMethodID, layout: key.layout),
+            availability.allows(definition, key)
+        {
+            return saved
+        }
+        return defaultMainLayoutID(for: key, availability: availability)
     }
 
     public mutating func savePage(_ page: KeyboardPageDefinition) throws {

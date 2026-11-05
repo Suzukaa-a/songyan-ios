@@ -71,3 +71,63 @@ public enum InputLanguageResolver {
         "s2t", "s2tw", "s2twp", "s2hk", "t2tw", "t2hk",
     ]
 }
+
+/// Physical keyboard availability, shared by the host app and the keyboard.
+///
+/// A keyboard shape is a front-end capability, not a brand: the 26-key shape serves every scheme
+/// family, while the folded layouts stay with the schemes that keep today's behaviour (`generic`).
+/// Future physical layouts are authored as layout definitions; their IDs are reserved here so an
+/// unregistered definition is never offered and a registered one is only offered to its own
+/// family. Unknown IDs keep the legacy behaviour, so an ordinary user layout is never restricted.
+public enum InputLayoutPolicy {
+    /// The scheme family for a schema ID, using the declared alphabet when it is known. This is the
+    /// same resolver the running session uses, so every surface agrees on the family.
+    public static func family(schemaID: String, alphabet: String = "") -> InputSchemeFamily {
+        InputLanguageResolver.resolve(schemaID: schemaID, alphabet: alphabet).family
+    }
+
+    /// The family from one source's own descriptor snapshot. The same schema ID may exist in
+    /// several sources with different alphabets, so callers pass the descriptors of the keyboard's
+    /// source; this never searches other sources, and a missing descriptor keeps the ID-only facts.
+    public static func family(
+        schemaID: String, descriptors: [KeyboardSchemaDescriptor]
+    ) -> InputSchemeFamily {
+        let alphabet = descriptors.first { $0.id == schemaID }?.alphabet ?? ""
+        return family(schemaID: schemaID, alphabet: alphabet)
+    }
+
+    /// Whether a physical shape may be used by a scheme of this family.
+    public static func allows(kind: KeyboardLayoutKind, family: InputSchemeFamily) -> Bool {
+        switch kind {
+        case .qwerty26: return true
+        case .merged14, .merged18, .phone9: return family == .generic
+        }
+    }
+
+    /// The family a reserved physical layout ID belongs to; nil keeps the legacy behaviour.
+    public static func family(ofPhysicalLayoutID id: String) -> InputSchemeFamily? {
+        switch id {
+        case "zhuyin41": return .zhuyin
+        case "cangjie26": return .cangjieRadicals
+        case "romaji26", "kana12": return .japanese
+        default: return nil
+        }
+    }
+
+    /// Whether a layout definition ID may be used by a scheme of this family.
+    public static func allows(physicalLayoutID id: String, family: InputSchemeFamily) -> Bool {
+        guard let owner = InputLayoutPolicy.family(ofPhysicalLayoutID: id) else { return true }
+        return owner == family
+    }
+
+    /// The physical layout a family prefers once its definition is registered; nil keeps the shape
+    /// preset as the default.
+    public static func preferredPhysicalLayoutID(family: InputSchemeFamily) -> String? {
+        switch family {
+        case .zhuyin: return "zhuyin41"
+        case .cangjieRadicals: return "cangjie26"
+        case .japanese: return "romaji26"
+        case .latinPhonetic, .generic: return nil
+        }
+    }
+}

@@ -22,6 +22,25 @@ struct UserKeyboardPublicationView: Sendable {
     let isCurrent: Bool
 }
 
+/// The schema facts of one source, read from that source's own snapshot: its current activation
+/// (the running source) or its installed package resources (a source that is not applied). Never
+/// scans other sources: two installs may use the same schema ID with different alphabets.
+@MainActor
+enum UserKeyboardSourceFacts {
+    static func schemas(for source: UserKeyboardSource) async -> [KeyboardSchemaDescriptor] {
+        switch source {
+        case .active:
+            guard let activation = try? await AppliedSelectionLoader.loadActivation() else { return [] }
+            return activation.schemas ?? []
+        case .package(let packageID):
+            guard
+                let resources = try? await SchemeImportCenter.shared.keyboardResources(packageID: packageID)
+            else { return [] }
+            return resources.schemas
+        }
+    }
+}
+
 @MainActor
 final class DictionaryImportCenterUserKeyboards: UserKeyboardManaging {
     static let shared = DictionaryImportCenterUserKeyboards(center: .shared, source: .active)

@@ -23,6 +23,18 @@ extension KeyboardPanelView {
         return definition.input.schemaID == nil ? nil : controller.layout
     }
 
+    /// The shared input-language rules for the running scheme, injected into LayoutKit's physical
+    /// layout selection. The family comes from the cached profile (which already used the known
+    /// descriptor alphabet), so no resolver runs on the key path.
+    var layoutAvailability: LayoutAvailability {
+        let family = controller.inputLanguage.family
+        return LayoutAvailability(
+            allows: { definition, _ in
+                InputLayoutPolicy.allows(physicalLayoutID: definition.id, family: family)
+            },
+            preferredMainLayoutID: { _ in InputLayoutPolicy.preferredPhysicalLayoutID(family: family) })
+    }
+
     private func supports(_ definition: LayoutDefinition) -> Bool {
         supports(definition, combinations: { controller.availableCombinations })
     }
@@ -69,8 +81,12 @@ extension KeyboardPanelView {
             combinations = value
             return value
         }
+        let key = KeyboardCompositionKey(
+            inputMethodID: controller.selectedSchemaID,
+            layout: LayoutInput.Builtin(rawValue: controller.layout.rawValue) ?? .qwerty26)
         let isSupported = { (definition: LayoutDefinition) in
             supports(definition, combinations: lazyCombinations)
+                && layoutAvailability.allows(definition, key)
         }
         let usable = layoutRegistry?.usableLayouts(where: isSupported) ?? BuiltinLayouts.all.filter(isSupported)
         let selectable = usable.filter { definition in

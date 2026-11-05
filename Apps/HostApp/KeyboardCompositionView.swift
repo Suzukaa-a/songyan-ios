@@ -29,6 +29,33 @@ extension UserKeyboard {
     }
 }
 
+/// The shared input-language physical-layout rules for one input method, using the descriptor
+/// snapshot of the keyboard's own source (never the first matching ID across all sources). An
+/// unknown fact stays generic and keeps today's behaviour.
+enum HostLayoutAvailability {
+    /// The declared alphabet of this source's descriptor when known; id-only otherwise.
+    static func family(schemaID: String, descriptors: [KeyboardSchemaDescriptor]) -> InputSchemeFamily {
+        InputLayoutPolicy.family(schemaID: schemaID, descriptors: descriptors)
+    }
+
+    /// Whether the shape may be used by this input method. A stale published keyboard outside the
+    /// rule is reported as unavailable instead of being resolved to a layout the family forbids.
+    static func allows(
+        kind: KeyboardLayoutKind, schemaID: String, descriptors: [KeyboardSchemaDescriptor]
+    ) -> Bool {
+        InputLayoutPolicy.allows(kind: kind, family: family(schemaID: schemaID, descriptors: descriptors))
+    }
+
+    static func policy(schemaID: String, descriptors: [KeyboardSchemaDescriptor]) -> LayoutAvailability {
+        let family = family(schemaID: schemaID, descriptors: descriptors)
+        return LayoutAvailability(
+            allows: { definition, _ in
+                InputLayoutPolicy.allows(physicalLayoutID: definition.id, family: family)
+            },
+            preferredMainLayoutID: { _ in InputLayoutPolicy.preferredPhysicalLayoutID(family: family) })
+    }
+}
+
 /// Names the keyboards a layout or page is paired with. 我的键盘 knows the names of its keyboards;
 /// any other keyboard is named from its input method and shape.
 struct KeyboardNames {
@@ -55,6 +82,8 @@ struct KeyboardNames {
 struct KeyboardCompositionView: View {
     let keyboard: UserKeyboard
     let keyboardNames: KeyboardNames
+    /// The schema facts of the keyboard's own source; empty means unknown and stays generic.
+    let sourceSchemas: [KeyboardSchemaDescriptor]
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var manager = LayoutManager.shared
     @State private var draft: KeyboardComposition
@@ -73,17 +102,51 @@ struct KeyboardCompositionView: View {
         let message: String
     }
 
-    init(keyboard: UserKeyboard, keyboardNames: KeyboardNames = KeyboardNames()) {
+    init(
+        keyboard: UserKeyboard, keyboardNames: KeyboardNames = KeyboardNames(),
+        sourceSchemas: [KeyboardSchemaDescriptor] = []
+    ) {
         self.keyboard = keyboard
         self.keyboardNames = keyboardNames
-        let composition = LayoutManager.shared.registry.composition(for: keyboard.compositionKey)
+        self.sourceSchemas = sourceSchemas
+        let registry = LayoutManager.shared.registry
+        var composition = registry.composition(for: keyboard.compositionKey)
+        if HostLayoutAvailability.allows(
+            kind: keyboard.layout, schemaID: keyboard.inputMethodID, descriptors: sourceSchemas)
+        {
+            // A saved pairing this family may not use falls back to a legal existing layout at
+            // runtime; the stored pairing and the user's layouts are left untouched.
+            let availability = HostLayoutAvailability.policy(
+                schemaID: keyboard.inputMethodID, descriptors: sourceSchemas)
+            composition.mainLayoutID = registry.usableMainLayoutID(
+                for: keyboard.compositionKey, availability: availability)
+        }
         _draft = State(initialValue: composition)
         _baseline = State(initialValue: composition)
     }
 
-    private var layouts: [LayoutDefinition] { manager.registry.mainLayoutCandidates(for: keyboard.compositionKey) }
+    private var availability: LayoutAvailability {
+        HostLayoutAvailability.policy(schemaID: keyboard.inputMethodID, descriptors: sourceSchemas)
+    }
 
-    private var mainLayout: LayoutDefinition? { manager.registry.resolvedLayout(id: draft.mainLayoutID) }
+    /// A stale published keyboard may name a shape its family no longer offers: the page says so
+    /// instead of resolving a "usable" layout inside a forbidden shape.
+    private var keyboardIsAvailable: Bool {
+        HostLayoutAvailability.allows(
+            kind: keyboard.layout, schemaID: keyboard.inputMethodID, descriptors: sourceSchemas)
+    }
+
+    private var layouts: [LayoutDefinition] {
+        guard keyboardIsAvailable else { return [] }
+        return manager.registry.mainLayoutCandidates(for: keyboard.compositionKey, availability: availability)
+    }
+
+    private var mainLayout: LayoutDefinition? {
+        guard keyboardIsAvailable else { return nil }
+        return manager.registry.resolvedLayout(
+            id: manager.registry.usableMainLayoutID(
+                for: keyboard.compositionKey, availability: availability))
+    }
 
     /// The hand cuts the selected main layout is drawn with, as the keyboard resolves them.
     private var mainHandSplit: LayoutSplitConfiguration? { mainLayout.flatMap(BuiltinLayouts.handSplit(for:)) }
@@ -107,40 +170,58 @@ struct KeyboardCompositionView: View {
                 if !initialized { ProgressView("正在读取布局…") }
                 if let message = manager.lastError { Text(message).foregroundStyle(.orange) }
             }
-            Section(UserTerminology.mainLayout) {
-                Picker(UserTerminology.keyboardLayout, selection: $draft.mainLayoutID) {
-                    ForEach(layouts) { layout in Text(layout.name).tag(layout.id) }
+            if keyboardIsAvailable {
+                Section(UserTerminology.mainLayout) {
+                    Picker(UserTerminology.keyboardLayout, selection: $draft.mainLayoutID) {
+                        ForEach(layouts) { layout in Text(layout.name).tag(layout.id) }
+                    }
+                    if let layout = mainLayout {
+                        DisclosureGroup("预览") {
+                            KeyboardPreviewView(layout: layout, skin: AppearanceManager.shared.applied.skin)
+                        }
+                        if let usage = keyboardNames.usage(
+                            manager.registry.keyboards(usingLayout: layout.id, among: keyboardNames.active))
+                        {
+                            Text(usage).font(.footnote).foregroundStyle(.secondary)
+                        }
+                        Button("编辑\(UserTerminology.mainLayout)") { editingMain = layout }
+                        Button("复制并编辑\(UserTerminology.mainLayout)") {
+                            editingMain = BuiltinLayouts.persistingHandCuts(in: layout).copy()
+                        }
+                    } else {
+                        Text("没有适合这个键盘的布局，请在下方「\(UserTerminology.keyboardLayout)」中添加。")
+                            .foregroundStyle(.secondary)
+                    }
                 }
-                if let layout = mainLayout {
-                    DisclosureGroup("预览") {
-                        KeyboardPreviewView(layout: layout, skin: AppearanceManager.shared.applied.skin)
-                    }
-                    if let usage = keyboardNames.usage(
-                        manager.registry.keyboards(usingLayout: layout.id, among: keyboardNames.active))
-                    {
-                        Text(usage).font(.footnote).foregroundStyle(.secondary)
-                    }
-                    Button("编辑\(UserTerminology.mainLayout)") { editingMain = layout }
-                    Button("复制并编辑\(UserTerminology.mainLayout)") {
-                        editingMain = BuiltinLayouts.persistingHandCuts(in: layout).copy()
-                    }
-                } else {
-                    Text("没有适合这个键盘的布局，请在下方「\(UserTerminology.keyboardLayout)」中添加。")
-                        .foregroundStyle(.secondary)
+                ForEach(KeyboardPageKind.allCases, id: \.self) { kind in
+                    pageSection(kind)
                 }
-            }
-            ForEach(KeyboardPageKind.allCases, id: \.self) { kind in
-                pageSection(kind)
-            }
-            Section {
-                NavigationLink(UserTerminology.pageLibrary) { KeyboardPageManagementView(keyboardNames: keyboardNames) }
-                NavigationLink(UserTerminology.keyboardLayout) { LayoutManagementView(keyboardNames: keyboardNames) }
+                Section {
+                    NavigationLink(UserTerminology.pageLibrary) {
+                        KeyboardPageManagementView(keyboardNames: keyboardNames)
+                    }
+                    NavigationLink(UserTerminology.keyboardLayout) {
+                        LayoutManagementView(keyboardNames: keyboardNames)
+                    }
+                }
+            } else {
+                Section {
+                    Label(
+                        "这个键盘暂不支持当前输入方式，请改用其他键盘。",
+                        systemImage: "exclamationmark.triangle"
+                    )
+                    .foregroundStyle(.orange)
+                }
             }
         }
         .disabled(saving || preparingPage || !initialized)
         .onReceive(manager.$registry) { registry in
             guard !initialized, manager.location != nil else { return }
-            let composition = registry.composition(for: keyboard.compositionKey)
+            var composition = registry.composition(for: keyboard.compositionKey)
+            if keyboardIsAvailable {
+                composition.mainLayoutID = registry.usableMainLayoutID(
+                    for: keyboard.compositionKey, availability: availability)
+            }
             draft = composition
             baseline = composition
             initialized = true
@@ -162,7 +243,8 @@ struct KeyboardCompositionView: View {
                 }
             }
             ToolbarItem(placement: .confirmationAction) {
-                Button("保存搭配") { save() }.disabled(saving || !initialized || layouts.isEmpty)
+                Button("保存搭配") { save() }.disabled(
+                    saving || !initialized || !keyboardIsAvailable || layouts.isEmpty)
             }
         }
         .sheet(item: $editingPage) { page in
@@ -324,7 +406,8 @@ struct KeyboardCompositionView: View {
     }
 
     private func save() {
-        guard initialized, !saving else { return }
+        // A stale published keyboard outside the shape rule is read-only here.
+        guard initialized, !saving, keyboardIsAvailable else { return }
         saving = true
         let snapshot = draft
         Task {

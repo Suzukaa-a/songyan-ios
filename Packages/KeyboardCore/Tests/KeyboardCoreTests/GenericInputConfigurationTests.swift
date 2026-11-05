@@ -82,11 +82,15 @@ final class GenericInputConfigurationTests: XCTestCase {
             "14-key is a front-end compact capability that only an adapter/author may declare, never granted by source identity"
         )
 
-        // The dialect scheme declares 9-key: 9-key is available; 26-key is available under the real publication semantics of the same resource
-        // when "that input method is selected" (the alphabet is Latin), rather than inferred from source identity or name.
-        XCTAssertTrue(choices.isAvailable(schemaID: "jyut6ping3", layout: .phone9))
-        XCTAssertTrue(choices.isAvailable(schemaID: "jyut6ping3", layout: .qwerty26))
+        // The dialect scheme's author declaration still lists 9-key, but the shared family rule wins:
+        // a known family does not offer the folded layouts, whatever the author declared.
+        XCTAssertFalse(choices.isAvailable(schemaID: "jyut6ping3", layout: .phone9))
+        XCTAssertEqual(
+            choices.reason(schemaID: "jyut6ping3", layout: .phone9),
+            UserTerminology.layoutUnavailableReason(.phone9))
         XCTAssertFalse(choices.isAvailable(schemaID: "jyut6ping3", layout: .merged14))
+        XCTAssertFalse(choices.isAvailable(schemaID: "jyut6ping3", layout: .merged18))
+        XCTAssertTrue(choices.isAvailable(schemaID: "jyut6ping3", layout: .qwerty26))
 
         // The stroke scheme's alphabet is Latin code keys (hspnz): it can send code keys directly from 26-key; a compact capability such as 9-key
         // is still available only when the author/adapter declares it explicitly.
@@ -101,7 +105,7 @@ final class GenericInputConfigurationTests: XCTestCase {
         XCTAssertFalse(choices.canStartUsing(schemaID: "numeric_radical", layout: .qwerty26))
 
         // The supported layouts are the union of each input method's available layouts, listing only the really available ones.
-        XCTAssertEqual(choices.supportedLayouts, [.qwerty26, .phone9])
+        XCTAssertEqual(choices.supportedLayouts, [.qwerty26])
 
         // Compact layouts (14 / 9 keys): not available and **not selectable** while the install fact does not hold; there is no pseudo-state of "tick it first,
         // prepare later" (adding a compact keyboard goes through the separate "add keyboard" transaction).
@@ -137,18 +141,24 @@ final class GenericInputConfigurationTests: XCTestCase {
     func testSelectionFlowKeepsSourceIdentity() throws {
         let fixture = try fixture()
         let set = genericSet(fixture)
-        let selected = set.selecting(schemaID: "jyut6ping3", layout: .phone9)
+        let selected = set.selecting(schemaID: "jyut6ping3", layout: .qwerty26)
         XCTAssertEqual(selected.selectedSchemaID, "jyut6ping3")
-        XCTAssertEqual(selected.preferredLayout, .phone9)
+        XCTAssertEqual(selected.preferredLayout, .qwerty26)
         XCTAssertEqual(selected.id, set.id, "derivation does not change the source identity")
         XCTAssertEqual(selected.schemas, set.schemas)
-        XCTAssertTrue(selected.availableCombinations.contains { $0.schemaID == "jyut6ping3" && $0.layout == .phone9 })
+        XCTAssertTrue(selected.availableCombinations.contains { $0.schemaID == "jyut6ping3" && $0.layout == .qwerty26 })
 
-        // A source-restricted startup selection never crosses into another schema.
+        // The author's 9-key declaration is refused by the family rule; the preference is dropped, never invented.
+        let refused = set.selecting(schemaID: "jyut6ping3", layout: .phone9)
+        XCTAssertEqual(refused.selectedSchemaID, "jyut6ping3", "source identity is kept")
+        XCTAssertNil(refused.preferredLayout, "a disallowed layout is not written into the preference")
+
+        // A source-restricted startup selection never crosses into another schema, and never falls back
+        // to a layout the family forbids.
+        XCTAssertNil(set.bootSelection(candidates: [.phone9], restrictedToSource: "jyut6ping3"))
         let boot = set.bootSelection(candidates: [.phone9, .qwerty26], restrictedToSource: "jyut6ping3")
-        XCTAssertEqual(boot?.layout, .phone9)
+        XCTAssertEqual(boot?.layout, .qwerty26)
         XCTAssertEqual(boot?.schemaID, "jyut6ping3")
-        XCTAssertNil(set.bootSelection(candidates: [.qwerty26], restrictedToSource: "jyut6ping3"))
         // The 26-key of another source remains available on its own.
         let cangjie = set.bootSelection(candidates: [.qwerty26], restrictedToSource: "cangjie5")
         XCTAssertEqual(cangjie?.schemaID, "cangjie5")
@@ -193,9 +203,11 @@ final class GenericInputConfigurationTests: XCTestCase {
             choices.firstAvailableLayout(for: "cangjie5", preferred: .phone9), .qwerty26,
             "an unconfirmed compact layout must not be a preference landing point")
         XCTAssertEqual(choices.firstAvailableLayout(for: "jyut6ping3"), .qwerty26)
-        XCTAssertEqual(choices.firstAvailableLayout(for: "jyut6ping3", preferred: .phone9), .phone9)
+        XCTAssertEqual(
+            choices.firstAvailableLayout(for: "jyut6ping3", preferred: .phone9), .qwerty26,
+            "a family-forbidden compact layout must not be a landing point")
         XCTAssertNil(choices.firstAvailableLayout(for: "nonexistent"))
-        XCTAssertTrue(choices.canStartUsing(schemaID: "jyut6ping3", layout: .phone9))
+        XCTAssertFalse(choices.canStartUsing(schemaID: "jyut6ping3", layout: .phone9))
         XCTAssertFalse(
             choices.canStartUsing(schemaID: "numeric_radical", layout: .qwerty26),
             "26-key is genuinely unavailable for this input method; no combination is invented")
@@ -234,6 +246,119 @@ final class GenericInputConfigurationTests: XCTestCase {
         XCTAssertFalse(choices.isAvailable(schemaID: "dialect_nine", layout: .qwerty26))
         XCTAssertTrue(choices.isAvailable(schemaID: "cangjie_shape", layout: .qwerty26))
         XCTAssertEqual(choices.supportedLayouts, [.qwerty26, .phone9])
+    }
+
+    /// Every known scheme family keeps the 26-key shape only. The folded layouts stay with the
+    /// schemes that keep today's behaviour; an unknown scheme still gets what its author declared.
+    func testKnownFamiliesOnlyKeepTheQwertyShape() throws {
+        let fixture = try fixture()
+        let choices = InputConfigurationChoices(resourceSet: genericSet(fixture))
+        for schemaID in ["cangjie5", "quick5", "bopomofo", "jyut6ping3", "kagiroi"] {
+            XCTAssertTrue(choices.isAvailable(schemaID: schemaID, layout: .qwerty26), schemaID)
+            for layout in [KeyboardLayoutKind.merged14, .merged18, .phone9] {
+                XCTAssertFalse(
+                    choices.isAvailable(schemaID: schemaID, layout: layout),
+                    "\(schemaID) must not offer \(layout.rawValue)")
+                XCTAssertEqual(
+                    choices.reason(schemaID: schemaID, layout: layout),
+                    UserTerminology.layoutUnavailableReason(layout))
+            }
+        }
+        // The unknown scheme keeps the legacy behaviour, including its author-declared folded layout.
+        let legacy = KeyboardResourceSet(
+            id: "user-scheme-legacy", name: "旧来源", sharedDirectory: shared, userDirectory: user,
+            layoutEntries: [
+                .init(layout: .qwerty26, schemaID: "wubi86"),
+                .init(layout: .merged14, schemaID: "wubi86"),
+            ],
+            schemas: [.init(id: "wubi86", name: "五笔86", alphabet: "abcdefghijklmnopqrstuvwxyz")])
+        let legacyChoices = InputConfigurationChoices(resourceSet: legacy)
+        XCTAssertTrue(legacyChoices.isAvailable(schemaID: "wubi86", layout: .merged14))
+        XCTAssertFalse(legacyChoices.isAvailable(schemaID: "wubi86", layout: .phone9))
+    }
+}
+
+/// The shared rules every surface (host composition, keyboard rendering, add-keyboard) consumes.
+/// Physical layouts are a capability of the scheme family, and the future physical layout IDs are
+/// reserved to their family so an unregistered definition is never offered.
+final class InputLayoutPolicyTests: XCTestCase {
+    private let families: [InputSchemeFamily] = [
+        .generic, .japanese, .zhuyin, .cangjieRadicals, .latinPhonetic,
+    ]
+
+    func testFoldedKindsStayWithTheLegacyGenericFamily() {
+        for family in families {
+            XCTAssertTrue(InputLayoutPolicy.allows(kind: .qwerty26, family: family), family.rawValue)
+            for kind in [KeyboardLayoutKind.merged14, .merged18, .phone9] {
+                XCTAssertEqual(
+                    InputLayoutPolicy.allows(kind: kind, family: family), family == .generic,
+                    "\(kind.rawValue) / \(family.rawValue)")
+            }
+        }
+    }
+
+    func testKnownPhysicalLayoutIDsBelongToOneFamily() {
+        let known: [String: InputSchemeFamily] = [
+            "zhuyin41": .zhuyin,
+            "cangjie26": .cangjieRadicals,
+            "romaji26": .japanese,
+            "kana12": .japanese,
+        ]
+        for (id, owner) in known {
+            XCTAssertEqual(InputLayoutPolicy.family(ofPhysicalLayoutID: id), owner)
+            for family in families {
+                XCTAssertEqual(
+                    InputLayoutPolicy.allows(physicalLayoutID: id, family: family), family == owner,
+                    "\(id) / \(family.rawValue)")
+            }
+        }
+    }
+
+    func testUnknownPhysicalLayoutIDsKeepTheLegacyBehaviour() {
+        for id in ["mine", "zhuyin40", "cangjie", "kana", "DIY / 41"] {
+            XCTAssertNil(InputLayoutPolicy.family(ofPhysicalLayoutID: id), id)
+            for family in families {
+                XCTAssertTrue(
+                    InputLayoutPolicy.allows(physicalLayoutID: id, family: family), "\(id) / \(family.rawValue)")
+            }
+        }
+    }
+
+    func testFamilyComesFromTheSchemaIDAndTheDeclaredAlphabet() {
+        XCTAssertEqual(InputLayoutPolicy.family(schemaID: "kagiroi"), .japanese)
+        XCTAssertEqual(InputLayoutPolicy.family(schemaID: "cangjie5"), .cangjieRadicals)
+        XCTAssertEqual(InputLayoutPolicy.family(schemaID: "quick5"), .cangjieRadicals)
+        XCTAssertEqual(InputLayoutPolicy.family(schemaID: "jyut6ping3"), .latinPhonetic)
+        XCTAssertEqual(InputLayoutPolicy.family(schemaID: "bopomofo_tw"), .zhuyin)
+        // A declared dachen alphabet proves zhuyin even when the ID says nothing.
+        XCTAssertEqual(
+            InputLayoutPolicy.family(schemaID: "my_dachen", alphabet: "1qaz2wsx-;,./"), .zhuyin)
+        XCTAssertEqual(InputLayoutPolicy.family(schemaID: "luna_pinyin"), .generic)
+        XCTAssertEqual(InputLayoutPolicy.family(schemaID: "unknown", alphabet: ""), .generic)
+    }
+
+    func testPreferredPhysicalLayoutPerFamily() {
+        XCTAssertEqual(InputLayoutPolicy.preferredPhysicalLayoutID(family: .zhuyin), "zhuyin41")
+        XCTAssertEqual(InputLayoutPolicy.preferredPhysicalLayoutID(family: .cangjieRadicals), "cangjie26")
+        XCTAssertEqual(InputLayoutPolicy.preferredPhysicalLayoutID(family: .japanese), "romaji26")
+        XCTAssertNil(InputLayoutPolicy.preferredPhysicalLayoutID(family: .generic))
+        XCTAssertNil(InputLayoutPolicy.preferredPhysicalLayoutID(family: .latinPhonetic))
+    }
+
+    /// The alphabet facts come from the caller's own source snapshot. Two installs may use the
+    /// same schema ID with different alphabets (an alias zhuyin scheme and an ordinary scheme);
+    /// a lookup must never take the first ID match from an unrelated source.
+    func testSourceScopedAlphabetFactsDoNotCrossSources() {
+        let zhuyinSource = [
+            KeyboardSchemaDescriptor(id: "alias", name: "注音別名", alphabet: "1qaz2wsx-;,./")
+        ]
+        let plainSource = [
+            KeyboardSchemaDescriptor(id: "alias", name: "普通別名", alphabet: "abcdefghijklmnopqrstuvwxyz")
+        ]
+        XCTAssertEqual(InputLayoutPolicy.family(schemaID: "alias", descriptors: zhuyinSource), .zhuyin)
+        XCTAssertEqual(InputLayoutPolicy.family(schemaID: "alias", descriptors: plainSource), .generic)
+        // No descriptor in this source means the ID facts alone, never another source's alphabet.
+        XCTAssertEqual(InputLayoutPolicy.family(schemaID: "alias", descriptors: []), .generic)
     }
 }
 
