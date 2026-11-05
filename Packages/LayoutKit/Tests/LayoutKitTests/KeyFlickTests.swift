@@ -80,18 +80,23 @@ final class KeyFlickTests: XCTestCase {
     }
 
     func testOnlyPlainCharacterKeysFlickWhenASettingIsOn() {
-        func eligible(
-            _ kind: LayoutAction.Kind, setting: KeyFlick.Setting = .up, merged: Bool = false
-        ) -> Bool {
-            KeyFlick.isEligible(actionType: kind, setting: setting, merged: merged)
+        func eligible(_ kind: LayoutAction.Kind, setting: KeyFlick.Setting = .up) -> Bool {
+            KeyFlick.isEligible(actionType: kind, setting: setting)
         }
         XCTAssertTrue(eligible(.code))
         XCTAssertTrue(eligible(.literal))
         XCTAssertTrue(eligible(.code, setting: .down))
         XCTAssertFalse(eligible(.code, setting: .off))
-        XCTAssertFalse(eligible(.code, merged: true), "merged keys keep their sideways swipe")
         XCTAssertFalse(eligible(.space))
         XCTAssertFalse(eligible(.backspace))
+    }
+
+    func testMergedPairsBorrowOneLettersMarks() {
+        XCTAssertEqual(AlternateKeyPolicy.mergedPairLiterals(for: "df"), ["。", ".", "…"])
+        XCTAssertEqual(AlternateKeyPolicy.mergedPairLiterals(for: "QW"), ["1"])
+        XCTAssertEqual(AlternateKeyPolicy.mergedPairLiterals(for: "fg"), ["？", "?"])
+        XCTAssertEqual(AlternateKeyPolicy.mergedPairLiterals(for: "l"), [])
+        XCTAssertEqual(AlternateKeyPolicy.mergedPairLiterals(for: "ab"), [])
     }
 
     func testSettingResolvesStoredValueAndMigratesTheOldSwitch() {

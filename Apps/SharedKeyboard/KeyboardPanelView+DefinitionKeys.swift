@@ -411,10 +411,14 @@ extension KeyboardPanelView {
             let mergedHints = letterGroup.count > 1 && groupHints.contains { $0 != nil } ? groupHints : []
             let mergedShell = usesBundledMergedPad
             let bundledMergedFace = mergedShell && knownShellFaceUnchanged
+            // A bundled merged pair shows its first mark in the corner, which its flick types.
+            let pairMarks =
+                bundledMergedFace && letterGroup.count > 1 && page == .letters && !controller.isEnglishMode
+                ? AlternateKeyPolicy.mergedPairLiterals(for: String(letterGroup)) : []
             let subtitle =
                 !mergedHints.isEmpty
                 ? nil
-                : (bundledMergedFace ? overlayHint : (overlayHint ?? key.secondaryLabel))
+                : (bundledMergedFace ? overlayHint ?? pairMarks.first : (overlayHint ?? key.secondaryLabel))
             let cap = KeyCap(
                 id: id,
                 title: isT9FirstKey
@@ -499,10 +503,13 @@ extension KeyboardPanelView {
             // The idle 9-key first key cycles its symbols on tap and has no flick of its own.
             let flickEligible =
                 !isT9FirstKey
-                && KeyFlick.isEligible(
-                    actionType: key.action.type, setting: flickSetting,
-                    merged: letterGroup.count > 1 || !letterSwipe.isEmpty)
-            let flickOptions = flickEligible ? flickTypedOptions(options, controlOptions: controlOptions) : []
+                && KeyFlick.isEligible(actionType: key.action.type, setting: flickSetting)
+            // The bundled merged pad has no long-press menu; its pairs flick their marks only.
+            let pairFlicks = pairMarks.map {
+                KeyCap(id: "\(id)-flick-\($0)", title: $0, action: keyAction(LayoutAction(.literal, value: $0)))
+            }
+            let flickOptions =
+                flickEligible ? flickTypedOptions(options, controlOptions: controlOptions) + pairFlicks : []
             AlternateCharacterKey(
                 cap: cap, alternates: options,
                 longPressDelay: keyLongPressDelay,

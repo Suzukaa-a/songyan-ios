@@ -749,14 +749,25 @@ struct AlternateCharacterKey: UIViewRepresentable {
         override func continueTracking(_ touch: UITouch, with event: UIEvent?) -> Bool {
             lastLocation = touch.location(in: window)
             if slidOff || consumed { return true }
-            if popup == nil {
-                let swiped = trackLetterSwipe()
-                updateSidewaysFlick()
-                if swiped { return true }
+            // A merged key picks a letter sideways and flicks vertically, whichever way the finger
+            // first goes clearly: a swipe that locked ignores vertical travel, and a flick past the
+            // threshold ignores sideways travel until the finger comes back.
+            var sideways = false
+            if popup == nil, letterTracker != nil {
+                let rise = Double(touchOrigin.y - lastLocation.y)
+                let flickOwns = didSwipeUp && !KeyFlick.isGivenBack(rise: rise, direction: flickDirection ?? .up)
+                if !flickOwns {
+                    let swiped = trackLetterSwipe()
+                    if swiped || abs(lastLocation.x - touchOrigin.x) > abs(lastLocation.y - touchOrigin.y) {
+                        updateSidewaysFlick()
+                        if swiped { return true }
+                        sideways = true
+                    }
+                }
             }
             // Re-read on every crossing: a drag that voided the wrong way and came back can still
             // arm the configured way.
-            if popup == nil, hasFlick,
+            if popup == nil, !sideways, hasFlick,
                 let direction = KeyFlick.direction(
                     rise: Double(touchOrigin.y - lastLocation.y),
                     dx: Double(lastLocation.x - touchOrigin.x), threshold: flickThreshold)
@@ -769,8 +780,8 @@ struct AlternateCharacterKey: UIViewRepresentable {
                 didSwipeUp = true
                 flickDirection = direction
             }
-            if popup == nil { updateVerticalFlick() }
-            if didSwipeUp { return true }
+            if popup == nil, !sideways { updateVerticalFlick() }
+            if didSwipeUp, !sideways { return true }
             if popup != nil {
                 updateSelection(at: lastLocation)
             } else if !isOnKey(touch) {
@@ -857,6 +868,10 @@ struct AlternateCharacterKey: UIViewRepresentable {
                 cancelPress()
                 if let target, let cap = target.cap { target.onSelect?(cap) }
                 return
+            } else if didLetterSwipe {
+                // A picked letter types wherever the finger lifts, as a flick does. A flick given
+                // back before the swipe locked no longer counts.
+                selected = swipeChoice.map { letterSwipe[$0] } ?? (isHighlighted ? cap : nil)
             } else if didSwipeUp {
                 let rise = Double(touchOrigin.y - (touch?.location(in: window) ?? lastLocation).y)
                 let target = flickTarget
@@ -876,9 +891,6 @@ struct AlternateCharacterKey: UIViewRepresentable {
                 cancelPress()
                 if let target, let cap = target.cap { target.onSelect?(cap) }
                 return
-            } else if didLetterSwipe {
-                // A picked letter types wherever the finger lifts, as a flick does.
-                selected = swipeChoice.map { letterSwipe[$0] } ?? (isHighlighted ? cap : nil)
             } else {
                 selected =
                     !didHold && (exitedUpward || exitedSideways || touch.map(isOnKey) == true)
@@ -894,7 +906,6 @@ struct AlternateCharacterKey: UIViewRepresentable {
 
         /// Progress of a vertical flick toward the corner hint, along the configured direction.
         private func updateVerticalFlick() {
-            guard letterTracker == nil else { return }
             guard let configured = flickConfigured, hasFlick, flickTarget != nil else {
                 return setFlickTarget(0, side: nil)
             }

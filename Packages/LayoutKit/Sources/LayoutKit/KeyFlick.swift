@@ -99,9 +99,9 @@ public enum KeyFlick {
     }
 
     /// Whether a key takes part: plain character keys only, and only when a direction is set.
-    /// Merged keys keep their sideways swipe; the nine-key digits are eligible with their digit.
-    public static func isEligible(actionType: LayoutAction.Kind, setting: Setting, merged: Bool) -> Bool {
-        setting != .off && !merged && (actionType == .code || actionType == .literal)
+    /// Merged keys flick as well as swiping sideways; the nine-key digits flick their digit.
+    public static func isEligible(actionType: LayoutAction.Kind, setting: Setting) -> Bool {
+        setting != .off && (actionType == .code || actionType == .literal)
     }
 
     /// How far a flick has progressed, 0...1, along the configured direction; 1 while armed.
