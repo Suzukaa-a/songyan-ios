@@ -754,7 +754,9 @@ struct AlternateCharacterKey: UIViewRepresentable {
                 updateSidewaysFlick()
                 if swiped { return true }
             }
-            if popup == nil, hasFlick, !didSwipeUp,
+            // Re-read on every crossing: a drag that voided the wrong way and came back can still
+            // arm the configured way.
+            if popup == nil, hasFlick,
                 let direction = KeyFlick.direction(
                     rise: Double(touchOrigin.y - lastLocation.y),
                     dx: Double(lastLocation.x - touchOrigin.x), threshold: flickThreshold)
@@ -862,8 +864,10 @@ struct AlternateCharacterKey: UIViewRepresentable {
                     rise: rise, direction: flickDirection ?? .up, configured: flickConfigured ?? .up,
                     hasTarget: target != nil)
                 {
-                case .tap: selected = isHighlighted ? cap : nil
-                case .option: selected = isHighlighted ? target : nil
+                // Not gated on `isHighlighted`: UIKit drops it as soon as the finger leaves the
+                // key, and a flick naturally ends past the key. Only coming back cancels it.
+                case .tap: selected = cap
+                case .option: selected = target
                 case .nothing: selected = nil
                 }
             } else if exitedDownward {
@@ -873,7 +877,8 @@ struct AlternateCharacterKey: UIViewRepresentable {
                 if let target, let cap = target.cap { target.onSelect?(cap) }
                 return
             } else if didLetterSwipe {
-                selected = isHighlighted ? (swipeChoice.map { letterSwipe[$0] } ?? cap) : nil
+                // A picked letter types wherever the finger lifts, as a flick does.
+                selected = swipeChoice.map { letterSwipe[$0] } ?? (isHighlighted ? cap : nil)
             } else {
                 selected =
                     !didHold && (exitedUpward || exitedSideways || touch.map(isOnKey) == true)

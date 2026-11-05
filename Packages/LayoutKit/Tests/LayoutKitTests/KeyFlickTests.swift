@@ -36,8 +36,17 @@ final class KeyFlickTests: XCTestCase {
         // The other direction voids the press even when the key has a target.
         XCTAssertEqual(
             KeyFlick.release(rise: -30, direction: .down, configured: .up, hasTarget: true), .nothing)
+        // Coming back near the key undoes a void as well, so the release is the key's own tap.
         XCTAssertEqual(
-            KeyFlick.release(rise: -4, direction: .down, configured: .up, hasTarget: true), .nothing)
+            KeyFlick.release(rise: -4, direction: .down, configured: .up, hasTarget: true), .tap)
+    }
+
+    func testAnArmedFlickTypesWhereverTheFingerLifts() {
+        // Far past the key: still the flick, only coming back cancels it.
+        XCTAssertEqual(
+            KeyFlick.release(rise: 140, direction: .up, configured: .up, hasTarget: true), .option)
+        XCTAssertEqual(
+            KeyFlick.release(rise: -140, direction: .down, configured: .down, hasTarget: true), .option)
     }
 
     func testFlickWithNoTargetTypesNothingAndComingBackTaps() {

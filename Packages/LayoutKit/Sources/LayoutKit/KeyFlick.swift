@@ -75,12 +75,13 @@ public enum KeyFlick {
     }
 
     /// What lifting the finger does after a vertical drag past the threshold in `direction`.
-    /// Only the configured direction types; the other one voids the press.
+    /// Coming back near the key makes it a tap; otherwise only the configured direction types,
+    /// wherever the finger lifts, and the other one voids the press.
     public static func release(
         rise: Double, direction: Direction, configured: Direction, hasTarget: Bool
     ) -> Release {
-        guard direction == configured else { return .nothing }
         if isGivenBack(rise: rise, direction: direction) { return .tap }
+        guard direction == configured else { return .nothing }
         return hasTarget ? .option : .nothing
     }
 
