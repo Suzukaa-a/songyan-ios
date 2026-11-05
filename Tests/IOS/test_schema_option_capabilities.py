@@ -9,6 +9,11 @@ from swift_probe import CORE, ROOT, run_swift
 class SchemaOptionCapabilitiesTests(unittest.TestCase):
     def test_groups_opencc_dependencies_and_atomic_choice(self):
         source = (ROOT / "Apps/SharedKeyboard/OptionStore.swift").read_text()
+        # The built-in script seeding adapter needs KeyboardCore types and has its own
+        # production-source probe; this probe covers the schema option reader only.
+        seed_start = source.index("// MARK: - Built-in script default seeding")
+        seed_end = source.index("/// Process-wide FIFO", seed_start)
+        source = source[:seed_start] + source[seed_end:]
         start = source.index("    /// Read the selected schema")
         end = source.index("    static func read(", start)
         source = source[:start] + source[end:]

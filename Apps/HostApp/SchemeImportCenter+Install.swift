@@ -123,6 +123,24 @@ extension SchemeImportCenter {
         return prepared != nil
     }
 
+    /// Whether this install already holds a user's built-in data, judged only from what an earlier
+    /// version wrote: a built-in installation/marker, a published selection, Full Access ever seen,
+    /// completed onboarding, or a saved script choice. Used only to decide a first install's locale
+    /// default; an existing user is never re-seeded, including one whose install predates the switch.
+    /// Nonisolated: it reads the option store off the main actor (see the caller's detached read).
+    nonisolated private static func hasExistingBuiltinSettings(_ id: String) -> Bool {
+        if KeyboardPresenceStamp.lastFullAccessSeen() != nil { return true }
+        if UserDefaults.standard.bool(forKey: AppSettings.onboardingCompletedKey) { return true }
+        if KeyboardRecipeStore.readSelection().data != nil { return true }
+        let option = BuiltinScriptDefault.descriptor(
+            resourceID: id, schemaID: BuiltinTemplateSchemas.sourceSchemaIDs[0], state: .simplified)
+        let store = OptionStore(directory: RimePaths.optionPreferencesDirectory())
+        do { return try store.value(for: option) != nil } catch {
+            // A stored choice that cannot be read still belongs to an existing install.
+            return true
+        }
+    }
+
     private static var builtinInstall: Task<Void, Never>?
 
     /// Installs the scheme bundled with the app as an ordinary installed scheme, so its input
@@ -162,6 +180,26 @@ extension SchemeImportCenter {
             return
         }
         guard installed == nil || recorded != prepared.manifest.revision, !busy else { return }
+        // Any state read here was written before this bootstrap, so a first install stays
+        // distinguishable from an upgrade even though the install below writes the marker. The
+        // option-store read is disk IO, so it runs detached instead of on the main actor.
+        let priorSettings = await Task.detached { Self.hasExistingBuiltinSettings(id) }.value
+        // Any prior installation or record (even of the same content revision: content is not an
+        // install time) plus prior user data marks an existing install; only a first install is fresh.
+        let hadBuiltinSettings = BuiltinScriptEraRecord.hostIndicatesExistingInstall(
+            installed: installed != nil, recorded: recorded != nil, userSettings: priorSettings)
+        // Record the era before this bootstrap writes anything: the keyboard boot keeps a pre-switch
+        // install's script output and only a genuinely new install gets the locale default. Written
+        // once, so a later fresh-looking launch cannot relabel an upgraded install.
+        if let defaults = KeyboardRecipeStore.sharedDefaults(),
+            defaults.string(forKey: TraditionalDefault.installEraKey) == nil
+        {
+            defaults.set(
+                hadBuiltinSettings
+                    ? BuiltinScriptInstallEra.legacy.rawValue
+                    : BuiltinScriptInstallEra.current.rawValue,
+                forKey: TraditionalDefault.installEraKey)
+        }
         busy = true
         do {
             _ = try await EngineOwnershipCoordinator.shared.withExclusive {

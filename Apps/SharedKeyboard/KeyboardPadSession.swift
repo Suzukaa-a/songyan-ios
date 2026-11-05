@@ -223,6 +223,9 @@ public final class KeyboardPadSession: ObservableObject {
     /// Set before start. Host and extension should inject the same App Group URL.
     /// Without injection preferences are local to this resource's user directory.
     public var optionPreferencesDirectory: URL?
+    /// Private writable fallback for the option store when the App Group is only readable
+    /// (keyboard without Full Access); nil keeps the historical single-store behavior.
+    public var optionFallbackDirectory: URL?
     /// Resolve mutable installation generations only after acquiring engine ownership.
     /// A queued installer may have committed while this screen was waiting to boot.
     public var resourceResolver: (() async throws -> KeyboardResourceSet?)?
@@ -599,6 +602,38 @@ public final class KeyboardPadSession: ObservableObject {
 
     // MARK: - boot
 
+    /// The one seeding rule used at boot and by the production-source probe: an input method that
+    /// already carries a choice keeps it, only missing schemes get the locale default, and a failed
+    /// write is reported rather than claimed. Runs on the engine queue before the engine writes.
+    nonisolated private static func seedAndMigrateBuiltinScriptDefault(
+        resources: KeyboardResourceSet, store: OptionStore
+    ) {
+        if KeyboardRecipeStore.canWriteSharedContainer { store.migrateFallbackToShared() }
+        let hostEra =
+            KeyboardRecipeStore.sharedDefaults()?
+            .string(forKey: TraditionalDefault.installEraKey)
+            .flatMap(BuiltinScriptInstallEra.init(rawValue:))
+        // Record the era once, before any source's engine writes this container: the built-in and
+        // imported schemes share the private user root, so a first import this run must not make a
+        // fresh install look old on a later built-in boot; true old data still counts.
+        let userRoot = RimePaths.interactiveUserDirectory() ?? resources.userDirectory
+        let era = BuiltinScriptEraRecord.decideAndRecord(
+            hostEra: hostEra, userDirectory: userRoot, defaults: .standard,
+            savedLayoutKey: AppSettings.selectedLayoutKey)
+        guard BuiltinScriptIdentity.isBuiltin(resources.id) else { return }
+        // The bundled fallback and the installed built-in package are one scheme: persist its script
+        // choice under one key, so switching between them never loses an explicit user choice.
+        let optionResourceID = BuiltinScriptIdentity.optionStoreResourceID(resources.id)
+        // The store owns the read/write adapter, so the boot and the probe seed through one path.
+        let outcome = store.seedBuiltinScriptDefault(
+            evidence: BuiltinScriptBootstrapEvidence(hostEra: era),
+            localeTags: Locale.preferredLanguages, resourceID: optionResourceID,
+            schemaIDs: BuiltinTemplateSchemas.sourceSchemaIDs)
+        if let outcome, !outcome.isComplete {
+            Logger.keyboardStorage.error("script default seed failed for one or more schemes")
+        }
+    }
+
     private func boot() async {
         let generation = routeState.generation
         defer { routeState.clearPending(token: generation) }
@@ -675,6 +710,14 @@ public final class KeyboardPadSession: ObservableObject {
             let dirs = resolvedSet
             let optionDirectory =
                 optionPreferencesDirectory ?? dirs.userDirectory.appendingPathComponent("keyboard-options")
+            let optionStore = OptionStore(
+                directory: optionDirectory, fallbackDirectory: optionFallbackDirectory)
+            // Evidence, migration and seeding are engine-queue work (never main-thread IO) and run
+            // before the engine writes anything: a first install starts in the locale's script, an
+            // install that predates the switch keeps its old value.
+            try? await EngineOpQueue.async {
+                Self.seedAndMigrateBuiltinScriptDefault(resources: dirs, store: optionStore)
+            }
             if let factory = bootEngineFactory {
                 engine = try factory(dirs)
             } else {
@@ -689,8 +732,8 @@ public final class KeyboardPadSession: ObservableObject {
                     sharedDirectory: dirs.sharedDirectory,
                     userDirectory: dirs.userDirectory,
                     prebuiltDirectory: dirs.prebuiltDirectory,
-                    resourceID: dirs.id,
-                    optionStore: OptionStore(directory: optionDirectory),
+                    resourceID: BuiltinScriptIdentity.optionStoreResourceID(dirs.id),
+                    optionStore: optionStore,
                     allowedSchemaIDs: dirs.schemas.isEmpty ? nil : Set(dirs.schemas.map(\.id)),
                     runtimeGrammarReceiptContext: receiptContext,
                     sharedWritesAllowed: { KeyboardRecipeStore.canWriteSharedContainer })

@@ -31,8 +31,15 @@ public enum RimePaths {
         if let container = KeyboardRecipeStore.sharedContainerURL() {
             return container.appendingPathComponent(name, isDirectory: true)
         }
-        return FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent(name, isDirectory: true)
+        return privateOptionPreferencesDirectory()
+    }
+
+    /// This process's own writable option store, used when the App Group is readable but not writable
+    /// (a keyboard without Full Access). The relative layout matches the shared store, so switching
+    /// between the two never changes a switch's stored name.
+    public static func privateOptionPreferencesDirectory() -> URL {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("KeyboardOptions", isDirectory: true)
     }
     /// Built-in package scheme package (BuiltinPackages/Basic in Bundle.main).
     /// - Note: HostApp and KeyboardExtension each embed BuiltinPackages in their own bundle, so both

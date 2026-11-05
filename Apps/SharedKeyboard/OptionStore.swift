@@ -6,17 +6,34 @@ import os
 /// One atomic file per resource/schema/switch: independent Host/extension edits do
 /// not overwrite other switches. Inject the same directory to share preferences.
 public struct OptionStore: Sendable {
+    /// The shared App Group store (readable, writable with Full Access).
     public let directory: URL
-    public init(directory: URL) { self.directory = directory }
+    /// The extension's own container, used when the process may read but not write the App Group
+    /// (a keyboard without Full Access): a save falls back here, so the choice persists and the
+    /// engine restore reads it from the same store. nil for host-only stores.
+    public let fallbackDirectory: URL?
+    public init(directory: URL, fallbackDirectory: URL? = nil) {
+        self.directory = directory
+        self.fallbackDirectory = fallbackDirectory
+    }
 
-    private func file(_ option: EngineOptionDescriptor) -> URL {
-        [option.resourceID, option.schemaID, option.choiceGroup.first ?? option.name].reduce(directory) { url, key in
+    /// A choice can survive a restart even while the App Group refuses writes, because this
+    /// process keeps it in its own container instead.
+    public var persistsWithoutSharedWrites: Bool { fallbackDirectory != nil }
+
+    /// The engine's persistence rule: a choice persists when the App Group accepts writes, or when
+    /// this store can keep it in this process's own container (a keyboard without Full Access).
+    public func persists(sharedWritesAllowed: @escaping @Sendable () -> Bool) -> @Sendable () -> Bool {
+        { self.persistsWithoutSharedWrites || sharedWritesAllowed() }
+    }
+
+    private func file(_ option: EngineOptionDescriptor, in root: URL) -> URL {
+        [option.resourceID, option.schemaID, option.choiceGroup.first ?? option.name].reduce(root) { url, key in
             url.appendingPathComponent(key.utf8.map { String(format: "%02x", $0) }.joined())
         }.appendingPathExtension("json")
     }
 
-    public func value(for option: EngineOptionDescriptor) throws -> Bool? {
-        let url = file(option)
+    private func decode(_ url: URL, _ option: EngineOptionDescriptor) throws -> Bool? {
         guard FileManager.default.fileExists(atPath: url.path) else { return nil }
         let data = try Data(contentsOf: url)
         if !option.choiceGroup.isEmpty {
@@ -24,18 +41,98 @@ public struct OptionStore: Sendable {
             guard option.choiceGroup.contains(selected) else { return nil }
             return selected == option.name
         }
-        return try JSONDecoder().decode(Bool.self, from: data)
+        return try JSONDecoder().decode(Bool.self, from: data).self
+    }
+
+    public func value(for option: EngineOptionDescriptor) throws -> Bool? {
+        let shared = try decode(file(option, in: directory), option)
+        guard let fallbackDirectory else { return shared }
+        let fallbackURL = file(option, in: fallbackDirectory)
+        let fallback = try decode(fallbackURL, option)
+        // A read-only App Group cannot take a newer choice, so the private file wins when it is
+        // newer; a shared write removes the stale private copy below, so an equal age is shared.
+        guard let fallback else { return shared }
+        guard let shared else { return fallback }
+        return modificationDate(fallbackURL) > modificationDate(file(option, in: directory))
+            ? fallback : shared
     }
 
     public func save(_ value: Bool, for option: EngineOptionDescriptor) throws {
+        do {
+            try write(value, for: option, to: directory)
+            if let fallbackDirectory {
+                try? FileManager.default.removeItem(at: file(option, in: fallbackDirectory))
+            }
+        } catch {
+            guard let fallbackDirectory else { throw error }
+            try write(value, for: option, to: fallbackDirectory)
+        }
+    }
+
+    /// With Full Access restored, the private choices made while the App Group was read-only move
+    /// into it; only a newer private file replaces the shared one, so a host write that happened
+    /// meanwhile is not silently lost. Best effort: a failure keeps the private copy.
+    public func migrateFallbackToShared() {
+        guard let fallbackDirectory else { return }
+        let files = FileManager.default.enumerator(at: fallbackDirectory, includingPropertiesForKeys: nil)
+        var migrated: [URL] = []
+        while let url = files?.nextObject() as? URL {
+            guard url.pathExtension == "json" else { continue }
+            let relative = url.path.dropFirst(fallbackDirectory.path.count + 1)
+            let target = directory.appendingPathComponent(String(relative))
+            do {
+                let targetExists = FileManager.default.fileExists(atPath: target.path)
+                if !targetExists || modificationDate(url) > modificationDate(target) {
+                    try FileManager.default.createDirectory(
+                        at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
+                    try Data(contentsOf: url).write(to: target, options: .atomic)
+                }
+                migrated.append(url)
+            } catch {
+                continue
+            }
+        }
+        for url in migrated { try? FileManager.default.removeItem(at: url) }
+    }
+
+    private func modificationDate(_ url: URL) -> Date {
+        (try? FileManager.default.attributesOfItem(atPath: url.path)[.modificationDate] as? Date)
+            .flatMap { $0 } ?? .distantPast
+    }
+
+    private func write(_ value: Bool, for option: EngineOptionDescriptor, to root: URL) throws {
+        let url = file(option, in: root)
         try FileManager.default.createDirectory(
-            at: file(option).deletingLastPathComponent(), withIntermediateDirectories: true)
+            at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         if !option.choiceGroup.isEmpty {
             guard value else { throw CocoaError(.fileWriteInvalidFileName) }
-            try JSONEncoder().encode(option.name).write(to: file(option), options: .atomic)
+            try JSONEncoder().encode(option.name).write(to: url, options: .atomic)
         } else {
-            try JSONEncoder().encode(value).write(to: file(option), options: .atomic)
+            try JSONEncoder().encode(value).write(to: url, options: .atomic)
         }
+    }
+}
+
+// MARK: - Built-in script default seeding
+// The keyboard boot and the production-source probe share this adapter: the per-schema result
+// stays in the Core rule, so a read failure can never be turned into "no saved choice".
+extension OptionStore {
+    /// Seeds the locale's script state for input methods that have none. The read goes through this
+    /// store, so a stored file that cannot be read is reported as failed and never overwritten;
+    /// input methods that already have a choice keep it.
+    @discardableResult
+    public func seedBuiltinScriptDefault(
+        evidence: BuiltinScriptBootstrapEvidence, localeTags: [String],
+        resourceID: String, schemaIDs: [String]
+    ) -> BuiltinScriptDefault.SeedOutcome? {
+        BuiltinScriptDefault.seedIfNeeded(
+            evidence: evidence, localeTags: localeTags, resourceID: resourceID, schemaIDs: schemaIDs,
+            readChoice: { schemaID in
+                let probe = BuiltinScriptDefault.descriptor(
+                    resourceID: resourceID, schemaID: schemaID, state: .simplified)
+                return try self.value(for: probe) != nil
+            },
+            write: { try self.save(true, for: $0) })
     }
 }
 
@@ -105,8 +202,8 @@ final class OptionPreferenceCache: @unchecked Sendable {
     private var revisions: [OptionPreferenceKey: UInt64] = [:]
     private let read: @Sendable (EngineOptionDescriptor) throws -> Bool?
     private let write: @Sendable (Bool, EngineOptionDescriptor) throws -> Void
-    /// False while the store is read-only: a choice then lives in this cache for the
-    /// session, and later refreshes keep it.
+    /// False when the choice has nowhere to live: it then stays in this cache for the session,
+    /// and later refreshes keep it.
     private let persists: @Sendable () -> Bool
     private var sessionOnly: Set<OptionPreferenceKey> = []
 

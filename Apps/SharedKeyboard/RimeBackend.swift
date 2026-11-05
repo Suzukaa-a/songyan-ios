@@ -139,7 +139,9 @@ public final class RimeBackend: EngineBackend, @unchecked Sendable {
         self.userDirectory = userDirectory
         self.prebuiltDirectory = prebuiltDirectory
         self.resourceID = resourceID
-        self.optionPreferences = optionStore.map { OptionPreferenceCache(store: $0, persists: sharedWritesAllowed) }
+        self.optionPreferences = optionStore.map {
+            OptionPreferenceCache(store: $0, persists: $0.persists(sharedWritesAllowed: sharedWritesAllowed))
+        }
         self.runtimeGrammarReceiptContext = runtimeGrammarReceiptContext
         self.sharedWritesAllowed = sharedWritesAllowed
     }

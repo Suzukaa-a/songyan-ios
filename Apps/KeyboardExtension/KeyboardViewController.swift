@@ -51,6 +51,9 @@ class KeyboardViewController: UIInputViewController {
         session.enablesOfflineBundledInput = true
         session.recordsRuntimeGrammarReceipts = true
         session.optionPreferencesDirectory = RimePaths.optionPreferencesDirectory()
+        // Without Full Access the App Group is readable but not writable: persist a switch choice in
+        // this container instead, so the engine restore reads the same choice back.
+        session.optionFallbackDirectory = RimePaths.privateOptionPreferencesDirectory()
         return session
     }()
     /// The controller presenting the keyboard: the one the process session is bound to.
