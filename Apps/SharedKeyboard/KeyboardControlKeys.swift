@@ -638,11 +638,14 @@ struct RepeatingDeleteKey: UIViewRepresentable {
     /// gesture is untouched, because the author data must not silently lose native behavior.
     var title: String? = nil
     var subtitle: String? = nil
+    var skinRole = "control"
     let action: (Bool) -> Void
 
-    init(title: String? = nil, subtitle: String? = nil, action: @escaping (Bool) -> Void) {
+    init(title: String? = nil, subtitle: String? = nil, skinRole: String = "control", action: @escaping (Bool) -> Void)
+    {
         self.title = title
         self.subtitle = subtitle
+        self.skinRole = skinRole
         self.action = action
     }
     init(title: String? = nil, subtitle: String? = nil, action: @escaping () -> Void) {
@@ -677,6 +680,7 @@ struct RepeatingDeleteKey: UIViewRepresentable {
     static func dismantleUIView(_ button: DeleteButton, coordinator: ()) { button.stopRepeating() }
 
     private func apply(to button: DeleteButton) {
+        button.skinRole = skinRole
         button.applyAuthorFace(title: title, subtitle: subtitle, glyph: "delete.left")
         button.accessibilityLabel = button.authorTitle ?? "退格"
     }

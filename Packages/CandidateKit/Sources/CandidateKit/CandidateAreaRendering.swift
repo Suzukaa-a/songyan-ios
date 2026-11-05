@@ -135,7 +135,17 @@ private struct CandidateSkinTokenKey: EnvironmentKey {
         panelColor: Color(CandidatePlatformColor.windowBackground))
 }
 
+private struct CandidateBackspaceControlKey: EnvironmentKey {
+    static var defaultValue: AnyView? { nil }
+}
+
 extension EnvironmentValues {
+    /// Hosts reuse their native delete key, including hold and cancellation behavior.
+    public var candidateBackspaceControl: AnyView? {
+        get { self[CandidateBackspaceControlKey.self] }
+        set { self[CandidateBackspaceControlKey.self] = newValue }
+    }
+
     /// Skin values consumed by the default renderer; the host injects them in the keyboard environment (same source, SkinKit).
     public var candidateSkinToken: CandidateSkinToken {
         get { self[CandidateSkinTokenKey.self] }
@@ -282,6 +292,7 @@ private struct CandidateScrollReset: ViewModifier {
 private struct DefaultCollapsedCandidateBar: View {
     let context: CandidateAreaContext
     @Environment(\.candidateSkinToken) private var skin
+    @Environment(\.candidateBackspaceControl) private var backspaceControl
 
     private var state: CandidatePresentationState { context.state }
     private var bar: CandidateBarDefinition { context.bar }
@@ -310,7 +321,11 @@ private struct DefaultCollapsedCandidateBar: View {
                     .padding(.leading, 10)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .accessibilityAddTraits(.isHeader)
-                pageButton("delete.left", label: "退格", disabled: false, action: .backspace)
+                if let backspaceControl {
+                    backspaceControl.frame(width: 44, height: effectiveHeaderHeight)
+                } else {
+                    pageButton("delete.left", label: "退格", disabled: false, action: .backspace)
+                }
             } else {
                 // Read-only entry for earlier pages (not engine paging): shown when unloaded pages exist before the real current
                 // page; reads them by offset without changing the engine page/highlight/marked text. If the frontier is stopped on an
