@@ -175,6 +175,11 @@ use_preset_vocabulary: false
 作	zuo	100
 脑	nao	100
 列	lie	100
+发	fa	100
+展	zhan	100
+软	ruan	100
+件	jian	100
+头	tou	100
 
 # Words: <word>\t<space-separated pinyin>\t<weight>
 你好	ni hao	1200
@@ -222,3 +227,6 @@ use_preset_vocabulary: false
 上车	shang che	400
 早上	zao shang	650
 早上好	zao shang hao	600
+发展	fa zhan	800
+软件	ruan jian	700
+头发	tou fa	600

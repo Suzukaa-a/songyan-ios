@@ -13,12 +13,18 @@ import Yams
 final class BuiltinCompanionTests: XCTestCase {
     private static let writeEnvironment = "SONGYAN_WRITE_BUILTIN_COMPANIONS"
 
+    private var repository: URL {
+        (0..<5).reduce(URL(fileURLWithPath: #filePath)) { url, _ in url.deletingLastPathComponent() }
+    }
+
     private var package: URL {
-        URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent().deletingLastPathComponent()
-            .deletingLastPathComponent().deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appendingPathComponent("Resources/BuiltinPackages/Basic")
+        repository.appendingPathComponent("Resources/BuiltinPackages/Basic")
+    }
+
+    /// The real frontend OpenCC distribution the host passes to its managers; the bundled package
+    /// relies on it at deployment instead of shipping a second copy.
+    private var sharedOpenCC: URL {
+        repository.appendingPathComponent("Resources/EngineResources/opencc")
     }
 
     private func projection(_ source: String) throws -> CompactSchemaAdapter.SourceProjection {
@@ -80,6 +86,40 @@ final class BuiltinCompanionTests: XCTestCase {
             XCTAssertEqual(rewrite["lock"] as? String, CompactSchemaAdapter.tokenAliasLockValue)
             let display = (root["keyboard_adapter"] as? [String: Any])?["display_mode"] as? String
             XCTAssertEqual(display, adapter.layout == .phone9 ? "canonical" : "source_code", adapter.schemaID)
+        }
+    }
+
+    /// The four script states are the built-in package's own data: the sources declare them and
+    /// every generated companion must carry the same group and simplifiers, or a compact layout
+    /// would silently lose 繁體/臺灣/香港 output.
+    func testTheFourScriptStatesAreCarriedIntoEveryCompanion() throws {
+        let expectedStates = ["简体", "繁體", "臺灣", "香港"]
+        let conversions = ["zht": "s2t.json", "zh_tw": "s2twp.json", "zh_hk": "s2hk.json"]
+        let names = BuiltinTemplateSchemas.sourceSchemaIDs + BuiltinTemplateSchemas.adapters.map(\.schemaID)
+        for name in names {
+            let root = try yaml(name + ".schema.yaml")
+            let switches = try XCTUnwrap(root["switches"] as? [[String: Any]], name)
+            let group = try XCTUnwrap(
+                switches.first { $0["options"] != nil }, "\(name): no script radio group")
+            XCTAssertEqual(
+                group["options"] as? [String],
+                ["simplification", "zht", "zh_tw", "zh_hk"], name)
+            XCTAssertEqual(group["states"] as? [String], expectedStates, name)
+            XCTAssertEqual(group["reset"] as? Int, 0, name)
+            let engine = try XCTUnwrap(root["engine"] as? [String: Any], name)
+            let filters = try XCTUnwrap(engine["filters"] as? [String], name)
+            XCTAssertEqual(
+                filters.last, "uniquifier", "\(name): conversions must run before uniquifier")
+            for (namespace, config) in conversions {
+                XCTAssertTrue(filters.contains("simplifier@\(namespace)"), name)
+                let section = try XCTUnwrap(
+                    root[namespace] as? [String: Any], "\(name): missing \(namespace)")
+                XCTAssertEqual(section["option_name"] as? String, namespace, name)
+                XCTAssertEqual(section["opencc_config"] as? String, config, name)
+            }
+            XCTAssertFalse(
+                filters.contains("simplifier"),
+                "\(name): a bare simplifier would convert the simplified default with s2t")
         }
     }
 
@@ -148,7 +188,8 @@ final class BuiltinCompanionTests: XCTestCase {
     func testBundledPackageInstallsOnlyItsEntrySchemes() throws {
         let manager = RecipePackageManager(
             rootURL: FileManager.default.temporaryDirectory
-                .appendingPathComponent(UUID().uuidString))
+                .appendingPathComponent(UUID().uuidString),
+            sharedOpenCCDirectory: sharedOpenCC)
         let prepared = try manager.prepareBundledPackage(directory: package)
         XCTAssertEqual(prepared.declaration.id, ProductionInputAvailability.builtinPackageID)
         // Adding keyboards plans recipes keyed by the package ID, whose update rules reject dots.
@@ -164,5 +205,35 @@ final class BuiltinCompanionTests: XCTestCase {
         // Same bytes, same revision: an unchanged bundle is never reinstalled.
         XCTAssertEqual(
             try manager.prepareBundledPackage(directory: package).manifest.revision, prepared.manifest.revision)
+    }
+
+    /// The installed bundle consumes the frontend OpenCC distribution: the dependency check needs the
+    /// real one, never a hardcoded "these exist" waiver. Without it the same bundle fails closed.
+    func testBundledPackageNeedsTheFrontendOpenCCDistribution() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let withoutOpenCC = RecipePackageManager(rootURL: root)
+        XCTAssertThrowsError(try withoutOpenCC.prepareBundledPackage(directory: package)) { error in
+            let detail = String(describing: error)
+            XCTAssertTrue(detail.contains("缺少输入方案依赖项"), detail)
+            XCTAssertTrue(detail.contains("opencc/s2t.json"), detail)
+        }
+        let withOpenCC = RecipePackageManager(rootURL: root, sharedOpenCCDirectory: sharedOpenCC)
+        XCTAssertNoThrow(try withOpenCC.prepareBundledPackage(directory: package))
+    }
+
+    /// A normal import gets no frontend distribution for free: naming an OpenCC config only passes once
+    /// the package carries that data, and the config's own dictionaries are read recursively.
+    func testImportedSchemeStillRefusesOpenCCOnlyTheFrontendHas() throws {
+        let schema = Data("schema: {schema_id: sample}\nsimplifier: {opencc_config: s2t.json}\n".utf8)
+        let bare = ["sample.schema.yaml": schema]
+        XCTAssertThrowsError(try SchemeSourceCheck.dependencies(bare)) { error in
+            XCTAssertTrue(String(describing: error).contains("opencc/s2t.json"), String(describing: error))
+        }
+        var configOnly = bare
+        configOnly["opencc/s2t.json"] = try Data(contentsOf: sharedOpenCC.appendingPathComponent("s2t.json"))
+        XCTAssertThrowsError(try SchemeSourceCheck.dependencies(configOnly)) { error in
+            // The config's conversion chain names dictionaries; a passed config alone is not enough.
+            XCTAssertTrue(String(describing: error).contains("opencc/STPhrases.ocd2"), String(describing: error))
+        }
     }
 }

@@ -5,6 +5,11 @@ import KeyboardCore
 // Only publication reads and installer transactions are seams. The production
 // status evaluator, entire view model and Save eligibility body are injected.
 enum UserKeyboardSource { case active, package(String) }
+/// Seam: the source-facts reader reads installation storage the probe does not model; the probe
+/// asserts installation status and save eligibility, not the schema list of a source.
+@MainActor enum UserKeyboardSourceFacts {
+    static func schemas(for source: UserKeyboardSource) async -> [KeyboardSchemaDescriptor] { [] }
+}
 enum KeyboardRecipeStore {
     struct Activation: Sendable {
         var revision: String

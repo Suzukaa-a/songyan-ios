@@ -3,7 +3,7 @@
 #
 # Outputs:
 # Tests/EngineFixtures/Builtin/encodings.tsv   machine-readable codes of every (word, canonical pinyin) in the four layouts
-# Tests/EngineFixtures/Builtin/playback_cases.json   playback cases (key sequence + expected text)
+# Tests/EngineFixtures/Builtin/playback_cases.json   playback cases (key sequence + expected text, optional declared script state)
 # Tests/EngineFixtures/Builtin/learning_cases.json   cross-layout word-creation / shared-learning acceptance cases
 #
 # Code projection implementation: Tests/EngineFixtures/Builtin/generators/flypy_codes.py.
@@ -86,6 +86,28 @@ def main():
                 "keys_with_delim": code.replace(" ", "'"),  # optional: use ' to split syllables explicitly
                 "expect_text": r["text"],
             })
+    # Declared script states: the same dictionary words converted by the schema's simplifier. `options`
+    # is a complete four-member state (exactly one true) so no case depends on another case's leftovers;
+    # `expect_first` is the first candidate under that state, while `expect_text` keeps the old commit
+    # semantics. A case without `options` stays in the simplified default state.
+    def script_state(selected):
+        return {name: name == selected for name in ("simplification", "zht", "zh_tw", "zh_hk")}
+
+    playback.extend(
+        {
+            "schema": "songyan_quanpin", "layout": "qwerty26",
+            "options": script_state(state),
+            "text": source, "keys": keys, "keys_with_delim": delim,
+            "expect_first": expected, "expect_text": expected,
+        }
+        for state, source, keys, delim, expected in [
+            ("zht", "发展", "fazhan", "fa'zhan", "發展"),
+            ("zh_tw", "软件", "ruanjian", "ruan'jian", "軟體"),
+            ("zht", "软件", "ruanjian", "ruan'jian", "軟件"),
+            ("zh_hk", "软件", "ruanjian", "ruan'jian", "軟件"),
+            ("zht", "头发", "toufa", "tou'fa", "頭髮"),
+        ]
+    )
     (OUT / "playback_cases.json").write_text(
         json.dumps(playback, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
     # playback cases: per-character/word key sequences; the choice is decided by the engine from the layout's real candidate pages
