@@ -335,4 +335,79 @@ final class QuickContentKitTests: XCTestCase {
         XCTAssertEqual(result.texts, ["→"], "the in-memory expected value is still returned for immediate display")
         try FileManager.default.removeItem(at: blocker)
     }
+
+    // MARK: Recents: batch recording
+
+    func testRecentBatchRecordMatchesSequentialRecording() throws {
+        let batchDirectory = tempDirectory
+        let sequentialDirectory = tempDirectory
+        defer {
+            try? FileManager.default.removeItem(at: batchDirectory)
+            try? FileManager.default.removeItem(at: sequentialDirectory)
+        }
+        let limit = 4
+        let batchStore = RecentSymbolStore(directory: batchDirectory, limit: limit)
+        let sequentialStore = RecentSymbolStore(directory: sequentialDirectory, limit: limit)
+        // Recents recorded before the batch stay at the bottom of the MRU order.
+        for text in ["→", "㎡"] {
+            XCTAssertNil(batchStore.record(text).saveError)
+            XCTAssertNil(sequentialStore.record(text).saveError)
+        }
+        // Order, duplicates, surrounding whitespace, blanks and the limit all in one batch.
+        let uses = ["℃", "  №  ", "→", "   ", "", "≤", "℃", "№", "㎡"]
+        var recordedOneByOne: (texts: [String], saveError: Error?) = (sequentialStore.read(), nil)
+        for use in uses {
+            recordedOneByOne = sequentialStore.record(use)
+        }
+        let batched = batchStore.record(uses)
+        XCTAssertNil(batched.saveError)
+        XCTAssertNil(recordedOneByOne.saveError)
+        XCTAssertEqual(batched.texts, recordedOneByOne.texts, "a batch equals recording each use in turn")
+        XCTAssertEqual(batched.texts, ["㎡", "№", "℃", "≤"], "last use first, deduped, trimmed to the limit")
+        XCTAssertEqual(batchStore.read(), batched.texts)
+        XCTAssertEqual(sequentialStore.read(), batched.texts)
+        XCTAssertEqual(RecentSymbolStore(directory: batchDirectory, limit: limit).read(), batched.texts)
+        // An empty or all-blank batch only reads: nothing is recorded and nothing is written.
+        let active = batchDirectory.appendingPathComponent("recent.json")
+        let before = try Data(contentsOf: active)
+        let empty = batchStore.record([])
+        XCTAssertEqual(empty.texts, batched.texts)
+        XCTAssertNil(empty.saveError)
+        let blank = batchStore.record(["  ", "", "\n\t"])
+        XCTAssertEqual(blank.texts, batched.texts)
+        XCTAssertNil(blank.saveError)
+        XCTAssertEqual(try Data(contentsOf: active), before)
+    }
+
+    func testRecentBatchSaveFailureKeepsOldFileAndBackup() throws {
+        // Make the store directory read-only so the atomic save fails with both copies present.
+        let directory = tempDirectory
+        let fm = FileManager.default
+        defer {
+            try? fm.setAttributes([.posixPermissions: 0o700], ofItemAtPath: directory.path)
+            try? fm.removeItem(at: directory)
+        }
+        let store = RecentSymbolStore(directory: directory)
+        XCTAssertNil(store.record("→").saveError)
+        XCTAssertNil(store.record("㎡").saveError)
+        let active = directory.appendingPathComponent("recent.json")
+        let backup = directory.appendingPathComponent("recent-last.json")
+        let activeBefore = try Data(contentsOf: active)
+        let backupBefore = try Data(contentsOf: backup)
+        try fm.setAttributes([.posixPermissions: 0o500], ofItemAtPath: directory.path)
+        let failed = store.record(["℃", "≤", "℃"])
+        try fm.setAttributes([.posixPermissions: 0o700], ofItemAtPath: directory.path)
+        XCTAssertNotNil(failed.saveError, "a write failure must be reported")
+        XCTAssertEqual(
+            failed.texts, ["℃", "≤", "㎡", "→"],
+            "the in-memory expected batch value is still returned for immediate display")
+        XCTAssertEqual(try Data(contentsOf: active), activeBefore)
+        XCTAssertEqual(try Data(contentsOf: backup), backupBefore)
+        XCTAssertEqual(RecentSymbolStore(directory: directory).read(), ["㎡", "→"])
+        // The store keeps working once the directory is writable again.
+        let recovered = store.record(["℃", "≤"])
+        XCTAssertNil(recovered.saveError)
+        XCTAssertEqual(recovered.texts, ["≤", "℃", "㎡", "→"])
+        XCTAssertEqual(RecentSymbolStore(directory: directory).read(), ["≤", "℃", "㎡", "→"])
+    }
 }

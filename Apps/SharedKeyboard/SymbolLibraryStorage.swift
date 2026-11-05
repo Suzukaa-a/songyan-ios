@@ -66,8 +66,8 @@ final class SymbolLibraryIOWorker: @unchecked Sendable {
         var persistenceNote: String?
         var updatesPersistenceNote = false
         var isRead = false
-        /// Set when a use could not be stored because the directory is read-only.
-        var unstoredUse: String?
+        /// Uses retained in this session because the directory is read-only.
+        var unstoredUses: [String] = []
     }
 
     /// Confined to SymbolLibraryWriteQueue, including first-use resolution.
@@ -106,15 +106,23 @@ final class SymbolLibraryIOWorker: @unchecked Sendable {
         }
     }
 
-    func record(_ text: String) async -> Outcome {
+    func record(_ texts: [String]) async -> Outcome {
         await SymbolLibraryWriteQueue.async {
             let directory = self.resolveDirectory()
             // Read-only: the insert stands, the stored recents stay untouched and the
             // use is kept for this keyboard session only.
+            let store = RecentSymbolStore(directory: directory)
             guard SymbolLibraryStorage.allowsWrites(to: directory) else {
-                return Outcome(directory: directory, unstoredUse: text)
+                // Only the latest distinct uses can affect MRU; coalesce before publishing on main.
+                var seen = Set<String>()
+                var newest: [String] = []
+                for text in texts.reversed() where seen.insert(text).inserted {
+                    newest.append(text)
+                    if newest.count == store.limit { break }
+                }
+                return Outcome(directory: directory, unstoredUses: Array(newest.reversed()))
             }
-            let result = RecentSymbolStore(directory: directory).record(text)
+            let result = store.record(texts)
             return Outcome(
                 directory: directory, texts: result.saveError == nil ? result.texts : nil,
                 persistenceNote: result.saveError.map { "未能保存最近使用记录，已保留原有记录：\($0.localizedDescription)" },

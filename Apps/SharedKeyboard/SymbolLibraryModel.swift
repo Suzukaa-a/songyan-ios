@@ -118,11 +118,11 @@ public final class SymbolLibraryModel: ObservableObject {
             }
             catalogReadError = outcome.catalogReadError
         }
-        if let use = outcome.unstoredUse {
+        for use in outcome.unstoredUses {
             sessionRecents = Array(([use] + sessionRecents.filter { $0 != use }).prefix(Self.recentLimit))
         }
         if let texts = outcome.texts { storedRecents = texts }
-        if outcome.unstoredUse != nil || outcome.texts != nil || outcome.catalog != nil {
+        if !outcome.unstoredUses.isEmpty || outcome.texts != nil || outcome.catalog != nil {
             let merged = sessionRecents + storedRecents.filter { !sessionRecents.contains($0) }
             recents = Self.recentEntries(texts: Array(merged.prefix(Self.recentLimit)), catalog: catalog)
         }
@@ -208,7 +208,13 @@ public final class SymbolLibraryModel: ObservableObject {
     /// Records a symbol another surface (the 9-key symbol page) already inserted,
     /// so both share one recents list.
     public func recordUse(_ text: String) {
-        enqueue { await $0.record(text) }
+        recordUses([text])
+    }
+
+    /// A categorized page defers its recents until closing so the grid stays still while typing.
+    public func recordUses(_ texts: [String]) {
+        guard !texts.isEmpty else { return }
+        enqueue { await $0.record(texts) }
     }
 
     private static let recentLimit = 20

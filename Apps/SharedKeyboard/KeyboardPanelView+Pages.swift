@@ -535,7 +535,7 @@ extension KeyboardPanelView {
     }
 
     private func authoredCategoryDisappear() {
-        for text in pendingSymbolUses { symbolLibrary.recordUse(text) }
+        symbolLibrary.recordUses(pendingSymbolUses)
         pendingSymbolUses = []
     }
 

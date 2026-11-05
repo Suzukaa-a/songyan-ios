@@ -288,8 +288,13 @@ final class AccessProbe: @unchecked Sendable {
         await readOnly.clearRecents().value
         precondition(readOnly.recents.map(\.text) == ["X"])
         precondition(sharedRecents.read() == ["X"] && readOnly.persistenceNote?.contains("允许完全访问") == true)
+        let sessionUses = (0..<25).map { "session-\($0)" }
+        readOnly.recordUses(sessionUses + ["session-3"])
+        await readOnly.reload().value
+        precondition(readOnly.recents.map(\.text) == ["session-3"] + (6..<25).reversed().map { "session-\($0)" })
+        precondition(sharedRecents.read() == ["X"], "a read-only batch must stay in the session")
         SymbolLibraryStorage.writable = true
-        print("PASS without Full Access recents are read from the shared directory, kept per session, never written")
+        print("PASS without Full Access single and batched uses preserve bounded session order without writing")
 
         // A deferred model reads nothing until asked.
         let deferred = SymbolLibraryModel(storeDirectory: shared, onInsert: { _ in true }, loadsImmediately: false)
@@ -297,5 +302,13 @@ final class AccessProbe: @unchecked Sendable {
         await deferred.reload().value
         precondition(deferred.recents.map(\.text) == ["X"] && !deferred.catalog.items.isEmpty)
         print("PASS a deferred symbol library loads on first reload")
+
+        deferred.recordUses(["A", "B", "A"])
+        let batchClear = deferred.clearRecents()
+        deferred.recordUses(["B", "A", "B"])
+        await batchClear.value
+        await deferred.reload().value
+        precondition(deferred.recents.map(\.text) == ["B", "A"] && sharedRecents.read() == ["B", "A"])
+        print("PASS batched page uses preserve gesture ordering across clear and publish the saved MRU list")
     }
 }
