@@ -259,7 +259,7 @@ final class CandidateRendererSharpnessTests: XCTestCase {
 
             let view = CollapsedCandidateRow(
                 context: context, entries: entries,
-                cellWidths: layout.cellWidths, spacing: 0
+                cellWidths: layout.cellWidths, spacing: 0, viewportWidth: 372
             )
             .frame(height: 44)
             .environment(

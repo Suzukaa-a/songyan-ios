@@ -267,7 +267,7 @@ struct CandidateScrollIdentity: Hashable {
 }
 
 /// Fixed anchor of the scrolled content (the content view carries this id; resetting = scrolling to the content start).
-private enum CandidateScrollAnchor: Hashable { case content }
+private enum CandidateScrollAnchor: Hashable { case content, viewport }
 
 @available(macOS 14.0, iOS 17.0, *)
 private struct CandidateScrollReset: ViewModifier {
@@ -392,13 +392,14 @@ private struct DefaultCollapsedCandidateBar: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 CollapsedCandidateRow(
                     context: context, entries: entries,
-                    cellWidths: layout.cellWidths, spacing: spacing
+                    cellWidths: layout.cellWidths, spacing: spacing, viewportWidth: viewport
                 )
                 .padding(.horizontal, 2)
                 .frame(minWidth: viewport, alignment: .leading)
                 .id(CandidateScrollAnchor.content)
             }
             .scrollBounceBehavior(.basedOnSize)
+            .coordinateSpace(name: CandidateScrollAnchor.viewport)
             .sharpCandidateScrollEdges()
             // Native horizontal scrolling is the browsing: no DragGesture triggers engine paging, so nothing is committed and
             // the engine highlight does not move; cross-page appending is done read-only by tailSentinel.
@@ -427,6 +428,7 @@ struct CollapsedCandidateRow: View {
     let entries: [BrowserCandidate]
     let cellWidths: [CGFloat]
     let spacing: CGFloat
+    let viewportWidth: CGFloat
 
     @Environment(\.candidateSkinToken) private var skin
     @Environment(\.colorSchemeContrast) private var contrast
@@ -443,8 +445,9 @@ struct CollapsedCandidateRow: View {
     static let chunkSize = 8
 
     var body: some View {
-        let prefetch = context.prefetchIndex(entryCount: entries.count)
         let count = entries.count
+        let prefetch = context.prefetchIndex(entryCount: count)
+        let prefetchX = prefetch.map { cellWidths.prefix($0).reduce(0, +) + CGFloat($0) * spacing }
         LazyHStack(spacing: spacing) {
             ForEach(Array(stride(from: 0, to: count, by: Self.chunkSize)), id: \.self) { start in
                 let chunk = start..<min(start + Self.chunkSize, count)
@@ -453,12 +456,21 @@ struct CollapsedCandidateRow: View {
                         cell(entries[index], width: cellWidths.indices.contains(index) ? cellWidths[index] : 44)
                     }
                 }
-                .modifier(
-                    CandidatePrefetch(
-                        context: context, isTrigger: prefetch.map(chunk.contains) ?? false,
-                        kind: .collapsedTail))
             }
             tailSentinel
+        }
+        .background {
+            GeometryReader { geometry in
+                let x = geometry.frame(in: .named(CandidateScrollAnchor.viewport)).minX
+                // A fixed lead starts at the first chunk of a new short list. Use it only
+                // after scrolling; the tail still fills wide viewports without a gesture.
+                let browsingNearEnd = prefetchX.map { x < -0.5 && $0 + x <= viewportWidth } ?? false
+                Color.clear.modifier(
+                    CandidatePrefetch(
+                        context: context,
+                        isTrigger: prefetch != nil && (context.browser.needsEarlier || browsingNearEnd),
+                        kind: .collapsedTail))
+            }
         }
     }
 
