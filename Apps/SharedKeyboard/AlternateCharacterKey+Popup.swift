@@ -447,14 +447,8 @@ extension AlternateCharacterKey.CharacterButton {
             KeyboardFeedbackService.shared.alternateHighlightMoved()
         }
         highlightedAlternate = index
-        if let popup, !layoutPicker {
-            // Pulling down toward the cancel fades and settles the popup in
-            // step with the finger; moving back up restores it.
-            let progress = CGFloat(AlternateDragPicker.dropProgress(dragDrop(at: point)))
-            popup.alpha = 1 - 0.6 * progress
-            let scale = 1 - 0.08 * progress
-            popup.transform = CGAffineTransform(translationX: 0, y: 6 * progress)
-                .scaledBy(x: scale, y: scale)
+        if !layoutPicker, let callout = popupHost as? KeyCalloutView {
+            callout.setDropProgress(CGFloat(AlternateDragPicker.dropProgress(dragDrop(at: point))))
         }
         for (offset, view) in popupLabels.enumerated() {
             if layoutPicker {

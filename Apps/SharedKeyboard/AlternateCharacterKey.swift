@@ -925,11 +925,13 @@ struct AlternateCharacterKey: UIViewRepresentable {
                 if touch != nil { updateSelection(at: point, emitHighlight: false) }
                 selected = popupReleaseSelection(at: point, in: popup)
                 if selected == nil, !layoutPicker,
-                    AlternateDragPicker.dropProgress(dragDrop(at: point)) >= 1
+                    AlternateDragPicker.dropProgress(dragDrop(at: point)) >= 1,
+                    !UIAccessibility.isReduceMotionEnabled,
+                    let cancelled = popupHost as? KeyCalloutView
                 {
-                    // A drop-cancel finishes the fade it showed instead of vanishing.
-                    let cancelled = popup
+                    // Keep the whole visual alive until its exit finishes; touch state clears below.
                     self.popup = nil
+                    popupHost = nil
                     UIView.animate(withDuration: 0.18, delay: 0, options: [.curveEaseOut]) {
                         cancelled.alpha = 0
                         cancelled.transform = cancelled.transform.translatedBy(x: 0, y: 8)

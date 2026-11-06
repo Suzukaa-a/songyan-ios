@@ -172,6 +172,20 @@ final class KeyCalloutView: UIView {
         target.add(animation, forKey: key)
     }
 
+    /// Keep the shell and its contents together, scaling around the bubble rather than the full overlay.
+    func setDropProgress(_ progress: CGFloat) {
+        alpha = 1 - 0.6 * progress
+        guard !UIAccessibility.isReduceMotionEnabled else {
+            transform = .identity
+            return
+        }
+        let scale = 1 - 0.08 * progress
+        let anchor = CGPoint(x: bubbleRect.midX - bounds.midX, y: bubbleRect.midY - bounds.midY)
+        transform = CGAffineTransform(translationX: anchor.x, y: anchor.y + 6 * progress)
+            .scaledBy(x: scale, y: scale)
+            .translatedBy(x: -anchor.x, y: -anchor.y)
+    }
+
     /// Only the key that showed the callout can hide it; a newer press already owns it.
     func hide(for owner: AnyObject, immediately: Bool) {
         guard self.owner === owner else { return }
