@@ -68,6 +68,10 @@ jobs:
           key: tests-v2-${{ runner.os }}-${{ runner.arch }}-xcode-27.1-${{ hashFiles('Packages/**/Package.swift', 'Packages/**/Package.resolved', 'Tests/IOS/swift_probe.py') }}
           restore-keys: |
             tests-v2-${{ runner.os }}-${{ runner.arch }}-xcode-27.1-
+      - name: Install localization build tools
+        run: brew install cmake
+      - name: Build pinned localization converter
+        run: bash Tools/CI/scripts/build-localization-opencc.sh
       - name: Run tests
         run: Tools/CI/ci.sh fast
       - name: Save Swift build caches
