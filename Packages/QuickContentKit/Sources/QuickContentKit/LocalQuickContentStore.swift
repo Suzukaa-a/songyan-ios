@@ -112,12 +112,16 @@ public struct LocalQuickContentStore: Sendable {
 
     @discardableResult
     public func importPhrases(_ data: Data) throws -> LocalQuickContent {
-        guard data.count <= Self.maximumFileBytes else { throw SymbolCatalogError("文件过大，请减少常用语后重试") }
+        guard data.count <= Self.maximumFileBytes else {
+            throw SymbolCatalogError(QuickContentText.string("quickContent.error.fileTooLarge"))
+        }
         let archive: PhraseArchive
         do { archive = try JSONDecoder().decode(PhraseArchive.self, from: data) } catch {
-            throw SymbolCatalogError("文件不完整或格式不正确，请选择松烟导出的常用语文件")
+            throw SymbolCatalogError(QuickContentText.string("quickContent.error.unreadable"))
         }
-        guard archive.version == 1 else { throw SymbolCatalogError("文件格式不支持，请选择松烟常用语文件") }
+        guard archive.version == 1 else {
+            throw SymbolCatalogError(QuickContentText.string("quickContent.error.unsupportedFormat"))
+        }
         try Self.validatePhrases(archive.phrases)
         return try mutate { $0.phrases = archive.phrases }
     }
@@ -127,7 +131,7 @@ public struct LocalQuickContentStore: Sendable {
     public func importPhrases(from url: URL) throws -> LocalQuickContent {
         let data = try QuickContentFileReader.read(
             url, maximumBytes: Self.maximumFileBytes,
-            sizeError: "文件过大，请选择松烟常用语文件")
+            sizeError: QuickContentText.string("quickContent.error.fileTooLarge"))
         return try importPhrases(data)
     }
 
@@ -148,7 +152,9 @@ public struct LocalQuickContentStore: Sendable {
     private func load() throws -> LocalQuickContent {
         guard FileManager.default.fileExists(atPath: file.path) else { return LocalQuickContent() }
         let size = try FileManager.default.attributesOfItem(atPath: file.path)[.size] as? Int ?? 0
-        guard size <= Self.maximumFileBytes else { throw SymbolCatalogError("保存的内容过大，请清理后重试") }
+        guard size <= Self.maximumFileBytes else {
+            throw SymbolCatalogError(QuickContentText.string("quickContent.error.storedTooLarge"))
+        }
         let data = try Data(contentsOf: file)
         let state = try JSONDecoder().decode(LocalQuickContent.self, from: data)
         try Self.validate(state)
@@ -158,7 +164,9 @@ public struct LocalQuickContentStore: Sendable {
     private func save(_ state: LocalQuickContent) throws {
         try Self.validate(state)
         let data = try Self.encode(state)
-        guard data.count <= Self.maximumFileBytes else { throw SymbolCatalogError("保存的内容过大，请减少内容后重试") }
+        guard data.count <= Self.maximumFileBytes else {
+            throw SymbolCatalogError(QuickContentText.string("quickContent.error.contentTooLarge"))
+        }
         #if os(iOS)
             // Readable after first unlock: the keyboard is used over a locked screen too, and
             // complete protection would make history unreadable there.
@@ -176,9 +184,13 @@ public struct LocalQuickContentStore: Sendable {
         var protectedDirectory = directory
         try protectedDirectory.setResourceValues(excluded)
         let descriptor = open(directory.appendingPathComponent(".lock").path, O_CREAT | O_RDWR | O_NOFOLLOW, 0o600)
-        guard descriptor >= 0 else { throw SymbolCatalogError("无法打开常用语与剪贴板，请稍后重试") }
+        guard descriptor >= 0 else {
+            throw SymbolCatalogError(QuickContentText.string("quickContent.error.storageUnavailable"))
+        }
         defer { close(descriptor) }
-        guard flock(descriptor, LOCK_EX) == 0 else { throw SymbolCatalogError("内容正在使用，请稍后重试") }
+        guard flock(descriptor, LOCK_EX) == 0 else {
+            throw SymbolCatalogError(QuickContentText.string("quickContent.error.busy"))
+        }
         defer { flock(descriptor, LOCK_UN) }
         return try body()
     }
@@ -187,17 +199,19 @@ public struct LocalQuickContentStore: Sendable {
         guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
             text.utf8.count <= maximumTextBytes, !text.unicodeScalars.contains(where: { $0.value == 0 })
         else {
-            throw SymbolCatalogError("内容为空或超过 4 KB，请缩短后重试")
+            throw SymbolCatalogError(QuickContentText.string("quickContent.error.textInvalid"))
         }
     }
 
     private static func validatePhrases(_ phrases: [CommonPhrase]) throws {
         guard phrases.count <= maximumPhrases, Set(phrases.map(\.id)).count == phrases.count else {
-            throw SymbolCatalogError("常用语最多保存 100 条，每条需要独立的编号")
+            throw SymbolCatalogError(QuickContentText.string("quickContent.error.tooManyPhrases"))
         }
         for phrase in phrases {
             try validateText(phrase.text)
-            guard phrase.shortcut.utf8.count <= 64 else { throw SymbolCatalogError("搜索词过长，请缩短后重试") }
+            guard phrase.shortcut.utf8.count <= 64 else {
+                throw SymbolCatalogError(QuickContentText.string("quickContent.error.shortcutTooLong"))
+            }
         }
     }
 
@@ -206,7 +220,7 @@ public struct LocalQuickContentStore: Sendable {
             Set(state.clipboard).count == state.clipboard.count,
             state.clipboardEnabled || state.clipboard.isEmpty
         else {
-            throw SymbolCatalogError("保存的内容无法读取，请检查文件后重试")
+            throw SymbolCatalogError(QuickContentText.string("quickContent.error.storedUnreadable"))
         }
         try validatePhrases(state.phrases)
         for text in state.clipboard { try validateText(text) }

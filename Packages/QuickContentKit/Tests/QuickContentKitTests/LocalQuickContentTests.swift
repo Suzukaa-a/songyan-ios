@@ -138,7 +138,8 @@ final class LocalQuickContentTests: XCTestCase {
         let store = LocalQuickContentStore(directory: url)
         try store.savePhrase(CommonPhrase(text: "kept"))
         XCTAssertThrowsError(try store.importPhrases(Data("broken".utf8))) { error in
-            XCTAssertEqual(error.localizedDescription, "文件不完整或格式不正确，请选择松烟导出的常用语文件")
+            let expected = (try? LocalizedCatalog.renderings("quickContent.error.unreadable")) ?? []
+            XCTAssertTrue(expected.contains(error.localizedDescription), error.localizedDescription)
         }
         XCTAssertEqual(try store.read().phrases.first?.text, "kept")
     }
