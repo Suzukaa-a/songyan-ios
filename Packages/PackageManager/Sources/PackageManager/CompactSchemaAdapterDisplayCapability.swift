@@ -23,7 +23,7 @@ public extension CompactSchemaAdapter {
     /// to `display_generator_version` in `keyboard-adapter-display.json` and, with the source's
     /// compiled digest, decides whether an installed generation must be rebuilt. The wire
     /// `keyboard_adapter` `version` is controlled separately by `SchemaDisplayCapability.supportedVersion`.
-    static let displayGeneratorVersion = 10
+    static let displayGeneratorVersion = 11
 
     /// One spelling after source-algebra projection. `isNormal`/`isCorrection` come from librime's
     /// `Spelling.properties.type == kNormalSpelling` and `is_correction`, tagged by the native

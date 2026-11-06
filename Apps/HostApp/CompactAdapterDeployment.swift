@@ -153,7 +153,8 @@ enum CompactAdapterDeployment {
             // own spellings, never from candidate presence.
             let routes = layoutRoutes(
                 requestedLayouts,
-                numericSource: aliasRepresentable && CompactSchemaAdapter.isNumericCodeSource(projection))
+                numericSource: aliasRepresentable && CompactSchemaAdapter.isNumericCodeSource(projection)
+                    && !CompactSchemaAdapter.declaresLetterClassPrefixSource(projection))
             if let digits = routes.native {
                 adapters.append(
                     .init(

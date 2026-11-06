@@ -25,9 +25,11 @@ import CryptoKit
 //   the engine: no hanzi is committed, the composition stays valid, restore is
 //   lossless, and stale/invalid/unknown requests change nothing.
 //
-//   PROFILE C (un-opted): the same source WITHOUT the opt-in. Generation
-//   succeeds, but it must produce the bounded alias lock — no prefix layer, no
-//   prefix keys — so an upstream scheme is never auto-upgraded.
+//   PROFILE C (un-opted): the same source WITHOUT the opt-in. An un-opted
+//   numeric source is served NATIVELY on the phone9 layout (no generated
+//   9-key companion, hence no prefix layer, no prefix keys and no rewrite
+//   capability at all); its 14-key companion still carries only the bounded
+//   alias lock — so an upstream scheme is never auto-upgraded.
 //
 // Everything is machine-parsable (`INFO`/`PASS`/`FAIL`/`RESULT` lines). The
 // harness only fails on contract violations, never because an upstream scheme
@@ -188,6 +190,15 @@ struct T9LetterLockMain {
         else {
             fail("opted profile: no generated 9-key companion for t9_digits")
         }
+        // The opt-in can only exist in a generated companion, so an opted-in source
+        // must never be routed natively on the phone9 layout: that route carries no
+        // rewrite capability and would silently void the opt-in.
+        check(
+            !adaptersA.contains(where: {
+                $0.sourceSchemaID == "t9_digits" && $0.layout == .phone9
+                    && $0.schemaID == $0.sourceSchemaID
+            }),
+            "A: the opted-in source is not served natively on the phone9 layout")
         let companionA = userRootURL.appendingPathComponent("a")
             .appendingPathComponent(t9AdapterA.schemaID + ".schema.yaml").path
         guard let yamlA = try? String(contentsOfFile: companionA, encoding: .utf8) else {
@@ -525,7 +536,7 @@ struct T9LetterLockMain {
         engineA.shutdown()
 
         // =====================================================================
-        // PROFILE C — the adapted-but-un-opted source: alias lock, never v4
+        // PROFILE C — the adapted-but-un-opted source: native phone9, never v4
         // =====================================================================
         let adaptedSourceYAML = URL(fileURLWithPath: adapted, isDirectory: true)
             .appendingPathComponent("t9_digits.schema.yaml").path
@@ -534,22 +545,39 @@ struct T9LetterLockMain {
             shared: adapted, user: userRootURL.appendingPathComponent("c").path,
             sources: ["t9_digits"])
         let adaptersC = adapters(userRootURL.appendingPathComponent("c").path)
+        // An un-opted numeric source runs the phone9 layout natively: a generated
+        // companion could only carry a capability the source never asked for, so
+        // none is generated and the source schema itself is the 9-key engine schema.
+        check(
+            adaptersC.contains(where: {
+                $0.sourceSchemaID == "t9_digits" && $0.layout == .phone9
+                    && $0.schemaID == $0.sourceSchemaID
+            }),
+            "C: the un-opted numeric source is served natively on the phone9 layout")
+        check(
+            !adaptersC.contains(where: {
+                $0.layout == .phone9 && $0.schemaID != $0.sourceSchemaID
+            }),
+            "C: no generated 9-key companion without the opt-in")
+        // Generation still succeeds for the layouts that do need a companion.
         guard
-            let t9AdapterC = adaptersC.first(where: {
-                $0.sourceSchemaID == "t9_digits" && $0.layout == .phone9 && $0.schemaID != $0.sourceSchemaID
+            let t9AdapterC14 = adaptersC.first(where: {
+                $0.sourceSchemaID == "t9_digits" && $0.layout == .merged14
+                    && $0.schemaID != $0.sourceSchemaID
             })
         else {
-            fail("adapted profile: no generated 9-key companion for t9_digits")
+            fail("adapted profile: no generated 14-key companion for t9_digits")
         }
         let companionC = userRootURL.appendingPathComponent("c")
-            .appendingPathComponent(t9AdapterC.schemaID + ".schema.yaml").path
+            .appendingPathComponent(t9AdapterC14.schemaID + ".schema.yaml").path
         guard let yamlC = try? String(contentsOfFile: companionC, encoding: .utf8) else {
-            fail("adapted profile: generated companion missing")
+            fail("adapted profile: generated 14-key companion missing at \(companionC)")
         }
         emit(
             "COMPANION_C",
             [
-                "schemaID": t9AdapterC.schemaID,
+                "schemaID": t9AdapterC14.schemaID,
+                "fold": "merged14",
                 "hasV4Lock": yamlC.contains(CompactSchemaAdapter.prefixTokenLockValue),
                 "hasAliasLock": yamlC.contains(CompactSchemaAdapter.tokenAliasLockValue),
                 "hasPrefixKeys": yamlC.contains("prefix_keys:"),
@@ -572,26 +600,54 @@ struct T9LetterLockMain {
             sha256(ofFile: adaptedSourceYAML) == adaptedDigestBefore,
             "C: source schema byte-identical after generation (read-only source)")
 
-        guard engineC.selectSchema(t9AdapterC.schemaID) else { fail("C: select companion") }
+        // The 14-key alias companion still verifies natively (candidate-free deploy
+        // check): an un-opted source is never upgraded, and never loses its lock.
+        guard engineC.selectSchema(t9AdapterC14.schemaID) else { fail("C: select 14-key companion") }
         check(
             engineC.rewriteVerification() == .verified,
             "C: alias companion verification unchanged")
         engineC.clearComposition()
-        let reportC = probe(engineC, "2")
-        guard let reportC else { fail("C: no live report for 2") }
-        emit(
-            "REPORT2_C",
-            [
-                "mode": reportC.lockMode.rawValue,
-                "spellings": reportC.spellings,
-                "lockable": reportC.lockable,
-                "prefixOptions": reportC.prefixOptions,
-            ])
-        check(reportC.lockMode != .prefixToken, "C: un-opted companion keeps its lock mode")
-        check(reportC.prefixOptions.isEmpty, "C: no prefix options without the opt-in")
+
+        // The native 9-key route IS the source schema: it composes for real, but it
+        // declares no rewrite capability, so no lock or narrowing can ever be offered.
+        guard engineC.selectSchema("t9_digits") else { fail("C: select the native source") }
         check(
-            reportC.lockable == ["a"],
-            "C: lockable for 2 is the exact single-letter token only (got \(reportC.lockable))")
+            engineC.rewriteVerification() == .absent,
+            "C: the natively served source declares no rewrite capability")
+        engineC.clearComposition()
+        type(engineC, "2")
+        check(
+            !candidates(engineC).isEmpty,
+            "C: the natively served source composes real candidates for 2")
+        let reportC = engineC.ambiguitySpellings()
+        if let reportC {
+            emit(
+                "REPORT2_C",
+                [
+                    "mode": reportC.lockMode.rawValue,
+                    "spellings": reportC.spellings,
+                    "lockable": reportC.lockable,
+                    "prefixOptions": reportC.prefixOptions,
+                ])
+        }
+        check(
+            reportC == nil || reportC?.lockMode == RimeAmbiguitySpellings.LockMode.none,
+            "C: the native route exposes no lock mode")
+        check(
+            reportC?.prefixOptions.isEmpty ?? true,
+            "C: no prefix options without a generated companion")
+        check(
+            reportC?.lockable.isEmpty ?? true,
+            "C: the native route exposes no lockable option")
+        let refusedC = engineC.applyAmbiguitySpelling(
+            expectedInput: "2", segmentStart: 0, segmentEnd: 1, spelling: "a")
+        check(
+            refusedC == .unsupported,
+            "C: a lock request without a capability is refused (got \(refusedC))")
+        check(
+            engineC.state().input == "2",
+            "C: the refused lock request left the native input")
+        engineC.clearComposition()
         engineC.shutdown()
 
         // =====================================================================
@@ -600,7 +656,7 @@ struct T9LetterLockMain {
             [
                 "failures": failureCount,
                 "optedCompanion": t9AdapterA.schemaID,
-                "adaptedCompanion": t9AdapterC.schemaID,
+                "adaptedCompanion": t9AdapterC14.schemaID,
             ])
         print("ALL DONE (failures=\(failureCount))")
         if failureCount > 0 { exit(1) }
