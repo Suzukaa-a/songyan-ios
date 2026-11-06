@@ -160,7 +160,8 @@ public enum BuiltinScriptDefault {
     ) -> EngineOptionDescriptor {
         EngineOptionDescriptor(
             resourceID: resourceID, schemaID: schemaID, name: state.optionName,
-            title: "字形", disabledLabel: state.optionName, enabledLabel: state.optionName,
+            title: String(localized: "core.term.scriptShape", bundle: .module),
+            disabledLabel: state.optionName, enabledLabel: state.optionName,
             choiceGroup: TraditionalDefault.optionGroup, choiceLabel: state.optionName)
     }
 

@@ -481,10 +481,12 @@ public enum LearningBackupArchiveError: Error, LocalizedError, Equatable, Sendab
         /// User-facing field description.
         public var localizedName: String {
             switch self {
-            case .sourceID: return "输入方案标识"
-            case .resourceRevision: return "方案版本"
-            case .sourceName: return "输入方案名称"
-            case .engineVersion: return "引擎版本"
+            case .sourceID: return String(localized: "core.backup.field.sourceID", bundle: .module)
+            case .resourceRevision:
+                return String(localized: "core.backup.field.resourceRevision", bundle: .module)
+            case .sourceName: return String(localized: "core.backup.field.sourceName", bundle: .module)
+            case .engineVersion:
+                return String(localized: "core.backup.field.engineVersion", bundle: .module)
             }
         }
     }
@@ -541,43 +543,54 @@ public enum LearningBackupArchiveError: Error, LocalizedError, Equatable, Sendab
     public var errorDescription: String? {
         switch self {
         case .cryptoUnavailable:
-            return "当前设备无法校验备份的完整性。"
+            return String(localized: "core.backup.error.cryptoUnavailable", bundle: .module)
         case .unsupportedVersion(let version):
-            return "备份格式版本（\(version)）不受支持。"
+            return String(
+                format: String(localized: "core.backup.error.unsupportedVersion", bundle: .module),
+                String(version))
         case .unexpectedProducer:
-            return "备份不是由键盘扩展生成的，无法导入。"
+            return String(localized: "core.backup.error.unexpectedProducer", bundle: .module)
         case .missingField(let key):
-            return "备份缺少必需字段（\(key)）。"
+            return String(
+                format: String(localized: "core.backup.error.missingField", bundle: .module), key)
         case .malformedArchive:
-            return "备份内容已损坏或格式不正确。"
+            return String(localized: "core.backup.error.malformedArchive", bundle: .module)
         case .malformedDigest:
-            return "备份中的词典摘要格式不正确。"
+            return String(localized: "core.backup.error.malformedDigest", bundle: .module)
         case .digestMismatch:
-            return "备份中的词典内容与摘要不一致，可能已损坏。"
+            return String(localized: "core.backup.error.digestMismatch", bundle: .module)
         case .emptyDictionaries:
-            return "备份不包含任何词典。"
+            return String(localized: "core.backup.error.emptyDictionaries", bundle: .module)
         case .tooManyDictionaries:
-            return "备份包含的词典数量超过上限。"
+            return String(localized: "core.backup.error.tooManyDictionaries", bundle: .module)
         case .duplicateDictionaryName:
-            return "备份中存在重复的词典名。"
+            return String(localized: "core.backup.error.duplicateDictionaryName", bundle: .module)
         case .invalidDictionaryName:
-            return "备份中存在不合法的词典名。"
+            return String(localized: "core.backup.error.invalidDictionaryName", bundle: .module)
         case .dictionaryTooLarge:
-            return "备份中的单个词典超过大小上限。"
+            return String(localized: "core.backup.error.dictionaryTooLarge", bundle: .module)
         case .dictionariesTooLarge:
-            return "备份的词典总大小超过上限。"
+            return String(localized: "core.backup.error.dictionariesTooLarge", bundle: .module)
         case .encodedTooLarge:
-            return "备份文件超过大小上限。"
+            return String(localized: "core.backup.error.encodedTooLarge", bundle: .module)
         case .emptyMetadata(let field):
-            return "备份缺少\(field.localizedName)。"
+            return String(
+                format: String(localized: "core.backup.error.emptyMetadata", bundle: .module),
+                field.localizedName)
         case .metadataTooLong(let field, _):
-            return "\(field.localizedName)超过长度上限。"
+            return String(
+                format: String(localized: "core.backup.error.metadataTooLong", bundle: .module),
+                field.localizedName)
         case .metadataControlCharacter(let field):
-            return "\(field.localizedName)包含不允许的控制字符。"
+            return String(
+                format: String(localized: "core.backup.error.metadataControlCharacter", bundle: .module),
+                field.localizedName)
         case .invalidCreatedAt:
-            return "备份的创建时间无效。"
+            return String(localized: "core.backup.error.invalidCreatedAt", bundle: .module)
         case .identityMismatch(let field):
-            return "备份与当前的\(field.localizedName)不一致，无法导入。"
+            return String(
+                format: String(localized: "core.backup.error.identityMismatch", bundle: .module),
+                field.localizedName)
         }
     }
 }

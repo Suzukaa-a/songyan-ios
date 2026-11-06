@@ -5,6 +5,16 @@ import XCTest
 /// Automatic key faces of the three input languages. Only the native automatic face is named here:
 /// an authored label always wins.
 final class KeyLabelPolicyTests: XCTestCase {
+    func testAuthoredAutomaticControlsFollowInputScript() {
+        XCTAssertEqual(KeyLabelPolicy.symbolLockTitle(script: .simplifiedChinese), "锁定")
+        XCTAssertEqual(KeyLabelPolicy.symbolLockTitle(script: .traditionalChinese), "鎖定")
+        XCTAssertEqual(KeyLabelPolicy.symbolLockTitle(script: .japanese), "固定")
+        XCTAssertEqual(KeyLabelPolicy.clearInputTitle(script: .simplifiedChinese), "重输")
+        XCTAssertEqual(KeyLabelPolicy.clearInputTitle(script: .traditionalChinese), "重輸")
+        XCTAssertEqual(KeyLabelPolicy.clearInputTitle(script: .japanese), "取消")
+        XCTAssertEqual(KeyLabelPolicy.shiftTitle(script: .japanese), "⇧")
+    }
+
     private func policy(
         _ script: KeyLabelScript, english: Bool = false, ascii: Bool = false,
         page: KeyboardControlPolicy.Page = .letters, phone: Bool = false

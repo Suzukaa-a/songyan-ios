@@ -19,6 +19,30 @@ extension LayoutKey {
 }
 
 public enum KeyLabelPolicy {
+    public static func symbolLockTitle(script: KeyLabelScript) -> String {
+        switch script {
+        case .simplifiedChinese: return "锁定"
+        case .traditionalChinese: return "鎖定"
+        case .japanese: return "固定"
+        }
+    }
+
+    public static func clearInputTitle(script: KeyLabelScript) -> String {
+        switch script {
+        case .simplifiedChinese: return "重输"
+        case .traditionalChinese: return "重輸"
+        case .japanese: return "取消"
+        }
+    }
+
+    public static func shiftTitle(script: KeyLabelScript) -> String {
+        switch script {
+        case .simplifiedChinese: return "上档"
+        case .traditionalChinese: return "上檔"
+        case .japanese: return "⇧"
+        }
+    }
+
     /// The action a host Return key will perform, independent of UIKit's return-key types.
     public enum ReturnIntent: Sendable, Equatable, CaseIterable {
         case lineBreak

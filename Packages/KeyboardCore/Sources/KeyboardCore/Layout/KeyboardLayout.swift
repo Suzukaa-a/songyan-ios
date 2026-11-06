@@ -50,12 +50,13 @@ public enum KeyboardLayoutKind: String, CaseIterable, Identifiable, Codable, Sen
     }
 
     /// User-facing "keyboard layout" name (same wording in Host and keyboard; see `UserTerminology`).
+    /// The words live in the package catalog, like the other ordinary interface copy.
     public var userTitle: String {
         switch self {
-        case .qwerty26: return "26 键"
-        case .merged14: return "14 键"
-        case .merged18: return "18 键"
-        case .phone9: return "9 键"
+        case .qwerty26: return String(localized: "core.layout.qwertyTitle", bundle: .module)
+        case .merged14: return String(localized: "core.layout.merged14Title", bundle: .module)
+        case .merged18: return String(localized: "core.layout.merged18Title", bundle: .module)
+        case .phone9: return String(localized: "core.layout.phone9Title", bundle: .module)
         }
     }
 
@@ -67,10 +68,10 @@ public enum KeyboardLayoutKind: String, CaseIterable, Identifiable, Codable, Sen
 
     public var detail: String {
         switch self {
-        case .qwerty26: return "每个字母一个键。"
-        case .merged14: return "两个字母合用一个键。"
-        case .merged18: return "部分字母单独一个键，其余两个字母合用一个键。"
-        case .phone9: return "数字键 2–9 各对应几个字母。"
+        case .qwerty26: return String(localized: "core.layout.qwertyDetail", bundle: .module)
+        case .merged14: return String(localized: "core.layout.merged14Detail", bundle: .module)
+        case .merged18: return String(localized: "core.layout.merged18Detail", bundle: .module)
+        case .phone9: return String(localized: "core.layout.phone9Detail", bundle: .module)
         }
     }
 }

@@ -28,6 +28,2910 @@
           }
         }
       }
+    },
+    "layout.error.asciiOnlyLiteral": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只有文字键可以同时填写英文符号，请重新选择。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只有文字鍵可以同時填寫英文符號，請重新選擇。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "英字記号を入力できるのは文字キーだけです。選び直してください。"
+          }
+        }
+      }
+    },
+    "layout.error.codeValue": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入字母的按键只能填一个英文字母、数字或符号，请修改后保存。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "輸入字母的按鍵只能填一個英文字母、數字或符號，請修改後儲存。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "英字を入力するキーには、英字・数字・記号のいずれか 1 文字だけを指定してください。修正してから保存してください。"
+          }
+        }
+      }
+    },
+    "layout.error.literalEmpty": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请填写按键要输入的文字。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請填寫按鍵要輸入的文字。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーで入力する文字を入力してください。"
+          }
+        }
+      }
+    },
+    "layout.error.asciiValueEmpty": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "英文符号不能为空，请重新填写。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "英文符號不能為空，請重新填寫。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "英字記号を空にはできません。入力し直してください。"
+          }
+        }
+      }
+    },
+    "layout.error.modeSwitchValue": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "切换布局键的设置无法识别，请重新选择。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "切換佈局鍵的設定無法識別，請重新選擇。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "配列を切り替えるキーの設定を認識できません。選び直してください。"
+          }
+        }
+      }
+    },
+    "layout.error.pageSwitchTarget": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "翻页键只能选择字母、数字或符号页，请重新选择。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "翻頁鍵只能選擇字母、數字或符號頁，請重新選擇。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ページ切り替えキーは、英字・数字・記号ページから選んでください。"
+          }
+        }
+      }
+    },
+    "layout.error.pageJumpTarget": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "跳转键只能选择 26 键、14 键、18 键或 9 键的数字页或符号页，请重新选择。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "跳轉鍵只能選擇 26 鍵、14 鍵、18 鍵或 9 鍵的數字頁或符號頁，請重新選擇。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ジャンプキーは、26 キー・14 キー・18 キー・9 キーの数字ページまたは記号ページから選んでください。"
+          }
+        }
+      }
+    },
+    "layout.error.languageSwitchValue": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "中英键的行为无法识别，请重新选择。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "中英鍵的行為無法識別，請重新選擇。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "中英キーの動作を認識できません。選び直してください。"
+          }
+        }
+      }
+    },
+    "layout.error.functionKeyValue": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这个功能键不需要填写输入的文字，请清空后保存。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這個功能鍵不需要填寫輸入的文字，請清空後儲存。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このファンクションキーには入力する文字を指定しません。空にしてから保存してください。"
+          }
+        }
+      }
+    },
+    "layout.error.fileTooLarge": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "布局文件过大，请删掉一些按键或文字后再试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "佈局檔案過大，請刪掉一些按鍵或文字後再試。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "配列ファイルが大きすぎます。キーや文字を減らしてからもう一度お試しください。"
+          }
+        }
+      }
+    },
+    "layout.error.t9OnlySettings": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "首键与快捷符号设置只适用于九键布局，请移除后再导入。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "首鍵與快捷符號設定只適用於九鍵佈局，請移除後再匯入。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "先頭キーとクイック記号の設定は 9 キー配列だけで使えます。削除してから読み込んでください。"
+          }
+        }
+      }
+    },
+    "layout.error.quickSymbols": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快捷符号最多填写 12 个，不能重复或包含空白，请修改后保存。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快捷符號最多填寫 12 個，不能重複或包含空白，請修改後儲存。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "クイック記号は 12 個までです。重複や空白は使えません。修正してから保存してください。"
+          }
+        }
+      }
+    },
+    "layout.error.longPressDelay": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "长按等待时间要大于 0 秒，请修改后保存。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "長按等待時間要大於 0 秒，請修改後儲存。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "長押しの待ち時間は 0 秒より大きくしてください。修正してから保存してください。"
+          }
+        }
+      }
+    },
+    "layout.error.missingName": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请填写名称后再保存。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請填寫名稱後再儲存。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "名前を入力してから保存してください。"
+          }
+        }
+      }
+    },
+    "layout.error.emptySchema": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这个布局指定的输入方案是空的，请重新选择输入方案。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這個佈局指定的輸入方案是空的，請重新選擇輸入方案。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この配列に指定された入力パックが空です。入力パックを選び直してください。"
+          }
+        }
+      }
+    },
+    "layout.error.missingTarget": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请选择这个布局适用的输入方案，或者适用的键盘（如 26 键、9 键）。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請選擇這個佈局適用的輸入方案，或者適用的鍵盤（如 26 鍵、9 鍵）。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この配列で使う入力パック、またはキーボード（26 キー・9 キーなど）を選んでください。"
+          }
+        }
+      }
+    },
+    "layout.error.noRows": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请至少保留一行，每行至少保留一个按键。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請至少保留一行，每行至少保留一個按鍵。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "行を 1 行以上、各キーを 1 つ以上残してください。"
+          }
+        }
+      }
+    },
+    "layout.error.readingNeedsCandidates": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拼音提示行需要显示候选栏，请开启后保存。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拼音提示行需要顯示候選列，請開啟後儲存。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ピンインのヒント行には候補バーが必要です。オンにしてから保存してください。"
+          }
+        }
+      }
+    },
+    "layout.error.phoneReadingSide": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "9 键的拼音显示在左侧栏，请关闭拼音提示行后保存。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "9 鍵的拼音顯示在左側欄，請關閉拼音提示行後儲存。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "9 キーのピンインは左側の欄に表示されます。ピンインのヒント行をオフにしてから保存してください。"
+          }
+        }
+      }
+    },
+    "layout.error.engineKeysNeedCandidates": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入字母的按键需要显示候选栏，请开启后保存。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "輸入字母的按鍵需要顯示候選列，請開啟後儲存。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "英字を入力するキーには候補バーが必要です。オンにしてから保存してください。"
+          }
+        }
+      }
+    },
+    "layout.error.disambiguationKeys": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选字辅助区的按键由输入法自动提供，请清空其中的按键后保存。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選字輔助區的按鍵由輸入法自動提供，請清空其中的按鍵後儲存。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選択補助エリアのキーは入力方式が自動で用意します。キーを空にしてから保存してください。"
+          }
+        }
+      }
+    },
+    "layout.error.keyTitle": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请填写按键标题，并把宽度设为大于 0 的数字。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請填寫按鍵標題，並把寬度設為大於 0 的數字。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーのタイトルを入力し、幅を 0 より大きい数にしてください。"
+          }
+        }
+      }
+    },
+    "layout.error.optionTitle": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请填写长按项的标题。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請填寫長按項的標題。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "長押し項目のタイトルを入力してください。"
+          }
+        }
+      }
+    },
+    "layout.error.duplicateID": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已经有一个相同的键盘布局，请选择替换，或者另存为副本。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已經有一個相同的鍵盤配置，請選擇取代，或者另存為副本。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同じキーボード配列がすでにあります。置き換えるか、別名で複製してください。"
+          }
+        }
+      }
+    },
+    "layout.error.unknownID": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "找不到这个键盘布局，它可能已经被删除。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "找不到這個鍵盤配置，它可能已經被刪除。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このキーボード配列が見つかりません。削除された可能性があります。"
+          }
+        }
+      }
+    },
+    "layout.error.copySuffix": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ 副本"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ 副本"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ のコピー"
+          }
+        }
+      }
+    },
+    "page.error.only123Presentation": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只有 123 页可以选择「自动」或「数字九宫格」，请重新选择页面。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只有 123 頁可以選擇「自動」或「數字九宮格」，請重新選擇頁面。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "123 ページで選べるのは「自動」か「数字キーパッド」だけです。ページを選び直してください。"
+          }
+        }
+      }
+    },
+    "page.error.categoriesOnlySymbols": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分类浏览只适用于符号页，请重新选择页面。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分類瀏覽只適用於符號頁，請重新選擇頁面。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分類して表示できるのは記号ページだけです。ページを選び直してください。"
+          }
+        }
+      }
+    },
+    "page.error.autoNumericPlain": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「自动 123」不能带按键或分类，请复制一份再编辑。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「自動 123」不能帶按鍵或分類，請複製一份再編輯。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「自動 123」にはキーや分類を追加できません。複製してから編集してください。"
+          }
+        }
+      }
+    },
+    "page.error.categorizedLeading": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分类符号页的左侧栏由分类决定，不能再放按键。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分類符號頁的左側欄由分類決定，不能再放按鍵。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分類付きの記号ページでは、左側の欄は分類で決まります。キーは追加できません。"
+          }
+        }
+      }
+    },
+    "page.error.oneCategory": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请至少保留一个分类。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請至少保留一個分類。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分類を 1 つ以上残してください。"
+          }
+        }
+      }
+    },
+    "page.error.duplicateCategory": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有两个分类重复了，请删掉其中一个。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有兩個分類重複了，請刪掉其中一個。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同じ分類が 2 つあります。どちらかを削除してください。"
+          }
+        }
+      }
+    },
+    "page.error.categoriesWrongKind": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只有分类符号页可以放分类，请删掉分类，或者改用分类符号页。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只有分類符號頁可以放分類，請刪掉分類，或者改用分類符號頁。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分類を置けるのは分類付きの記号ページだけです。分類を削除するか、分類付きの記号ページに変更してください。"
+          }
+        }
+      }
+    },
+    "page.error.emptyPhoneGrid": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这个数字九宫格没有按键，请复制「数字九宫格」页面后再编辑。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這個數字九宮格沒有按鍵，請複製「數字九宮格」頁面後再編輯。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この数字キーパッドにはキーがありません。「数字キーパッド」ページを複製してから編集してください。"
+          }
+        }
+      }
+    },
+    "page.error.noRows": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请至少保留一行，每行至少保留一个按键。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請至少保留一行，每行至少保留一個按鍵。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "行を 1 行以上、各キーを 1 つ以上残してください。"
+          }
+        }
+      }
+    },
+    "page.error.pageName": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请填写页面名称。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請填寫頁面名稱。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ページ名を入力してください。"
+          }
+        }
+      }
+    },
+    "page.error.pageNameTooLong": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "页面名称过长，请缩短后保存。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "頁面名稱過長，請縮短後儲存。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ページ名が長すぎます。短くしてから保存してください。"
+          }
+        }
+      }
+    },
+    "page.error.pageKeyLiteral": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "页面上的按键请选择「输入文字」。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "頁面上的按鍵請選擇「輸入文字」。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ページ上のキーは「文字を入力」を選んでください。"
+          }
+        }
+      }
+    },
+    "page.kind.numeric": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "123 页"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "123 頁"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "123ページ"
+          }
+        }
+      }
+    },
+    "page.kind.symbols": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "符号页"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "符號頁"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記号ページ"
+          }
+        }
+      }
+    },
+    "page.kind.english": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ABC 页"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ABC 頁"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ABCページ"
+          }
+        }
+      }
+    },
+    "registry.error.pageMissing": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "找不到这个页面，它可能已经被删除。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "找不到這個頁面，它可能已經被刪除。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このページが見つかりません。削除された可能性があります。"
+          }
+        }
+      }
+    },
+    "registry.error.pageInUse": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这个页面正在被键盘使用，请先在「页面搭配」里换成别的页面。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這個頁面正在被鍵盤使用，請先在「頁面搭配」裡換成別的頁面。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このページはキーボードで使われています。「ページの組み合わせ」で別のページに替えてください。"
+          }
+        }
+      }
+    },
+    "registry.error.presetPage": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "预设页面请先复制，再编辑副本。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "預設頁面請先複製，再編輯副本。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プリセットページはいったん複製してから、その複製を編集してください。"
+          }
+        }
+      }
+    },
+    "registry.error.builtinLayout": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内置布局不能删除，可以复制一份再修改。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "內建佈局不能刪除，可以複製一份再修改。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "組み込みの配列は削除できません。複製してから変更してください。"
+          }
+        }
+      }
+    },
+    "registry.error.layoutInUse": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这个键盘布局正在被键盘使用，请先在「页面搭配」里换一个主布局。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這個鍵盤配置正在被鍵盤使用，請先在「頁面搭配」裡換一個主佈局。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このキーボード配列はキーボードで使われています。「ページの組み合わせ」で別のメイン配列に替えてください。"
+          }
+        }
+      }
+    },
+    "registry.error.duplicateLayouts": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "布局列表里有重复的布局，请删掉其中一个后重试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "佈局列表裡有重複的佈局，請刪掉其中一個後重試。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "配列の一覧に重複した配列があります。どちらかを削除してからもう一度お試しください。"
+          }
+        }
+      }
+    },
+    "registry.error.duplicatePages": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "页面库里有重复的页面，请删掉其中一个后重试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "頁面庫裡有重複的頁面，請刪掉其中一個後重試。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ページの一覧に重複したページがあります。どちらかを削除してからもう一度お試しください。"
+          }
+        }
+      }
+    },
+    "registry.error.compositionKeyboardMissing": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「页面搭配」里有一个键盘找不到了，请重新选择键盘。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「頁面搭配」裡有一個鍵盤找不到了，請重新選擇鍵盤。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「ページの組み合わせ」にあるキーボードが見つかりません。キーボードを選び直してください。"
+          }
+        }
+      }
+    },
+    "registry.error.compositionLayoutMissing": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「页面搭配」选的主布局已经不存在，请重新选择。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「頁面搭配」選的主佈局已經不存在，請重新選擇。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「ページの組み合わせ」で選んだメイン配列がありません。選び直してください。"
+          }
+        }
+      }
+    },
+    "registry.error.layoutNotForInputMethod": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这个键盘布局不适用于当前输入方式，请换一个键盘布局。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這個鍵盤配置不適用於當前輸入方式，請換一個鍵盤配置。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このキーボード配列は現在の入力方式では使えません。別のキーボード配列に替えてください。"
+          }
+        }
+      }
+    },
+    "registry.error.compositionPageMissing": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「页面搭配」选的页面已经不存在，请重新选择。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「頁面搭配」選的頁面已經不存在，請重新選擇。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「ページの組み合わせ」で選んだページがありません。選び直してください。"
+          }
+        }
+      }
+    },
+    "registry.error.catalogTooLarge": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所有布局和页面加起来太大了，没能保存，请先删掉一些不用的布局或页面。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所有佈局和頁面加起來太大了，沒能儲存，請先刪掉一些不用的佈局或頁面。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "すべての配列とページの合計が大きすぎて保存できませんでした。使っていない配列やページを削除してください。"
+          }
+        }
+      }
+    },
+    "layout.error.splitGap": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拆分间距应在 0% 到 85% 之间，请调整后保存。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拆分間距應在 0% 到 85% 之間，請調整後儲存。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分割の間隔は 0% から 85% の間にしてください。調整してから保存してください。"
+          }
+        }
+      }
+    },
+    "layout.error.halvesShape": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拆分时的键盘要和键盘有同样的行数，每一边至少要有一个键。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拆分時的鍵盤要和鍵盤有同樣的行數，每一邊至少要有一個鍵。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分割時のキーボードは行数が本体と同じで、左右それぞれに 1 つ以上キーが必要です。"
+          }
+        }
+      }
+    },
+    "layout.error.halvesOnlyOnLayout": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只有键盘布局可以单独设置拆分时的按键。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只有鍵盤配置可以單獨設定拆分時的按鍵。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分割時のキーを個別に設定できるのはキーボード配列だけです。"
+          }
+        }
+      }
+    },
+    "layout.error.splitBreaksTooMany": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拆分位置比按键行还多，请重新设置拆分位置。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拆分位置比按鍵行還多，請重新設定拆分位置。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分割位置がキーの行数より多くなっています。分割位置を設定し直してください。"
+          }
+        }
+      }
+    },
+    "layout.error.splitBreakPosition": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拆分位置应在两个按键之间，请调整后保存。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拆分位置應在兩個按鍵之間，請調整後儲存。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分割位置はキーとキーの間にしてください。調整してから保存してください。"
+          }
+        }
+      }
+    },
+    "layout.budget.textTooLong": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有一段文字太长，请缩短后再保存。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有一段文字太長，請縮短後再儲存。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "長すぎる文字があります。短くしてから保存してください。"
+          }
+        }
+      }
+    },
+    "layout.budget.alternatesPerKey": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一个键最多 %1$@ 个长按项，请删掉一些。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一個鍵最多 %1$@ 個長按項，請刪掉一些。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 つのキーの長押し項目は最大 %1$@ 個です。いくつか削除してください。"
+          }
+        }
+      }
+    },
+    "layout.budget.keysPerRegion": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一行或一侧最多 %1$@ 个键，请删掉一些。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一行或一側最多 %1$@ 個鍵，請刪掉一些。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 行または片側のキーは最大 %1$@ 個です。いくつか削除してください。"
+          }
+        }
+      }
+    },
+    "layout.budget.keys": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按键超过 %1$@ 个，请删掉一些按键。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按鍵超過 %1$@ 個，請刪掉一些按鍵。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーが %1$@ 個を超えています。いくつか削除してください。"
+          }
+        }
+      }
+    },
+    "layout.budget.alternates": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "长按项超过 %1$@ 个，请删掉一些长按项。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "長按項超過 %1$@ 個，請刪掉一些長按項。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "長押し項目が %1$@ 個を超えています。いくつか削除してください。"
+          }
+        }
+      }
+    },
+    "layout.budget.text": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文字太多了，请删掉一些按键或缩短文字。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文字太多了，請刪掉一些按鍵或縮短文字。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文字が多すぎます。キーを減らすか、文字を短くしてください。"
+          }
+        }
+      }
+    },
+    "layout.budget.rows": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最多 %1$@ 行，请删掉多出来的行。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最多 %1$@ 行，請刪掉多出來的行。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "行は最大 %1$@ 行です。余分な行を削除してください。"
+          }
+        }
+      }
+    },
+    "layout.budget.auxiliaryAreas": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最多 %1$@ 个侧栏，请删掉多出来的侧栏。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最多 %1$@ 個側欄，請刪掉多出來的側欄。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "側面の欄は最大 %1$@ 個です。余分な欄を削除してください。"
+          }
+        }
+      }
+    },
+    "layout.budget.pageCategories": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最多 %1$@ 个分类，请删掉一些分类。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最多 %1$@ 個分類，請刪掉一些分類。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分類は最大 %1$@ 個です。いくつか削除してください。"
+          }
+        }
+      }
+    },
+    "layout.budget.categoryKeys": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一个分类最多 %1$@ 个键，请删掉一些。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一個分類最多 %1$@ 個鍵，請刪掉一些。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 つの分類のキーは最大 %1$@ 個です。いくつか削除してください。"
+          }
+        }
+      }
+    },
+    "layout.budget.layouts": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最多 %1$@ 个键盘布局，请先删掉不用的布局。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最多 %1$@ 個鍵盤配置，請先刪掉不用的佈局。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーボード配列は最大 %1$@ 個です。使っていない配列を先に削除してください。"
+          }
+        }
+      }
+    },
+    "layout.budget.pages": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最多 %1$@ 个页面，请先删掉不用的页面。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最多 %1$@ 個頁面，請先刪掉不用的頁面。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ページは最大 %1$@ 個です。使っていないページを先に削除してください。"
+          }
+        }
+      }
+    },
+    "layout.budget.compositions": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "页面搭配最多保存 %1$@ 个，已经存满了。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "頁面搭配最多儲存 %1$@ 個，已經存滿了。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ページの組み合わせは最大 %1$@ 個まで保存できます。すでにいっぱいです。"
+          }
+        }
+      }
+    },
+    "layout.budget.catalogFull": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所有布局和页面加起来内容太多了，请先删掉一些不用的布局或页面。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所有佈局和頁面加起來內容太多了，請先刪掉一些不用的佈局或頁面。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "すべての配列とページの合計が多すぎます。使っていない配列やページを先に削除してください。"
+          }
+        }
+      }
+    },
+    "layout.budget.notAFileURL": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只能打开这台设备上的文件，请重新选择。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只能開啟這臺裝置上的檔案，請重新選擇。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このデバイス上のファイルだけを開けます。選び直してください。"
+          }
+        }
+      }
+    },
+    "layout.budget.notARegularFile": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请选择一个文件，不能是文件夹。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請選擇一個檔案，不能是資料夾。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイルを選んでください。フォルダは選べません。"
+          }
+        }
+      }
+    },
+    "layout.budget.fileTooLarge": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件过大，请选择小一些的文件。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "檔案過大，請選擇小一些的檔案。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイルが大きすぎます。もっと小さいファイルを選んでください。"
+          }
+        }
+      }
+    },
+    "layout.error.missingGlobeKey": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "缺少地球键，请添加后再保存或导入。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "缺少地球鍵，請新增後再儲存或匯入。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "地球キーがありません。追加してから保存または読み込んでください。"
+          }
+        }
+      }
+    },
+    "page.error.leadingWidth": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请把左侧栏宽度设为大于 0 的数字。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請把左側欄寬度設為大於 0 的數字。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "左側の欄の幅を 0 より大きい数にしてください。"
+          }
+        }
+      }
+    },
+    "page.error.trailingWidth": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请把右侧栏宽度设为大于 0 的数字。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請把右側欄寬度設為大於 0 的數字。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "右側の欄の幅を 0 より大きい数にしてください。"
+          }
+        }
+      }
+    },
+    "page.pairingNote": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这个搭配打不出：%1$@，可以在符号页加上这些键。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這個搭配打不出：%1$@，可以在符號頁加上這些鍵。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この組み合わせでは入力できません：%1$@。記号ページにこれらのキーを追加できます。"
+          }
+        }
+      }
+    },
+    "shinpin.field.version": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "版本"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "版本"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "バージョン"
+          }
+        }
+      }
+    },
+    "shinpin.field.id": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "标识"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "標識"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ID"
+          }
+        }
+      }
+    },
+    "shinpin.field.name": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "名称"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "名稱"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "名前"
+          }
+        }
+      }
+    },
+    "shinpin.field.hints": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示条目"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示條目"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ヒント項目"
+          }
+        }
+      }
+    },
+    "shinpin.field.presetCount": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "预设数量"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "預設數量"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プリセット数"
+          }
+        }
+      }
+    },
+    "shinpin.field.presetList": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "预设列表"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "預設列表"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プリセット一覧"
+          }
+        }
+      }
+    },
+    "shinpin.field.currentPreset": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前预设"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "當前預設"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在のプリセット"
+          }
+        }
+      }
+    },
+    "shinpin.field.enabled": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开关"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "開關"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スイッチ"
+          }
+        }
+      }
+    },
+    "shinpin.field.file": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示文件"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示檔案"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ヒントファイル"
+          }
+        }
+      }
+    },
+    "shinpin.field.settings": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示设置"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示設定"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ヒント設定"
+          }
+        }
+      }
+    },
+    "shinpin.malformed.choosePreset": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请选择提示预设文件"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請選擇提示預設檔案"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ヒントのプリセットファイルを選んでください"
+          }
+        }
+      }
+    },
+    "shinpin.malformed.chooseSettings": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请选择双拼提示文件"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請選擇雙拼提示檔案"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "双拼のヒントファイルを選んでください"
+          }
+        }
+      }
+    },
+    "shinpin.reason.onlyVersion": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只支持版本 %1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只支援版本 %1$@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "バージョン %1$@ のみ対応しています"
+          }
+        }
+      }
+    },
+    "shinpin.reason.requiredMaxBytes": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "必填且不超过 %1$@ 字节"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "必填且不超過 %1$@ 位元組"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "必須で、%1$@ バイト以内にしてください"
+          }
+        }
+      }
+    },
+    "shinpin.reason.idCharacters": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只能用英文字母、数字、短横线和下划线"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只能用英文字母、數字、短橫線和下劃線"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "半角英数字、ハイフン、アンダースコアだけを使えます"
+          }
+        }
+      }
+    },
+    "shinpin.reason.maximumCount": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最多 %1$@ 条"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最多 %1$@ 條"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最大 %1$@ 件です"
+          }
+        }
+      }
+    },
+    "shinpin.reason.onlyAZ": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "键名必须是一个英文字母 a-z"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "鍵名必須是一個英文字母 a-z"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キー名には a〜z の英字 1 文字を指定してください"
+          }
+        }
+      }
+    },
+    "shinpin.reason.lowercase": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "键名请用小写字母"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "鍵名請用小寫字母"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キー名は小文字で指定してください"
+          }
+        }
+      }
+    },
+    "shinpin.reason.maximumBytes": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内容不超过 %1$@ 字节"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "內容不超過 %1$@ 位元組"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内容は %1$@ バイト以内にしてください"
+          }
+        }
+      }
+    },
+    "shinpin.reason.noNewline": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内容不能换行"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "內容不能換行"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内容は改行できません"
+          }
+        }
+      }
+    },
+    "shinpin.reason.presetListNeeded": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要一组预设"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要一組預設"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プリセットの一覧が必要です"
+          }
+        }
+      }
+    },
+    "shinpin.reason.presetListMaximum": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最多 %1$@ 个"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最多 %1$@ 個"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最大 %1$@ 個です"
+          }
+        }
+      }
+    },
+    "shinpin.reason.presetListEntries": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每一项都需要是一个预设"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每一項都需要是一個預設"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "各項目はプリセットである必要があります"
+          }
+        }
+      }
+    },
+    "shinpin.reason.idsUnique": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "标识不能重复"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "標識不能重複"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ID を重複させることはできません"
+          }
+        }
+      }
+    },
+    "shinpin.reason.selectPreset": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要选择一个预设"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要選擇一個預設"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プリセットを 1 つ選ぶ必要があります"
+          }
+        }
+      }
+    },
+    "shinpin.reason.presetNotFound": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "找不到标识为 %1$@ 的预设"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "找不到標識為 %1$@ 的預設"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ID %1$@ のプリセットが見つかりません"
+          }
+        }
+      }
+    },
+    "shinpin.reason.moreThanMaximum": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最多 %1$@ 个，请先删除不用的预设"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最多 %1$@ 個，請先刪除不用的預設"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最大 %1$@ 個です。使っていないプリセットを先に削除してください"
+          }
+        }
+      }
+    },
+    "shinpin.error.fileTooLarge": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@过大：请控制在 %2$@ KB 以内。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@過大：請控制在 %2$@ KB 以內。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@が大きすぎます。%2$@ KB 以内にしてください。"
+          }
+        }
+      }
+    },
+    "shinpin.error.unreadable": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@无法读取：%2$@。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@無法讀取：%2$@。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@を読み取れません：%2$@。"
+          }
+        }
+      }
+    },
+    "shinpin.error.unknownField": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示文件里有不支持的字段「%1$@」，请检查文件。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示檔案裡有不支援的欄位「%1$@」，請檢查檔案。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ヒントファイルに未対応の項目「%1$@」があります。ファイルを確認してください。"
+          }
+        }
+      }
+    },
+    "shinpin.error.missingField": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示文件缺少「%1$@」（%2$@），请填写后再导入。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示檔案缺少「%1$@」（%2$@），請填寫後再匯入。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ヒントファイルに「%1$@」（%2$@）がありません。入力してから読み込んでください。"
+          }
+        }
+      }
+    },
+    "shinpin.error.stringField": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示文件里的「%1$@」需要是文字（%2$@）。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示檔案裡的「%1$@」需要是文字（%2$@）。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ヒントファイルの「%1$@」は文字で指定してください（%2$@）。"
+          }
+        }
+      }
+    },
+    "shinpin.error.intField": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示文件里的「%1$@」需要是整数（%2$@）。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示檔案裡的「%1$@」需要是整數（%2$@）。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ヒントファイルの「%1$@」は整数で指定してください（%2$@）。"
+          }
+        }
+      }
+    },
+    "shinpin.error.boolField": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示文件里的「%1$@」需要填 true 或 false（%2$@）。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示檔案裡的「%1$@」需要填 true 或 false（%2$@）。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ヒントファイルの「%1$@」には true か false を指定してください（%2$@）。"
+          }
+        }
+      }
+    },
+    "shinpin.error.fieldUnusable": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示文件「%1$@」无法使用：%2$@。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示檔案「%1$@」無法使用：%2$@。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ヒントファイルの「%1$@」を使用できません：%2$@。"
+          }
+        }
+      }
+    },
+    "shinpin.error.hintsShape": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示文件「提示内容」无法使用：需要一张「字母：提示」表。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示檔案「提示內容」無法使用：需要一張「字母：提示」表。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ヒントファイルの「ヒント内容」を使用できません。「文字：ヒント」の表が必要です。"
+          }
+        }
+      }
+    },
+    "shinpin.error.hintsCount": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示文件「提示内容」无法使用：最多 %1$@ 条。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示檔案「提示內容」無法使用：最多 %1$@ 條。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ヒントファイルの「ヒント内容」を使用できません。最大 %1$@ 件です。"
+          }
+        }
+      }
+    },
+    "shinpin.error.hintKeyNotLetter": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示文件「%1$@」无法使用：键名必须是一个英文字母 a-z。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示檔案「%1$@」無法使用：鍵名必須是一個英文字母 a-z。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ヒントファイルの「%1$@」を使用できません。キー名には a〜z の英字 1 文字を指定してください。"
+          }
+        }
+      }
+    },
+    "shinpin.error.hintKeyDuplicate": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示文件「%1$@」无法使用：同一个字母只写一次。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示檔案「%1$@」無法使用：同一個字母只寫一次。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ヒントファイルの「%1$@」を使用できません。同じ文字は 1 回だけ書いてください。"
+          }
+        }
+      }
+    },
+    "shinpin.error.hintText": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示文件「%1$@」无法使用：提示内容需要文字。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示檔案「%1$@」無法使用：提示內容需要文字。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ヒントファイルの「%1$@」を使用できません。ヒントの内容は文字で指定してください。"
+          }
+        }
+      }
+    },
+    "shinpin.error.settingsUnusable": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示设置「%1$@」无法使用：%2$@。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示設定「%1$@」無法使用：%2$@。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ヒント設定の「%1$@」を使用できません：%2$@。"
+          }
+        }
+      }
+    },
+    "shinpin.error.settingsUnreadable": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示设置无法读取：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示設定無法讀取：%1$@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ヒント設定を読み取れません：%1$@"
+          }
+        }
+      }
+    },
+    "shinpin.error.settingsDuplicateID": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示设置里有重复的预设标识：%1$@。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示設定裡有重複的預設標識：%1$@。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ヒント設定に重複したプリセット ID があります：%1$@。"
+          }
+        }
+      }
+    },
+    "shinpin.error.settingsUnknownID": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示设置里找不到标识为 %1$@ 的预设。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示設定裡找不到標識為 %1$@ 的預設。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ヒント設定に ID %1$@ のプリセットが見つかりません。"
+          }
+        }
+      }
+    },
+    "shinpin.error.fileUnopenable": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示文件无法打开，请确认它是一个普通文件后再试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示檔案無法開啟，請確認它是一個普通檔案後再試。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ヒントファイルを開けません。通常のファイルか確認してからもう一度お試しください。"
+          }
+        }
+      }
+    },
+    "shinpin.error.noUsablePreset": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示文件里没有可用的预设。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示檔案裡沒有可用的預設。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ヒントファイルに使えるプリセットがありません。"
+          }
+        }
+      }
+    },
+    "page.error.categoryName": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请填写分类名称。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請填寫分類名稱。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分類名を入力してください。"
+          }
+        }
+      }
+    },
+    "page.error.categoryColumns": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分类列数应在 1 到 %1$@ 之间。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分類列數應在 1 到 %1$@ 之間。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分類の列数は 1 から %1$@ の間にしてください。"
+          }
+        }
+      }
+    },
+    "page.error.categoryKeys": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分类请至少保留一个按键。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分類請至少保留一個按鍵。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "分類にはキーを 1 つ以上残してください。"
+          }
+        }
+      }
+    },
+    "shinpin.field.hintEntry": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示条目 %1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提示條目 %1$@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ヒント項目 %1$@"
+          }
+        }
+      }
+    },
+    "layout.note.merged14": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "两个字母合用一个键，轻点输入。输入方案支持时，向左或向右滑动可只输入左边或右边的字母。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "2 つの英字を 1 つのキーで入力します。入力方式が対応している場合、左右にスワイプすると片方の英字だけを入力できます。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "兩個字母合用一個鍵，點一下輸入。輸入方案支援時，向左或向右滑動可只輸入左邊或右邊的字母。"
+          }
+        }
+      }
+    },
+    "layout.note.merged18": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "部分键由两个字母合用，轻点输入。输入方案支持时，向左或向右滑动可只输入左边或右边的字母。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一部のキーは 2 つの英字を兼ねます。入力方式が対応している場合、左右にスワイプすると片方の英字だけを入力できます。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "部分鍵由兩個字母合用，點一下輸入。輸入方案支援時，向左或向右滑動可只輸入左邊或右邊的字母。"
+          }
+        }
+      }
+    },
+    "layout.note.phone9": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "2–9 键按所选的输入方案输入。输入中轻点首键可分词；未输入时，左栏前三个符号可直接输入，连续点按首键可轮换其余符号。长按首键输入 1，长按 2–9 输入对应数字。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "2〜9 キーは選択した入力方式で入力します。入力中に先頭キーをタップすると区切りを入れます。未入力時は左側の 3 つの記号を直接入力でき、先頭キーを続けてタップするとほかの記号に切り替わります。先頭キーの長押しで 1、2〜9 の長押しで対応する数字を入力します。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "2–9 鍵按所選的輸入方案輸入。輸入中點一下首鍵可分詞；未輸入時，左欄前三個符號可直接輸入，連續輕觸首鍵可輪換其餘符號。長按首鍵輸入 1，長按 2–9 輸入對應數字。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

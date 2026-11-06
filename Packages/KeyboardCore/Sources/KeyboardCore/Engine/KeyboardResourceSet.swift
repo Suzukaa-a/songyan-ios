@@ -67,7 +67,10 @@ public struct KeyboardResourceSet: Equatable, Sendable {
                     result.append(
                         .init(
                             schemaID: source, engineSchemaID: adapter.schemaID, layout: layout,
-                            name: adapter.schemaName ?? sourceName + " · " + layout.shortTitle + "配套"))
+                            name: adapter.schemaName
+                                ?? String(
+                                    format: String(localized: "core.adapter.displayName", bundle: .module),
+                                    sourceName, layout.userTitle)))
                 case .bound:
                     result.append(.init(schemaID: source, engineSchemaID: source, layout: layout, name: sourceName))
                 case .plain:
@@ -495,9 +498,9 @@ public struct KeyboardResourceSet: Equatable, Sendable {
         let allowed = schemas.isEmpty ? engineSchemas : schemas
         let sourceID = sourceSchemaID(schemaID)
         guard !allowed.contains(where: { $0.id == sourceID }) else { return nil }
-        return "输入方案 \(schemaID) 未启用（已启用："
-            + allowed.map(\.id).joined(separator: "、")
-            + "）。如需使用，请先在「松烟」App 中启用这个输入方案。"
+        return String(
+            format: String(localized: "core.status.schemeNotEnabled", bundle: .module),
+            schemaID, allowed.map(\.id).joined(separator: "、"))
     }
 }
 

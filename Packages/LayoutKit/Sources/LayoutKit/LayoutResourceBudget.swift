@@ -56,7 +56,8 @@ public enum LayoutResourceBudget {
         mutating func text(_ value: String?, maximum: Int = nameBytes) throws {
             guard let value else { return }
             let count = value.utf8.count
-            try check(count <= maximum, "有一段文字太长，请缩短后再保存。")
+            try check(
+                count <= maximum, String(localized: "layout.budget.textTooLong", bundle: .module))
             textBytes += count
         }
 
@@ -66,7 +67,9 @@ public enum LayoutResourceBudget {
             let options = key.longPress ?? []
             try check(
                 options.count <= alternatesPerKey,
-                "一个键最多 \(alternatesPerKey) 个长按项，请删掉一些。")
+                String(
+                    format: String(localized: "layout.budget.alternatesPerKey", bundle: .module),
+                    String(alternatesPerKey)))
             keys += 1
             alternates += options.count
             try text(key.label)
@@ -83,22 +86,37 @@ public enum LayoutResourceBudget {
         mutating func region(_ keys: [LayoutKey]) throws {
             try check(
                 keys.count <= keysPerRegion,
-                "一行或一侧最多 \(keysPerRegion) 个键，请删掉一些。")
+                String(
+                    format: String(localized: "layout.budget.keysPerRegion", bundle: .module),
+                    String(keysPerRegion)))
             for key in keys { try self.key(key) }
         }
 
         func checkTotals(keys keyLimit: Int, alternates alternateLimit: Int, textBytes textLimit: Int) throws {
-            try check(keys <= keyLimit, "按键超过 \(keyLimit) 个，请删掉一些按键。")
-            try check(alternates <= alternateLimit, "长按项超过 \(alternateLimit) 个，请删掉一些长按项。")
-            try check(textBytes <= textLimit, "文字太多了，请删掉一些按键或缩短文字。")
+            try check(
+                keys <= keyLimit,
+                String(
+                    format: String(localized: "layout.budget.keys", bundle: .module), String(keyLimit)))
+            try check(
+                alternates <= alternateLimit,
+                String(
+                    format: String(localized: "layout.budget.alternates", bundle: .module),
+                    String(alternateLimit)))
+            try check(
+                textBytes <= textLimit,
+                String(localized: "layout.budget.text", bundle: .module))
         }
     }
 
     static func usage(_ layout: LayoutDefinition) throws -> Usage {
-        try check(layout.rows.count <= rows, "最多 \(rows) 行，请删掉多出来的行。")
+        try check(
+            layout.rows.count <= rows,
+            String(format: String(localized: "layout.budget.rows", bundle: .module), String(rows)))
         try check(
             (layout.auxiliaryAreas?.count ?? 0) <= auxiliaryAreas,
-            "最多 \(auxiliaryAreas) 个侧栏，请删掉多出来的侧栏。")
+            String(
+                format: String(localized: "layout.budget.auxiliaryAreas", bundle: .module),
+                String(auxiliaryAreas)))
         var usage = Usage()
         try usage.text(layout.id)
         try usage.text(layout.name)
@@ -106,7 +124,9 @@ public enum LayoutResourceBudget {
         try usage.text(layout.note, maximum: noteBytes)
         for row in layout.rows { try usage.region(row.keys) }
         let halves = layout.split?.halves ?? []
-        try check(halves.count <= rows, "最多 \(rows) 行，请删掉多出来的行。")
+        try check(
+            halves.count <= rows,
+            String(format: String(localized: "layout.budget.rows", bundle: .module), String(rows)))
         for row in halves {
             try usage.region(row.left)
             try usage.region(row.right)
@@ -119,7 +139,9 @@ public enum LayoutResourceBudget {
     /// Function keys are real keys: they spend the same budget as row keys. A categorized page
     /// carries its category content and gets the larger categorized allowance.
     static func usage(_ page: KeyboardPageDefinition) throws -> Usage {
-        try check(page.rows.count <= rows, "最多 \(rows) 行，请删掉多出来的行。")
+        try check(
+            page.rows.count <= rows,
+            String(format: String(localized: "layout.budget.rows", bundle: .module), String(rows)))
         var usage = Usage()
         try usage.text(page.id)
         try usage.text(page.name)
@@ -132,13 +154,19 @@ public enum LayoutResourceBudget {
             return usage
         }
         let categories = page.categories ?? []
-        try check(categories.count <= pageCategories, "最多 \(pageCategories) 个分类，请删掉一些分类。")
+        try check(
+            categories.count <= pageCategories,
+            String(
+                format: String(localized: "layout.budget.pageCategories", bundle: .module),
+                String(pageCategories)))
         for category in categories {
             try usage.text(category.id)
             try usage.text(category.name)
             try check(
                 category.keys.count <= categoryKeys,
-                "一个分类最多 \(categoryKeys) 个键，请删掉一些。")
+                String(
+                    format: String(localized: "layout.budget.categoryKeys", bundle: .module),
+                    String(categoryKeys)))
             for key in category.keys { try usage.key(key) }
         }
         try usage.checkTotals(keys: categorizedPageKeys, alternates: catalogAlternates, textBytes: catalogTextBytes)
@@ -151,10 +179,18 @@ public enum LayoutResourceBudget {
     ) throws {
         try check(
             registry.layouts.count <= layouts,
-            "最多 \(layouts) 个键盘布局，请先删掉不用的布局。")
-        try check(userPageCount <= pages, "最多 \(pages) 个页面，请先删掉不用的页面。")
-        try check(registry.compositions.count <= compositions, "页面搭配最多保存 \(compositions) 个，已经存满了。")
-        let catalogFull = "所有布局和页面加起来内容太多了，请先删掉一些不用的布局或页面。"
+            String(
+                format: String(localized: "layout.budget.layouts", bundle: .module),
+                String(layouts)))
+        try check(
+            userPageCount <= pages,
+            String(format: String(localized: "layout.budget.pages", bundle: .module), String(pages)))
+        try check(
+            registry.compositions.count <= compositions,
+            String(
+                format: String(localized: "layout.budget.compositions", bundle: .module),
+                String(compositions)))
+        let catalogFull = String(localized: "layout.budget.catalogFull", bundle: .module)
         try check(
             layoutUsage.keys <= catalogKeys && layoutUsage.alternates <= catalogAlternates
                 && layoutUsage.textBytes <= catalogTextBytes, catalogFull)
@@ -165,13 +201,18 @@ public enum LayoutResourceBudget {
 
     /// Reads a user-imported layout file: regular files only (symlinks followed), capped at `maximumBytes`.
     static func read(_ url: URL, maximumBytes: Int) throws -> Data {
-        try check(url.isFileURL, "只能打开这台设备上的文件，请重新选择。")
+        try check(
+            url.isFileURL, String(localized: "layout.budget.notAFileURL", bundle: .module))
         let resolved = url.resolvingSymlinksInPath()
         // Callers treat ENOENT as "not present yet".
         guard FileManager.default.fileExists(atPath: resolved.path) else { throw POSIXError(.ENOENT) }
         let values = try resolved.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey])
-        try check(values.isRegularFile == true, "请选择一个文件，不能是文件夹。")
-        try check((values.fileSize ?? .max) <= maximumBytes, "文件过大，请选择小一些的文件。")
+        try check(
+            values.isRegularFile == true,
+            String(localized: "layout.budget.notARegularFile", bundle: .module))
+        try check(
+            (values.fileSize ?? .max) <= maximumBytes,
+            String(localized: "layout.budget.fileTooLarge", bundle: .module))
         return try Data(contentsOf: resolved)
     }
 }

@@ -11,11 +11,14 @@
 //     presented as real ones.
 //   - Layouts describe physical keycaps and logical keys only; no schema, dictionary
 //     or engine data distribution.
+//   - User-facing wording lives in Resources/Localizable.xcstrings (zh-Hans source,
+//     zh-Hant and ja translations) and is read through the package bundle.
 
 import PackageDescription
 
 let package = Package(
     name: "KeyboardCore",
+    defaultLocalization: "zh-Hans",
     platforms: [
         .iOS(.v17),
         .macOS(.v13),
@@ -24,7 +27,7 @@ let package = Package(
         .library(name: "KeyboardCore", targets: ["KeyboardCore"])
     ],
     targets: [
-        .target(name: "KeyboardCore"),
+        .target(name: "KeyboardCore", resources: [.process("Resources")]),
         .testTarget(
             name: "KeyboardCoreTests",
             dependencies: ["KeyboardCore"],

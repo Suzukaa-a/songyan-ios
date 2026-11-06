@@ -247,7 +247,8 @@ public extension EngineBackend {
         let snapshot = currentSnapshot()
         guard snapshot.pageSize > 0 else { return try selectCandidate(index) }
         guard index >= 0, index / snapshot.pageSize == snapshot.pageIndex else {
-            throw EngineBackendError.operationFailed("当前引擎不支持跨页绝对选词")
+            throw EngineBackendError.operationFailed(
+                String(localized: "core.engine.crossPageCandidate", bundle: .module))
         }
         return try selectCandidate(index % snapshot.pageSize)
     }
@@ -255,7 +256,9 @@ public extension EngineBackend {
     var supportsReadOnlyBrowsing: Bool { false }
     func readCandidates(fromIndex: Int, count: Int) throws -> [Candidate] { [] }
     func setOption(_ name: String, value: Bool) throws -> EngineSnapshot {
-        throw EngineBackendError.operationFailed("当前输入方案不支持选项 \(name)")
+        throw EngineBackendError.operationFailed(
+            String(
+                format: String(localized: "core.engine.unsupportedOption", bundle: .module), name))
     }
     /// No spelling requested by default; only the real engine overrides it with a stored
     /// property. The protocol extension's setter is a no-op so the demo engine needs no change.

@@ -19,11 +19,11 @@ public enum OperationFailureState: Equatable, Sendable {
     public var stateLine: String {
         switch self {
         case .nothingCommitted:
-            return "安装内容与当前键盘都没有改变。"
+            return String(localized: "core.status.nothingCommitted", bundle: .module)
         case .installedNotApplied:
-            return "安装内容已经保存；当前键盘没有改变。"
+            return String(localized: "core.status.installedNotApplied", bundle: .module)
         case .unknown:
-            return "暂时无法确认当前状态。"
+            return String(localized: "core.status.unknown", bundle: .module)
         }
     }
 
@@ -31,11 +31,13 @@ public enum OperationFailureState: Equatable, Sendable {
     public var nextStep: String? {
         switch self {
         case .nothingCommitted:
-            return "可重试，或改选其他文件。"
+            return String(localized: "core.status.retryOrOtherFile", bundle: .module)
         case .installedNotApplied:
-            return "可重试，或在「\(UserTerminology.userKeyboard)」中轻点「\(UserTerminology.startUsing)」。"
+            return String(
+                format: String(localized: "core.status.retryOrStartUsing", bundle: .module),
+                UserTerminology.userKeyboard, UserTerminology.startUsing)
         case .unknown:
-            return "请重新载入当前状态后再试。"
+            return String(localized: "core.status.reload", bundle: .module)
         }
     }
 }

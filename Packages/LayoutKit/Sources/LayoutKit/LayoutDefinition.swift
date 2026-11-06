@@ -159,7 +159,8 @@ public struct LayoutAction: Codable, Equatable, Sendable {
 
     public func validate() throws {
         guard type == .literal || asciiValue == nil else {
-            throw LayoutError.invalid("只有文字键可以同时填写英文符号，请重新选择。")
+            throw LayoutError.invalid(
+                String(localized: "layout.error.asciiOnlyLiteral", bundle: .module))
         }
         switch type {
         case .code:
@@ -167,30 +168,36 @@ public struct LayoutAction: Codable, Equatable, Sendable {
             guard let value, value.utf8.count == 1,
                 let byte = value.utf8.first, (33...126).contains(byte)
             else {
-                throw LayoutError.invalid("输入字母的按键只能填一个英文字母、数字或符号，请修改后保存。")
+                throw LayoutError.invalid(
+                    String(localized: "layout.error.codeValue", bundle: .module))
             }
         case .literal:
             guard let value, !value.isEmpty else {
-                throw LayoutError.invalid("请填写按键要输入的文字。")
+                throw LayoutError.invalid(String(localized: "layout.error.literalEmpty", bundle: .module))
             }
             if let asciiValue, asciiValue.isEmpty {
-                throw LayoutError.invalid("英文符号不能为空，请重新填写。")
+                throw LayoutError.invalid(
+                    String(localized: "layout.error.asciiValueEmpty", bundle: .module))
             }
         case .modeSwitch:
             guard value == nil || value == "nextLayout" else {
-                throw LayoutError.invalid("切换布局键的设置无法识别，请重新选择。")
+                throw LayoutError.invalid(
+                    String(localized: "layout.error.modeSwitchValue", bundle: .module))
             }
         case .pageSwitch:
             guard let value, PageTarget(rawValue: value) != nil else {
-                throw LayoutError.invalid("翻页键只能选择字母、数字或符号页，请重新选择。")
+                throw LayoutError.invalid(
+                    String(localized: "layout.error.pageSwitchTarget", bundle: .module))
             }
         case .layoutPageSwitch:
             guard layoutPageJump != nil else {
-                throw LayoutError.invalid("跳转键只能选择 26 键、14 键、18 键或 9 键的数字页或符号页，请重新选择。")
+                throw LayoutError.invalid(
+                    String(localized: "layout.error.pageJumpTarget", bundle: .module))
             }
         case .languageSwitch:
             guard value.map({ LanguageSwitchBehavior(rawValue: $0) != nil }) ?? true else {
-                throw LayoutError.invalid("中英键的行为无法识别，请重新选择。")
+                throw LayoutError.invalid(
+                    String(localized: "layout.error.languageSwitchValue", bundle: .module))
             }
         case .kana:
             guard let value, Self.kanaRowIDs.contains(value) else {
@@ -199,7 +206,8 @@ public struct LayoutAction: Codable, Equatable, Sendable {
         case .shift, .symbolLock, .clearInput, .space, .backspace, .enter, .globe, .kanaModifier,
             .cursorLeft:
             guard value == nil else {
-                throw LayoutError.invalid("这个功能键不需要填写输入的文字，请清空后保存。")
+                throw LayoutError.invalid(
+                    String(localized: "layout.error.functionKeyValue", bundle: .module))
             }
         }
     }
@@ -340,6 +348,17 @@ public struct LayoutDefinition: Codable, Equatable, Sendable, Identifiable {
     /// Nil inherits the caller’s legacy list; empty uses builtin defaults. Ignored outside phone9.
     public internal(set) var t9QuickSymbols: String?
     public let note: String?
+
+    /// Only the unchanged builtin prose gets a translated display; saved author notes stay literal.
+    public var displayNote: String? {
+        guard let builtin = BuiltinLayouts.all.first(where: { $0.id == id }), note == builtin.note else { return note }
+        switch id {
+        case "merged14": return String(localized: "layout.note.merged14", bundle: .module)
+        case "merged18": return String(localized: "layout.note.merged18", bundle: .module)
+        case "phone9": return String(localized: "layout.note.phone9", bundle: .module)
+        default: return note
+        }
+    }
     /// Seconds until the alternate picker opens. Release commits one selected alternate only.
     public let longPressDelay: Double?
     public var effectiveLongPressDelay: Double { longPressDelay ?? 0.35 }
@@ -387,7 +406,9 @@ public struct LayoutDefinition: Codable, Equatable, Sendable, Identifiable {
     }
 
     public static func decode(_ data: Data) throws -> Self {
-        try LayoutResourceBudget.check(data.count <= LayoutResourceBudget.definitionBytes, "布局文件过大，请删掉一些按键或文字后再试。")
+        try LayoutResourceBudget.check(
+            data.count <= LayoutResourceBudget.definitionBytes,
+            String(localized: "layout.error.fileTooLarge", bundle: .module))
         let layout = try JSONDecoder().decode(Self.self, from: data)
         try layout.validate()
         return layout
@@ -397,7 +418,9 @@ public struct LayoutDefinition: Codable, Equatable, Sendable, Identifiable {
         try validate()
         let encoder = JSONEncoder.layoutKitPretty()
         let data = try encoder.encode(self)
-        try LayoutResourceBudget.check(data.count <= LayoutResourceBudget.definitionBytes, "布局文件过大，请删掉一些按键或文字后再试。")
+        try LayoutResourceBudget.check(
+            data.count <= LayoutResourceBudget.definitionBytes,
+            String(localized: "layout.error.fileTooLarge", bundle: .module))
         return data
     }
 
@@ -409,54 +432,63 @@ public struct LayoutDefinition: Codable, Equatable, Sendable, Identifiable {
         let usage = try LayoutResourceBudget.usage(self)
         try split?.validate(rowKeyCounts: rows.map { $0.keys.count }, allowsHalves: true)
         if (t9FirstKeyBehavior != nil || t9QuickSymbols != nil), !PhoneKeypadStructure.matches(self) {
-            throw LayoutError.invalid("首键与快捷符号设置只适用于九键布局，请移除后再导入。")
+            throw LayoutError.invalid(
+                String(localized: "layout.error.t9OnlySettings", bundle: .module))
         }
         if let symbols = t9QuickSymbols, !symbols.isEmpty {
             guard T9QuickSymbolStore.isValid(symbols), Set(symbols).count == symbols.count else {
-                throw LayoutError.invalid("快捷符号最多填写 12 个，不能重复或包含空白，请修改后保存。")
+                throw LayoutError.invalid(
+                    String(localized: "layout.error.quickSymbols", bundle: .module))
             }
         }
         guard effectiveLongPressDelay.isFinite, effectiveLongPressDelay > 0 else {
-            throw LayoutError.invalid("长按等待时间要大于 0 秒，请修改后保存。")
+            throw LayoutError.invalid(
+                String(localized: "layout.error.longPressDelay", bundle: .module))
         }
         guard !id.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
             !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         else {
-            throw LayoutError.invalid("请填写名称后再保存。")
+            throw LayoutError.invalid(String(localized: "layout.error.missingName", bundle: .module))
         }
         if let schema = input.schemaID, schema.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            throw LayoutError.invalid("这个布局指定的输入方案是空的，请重新选择输入方案。")
+            throw LayoutError.invalid(String(localized: "layout.error.emptySchema", bundle: .module))
         }
         guard input.schemaID != nil || input.builtinLayout != nil else {
-            throw LayoutError.invalid("请选择这个布局适用的输入方案，或者适用的键盘（如 26 键、9 键）。")
+            throw LayoutError.invalid(String(localized: "layout.error.missingTarget", bundle: .module))
         }
         guard !rows.isEmpty, rows.allSatisfy({ !$0.keys.isEmpty }) else {
-            throw LayoutError.invalid("请至少保留一行，每行至少保留一个按键。")
+            throw LayoutError.invalid(String(localized: "layout.error.noRows", bundle: .module))
         }
         let area = effectiveCandidateArea
         if area.reading && !area.candidates {
-            throw LayoutError.invalid("拼音提示行需要显示候选栏，请开启后保存。")
+            throw LayoutError.invalid(
+                String(localized: "layout.error.readingNeedsCandidates", bundle: .module))
         }
         if area.reading && PhoneKeypadStructure.matches(self) {
-            throw LayoutError.invalid("9 键的拼音显示在左侧栏，请关闭拼音提示行后保存。")
+            throw LayoutError.invalid(
+                String(localized: "layout.error.phoneReadingSide", bundle: .module))
         }
         if !area.candidates && sendsEngineCode {
-            throw LayoutError.invalid("输入字母的按键需要显示候选栏，请开启后保存。")
+            throw LayoutError.invalid(
+                String(localized: "layout.error.engineKeysNeedCandidates", bundle: .module))
         }
         for area in auxiliaryAreas ?? [] {
             // This is a dynamic engine-provided region, never static fake letter filters.
             if area.role == .disambiguation && !area.keys.isEmpty {
-                throw LayoutError.invalid("选字辅助区的按键由输入法自动提供，请清空其中的按键后保存。")
+                throw LayoutError.invalid(
+                    String(localized: "layout.error.disambiguationKeys", bundle: .module))
             }
         }
         let halfKeys = (split?.halves ?? []).flatMap(\.keys)
         for key in rows.flatMap(\.keys) + halfKeys + (auxiliaryAreas ?? []).flatMap(\.keys) {
             guard !key.label.isEmpty, key.widthWeight.isFinite, key.widthWeight > 0 else {
-                throw LayoutError.invalid("请填写按键标题，并把宽度设为大于 0 的数字。")
+                throw LayoutError.invalid(String(localized: "layout.error.keyTitle", bundle: .module))
             }
             try key.action.validate()
             for option in key.longPress ?? [] {
-                guard !option.label.isEmpty else { throw LayoutError.invalid("请填写长按项的标题。") }
+                guard !option.label.isEmpty else {
+                    throw LayoutError.invalid(String(localized: "layout.error.optionTitle", bundle: .module))
+                }
                 try option.action.validate()
             }
         }
@@ -479,7 +511,10 @@ public extension LayoutDefinition {
     func copy(name: String? = nil) -> LayoutDefinition {
         var copy = self
         copy.id = UUID().uuidString.lowercased()
-        copy.name = name ?? self.name + " 副本"
+        copy.name =
+            name
+            ?? String(
+                format: String(localized: "layout.error.copySuffix", bundle: .module), self.name)
         return copy
     }
 
@@ -556,8 +591,8 @@ public enum LayoutError: Error, LocalizedError, Equatable {
     public var errorDescription: String? {
         switch self {
         case .invalid(let message): return message
-        case .duplicateID: return "已经有一个相同的键盘布局，请选择替换，或者另存为副本。"
-        case .unknownID: return "找不到这个键盘布局，它可能已经被删除。"
+        case .duplicateID: return String(localized: "layout.error.duplicateID", bundle: .module)
+        case .unknownID: return String(localized: "layout.error.unknownID", bundle: .module)
         }
     }
 }

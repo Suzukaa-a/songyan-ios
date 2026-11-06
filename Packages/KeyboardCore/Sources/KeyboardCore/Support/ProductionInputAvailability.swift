@@ -18,15 +18,21 @@ public enum ProductionInputAvailability: Sendable {
     public static let builtinPackageID = "songyan-builtin"
     /// Display name of the built-in scheme.
     public static let builtinDisplayName = "内置输入方案"
+
+    public static var localizedBuiltinDisplayName: String {
+        String(localized: "core.status.builtinDisplayName", bundle: .module)
+    }
     /// The input method the keyboard falls back to when nothing is in use.
     public static var fallbackInputMethodName: String {
         BuiltinTemplateSchemas.names[BuiltinTemplateSchemas.quanpin] ?? builtinDisplayName
     }
 
     /// Standard title when no scheme is configured.
-    public static let unconfiguredTitle = "尚未添加输入方案"
+    public static var unconfiguredTitle: String { String(localized: "core.status.unconfiguredTitle", bundle: .module) }
     /// Installed-source count summary when nothing is installed.
-    public static let unconfiguredCountSummary = "键盘正在使用内置全拼 · 轻点添加输入方案"
+    public static var unconfiguredCountSummary: String {
+        String(localized: "core.status.unconfiguredCountSummary", bundle: .module)
+    }
 
     // MARK: - Pure checks
 
@@ -39,13 +45,19 @@ public enum ProductionInputAvailability: Sendable {
     // MARK: - Runtime text (keyboard extension / trial panel)
 
     /// Status title when nothing is published.
-    public static var runtimeUnconfiguredSchemeName: String { builtinDisplayName }
+    public static var runtimeUnconfiguredSchemeName: String { localizedBuiltinDisplayName }
 
     /// Status description (second line) when nothing is published.
-    public static var runtimeUnconfiguredReason: String { "正在使用\(fallbackInputMethodName)" }
+    public static var runtimeUnconfiguredReason: String {
+        String(
+            format: String(localized: "core.status.runtimeUnconfiguredReason", bundle: .module),
+            fallbackInputMethodName)
+    }
 
     /// Panel notice when nothing is published (tap for details).
     public static var runtimeUnconfiguredNotice: String {
-        "正在使用\(fallbackInputMethodName)；可在「松烟」App 中添加更多输入方案。"
+        String(
+            format: String(localized: "core.status.runtimeUnconfiguredNotice", bundle: .module),
+            fallbackInputMethodName)
     }
 }

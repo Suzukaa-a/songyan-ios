@@ -180,14 +180,18 @@ public struct LayoutRegistry: Codable, Equatable, Sendable {
     }
 
     public mutating func removePage(id: String) throws {
-        guard page(id: id) != nil else { throw LayoutError.invalid("找不到这个页面，它可能已经被删除。") }
+        guard page(id: id) != nil else {
+            throw LayoutError.invalid(String(localized: "registry.error.pageMissing", bundle: .module))
+        }
         guard
             !compositions.values.contains(where: {
                 $0.symbolPageID == id || $0.numericPageID == id || $0.englishPageID == id
             })
-        else { throw LayoutError.invalid("这个页面正在被键盘使用，请先在「页面搭配」里换成别的页面。") }
+        else {
+            throw LayoutError.invalid(String(localized: "registry.error.pageInUse", bundle: .module))
+        }
         guard !KeyboardPagePresets.all.contains(where: { $0.id == id }) else {
-            throw LayoutError.invalid("预设页面请先复制，再编辑副本。")
+            throw LayoutError.invalid(String(localized: "registry.error.presetPage", bundle: .module))
         }
         pages.removeAll { $0.id == id }
     }
@@ -251,10 +255,10 @@ public struct LayoutRegistry: Codable, Equatable, Sendable {
         guard layout(id: id) != nil else { throw LayoutError.unknownID(id) }
         // Bundled presets are the default main layouts, so they stay; an edit can be reset instead.
         guard !BuiltinLayouts.all.contains(where: { $0.id == id }) else {
-            throw LayoutError.invalid("内置布局不能删除，可以复制一份再修改。")
+            throw LayoutError.invalid(String(localized: "registry.error.builtinLayout", bundle: .module))
         }
         guard !compositions.values.contains(where: { $0.mainLayoutID == id }) else {
-            throw LayoutError.invalid("这个键盘布局正在被键盘使用，请先在「页面搭配」里换一个主布局。")
+            throw LayoutError.invalid(String(localized: "registry.error.layoutInUse", bundle: .module))
         }
         layouts.removeAll { $0.id == id }
     }
@@ -263,10 +267,10 @@ public struct LayoutRegistry: Codable, Equatable, Sendable {
     /// The extension runs this on every load.
     public func validate() throws {
         guard Set(layouts.map(\.id)).count == layouts.count else {
-            throw LayoutError.invalid("布局列表里有重复的布局，请删掉其中一个后重试。")
+            throw LayoutError.invalid(String(localized: "registry.error.duplicateLayouts", bundle: .module))
         }
         guard Set(pages.map(\.id)).count == pages.count else {
-            throw LayoutError.invalid("页面库里有重复的页面，请删掉其中一个后重试。")
+            throw LayoutError.invalid(String(localized: "registry.error.duplicatePages", bundle: .module))
         }
         var layoutUsage = LayoutResourceBudget.Usage()
         for layout in layouts { layoutUsage.add(try layout.validatedUsage()) }
@@ -284,17 +288,21 @@ public struct LayoutRegistry: Codable, Equatable, Sendable {
             self, layoutUsage: layoutUsage, userPageCount: userPageCount, userPageUsage: userPageUsage)
         for (keyboardID, composition) in compositions {
             guard keyboardID.utf8.count <= 512, let key = KeyboardCompositionKey(keyboardID) else {
-                throw LayoutError.invalid("「页面搭配」里有一个键盘找不到了，请重新选择键盘。")
+                throw LayoutError.invalid(
+                    String(localized: "registry.error.compositionKeyboardMissing", bundle: .module))
             }
             guard let main = resolvedLayout(id: composition.mainLayoutID) else {
-                throw LayoutError.invalid("「页面搭配」选的主布局已经不存在，请重新选择。")
+                throw LayoutError.invalid(
+                    String(localized: "registry.error.compositionLayoutMissing", bundle: .module))
             }
             guard main.supportsComposition(inputMethodID: key.inputMethodID, layout: key.layout) else {
-                throw LayoutError.invalid("这个键盘布局不适用于当前输入方式，请换一个键盘布局。")
+                throw LayoutError.invalid(
+                    String(localized: "registry.error.layoutNotForInputMethod", bundle: .module))
             }
             for kind in KeyboardPageKind.allCases {
                 guard page(id: composition.pageID(for: kind))?.kind == kind else {
-                    throw LayoutError.invalid("「页面搭配」选的页面已经不存在，请重新选择。")
+                    throw LayoutError.invalid(
+                        String(localized: "registry.error.compositionPageMissing", bundle: .module))
                 }
             }
         }
@@ -327,7 +335,7 @@ public struct LayoutStore: Sendable {
         let data = try encoder.encode(registry)
         try LayoutResourceBudget.check(
             data.count <= LayoutResourceBudget.catalogBytes,
-            "所有布局和页面加起来太大了，没能保存，请先删掉一些不用的布局或页面。")
+            String(localized: "registry.error.catalogTooLarge", bundle: .module))
         try FileManager.default.createDirectory(at: directoryURL, withIntermediateDirectories: true)
         try data.write(to: catalogURL, options: .atomic)
     }

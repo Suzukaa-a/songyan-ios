@@ -517,13 +517,15 @@ public struct LearningTransferStore: Sendable {
         guard descriptor >= 0 else {
             throw errno == ENOENT
                 ? LearningTransferStoreError.storeMissing
-                : LearningTransferStoreError.ioFailure("无法打开执行租约文件。")
+                : LearningTransferStoreError.ioFailure(
+                    String(localized: "core.learning.io.openLease", bundle: .module))
         }
         guard flock(descriptor, LOCK_EX | LOCK_NB) == 0 else {
             let code = errno
             close(descriptor)
             if code == EWOULDBLOCK { return nil }
-            throw LearningTransferStoreError.ioFailure("无法获取执行租约。")
+            throw LearningTransferStoreError.ioFailure(
+                String(localized: "core.learning.io.acquireLease", bundle: .module))
         }
         return WorkerLease(id: UUID(), rootPath: rootPath, descriptor: descriptor)
     }
@@ -545,11 +547,13 @@ public struct LearningTransferStore: Sendable {
         guard descriptor >= 0 else {
             throw errno == ENOENT
                 ? LearningTransferStoreError.storeMissing
-                : LearningTransferStoreError.ioFailure("无法打开存储锁文件。")
+                : LearningTransferStoreError.ioFailure(
+                    String(localized: "core.learning.io.openLock", bundle: .module))
         }
         defer { close(descriptor) }
         guard flock(descriptor, LOCK_EX) == 0 else {
-            throw LearningTransferStoreError.ioFailure("无法获得存储排它锁。")
+            throw LearningTransferStoreError.ioFailure(
+                String(localized: "core.learning.io.acquireLock", bundle: .module))
         }
         defer { _ = flock(descriptor, LOCK_UN) }
         return try body()
@@ -560,7 +564,8 @@ public struct LearningTransferStore: Sendable {
         do {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         } catch {
-            throw LearningTransferStoreError.ioFailure("无法创建存储目录。")
+            throw LearningTransferStoreError.ioFailure(
+                String(localized: "core.learning.io.createDirectory", bundle: .module))
         }
         return try withLock(body)
     }
@@ -577,7 +582,10 @@ public struct LearningTransferStore: Sendable {
         } catch let error as CocoaError where error.code == .fileReadNoSuchFile {
             return nil
         } catch {
-            throw LearningTransferStoreError.ioFailure("无法读取 \(slot.rawValue)。")
+            throw LearningTransferStoreError.ioFailure(
+                String(
+                    format: String(localized: "core.learning.io.readSlot", bundle: .module),
+                    slot.rawValue))
         }
         guard data.count <= maximumBytes else {
             throw LearningTransferStoreError.fileTooLarge(slot: slot.rawValue, bytes: data.count)
@@ -589,7 +597,10 @@ public struct LearningTransferStore: Sendable {
         do {
             try data.write(to: slotURL(slot), options: [.atomic])
         } catch {
-            throw LearningTransferStoreError.ioFailure("无法写入 \(slot.rawValue)。")
+            throw LearningTransferStoreError.ioFailure(
+                String(
+                    format: String(localized: "core.learning.io.writeSlot", bundle: .module),
+                    slot.rawValue))
         }
     }
 
@@ -773,44 +784,60 @@ public enum LearningTransferStoreError: Error, LocalizedError, Equatable, Sendab
     public var errorDescription: String? {
         switch self {
         case .storeMissing:
-            return "存储目录不存在。"
+            return String(localized: "core.learning.error.storeMissing", bundle: .module)
         case .fileTooLarge(let slot, _):
-            return "\(slot) 超过大小上限。"
+            return String(
+                format: String(localized: "core.learning.error.fileTooLarge", bundle: .module), slot)
         case .malformedState:
-            return "存储中的请求状态已损坏或格式不正确。"
+            return String(localized: "core.learning.error.malformedState", bundle: .module)
         case .malformedArtifact(let slot):
-            return "\(slot) 已损坏或格式不正确。"
+            return String(
+                format: String(localized: "core.learning.error.malformedArtifact", bundle: .module),
+                slot)
         case .invalidStateField(let field):
-            return "请求状态字段 \(field) 不合法。"
+            return String(
+                format: String(localized: "core.learning.error.invalidStateField", bundle: .module),
+                field)
         case .requestInProgress(let status):
             switch status {
-            case .pending: return "已有待处理的请求，请稍后再试。"
-            case .running: return "已有正在进行的请求，请稍后再试。"
+            case .pending:
+                return String(
+                    localized: "core.learning.error.requestInProgressPending", bundle: .module)
+            case .running:
+                return String(
+                    localized: "core.learning.error.requestInProgressRunning", bundle: .module)
             case .succeeded, .failed, .cancelled, .interrupted:
-                return "已有请求正在进行，请稍后再试。"
+                return String(
+                    localized: "core.learning.error.requestInProgressOther", bundle: .module)
             }
         case .requestNotFound:
-            return "要处理的请求不存在或已被新请求取代。"
+            return String(localized: "core.learning.error.requestNotFound", bundle: .module)
         case .notCancellable:
-            return "这个请求已经开始或结束，无法取消。"
+            return String(localized: "core.learning.error.notCancellable", bundle: .module)
         case .sourceIdentityMismatch:
-            return "备份与当前输入方案或版本不一致，无法处理。"
+            return String(localized: "core.learning.error.sourceIdentityMismatch", bundle: .module)
         case .staleRequest:
-            return "这次写入属于已过期的请求，已拒绝。"
+            return String(localized: "core.learning.error.staleRequest", bundle: .module)
         case .ownerMismatch:
-            return "这次写入不是当前请求的运行者发起的，已拒绝。"
+            return String(localized: "core.learning.error.ownerMismatch", bundle: .module)
         case .invalidWorkerLease:
-            return "执行租约无效或已释放，已拒绝。"
+            return String(localized: "core.learning.error.invalidWorkerLease", bundle: .module)
         case .safetyBackupRequired:
-            return "应用恢复前必须先保存安全备份。"
+            return String(localized: "core.learning.error.safetyBackupRequired", bundle: .module)
         case .artifactMissing(let slot):
-            return "还没有可读取的 \(slot)。"
+            return String(
+                format: String(localized: "core.learning.error.artifactMissing", bundle: .module),
+                slot)
         case .artifactMismatch(let slot):
-            return "\(slot) 属于另一次请求，已拒绝。"
+            return String(
+                format: String(localized: "core.learning.error.artifactMismatch", bundle: .module),
+                slot)
         case .artifactUnavailable(let slot):
-            return "当前状态下不能读取 \(slot)。"
+            return String(
+                format: String(localized: "core.learning.error.artifactUnavailable", bundle: .module),
+                slot)
         case .invalidMessage:
-            return "操作说明文案不合法。"
+            return String(localized: "core.learning.error.invalidMessage", bundle: .module)
         case .ioFailure(let description):
             return description
         }

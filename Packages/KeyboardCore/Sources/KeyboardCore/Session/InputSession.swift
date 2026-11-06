@@ -214,7 +214,9 @@ public final class InputSession {
         defer { if !succeeded { compactSpellingLayout = previous } }
         if let resourceSet, resourceSet.usesIndependentSelection {
             guard let pair = resourceSet.combination(layout: newLayout, preferredSchemaID: selectedSchemaID) else {
-                onError?(EngineBackendError.unsupportedSchema("当前输入方案没有适配此键盘布局"))
+                onError?(
+                    EngineBackendError.unsupportedSchema(
+                        String(localized: "core.engine.layoutMismatch", bundle: .module)))
                 return
             }
             let target = pair.engineSchemaID
@@ -239,7 +241,9 @@ public final class InputSession {
             guard let mapped = resourceSet.schemaID(for: newLayout) else {
                 onError?(
                     EngineBackendError.unsupportedSchema(
-                        "键盘布局 \(newLayout.rawValue) 在此输入方案中不可用"))
+                        String(
+                            format: String(localized: "core.engine.layoutUnavailable", bundle: .module),
+                            newLayout.rawValue)))
                 return
             }
             schemaID = mapped
@@ -270,7 +274,9 @@ public final class InputSession {
         if let resourceSet {
             let pairs = resourceSet.availableCombinations.filter { $0.schemaID == schemaID }
             guard let pair = pairs.first(where: { $0.layout == layout }) ?? pairs.first else {
-                onError?(EngineBackendError.unsupportedSchema("当前输入方案没有可用的键盘布局"))
+                onError?(
+                    EngineBackendError.unsupportedSchema(
+                        String(localized: "core.engine.noLayout", bundle: .module)))
                 return
             }
             select(layout: pair.layout, boundSchemaID: schemaID)
@@ -516,14 +522,21 @@ public final class InputSession {
             }
             if partialProgress { return true }
             guard !snapshot.isComposing else {
-                onError?(EngineBackendError.operationFailed("拼音组合未完成"))
+                onError?(
+                    EngineBackendError.operationFailed(
+                        String(localized: "core.engine.compositionIncomplete", bundle: .module)))
                 return false
             }
             // An empty engine composition does not prove that the host accepted
             // its commit. Dependent literal/cursor operations must stop on refusal.
             return delivered
         } catch {
-            onError?(EngineBackendError.operationFailed("未能确认当前输入，已保留拼音组合，请重试选词。\(error)"))
+            onError?(
+                EngineBackendError.operationFailed(
+                    String(
+                        format: String(
+                            localized: "core.engine.commitFailedKeepComposition", bundle: .module),
+                        String(describing: error))))
             return false
         }
     }
@@ -784,12 +797,19 @@ public final class InputSession {
             updated.committed = ""
             apply(updated)
             guard !snapshot.isComposing else {
-                onError?(EngineBackendError.operationFailed("未能取消当前输入，拼音组合仍保留，请重试。"))
+                onError?(
+                    EngineBackendError.operationFailed(
+                        String(
+                            localized: "core.engine.cancelFailedKeepComposition", bundle: .module)))
                 return false
             }
             return true
         } catch {
-            onError?(EngineBackendError.operationFailed("取消输入失败，已保留拼音组合：\(error)"))
+            onError?(
+                EngineBackendError.operationFailed(
+                    String(
+                        format: String(localized: "core.engine.cancelFailed", bundle: .module),
+                        String(describing: error))))
             return false
         }
     }
