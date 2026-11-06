@@ -755,12 +755,12 @@ public final class RimeBackend: EngineBackend, @unchecked Sendable {
     public func clearComposition() {
         guard let engine = rime else { return }
         if !engine.requiresSnapshotRecovery && Self.isPrediction(lastState) {
+            // Suggestions that will not close are not worth blocking input over: fall back to the
+            // native clear below and only record why.
             do {
                 try closePrediction(on: engine)
             } catch {
-                inputUnavailableReason = error.localizedDescription
                 lastErrorText = error.localizedDescription
-                return
             }
         }
         engine.clearComposition()
