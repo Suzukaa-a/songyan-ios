@@ -61,6 +61,10 @@ final class ProbeEngine: EngineBackend {
     var supportsReadOnlyBrowsing: Bool { true }
     /// Puts this code key into a real composing state (default nil = every key commits directly, leaving other cases unaffected).
     var composingCode: String?
+    /// When set, a composition started by `composingCode` offers this one candidate.
+    var composingCandidate: String?
+    /// When set, this code key is committed directly by the schema and never composes.
+    var directCommitCode: String?
     func setup(sharedDirectory: URL, userDirectory: URL) throws {}
     func selectSchema(_ schemaID: String) throws { state.schemaID = schemaID }
     func processKey(_ keyValue: String) throws -> EngineSnapshot {
@@ -84,13 +88,54 @@ final class ProbeEngine: EngineBackend {
             var composing = state
             composing.isComposing = true
             composing.preedit = keyValue
+            composing.rawInput = keyValue
             composing.committed = ""
+            if let composingCandidate {
+                composing.candidates = [Candidate(index: 0, text: composingCandidate)]
+                composing.highlightedIndex = 0
+                composing.pageSize = 1
+            }
             state = composing
             return composing
+        }
+        // A schema may commit an ordinary letter itself instead of starting a composition.
+        if let directCommitCode, keyValue == directCommitCode {
+            var confirmed = EngineSnapshot(committed: keyValue)
+            confirmed.schemaID = state.schemaID
+            var cleared = EngineSnapshot()
+            cleared.schemaID = state.schemaID
+            state = cleared
+            return confirmed
+        }
+        // Engine backspace deletes the composition's last code; it never deletes host text.
+        if keyValue == "\u{08}" {
+            var result = state
+            if result.isComposing {
+                result.preedit = String(result.preedit.dropLast())
+                result.rawInput = result.preedit
+                result.candidates = result.preedit.isEmpty ? [] : [Candidate(index: 0, text: result.preedit)]
+                result.highlightedIndex = result.preedit.isEmpty ? -1 : 0
+                result.isComposing = !result.preedit.isEmpty
+                if !result.isComposing {
+                    result.pageSize = 0
+                }
+            }
+            result.committed = ""
+            state = result
+            return result
         }
         var result = state
         result.committed = keyValue
         return result
+    }
+
+    /// A real engine clears the composition unconditionally; the demo default would leave this
+    /// fixture's state composing.
+    func cancelComposition() throws -> EngineSnapshot {
+        let schema = state.schemaID
+        state = EngineSnapshot()
+        state.schemaID = schema
+        return state
     }
     func selectCandidate(_ index: Int) throws -> EngineSnapshot { try selectCandidateAbsolute(index) }
     func selectCandidateAbsolute(_ index: Int) throws -> EngineSnapshot {
@@ -213,6 +258,16 @@ final class SelectionEngine: EngineBackend {
     }
 }
 
+/// Holds code-key work until the test runs it: a deterministic stand-in for the production
+/// engine queue, so a first key is provably still decoding while the next action is handled.
+final class ManualQueue: EngineWorkQueue {
+    private(set) var queued: [@Sendable () -> Void] = []
+    func async(_ work: @escaping @Sendable () -> Void) { queued.append(work) }
+    func runAll() {
+        while !queued.isEmpty { queued.removeFirst()() }
+    }
+}
+
 @main struct ControllerInputChecks {
     @MainActor static func eventually(_ message: String, _ predicate: () -> Bool) async {
         for _ in 0..<500 {
@@ -220,6 +275,224 @@ final class SelectionEngine: EngineBackend {
             try? await Task.sleep(nanoseconds: 2_000_000)
         }
         preconditionFailure(message)
+    }
+
+    /// The first ordinary letter of a plain composition decodes on the engine queue: the tap
+    /// returns before the backend runs, the field echoes the letter, and every non-code action
+    /// settles the key first so it acts on the real state. A schema may also commit the letter
+    /// directly (no composition at all), which the same actions must handle.
+    @MainActor static func firstKeyDeferred() async {
+        // 1. The schema starts a composition with one candidate: space confirms it, no literal space.
+        do {
+            let engine = ProbeEngine()
+            engine.composingCode = "n"
+            engine.composingCandidate = "你"
+            let controller = KeyboardController(engine: engine)
+            let queue = ManualQueue()
+            controller.session.codeKeyQueue = queue
+            var commits: [String] = []
+            controller.onDispatchCommit = {
+                commits.append($0)
+                return true
+            }
+            var marks: [MarkedComposition?] = []
+            controller.onMarkedComposition = { marks.append($0) }
+
+            controller.handle(.code("n"))
+            precondition(controller.session.pendingCodes == ["n"], "the first key must still be decoding")
+            precondition(!controller.snapshot.isComposing, "no engine result is applied before the queue runs")
+            await eventually("the pending first key was never echoed") { marks.last??.text == "n" }
+
+            controller.handle(.space)
+            precondition(commits == ["c0"], "space must confirm the candidate, not type a space: \(commits)")
+            queue.runAll()
+            await eventually("the stopped batch must not apply twice") { commits == ["c0"] }
+            controller.retire()
+        }
+
+        // 2. Return on a plain composition commits the raw composition, never a newline.
+        do {
+            let engine = ProbeEngine()
+            engine.composingCode = "n"
+            engine.composingCandidate = "你"
+            let controller = KeyboardController(engine: engine)
+            let queue = ManualQueue()
+            controller.session.codeKeyQueue = queue
+            var commits: [String] = []
+            controller.onDispatchCommit = {
+                commits.append($0)
+                return true
+            }
+            controller.handle(.code("n"))
+            controller.handle(.enter)
+            precondition(commits == ["n"], "return commits the raw composition, never a newline: \(commits)")
+            queue.runAll()
+            await eventually("the stopped batch must not apply twice") { commits == ["n"] }
+            controller.retire()
+        }
+
+        // 3. Backspace on a decoding first letter deletes the composition in the engine, never host text.
+        do {
+            let engine = ProbeEngine()
+            engine.composingCode = "n"
+            let controller = KeyboardController(engine: engine)
+            let queue = ManualQueue()
+            controller.session.codeKeyQueue = queue
+            var hostDeletes = 0
+            controller.onRequestDeleteBackward = { hostDeletes += 1 }
+            var commits: [String] = []
+            controller.onDispatchCommit = {
+                commits.append($0)
+                return true
+            }
+            controller.handle(.code("n"))
+            controller.handle(.backspace)
+            precondition(hostDeletes == 0, "a decoding first letter must not delete host text")
+            precondition(commits.isEmpty)
+            precondition(!controller.snapshot.isComposing)
+            queue.runAll()
+            await eventually("the stopped batch must not apply") { !controller.snapshot.isComposing }
+            controller.retire()
+        }
+
+        // 4. A schema that commits the letter directly: space appends a real space, backspace
+        //    deletes the committed character from the host, Return types a newline, toggle commits
+        //    nothing extra.
+        do {
+            let engine = ProbeEngine()
+            engine.directCommitCode = "n"
+            let controller = KeyboardController(engine: engine)
+            let queue = ManualQueue()
+            controller.session.codeKeyQueue = queue
+            var commits: [String] = []
+            controller.onDispatchCommit = {
+                commits.append($0)
+                return true
+            }
+            controller.handle(.code("n"))
+            precondition(controller.session.pendingCodes == ["n"], "the first key must still be decoding")
+            controller.handle(.space)
+            precondition(commits == ["n", " "], "a directly committed first letter still gets a space: \(commits)")
+            queue.runAll()
+            controller.retire()
+        }
+        do {
+            let engine = ProbeEngine()
+            engine.directCommitCode = "n"
+            let controller = KeyboardController(engine: engine)
+            let queue = ManualQueue()
+            controller.session.codeKeyQueue = queue
+            var hostDeletes = 0
+            controller.onRequestDeleteBackward = { hostDeletes += 1 }
+            controller.handle(.code("n"))
+            controller.handle(.backspace)
+            precondition(hostDeletes == 1, "the directly committed letter must be deleted from the host")
+            precondition(!controller.snapshot.isComposing, "an idle engine must not be asked to compose")
+            queue.runAll()
+            controller.retire()
+        }
+        do {
+            let engine = ProbeEngine()
+            engine.directCommitCode = "n"
+            let controller = KeyboardController(engine: engine)
+            let queue = ManualQueue()
+            controller.session.codeKeyQueue = queue
+            var commits: [String] = []
+            controller.onDispatchCommit = {
+                commits.append($0)
+                return true
+            }
+            controller.handle(.code("n"))
+            controller.handle(.enter)
+            precondition(
+                commits == ["n", "\n"], "return types a newline after a directly committed letter: \(commits)")
+            queue.runAll()
+            controller.retire()
+        }
+        do {
+            let engine = ProbeEngine()
+            engine.directCommitCode = "n"
+            let controller = KeyboardController(engine: engine)
+            let queue = ManualQueue()
+            controller.session.codeKeyQueue = queue
+            var commits: [String] = []
+            controller.onDispatchCommit = {
+                commits.append($0)
+                return true
+            }
+            controller.handle(.code("n"))
+            controller.toggleInputMode()
+            precondition(
+                commits == ["n"], "toggle must not confirm or re-commit a directly committed letter: \(commits)")
+            precondition(controller.inputMode == .english)
+            queue.runAll()
+            controller.retire()
+        }
+
+        // 5. Cancelling pending keys clears their echo; a real composition echo survives it.
+        do {
+            let engine = ProbeEngine()
+            engine.composingCode = "n"
+            let controller = KeyboardController(engine: engine)
+            let queue = ManualQueue()
+            controller.session.codeKeyQueue = queue
+            var marks: [MarkedComposition?] = []
+            controller.onMarkedComposition = { marks.append($0) }
+            var commits: [String] = []
+            controller.onDispatchCommit = {
+                commits.append($0)
+                return true
+            }
+            controller.handle(.code("n"))
+            await eventually("the pending first key was never echoed") { marks.last??.text == "n" }
+            controller.session.cancelPendingCodes()
+            await eventually("cancelling must clear the pending-only echo") { marks.last! == nil }
+            queue.runAll()
+            precondition(commits.isEmpty, "a cancelled first key never commits")
+            precondition(controller.snapshot.rawInput.isEmpty && !controller.snapshot.isComposing)
+            controller.retire()
+        }
+        do {
+            let engine = ProbeEngine()
+            engine.composingCode = "n"
+            let controller = KeyboardController(engine: engine)
+            let queue = ManualQueue()
+            controller.session.codeKeyQueue = queue
+            var marks: [MarkedComposition?] = []
+            controller.onMarkedComposition = { marks.append($0) }
+            controller.handle(.code("n"))
+            queue.runAll()
+            await eventually("the first key did not land as a composition") { controller.snapshot.isComposing }
+            controller.handle(.code("i"))
+            precondition(controller.session.pendingCodes == ["i"])
+            controller.session.cancelPendingCodes()
+            await eventually("the composition echo must survive the cancel") {
+                marks.last??.text == "n" && controller.snapshot.isComposing
+            }
+            controller.retire()
+        }
+    }
+
+    @MainActor static func pendingFirstKeyFallback() async {
+        let engine = ProbeEngine()
+        engine.composingCode = "n"
+        let controller = KeyboardController(engine: engine)
+        let queue = ManualQueue()
+        controller.session.codeKeyQueue = queue
+        controller.updateHostTraits(
+            keyboardType: .default, returnKeyType: .search, keyboardAppearance: .default,
+            enablesReturnKeyAutomatically: true, documentIsEmpty: true)
+        precondition(!controller.isReturnKeyEnabled)
+        controller.handle(.code("n"))
+        precondition(controller.isReturnKeyEnabled, "a pending first letter enables confirmation")
+        await eventually("the keyboard must show a pending first letter without a host outlet") {
+            controller.keyboardCompositionFallback?.text == "n"
+        }
+        controller.session.cancelPendingCodes()
+        precondition(!controller.isReturnKeyEnabled, "cancelling the pending letter disables empty-field Search")
+        precondition(controller.keyboardCompositionFallback == nil, "cancel must remove the fallback echo")
+        queue.runAll()
+        controller.retire()
     }
 
     @MainActor static func letters(ascii: Bool) {
@@ -596,6 +869,8 @@ final class SelectionEngine: EngineBackend {
         await probeAfterLeavingABC()
         await predictionPaging()
         await staleCandidateSink()
+        await firstKeyDeferred()
+        await pendingFirstKeyFallback()
         print("controller input regression checks passed")
     }
 }

@@ -396,6 +396,14 @@ public final class KeyboardController: ObservableObject {
 
     public let session: InputSession
 
+    /// Display and Return-enablement only: an engine composition, or a plain first code key still
+    /// decoding. Host actions settle the pending keys first and then read the real `snapshot`.
+    var isComposingOrDecoding: Bool { snapshot.isComposing || !session.pendingCodes.isEmpty }
+
+    /// The host field currently shows only the pending-code echo (no engine composition has
+    /// landed yet), so a cancel must clear it instead of leaving the raw keys on screen.
+    var showsPendingOnlyEcho = false
+
     /// Keyboards listed on long-press of the ABC/中文 key: published roster ∩ combinations actually runnable
     /// with the current resources, in publication order. Only keyboards the user added; the 26/14/9 layouts themselves are never listed.
     public var userKeyboardChoices: [UserKeyboard] {
@@ -634,6 +642,8 @@ public final class KeyboardController: ObservableObject {
                 doubleSpaceArmedAt = CACurrentMediaTime()
             }
         case .enter:
+            // A decoding first key settles first so Return acts on the real state.
+            session.settlePendingCodes()
             if !isReturnKeyEnabled { onRequestHostTraitsRefresh?() }
             guard isReturnKeyEnabled else { break }
             if snapshot.isComposing, !session.compactSpellingLayout, !session.numericTransportLayout {

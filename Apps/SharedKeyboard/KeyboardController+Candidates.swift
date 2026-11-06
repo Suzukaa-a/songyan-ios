@@ -14,6 +14,9 @@ extension KeyboardController {
     ///     with no candidates the engine's return commits the raw composition text (the engine owns it, the key is never swallowed).
     ///   - Empty composition: inserts the space/newline directly.
     public func confirmOrInsert(commitWhenIdle: String) {
+        // Settle a decoding first key (already drained on this path) so a letter the schema
+        // committed directly gets the literal space/newline, never a bogus confirmation.
+        session.settlePendingCodes()
         if snapshot.isComposing {
             commitComposition(allowingPartial: true)
         } else {
@@ -150,6 +153,9 @@ extension KeyboardController {
         guard inputUnavailableReason == nil else { return }
         // The newest press first: a key the engine has not decoded yet is just taken back.
         if session.removeLastPendingCode() { return }
+        // A key already decoding settles first: it may have composed (engine backspace) or
+        // committed the letter directly (delete it from the host).
+        session.settlePendingCodes()
         // Locked: the first press only restores and releases the lock without sending Backspace; the next press does the normal delete.
         // The newest choice is undone first: a reading narrowed after the lock.
         if snapshot.isComposing, session.compactSpellingLayout, readingFilter.isFiltering,
@@ -261,11 +267,14 @@ extension KeyboardController {
         // unless a keypad hides the code.
         let spelling =
             s.isComposing && highlightedReading.isEmpty && s.hidesNumericTransportCode ? sentenceSpelling : nil
+        // A decoding plain first key already shows its echo in the field (display only).
+        let showsComposition = s.isComposing || !session.pendingCodes.isEmpty
         if !(s.isComposing && holdsMarkedComposition(sentenceSpelling: spelling)) {
             reportCompositionPresentation(
-                s.isComposing
+                showsComposition
                     ? (onMarkedComposition == nil ? .keyboard(reason: "输入框暂不可用") : .awaitingHost) : .idle)
-            publishMarked(s.isComposing ? markedComposition(sentenceSpelling: spelling) : nil)
+            publishMarked(showsComposition ? markedComposition(sentenceSpelling: spelling) : nil)
+            showsPendingOnlyEcho = showsComposition && !s.isComposing
         }
         if layout != prevLayout {
             if let message = (session.engine as? RimeBackend)?.lastErrorText {
