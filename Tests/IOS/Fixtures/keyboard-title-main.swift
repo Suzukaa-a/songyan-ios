@@ -62,6 +62,7 @@ func title(
 for (id, schema, scheme) in [
     ("zhuyin41", "bopomofo_tw", "注音（台湾）"),
     ("cangjie26", "cangjie5", "仓颉五代"),
+    ("romaji26", "kagiroi", "日本語"),
 ] {
     guard let name = builtinName(id) else { fatalError("FAIL: no localized name for " + id) }
     print("NAME \(id) \(name)")

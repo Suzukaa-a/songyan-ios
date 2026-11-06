@@ -51,9 +51,11 @@ final class CangjieLayoutTests: XCTestCase {
         var mutable = registry
         XCTAssertThrowsError(
             try mutable.remove(id: "cangjie26"), "a bundled layout is reset, never deleted")
-        // The traditional boards follow the four existing presets, so a catalog's preset order stays
+        // The later boards follow the four existing presets, so a catalog's preset order stays
         // predictable for a host that lists them.
-        XCTAssertEqual(BuiltinLayouts.all.suffix(2).map(\.id), ["zhuyin41", "cangjie26"])
+        XCTAssertEqual(
+            Array(BuiltinLayouts.all.map(\.id).dropFirst(4)),
+            ["zhuyin41", "cangjie26", "romaji26"])
     }
 
     func testTheThreeLetterRowsHaveTenNineSevenKeys() throws {

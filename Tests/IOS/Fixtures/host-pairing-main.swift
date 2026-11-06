@@ -25,6 +25,7 @@ let schemes = [
     KeyboardSchemaDescriptor(id: "quick5", name: "速成"),
     KeyboardSchemaDescriptor(id: "jyut6ping3", name: "粤拼"),
     KeyboardSchemaDescriptor(id: "songyan_quanpin", name: "全拼"),
+    KeyboardSchemaDescriptor(id: "kagiroi", name: "日本語"),
 ]
 // The declared bopomofo alphabet identifies the family without the id.
 let alphabets = [
@@ -42,7 +43,7 @@ func effective(
 
 var registry = try LayoutRegistry()
 
-// A newly added traditional keyboard has no saved pairing: its own board is the default.
+// A newly added keyboard has no saved pairing: its scheme family supplies the board.
 checkEqual(
     effective("bopomofo_tw", descriptors: schemes, in: registry), "zhuyin41",
     "a new zhuyin keyboard defaults to the 41-key board")
@@ -55,6 +56,9 @@ checkEqual(
 checkEqual(
     effective("jyut6ping3", descriptors: schemes, in: registry), "qwerty26",
     "Cantonese keeps the 26-key board")
+checkEqual(
+    effective("kagiroi", descriptors: schemes, in: registry), "romaji26",
+    "a new Japanese keyboard defaults to the romaji board")
 checkEqual(
     effective("songyan_quanpin", descriptors: schemes, in: registry), "qwerty26",
     "the bundled pinyin keeps today's default")

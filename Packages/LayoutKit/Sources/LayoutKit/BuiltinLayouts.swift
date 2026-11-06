@@ -3,7 +3,7 @@ import Foundation
 /// Independently authored layout data, also available as editable JSON in Resources/Layouts.
 public enum BuiltinLayouts {
     public static let all: [LayoutDefinition] = [
-        qwerty26, merged14, merged18, phone9, zhuyin41, cangjie26,
+        qwerty26, merged14, merged18, phone9, zhuyin41, cangjie26, romaji26,
     ]
 
     public static let qwerty26 = LayoutDefinition(
@@ -457,6 +457,30 @@ public enum BuiltinLayouts {
         LayoutKey(label: "空格", width: 4, action: .init(.space), titleMode: .automatic),
         LayoutKey(label: "⏎", action: .init(.enter), titleMode: .automatic),
     ])
+
+    // MARK: - Japanese board
+
+    /// The Japanese romaji board: the QWERTY 26-key letters with ー right of M. The board keeps the
+    /// 26-key encoding kind and is identified by its id, so no new kind and no new engine case come
+    /// with it. The fourth row is the 26-key stand-in: while it is unedited the keyboard draws its
+    /// own footer, which names the space, Return and language keys for the input language and puts
+    /// 、 and 。 on either side of the space bar.
+    public static let romaji26 = LayoutDefinition(
+        id: "romaji26", name: "罗马字 26 键",
+        input: .init(builtinLayout: .qwerty26),
+        rows: romajiRows() + [controls])
+
+    /// ー sends the scheme's minus code, the key the romaji spelling uses for a long vowel; a
+    /// literal ー would bypass the scheme's own punctuation handling.
+    private static let longVowelKey = LayoutKey(label: "ー", action: .init(.code, value: "-"))
+
+    /// The bundled letter rows with ー appended to the third row. Keeping the bundled letter menus
+    /// lets the input language rename their marks (a Japanese board offers 、 。 「 」 and ー).
+    private static func romajiRows() -> [LayoutRow] {
+        var rows = alphabetRows()
+        rows[2] = LayoutRow(keys: rows[2].keys + [longVowelKey])
+        return rows
+    }
 }
 
 // MARK: - Bundled shell identity

@@ -1,7 +1,5 @@
-"""The running keyboard's title: a board this build ships with its own name (the real physical
-layout) names itself first, followed by the input method; every other keyboard keeps the published
-name, then the shape name, then the author's name. The shipped names resolve from the shared string
-catalog in all three languages. The title-shape assertions live in the Swift probe."""
+"""Physical keyboard names use the shared catalog and preserve the input method
+name before the layout name. User-authored labels remain unchanged."""
 import json
 import sys
 import unittest
@@ -14,6 +12,7 @@ START = "// MARK: - Keyboard title"
 KEYS = {
     "zhuyin41": "layout.name.zhuyin41",
     "cangjie26": "layout.name.cangjie26",
+    "romaji26": "layout.name.romaji26",
 }
 LANGUAGES = ("zh-Hans", "zh-Hant", "ja")
 
@@ -25,12 +24,12 @@ def production_source():
 
 @unittest.skipUnless(sys.platform == "darwin", "requires the macOS Swift toolchain")
 class KeyboardTitleTests(unittest.TestCase):
-    def test_the_bundled_traditional_boards_are_named_in_three_languages(self):
+    def test_bundled_physical_boards_are_named_in_three_languages(self):
         self.assertTrue(CATALOG.exists(), "the shared string catalog must exist")
         catalog = json.loads(CATALOG.read_text(encoding="utf-8"))
         self.assertTrue(
             set(KEYS.values()).issubset(catalog["strings"]),
-            "the shared catalog contains both bundled layout names")
+            "the shared catalog contains every bundled physical layout name")
         for key in KEYS.values():
             self.assertEqual(sorted(catalog["strings"][key]["localizations"]), sorted(LANGUAGES), key)
         with scratch_directory("keyboard-title") as directory:

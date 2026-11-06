@@ -616,6 +616,28 @@
           }
         }
       }
+    },
+    "layout.name.romaji26": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "罗马字 26 键"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "羅馬字 26 鍵"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ローマ字 26キー"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

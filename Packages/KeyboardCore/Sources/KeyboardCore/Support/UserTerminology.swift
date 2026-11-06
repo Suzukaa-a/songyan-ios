@@ -141,6 +141,7 @@ public enum UserTerminology: Sendable {
         switch physicalLayoutID {
         case "zhuyin41": "layout.name.zhuyin41"
         case "cangjie26": "layout.name.cangjie26"
+        case "romaji26": "layout.name.romaji26"
         default: nil
         }
     }
