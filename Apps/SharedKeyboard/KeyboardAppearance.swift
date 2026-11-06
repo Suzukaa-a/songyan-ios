@@ -139,9 +139,17 @@ extension Notification.Name {
 public struct KeyboardPresentationShell: Equatable {
     public var readingRow: Bool
     public var candidateArea: Bool
-    public init(readingRow: Bool, candidateArea: Bool) {
+    /// Letter rows the physical definition draws above its control row. The shell spreads the
+    /// standard three-row key area over them, so a taller board keeps the same outer height and
+    /// every other page re-fits inside it.
+    public var mainRows: Int
+    public init(
+        readingRow: Bool, candidateArea: Bool,
+        mainRows: Int = KeyboardPanelGeometry.standardMainRowCount
+    ) {
         self.readingRow = readingRow
         self.candidateArea = candidateArea
+        self.mainRows = mainRows
     }
 }
 
@@ -155,6 +163,10 @@ public struct KeyboardInitialPresentation {
     /// eligibility hint (`CandidateReadingRowHint`) the host last **adopted** that matches the current layout selection; no hint or mismatch -> false.
     public private(set) var readingRowReserved = false
     public private(set) var candidateAreaReserved = true
+    /// Physical letter rows of the saved layout selection. The bundled registration table answers
+    /// it synchronously, so the first frame is already budgeted for a four-row board instead of
+    /// growing the shell once the layout registry settles.
+    public private(set) var physicalMainRows = KeyboardPanelGeometry.standardMainRowCount
     /// Only geometry is cached; a palette or candidate layout must never be
     /// reconstructed from UserDefaults instead of the validated store snapshot.
     public private(set) var candidateHeight = CandidateBarDefinition.systemDefault.collapsed.height
@@ -212,6 +224,8 @@ public struct KeyboardInitialPresentation {
                 storedValue: storedHint, currentSelection: readingRowSelection)
         result.candidateAreaReserved = CandidateReadingRowHint.resolveCandidateArea(
             storedValue: storedHint, currentSelection: readingRowSelection)
+        result.physicalMainRows = KeyboardPanelGeometry.physicalMainRowBudget(
+            forDefinitionID: defaults.string(forKey: "keyboard.selectedLayoutDefinitionID"))
         if let budget = defaults.dictionary(forKey: geometryBudgetKey) as? [String: Double],
             let height = budget["candidateHeight"], (36...56).contains(height),
             let size = budget["candidateSize"], (16...30).contains(size)
@@ -236,11 +250,14 @@ public struct KeyboardInitialPresentation {
             candidateSize: candidateSize,
             readingRow: readingRowReserved,
             candidateArea: candidateAreaReserved,
-            compact: compact, heightPreset: heightPreset)
+            compact: compact, heightPreset: heightPreset,
+            physicalMainRows: physicalMainRows)
     }
 
     public var presentationShell: KeyboardPresentationShell {
-        KeyboardPresentationShell(readingRow: readingRowReserved, candidateArea: candidateAreaReserved)
+        KeyboardPresentationShell(
+            readingRow: readingRowReserved, candidateArea: candidateAreaReserved,
+            mainRows: physicalMainRows)
     }
 
     public func appearance(systemDark: Bool) -> KeyboardAppearance {

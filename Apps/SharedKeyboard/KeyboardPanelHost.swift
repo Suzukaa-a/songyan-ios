@@ -92,13 +92,18 @@ public struct KeyboardPanelHost: View {
                 candidateSize: candidateSize,
                 readingRow: shell.readingRow,
                 candidateArea: shell.candidateArea,
-                compactReadingRow: compactReadingRow))
+                compactReadingRow: compactReadingRow,
+                physicalMainRows: shell.mainRows))
     }
     private let presentationBudget: KeyboardPanelPresentationBudget?
     /// Adopted on every host (re)binding; the in-panel restore turns it off in place.
     @State private var oneHandMode = KeyboardOneHandPreferences.current
     /// The selected definition's own page facts (ABC/123 grants excluded).
     @State private var definitionShell = KeyboardPresentationShell(readingRow: false, candidateArea: true)
+    /// Letter rows the current page draws: the definition's budget on its letters page, three on
+    /// the shared ABC/123 pages. The host re-fits the page inside the unchanged shell with this
+    /// count instead of stretching the candidate band by the spare row.
+    @State private var drawnMainRows = KeyboardPanelGeometry.standardMainRowCount
     /// Fit the current native height while UIKit applies a new configuration budget.
     /// The next geometry receipt adopts the requested height within the same presentation.
     private let presentedHeight: CGFloat?
@@ -116,7 +121,8 @@ public struct KeyboardPanelHost: View {
             readingRowReserved: readingRowGranted,
             candidateAreaReserved: candidateAreaGranted,
             candidateSize: candidateSize,
-            compactReadingRow: compactReadingRow)
+            compactReadingRow: compactReadingRow,
+            drawnMainRows: drawnMainRows)
     }
     /// Key rows never exceed the standard key height; the rest of the shared shell
     /// goes to the candidate area (or stays blank above a page without one).
@@ -217,6 +223,7 @@ public struct KeyboardPanelHost: View {
             _readingRowGranted = State(initialValue: initialPresentation.readingRowReserved)
             _candidateAreaGranted = State(initialValue: initialPresentation.candidateAreaReserved)
             _definitionShell = State(initialValue: initialPresentation.presentationShell)
+            _drawnMainRows = State(initialValue: initialPresentation.physicalMainRows)
             _initialGeometryBudget = State(
                 initialValue: (
                     initialPresentation.candidateHeight,
@@ -620,17 +627,28 @@ public struct KeyboardPanelHost: View {
         if candidateAreaGranted != report.candidateAreaRequired {
             candidateAreaGranted = report.candidateAreaRequired
         }
+        // The physical row count belongs to the definition; the drawn count changes per page and
+        // only re-fits the current page inside the unchanged shell.
+        var physicalRowsChanged = false
+        if definitionShell.mainRows != report.physicalMainRowCount {
+            definitionShell.mainRows = report.physicalMainRowCount
+            physicalRowsChanged = true
+        }
+        if drawnMainRows != report.drawnMainRowCount { drawnMainRows = report.drawnMainRowCount }
         // Only the Chinese letters page describes the definition; ABC/123 grants are
         // page state and must not become the next cold start's hint.
         if !report.pageOverride {
             let shell = KeyboardPresentationShell(
                 readingRow: reservesRow,
-                candidateArea: report.candidateAreaRequired)
+                candidateArea: report.candidateAreaRequired,
+                mainRows: definitionShell.mainRows)
             if definitionShell != shell { definitionShell = shell }
             KeyboardInitialPresentation.recordReadingRow(
                 eligible: report.eligible,
                 candidateAreaRequired: report.candidateAreaRequired,
                 layout: session.layout)
+            reportPresentationBudget()
+        } else if physicalRowsChanged {
             reportPresentationBudget()
         }
         KeyboardLifecycleDiagnostics.emit(
@@ -640,6 +658,8 @@ public struct KeyboardPanelHost: View {
                 "eligible": report.eligible ? "1" : "0",
                 "granted": readingRowGranted ? "1" : "0",
                 "candidateArea": candidateAreaGranted ? "1" : "0",
+                "physicalRows": "\(definitionShell.mainRows)",
+                "drawnRows": "\(drawnMainRows)",
                 "registry": report.resolvedFromRegistry ? "1" : "0",
                 "configured": String(format: "%.1f", candidateHeight),
                 "effective": String(
@@ -655,8 +675,12 @@ public struct KeyboardPanelHost: View {
     private func adoptBudgetedShell() {
         guard let presentationBudget else { return }
         let shell = KeyboardPresentationShell(
-            readingRow: presentationBudget.readingRow, candidateArea: presentationBudget.candidateArea)
+            readingRow: presentationBudget.readingRow, candidateArea: presentationBudget.candidateArea,
+            mainRows: presentationBudget.physicalMainRows)
         if definitionShell != shell { definitionShell = shell }
+        if drawnMainRows != presentationBudget.physicalMainRows {
+            drawnMainRows = presentationBudget.physicalMainRows
+        }
     }
 
     private func reportPresentationBudget() {
@@ -668,7 +692,8 @@ public struct KeyboardPanelHost: View {
             KeyboardPanelPresentationBudget(
                 candidateHeight: height, candidateSize: size,
                 readingRow: definitionShell.readingRow, candidateArea: definitionShell.candidateArea,
-                compact: compactReadingRow, heightPreset: storedHeightPreset))
+                compact: compactReadingRow, heightPreset: storedHeightPreset,
+                physicalMainRows: definitionShell.mainRows))
     }
 
     private func reloadShuangpinHints() {

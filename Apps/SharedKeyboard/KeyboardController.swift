@@ -640,7 +640,11 @@ public final class KeyboardController: ObservableObject {
                 noteCommitForEnglishWord(". ")
                 break
             }
-            confirmOrInsert(commitWhenIdle: " ")
+            if !isEnglishMode, !snapshot.isAsciiMode, inputLanguage.family == .zhuyin {
+                session.tap(.space)
+            } else {
+                confirmOrInsert(commitWhenIdle: " ")
+            }
             if englishDocumentGeneration == documentGeneration,
                 doubleSpacePeriodAllowed, wordCharBefore
             {

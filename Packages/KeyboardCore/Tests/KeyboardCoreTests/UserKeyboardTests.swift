@@ -78,6 +78,80 @@ final class UserKeyboardTests: XCTestCase {
                 in: keys))
     }
 
+    // MARK: - Real physical board names (known bundled boards)
+
+    /// The roster helper returns the input method's own name, never the shape-qualified title, so a
+    /// surface that resolved the real board can put the board's name first.
+    func testCurrentInputMethodNameComesFromTheRealPublishedRoster() {
+        let keyboards = [
+            UserKeyboard(
+                inputMethodID: "bopomofo_tw", inputMethodName: "注音（台湾）",
+                layout: .qwerty26)
+        ]
+        XCTAssertEqual(
+            UserKeyboardRoster.currentInputMethodName(
+                schemaID: "bopomofo_tw", layout: .qwerty26, in: keyboards),
+            "注音（台湾）")
+        XCTAssertEqual(
+            UserKeyboardRoster.currentTitle(
+                schemaID: "bopomofo_tw", layout: .qwerty26, in: keyboards),
+            "注音（台湾） · 26 键",
+            "the title keeps naming the transport shape; the helper exists so a caller does not read it as the scheme name"
+        )
+        XCTAssertNil(
+            UserKeyboardRoster.currentInputMethodName(
+                schemaID: "bopomofo_tw", layout: .phone9, in: keyboards))
+        XCTAssertNil(
+            UserKeyboardRoster.currentInputMethodName(
+                schemaID: "missing", layout: .qwerty26, in: keyboards))
+        let unnamed = [UserKeyboard(inputMethodID: "bopomofo_tw", inputMethodName: "  ", layout: .qwerty26)]
+        XCTAssertNil(
+            UserKeyboardRoster.currentInputMethodName(
+                schemaID: "bopomofo_tw", layout: .qwerty26, in: unnamed),
+            "a blank name is no name; the caller shows the board alone")
+    }
+
+    func testPhysicalBoardNamesKeepInputMethodFirstAndAuthorWording() {
+        let zhuyin = UserKeyboard(
+            inputMethodID: "bopomofo_tw", inputMethodName: "注音（台湾）", layout: .qwerty26)
+        XCTAssertEqual(zhuyin.title(physicalLayoutName: "注音 41 键"), "注音（台湾） · 注音 41 键")
+        XCTAssertEqual(
+            zhuyin.title(physicalLayoutName: nil), "注音（台湾） · 26 键",
+            "no resolved board keeps today's published title")
+        XCTAssertEqual(
+            zhuyin.title(physicalLayoutName: "   "), "注音（台湾） · 26 键",
+            "a blank board name is not a real board")
+
+        let unnamed = UserKeyboard(inputMethodID: "bopomofo_tw", inputMethodName: "", layout: .qwerty26)
+        XCTAssertEqual(
+            unnamed.title(physicalLayoutName: "注音 41 键"), "注音 41 键",
+            "without a real input-method name the board stands alone")
+        XCTAssertEqual(unnamed.title(physicalLayoutName: nil), "26 键")
+
+        let generic = UserKeyboard(
+            inputMethodID: "bopomofo_tw", inputMethodName: UserTerminology.inputMethod,
+            layout: .qwerty26)
+        XCTAssertEqual(
+            generic.title(physicalLayoutName: "注音 41 键"), "\(UserTerminology.inputMethod) · 注音 41 键",
+            "an author may name an input method with the same word the interface uses")
+
+        let plain26 = UserKeyboard(
+            inputMethodID: "songyan_quanpin", inputMethodName: "全拼", layout: .qwerty26)
+        XCTAssertEqual(plain26.title(physicalLayoutName: nil), "全拼 · 26 键")
+        let nine = UserKeyboard(inputMethodID: "jyut6ping3", inputMethodName: "粤拼", layout: .phone9)
+        XCTAssertEqual(nine.title(physicalLayoutName: nil), "粤拼 · 9 键")
+
+        XCTAssertNil(UserKeyboard.physicalBoardTitle(inputMethodName: "全拼", physicalLayoutName: nil))
+        XCTAssertNil(UserKeyboard.physicalBoardTitle(inputMethodName: "全拼", physicalLayoutName: "  "))
+        XCTAssertEqual(
+            UserKeyboard.physicalBoardTitle(inputMethodName: "全拼", physicalLayoutName: "注音 41 键"),
+            "全拼 · 注音 41 键")
+        XCTAssertEqual(
+            UserKeyboard.physicalBoardTitle(
+                inputMethodName: UserTerminology.inputMethod, physicalLayoutName: "注音 41 键"),
+            "\(UserTerminology.inputMethod) · 注音 41 键")
+    }
+
     // MARK: - Runtime filter (the sole construction entry of the long-press switch list)
 
     /// With nothing published the bundled fallback still offers every layout of 内置全拼.

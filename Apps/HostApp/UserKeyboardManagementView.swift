@@ -178,7 +178,9 @@ struct UserKeyboardManagementView: View {
                 let current = items.first(where: { $0.id == center.currentKeyboardID })
             {
                 Section {
-                    LabeledContent(UserTerminology.statusInUse, value: current.keyboard.title)
+                    LabeledContent(
+                        UserTerminology.statusInUse,
+                        value: boardTitle(current, board: builtinBoardName(mainLayout(for: current))))
                 }
             }
             if let result = center.resultMessage {
@@ -274,12 +276,35 @@ struct UserKeyboardManagementView: View {
             ? UserTerminology.inputMethod : name
     }
 
+    /// A shipped board's own localized name, or nil for every other main layout (the shape presets,
+    /// user copies and unknown ids keep the existing name).
+    private func builtinBoardName(_ main: LayoutDefinition?) -> String? {
+        guard let main else { return nil }
+        return UserTerminology.builtinLayoutName(physicalLayoutID: main.id)
+    }
+
+    /// A row's name where the real board is known: the board's name first, then the input method;
+    /// every other keyboard keeps the published title.
+    private func boardTitle(_ item: Item, board: String?) -> String {
+        UserKeyboard.physicalBoardTitle(
+            inputMethodName: item.inputMethodName, physicalLayoutName: board) ?? item.keyboard.title
+    }
+
+    /// The spoken name of one row: the real board name when known, otherwise the shape name.
+    private func rowSpokenName(inputMethod: String, layoutTitle: String) -> String {
+        let method = inputMethod.trimmingCharacters(in: .whitespacesAndNewlines)
+        return method.isEmpty ? layoutTitle : "\(method)，\(layoutTitle)"
+    }
+
     private var isBusy: Bool { isSaving || center.busyKeyboardID != nil }
 
     private var keyboardNames: KeyboardNames {
         let publishedIDs = Set(center.publishedKeyboards.map(\.id))
         return KeyboardNames(
-            known: Dictionary(items.map { ($0.id, $0.keyboard.title) }, uniquingKeysWith: { first, _ in first }),
+            known: Dictionary(
+                items.map {
+                    ($0.id, boardTitle($0, board: builtinBoardName(mainLayout(for: $0))))
+                }, uniquingKeysWith: { first, _ in first }),
             active: items.filter { publishedIDs.contains($0.id) || selectedIDs.contains($0.id) }
                 .map { $0.keyboard.compositionKey })
     }
@@ -294,7 +319,10 @@ struct UserKeyboardManagementView: View {
         let inUse = center.currentKeyboardID == item.id
         let available = isAvailable(item)
         let main = mainLayout(for: item)
-        let customMain = main.flatMap { customMainName(item, main: $0) }
+        let board = builtinBoardName(main)
+        let title = boardTitle(item, board: board)
+        // The board name is already the row's title, so the caption only names a user-made main.
+        let customMain = board == nil ? main.flatMap { customMainName(item, main: $0) } : nil
         return HStack(spacing: 12) {
             Button {
                 configuringKeyboard = item.keyboard
@@ -309,7 +337,7 @@ struct UserKeyboardManagementView: View {
                             .accessibilityHidden(true)
                     }
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(item.keyboard.title).foregroundStyle(.primary).fixedSize(horizontal: false, vertical: true)
+                        Text(title).foregroundStyle(.primary).fixedSize(horizontal: false, vertical: true)
                         // Names the destination so the row reads as the way into 页面搭配.
                         HStack(spacing: 3) {
                             Image(systemName: "square.stack.3d.up")
@@ -332,14 +360,14 @@ struct UserKeyboardManagementView: View {
             .buttonStyle(.plain)
             .disabled(isBusy || !available)
             .accessibilityIdentifier("userKeyboard.pages." + item.id)
-            .accessibilityLabel(customMain.map { "\(item.keyboard.title)，\($0)" } ?? item.keyboard.title)
+            .accessibilityLabel(customMain.map { "\(title)，\($0)" } ?? title)
             .accessibilityHint("打开\(UserTerminology.pageComposition)")
             if !available {
                 Text("不可用")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .fixedSize()
-                    .accessibilityLabel("\(item.keyboard.title)，不可用")
+                    .accessibilityLabel("\(title)，不可用")
             } else if inUse {
                 HStack(spacing: 3) {
                     Image(systemName: "checkmark")
@@ -349,14 +377,14 @@ struct UserKeyboardManagementView: View {
                 .foregroundStyle(.green)
                 .fixedSize()
                 .accessibilityElement(children: .ignore)
-                .accessibilityLabel("\(item.keyboard.title)，\(UserTerminology.statusInUse)")
+                .accessibilityLabel("\(title)，\(UserTerminology.statusInUse)")
             } else {
                 Button(UserTerminology.startUsing) { use(item) }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
                     .disabled(isBusy || !center.supportsManagement)
                     .accessibilityIdentifier("userKeyboard.use." + item.id)
-                    .accessibilityLabel("\(UserTerminology.startUsing)\(item.keyboard.title)")
+                    .accessibilityLabel("\(UserTerminology.startUsing)\(title)")
             }
         }
         .alignmentGuide(.listRowSeparatorLeading) { _ in LayoutThumbnail.width + 12 }
@@ -382,9 +410,12 @@ struct UserKeyboardManagementView: View {
     private func pickRow(_ item: Item, inputMethod: String) -> some View {
         let selected = selectedIDs.contains(item.id)
         let available = isAvailable(item)
-        let name = UserTerminology.userKeyboardToggleLabel(inputMethod: inputMethod, layout: item.layout)
         let main = mainLayout(for: item)
-        let customMain = main.flatMap { customMainName(item, main: $0) }
+        let board = builtinBoardName(main)
+        let layoutTitle = board ?? UserTerminology.layoutName(item.layout)
+        let name = rowSpokenName(inputMethod: inputMethod, layoutTitle: layoutTitle)
+        // A shipped board is named by its own title; only a user-made main needs the caption.
+        let customMain = board == nil ? main.flatMap { customMainName(item, main: $0) } : nil
         return Button {
             binding(for: item.id).wrappedValue.toggle()
         } label: {
@@ -393,7 +424,7 @@ struct UserKeyboardManagementView: View {
                     .font(.title3)
                     .foregroundStyle(selected ? Color.accentColor : Color.secondary)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(UserTerminology.layoutName(item.layout)).foregroundStyle(.primary)
+                    Text(layoutTitle).foregroundStyle(.primary)
                     if let customMain {
                         Text(customMain).font(.caption).foregroundStyle(.secondary).lineLimit(1)
                     } else if !available {

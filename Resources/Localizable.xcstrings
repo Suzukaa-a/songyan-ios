@@ -572,6 +572,50 @@
           }
         }
       }
+    },
+    "layout.name.zhuyin41": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "注音 41 键"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "注音 41 鍵"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "注音 41キー"
+          }
+        }
+      }
+    },
+    "layout.name.cangjie26": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仓颉 26 键"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "倉頡 26 鍵"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "倉頡 26キー"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

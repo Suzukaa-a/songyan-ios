@@ -381,6 +381,10 @@ struct KeyboardLayoutUtilityBar<Key: View, Globe: View, ModeSwitch: View>: View 
     let numericPageAccessibilityLabel: String
     let symbolPageAccessibilityLabel: String
     let onPage: (KeyboardPage) -> Void
+    /// Whether the bar adds its own 123, symbol, globe and 中/英 shortcuts around the authored row.
+    /// A bundled board whose footer declares every control key turns this off, so both platforms
+    /// draw the same footer; every other layout keeps the supplement.
+    var supplementShortcuts = true
     @ViewBuilder var key: (LayoutKey, String, Int) -> Key
     @ViewBuilder var globe: () -> Globe
     @ViewBuilder var modeSwitch: () -> ModeSwitch
@@ -388,12 +392,8 @@ struct KeyboardLayoutUtilityBar<Key: View, Globe: View, ModeSwitch: View>: View 
     private var keys: [LayoutKey] { controlRow?.keys ?? [] }
 
     /// Shortcuts the bar adds only when the authored control row does not already declare them.
-    private var dedupe: (numeric: Bool, symbols: Bool, layout: Bool) {
-        (
-            numeric: keys.contains { $0.action.pageSwitchTarget == .numeric },
-            symbols: keys.contains { $0.action.pageSwitchTarget == .symbols },
-            layout: keys.contains { $0.action.type == .modeSwitch }
-        )
+    private var shortcutPlan: KeyboardFooterShortcutPlan {
+        KeyboardFooterShortcutPlan(controlRow: controlRow, supplementShortcuts: supplementShortcuts)
     }
 
     var body: some View {
@@ -403,14 +403,15 @@ struct KeyboardLayoutUtilityBar<Key: View, Globe: View, ModeSwitch: View>: View 
             let visible = keys.indices.filter {
                 keys[$0].action.type != .space && (keys[$0].action.type != .globe || showsGlobe)
             }
-            let dedupe = dedupe
+            let plan = shortcutPlan
             let shortcuts: [LayoutFooterItem] =
-                (dedupe.numeric ? [] : [.numericShortcut]) + (dedupe.symbols ? [] : [.symbolShortcut])
-                + (!definitionHasGlobe && showsGlobe ? [.globe] : [])
+                (plan.addsNumericShortcut ? [.numericShortcut] : [])
+                + (plan.addsSymbolShortcut ? [.symbolShortcut] : [])
+                + (plan.addsGlobe(definitionHasGlobe: definitionHasGlobe, showsGlobe: showsGlobe) ? [.globe] : [])
             let left = shortcuts + visible.filter { $0 < boundary }.map(LayoutFooterItem.key)
             let right =
                 visible.filter { $0 >= boundary }.map(LayoutFooterItem.key)
-                + (dedupe.layout ? [] : [LayoutFooterItem.layoutSwitch])
+                + (plan.addsLayoutSwitch ? [LayoutFooterItem.layoutSwitch] : [])
             let spaceIndex = keys.firstIndex { $0.action.type == .space }
             let space = spaceIndex.map { keys[$0] } ?? LayoutKey(label: "空格", width: 4, action: .init(.space))
             SplitSpaceKeyboardRow(
@@ -441,14 +442,14 @@ struct KeyboardLayoutUtilityBar<Key: View, Globe: View, ModeSwitch: View>: View 
     }
 
     private var singleSpaceBar: some View {
-        let dedupe = dedupe
+        let plan = shortcutPlan
         return HStack(spacing: 4) {
-            if !dedupe.numeric {
+            if plan.addsNumericShortcut {
                 pageShortcut(
                     KeyLabelPolicy.numericPageTitle, target: .numeric, accessibilityLabel: numericPageAccessibilityLabel
                 )
             }
-            if !dedupe.symbols {
+            if plan.addsSymbolShortcut {
                 pageShortcut(symbolPageTitle, target: .symbols, accessibilityLabel: symbolPageAccessibilityLabel)
             }
             if let row = controlRow {
@@ -459,10 +460,10 @@ struct KeyboardLayoutUtilityBar<Key: View, Globe: View, ModeSwitch: View>: View 
             } else {
                 Spacer(minLength: 0)
             }
-            if !definitionHasGlobe, showsGlobe {
+            if plan.addsGlobe(definitionHasGlobe: definitionHasGlobe, showsGlobe: showsGlobe) {
                 globe().frame(width: 44, height: keyHeight)
             }
-            if !dedupe.layout {
+            if plan.addsLayoutSwitch {
                 modeSwitch().frame(width: 44, height: keyHeight)
             }
         }

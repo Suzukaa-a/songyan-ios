@@ -180,12 +180,16 @@ extension KeyboardPanelView {
         localLayoutID = definition.id
         // A local selection can update the rendered keys before SwiftUI observes the
         // derived report; hand the committed definition to the host in this transaction.
+        let selectedFacts = DefinitionResolutionMemo.Facts(usable: [], active: definition)
+        let selectedRowBudget = KeyboardPanelGeometry.physicalMainRowBudget(forDefinitionID: definition.id)
         onReadingRowReport?(
             CandidateReadingRowReport(
                 eligible: CandidateReadingRowPolicy.isEligible(definition),
                 definitionID: definition.id,
                 resolvedFromRegistry: layoutRegistry != nil,
-                candidateAreaRequired: definition.effectiveCandidateArea.candidates))
+                candidateAreaRequired: definition.effectiveCandidateArea.candidates,
+                physicalMainRowCount: selectedRowBudget,
+                drawnMainRowCount: max(1, min(selectedFacts.mainRows.count, selectedRowBudget))))
         controller.updateCompactSpellingContext(
             eligible: CandidateReadingRowPolicy.needsEngineSpelling(definition),
             numericTransport: PhoneKeypadStructure.matches(definition),

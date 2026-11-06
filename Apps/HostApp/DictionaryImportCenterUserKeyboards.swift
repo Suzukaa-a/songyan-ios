@@ -1,5 +1,6 @@
 import Foundation
 import KeyboardCore
+import LayoutKit
 
 /// Sole adapter from the host app's "user keyboards" page to the canonical publication transaction.
 ///
@@ -74,7 +75,7 @@ final class DictionaryImportCenterUserKeyboards: UserKeyboardManaging {
             schemaID: candidate.inputMethodID,
             layout: candidate.layout)
         _ = try await context.transaction.addKeyboard(keyboard)
-        return "已添加 \(candidate.keyboard().title)。"
+        return "已添加 \(displayTitle(candidate.keyboard(), schemas: context.schemas))。"
     }
 
     func removeKeyboard(_ keyboard: UserKeyboard) async throws -> String {
@@ -83,7 +84,7 @@ final class DictionaryImportCenterUserKeyboards: UserKeyboardManaging {
             schemaID: keyboard.inputMethodID,
             layout: keyboard.layout)
         _ = try await context.transaction.removeKeyboard(published)
-        return "已移除 \(keyboard.title)。"
+        return "已移除 \(displayTitle(keyboard, schemas: context.schemas))。"
     }
 
     func replaceKeyboards(_ keyboards: [UserKeyboard]) async throws -> String {
@@ -106,7 +107,10 @@ final class DictionaryImportCenterUserKeyboards: UserKeyboardManaging {
             selecting: selecting.map { PublishedKeyboard(schemaID: $0.inputMethodID, layout: $0.layout) },
             viewedActivation: viewed.activation, viewedRoster: viewed.roster,
             viewedSourceKey: viewed.sourceKey)
-        if let selecting { return UserTerminology.userKeyboardNowUsing(selecting.title) }
+        if let selecting {
+            return UserTerminology.userKeyboardNowUsing(
+                displayTitle(selecting, schemas: context.schemas))
+        }
         return UserTerminology.userKeyboardSaved(count: published.count)
     }
 
@@ -154,6 +158,19 @@ final class DictionaryImportCenterUserKeyboards: UserKeyboardManaging {
                 resources.selectedSchemaID
             )
         }
+    }
+
+    /// Resolve the paired physical board before falling back to its transport kind.
+    private func displayTitle(
+        _ keyboard: UserKeyboard, schemas: [KeyboardSchemaDescriptor]
+    ) -> String {
+        let registry = LayoutManager.shared.registry
+        let layoutID = HostLayoutAvailability.effectiveMainLayoutID(
+            schemaID: keyboard.inputMethodID, layout: keyboard.layout, descriptors: schemas,
+            in: registry)
+        guard let layout = registry.resolvedLayout(id: layoutID) else { return keyboard.title }
+        return keyboard.title(
+            physicalLayoutName: UserTerminology.builtinLayoutName(physicalLayoutID: layout.id))
     }
 }
 

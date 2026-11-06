@@ -35,7 +35,8 @@ final class TraditionalCatalogNativeInstallTests: XCTestCase {
         environment["TRADITIONAL_CATALOG_NATIVE"] = "1"
         // This test runs while swift test holds the package build lock, so the wrapper must reuse
         // the products this process already built instead of starting a nested swift build.
-        environment["TRADITIONAL_CATALOG_PM_BIN"] = Bundle(for: Self.self).bundleURL
+        environment["TRADITIONAL_CATALOG_PM_BIN"] =
+            Bundle(for: Self.self).bundleURL
             .deletingLastPathComponent().path
         process.environment = environment
         let output = Pipe()

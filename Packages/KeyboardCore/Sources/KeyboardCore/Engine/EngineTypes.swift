@@ -136,6 +136,13 @@ public struct EngineSnapshot: Equatable, Sendable {
         self.isLastPage = isLastPage
     }
 
+    /// A confirmed fluency-editor selection leaves an empty tail at the UTF-8 end.
+    public var isFullyConfirmedComposition: Bool {
+        guard isComposing, !rawInput.isEmpty, !preedit.isEmpty else { return false }
+        let end = preedit.utf8.count
+        return preeditSelStart == end && preeditSelEnd == end && preeditCaretByte == end
+    }
+
     /// Has paging and can go back (not the first page).
     public var canPageBackward: Bool { pageSize > 0 && pageIndex > 0 }
     /// Has paging and can go forward (not the last page).

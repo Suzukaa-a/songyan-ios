@@ -8,13 +8,20 @@ extension KeyboardPanelView {
     // MARK: Control row (layout menu / globe / page switch / CN-EN toggle / space / delete / return)
 
     var currentKeyboardTitle: String {
-        UserKeyboardRoster.currentTitle(
-            schemaID: controller.selectedSchemaID,
-            layout: controller.layout,
-            in: controller.userKeyboardChoices)
-            ?? (isBundledDefinition
-                ? UserTerminology.layoutName(controller.layout)
-                : activeDefinition?.name ?? UserTerminology.layoutName(controller.layout))
+        KeyboardTitleRule.title(
+            published: UserKeyboardRoster.currentTitle(
+                schemaID: controller.selectedSchemaID,
+                layout: controller.layout,
+                in: controller.userKeyboardChoices),
+            inputMethodName: UserKeyboardRoster.currentInputMethodName(
+                schemaID: controller.selectedSchemaID,
+                layout: controller.layout,
+                in: controller.userKeyboardChoices),
+            isBundled: isBundledDefinition,
+            physicalLayoutID: activeDefinition?.id,
+            definitionName: activeDefinition?.name,
+            kindName: UserTerminology.layoutName(controller.layout),
+            builtinName: { UserTerminology.builtinLayoutName(physicalLayoutID: $0) })
     }
 
     var controlRow: some View { controlRow(columns: nil) }
@@ -154,9 +161,22 @@ extension KeyboardPanelView {
     /// "More tools" item appended; no 26/14/9 layouts and no input-method choice. With an empty list the
     /// "More tools" item is still offered so the tools panel stays reachable (no tappable dead item is built).
     var userKeyboardAlternates: [KeyCap] {
+        let descriptors = controller.availableSchemas
         var caps = controller.userKeyboardChoices.map { keyboard in
-            KeyCap(
-                id: Self.userKeyboardCapID(keyboard), title: keyboard.title,
+            let family = InputLayoutPolicy.family(schemaID: keyboard.inputMethodID, descriptors: descriptors)
+            let availability = LayoutAvailability(
+                allows: { definition, _ in
+                    InputLayoutPolicy.allows(physicalLayoutID: definition.id, family: family)
+                },
+                preferredMainLayoutID: { _ in InputLayoutPolicy.preferredPhysicalLayoutID(family: family) })
+            let physicalID = LayoutInput.Builtin(rawValue: keyboard.layout.rawValue).flatMap { layout in
+                layoutRegistry?.usableMainLayoutID(
+                    for: KeyboardCompositionKey(inputMethodID: keyboard.inputMethodID, layout: layout),
+                    availability: availability)
+            }
+            let board = physicalID.flatMap { UserTerminology.builtinLayoutName(physicalLayoutID: $0) }
+            return KeyCap(
+                id: Self.userKeyboardCapID(keyboard), title: keyboard.title(physicalLayoutName: board),
                 subtitle: isCurrent(keyboard) ? UserTerminology.userKeyboardCurrent : nil,
                 action: .cycleLayout)
         }

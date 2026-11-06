@@ -126,6 +126,25 @@ public enum UserTerminology: Sendable {
     /// User-facing keyboard layout name (same in Host and keyboard).
     public static func layoutName(_ layout: KeyboardLayoutKind) -> String { layout.userTitle }
 
+    /// User-facing name of a bundled physical keyboard layout, or nil for an id this build does
+    /// not ship (a user layout keeps its own name). The words live in the app's compiled string
+    /// catalog; the bundle stays injectable so probes read the real compiled resources instead of
+    /// a translation copy kept in code.
+    public static func builtinLayoutName(
+        physicalLayoutID: String, in bundle: Bundle = .main
+    ) -> String? {
+        guard let key = builtinLayoutNameKey(physicalLayoutID) else { return nil }
+        return String(localized: key, bundle: bundle)
+    }
+
+    private static func builtinLayoutNameKey(_ physicalLayoutID: String) -> String.LocalizationValue? {
+        switch physicalLayoutID {
+        case "zhuyin41": "layout.name.zhuyin41"
+        case "cangjie26": "layout.name.cangjie26"
+        default: nil
+        }
+    }
+
     /// Input method display name (from the resource snapshot, always dynamic).
     public static func inputMethodName(_ schema: KeyboardSchemaDescriptor) -> String { schema.displayName }
 

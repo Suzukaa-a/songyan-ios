@@ -496,20 +496,21 @@ public final class RimeBackend: EngineBackend, @unchecked Sendable {
             throw error
         }
         try requireAvailableInput()
-        publishState(result.state)
+        let state = keyValue == " " ? try commitFullyConfirmedZhuyin(result.state, on: engine) : result.state
+        publishState(state)
 
-        var snap = Self.snapshot(from: result.state)
-        applyDisplay(&snap, from: result.state)
-        if !result.state.commitText.isEmpty {
+        var snap = Self.snapshot(from: state)
+        applyDisplay(&snap, from: state)
+        if !state.commitText.isEmpty {
             // A capital the speller refused: the editor confirmed the composition and handed
             // the letter back, so it is typed right after what was confirmed.
-            if !result.consumed && !result.state.isComposing, Self.isCapital(keyValue) {
+            if !result.consumed && !state.isComposing, Self.isCapital(keyValue) {
                 snap.committed += keyValue
             }
             return snap  // the commit is already in the commit text, exactly once
         }
         // librime did not consume the key: the keyboard handles it.
-        if !result.consumed && !result.state.isComposing {
+        if !result.consumed && !state.isComposing {
             if let literal = Self.literalForUnconsumed(keyValue) {
                 snap.committed = literal
             }
@@ -583,6 +584,16 @@ public final class RimeBackend: EngineBackend, @unchecked Sendable {
         return batch
     }
 
+    private func commitFullyConfirmedZhuyin(_ state: RimeState, on engine: RimeEngine) throws -> RimeState {
+        guard state.commitText.isEmpty, !state.isAsciiMode,
+            InputLayoutPolicy.family(
+                schemaID: state.schemaID, alphabet: spellerAlphabet(schemaID: state.schemaID) ?? "") == .zhuyin,
+            Self.snapshot(from: state).isFullyConfirmedComposition
+        else { return state }
+        // Another Space reopens a confirmed selection in fluency_editor.
+        return try engine.commitComposition().state
+    }
+
     public func selectCandidate(_ index: Int) throws -> EngineSnapshot {
         try requireAvailableInput()
         guard let engine = rime else { throw EngineBackendError.engineNotStarted }
@@ -590,9 +601,10 @@ public final class RimeBackend: EngineBackend, @unchecked Sendable {
             lastErrorText = "选择候选字词失败（索引 \(index) 返回空）"
             throw EngineBackendError.operationFailed("选择候选字词失败（索引 \(index)）")
         }
-        lastState = state
-        var snap = Self.snapshot(from: state)
-        applyDisplay(&snap, from: state)
+        let finalized = try commitFullyConfirmedZhuyin(state, on: engine)
+        lastState = finalized
+        var snap = Self.snapshot(from: finalized)
+        applyDisplay(&snap, from: finalized)
         return snap  // commitText passed through once
     }
 
@@ -607,9 +619,10 @@ public final class RimeBackend: EngineBackend, @unchecked Sendable {
             lastErrorText = "绝对索引选择候选字词失败（索引 \(index) 返回空）"
             throw EngineBackendError.operationFailed("绝对索引选择候选字词失败（索引 \(index)）")
         }
-        lastState = state
-        var snap = Self.snapshot(from: state)
-        applyDisplay(&snap, from: state)
+        let finalized = try commitFullyConfirmedZhuyin(state, on: engine)
+        lastState = finalized
+        var snap = Self.snapshot(from: finalized)
+        applyDisplay(&snap, from: finalized)
         return snap
     }
 

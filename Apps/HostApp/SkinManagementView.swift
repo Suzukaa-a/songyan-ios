@@ -17,7 +17,11 @@ enum AppearancePreviewLoader {
                 layout: (activation?.selectedLayout ?? .qwerty26).builtinLayout)
             // An older catalog can lack a bundled preset the composition still selects.
             let layouts = registry.usableLayouts { _ in true }
-            let selected = registry.composition(for: key).mainLayoutID
+            // The same pairing rule the keyboard and 我的键盘 use: an unsaved traditional keyboard
+            // previews its own board instead of the 26-key default.
+            let selected = HostLayoutAvailability.effectiveMainLayoutID(
+                schemaID: key.inputMethodID, layout: KeyboardLayoutKind(key.layout),
+                descriptors: activation?.schemas ?? [], in: registry)
             return (layouts, layouts.contains { $0.id == selected } ? selected : layouts.first?.id ?? selected)
         }
     }

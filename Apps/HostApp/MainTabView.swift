@@ -146,11 +146,20 @@ struct MainTabView: View {
         }
         if snapshot.recipeEnabled {
             inUseSchemeName = snapshot.displayConfigName
+            let method = UserTerminology.inputMethodName(
+                schemaID: snapshot.selectedSchemaID, schemas: snapshot.schemas)
+            let board = snapshot.selectedLayout.flatMap { layout -> String? in
+                guard let schemaID = snapshot.selectedSchemaID else { return nil }
+                let id = HostLayoutAvailability.effectiveMainLayoutID(
+                    schemaID: schemaID, layout: layout, descriptors: snapshot.schemas,
+                    in: LayoutManager.shared.registry)
+                return UserTerminology.builtinLayoutName(physicalLayoutID: id)
+            }
             keyboardLine =
                 UserTerminology.currentKeyboardSummary(
-                    inputMethod: UserTerminology.inputMethodName(
-                        schemaID: snapshot.selectedSchemaID, schemas: snapshot.schemas),
-                    layout: snapshot.selectedLayout) ?? Self.keyboardSwitchHint
+                    inputMethod: UserKeyboard.physicalBoardTitle(inputMethodName: method, physicalLayoutName: board)
+                        ?? method,
+                    layout: board == nil ? snapshot.selectedLayout : nil) ?? Self.keyboardSwitchHint
         } else {
             // Nothing published: the keyboard runs the built-in scheme's fallback input method.
             inUseSchemeName = ProductionInputAvailability.builtinDisplayName

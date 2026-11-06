@@ -231,3 +231,68 @@ extension LayoutAction {
         }
     }
 }
+
+// MARK: - Authored control-row shortcuts
+
+/// The shortcuts the keyboard bar adds around an authored control row, and which entries that row
+/// already declares. A declared entry is never duplicated: a 中英 key counts under either action
+/// kind an authored row may use for it. Only the bundled boards whose footer declares every
+/// control key turn the supplement off, so both platforms draw the same footer; every other layout
+/// keeps the existing behaviour.
+struct KeyboardFooterShortcutPlan: Equatable {
+    let supplementShortcuts: Bool
+    let declaresNumericShortcut: Bool
+    let declaresSymbolShortcut: Bool
+    let declaresLayoutSwitch: Bool
+
+    init(controlRow: LayoutRow?, supplementShortcuts: Bool = true) {
+        let keys = controlRow?.keys ?? []
+        self.supplementShortcuts = supplementShortcuts
+        declaresNumericShortcut = keys.contains { $0.action.pageSwitchTarget == .numeric }
+        declaresSymbolShortcut = keys.contains { $0.action.pageSwitchTarget == .symbols }
+        declaresLayoutSwitch = keys.contains {
+            $0.action.type == .modeSwitch || $0.action.type == .languageSwitch
+        }
+    }
+
+    /// Whether the bar adds its 123 shortcut.
+    var addsNumericShortcut: Bool { supplementShortcuts && !declaresNumericShortcut }
+
+    /// Whether the bar adds its symbol-page shortcut.
+    var addsSymbolShortcut: Bool { supplementShortcuts && !declaresSymbolShortcut }
+
+    /// Whether the bar adds its 中/英 shortcut; a declared one stays where the author put it.
+    var addsLayoutSwitch: Bool { supplementShortcuts && !declaresLayoutSwitch }
+
+    /// Whether the bar adds the globe key.
+    func addsGlobe(definitionHasGlobe: Bool, showsGlobe: Bool) -> Bool {
+        supplementShortcuts && !definitionHasGlobe && showsGlobe
+    }
+
+    /// Whether the bar supplements this physical layout's authored footer. Only the bundled boards
+    /// whose footer declares every control key rely on the declaration alone.
+    static func supplements(physicalLayoutID: String?) -> Bool {
+        guard let physicalLayoutID else { return true }
+        return physicalLayoutID != BuiltinLayouts.zhuyin41.id
+            && physicalLayoutID != BuiltinLayouts.cangjie26.id
+    }
+}
+
+// MARK: - Keyboard title
+
+/// Published identities carry the transport kind, so a resolved physical name takes precedence.
+enum KeyboardTitleRule {
+    static func title(
+        published: String?, inputMethodName: String?, isBundled: Bool,
+        physicalLayoutID: String?, definitionName: String?, kindName: String,
+        builtinName: (String) -> String?
+    ) -> String {
+        if isBundled, let physicalLayoutID, let board = builtinName(physicalLayoutID) {
+            return UserKeyboard.physicalBoardTitle(
+                inputMethodName: inputMethodName, physicalLayoutName: board) ?? board
+        }
+        if let published { return published }
+        if isBundled { return kindName }
+        return definitionName ?? kindName
+    }
+}

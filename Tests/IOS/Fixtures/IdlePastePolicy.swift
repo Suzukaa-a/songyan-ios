@@ -159,6 +159,7 @@ private struct NativeHeightProbe {
     let compactReadingRow = true
     let heightPreset = KeyboardHeightPreset.standard
     let keyHeight: CGFloat = 38
+    let drawnMainRows = KeyboardPanelGeometry.standardMainRowCount
     var fixedShellHeight: CGFloat {
         CGFloat(
             KeyboardPanelPresentationBudget(

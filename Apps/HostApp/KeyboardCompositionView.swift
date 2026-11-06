@@ -54,6 +54,19 @@ enum HostLayoutAvailability {
             },
             preferredMainLayoutID: { _ in InputLayoutPolicy.preferredPhysicalLayoutID(family: family) })
     }
+
+    /// The main layout the keyboard really uses: its saved pairing when this family may still use
+    /// it, otherwise the family's own board. Every Host surface that names, previews or switches a
+    /// pairing resolves it here, so a newly added traditional keyboard is never read as the 26-key
+    /// default. A fallback is runtime-only: the saved pairing is never rewritten.
+    static func effectiveMainLayoutID(
+        schemaID: String, layout: KeyboardLayoutKind, descriptors: [KeyboardSchemaDescriptor],
+        in registry: LayoutRegistry
+    ) -> String {
+        registry.usableMainLayoutID(
+            for: KeyboardCompositionKey(inputMethodID: schemaID, layout: layout.builtinLayout),
+            availability: policy(schemaID: schemaID, descriptors: descriptors))
+    }
 }
 
 /// Names the keyboards a layout or page is paired with. 我的键盘 knows the names of its keyboards;
@@ -161,7 +174,11 @@ struct KeyboardCompositionView: View {
     var body: some View {
         Form {
             Section {
-                Text(keyboard.title)
+                Text(
+                    keyboard.title(
+                        physicalLayoutName: mainLayout.flatMap {
+                            UserTerminology.builtinLayoutName(physicalLayoutID: $0.id)
+                        }))
                 Text("页面与布局单独保存到库中；选好后轻点「保存搭配」。")
                     .font(.footnote).foregroundStyle(.secondary)
                 if let libraryNotice {

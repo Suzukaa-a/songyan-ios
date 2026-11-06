@@ -476,6 +476,16 @@ public struct KeyboardPanelView: View {
         if let pageDefinition { return max(1, pageDefinition.rows.count) }
         return usesConfiguredLayout && !usesStandardQwerty ? max(1, definitionMainRows.count) : 3
     }
+    /// Letter rows the selected physical definition draws above its control row; the bundled
+    /// registration answers it (four for the 注音 board), any other layout keeps three.
+    var physicalMainRowBudget: Int {
+        KeyboardPanelGeometry.physicalMainRowBudget(forDefinitionID: activeDefinition?.id)
+    }
+    /// Rows this page draws inside the shell: the definition's budget on its letters page, three
+    /// on the shared ABC/123 pages, and the physical budget caps a longer DIY layout.
+    var drawnMainRowCount: Int {
+        min(mainRowCount, physicalMainRowBudget)
+    }
     var keyHeight: CGFloat {
         keyHeightOverride ?? CGFloat(KeyboardHeightPreset.standard.keyHeight(compact: verticalSizeClass == .compact))
     }
@@ -486,7 +496,8 @@ public struct KeyboardPanelView: View {
     private var panelGeometry: KeyboardPanelGeometry {
         KeyboardPanelGeometry(
             candidateHeight: candidateBarDefinition.collapsed.height,
-            keyHeight: keyHeight, selectedMainRows: max(1, definitionMainRows.count),
+            keyHeight: keyHeight, selectedMainRows: max(1, drawnMainRowCount),
+            maximumVisibleRows: physicalMainRowBudget,
             readingRowReserved: readingRowReserved,
             candidateSize: appearance.skin.typography.candidateSize,
             compactReadingRow: verticalSizeClass == .compact,
@@ -518,7 +529,9 @@ public struct KeyboardPanelView: View {
             candidateAreaRequired: definitionPage
                 ? definitionFacts.candidateAreaRequired
                 : page == .letters || symbolPageKeepsCandidates,
-            pageOverride: !definitionPage)
+            pageOverride: !definitionPage,
+            physicalMainRowCount: physicalMainRowBudget,
+            drawnMainRowCount: drawnMainRowCount)
     }
 
     /// The Host grants this fixed capability after the layout source resolves.
