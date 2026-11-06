@@ -22,7 +22,10 @@ extension SchemeImportCenter {
         resetRecipePlanningState()
     }
 
-    func accept(_ urls: [URL], sourceURL: URL? = nil, onFinished: (() -> Void)? = nil) {
+    func accept(
+        _ urls: [URL], sourceURL: URL? = nil, recommendation: RecommendedSchemeSource? = nil,
+        onFinished: (() -> Void)? = nil
+    ) {
         guard !busy else {
             message = "上一项导入还没完成，请稍后再选择文件。"
             onFinished?()
@@ -32,7 +35,7 @@ extension SchemeImportCenter {
             onFinished?()
             return
         }
-        let capture = ImportCapture(target: nil, sourceURL: sourceURL)
+        let capture = ImportCapture(target: nil, sourceURL: sourceURL, recommendation: recommendation)
         Task {
             defer { onFinished?() }
             await prepareRecognizedImport(urls, capture: capture)
@@ -44,6 +47,13 @@ extension SchemeImportCenter {
     struct ImportCapture {
         let target: InstalledPackage?
         let sourceURL: URL?
+        let recommendation: RecommendedSchemeSource?
+
+        init(target: InstalledPackage?, sourceURL: URL?, recommendation: RecommendedSchemeSource? = nil) {
+            self.target = target
+            self.sourceURL = sourceURL
+            self.recommendation = recommendation
+        }
     }
 
     /// Recognition phase shared by `accept` and the direct update: reads the chosen files, and for an
@@ -66,7 +76,7 @@ extension SchemeImportCenter {
         lastInstalledPackageID = nil
         retryState.succeeded()
         resetRecipePlanningState()
-        message = urls.count == 1 ? "正在读取…" : "正在读取 \(urls.count) 个文件…"
+        message = urls.count == 1 || capture.recommendation != nil ? "正在读取…" : "正在读取 \(urls.count) 个文件…"
         defer {
             busy = false
             for (url, scoped) in leases where scoped { url.stopAccessingSecurityScopedResource() }
@@ -76,6 +86,7 @@ extension SchemeImportCenter {
             // ZIP extraction/directory reads are heavy IO: run on a background serial queue, with the security-scope lease held until the read completes.
             // A synchronous package read would block the MainActor, so await the background result explicitly.
             let picked = urls
+            let recommendation = capture.recommendation
             // Importing a scheme that is already installed replaces it: the same main input method
             // means the same scheme, so newer files become a new version of that package instead of
             // a second copy. Learning data and the recorded download address stay with it.
@@ -94,7 +105,12 @@ extension SchemeImportCenter {
                 DispatchQueue(label: "scheme-import.read", qos: .userInitiated).async {
                     continuation.resume(
                         with: Result {
-                            let imported = try reader.prepareSync(picked)
+                            let imported =
+                                if let recommendation {
+                                    try reader.prepareRecommended(recommendation, archiveURLs: picked)
+                                } else {
+                                    try reader.prepareSync(picked)
+                                }
                             let existing =
                                 explicit
                                 ?? SchemeReimport.replacing(

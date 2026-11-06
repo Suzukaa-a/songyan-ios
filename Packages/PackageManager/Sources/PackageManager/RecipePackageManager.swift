@@ -117,7 +117,13 @@ public actor RecipePackageManager {
     /// Host UI dispatches the synchronous package readers off the main thread.
     /// These readers touch no actor state (staging lives in the system temp directory);
     /// `nonisolated` keeps the actor hop out of the heavy path.
+    ///
+    /// Several ZIPs are one package: a recommended entry is assembled from the pinned upstream
+    /// archives it needs, and a file one archive already provides is never silently overwritten.
     nonisolated public func prepareSync(_ urls: [URL]) throws -> PreparedSchemeImport {
+        if urls.count > 1, urls.allSatisfy({ $0.pathExtension.lowercased() == "zip" }) {
+            return try prepareSchemeArchives(urls)
+        }
         guard urls.count == 1, let url = urls.first else {
             return try prepareSchemeImport(
                 files: urls.map { DictionaryImportFile(path: $0.lastPathComponent, location: $0) })
@@ -129,6 +135,25 @@ public actor RecipePackageManager {
             return try prepareSchemeImport(directory: url)
         }
         return try prepareSchemeImport(files: [DictionaryImportFile(path: url.lastPathComponent, location: url)])
+    }
+
+    nonisolated public func prepareRecommended(
+        _ source: RecommendedSchemeSource, archiveURLs: [URL]
+    ) throws -> PreparedSchemeImport {
+        guard archiveURLs.count == source.archives.count else {
+            throw RecipeInstallError.invalidResource(
+                Bundle.main.localizedString(
+                    forKey: "catalog.incompleteDownload", value: "下载的文件不完整，请重新下载。", table: nil))
+        }
+        // A single-archive entry keeps the streaming directory import (models become file
+        // references there too) while still restricting the installed input method list.
+        if archiveURLs.count == 1 {
+            return try prepareSchemeArchive(
+                archiveURLs[0], expectedSHA256: source.archives[0].sha256,
+                advertisedSchemaIDs: source.advertisedSchemaIDs)
+        }
+        return try prepareSchemeArchives(
+            archiveURLs, expectedArchives: source.archives, advertisedSchemaIDs: source.advertisedSchemaIDs)
     }
 
     public func status() throws -> RecipeStatus {

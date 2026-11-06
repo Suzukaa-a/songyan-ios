@@ -168,32 +168,23 @@ public struct PreparedSchemeImport: Sendable {
 }
 
 public extension RecipePackageManager {
-    nonisolated func prepareSchemeArchive(_ url: URL) throws -> PreparedSchemeImport {
+    nonisolated func prepareSchemeArchive(
+        _ url: URL, expectedSHA256: String? = nil, advertisedSchemaIDs: [String]? = nil
+    ) throws -> PreparedSchemeImport {
         let workspace = FileManager.default.temporaryDirectory.appendingPathComponent("scheme-zip-" + UUID().uuidString)
         try FileManager.default.createDirectory(at: workspace, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: workspace) }
         let snapshot = workspace.appendingPathComponent("source.zip")
         try BoundedLocalFile(url, maximumBytes: RecipeResourceBudget.archiveFile).copy(to: snapshot)
+        if let expectedSHA256 { try Self.verifyArchiveChecksum(snapshot, expected: expectedSHA256) }
         let archive = try Archive(url: snapshot, accessMode: .read)
         let staging = workspace.appendingPathComponent("extracted")
         try FileManager.default.createDirectory(at: staging, withIntermediateDirectories: true)
-        var paths = Set<String>()
-        var entries: [(entry: Entry, path: String)] = []
-        for entry in archive {
-            let path = entry.path.hasSuffix("/") ? String(entry.path.dropLast()) : entry.path
-            if SchemeSourceCheck.isFinderMetadata(path) { continue }
-            guard SchemeSourceCheck.safe(path), paths.insert(path.lowercased()).inserted,
-                entry.type != .symlink, paths.count <= 2000
-            else { throw RecipeInstallError.invalidResource("ZIP 文件路径无效或包含符号链接：\(entry.path)") }
-            entries.append((entry, path))
-        }
+        let entries = try Self.scanArchiveEntries(archive)
         // Detect the single enclosing repository before applying resource budgets.
         // Classification uses the package-relative path; extraction still uses the
         // separately validated physical path and preserves every subdirectory.
-        let roots = Set(entries.compactMap { $0.path.split(separator: "/").first.map(String.init) })
-        let wrapper =
-            roots.count == 1 && entries.allSatisfy({ $0.entry.type == .directory || $0.path.contains("/") })
-            ? roots.first : nil
+        let wrapper = Self.archiveWrapper(entries)
         var sizes: [String: Int] = [:]
         var snapshotBytes = 0
         for (entry, path) in entries {
@@ -241,13 +232,257 @@ public extension RecipePackageManager {
             }
         }
         let root = wrapper.map { staging.appendingPathComponent($0) } ?? staging
-        return try prepareSchemeImport(directory: root)
+        return try prepareSchemeImport(directory: root, advertisedSchemaIDs: advertisedSchemaIDs)
     }
+
+    /// Several archives of one catalogue entry, merged into a single package. The first archive is the
+    /// entry: its files keep their package-relative paths, and only its default.yaml describes the
+    /// installed schema_list. Later archives contribute resources at those same paths (a dependency
+    /// dictionary or schema has to stay where librime reads it). Identical bytes are one file;
+    /// documentation such as a licence keeps every upstream copy under that archive's namespace; a
+    /// runtime path two archives fill differently is refused instead of resolving to the wrong
+    /// upstream's bytes. Model files stay file references, never in-memory Data.
+    nonisolated func prepareSchemeArchives(
+        _ urls: [URL], expectedArchives: [RecommendedSchemeArchive]? = nil, advertisedSchemaIDs: [String]? = nil
+    ) throws -> PreparedSchemeImport {
+        let workspace = FileManager.default.temporaryDirectory
+            .appendingPathComponent("scheme-zips-" + UUID().uuidString)
+        try FileManager.default.createDirectory(at: workspace, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: workspace) }
+        // Freeze and size-check every archive before the first one is unpacked: several files share
+        // the single-archive compressed budget, so a larger later archive must be refused up front.
+        let inputs = try urls.map { try BoundedLocalFile($0, maximumBytes: RecipeResourceBudget.archiveFile) }
+        try RecipeResourceBudget.validateArchives(inputs.map { Int64($0.size) })
+        var bytes: [String: Data] = [:]
+        var fileResources: [String: RecipeFileResource] = [:]
+        var claimedPaths: [String: (path: String, label: String)] = [:]
+        var snapshotFiles: [PickedFile] = []
+        var snapshotBytes = 0
+        var sourceBytes = 0
+        var modelBytes = 0
+        var stagedEntries = 0
+        // Model snapshots must outlive this reader: the installation copies them after it returns.
+        let modelStaging = FileManager.default.temporaryDirectory
+            .appendingPathComponent("scheme-models-" + UUID().uuidString)
+        for (index, url) in urls.enumerated() {
+            let snapshot = workspace.appendingPathComponent("source-\(index).zip")
+            try inputs[index].copy(to: snapshot)
+            if let expectedArchives {
+                try Self.verifyArchiveChecksum(snapshot, expected: expectedArchives[index].sha256)
+            }
+            let archive = try Archive(url: snapshot, accessMode: .read)
+            let entries = try Self.scanArchiveEntries(archive)
+            let wrapper = Self.archiveWrapper(entries)
+            let label = Self.archiveLabel(url: url, wrapper: wrapper, index: index)
+            for (entry, path) in entries where entry.type != .directory {
+                let logicalPath = wrapper.map { String(path.dropFirst($0.count + 1)) } ?? path
+                if logicalPath == ".git" || logicalPath.hasPrefix(".git/") { continue }
+                if logicalPath.hasPrefix("build/") && logicalPath != "build/.gitkeep" { continue }
+                // The entry archive owns the package's default configuration; a dependency's
+                // default.yaml (or its schema_list patch) must never become the published list.
+                if index > 0, ["default.yaml", "default.custom.yaml"].contains(logicalPath.lowercased()) {
+                    continue
+                }
+                let size = Int(clamping: entry.uncompressedSize)
+                if SchemeSourceCheck.isLearningSnapshot(logicalPath) {
+                    // A shipped snapshot is offered for merging only; it is never installed as source.
+                    guard size <= RimeSnapshotCollector.maximumFileBytes,
+                        snapshotBytes + size <= RimeSnapshotCollector.maximumTotalBytes
+                    else { continue }
+                    let data = try Self.readArchiveEntry(entry, from: archive, path: path)
+                    snapshotBytes += data.count
+                    let name = logicalPath.split(separator: "/").last.map(String.init) ?? path
+                    snapshotFiles.append(PickedFile(name: name) { limit in data.count > limit ? nil : data })
+                    continue
+                }
+                // User databases are private learning data, never package source; the single-package
+                // import refuses them the same way.
+                guard !logicalPath.contains(".userdb") else {
+                    throw RecipeInstallError.invalidResource(
+                        "路径不安全、重复或包含不支持的用户数据文件：\(logicalPath)")
+                }
+                guard size <= RecipeResourceBudget.maximumFileBytes(logicalPath) else {
+                    throw RecipeInstallError.invalidResource("ZIP 解压后大小超过限制")
+                }
+                if RecipeResourceBudget.isModel(logicalPath) {
+                    // Models travel by file reference exactly as a single package's do: extracted
+                    // once, snapshotted on disk, and a root prediction database is validated before
+                    // it may be installed.
+                    guard modelBytes + size <= RecipeResourceBudget.modelTotal else {
+                        throw RecipeInstallError.invalidResource("方案文件或模型文件总大小超过限制")
+                    }
+                    let staged = workspace.appendingPathComponent("model-\(index)-\(stagedEntries).bin")
+                    stagedEntries += 1
+                    let digest = try Self.extractArchiveEntry(entry, from: archive, path: path, to: staged)
+                    if let owner = claimedPaths[logicalPath.lowercased()] {
+                        guard fileResources[owner.path]?.sha256 == digest else {
+                            throw Self.archiveConflict(path: logicalPath, owner: owner.label, label: label)
+                        }
+                        continue
+                    }
+                    let resource = try RecipeFileResource.snapshot(
+                        from: staged, directory: modelStaging,
+                        maximumBytes: min(
+                            RecipeResourceBudget.modelFile, RecipeResourceBudget.modelTotal - modelBytes))
+                    modelBytes += resource.size
+                    fileResources[logicalPath] = resource
+                    claimedPaths[logicalPath.lowercased()] = (logicalPath, label)
+                    try Prediction.validateDatabases(in: [logicalPath: resource])
+                    continue
+                }
+                guard sourceBytes + size <= RecipeResourceBudget.sourceTotal else {
+                    throw RecipeInstallError.invalidResource("ZIP 解压后大小超过限制")
+                }
+                let data = try Self.readArchiveEntry(entry, from: archive, path: path)
+                sourceBytes += data.count
+                try Self.insertArchiveFile(data, at: logicalPath, from: label, into: &bytes, claimed: &claimedPaths)
+            }
+        }
+        return try prepareSchemeImport(
+            bytes: bytes, fileResources: fileResources, declaration: nil,
+            learning: Self.collectLearning(files: snapshotFiles), advertisedSchemaIDs: advertisedSchemaIDs)
+    }
+
+    // Verify the frozen input once, before ZIP parsing; a caller-controlled original can change meanwhile.
+    private static func verifyArchiveChecksum(_ url: URL, expected: String) throws {
+        let file = try BoundedLocalFile(url, maximumBytes: RecipeResourceBudget.archiveFile)
+        var hash = SHA256()
+        try file.consume { hash.update(data: $0) }
+        guard hash.finalize().hex == expected else {
+            throw RecipeInstallError.invalidResource(
+                Bundle.main.localizedString(
+                    forKey: "catalog.checksumFailure", value: "下载的文件校验失败，请重新下载。", table: nil))
+        }
+    }
+
+    /// Every file entry of one archive, with unsafe paths, symlinks, duplicates and Finder metadata
+    /// rejected before any bytes are extracted.
+    private static func scanArchiveEntries(_ archive: Archive) throws -> [(entry: Entry, path: String)] {
+        var paths = Set<String>()
+        var entries: [(entry: Entry, path: String)] = []
+        for entry in archive {
+            let path = entry.path.hasSuffix("/") ? String(entry.path.dropLast()) : entry.path
+            if SchemeSourceCheck.isFinderMetadata(path) { continue }
+            guard SchemeSourceCheck.safe(path), paths.insert(path.lowercased()).inserted,
+                entry.type != .symlink, paths.count <= 2000
+            else { throw RecipeInstallError.invalidResource("ZIP 文件路径无效或包含符号链接：\(entry.path)") }
+            entries.append((entry, path))
+        }
+        return entries
+    }
+
+    /// The single enclosing repository directory of a repository ZIP, when it has exactly one.
+    private static func archiveWrapper(_ entries: [(entry: Entry, path: String)]) -> String? {
+        let roots = Set(entries.compactMap { $0.path.split(separator: "/").first.map(String.init) })
+        return roots.count == 1 && entries.allSatisfy({ $0.entry.type == .directory || $0.path.contains("/") })
+            ? roots.first : nil
+    }
+
+    /// A safe single path segment naming the archive a conflicting file came from.
+    private static func archiveLabel(url: URL, wrapper: String?, index: Int) -> String {
+        let raw = wrapper ?? url.deletingPathExtension().lastPathComponent
+        let cleaned = String(
+            raw.unicodeScalars.map { scalar in
+                CharacterSet.alphanumerics.contains(scalar) || scalar == "-" || scalar == "_" || scalar == "."
+                    ? Character(scalar) : "-"
+            }
+        ).trimmingCharacters(in: CharacterSet(charactersIn: ".-"))
+        return cleaned.isEmpty ? "archive-\(index + 1)" : cleaned
+    }
+
+    /// One runtime path two archives fill differently cannot be resolved to either upstream.
+    private static func archiveConflict(path: String, owner: String, label: String) -> RecipeInstallError {
+        RecipeInstallError.invalidResource(
+            String(
+                format: Bundle.main.localizedString(
+                    forKey: "scheme.archive.conflict.format",
+                    value: "「%1$@」在「%2$@」与「%3$@」中内容不同，请只保留其中一个压缩包。", table: nil),
+                path, owner, label))
+    }
+
+    /// Extracts one entry to a staging file and returns its SHA-256, refusing bytes beyond the size
+    /// it declared. Model files are referenced from disk and must never be loaded into memory.
+    private static func extractArchiveEntry(
+        _ entry: Entry, from archive: Archive, path: String, to destination: URL
+    ) throws -> String {
+        try FileManager.default.createDirectory(
+            at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
+        guard FileManager.default.createFile(atPath: destination.path, contents: nil) else {
+            throw RecipeInstallError.invalidResource(path)
+        }
+        let output = try FileHandle(forWritingTo: destination)
+        defer { try? output.close() }
+        let declared = Int(clamping: entry.uncompressedSize)
+        var count = 0
+        var hash = SHA256()
+        let checksum = try archive.extract(entry) { chunk in
+            try Task.checkCancellation()
+            count += chunk.count
+            guard count <= declared else {
+                throw RecipeInstallError.invalidResource("ZIP 实际解压大小超出文件声明：\(path)")
+            }
+            hash.update(data: chunk)
+            try output.write(contentsOf: chunk)
+        }
+        guard checksum == entry.checksum, count == declared else {
+            throw RecipeInstallError.invalidResource("ZIP 文件校验失败：\(path)")
+        }
+        try output.synchronize()
+        return hash.finalize().hex
+    }
+
+    /// Extracts one entry into memory, refusing bytes beyond the size it declared.
+    private static func readArchiveEntry(_ entry: Entry, from archive: Archive, path: String) throws -> Data {
+        let declared = Int(clamping: entry.uncompressedSize)
+        var data = Data()
+        data.reserveCapacity(declared)
+        let checksum = try archive.extract(entry) { chunk in
+            try Task.checkCancellation()
+            guard data.count + chunk.count <= declared else {
+                throw RecipeInstallError.invalidResource("ZIP 实际解压大小超出文件声明：\(path)")
+            }
+            data.append(chunk)
+        }
+        guard checksum == entry.checksum, data.count == declared else {
+            throw RecipeInstallError.invalidResource("ZIP 文件校验失败：\(path)")
+        }
+        return data
+    }
+
+    /// Adds one archive's file. Identical bytes reuse the existing file; documentation another archive
+    /// also ships (licences, readmes) is kept under that archive's namespace; any other runtime path two
+    /// archives spell differently is refused, because a later schema would otherwise silently read the
+    /// earlier archive's bytes instead of its own.
+    private static func insertArchiveFile(
+        _ data: Data, at path: String, from label: String,
+        into bytes: inout [String: Data], claimed: inout [String: (path: String, label: String)]
+    ) throws {
+        guard let owner = claimed[path.lowercased()] else {
+            bytes[path] = data
+            claimed[path.lowercased()] = (path, label)
+            return
+        }
+        guard bytes[owner.path] != data else { return }
+        // Attribution (a different upstream's LICENSE.txt, say) is documentation even when its
+        // extension is also a runtime one, so both copies are kept instead of refusing the merge.
+        guard !SchemeSourceCheck.isRuntimeSourceFile(path) || SchemeSourceCheck.isDocumentation(path) else {
+            throw Self.archiveConflict(path: path, owner: owner.label, label: label)
+        }
+        var candidate = "source-repositories/" + label + "/" + path
+        var attempt = 2
+        while claimed[candidate.lowercased()] != nil {
+            candidate = "source-repositories/" + label + "-" + String(attempt) + "/" + path
+            attempt += 1
+        }
+        bytes[candidate] = data
+        claimed[candidate.lowercased()] = (candidate, label)
+    }
+
     /// A complete directory selected by the user. Symlinks and user databases are never imported.
     /// ZIPs must first be extracted by the user; no shell/plum script is executed.
-    nonisolated func prepareSchemeImport(directory: URL, declaration: SchemePackageDeclaration? = nil) throws
-        -> PreparedSchemeImport
-    {
+    nonisolated func prepareSchemeImport(
+        directory: URL, declaration: SchemePackageDeclaration? = nil, advertisedSchemaIDs: [String]? = nil
+    ) throws -> PreparedSchemeImport {
         let fm = FileManager.default
         let info = try directory.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
         guard info.isDirectory == true, info.isSymbolicLink != true else {
@@ -303,13 +538,14 @@ public extension RecipePackageManager {
         try visit(directory, prefix: "")
         return try prepareSchemeImport(
             files: files, declaration: declaration,
-            learning: sawSnapshot ? Self.collectLearning(in: directory) : .empty)
+            learning: sawSnapshot ? Self.collectLearning(in: directory) : .empty,
+            advertisedSchemaIDs: advertisedSchemaIDs)
     }
 
     /// Multiple files retain explicit package-relative paths (including lua/, opencc/, dictionaries/).
     nonisolated func prepareSchemeImport(
         files: [DictionaryImportFile], declaration supplied: SchemePackageDeclaration? = nil,
-        learning folderLearning: CollectedSnapshots? = nil
+        learning folderLearning: CollectedSnapshots? = nil, advertisedSchemaIDs: [String]? = nil
     ) throws -> PreparedSchemeImport {
         var bytes: [String: Data] = [:]
         var fileResources: [String: RecipeFileResource] = [:]
@@ -352,7 +588,8 @@ public extension RecipePackageManager {
         }
         return try prepareSchemeImport(
             bytes: bytes, fileResources: fileResources, declaration: supplied,
-            learning: folderLearning ?? Self.collectLearning(files: snapshotFiles))
+            learning: folderLearning ?? Self.collectLearning(files: snapshotFiles),
+            advertisedSchemaIDs: advertisedSchemaIDs)
     }
 
     /// Reads the shipped snapshots a package carries. Nothing here fails an import: a pick over the
@@ -408,19 +645,27 @@ public extension RecipePackageManager {
     nonisolated private func prepareSchemeImport(
         bytes source: [String: Data], fileResources: [String: RecipeFileResource],
         declaration supplied: SchemePackageDeclaration?,
-        learning: CollectedSnapshots = .empty
+        learning: CollectedSnapshots = .empty, advertisedSchemaIDs: [String]? = nil
     ) throws -> PreparedSchemeImport {
         var bytes = source
         let sourceFiles = bytes
+        let availableSchemas = InstalledPackageLayout.topLevelSchemaFiles(in: bytes.keys).map {
+            String($0.dropLast(12))
+        }.sorted()
+        if let advertisedSchemaIDs,
+            advertisedSchemaIDs.isEmpty || !Set(advertisedSchemaIDs).isSubset(of: Set(availableSchemas))
+        {
+            throw RecipeInstallError.invalidManifest(
+                Bundle.main.localizedString(
+                    forKey: "catalog.missingInputMethod", value: "下载的方案缺少输入方式，请重新下载。", table: nil))
+        }
         let declaration: SchemePackageDeclaration
         if let supplied {
             declaration = supplied
         } else if let data = bytes[InstalledPackageLayout.keyboardPackageFile] {
             declaration = try JSONDecoder().decode(SchemePackageDeclaration.self, from: data)
         } else {
-            let ids = InstalledPackageLayout.topLevelSchemaFiles(in: bytes.keys).map {
-                String($0.dropLast(12))
-            }.sorted()
+            let ids = availableSchemas
             guard let first = ids.first else {
                 throw RecipeInstallError.invalidManifest("导入内容缺少根目录下的 .schema.yaml 方案文件")
             }
@@ -434,7 +679,7 @@ public extension RecipePackageManager {
             let listed = SchemeSourceCheck.matches(
                 "^\\s*-\\s*schema:\\s*[\"']?([A-Za-z0-9_.-]+)",
                 String(data: bytes["default.yaml"] ?? Data(), encoding: .utf8) ?? "")
-            let primary = listed.first(where: ids.contains) ?? first
+            let primary = advertisedSchemaIDs?.first ?? listed.first(where: ids.contains) ?? first
             let schemaText = String(data: bytes[InstalledPackageLayout.schemaFile(primary)]!, encoding: .utf8) ?? ""
             let name =
                 SchemeSourceCheck.matches("^\\s+name:\\s*[\"']?([^\"'\\r\\n#]+)", schemaText).first?
@@ -466,11 +711,13 @@ public extension RecipePackageManager {
                 throw RecipeInstallError.invalidManifest("\(layout.userTitle)的验证码只能用这个布局按键实际发送的字母：\(binding.code)")
             }
         }
-        let schemas = InstalledPackageLayout.topLevelSchemaFiles(in: bytes.keys).map {
-            String($0.dropLast(12))
-        }.sorted()
+        let schemas = advertisedSchemaIDs ?? availableSchemas
         guard !schemas.isEmpty else { throw RecipeInstallError.invalidManifest("没有可安装的输入方案") }
-        try SharedRimePresets.supplement(&bytes, openCCDirectory: sharedOpenCCDirectory)
+        try SharedRimePresets.supplement(
+            &bytes, openCCDirectory: sharedOpenCCDirectory, enabledSchemaIDs: advertisedSchemaIDs)
+        if let advertisedSchemaIDs {
+            try Self.enforceAdvertisedSchemaList(&bytes, advertised: advertisedSchemaIDs)
+        }
         try SchemeSourceCheck.dependencies(bytes)
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
@@ -489,7 +736,8 @@ public extension RecipePackageManager {
         let defaults = String(data: bytes["default.yaml"] ?? Data(), encoding: .utf8) ?? ""
         let listedSchemas = SchemeSourceCheck.matches("^\\s*-\\s*schema:\\s*[\"']?([A-Za-z0-9_.-]+)", defaults)
         let entrySchema =
-            declaration.bindings.first?.schemaID ?? listedSchemas.first(where: { schemas.contains($0) }) ?? schemas[0]
+            advertisedSchemaIDs?.first ?? declaration.bindings.first?.schemaID
+            ?? listedSchemas.first(where: { schemas.contains($0) }) ?? schemas[0]
         let revision = String(
             SchemeSourceCheck.hash(Data(records.map { $0.path + $0.sha256 }.joined().utf8)).prefix(40))
         let manifest = RecipeManifest(
@@ -499,6 +747,45 @@ public extension RecipePackageManager {
         return PreparedSchemeImport(
             declaration: declaration, manifest: manifest, schemaIDs: schemas, bytes: bytes, sourceFiles: sourceFiles,
             fileResources: fileResources, learningSnapshots: learning)
+    }
+
+    /// A catalogue entry decides which input methods an installation offers. A shipped default.yaml
+    /// keeps all of its author configuration but publishes exactly the advertised schema_list. A
+    /// shipped schema_list patch would silently override that choice, so it is refused rather than
+    /// stripped, and the author's patch is preserved in the source snapshot.
+    private static func enforceAdvertisedSchemaList(
+        _ bytes: inout [String: Data], advertised: [String]
+    ) throws {
+        if let custom = bytes["default.custom.yaml"] {
+            let text = String(decoding: custom, as: UTF8.self)
+            guard let root = try? BoundedYAML.load(yaml: text) as? [String: Any] else {
+                throw RecipeInstallError.invalidManifest(
+                    Bundle.main.localizedString(
+                        forKey: "catalog.schemaListUnreadable",
+                        value: "无法核对这个输入方案的输入方式列表，请重新下载。", table: nil))
+            }
+            switch SchemeSourceCheck.schemaListPatch(in: root) {
+            case .untouched:
+                break
+            case .replaced(let list) where list == advertised:
+                break
+            case .replaced, .unreadable:
+                throw RecipeInstallError.invalidManifest(
+                    Bundle.main.localizedString(
+                        forKey: "catalog.schemaListConflict",
+                        value: "这个输入方案会改动输入方式列表，和推荐目录不一致，请重新下载。", table: nil))
+            }
+        }
+        guard let data = bytes["default.yaml"] else { return }
+        guard var root = try BoundedYAML.load(yaml: String(decoding: data, as: UTF8.self)) as? [String: Any]
+        else {
+            throw RecipeInstallError.invalidManifest(
+                Bundle.main.localizedString(
+                    forKey: "catalog.schemaListUnreadable",
+                    value: "无法核对这个输入方案的输入方式列表，请重新下载。", table: nil))
+        }
+        root["schema_list"] = advertised.map { ["schema": $0] }
+        bytes["default.yaml"] = Data(try Yams.dump(object: root).utf8)
     }
 
     /// An update passes the generation it started from; the store compares it under its lock so
@@ -562,6 +849,58 @@ enum SchemeSourceCheck {
         return !parts.dropLast().contains { $0.contains(".userdb") }
     }
     static func hash(_ data: Data) -> String { SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined() }
+    /// Files a package provides for librime: configuration, dictionaries, Lua, OpenCC data and models.
+    /// Everything else (licences, readmes, workflows) is attribution and documentation.
+    static func isRuntimeSourceFile(_ path: String) -> Bool {
+        let lower = path.lowercased()
+        return [".yaml", ".lua", ".txt", ".json", ".gram", ".ocd", ".ocd2"].contains(where: lower.hasSuffix)
+            || Prediction.isDatabasePath(path)
+    }
+    /// What a default.custom.yaml patch does to the schema_list. Untouched keeps the author's
+    /// other customisations; replaced is accepted only when it equals the advertised list;
+    /// unreadable cannot be proven to keep that choice and is refused.
+    enum SchemaListPatch: Equatable {
+        case untouched
+        case replaced([String])
+        case unreadable
+    }
+    static func schemaListPatch(in root: [String: Any]) -> SchemaListPatch {
+        var result = SchemaListPatch.untouched
+        func walk(_ value: Any) {
+            if let dictionary = value as? [String: Any] {
+                for (key, child) in dictionary {
+                    if key == "schema_list" || key.hasPrefix("schema_list/") || key.hasPrefix("schema_list@") {
+                        guard result == .untouched else { continue }
+                        guard let rows = child as? [[String: Any]],
+                            rows.allSatisfy({ $0["schema"] is String })
+                        else {
+                            result = .unreadable
+                            continue
+                        }
+                        result = .replaced(rows.compactMap { $0["schema"] as? String })
+                        continue
+                    }
+                    walk(child)
+                }
+            } else if let array = value as? [Any] {
+                for item in array { walk(item) }
+            }
+        }
+        walk(root)
+        return result
+    }
+
+    /// Upstream attribution (licences, notices, readmes). Such a file can carry a runtime extension
+    /// (a shipped LICENSE.txt), so the merge classifies it before the generic runtime rule.
+    static func isDocumentation(_ path: String) -> Bool {
+        let name = path.split(separator: "/").last.map(String.init) ?? path
+        let stem = (name.split(separator: ".").first.map(String.init) ?? name).uppercased()
+        let documentNames = [
+            "LICENSE", "LICENCE", "NOTICE", "COPYING", "AUTHORS", "PROVENANCE", "README", "CHANGELOG",
+            "HISTORY", "THIRD-PARTY-NOTICES",
+        ]
+        return documentNames.contains { stem == $0 || stem.hasPrefix($0 + "-") || stem.hasPrefix($0 + "_") }
+    }
     static func matches(_ pattern: String, _ text: String) -> [String] {
         guard let re = try? NSRegularExpression(pattern: pattern, options: [.anchorsMatchLines]) else { return [] }
         return re.matches(in: text, range: NSRange(text.startIndex..., in: text)).compactMap {

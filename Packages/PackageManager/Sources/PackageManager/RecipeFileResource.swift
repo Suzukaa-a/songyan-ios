@@ -14,6 +14,20 @@ public enum RecipeResourceBudget {
     /// (`*.gram`) and root-level prediction databases (`*.db`, checked by `Prediction`).
     public static func isModel(_ path: String) -> Bool { path.hasSuffix(".gram") || Prediction.isDatabasePath(path) }
     public static func maximumFileBytes(_ path: String) -> Int { isModel(path) ? modelFile : sourceFile }
+
+    /// One catalogue entry can be assembled from several archives; their combined compressed size
+    /// shares the single-archive cap. Checked before any archive is parsed so a large second file
+    /// is refused before it is copied or unpacked.
+    public static func validateArchives(_ sizes: [Int64]) throws {
+        guard sizes.allSatisfy({ $0 >= 0 && $0 <= Int64(archiveFile) }),
+            sizes.reduce(0, +) <= Int64(archiveFile)
+        else {
+            throw RecipeInstallError.invalidResource(
+                Bundle.main.localizedString(
+                    forKey: "catalog.archiveBudget", value: "文件总大小超过限制，请重新选择或下载。",
+                    table: nil))
+        }
+    }
     public static func validate(_ sizes: [String: Int]) throws {
         try validate(sizes, logicalPath: { $0 })
     }

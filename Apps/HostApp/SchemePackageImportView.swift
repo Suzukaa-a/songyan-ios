@@ -293,13 +293,14 @@ struct SchemePackageImportView: View {
     @ViewBuilder
     private var entrySection: some View {
         Section {
-            ForEach(RecommendedSchemeSource.catalog) { source in
+            ForEach(RecommendedSchemeSource.ordered(preferredLanguages: Locale.preferredLanguages)) { source in
                 NavigationLink {
                     SchemeURLImportView(source: source)
                 } label: {
                     VStack(alignment: .leading, spacing: 3) {
                         Label(source.name, systemImage: "star")
                         Text(source.detail).font(.caption).foregroundStyle(.secondary)
+                        Text(source.licenseSummary).font(.caption2).foregroundStyle(.secondary)
                     }
                 }
                 .disabled(center.busy)

@@ -85,8 +85,10 @@ extension SchemeImportCenter {
         // Recognition rejects a package that declares another scheme.
         guard
             await prepareRecognizedImport(
-                [download.localFileURL],
-                capture: ImportCapture(target: item, sourceURL: download.requestedURL)), let recognized = prepared
+                download.localFileURLs,
+                capture: ImportCapture(
+                    target: item, sourceURL: download.requestedURL, recommendation: download.recommendation)),
+            let recognized = prepared
         else {
             return .unchanged
         }

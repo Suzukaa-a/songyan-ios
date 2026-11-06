@@ -67,8 +67,7 @@ public struct AcquiredRimeSource: Sendable {
         let entries = tree.tree.filter { entry in
             guard entry.type == "blob" else { return false }
             let path = entry.path.lowercased()
-            return [".yaml", ".lua", ".txt", ".json", ".gram", ".ocd", ".ocd2"].contains(where: path.hasSuffix)
-                || Prediction.isDatabasePath(entry.path)
+            return SchemeSourceCheck.isRuntimeSourceFile(entry.path)
                 || path == "license" || path == "copying" || path == "build/.gitkeep"
         }
         var sizes: [String: Int] = [:]

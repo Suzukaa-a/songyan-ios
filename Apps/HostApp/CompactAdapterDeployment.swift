@@ -109,6 +109,12 @@ enum CompactAdapterDeployment {
             case .adaptable:
                 break
             }
+            // A known scheme family never offers the folded 14 / 18 / 9 layouts (its own physical
+            // layout is registered instead). The add-keyboard list already skips them; this keeps
+            // a persisted or author-declared combination from decoding the source projection at all.
+            let family = InputLayoutPolicy.family(
+                schemaID: source, alphabet: engine.schemaValue(source, key: "speller/alphabet") ?? "")
+            guard InputLayoutPolicy.allowsCompactLayouts(family: family) else { continue }
             try engine.validateSchemaForActivation(schemaID: source)
             let wasASCII = engine.option("ascii_mode")
             engine.setOption("ascii_mode", value: false)

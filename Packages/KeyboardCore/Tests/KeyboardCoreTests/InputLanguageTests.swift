@@ -122,6 +122,22 @@ final class InputLanguageTests: XCTestCase {
         XCTAssertEqual(profile("luna_pinyin_simp", latinAlphabet), simplified)
     }
 
+    /// The folded 14 / 18 / 9-key shapes are offered only to unknown (generic) schemes. A known
+    /// family keeps its own physical layout, so the host must not generate compact companions for it.
+    func testKnownFamiliesNeverOfferCompactLayouts() {
+        for schemaID in [
+            "bopomofo_tw", "bopomofo", "cangjie5", "cangjie", "quick5", "jyut6ping3", "kagiroi",
+            "kagiroi_romaji",
+        ] {
+            let family = InputLayoutPolicy.family(schemaID: schemaID, alphabet: bopomofoAlphabet)
+            XCTAssertFalse(InputLayoutPolicy.allowsCompactLayouts(family: family), schemaID)
+        }
+        XCTAssertTrue(InputLayoutPolicy.allowsCompactLayouts(family: .generic))
+        // A bopomofo-shaped alphabet without the prefix is still the zhuyin family.
+        let alphabetOnly = InputLayoutPolicy.family(schemaID: "custom_zhuyin", alphabet: bopomofoAlphabet)
+        XCTAssertFalse(InputLayoutPolicy.allowsCompactLayouts(family: alphabetOnly))
+    }
+
     func testRimeIceTraditionalSwitchIsTraditional() {
         XCTAssertEqual(profile("rime_ice", latinAlphabet, conversion: "s2t"), traditional)
         XCTAssertEqual(profile("rime_ice", latinAlphabet, conversion: "s2twp"), traditional)

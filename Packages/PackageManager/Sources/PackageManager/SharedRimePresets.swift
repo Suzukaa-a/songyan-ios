@@ -6,7 +6,9 @@ enum SharedRimePresets {
     static let revision = "082425ea0684bca36474415d4a0e8db9b016487e"
     static let configurationNames = ["default.yaml", "key_bindings.yaml", "punctuation.yaml", "symbols.yaml"]
 
-    static func supplement(_ files: inout [String: Data], openCCDirectory: URL? = nil) throws {
+    static func supplement(
+        _ files: inout [String: Data], openCCDirectory: URL? = nil, enabledSchemaIDs: [String]? = nil
+    ) throws {
         // Use the frontend's real OpenCC distribution, including binary dictionaries.
         // These bytes belong only to the effective workspace, never recipe source candidates.
         if let directory = openCCDirectory {
@@ -29,7 +31,9 @@ enum SharedRimePresets {
                 files[path] = try Data(contentsOf: url)
             }
         }
-        let schemas = InstalledPackageLayout.topLevelSchemaFiles(in: files.keys)
+        let schemas =
+            enabledSchemaIDs
+            ?? InstalledPackageLayout.topLevelSchemaFiles(in: files.keys)
             .map { String($0.dropLast(12)) }.sorted()
         for name in configurationNames where files[name] == nil {
             var data = try bundled(name)

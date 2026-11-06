@@ -104,6 +104,15 @@ public enum InputLayoutPolicy {
         }
     }
 
+    /// Whether any folded (14 / 18 / 9-key) layout may be generated for a scheme of this family.
+    /// A known family has its own physical layout and never offers the folded shapes; an unknown
+    /// (generic) scheme keeps the legacy adapters.
+    public static func allowsCompactLayouts(family: InputSchemeFamily) -> Bool {
+        KeyboardLayoutKind.allCases.filter(\.requiresSpellingDisplay).contains {
+            allows(kind: $0, family: family)
+        }
+    }
+
     /// The family a reserved physical layout ID belongs to; nil keeps the legacy behaviour.
     public static func family(ofPhysicalLayoutID id: String) -> InputSchemeFamily? {
         switch id {
