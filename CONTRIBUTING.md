@@ -47,7 +47,14 @@ If you cannot run a gate, say so in the pull request and list what remains unver
 - Engine operations run on the serial engine queue. Reads of `active.json`, layouts and appearance go through `KeyboardResourceReadQueue`; no synchronous disk reads on the main thread.
 - When a capability cannot be proven, fail closed and fall back to native Rime behavior. Do not fake success or show placeholder UI.
 - Ranking and segmentation are the engine's job. The front end must not re-rank or re-segment candidates. The nine-key preedit shows letters for display only; commits always come from the engine.
+- Keyboard tool files (`*.songyantool.json`) are a format shared with the Android app: the same file must load in both, so a change to the format lands in both repositories together.
+- The recommended catalogue's archives are pinned to upstream commits with SHA-256 digests that match the Android catalogue; change an entry in both repositories together.
 - Paths in `README.md`, `ARCHITECTURE.md`, `DEBUG.md` and this file must exist ([test_documentation_links.py](Tests/ProjectStructure/test_documentation_links.py)). When you add or move files, update the tables in [ARCHITECTURE.md](ARCHITECTURE.md).
+
+## Interface text
+
+- The interface lives in the String Catalogs under [Resources](Resources) and in each package that shows user-visible text, with Simplified Chinese as the source language. Every key also has Traditional Chinese (`zh-Hant`) and Japanese (`ja`) values marked translated. [test_string_catalogs.py](Tests/ProjectStructure/test_string_catalogs.py) checks that coverage, the format placeholders, that Japanese is not the Simplified text left unchanged, and that no new raw Chinese literal appears in production Swift outside a SwiftUI `Text`.
+- `zh-Hant` values are never authored by hand: change `zh-Hans` and run [gen_zh_hant_strings.py](Tools/Localization/gen_zh_hant_strings.py). It converts with the pinned OpenCC 1.1.9 `s2twp` data and the shared Taiwan wording table in [zh-Hant-overrides.json](Tools/Localization/zh-Hant-overrides.json); `--check` compares the committed catalogs. Japanese is written by hand. `make structure` runs the catalog gate.
 
 ## Code style
 
