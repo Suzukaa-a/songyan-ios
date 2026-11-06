@@ -84,6 +84,7 @@ say "stage Swift sources"
 STAGE="${RUN_DIR}/swift"
 mkdir -p "${STAGE}"
 PKG="${PROJECT_ROOT}/Packages"
+python3 "${IOS_TOOLS_DIR}/scripts/build-harness-resources.py" "${STAGE}"
 stage() {
   local src="$1" name
   name="$(basename "$src")"
