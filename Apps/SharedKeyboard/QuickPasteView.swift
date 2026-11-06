@@ -10,15 +10,15 @@ enum QuickPasteFailure: Error, Equatable {
 
     var message: String {
         switch self {
-        case .unsupportedContent: return "图片或富文本请长按输入框，使用系统「粘贴」"
-        case .tooManyItems: return "一次最多粘贴 8 项文字"
-        case .tooLarge: return "粘贴文字超出 64 KB 限制"
-        case .emptyText: return "剪贴板中没有可粘贴的文字"
-        case .providerUnavailable: return "系统未能提供粘贴文字，请检查权限后重试"
-        case .timedOut: return "读取粘贴文字超时，请重试"
-        case .noActiveInput: return "当前没有可用的输入框"
-        case .contextChanged: return "输入位置已改变，请重新粘贴"
-        case .hostRejected: return "未能将文字粘贴到当前输入框"
+        case .unsupportedContent: return String(localized: "图片或富文本请长按输入框，使用系统「粘贴」")
+        case .tooManyItems: return String(localized: "一次最多粘贴 8 项文字")
+        case .tooLarge: return String(localized: "粘贴文字超出 64 KB 限制")
+        case .emptyText: return String(localized: "剪贴板中没有可粘贴的文字")
+        case .providerUnavailable: return String(localized: "系统未能提供粘贴文字，请检查权限后重试")
+        case .timedOut: return String(localized: "读取粘贴文字超时，请重试")
+        case .noActiveInput: return String(localized: "当前没有可用的输入框")
+        case .contextChanged: return String(localized: "输入位置已改变，请重新粘贴")
+        case .hostRejected: return String(localized: "未能将文字粘贴到当前输入框")
         }
     }
 }
@@ -319,7 +319,7 @@ final class QuickPasteModel: ObservableObject {
                     } label: {
                         Image(systemName: "xmark").frame(width: 44, height: 44)
                     }
-                    .accessibilityLabel("取消粘贴")
+                    .accessibilityLabel(String(localized: "取消粘贴"))
                     .tint(Color(uiColor: foreground))
                 }
             }
@@ -387,7 +387,7 @@ final class QuickPasteModel: ObservableObject {
                 button.alpha = button.isEnabled ? (button.isHighlighted ? 0.55 : 1) : 0.3
             }
             control.accessibilityIdentifier = "quickPaste.iconButton"
-            control.accessibilityLabel = "粘贴"
+            control.accessibilityLabel = String(localized: "粘贴")
             return control
         }
         func sizeThatFits(_ proposal: ProposedViewSize, uiView: UIButton, context: Context) -> CGSize? {

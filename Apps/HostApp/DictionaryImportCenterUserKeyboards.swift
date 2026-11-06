@@ -75,7 +75,7 @@ final class DictionaryImportCenterUserKeyboards: UserKeyboardManaging {
             schemaID: candidate.inputMethodID,
             layout: candidate.layout)
         _ = try await context.transaction.addKeyboard(keyboard)
-        return "已添加 \(displayTitle(candidate.keyboard(), schemas: context.schemas))。"
+        return String(localized: "已添加 \(displayTitle(candidate.keyboard(), schemas: context.schemas))。")
     }
 
     func removeKeyboard(_ keyboard: UserKeyboard) async throws -> String {
@@ -84,7 +84,7 @@ final class DictionaryImportCenterUserKeyboards: UserKeyboardManaging {
             schemaID: keyboard.inputMethodID,
             layout: keyboard.layout)
         _ = try await context.transaction.removeKeyboard(published)
-        return "已移除 \(displayTitle(keyboard, schemas: context.schemas))。"
+        return String(localized: "已移除 \(displayTitle(keyboard, schemas: context.schemas))。")
     }
 
     func replaceKeyboards(_ keyboards: [UserKeyboard]) async throws -> String {
@@ -142,9 +142,10 @@ final class DictionaryImportCenterUserKeyboards: UserKeyboardManaging {
             // source would silently switch the keyboard to that input scheme.
             guard activation.kind != .userDictionary else {
                 throw UserKeyboardPublicationError.unavailable(
-                    "自定义拼音没有可添加的键盘。要改用其他方案，"
-                        + "请在「\(UserTerminology.inputScheme)」中打开该方案，"
-                        + "再到它的「\(UserTerminology.userKeyboard)」里轻点「\(UserTerminology.startUsing)」。")
+                    String(
+                        localized:
+                            "自定义拼音没有可添加的键盘。要改用其他方案，请在「\(UserTerminology.inputScheme)」中打开该方案，再到它的「\(UserTerminology.userKeyboard)」里轻点「\(UserTerminology.startUsing)」。"
+                    ))
             }
             guard let packageID = activation.packageID else { throw UserKeyboardPublicationError.sourceNotInstalled }
             return (

@@ -30,9 +30,13 @@ final class SchemeURLDownloadService: ObservableObject {
 
         var errorDescription: String? {
             switch self {
-            case .emptyAddress: return "请输入 ZIP 文件链接。"
-            case .notHTTPS: return "请输入以 https 开头的链接。"
-            case .notZIP: return "链接未指向 ZIP 文件。请填写 ZIP 下载链接或 GitHub 仓库地址（例如 https://github.com/用户/仓库）。"
+            case .emptyAddress: return String(localized: "请输入 ZIP 文件链接。")
+            case .notHTTPS: return String(localized: "请输入以 https 开头的链接。")
+            case .notZIP:
+                return String(
+                    localized:
+                        "链接未指向 ZIP 文件。请填写 ZIP 下载链接或 GitHub 仓库地址（例如 https://github.com/用户/仓库）。"
+                )
             }
         }
     }
@@ -118,7 +122,7 @@ final class SchemeURLDownloadService: ObservableObject {
     /// user cancel is not a failure.
     func download(address: String) async throws -> Result {
         guard Self.preflight(address) == nil, let url = normalizedURL(from: address) else {
-            let message = (Self.preflight(address) ?? .notHTTPS).errorDescription ?? "地址无效。"
+            let message = (Self.preflight(address) ?? .notHTTPS).errorDescription ?? String(localized: "地址无效。")
             lastError = message
             throw Failure(message: message)
         }
@@ -205,26 +209,28 @@ final class SchemeURLDownloadService: ObservableObject {
         let ns = error as NSError
         if ns.domain == NSURLErrorDomain {
             switch ns.code {
-            case NSURLErrorTimedOut: return "连接超时，请检查网络后重试。"
+            case NSURLErrorTimedOut: return String(localized: "连接超时，请检查网络后重试。")
             case NSURLErrorCannotFindHost, NSURLErrorCannotConnectToHost,
                 NSURLErrorDNSLookupFailed:
-                return "无法连接服务器，请检查地址和网络。"
-            case NSURLErrorNetworkConnectionLost: return "网络连接中断，请重试。"
-            case NSURLErrorNotConnectedToInternet: return "无网络连接，请检查你的网络设置。"
+                return String(localized: "无法连接服务器，请检查地址和网络。")
+            case NSURLErrorNetworkConnectionLost: return String(localized: "网络连接中断，请重试。")
+            case NSURLErrorNotConnectedToInternet: return String(localized: "无网络连接，请检查你的网络设置。")
             case NSURLErrorBadServerResponse, NSURLErrorHTTPTooManyRedirects:
-                return "服务器响应异常，请确认链接指向可下载的 ZIP 文件。"
+                return String(localized: "服务器响应异常，请确认链接指向可下载的 ZIP 文件。")
             default: break
             }
         }
         if let download = error as? TransportError {
             switch download {
-            case .redirectDowngrade: return "链接被重定向至非 HTTPS 地址，已停止下载。"
-            case .http(let code): return "服务器返回错误（HTTP \(code)），请确认链接是否有效后重试。"
-            case .tooLarge: return "文件超出可导入的大小限制（1.5 GB）。"
-            case .notZIP: return DownloadError.notZIP.errorDescription ?? "链接未指向 ZIP 文件。"
+            case .redirectDowngrade: return String(localized: "链接被重定向至非 HTTPS 地址，已停止下载。")
+            case .http(let code):
+                return String(localized: "服务器返回错误（HTTP \(code)），请确认链接是否有效后重试。")
+            case .tooLarge: return String(localized: "文件超出可导入的大小限制（1.5 GB）。")
+            case .notZIP:
+                return DownloadError.notZIP.errorDescription ?? String(localized: "链接未指向 ZIP 文件。")
             }
         }
-        return "下载未完成：\(error.localizedDescription)"
+        return String(localized: "下载未完成：\(error.localizedDescription)")
     }
 
     // MARK: - Transfer (URLSession downloadTask writes to disk + progress/budget/redirect validation)

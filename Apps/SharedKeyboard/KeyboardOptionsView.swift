@@ -22,13 +22,13 @@ public struct KeyboardOptionsView: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            KeyboardToolsSection(title: "按键反馈") {
+            KeyboardToolsSection(title: String(localized: "按键反馈")) {
                 KeyboardToolsRow(
                     icon: "speaker.wave.2",
-                    title: "按键声音",
+                    title: String(localized: "按键声音"),
                     mark: .toggle(soundEnabled),
-                    accessibilityLabel: "按键声音",
-                    accessibilityValue: soundEnabled ? "开启" : "关闭"
+                    accessibilityLabel: String(localized: "按键声音"),
+                    accessibilityValue: soundEnabled ? String(localized: "开启") : String(localized: "关闭")
                 ) {
                     toggleFeedback(sound: true)
                 }
@@ -36,9 +36,9 @@ public struct KeyboardOptionsView: View {
                     KeyboardToolsSeparator()
                     KeyboardToolsRow(
                         icon: "speaker.wave.2",
-                        title: "声音强度",
+                        title: String(localized: "声音强度"),
                         trailingText: soundLevel.displayName,
-                        accessibilityLabel: "声音强度",
+                        accessibilityLabel: String(localized: "声音强度"),
                         accessibilityValue: soundLevel.displayName
                     ) {
                         cycleSoundLevel()
@@ -47,10 +47,10 @@ public struct KeyboardOptionsView: View {
                 KeyboardToolsSeparator()
                 KeyboardToolsRow(
                     icon: "iphone.radiowaves.left.and.right",
-                    title: "按键触感",
+                    title: String(localized: "按键触感"),
                     mark: .toggle(hapticEnabled),
-                    accessibilityLabel: "按键触感",
-                    accessibilityValue: hapticEnabled ? "开启" : "关闭"
+                    accessibilityLabel: String(localized: "按键触感"),
+                    accessibilityValue: hapticEnabled ? String(localized: "开启") : String(localized: "关闭")
                 ) {
                     toggleFeedback(sound: false)
                 }
@@ -58,9 +58,9 @@ public struct KeyboardOptionsView: View {
                     KeyboardToolsSeparator()
                     KeyboardToolsRow(
                         icon: "iphone.radiowaves.left.and.right",
-                        title: "触感强度",
+                        title: String(localized: "触感强度"),
                         trailingText: hapticLevel.displayName,
-                        accessibilityLabel: "触感强度",
+                        accessibilityLabel: String(localized: "触感强度"),
                         accessibilityValue: hapticLevel.displayName
                     ) {
                         cycleHapticLevel()
@@ -78,7 +78,7 @@ public struct KeyboardOptionsView: View {
                 }
             }
             if !controller.options.isEmpty {
-                KeyboardToolsSection(title: "输入方式选项") {
+                KeyboardToolsSection(title: String(localized: "输入方式选项")) {
                     ForEach(Array(optionRows.enumerated()), id: \.element.id) { index, state in
                         if index > 0 { KeyboardToolsSeparator() }
                         if state.descriptor.choiceGroup.isEmpty {
@@ -90,7 +90,7 @@ public struct KeyboardOptionsView: View {
                 }
             }
             if let error = controller.optionError {
-                KeyboardToolsSection(title: "输入方式选项") {
+                KeyboardToolsSection(title: String(localized: "输入方式选项")) {
                     Text(error)
                         .font(.footnote)
                         .foregroundStyle(Color(uiColor: appearance.text(on: "key", secondary: true)))
@@ -101,7 +101,7 @@ public struct KeyboardOptionsView: View {
                     KeyboardToolsSeparator()
                     KeyboardToolsRow(
                         icon: "arrow.clockwise",
-                        title: "重新读取"
+                        title: String(localized: "重新读取")
                     ) {
                         controller.reloadOptions()
                     }
@@ -178,7 +178,7 @@ public struct KeyboardOptionsView: View {
                     title: label,
                     mark: .check(state.value),
                     accessibilityLabel: label,
-                    accessibilityValue: state.value ? "已选择" : "未选择"
+                    accessibilityValue: state.value ? String(localized: "已选择") : String(localized: "未选择")
                 ) {
                     controller.setOption(state.descriptor.name, value: true)
                 }

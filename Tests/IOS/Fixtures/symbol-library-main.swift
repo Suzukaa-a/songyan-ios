@@ -18,11 +18,17 @@ enum SymbolLibraryStorage {
     }
 }
 
-extension Bundle {
-    static var module: Bundle {
-        precondition(!Thread.isMainThread, "bundled JSON lookup/read must run off main")
-        return Bundle(path: CommandLine.arguments[2])!
+final class CheckedResourceBundle: Bundle, @unchecked Sendable {
+    override func url(forResource name: String?, withExtension ext: String?) -> URL? {
+        if ext == "json" {
+            precondition(!Thread.isMainThread, "bundled JSON lookup/read must run off main")
+        }
+        return super.url(forResource: name, withExtension: ext)
     }
+}
+
+extension Bundle {
+    static var module: Bundle { CheckedResourceBundle(path: CommandLine.arguments[2])! }
 }
 
 func waitForSignal(_ semaphore: DispatchSemaphore) async {

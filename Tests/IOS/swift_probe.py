@@ -48,10 +48,12 @@ def controller_sources(directory):
     paths = []
     for source in type_sources(ROOT / "Apps/SharedKeyboard", "KeyboardController"):
         target = directory / source.name
-        target.write_text(source.read_text(encoding="utf-8").replace("import UIKit", "import QuartzCore"),
+        target.write_text(source.read_text(encoding="utf-8").replace("import UIKit", "import QuartzCore").replace("import QuickContentKit", ""),
                           encoding="utf-8")
         paths.append(target)
     paths.append(kana_surface_contract(directory))
+    paths.extend((ROOT / "Packages/QuickContentKit/Sources/QuickContentKit").rglob("*.swift"))
+    paths.append(production_modules() / "SourceResources.swift")
     return paths
 
 
@@ -66,8 +68,15 @@ def swift_environment():
 def scratch_directory(prefix):
     scratch = ROOT / ".scratch"
     scratch.mkdir(exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix=prefix + "-", dir=scratch) as directory:
-        yield Path(directory)
+    directory = Path(tempfile.mkdtemp(prefix=prefix + "-", dir=scratch))
+    try:
+        yield directory
+    finally:
+        subprocess.run([
+            "swift", "-e",
+            "import Foundation; var destination: NSURL?; try FileManager.default.trashItem(at: URL(fileURLWithPath: CommandLine.arguments[1]), resultingItemURL: &destination)",
+            str(directory),
+        ], check=True, capture_output=True)
 
 
 def run(command, **kwargs):
@@ -82,7 +91,7 @@ def run(command, **kwargs):
     return result.stdout
 
 
-MODULES = (("KeyboardCore", ()), ("LayoutKit", ()),
+MODULES = (("KeyboardCore", ()), ("LayoutKit", ()), ("QuickContentKit", ()),
            ("CandidateKit", ("KeyboardCore", "LayoutKit")))
 # Packages match their Package.swift (Swift 6); probe mains stay Swift 5 for their global test doubles.
 MODULE_FLAGS = ("-swift-version", "6", "-parse-as-library", "-emit-library", "-emit-module")
@@ -135,9 +144,10 @@ def module_cache_is_valid(directory):
 
 
 def module_sources():
-    return [(path, path.read_bytes()) for name, _ in MODULES
-            for path in sorted((ROOT / f"Packages/{name}/Sources/{name}").rglob("*"))
-            if path.suffix in (".swift", ".xcstrings")]
+    paths = {path for name, _ in MODULES
+             for path in (ROOT / f"Packages/{name}/Sources/{name}").rglob("*.swift")}
+    paths.update((ROOT / "Packages").glob("*/Sources/*/Resources/*.xcstrings"))
+    return [(path, path.read_bytes()) for path in sorted(paths)]
 
 
 def production_modules():
@@ -178,6 +188,25 @@ def production_modules():
                  *[f"-l{dependency}" for dependency in dependencies], *map(str, paths),
                  "-emit-module-path", str(directory / f"{name}.swiftmodule"),
                  "-o", str(directory / f"lib{name}.dylib")])
+        # Inline host probes share one compilation unit, so their package keys share one bundle.
+        # Their assertions use the source language; localized-package tests exercise other locales.
+        source_bundle = directory / "SourceResources.bundle"
+        source_bundle.mkdir(exist_ok=True)
+        (source_bundle / "Info.plist").write_bytes(plistlib.dumps({"CFBundleDevelopmentRegion": "zh-Hans"}))
+        strings = {}
+        for path, content in sources:
+            if path.suffix != ".xcstrings":
+                continue
+            for key, entry in json.loads(content)["strings"].items():
+                strings[key] = {"localizations": {"zh-Hans": entry["localizations"]["zh-Hans"]}}
+        catalog_directory = directory / "source-resources"
+        catalog_directory.mkdir(exist_ok=True)
+        catalog = catalog_directory / "Localizable.xcstrings"
+        catalog.write_text(json.dumps({"sourceLanguage": "zh-Hans", "strings": strings, "version": "1.0"}))
+        run(["xcrun", "xcstringstool", "compile", str(catalog), "--output-directory", str(source_bundle)])
+        (directory / "SourceResources.swift").write_text(
+            "import Foundation\nextension Bundle { static let module = Bundle(path: "
+            + json.dumps(str(source_bundle)) + ")! }\n")
         if module_sources() != sources:
             raise AssertionError("Production module sources changed during compilation; rerun the gate")
         hashes = {name: hashlib.sha256((directory / name).read_bytes()).hexdigest()
@@ -190,9 +219,14 @@ def production_modules():
 
 def compile_swift(directory, sources, *, library=False, dependencies=()):
     sources = list(sources)
-    if ROOT / "Packages/LayoutKit/Sources/LayoutKit/LayoutDefinition.swift" in sources:
-        # Source-level host probes use the same compiled catalog as the package module.
-        sources.append(production_modules() / "LayoutKit-resources.swift")
+    text = "\n".join(Path(path).read_text() for path in sources)
+    for package, helper in (("PackageManager", "PackageText"), ("QuickContentKit", "QuickContentText"), ("RimeBridge", "RimeText")):
+        helper_source = ROOT / f"Packages/{package}/Sources/{package}/{helper}.swift"
+        if f"{helper}." in text and f"enum {helper}" not in text and helper_source not in sources:
+            sources.append(helper_source)
+            text += helper_source.read_text()
+    if ".module" in text and "extension Bundle" not in text:
+        sources.append(production_modules() / "SourceResources.swift")
     binary = directory / "probe"
     flags = ["-parse-as-library"] if library else []
     if dependencies:

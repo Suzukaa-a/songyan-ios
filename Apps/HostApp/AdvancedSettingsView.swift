@@ -22,12 +22,12 @@ struct AdvancedSettingsView: View {
     var body: some View {
         List {
             Section {
-                NavigationLink("扩展功能") { LuaComponentsView() }
+                NavigationLink(String(localized: "扩展功能")) { LuaComponentsView() }
                     .accessibilityIdentifier("advanced.extensions")
             }
 
             Section {
-                NavigationLink("诊断日志") { InstallationLogView() }
+                NavigationLink(String(localized: "诊断日志")) { InstallationLogView() }
                     .accessibilityIdentifier("advanced.logs")
             }
 
@@ -35,7 +35,7 @@ struct AdvancedSettingsView: View {
             // Developer Options is on, so regular users never land on an empty page or see author-facing terms.
             if developerOptions {
                 Section {
-                    NavigationLink("输入码验证") { InputBindingValidationView() }
+                    NavigationLink(String(localized: "输入码验证")) { InputBindingValidationView() }
                 } header: {
                     Text("专家工具")
                 }
@@ -44,23 +44,23 @@ struct AdvancedSettingsView: View {
             // Diagnostics and self-tests follow the Developer Options policy: hidden entirely while it is off.
             if developerOptions {
                 Section {
-                    NavigationLink("引擎与集成状态") { EngineStatusView() }
-                    NavigationLink("内置资源检查（开发）") { ResourceCheckView() }
-                    Toggle("记录键盘生命周期", isOn: $lifecycleDiagnostics)
+                    NavigationLink(String(localized: "引擎与集成状态")) { EngineStatusView() }
+                    NavigationLink(String(localized: "内置资源检查（开发）")) { ResourceCheckView() }
+                    Toggle(String(localized: "记录键盘生命周期"), isOn: $lifecycleDiagnostics)
                         .accessibilityIdentifier("advanced.lifecycleDiagnostics")
-                        .accessibilityHint("记录进程、切换与启动耗时，便于排查问题")
+                        .accessibilityHint(String(localized: "记录进程、切换与启动耗时，便于排查问题"))
                 } header: {
                     Text("资源诊断（开发者）")
                 }
             }
         }
-        .navigationTitle("高级")
+        .navigationTitle(String(localized: "高级"))
         .navigationBarTitleDisplayMode(.inline)
     }
 }
 
 private struct InstallationLogView: View {
-    @State private var content = "正在读取…"
+    @State private var content = String(localized: "正在读取…")
     @State private var confirmingClear = false
 
     var body: some View {
@@ -71,24 +71,24 @@ private struct InstallationLogView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()
         }
-        .navigationTitle("诊断日志")
+        .navigationTitle(String(localized: "诊断日志"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ShareLink(item: content) { Label("分享", systemImage: "square.and.arrow.up") }
+            ShareLink(item: content) { Label(String(localized: "分享"), systemImage: "square.and.arrow.up") }
             Button(role: .destructive) {
                 confirmingClear = true
             } label: {
-                Label("清空日志", systemImage: "trash")
+                Label(String(localized: "清空日志"), systemImage: "trash")
             }
         }
-        .confirmationDialog("清空诊断日志？", isPresented: $confirmingClear, titleVisibility: .visible) {
-            Button("清空", role: .destructive) {
+        .confirmationDialog(String(localized: "清空诊断日志？"), isPresented: $confirmingClear, titleVisibility: .visible) {
+            Button(String(localized: "清空"), role: .destructive) {
                 Task {
-                    content = await HostLog.clear() ? "日志已清空" : "无法清空日志"
+                    content = await HostLog.clear() ? String(localized: "日志已清空") : String(localized: "无法清空日志")
                 }
             }
         }
-        .task { content = await HostLog.recent() ?? "暂无日志" }
+        .task { content = await HostLog.recent() ?? String(localized: "暂无日志") }
     }
 }
 
@@ -112,7 +112,7 @@ struct InputBindingValidationView: View {
                 }
             }
         }
-        .navigationTitle("输入码验证")
+        .navigationTitle(String(localized: "输入码验证"))
         .navigationBarTitleDisplayMode(.inline)
         .task { await center.refresh() }
     }
@@ -163,13 +163,14 @@ struct InputBindingValidationForm: View {
                     HStack {
                         Text(UserTerminology.keyboardLayout)
                         Spacer()
-                        Text(layout.map { UserTerminology.layoutName($0) } ?? "未设置").foregroundStyle(.secondary)
+                        Text(layout.map { UserTerminology.layoutName($0) } ?? String(localized: "未设置")).foregroundStyle(
+                            .secondary)
                     }
                 }
-                TextField("输入码（此键盘布局实际发送的逻辑键，如 ni）", text: $code)
+                TextField(String(localized: "输入码（此键盘布局实际发送的逻辑键，如 ni）"), text: $code)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
-                TextField("输入这些键后期望出现的完整词（如 你）", text: $candidate)
+                TextField(String(localized: "输入这些键后期望出现的完整词（如 你）"), text: $candidate)
                 Button {
                     guard let resolved = resolvedSchemaID(item), let layout else { return }
                     error = nil
@@ -184,11 +185,11 @@ struct InputBindingValidationForm: View {
                         } catch { self.error = error.localizedDescription }
                     }
                 } label: {
-                    Label("验证并保存关联", systemImage: "checkmark.seal")
+                    Label(String(localized: "验证并保存关联"), systemImage: "checkmark.seal")
                 }
                 .disabled(center.busy || code.isEmpty || candidate.isEmpty || layout == nil)
                 if let error { Text(error).font(.footnote).foregroundStyle(.red) }
-                if saved { Label("已验证并保存关联", systemImage: "checkmark.circle").font(.footnote) }
+                if saved { Label(String(localized: "已验证并保存关联"), systemImage: "checkmark.circle").font(.footnote) }
                 Text("测试通过后保存。更新输入方案后需要重新验证。")
                     .font(.caption).foregroundStyle(.secondary)
             } else {
@@ -207,7 +208,7 @@ struct InputBindingValidationForm: View {
     private func currentSchemaName(_ item: SchemeImportCenter.InstalledPackage) -> String {
         let resolved = resolvedSchemaID(item)
         return item.schemas.first { $0.id == resolved }
-            .map { UserTerminology.inputMethodName($0) } ?? "未设置"
+            .map { UserTerminology.inputMethodName($0) } ?? String(localized: "未设置")
     }
 
     private func resolvedSchemaID(_ item: SchemeImportCenter.InstalledPackage) -> String? {

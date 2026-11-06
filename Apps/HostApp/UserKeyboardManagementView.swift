@@ -49,7 +49,7 @@ struct UserKeyboardManagementView: View {
                         ForEach(selectedItems) { item in addedRow(item) }
                     }
                 }
-                Section("自定义键盘") {
+                Section(String(localized: "自定义键盘")) {
                     NavigationLink(UserTerminology.pageLibrary) {
                         KeyboardPageManagementView(keyboardNames: keyboardNames)
                     }
@@ -95,26 +95,27 @@ struct UserKeyboardManagementView: View {
         // With unsaved changes, going back directly (discarding the draft) is not allowed: becomes "Cancel" with a second confirmation.
         .navigationBarBackButtonHidden(hasChanges || isSaving || center.busyKeyboardID != nil)
         .interactiveDismissDisabled(isSaving || center.busyKeyboardID != nil)
-        .confirmationDialog("放弃未保存的更改？", isPresented: $confirmingDiscard, titleVisibility: .visible) {
-            Button("放弃更改", role: .destructive) {
+        .confirmationDialog(String(localized: "放弃未保存的更改？"), isPresented: $confirmingDiscard, titleVisibility: .visible)
+        {
+            Button(String(localized: "放弃更改"), role: .destructive) {
                 guard !isSaving, center.busyKeyboardID == nil else { return }
                 resetDraft()
                 dismiss()
             }
             .disabled(isSaving || center.busyKeyboardID != nil)
-            Button("继续编辑", role: .cancel) {}
+            Button(String(localized: "继续编辑"), role: .cancel) {}
         }
         .toolbar {
             if hasChanges, !isSaving, center.busyKeyboardID == nil {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") {
+                    Button(String(localized: "取消")) {
                         guard !isSaving, center.busyKeyboardID == nil else { return }
                         confirmingDiscard = true
                     }
                 }
             }
             ToolbarItem(placement: .confirmationAction) {
-                Button("保存") { save() }
+                Button(String(localized: "保存")) { save() }
                     .accessibilityIdentifier("userKeyboard.save")
                     .disabled(!canSave)
             }
@@ -135,11 +136,11 @@ struct UserKeyboardManagementView: View {
     private var statusSection: some View {
         switch center.phase {
         case .loading:
-            Section { ProgressView("正在读取键盘…") }
+            Section { ProgressView(String(localized: "正在读取键盘…")) }
         case .failed(let message):
             Section {
                 Label(message, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
-                Button("重新读取") {
+                Button(String(localized: "重新读取")) {
                     Task {
                         await center.refresh()
                         resetDraft()
@@ -186,13 +187,13 @@ struct UserKeyboardManagementView: View {
             if let result = center.resultMessage {
                 Section {
                     Label(result, systemImage: "checkmark.circle").foregroundStyle(.green)
-                    NavigationLink("试打当前键盘") { TryInputView() }
+                    NavigationLink(String(localized: "试打当前键盘")) { TryInputView() }
                 }
             }
             if let error = center.errorMessage {
                 Section {
                     Label(error, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
-                    Button("知道了") { center.dismissMessages() }
+                    Button(String(localized: "知道了")) { center.dismissMessages() }
                 }
             }
         }
@@ -245,7 +246,7 @@ struct UserKeyboardManagementView: View {
         }
         return stable.map { _, id in
             Group(
-                id: id, name: names[id] ?? "输入方式",
+                id: id, name: names[id] ?? String(localized: "输入方式"),
                 items: (grouped[id] ?? []).sorted { Self.layoutRank($0.layout) < Self.layoutRank($1.layout) })
         }
     }
@@ -293,7 +294,7 @@ struct UserKeyboardManagementView: View {
     /// The spoken name of one row: the real board name when known, otherwise the shape name.
     private func rowSpokenName(inputMethod: String, layoutTitle: String) -> String {
         let method = inputMethod.trimmingCharacters(in: .whitespacesAndNewlines)
-        return method.isEmpty ? layoutTitle : "\(method)，\(layoutTitle)"
+        return method.isEmpty ? layoutTitle : String(localized: "\(method)，\(layoutTitle)")
     }
 
     private var isBusy: Bool { isSaving || center.busyKeyboardID != nil }
@@ -342,7 +343,9 @@ struct UserKeyboardManagementView: View {
                         HStack(spacing: 3) {
                             Image(systemName: "square.stack.3d.up")
                             Text(
-                                customMain.map { "\(UserTerminology.pageComposition) · \($0)" }
+                                customMain.map {
+                                    String(localized: "\(UserTerminology.pageComposition) · \($0)")
+                                }
                                     ?? UserTerminology.pageComposition)
                         }
                         .font(.caption)
@@ -360,14 +363,14 @@ struct UserKeyboardManagementView: View {
             .buttonStyle(.plain)
             .disabled(isBusy || !available)
             .accessibilityIdentifier("userKeyboard.pages." + item.id)
-            .accessibilityLabel(customMain.map { "\(title)，\($0)" } ?? title)
-            .accessibilityHint("打开\(UserTerminology.pageComposition)")
+            .accessibilityLabel(customMain.map { String(localized: "\(title)，\($0)") } ?? title)
+            .accessibilityHint(String(localized: "打开\(UserTerminology.pageComposition)"))
             if !available {
                 Text("不可用")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .fixedSize()
-                    .accessibilityLabel("\(title)，不可用")
+                    .accessibilityLabel(String(localized: "\(title)，不可用"))
             } else if inUse {
                 HStack(spacing: 3) {
                     Image(systemName: "checkmark")
@@ -377,7 +380,7 @@ struct UserKeyboardManagementView: View {
                 .foregroundStyle(.green)
                 .fixedSize()
                 .accessibilityElement(children: .ignore)
-                .accessibilityLabel("\(title)，\(UserTerminology.statusInUse)")
+                .accessibilityLabel(String(localized: "\(title)，\(UserTerminology.statusInUse)"))
             } else {
                 Button(UserTerminology.startUsing) { use(item) }
                     .buttonStyle(.bordered)
@@ -389,7 +392,7 @@ struct UserKeyboardManagementView: View {
         }
         .alignmentGuide(.listRowSeparatorLeading) { _ in LayoutThumbnail.width + 12 }
         .swipeActions {
-            Button("移除", role: .destructive) { binding(for: item.id).wrappedValue = false }
+            Button(String(localized: "移除"), role: .destructive) { binding(for: item.id).wrappedValue = false }
                 .disabled(isBusy || !center.supportsManagement)
         }
     }
@@ -454,7 +457,7 @@ struct UserKeyboardManagementView: View {
                 .disabled(isBusy || !available)
         }
         .accessibilityIdentifier("userKeyboard.card." + item.id)
-        .accessibilityLabel(customMain.map { "\(name)，\($0)" } ?? name)
+        .accessibilityLabel(customMain.map { String(localized: "\(name)，\($0)") } ?? name)
         .accessibilityValue(
             selected ? UserTerminology.userKeyboardSelected : UserTerminology.userKeyboardNotSelected
         )

@@ -106,7 +106,7 @@ enum HostConfigIOQueue {
                     result.editingAppearance = read.snapshot.document.appearance
                     result.error = read.error
                 } else {
-                    let sharedError = "键盘暂时无法读取外观，外观仍保留在本机。"
+                    let sharedError = String(localized: "键盘暂时无法读取外观，外观仍保留在本机。")
                     result.error = result.error.map { $0 + "\n" + sharedError } ?? sharedError
                 }
 
@@ -116,14 +116,14 @@ enum HostConfigIOQueue {
                     result.unreadable = catalog.unreadable
                 } catch {
                     result.projects = [.systemDefault]
-                    if result.error == nil { result.error = "无法读取外观。" }
+                    if result.error == nil { result.error = String(localized: "无法读取外观。") }
                 }
                 return result
             }
         } catch {
             // The queue only throws if this closure throws; read paths already convert failures to `error`, so this is purely defensive.
             var result = AppearanceLoadResult()
-            result.error = "无法读取外观。"
+            result.error = String(localized: "无法读取外观。")
             return result
         }
     }
@@ -141,7 +141,9 @@ enum HostConfigIOQueue {
     }
 
     private func beginMutation() throws {
-        guard !isMutating else { throw AppearanceApplyFailure(text: "另一项操作正在进行，请稍后再试。") }
+        guard !isMutating else {
+            throw AppearanceApplyFailure(text: String(localized: "另一项操作正在进行，请稍后再试。"))
+        }
         loadGate.invalidate()
         loadTask?.cancel()
         isLoading = false
@@ -179,7 +181,7 @@ enum HostConfigIOQueue {
             updateCatalog(catalog)
             return true
         } catch {
-            self.error = "外观没有删除，请重试。"
+            self.error = String(localized: "外观没有删除，请重试。")
             return false
         }
     }
@@ -198,7 +200,7 @@ enum HostConfigIOQueue {
             let catalog = try await HostConfigIOQueue.async {
                 let local = RimePaths.localAppearanceStore()
                 guard let shared = RimePaths.sharedAppearanceStore() else {
-                    throw AppearanceApplyFailure(text: "键盘暂时无法读取外观，请稍后重试。")
+                    throw AppearanceApplyFailure(text: String(localized: "键盘暂时无法读取外观，请稍后重试。"))
                 }
                 if !snapshot.isSystemDefault {
                     if persistDraft, !snapshot.isBuiltin { try local.save(snapshot, replacing: true) }
@@ -213,12 +215,12 @@ enum HostConfigIOQueue {
             sharedReadConfirmed = true
             editingAppearance = applied.appearance
             updateCatalog(catalog)
-            message = "已应用，下次打开键盘时生效。"
+            message = String(localized: "已应用，下次打开键盘时生效。")
             NotificationCenter.default.post(name: .keyboardAppearanceChanged, object: nil)
             return true
         } catch {
             HostLog.append("appearance apply failed: \(error.localizedDescription)")
-            self.error = (error as? AppearanceApplyFailure)?.text ?? "外观没有应用，请重试。"
+            self.error = (error as? AppearanceApplyFailure)?.text ?? String(localized: "外观没有应用，请重试。")
             return false
         }
     }
@@ -246,7 +248,7 @@ enum HostConfigIOQueue {
             updateCatalog(catalog)
             return true
         } catch {
-            self.error = "文件没有删除，请重试。"
+            self.error = String(localized: "文件没有删除，请重试。")
             return false
         }
     }
@@ -264,10 +266,11 @@ enum HostConfigIOQueue {
                 } else if let recovery {
                     document = recovery
                 } else {
-                    throw AppearanceApplyFailure(text: "请先选择要恢复的外观文件。")
+                    throw AppearanceApplyFailure(text: String(localized: "请先选择要恢复的外观文件。"))
                 }
                 guard document.id + AppearanceDocument.fileExtension == item.fileName else {
-                    throw AppearanceApplyFailure(text: "这个文件属于另一个外观，请选择原来的外观文件。")
+                    throw AppearanceApplyFailure(
+                        text: String(localized: "这个文件属于另一个外观，请选择原来的外观文件。"))
                 }
                 if document.isSystemDefault {
                     try store.removeUnreadable(item)
@@ -277,10 +280,12 @@ enum HostConfigIOQueue {
                 return try store.catalog()
             }
             updateCatalog(catalog)
-            message = "已恢复外观。"
+            message = String(localized: "已恢复外观。")
             return true
         } catch {
-            self.error = (error as? AppearanceApplyFailure)?.text ?? "外观没有恢复，请检查文件后重试。"
+            self.error =
+                (error as? AppearanceApplyFailure)?.text
+                ?? String(localized: "外观没有恢复，请检查文件后重试。")
             return false
         }
     }
@@ -289,7 +294,7 @@ enum HostConfigIOQueue {
     func applicationStatus(for document: AppearanceDocument) -> String? {
         guard !isLoading, sharedReadConfirmed, document.id == applied.id else { return nil }
         return document.normalized() == applied.normalized() && editingAppearance == applied.appearance
-            ? UserTerminology.statusInUse : "修改未应用"
+            ? UserTerminology.statusInUse : String(localized: "修改未应用")
     }
 
     /// Candidate-area layout summary for list rows (layout parameters belong to the item).
@@ -301,13 +306,13 @@ enum HostConfigIOQueue {
     ///
     /// No "appearance not found" conclusion before the first background read completes, so "still reading" is never shown as fact.
     var appliedSourceNotice: String? {
-        if isLoading { return "正在读取外观设置…" }
+        if isLoading { return String(localized: "正在读取外观设置…") }
         guard sharedReadConfirmed else { return nil }
         switch appliedSource {
         case .applied:
             guard !projects.contains(where: { $0.id == applied.id }) else { return nil }
-            return "键盘正在使用「\(applied.name)」，它已不在列表中。"
-        case .systemDefault: return "当前正在使用「系统默认」外观。"
+            return String(localized: "键盘正在使用「\(applied.displayName)」，它已不在列表中。")
+        case .systemDefault: return String(localized: "当前正在使用「系统默认」外观。")
         }
     }
 }
@@ -334,8 +339,9 @@ enum CandidateAreaSummary {
     static func text(for bar: CandidateBarDefinition) -> String {
         let composition =
             [
-                "composingOnly": "拼写行·输入时显示", "composingWithIdleRaw": "拼写行·始终显示",
-                "hidden": "拼写行·隐藏",
+                "composingOnly": String(localized: "拼写行·输入时显示"),
+                "composingWithIdleRaw": String(localized: "拼写行·始终显示"),
+                "hidden": String(localized: "拼写行·隐藏"),
             ][bar.compositionRow.visible.rawValue] ?? ""
         return [composition, expandedText(bar.expanded)]
             .joined(separator: " · ")
@@ -343,9 +349,9 @@ enum CandidateAreaSummary {
 
     static func expandedText(_ expanded: CandidateBarDefinition.Expanded) -> String {
         switch expanded.mode {
-        case .adaptive: return "展开·自适应"
-        case .list: return "展开·单列"
-        case .grid: return "展开·\(expanded.columns)列"
+        case .adaptive: return String(localized: "展开·自适应")
+        case .list: return String(localized: "展开·单列")
+        case .grid: return String(localized: "展开·\(expanded.columns)列")
         }
     }
 

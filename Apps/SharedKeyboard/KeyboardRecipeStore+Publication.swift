@@ -7,22 +7,22 @@ extension KeyboardRecipeStore {
     /// Publish-time consistency checks; readers rely on them and surface a missing file as an ordinary error.
     private static func validatePublication(_ activation: Activation, build: URL) throws {
         if let selected = activation.selectedSchemaID, !activation.requiredSchemaIDs.contains(selected) {
-            throw StoreError(message: "所选输入方式不在已启用的列表中，请在「我的键盘」中重新选择")
+            throw StoreError(message: String(localized: "所选输入方式不在已启用的列表中，请在「我的键盘」中重新选择"))
         }
         if activation.kind == .userScheme {
             guard activation.selectedSchemaID != nil,
                 RimePaths.recipeUserDirectory(kind: .userScheme, packageID: activation.packageID) != nil
             else {
-                throw StoreError(message: "方案缺少有效标识或所选输入方式，请重新选择")
+                throw StoreError(message: String(localized: "方案缺少有效标识或所选输入方式，请重新选择"))
             }
         }
         for schema in activation.requiredSchemaIDs {
             guard !schema.isEmpty, !schema.contains("/"), schema != ".", schema != ".." else {
-                throw StoreError(message: "输入方案名称或路径格式无效")
+                throw StoreError(message: String(localized: "输入方案名称或路径格式无效"))
             }
             guard FileManager.default.fileExists(atPath: build.appendingPathComponent("\(schema).schema.yaml").path)
             else {
-                throw StoreError(message: "输入方案缺少已编译文件 \(schema)，请在「松烟」App 中重新构建")
+                throw StoreError(message: String(localized: "输入方案缺少已编译文件 \(schema)，请在「松烟」App 中重新构建"))
             }
         }
         // Invariant for added keyboards: every published compact keyboard (14 / 9 key) must have a
@@ -32,7 +32,7 @@ extension KeyboardRecipeStore {
         let enabledIDs = Set(activation.requiredSchemaIDs)
         for keyboard in activation.keyboards {
             guard enabledIDs.contains(keyboard.schemaID) else {
-                throw StoreError(message: "已添加的键盘包含未启用的输入方案 \(keyboard.schemaID)，请重新添加")
+                throw StoreError(message: String(localized: "已添加的键盘包含未启用的输入方案 \(keyboard.schemaID)，请重新添加"))
             }
             guard keyboard.needsGeneratedAdapter else { continue }
             guard
@@ -40,25 +40,26 @@ extension KeyboardRecipeStore {
                     source: keyboard.schemaID, layout: keyboard.layout, adapters: adapters,
                     bindings: activation.schemaBindings ?? [])
             else {
-                throw StoreError(message: "已添加的 \(keyboard.layout.userTitle) 键盘缺少按键映射，请重新添加后再保存")
+                throw StoreError(message: String(localized: "已添加的 \(keyboard.layout.userTitle) 键盘缺少按键映射，请重新添加后再保存"))
             }
             guard FileManager.default.fileExists(atPath: build.appendingPathComponent("\(engine).schema.yaml").path)
             else {
-                throw StoreError(message: "已添加的 \(keyboard.layout.userTitle) 键盘缺少已编译的适配方案 \(engine)，请重新添加后再保存")
+                throw StoreError(
+                    message: String(localized: "已添加的 \(keyboard.layout.userTitle) 键盘缺少已编译的适配方案 \(engine)，请重新添加后再保存"))
             }
         }
         let englishRoutes = activation.englishCandidateRoutes ?? []
         let routeOwners = Set(englishRoutes.map(\.owner))
         guard routeOwners.count == englishRoutes.count else {
-            throw StoreError(message: "英语候选设置中存在重复的键盘，请重新设置")
+            throw StoreError(message: String(localized: "英语候选设置中存在重复的键盘，请重新设置"))
         }
         for route in englishRoutes {
             guard activation.keyboards.contains(route.owner) else {
-                throw StoreError(message: "英语候选关联的键盘不存在，请重新设置")
+                throw StoreError(message: String(localized: "英语候选关联的键盘不存在，请重新设置"))
             }
             let target = route.candidateSchemaID
             guard enabledIDs.contains(target) else {
-                throw StoreError(message: "英语候选关联的目标方案不在当前启用列表中，请重新设置")
+                throw StoreError(message: String(localized: "英语候选关联的目标方案不在当前启用列表中，请重新设置"))
             }
             guard target != route.owner.schemaID,
                 activation.selectedSchemaID != target,
@@ -68,11 +69,11 @@ extension KeyboardRecipeStore {
                 !target.contains(".."),
                 target != "."
             else {
-                throw StoreError(message: "英语候选关联的目标方案不在当前启用列表中，请重新设置")
+                throw StoreError(message: String(localized: "英语候选关联的目标方案不在当前启用列表中，请重新设置"))
             }
             let compiledTarget = build.appendingPathComponent("\(target).schema.yaml")
             guard FileManager.default.fileExists(atPath: compiledTarget.path) else {
-                throw StoreError(message: "英语候选关联的目标方案缺少已编译文件 \(target)，请重新构建")
+                throw StoreError(message: String(localized: "英语候选关联的目标方案缺少已编译文件 \(target)，请重新构建"))
             }
         }
     }
@@ -122,7 +123,7 @@ extension KeyboardRecipeStore {
         let version = root.appendingPathComponent("versions/\(generation)")
         try fm.createDirectory(at: version.deletingLastPathComponent(), withIntermediateDirectories: true)
         guard mkdir(version.path, 0o700) == 0 else {
-            throw StoreError(message: "无法创建方案版本目录：\(String(cString: strerror(errno)))")
+            throw StoreError(message: String(localized: "无法创建方案版本目录：\(String(cString: strerror(errno)))"))
         }
         var activeWriteAttempted = false
         defer {
@@ -151,7 +152,7 @@ extension KeyboardRecipeStore {
             }, into: destination.appendingPathComponent("build"))
         for schema in schemas.map(\.id) {
             guard fm.fileExists(atPath: destination.appendingPathComponent("build/\(schema).schema.yaml").path) else {
-                throw StoreError(message: "启用失败，输入方案 \(schema) 尚未编译")
+                throw StoreError(message: String(localized: "启用失败，输入方案 \(schema) 尚未编译"))
             }
         }
 
@@ -168,23 +169,23 @@ extension KeyboardRecipeStore {
         if preservingSelection {
             // Preserving is only meaningful for the SAME publication source.
             guard case .publication(let expected) = baseline, let current else {
-                throw StoreError(message: "缺少原有方案记录，无法保留当前选择，请刷新后重试")
+                throw StoreError(message: String(localized: "缺少原有方案记录，无法保留当前选择，请刷新后重试"))
             }
             guard current.generation == expected.generation,
                 current.revision == expected.revision,
                 current.kind == expected.kind,
                 current.packageID == expected.packageID
             else {
-                throw StoreError(message: "输入方案配置已被更新，请刷新后重试")
+                throw StoreError(message: String(localized: "输入方案配置已被更新，请刷新后重试"))
             }
             // The target must be the same source as the locked current, so preserving can
             // never inherit another source's selection.
             guard current.kind == kind, current.packageID == packageID else {
-                throw StoreError(message: "当前输入方案已更改，无法保留之前的选择，请重新选择")
+                throw StoreError(message: String(localized: "当前输入方案已更改，无法保留之前的选择，请重新选择"))
             }
             // A switch back to builtin during the update is a newer user intent.
             guard current.recipeEnabled == expected.recipeEnabled else {
-                throw StoreError(message: "输入方案启用状态已改变，请刷新后重试")
+                throw StoreError(message: String(localized: "输入方案启用状态已改变，请刷新后重试"))
             }
             // Same publication: adopt whatever the user selected most recently, including
             // a selection saved by the extension during the update.
@@ -200,23 +201,23 @@ extension KeyboardRecipeStore {
                 break
             case .absent:
                 guard current == nil else {
-                    throw StoreError(message: "输入方案配置已存在，请刷新后重试")
+                    throw StoreError(message: String(localized: "输入方案配置已存在，请刷新后重试"))
                 }
             case .publication(let expected):
-                guard let current else { throw StoreError(message: "找不到已有的输入方案配置，请刷新后重试") }
+                guard let current else { throw StoreError(message: String(localized: "找不到已有的输入方案配置，请刷新后重试")) }
                 guard current.generation == expected.generation,
                     current.revision == expected.revision,
                     current.kind == expected.kind,
                     current.packageID == expected.packageID
                 else {
-                    throw StoreError(message: "输入方案配置已被更新，请刷新后重试")
+                    throw StoreError(message: String(localized: "输入方案配置已被更新，请刷新后重试"))
                 }
                 guard current.selectedSchemaID == expected.selectedSchemaID,
                     current.selectedLayout == expected.selectedLayout,
                     current.schemaBindings == expected.schemaBindings,
                     current.recipeEnabled == expected.recipeEnabled
                 else {
-                    throw StoreError(message: "输入方案的选择或启用状态已被更新，请刷新后重试")
+                    throw StoreError(message: String(localized: "输入方案的选择或启用状态已被更新，请刷新后重试"))
                 }
             }
         }
@@ -233,7 +234,7 @@ extension KeyboardRecipeStore {
             guard effectiveKeyboards.allSatisfy({ enabledIDs.contains($0.schemaID) }),
                 Set(effectiveKeyboards.map(\.id)).count == effectiveKeyboards.count
             else {
-                throw StoreError(message: "已添加的键盘包含新版本未启用的方案，请重新选择")
+                throw StoreError(message: String(localized: "已添加的键盘包含新版本未启用的方案，请重新选择"))
             }
         } else if let effectiveSchemaID {
             // Without an explicit list, the selected schema/layout becomes the single added keyboard.
@@ -263,7 +264,7 @@ extension KeyboardRecipeStore {
             }
             let merged = PublishedKeyboardRoster.merged(rosters)
             guard merged.selfConsistent else {
-                throw StoreError(message: "输入方案来源信息不完整，无法保存已添加的键盘，请重新选择")
+                throw StoreError(message: String(localized: "输入方案来源信息不完整，无法保存已添加的键盘，请重新选择"))
             }
             // Invariant: `publishedKeyboards` always equals this source's list in the cache
             // (the extension's runtime validation sees only this source, never mixing in others).
@@ -272,7 +273,7 @@ extension KeyboardRecipeStore {
             }
             effectiveRoster = merged.rosters
         } else if effectiveKeyboards != nil {
-            throw StoreError(message: "输入方案来源信息不完整，无法保存已添加的键盘")
+            throw StoreError(message: String(localized: "输入方案来源信息不完整，无法保存已添加的键盘"))
         }
         if inheritedEnglishCandidateRoutes, let routes = effectiveEnglishCandidateRoutes {
             let owners = Set(effectiveKeyboards ?? [])
@@ -280,11 +281,11 @@ extension KeyboardRecipeStore {
         }
         if let effectiveSchemaID {
             guard schemas.contains(where: { $0.id == effectiveSchemaID }) else {
-                throw StoreError(message: "新版本不包含当前选择的输入方案 \(effectiveSchemaID)，请重新选择")
+                throw StoreError(message: String(localized: "新版本不包含当前选择的输入方案 \(effectiveSchemaID)，请重新选择"))
             }
             let enabledIDs = Set(schemas.map(\.id))
             if let effectiveBindings, !effectiveBindings.allSatisfy({ enabledIDs.contains($0.schemaID) }) {
-                throw StoreError(message: "键盘设置中引用了新版本未启用的输入方案，请重新选择")
+                throw StoreError(message: String(localized: "键盘设置中引用了新版本未启用的输入方案，请重新选择"))
             }
             if let effectiveLayout {
                 let view = KeyboardResourceSet(
@@ -293,7 +294,7 @@ extension KeyboardRecipeStore {
                     prebuiltDirectory: compiledBuild, schemas: schemas,
                     selectedSchemaID: effectiveSchemaID, preferredLayout: effectiveLayout)
                 guard view.incompatibilityReason(layout: effectiveLayout, schemaID: effectiveSchemaID) == nil else {
-                    throw StoreError(message: "新版本不支持当前键盘布局，请重新选择")
+                    throw StoreError(message: String(localized: "新版本不支持当前键盘布局，请重新选择"))
                 }
             }
         }
@@ -429,13 +430,13 @@ extension KeyboardRecipeStore {
         defer { lock.unlock() }
         let current = try writeBaseline(rootURL: root)
         if let expectedGeneration, current?.generation != expectedGeneration {
-            throw StoreError(message: "输入方案配置版本已更新，请刷新后重试")
+            throw StoreError(message: String(localized: "输入方案配置版本已更新，请刷新后重试"))
         }
         // Choosing builtin does not require any installed recipe or working build.
         // Choosing the recipe needs an existing publication.
         if enabled {
             guard let current, !current.generation.isEmpty else {
-                throw StoreError(message: "尚未选择输入方案，请先在「松烟」App 中添加并选择方案")
+                throw StoreError(message: String(localized: "尚未选择输入方案，请先在「松烟」App 中添加并选择方案"))
             }
         }
         // No record means built-in pinyin; a damaged one is removed to mean the same.
@@ -479,7 +480,7 @@ extension KeyboardRecipeStore {
         let lock = try ActiveLock(root: root)
         defer { lock.unlock() }
         guard let current = try activation(rootURL: root), current == expected else {
-            throw StoreError(message: "输入方案配置已被更新，请刷新后重试")
+            throw StoreError(message: String(localized: "输入方案配置已被更新，请刷新后重试"))
         }
         // The flat list is decided only by the current record's own structured provenance, never falling back to the caller-supplied value.
         let result: PublishedKeyboardPrune.Result
@@ -533,7 +534,7 @@ extension KeyboardRecipeStore {
         let lock = try ActiveLock(root: root)
         defer { lock.unlock() }
         guard let current = try activation(rootURL: root), current == expected else {
-            throw StoreError(message: "输入方案配置已被更新，无法恢复已添加的键盘列表")
+            throw StoreError(message: String(localized: "输入方案配置已被更新，无法恢复已添加的键盘列表"))
         }
         try canonicalJSONEncoder().encode(original).write(
             to: root.appendingPathComponent("active.json"), options: .atomic)
@@ -597,7 +598,7 @@ extension KeyboardRecipeStore {
     ) throws -> SelectionSaveOutcome {
         current = try snapshot(for: current, root: root).activation
         guard current.requiredSchemaIDs.contains(schemaID) else {
-            throw StoreError(message: "当前输入方案中未包含 \(schemaID)，请重新选择")
+            throw StoreError(message: String(localized: "当前输入方案中未包含 \(schemaID)，请重新选择"))
         }
         current.selectedSchemaID = schemaID
         current.selectedLayout = layout

@@ -270,7 +270,7 @@ extension KeyboardController {
         if layout != prevLayout {
             if let message = (session.engine as? RimeBackend)?.lastErrorText {
                 Self.diagnosticLogger.error("option refresh after layout change failed: \(message, privacy: .private)")
-                optionError = "无法读取当前方案的选项，请重试。"
+                optionError = String(localized: "无法读取当前方案的选项，请重试。")
             } else {
                 optionError = nil
             }

@@ -107,17 +107,17 @@ extension KeyboardPanelView {
                 // rail never goes blank once every typed syllable has a reading.
                 if let locked = choices.lockedOption {
                     t9RailSelection(locked, metrics: metrics)
-                        .accessibilityLabel("已锁定组合 \(locked)")
+                        .accessibilityLabel(String(localized: "已锁定组合 \(locked)"))
                 }
                 if choices.isFiltering {
                     t9RailSelection(choices.readingPrefix.joined(separator: " "), metrics: metrics)
-                        .accessibilityLabel("已选读音 \(choices.readingPrefix.joined(separator: " "))")
+                        .accessibilityLabel(String(localized: "已选读音 \(choices.readingPrefix.joined(separator: " "))"))
                 }
                 if !choices.canUndoLock {
                     ForEach(Array(choices.lockOptions.enumerated()), id: \.offset) { index, option in
                         t9RailChoiceKey(
-                            option, id: "lock-\(option)", slot: "lock-\(index)", hint: "锁定组合",
-                            metrics: metrics
+                            option, id: "lock-\(option)", slot: "lock-\(index)",
+                            hint: String(localized: "锁定组合"), metrics: metrics
                         ) {
                             controller.selectRailSpelling(option)
                         }
@@ -126,7 +126,7 @@ extension KeyboardPanelView {
                 ForEach(Array(choices.readings.enumerated()), id: \.offset) { index, reading in
                     t9RailChoiceKey(
                         reading, id: "reading-\(index)-\(reading)", slot: "reading-\(index)",
-                        hint: "选择读音", metrics: metrics
+                        hint: String(localized: "选择读音"), metrics: metrics
                     ) {
                         controller.selectRailReading(reading, expectedPrefix: choices.readingPrefix)
                     }
@@ -154,7 +154,7 @@ extension KeyboardPanelView {
             .padding(.horizontal, 4)
             .frame(maxWidth: .infinity)
             .frame(height: t9RailSlotHeight(metrics))
-            .accessibilityHint("按删除键撤销")
+            .accessibilityHint(String(localized: "按删除键撤销"))
     }
 
     /// A trusted engine choice drawn and tracked by the rail's UIKit key.

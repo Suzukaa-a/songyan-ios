@@ -9,14 +9,14 @@ extension SchemePackageImportView {
 
     var configurationSection: some View {
         Section {
-            Picker("选项", selection: $selectedRecipePath) {
+            Picker(String(localized: "选项"), selection: $selectedRecipePath) {
                 Text("不使用").tag(String?.none)
                 ForEach(center.recipes) { recipe in
                     Text(recipe.displayName).tag(String?.some(recipe.path))
                 }
             }
             if let recipe = selectedRecipe {
-                DisclosureGroup("参数") {
+                DisclosureGroup(String(localized: "参数")) {
                     argumentFields(recipe)
                     extraArgumentFields()
                 }
@@ -36,24 +36,27 @@ extension SchemePackageImportView {
                             stages: stageArguments())
                     }
                 } label: {
-                    Label("检查", systemImage: "doc.badge.gearshape")
+                    Label(String(localized: "检查"), systemImage: "doc.badge.gearshape")
                 }
                 .disabled(center.busy)
             }
             if !center.plannedDiagnostics.isEmpty {
-                DisclosureGroup("查看详情") {
+                DisclosureGroup(String(localized: "查看详情")) {
                     ForEach(center.plannedDiagnostics, id: \.self) { line in
                         Text(line).font(.caption).foregroundStyle(.orange).textSelection(.enabled)
                     }
                 }
             }
         } header: {
-            Text(isInstalledMode ? "方案选项" : "方案选项（可选）")
+            Text(
+                isInstalledMode
+                    ? String(localized: "方案选项")
+                    : String(localized: "方案选项（可选）"))
         } footer: {
             Text(
                 isInstalledMode
-                    ? "修改选项后需要更新。"
-                    : "若无需调整，可直接轻点「安装」。")
+                    ? String(localized: "修改选项后需要更新。")
+                    : String(localized: "若无需调整，可直接轻点「安装」。"))
         }
     }
 
@@ -65,14 +68,14 @@ extension SchemePackageImportView {
         Group {
             ForEach(stageSlots) { slot in
                 VStack(alignment: .leading, spacing: 4) {
-                    Picker("第 \(stageIndex(slot) + 2) 步", selection: stageBinding(for: slot)) {
+                    Picker(String(localized: "第 \(stageIndex(slot) + 2) 步"), selection: stageBinding(for: slot)) {
                         Text("移除此步").tag(String?.none)
                         ForEach(center.recipes.filter { $0.path != rootPath }) { recipe in
                             Text(recipe.displayName).tag(String?.some(recipe.path))
                         }
                     }
                     if let recipe = center.recipes.first(where: { $0.path == slot.path }) {
-                        DisclosureGroup("参数（第 \(stageIndex(slot) + 2) 步）") {
+                        DisclosureGroup(String(localized: "参数（第 \(stageIndex(slot) + 2) 步）")) {
                             argumentFields(recipe, into: slot.id)
                             extraArgumentFields(into: slot.id)
                         }
@@ -90,7 +93,7 @@ extension SchemePackageImportView {
                     }
                 }
             } label: {
-                Label("添加步骤", systemImage: "plus.circle")
+                Label(String(localized: "添加步骤"), systemImage: "plus.circle")
             }
             .disabled(center.busy || availableStageCandidates(below: rootPath).isEmpty)
         }
@@ -152,7 +155,7 @@ extension SchemePackageImportView {
             let index = (rows.keys.max() ?? -1) + 1
             storeExtra(ExtraArgumentDraft(), index: index, into: key)
         } label: {
-            Label("添加参数行", systemImage: "plus")
+            Label(String(localized: "添加参数行"), systemImage: "plus")
                 .font(.caption)
         }
         .buttonStyle(.borderless)
@@ -161,14 +164,14 @@ extension SchemePackageImportView {
     @ViewBuilder
     private func extraArgumentRow(index: Int, into key: UUID?) -> some View {
         HStack(spacing: 8) {
-            TextField("参数名", text: extraNameBinding(index: index, into: key))
+            TextField(String(localized: "参数名"), text: extraNameBinding(index: index, into: key))
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)
                 .frame(maxWidth: 120)
-            TextField("值（空＝显式空值）", text: extraValueBinding(index: index, into: key))
+            TextField(String(localized: "值（空＝显式空值）"), text: extraValueBinding(index: index, into: key))
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)
-            Toggle("传入", isOn: extraEnabledBinding(index: index, into: key))
+            Toggle(String(localized: "传入"), isOn: extraEnabledBinding(index: index, into: key))
                 .toggleStyle(.button)
                 .font(.caption)
             Button(role: .destructive) {
@@ -254,13 +257,13 @@ extension SchemePackageImportView {
     private func externalResourceRow(_ resource: RecipeExternalResource, ordinal: Int) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
-                Text(developerOptions ? resource.path : "附加文件 \(ordinal)")
+                Text(developerOptions ? resource.path : String(localized: "附加文件 \(ordinal)"))
                     .font(developerOptions ? .subheadline.monospaced() : .subheadline)
                 Spacer()
                 if isResourceProvided(resource.path) {
-                    Label("已提供", systemImage: "checkmark.circle")
+                    Label(String(localized: "已提供"), systemImage: "checkmark.circle")
                         .font(.caption).foregroundStyle(.secondary)
-                        .accessibilityLabel("附加文件 \(ordinal) 已提供")
+                        .accessibilityLabel(String(localized: "附加文件 \(ordinal) 已提供"))
                 }
             }
             if let provided = center.providedDownloadFiles[resource.path] {
@@ -281,7 +284,7 @@ extension SchemePackageImportView {
                 Text(
                     developerOptions
                         ? resource.url.absoluteString
-                        : "下载地址：\(resource.url.host ?? "未知")"
+                        : String(localized: "下载地址：\(resource.url.host ?? String(localized: "未知"))")
                 )
                 .font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
                 .lineLimit(2)
@@ -291,17 +294,17 @@ extension SchemePackageImportView {
                     importerPurpose = .externalResource(requirementPath: resource.path)
                     showingImporter = true
                 } label: {
-                    Label("从文件导入…", systemImage: "doc.badge.arrow.up")
+                    Label(String(localized: "从文件导入…"), systemImage: "doc.badge.arrow.up")
                 }
                 .disabled(center.busy)
                 Button {
                     center.downloadExternalResource(resource)
                 } label: {
-                    Label("下载", systemImage: "arrow.down.circle")
+                    Label(String(localized: "下载"), systemImage: "arrow.down.circle")
                 }
                 .disabled(center.busy)
                 if isResourceProvided(resource.path) {
-                    Button("移除", role: .destructive) {
+                    Button(String(localized: "移除"), role: .destructive) {
                         center.removeProvidedExternalResource(requirementPath: resource.path)
                     }
                     .disabled(center.busy)
@@ -327,7 +330,7 @@ extension SchemePackageImportView {
     @ViewBuilder
     private func argumentFields(
         _ recipe: SchemeImportCenter.DiscoveredRecipe,
-        label: String = "参数", into keyPath: UUID? = nil
+        label: String = String(localized: "参数"), into keyPath: UUID? = nil
     ) -> some View {
         // Read the draft in the parent view evaluation, rather than only inside
         // ForEach's cached row closure. Restored values must update row structure
@@ -343,7 +346,7 @@ extension SchemePackageImportView {
                     }
                     .font(.caption)
                     if values[index]?.enabled == true {
-                        TextField("值（留空＝空值）", text: valueBinding(index: index, keyPath: keyPath))
+                        TextField(String(localized: "值（留空＝空值）"), text: valueBinding(index: index, keyPath: keyPath))
                             .autocorrectionDisabled()
                             .textInputAutocapitalization(.never)
                     }

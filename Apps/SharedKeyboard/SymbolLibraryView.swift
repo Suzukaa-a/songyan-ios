@@ -140,19 +140,19 @@ public struct SymbolLibraryView: View {
     private var railItems: [RailItem] {
         var items: [RailItem] = [
             RailItem(
-                kind: .section("symbols"), title: "符号", isSelected: section == "symbols",
+                kind: .section("symbols"), title: String(localized: "符号"), isSelected: section == "symbols",
                 startsNewGroup: false),
             RailItem(
-                kind: .section("phrases"), title: "常用语", isSelected: section == "phrases",
+                kind: .section("phrases"), title: String(localized: "常用语"), isSelected: section == "phrases",
                 startsNewGroup: false),
             RailItem(
-                kind: .section("clipboard"), title: "剪贴板", isSelected: section == "clipboard",
+                kind: .section("clipboard"), title: String(localized: "剪贴板"), isSelected: section == "clipboard",
                 startsNewGroup: false),
         ]
         guard section == "symbols" else { return items }
         items.append(
             RailItem(
-                kind: .category(nil), title: "全部",
+                kind: .category(nil), title: String(localized: "全部"),
                 isSelected: model.selectedCategory == nil, startsNewGroup: true))
         for category in model.visibleCategories {
             items.append(
@@ -184,7 +184,7 @@ public struct SymbolLibraryView: View {
         }
         .padding(.horizontal, 4)
         .padding(.vertical, 4)
-        .accessibilityLabel("快捷内容分类")
+        .accessibilityLabel(String(localized: "快捷内容分类"))
     }
 
     private func railButton(_ item: RailItem, layout: QuickContentLayout) -> some View {
@@ -238,15 +238,15 @@ public struct SymbolLibraryView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 8) {
                 if section == "clipboard", let clipboardPaste { clipboardPaste }
-                if local.isBusy { ProgressView("正在读取…") }
+                if local.isBusy { ProgressView(String(localized: "正在读取…")) }
                 if let insertionError { Text(insertionError).font(.footnote) }
                 if let error = local.error {
                     Text(error).font(.footnote)
-                    Button("重试") { local.reload() }
+                    Button(String(localized: "重试")) { local.reload() }
                 } else if section == "phrases" {
                     let phrases = local.content.phrases.filter { $0.matches(model.query) }
                     if phrases.isEmpty {
-                        Text(model.isSearching ? "没有找到常用语" : "在松烟 App 的「常用语与剪贴板」中添加常用语")
+                        Text(phraseEmptyMessage)
                             .font(.footnote).foregroundStyle(.secondary)
                     }
                     ForEach(phrases) { phrase in
@@ -274,7 +274,7 @@ public struct SymbolLibraryView: View {
                     HStack {
                         Text("最近粘贴").font(.footnote)
                         Spacer()
-                        Button("清空", role: .destructive) { confirmsClearHistory = true }
+                        Button(String(localized: "清空"), role: .destructive) { confirmsClearHistory = true }
                             .disabled(local.content.clipboard.isEmpty || local.isBusy)
                             .accessibilityIdentifier("quickContent.clearHistory")
                     }
@@ -296,7 +296,7 @@ public struct SymbolLibraryView: View {
                                 Image(systemName: "trash").frame(width: 44, height: 44)
                             }
                             .disabled(local.isBusy)
-                            .accessibilityLabel("删除这条历史记录")
+                            .accessibilityLabel(String(localized: "删除这条历史记录"))
                         }
                         .buttonStyle(SymbolPanelPressStyle())
                     }
@@ -305,13 +305,17 @@ public struct SymbolLibraryView: View {
             .padding(8)
             .foregroundStyle(Color(uiColor: appearance.text(on: "panel")))
         }
-        .confirmationDialog("清空剪贴板历史？", isPresented: $confirmsClearHistory, titleVisibility: .visible) {
-            Button("清空历史记录", role: .destructive) { local.clearClipboard() }
+        .confirmationDialog(
+            String(localized: "清空剪贴板历史？"),
+            isPresented: $confirmsClearHistory,
+            titleVisibility: .visible
+        ) {
+            Button(String(localized: "清空历史记录"), role: .destructive) { local.clearClipboard() }
         }
     }
 
     private func insertLocalText(_ text: String) {
-        insertionError = model.insertQuickText(text) ? nil : "未能输入文字，请返回键盘后重试。"
+        insertionError = model.insertQuickText(text) ? nil : String(localized: "未能输入文字，请返回键盘后重试。")
     }
 
     // MARK: Header (title / search toggle / back)
@@ -320,13 +324,29 @@ public struct SymbolLibraryView: View {
     /// top-right in the 完成 style, search just left of it.
     private func headerBar(_ layout: QuickContentLayout) -> some View {
         KeyboardToolsTitleBar {
-            KeyboardToolsTitle(text: model.searchKeyboardVisible ? "搜索" : "快捷内容")
+            KeyboardToolsTitle(text: model.searchKeyboardVisible ? String(localized: "搜索") : String(localized: "快捷内容"))
         } trailing: {
             searchToggle
             KeyboardToolsDismissButton(
-                title: "返回", accessibilityHint: "关闭快捷内容，回到之前的键盘页面",
+                title: String(localized: "返回"), accessibilityHint: String(localized: "关闭快捷内容，回到之前的键盘页面"),
                 minHeight: min(44, layout.titleBarHeight), action: onClose)
         }
+    }
+
+    private var phraseEmptyMessage: String {
+        if model.isSearching { return String(localized: "没有找到常用语") }
+        return String(localized: "在松烟 App 的「常用语与剪贴板」中添加常用语")
+    }
+
+    private var searchAccessibilityHint: String {
+        if model.searchKeyboardVisible { return String(localized: "清空查询并回到分类浏览") }
+        return String(localized: "打开键盘内查询输入")
+    }
+
+    private var queryPlaceholder: String {
+        if !model.query.isEmpty { return model.query }
+        if section == "phrases" { return String(localized: "输入搜索词") }
+        return String(localized: "输入拼音或名称，例如 jiantou")
     }
 
     private var searchToggle: some View {
@@ -342,8 +362,8 @@ public struct SymbolLibraryView: View {
         .buttonStyle(KeyboardToolsTextButtonStyle())
         .disabled(section == "clipboard")
         .accessibilityIdentifier("quickContent.search")
-        .accessibilityLabel(model.searchKeyboardVisible ? "退出搜索" : "搜索")
-        .accessibilityHint(model.searchKeyboardVisible ? "清空查询并回到分类浏览" : "打开键盘内查询输入")
+        .accessibilityLabel(model.searchKeyboardVisible ? String(localized: "退出搜索") : String(localized: "搜索"))
+        .accessibilityHint(searchAccessibilityHint)
     }
 
     /// Query display row: the panel-private buffer + per-character backspace + clear (no system keyboard focus).
@@ -352,7 +372,7 @@ public struct SymbolLibraryView: View {
             Image(systemName: "magnifyingglass")
                 .font(appearance.font(appearance.skin.typography.secondarySize))
                 .foregroundStyle(Color(uiColor: appearance.text(on: "panel", secondary: true)))
-            Text(model.query.isEmpty ? (section == "phrases" ? "输入搜索词" : "输入拼音或名称，例如 jiantou") : model.query)
+            Text(queryPlaceholder)
                 .font(appearance.font(appearance.controlTextSize))
                 .foregroundStyle(
                     Color(
@@ -379,7 +399,7 @@ public struct SymbolLibraryView: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(SymbolPanelPressStyle())
-                .accessibilityLabel("删除最后一个查询字符")
+                .accessibilityLabel(String(localized: "删除最后一个查询字符"))
                 Button {
                     model.searchKey(.clear)
                 } label: {
@@ -388,7 +408,7 @@ public struct SymbolLibraryView: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(SymbolPanelPressStyle())
-                .accessibilityLabel("清空查询")
+                .accessibilityLabel(String(localized: "清空查询"))
             }
         }
         .padding(.horizontal, 8)
@@ -401,7 +421,7 @@ public struct SymbolLibraryView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: layout.density == .minimal ? 6 : 8) {
                 if model.isLoading && model.catalog.items.isEmpty {
-                    ProgressView("正在加载符号…")
+                    ProgressView(String(localized: "正在加载符号…"))
                         .frame(maxWidth: .infinity, minHeight: 44)
                 }
                 if let error = model.catalogReadError {
@@ -409,7 +429,7 @@ public struct SymbolLibraryView: View {
                         .font(appearance.font(appearance.skin.typography.secondarySize))
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-                        .accessibilityHint("已恢复内置默认符号目录")
+                        .accessibilityHint(String(localized: "已恢复内置默认符号目录"))
                 }
                 if model.isSearching {
                     searchSection(layout)
@@ -434,7 +454,7 @@ public struct SymbolLibraryView: View {
     private func searchSection(_ layout: QuickContentLayout) -> some View {
         let results = model.searchResults
         if results.isEmpty {
-            Text("未找到与「\(model.query)」匹配的符号")
+            Text(String(localized: "未找到与「\(model.query)」匹配的符号"))
                 .font(appearance.font(appearance.skin.typography.secondarySize + 1))
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, minHeight: 60, alignment: .center)
@@ -467,7 +487,7 @@ public struct SymbolLibraryView: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(SymbolPanelPressStyle())
-                .accessibilityLabel("清空最近使用的符号")
+                .accessibilityLabel(String(localized: "清空最近使用的符号"))
             }
         }
     }
@@ -493,7 +513,7 @@ public struct SymbolLibraryView: View {
         }
         .buttonStyle(SymbolPanelPressStyle())
         .accessibilityLabel("\(entry.name ?? entry.text) \(entry.text)")
-        .accessibilityHint("再次插入此符号")
+        .accessibilityHint(String(localized: "再次插入此符号"))
     }
 
     @ViewBuilder
@@ -566,7 +586,7 @@ public struct SymbolLibraryView: View {
         }
         .buttonStyle(SymbolPanelPressStyle())
         .accessibilityLabel("\(item.name) \(item.text)")
-        .accessibilityHint("轻点插入")
+        .accessibilityHint(String(localized: "轻点插入"))
     }
 
     // MARK: Internal ASCII query keyboard (appears inside the panel, not a resident bottom key)
@@ -585,7 +605,7 @@ public struct SymbolLibraryView: View {
                         keypadKey(title: nil, symbol: "trash", width: 52, height: keypadKeyHeight) {
                             model.searchKey(.clear)
                         }
-                        .accessibilityLabel("清空查询")
+                        .accessibilityLabel(String(localized: "清空查询"))
                     }
                     ForEach(row, id: \.self) { letter in
                         keypadKey(title: letter, symbol: nil, width: nil, height: keypadKeyHeight) {
@@ -596,7 +616,7 @@ public struct SymbolLibraryView: View {
                         keypadKey(title: nil, symbol: "delete.left", width: 52, height: keypadKeyHeight) {
                             model.searchKey(.backspace)
                         }
-                        .accessibilityLabel("删除最后一个查询字符")
+                        .accessibilityLabel(String(localized: "删除最后一个查询字符"))
                     }
                 }
             }

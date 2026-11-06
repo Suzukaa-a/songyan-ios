@@ -44,11 +44,11 @@ public struct KeyboardPreviewView: View {
         let facts = DefinitionResolutionMemo.Facts(usable: [], active: layout)
         VStack(spacing: 6) {
             if !editing {
-                Picker("示例语言", selection: $language) {
+                Picker(String(localized: "示例语言"), selection: $language) {
                     ForEach(PreviewLanguage.allCases, id: \.self) { Text($0.title).tag($0) }
                 }
                 .pickerStyle(.segmented)
-                Picker("示例状态", selection: $sample) {
+                Picker(String(localized: "示例状态"), selection: $sample) {
                     ForEach(PreviewSample.allCases, id: \.self) { Text($0.title).tag($0) }
                 }
                 .pickerStyle(.segmented)
@@ -84,9 +84,9 @@ private enum PreviewLanguage: CaseIterable {
 
     var title: String {
         switch self {
-        case .chinese: return "中文"
-        case .english: return "英文"
-        case .numeric: return "数字"
+        case .chinese: return String(localized: "中文")
+        case .english: return String(localized: "英文")
+        case .numeric: return String(localized: "数字")
         }
     }
 }
@@ -96,10 +96,10 @@ private enum PreviewSample: CaseIterable {
 
     var title: String {
         switch self {
-        case .idle: return "空闲"
-        case .composing: return "组合"
-        case .expanded: return "展开"
-        case .longPress: return "长按"
+        case .idle: return String(localized: "空闲")
+        case .composing: return String(localized: "组合")
+        case .expanded: return String(localized: "展开")
+        case .longPress: return String(localized: "长按")
         }
     }
 }

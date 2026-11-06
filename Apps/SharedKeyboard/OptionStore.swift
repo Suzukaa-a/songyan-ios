@@ -431,11 +431,11 @@ enum SchemaOptionCapabilities {
         var result: [EngineOptionDescriptor] = []
         for item in items {
             if let name = field(item, "name") {
-                guard let title = name == "full_shape" ? "全角" : conversions[name] else { continue }
+                guard let title = name == "full_shape" ? String(localized: "全角") : conversions[name] else { continue }
                 result.append(
                     .init(
                         resourceID: resourceID, schemaID: schemaID, name: name,
-                        title: title, disabledLabel: "关闭", enabledLabel: "开启",
+                        title: title, disabledLabel: String(localized: "关闭"), enabledLabel: String(localized: "开启"),
                         declaredConversion: declaredConfigs[name]))
                 continue
             }
@@ -444,7 +444,8 @@ enum SchemaOptionCapabilities {
                 Set(options).count == options.count
             else { continue }
             let kinds = options.compactMap { conversions[$0] }
-            guard !kinds.isEmpty, kinds.allSatisfy({ $0 == "繁体输出" || $0 == "简体输出" }),
+            guard !kinds.isEmpty,
+                kinds.allSatisfy({ $0 == String(localized: "繁体输出") || $0 == String(localized: "简体输出") }),
                 !options.contains(where: { driven.contains($0) && conversions[$0] == nil })
             else { continue }
             // Only the bundled scheme's complete, unchanged declaration is worded by the UI; every
@@ -455,7 +456,7 @@ enum SchemaOptionCapabilities {
                 result.append(
                     .init(
                         resourceID: resourceID, schemaID: schemaID, name: option,
-                        title: "字形", disabledLabel: labels[index], enabledLabel: labels[index],
+                        title: String(localized: "字形"), disabledLabel: labels[index], enabledLabel: labels[index],
                         choiceGroup: options, choiceLabel: labels[index],
                         declaredConversion: declaredConfigs[option],
                         knownScriptState: knownStates?[index]))
@@ -493,17 +494,18 @@ enum SchemaOptionCapabilities {
             let dict = segmentation["dict"] as? [String: Any], validDict(dict)
         else { return nil }
         let name = json["name"] as? String ?? ""
-        if name == "Emoji" || name.hasSuffix(" to Emoji") { return "Emoji 候选" }
+        if name == "Emoji" || name.hasSuffix(" to Emoji") { return String(localized: "Emoji 候选") }
         if name.contains("Simplified Chinese to Traditional Chinese")
             || name.contains("Traditional Chinese to Traditional Chinese")
         {
-            return "繁体输出"
+            return String(localized: "繁体输出")
         }
-        if name.contains("Traditional Chinese to Simplified Chinese") { return "简体输出" }
+        if name.contains("Traditional Chinese to Simplified Chinese") { return String(localized: "简体输出") }
         switch config {
-        case "s2t.json", "s2tw.json", "s2hk.json", "t2tw.json", "t2hk.json", "t2hkf.json": return "繁体输出"
-        case "t2s.json": return "简体输出"
-        case "emoji.json": return "Emoji 候选"
+        case "s2t.json", "s2tw.json", "s2hk.json", "t2tw.json", "t2hk.json", "t2hkf.json":
+            return String(localized: "繁体输出")
+        case "t2s.json": return String(localized: "简体输出")
+        case "emoji.json": return String(localized: "Emoji 候选")
         default: return nil
         }
     }

@@ -269,7 +269,7 @@ struct KeyboardMergedSeparatorKey: View {
             onTap()
         }
         .disabled(!isComposing)
-        .accessibilityLabel("分词")
+        .accessibilityLabel(String(localized: "分词"))
     }
 }
 
@@ -503,7 +503,7 @@ struct KeyboardFixedEditingRail: View {
         VStack(spacing: CGFloat(metrics.spacing)) {
             RepeatingDeleteKey(action: onDelete)
                 .frame(height: CGFloat(slots[0].height))
-                .accessibilityLabel("删除")
+                .accessibilityLabel(String(localized: "删除"))
             AlternateCharacterKey(
                 cap: KeyCap(id: "t9-reset", title: "重输", action: .backspace),
                 alternates: [], visualRole: "control",
@@ -513,8 +513,8 @@ struct KeyboardFixedEditingRail: View {
             }
             .disabled(!isComposing)
             .frame(height: CGFloat(slots[1].height))
-            .accessibilityLabel("重输")
-            .accessibilityHint("清空当前输入")
+            .accessibilityLabel(String(localized: "重输"))
+            .accessibilityHint(String(localized: "清空当前输入"))
             ReturnKey(
                 title: returnTitle, isEnabled: isReturnEnabled,
                 accessibilityLabel: returnAccessibilityLabel, onSelect: onReturn
@@ -539,7 +539,7 @@ struct KeyboardPhoneDigitTrailingRail: View {
         VStack(spacing: CGFloat(metrics.spacing)) {
             RepeatingDeleteKey(action: onDelete)
                 .frame(height: CGFloat(metrics.rowHeight))
-                .accessibilityLabel("删除")
+                .accessibilityLabel(String(localized: "删除"))
             AlternateCharacterKey(
                 cap: KeyCap(id: "digit-pad-0", title: "0", action: .literal("0")),
                 alternates: [], phoneKey: true, onSelect: onKey
@@ -554,7 +554,7 @@ struct KeyboardPhoneDigitTrailingRail: View {
                 onSelect: onKey
             )
             .frame(height: CGFloat(metrics.rowHeight))
-            .accessibilityLabel("\(comma)，长按选择标点")
+            .accessibilityLabel(String(localized: "\(comma)，长按选择标点"))
         }
         .buttonStyle(KeyboardPressStyle())
     }
@@ -586,7 +586,7 @@ struct KeyboardPhoneSymbolRail: View {
                 .frame(height: CGFloat(metrics.rowHeight))
                 .accessibilityHint(
                     index == 0 && !firstKeyAlternates.isEmpty
-                        ? "长按输入更多符号" : "")
+                        ? String(localized: "长按输入更多符号") : "")
             }
         }
         .buttonStyle(KeyboardPressStyle())

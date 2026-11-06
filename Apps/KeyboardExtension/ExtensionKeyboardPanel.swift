@@ -21,13 +21,13 @@ final class ExtensionRouteStatus: ObservableObject {
 
         var title: String {
             switch self {
-            case .reloadConfiguration: return "重新载入设置"
-            case .saveBuiltin: return "重新保存选择"
-            case .applyRecipe: return "重新使用输入方案"
+            case .reloadConfiguration: return String(localized: "重新载入设置")
+            case .saveBuiltin: return String(localized: "重新保存选择")
+            case .applyRecipe: return String(localized: "重新使用输入方案")
             }
         }
     }
-    @Published var message = "正在读取键盘配置"
+    @Published var message = String(localized: "正在读取键盘配置")
     @Published var schemeName = ProductionInputAvailability.runtimeUnconfiguredSchemeName
     @Published var notice: String?
     @Published var recovery: Recovery?
@@ -113,29 +113,33 @@ struct ExtensionKeyboardPanel: View {
     /// settings do not show a set of incomprehensible, useless reload/rollback buttons.
     @ViewBuilder
     private var routeTools: some View {
-        KeyboardToolsSection(title: "键盘") {
-            KeyboardToolsRow(icon: "keyboard.chevron.compact.down", title: "收起键盘", action: dismissKeyboard)
+        KeyboardToolsSection(title: String(localized: "键盘")) {
+            KeyboardToolsRow(
+                icon: "keyboard.chevron.compact.down",
+                title: String(localized: "收起键盘"),
+                action: dismissKeyboard)
         }
         if noticeSummary != nil {
-            KeyboardToolsSection(title: "遇到问题") {
-                KeyboardToolsRow(icon: "arrow.uturn.backward", title: "使用已选的输入方案") {
+            KeyboardToolsSection(title: String(localized: "遇到问题")) {
+                KeyboardToolsRow(icon: "arrow.uturn.backward", title: String(localized: "使用已选的输入方案")) {
                     selectBuiltin(false)
                 }
                 KeyboardToolsSeparator()
-                KeyboardToolsRow(title: "改用\(ProductionInputAvailability.fallbackInputMethodName)") {
+                KeyboardToolsRow(title: String(localized: "改用\(ProductionInputAvailability.fallbackInputMethodName)")) {
                     selectBuiltin(true)
                 }
                 KeyboardToolsSeparator()
                 KeyboardToolsRow(
-                    title: "暂时改用\(ProductionInputAvailability.fallbackInputMethodName)", action: restoreBuiltin)
+                    title: String(localized: "暂时改用\(ProductionInputAvailability.fallbackInputMethodName)"),
+                    action: restoreBuiltin)
                 KeyboardToolsSeparator()
-                KeyboardToolsRow(icon: "arrow.clockwise", title: "重新载入设置") {
+                KeyboardToolsRow(icon: "arrow.clockwise", title: String(localized: "重新载入设置")) {
                     retryRoute(.reloadConfiguration)
                 }
                 KeyboardToolsSeparator()
-                KeyboardToolsRow(title: "重新载入布局", action: reloadLayouts)
+                KeyboardToolsRow(title: String(localized: "重新载入布局"), action: reloadLayouts)
                 KeyboardToolsSeparator()
-                KeyboardToolsRow(icon: "info.circle", title: "查看详情") {
+                KeyboardToolsRow(icon: "info.circle", title: String(localized: "查看详情")) {
                     showsRouteDetails = true
                 }
             }
@@ -152,12 +156,12 @@ struct ExtensionKeyboardPanel: View {
                     )
                     .frame(width: 44, height: 44)
                 }
-                Button("返回键盘") { showsRouteDetails = false }.frame(minHeight: 44)
+                Button(String(localized: "返回键盘")) { showsRouteDetails = false }.frame(minHeight: 44)
                 Spacer()
                 if let recovery = route.recovery {
                     Button(recovery.title) { retryRoute(recovery) }.frame(minHeight: 44)
                 } else {
-                    Button("重新载入布局", action: reloadLayouts).frame(minHeight: 44)
+                    Button(String(localized: "重新载入布局"), action: reloadLayouts).frame(minHeight: 44)
                 }
             }
             ScrollView {
@@ -166,7 +170,7 @@ struct ExtensionKeyboardPanel: View {
                         route.notice, route.layoutNotice,
                         route.notice == nil ? nil : route.message,
                         route.layoutNotice == nil ? nil : route.layoutMessage,
-                        noticeSummary == nil ? "一切正常，可以返回键盘继续输入。" : nil,
+                        noticeSummary == nil ? String(localized: "一切正常，可以返回键盘继续输入。") : nil,
                     ]
                     .compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: "\n")
                 )
@@ -174,7 +178,7 @@ struct ExtensionKeyboardPanel: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .textSelection(.enabled)
             }
-            Button("暂时改用\(ProductionInputAvailability.fallbackInputMethodName)") {
+            Button(String(localized: "暂时改用\(ProductionInputAvailability.fallbackInputMethodName)")) {
                 restoreBuiltin()
                 showsRouteDetails = false
             }
@@ -188,9 +192,9 @@ struct ExtensionKeyboardPanel: View {
 
     private var noticeSummary: String? {
         switch (route.notice != nil, route.layoutNotice != nil) {
-        case (true, true): return "方案未能生效 · 布局暂用内置"
-        case (true, false): return route.selectionError == nil ? route.notice : "方案保存失败 · 已保留原选择"
-        case (false, true): return "自定义布局不可用 · 暂用内置"
+        case (true, true): return String(localized: "方案未能生效 · 布局暂用内置")
+        case (true, false): return route.selectionError == nil ? route.notice : String(localized: "方案保存失败 · 已保留原选择")
+        case (false, true): return String(localized: "自定义布局不可用 · 暂用内置")
         case (false, false): return nil
         }
     }

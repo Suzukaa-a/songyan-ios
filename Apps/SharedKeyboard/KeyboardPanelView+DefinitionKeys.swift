@@ -491,14 +491,17 @@ extension KeyboardPanelView {
             // This is a `@ViewBuilder` context, where an `if` is taken as a view branch, so a ternary expression is required.
             // The default hint describes the bundled first key (tap cycles, long press types 1).
             // A primary-only match keeps the author's label, so it must not promise those defaults.
-            let cycleHint: String? =
-                !isT9FirstKey
-                ? nil
-                : !isBuiltinPhoneFace
-                    ? (isComposing ? "轻点分词" : "连续点按轮换符号")
-                    : (isComposing
-                        ? "轻点分词，长按输入 1"
-                        : "连续点按轮换符号，长按输入 1")
+            let cycleHint: String? = {
+                guard isT9FirstKey else { return nil }
+                if !isBuiltinPhoneFace {
+                    return isComposing
+                        ? String(localized: "轻点分词")
+                        : String(localized: "连续点按轮换符号")
+                }
+                return isComposing
+                    ? String(localized: "轻点分词，长按输入 1")
+                    : String(localized: "连续点按轮换符号，长按输入 1")
+            }()
             let digitFlick = t9SwipeDigit(for: key)
             let flick = letterFlickCaps(
                 for: key, options: options, controlOptions: controlOptions,

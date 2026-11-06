@@ -78,7 +78,7 @@ final class PredictionCenter: ObservableObject {
             }
         } catch {
             HostLog.append("prediction status read failed: \(error.localizedDescription)")
-            state = .unavailable("无法读取当前输入方式的设置。")
+            state = .unavailable(String(localized: "无法读取当前输入方式的设置。"))
         }
     }
 
@@ -93,7 +93,7 @@ final class PredictionCenter: ObservableObject {
         case .userDictionary:
             return PublishedContext(
                 packageID: nil, revision: activation.revision, keyboard: nil, schemaID: "",
-                state: .unavailable("当前输入方案不支持上屏联想。"), eligible: false, databaseBytes: nil)
+                state: .unavailable(String(localized: "当前输入方案不支持上屏联想。")), eligible: false, databaseBytes: nil)
         }
         guard let schemaID = activation.selectedSchemaID ?? activation.requiredSchemaIDs.first else { return nil }
         let keyboard = activation.selectedLayout.map { PublishedKeyboard(schemaID: schemaID, layout: $0) }
@@ -113,13 +113,13 @@ final class PredictionCenter: ObservableObject {
             let compiled = try? Data(
                 contentsOf: InstalledPackageLayout.compiledSchemaURL(build: snapshot.build, id: schemaID))
         else {
-            return make(.unavailable("无法读取当前输入方式的设置。"))
+            return make(.unavailable(String(localized: "无法读取当前输入方式的设置。")))
         }
         switch Prediction.eligibility(compiled: compiled, schemaID: schemaID) {
         case .sourceManaged:
             return make(.schemeManaged)
         case .ineligible:
-            return make(.unavailable("当前输入方式不支持上屏联想。"))
+            return make(.unavailable(String(localized: "当前输入方式不支持上屏联想。")))
         case .eligible:
             if Prediction.compiledEnabled(compiled: compiled) {
                 return make(bytes == nil ? .databaseMissing : .on, eligible: true)
@@ -174,7 +174,7 @@ final class PredictionCenter: ObservableObject {
                 try await KeyboardResourceReadQueue.async { try Prediction.validateDatabase(at: resource.url) }
             } catch {
                 HostLog.append("prediction database import rejected: \(error.localizedDescription)")
-                failure = "所选文件不是有效的联想词库（predict.db）。"
+                failure = String(localized: "所选文件不是有效的联想词库（predict.db）。")
                 working = false
                 return
             }
@@ -211,7 +211,7 @@ final class PredictionCenter: ObservableObject {
             guard let context = try await Self.readPublished(), let packageID = context.packageID,
                 context.eligible || database != nil
             else {
-                throw RecipeInstallError.invalidResource("当前输入方式不支持上屏联想")
+                throw RecipeInstallError.invalidResource(String(localized: "当前输入方式不支持上屏联想"))
             }
             let imports = SchemeImportCenter.shared
             let outcome = try await imports.applyPrediction(
@@ -221,7 +221,7 @@ final class PredictionCenter: ObservableObject {
                 if outcome.previousRevision == context.revision, let keyboard = context.keyboard {
                     _ = try await imports.performAddKeyboard(packageID: packageID, keyboard: keyboard)
                 } else {
-                    notice = "将在使用新版本后生效。"
+                    notice = String(localized: "将在使用新版本后生效。")
                 }
             }
             HostLog.append(
@@ -231,8 +231,8 @@ final class PredictionCenter: ObservableObject {
             HostLog.append("prediction apply failed (automatic=\(automatic)): \(error.localizedDescription)")
             failure =
                 database != nil
-                ? "导入联想词库失败，请重试。"
-                : (enabled ? "开启失败，请重试。" : "关闭失败，请重试。")
+                ? String(localized: "导入联想词库失败，请重试。")
+                : (enabled ? String(localized: "开启失败，请重试。") : String(localized: "关闭失败，请重试。"))
         }
         await refresh()
     }
@@ -253,10 +253,14 @@ extension SchemeImportCenter {
     {
         let result = try await applyManagedPatch(
             packageID: packageID,
-            message: database != nil ? "正在导入联想词库…" : (enabled ? "正在开启上屏联想…" : "正在关闭上屏联想…"),
+            message: database != nil
+                ? String(localized: "正在导入联想词库…")
+                : (enabled ? String(localized: "正在开启上屏联想…") : String(localized: "正在关闭上屏联想…")),
             plan: { context in
                 let hasDatabase = database != nil || context.snapshot.fileResources[Prediction.databasePath] != nil
-                guard hasDatabase || !enabled else { throw RecipeInstallError.invalidResource("请先导入联想词库。") }
+                guard hasDatabase || !enabled else {
+                    throw RecipeInstallError.invalidResource(String(localized: "请先导入联想词库。"))
+                }
                 let changes = PredictionPlanning.changes(
                     desired: enabled, build: context.build,
                     customFiles: context.snapshot.files, packageReference: packageID)
@@ -313,14 +317,14 @@ enum PredictionPlanning {
         }
         for target in changes {
             guard enabledSchemaIDs.contains(target.schemaID) else {
-                throw RecipeInstallError.deployment("上屏联想设置失败，输入方式「\(target.schemaID)」尚未启用")
+                throw RecipeInstallError.deployment(String(localized: "上屏联想设置失败，输入方式「\(target.schemaID)」尚未启用"))
             }
             let components = engine.schemaComponents(target.schemaID)
             let wired = components.contains(Prediction.processor) && components.contains(Prediction.translator)
             let marker = engine.schemaValue(target.schemaID, key: Prediction.markerKey) == "true"
             let database = engine.schemaValue(target.schemaID, key: "predictor/db") == Prediction.databasePath
             guard desired ? (wired && marker && database) : (!wired && !marker) else {
-                throw RecipeInstallError.deployment("上屏联想设置未生效，输入方式「\(target.schemaID)」当前配置不符")
+                throw RecipeInstallError.deployment(String(localized: "上屏联想设置未生效，输入方式「\(target.schemaID)」当前配置不符"))
             }
         }
         // Generated 14/9-key companions are regenerated from this build when the keyboard is

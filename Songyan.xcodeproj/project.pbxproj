@@ -241,6 +241,27 @@
 		KA2611070000000000000021 /* Kana12KeyboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = KA2611070000000000000001 /* Kana12KeyboardView.swift */; };
 		KA2611070000000000000022 /* KeyboardController+Kana12.swift in Sources */ = {isa = PBXBuildFile; fileRef = KA2611070000000000000002 /* KeyboardController+Kana12.swift */; };
 		KA2611070000000000000023 /* KeyboardPanelView+Kana12.swift in Sources */ = {isa = PBXBuildFile; fileRef = KA2611070000000000000003 /* KeyboardPanelView+Kana12.swift */; };
+		79BCB8F0F3BED98CCFB5C756 /* KeyboardToolsWording.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42F8502D0FF1213AAB7BE1F2 /* KeyboardToolsWording.swift */; };
+		4D97A88F8072281414EC7BE4 /* KeyboardToolsWording.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42F8502D0FF1213AAB7BE1F2 /* KeyboardToolsWording.swift */; };
+		2E541A080946D9D925B9863C /* KeyboardToolsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8891CDC4F0718C1F1589AFF4 /* KeyboardToolsStore.swift */; };
+		AC19DB73BC1960F3554C6CC0 /* KeyboardToolsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8891CDC4F0718C1F1589AFF4 /* KeyboardToolsStore.swift */; };
+		7C22D3F6E13914F06D0D4318 /* KeyboardToolsOpenCCAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0CE17BCE8704A2757F8AE84 /* KeyboardToolsOpenCCAdapter.swift */; };
+		C81F4E3A8C2501667F34BC8C /* KeyboardToolsOpenCCAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0CE17BCE8704A2757F8AE84 /* KeyboardToolsOpenCCAdapter.swift */; };
+		3C7E52B3DC5A8BF2A6CEA906 /* KeyboardToolsModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FF2887B76F9E91856009DB9 /* KeyboardToolsModel.swift */; };
+		D73F5C7825CA4B5A2342590A /* KeyboardToolsModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FF2887B76F9E91856009DB9 /* KeyboardToolsModel.swift */; };
+		BB239A0779A0AA1B9CFAF79C /* KeyboardToolsPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21D75C9036BC758D78BDBD9B /* KeyboardToolsPanelView.swift */; };
+		A6AA46AAE658A82628C461E4 /* KeyboardToolsPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21D75C9036BC758D78BDBD9B /* KeyboardToolsPanelView.swift */; };
+		29D6F11A66FC337DCB39840A /* KeyboardController+Tools.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9527D474710E1224CE7C8F3 /* KeyboardController+Tools.swift */; };
+		FF6F1BB16C6327F833A7397B /* KeyboardController+Tools.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9527D474710E1224CE7C8F3 /* KeyboardController+Tools.swift */; };
+		02AC6FEB2019C31765A4D9D1 /* KeyboardToolsCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 856A3E6821DBC634567795DE /* KeyboardToolsCenter.swift */; };
+		D4E699B03045CCDA312F93C6 /* KeyboardToolsDraft.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10E07E5D6CC846A9CB7081DC /* KeyboardToolsDraft.swift */; };
+		12E64080851E0BC621A10701 /* KeyboardToolsSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 371DE42A52F00C8DBC0295F1 /* KeyboardToolsSettingsView.swift */; };
+		0D1D521129A98E39DA8AB666 /* KeyboardToolsPanel.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 3B22D7E338940043A22CEDA1 /* KeyboardToolsPanel.xcstrings */; };
+		167E0D0F5FE3359431D2AF8F /* KeyboardToolsPanel.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 3B22D7E338940043A22CEDA1 /* KeyboardToolsPanel.xcstrings */; };
+		061C44341CD287F81EEBB07F /* KeyboardToolsSettings.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 96323CB2B91831F5F020D172 /* KeyboardToolsSettings.xcstrings */; };
+		35121828CEFFDA148EDF25D6 /* opencc in Resources */ = {isa = PBXBuildFile; fileRef = CC3EFB1CF07BF63385C710C1 /* opencc */; };
+		2BDC99D24EFD4B36E8669CC2 /* HostApp InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 2DFFEF6499DCB78987817CB2 /* HostApp InfoPlist.xcstrings */; };
+		9E0742B3BFBAE4C056120EF7 /* KeyboardExtension InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 0F2FC0A0553F94C13B2A5191 /* KeyboardExtension InfoPlist.xcstrings */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -428,6 +449,20 @@
 		B1A992B99E56ED8915138994 /* KeyboardSystemRequirements.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "KeyboardSystemRequirements.swift"; sourceTree = "<group>"; };
 		C0F000000000000000000003 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardPerformanceTests.swift; sourceTree = "<group>"; };
 		C0F000000000000000000004 = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KeyboardPerformanceTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		42F8502D0FF1213AAB7BE1F2 /* KeyboardToolsWording.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "KeyboardToolsWording.swift"; sourceTree = "<group>"; };
+		8891CDC4F0718C1F1589AFF4 /* KeyboardToolsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "KeyboardToolsStore.swift"; sourceTree = "<group>"; };
+		D0CE17BCE8704A2757F8AE84 /* KeyboardToolsOpenCCAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "KeyboardToolsOpenCCAdapter.swift"; sourceTree = "<group>"; };
+		1FF2887B76F9E91856009DB9 /* KeyboardToolsModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "KeyboardToolsModel.swift"; sourceTree = "<group>"; };
+		21D75C9036BC758D78BDBD9B /* KeyboardToolsPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "KeyboardToolsPanelView.swift"; sourceTree = "<group>"; };
+		C9527D474710E1224CE7C8F3 /* KeyboardController+Tools.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "KeyboardController+Tools.swift"; sourceTree = "<group>"; };
+		856A3E6821DBC634567795DE /* KeyboardToolsCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "KeyboardToolsCenter.swift"; sourceTree = "<group>"; };
+		10E07E5D6CC846A9CB7081DC /* KeyboardToolsDraft.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "KeyboardToolsDraft.swift"; sourceTree = "<group>"; };
+		371DE42A52F00C8DBC0295F1 /* KeyboardToolsSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "KeyboardToolsSettingsView.swift"; sourceTree = "<group>"; };
+		3B22D7E338940043A22CEDA1 /* KeyboardToolsPanel.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = "Resources/KeyboardToolsPanel.xcstrings"; sourceTree = "<group>"; };
+		96323CB2B91831F5F020D172 /* KeyboardToolsSettings.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = "Resources/KeyboardToolsSettings.xcstrings"; sourceTree = "<group>"; };
+		CC3EFB1CF07BF63385C710C1 /* opencc */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "Resources/EngineResources/opencc"; sourceTree = "<group>"; };
+		2DFFEF6499DCB78987817CB2 /* HostApp InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
+		0F2FC0A0553F94C13B2A5191 /* KeyboardExtension InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -467,6 +502,9 @@
 		A0000000000000000000000002 /* mainGroup */ = {
 			isa = PBXGroup;
 			children = (
+				3B22D7E338940043A22CEDA1 /* KeyboardToolsPanel.xcstrings */,
+				96323CB2B91831F5F020D172 /* KeyboardToolsSettings.xcstrings */,
+				CC3EFB1CF07BF63385C710C1 /* opencc */,
 				A0000000000000000000000072 /* Identity.xcconfig */,
 				A0000000000000000000000004 /* Apps */,
 				A0000000000000000000000024 /* BuiltinPackages */,
@@ -492,6 +530,10 @@
 		A0000000000000000000000005 /* HostApp */ = {
 			isa = PBXGroup;
 			children = (
+				2DFFEF6499DCB78987817CB2 /* HostApp InfoPlist.xcstrings */,
+				856A3E6821DBC634567795DE /* KeyboardToolsCenter.swift */,
+				10E07E5D6CC846A9CB7081DC /* KeyboardToolsDraft.swift */,
+				371DE42A52F00C8DBC0295F1 /* KeyboardToolsSettingsView.swift */,
 				A0000000000000000000000026 /* HostApp.swift */,
 				A0000000000000000000000028 /* MainTabView.swift */,
 				A000000000000000000000002A /* OnboardingView.swift */,
@@ -567,6 +609,7 @@
 		A0000000000000000000000006 /* KeyboardExtension */ = {
 			isa = PBXGroup;
 			children = (
+				0F2FC0A0553F94C13B2A5191 /* KeyboardExtension InfoPlist.xcstrings */,
 				A0000000000000000000000032 /* KeyboardViewController.swift */,
 				A5D0358994F742F9A970331C /* KeyboardViewController+HostDocument.swift */,
 				265D31AF51C54918BA753435 /* KeyboardViewController+TimingProbe.swift */,
@@ -582,6 +625,12 @@
 		A0000000000000000000000007 /* SharedKeyboard */ = {
 			isa = PBXGroup;
 			children = (
+				42F8502D0FF1213AAB7BE1F2 /* KeyboardToolsWording.swift */,
+				8891CDC4F0718C1F1589AFF4 /* KeyboardToolsStore.swift */,
+				D0CE17BCE8704A2757F8AE84 /* KeyboardToolsOpenCCAdapter.swift */,
+				1FF2887B76F9E91856009DB9 /* KeyboardToolsModel.swift */,
+				21D75C9036BC758D78BDBD9B /* KeyboardToolsPanelView.swift */,
+				C9527D474710E1224CE7C8F3 /* KeyboardController+Tools.swift */,
 				A0000000000000000000000034 /* KeyboardController.swift */,
 				A0000000000000000000000037 /* KeyboardPanelView.swift */,
 				CA6B3B07DA234E47A79863C6 /* EngineOwnershipCoordinator.swift */,
@@ -808,6 +857,9 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2BDC99D24EFD4B36E8669CC2 /* HostApp InfoPlist.xcstrings in Resources */,
+				0D1D521129A98E39DA8AB666 /* KeyboardToolsPanel.xcstrings in Resources */,
+				061C44341CD287F81EEBB07F /* KeyboardToolsSettings.xcstrings in Resources */,
 				A0000000000000000000000025 /* BuiltinPackages in Resources */,
                 KF2610160000000000000002 /* KeyFeedback in Resources */,
 				A0000000000000000000000059 /* EngineResources in Resources */,
@@ -822,6 +874,9 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9E0742B3BFBAE4C056120EF7 /* KeyboardExtension InfoPlist.xcstrings in Resources */,
+				167E0D0F5FE3359431D2AF8F /* KeyboardToolsPanel.xcstrings in Resources */,
+				35121828CEFFDA148EDF25D6 /* opencc in Resources */,
 				A0000000000000000000000048 /* BuiltinPackages in Resources */,
                 KF2610160000000000000003 /* KeyFeedback in Resources */,
 				PRIVE0XTBF00000000000001 /* PrivacyInfo.xcprivacy in Resources */,
@@ -837,6 +892,15 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				79BCB8F0F3BED98CCFB5C756 /* KeyboardToolsWording.swift in Sources */,
+				2E541A080946D9D925B9863C /* KeyboardToolsStore.swift in Sources */,
+				7C22D3F6E13914F06D0D4318 /* KeyboardToolsOpenCCAdapter.swift in Sources */,
+				3C7E52B3DC5A8BF2A6CEA906 /* KeyboardToolsModel.swift in Sources */,
+				BB239A0779A0AA1B9CFAF79C /* KeyboardToolsPanelView.swift in Sources */,
+				29D6F11A66FC337DCB39840A /* KeyboardController+Tools.swift in Sources */,
+				02AC6FEB2019C31765A4D9D1 /* KeyboardToolsCenter.swift in Sources */,
+				D4E699B03045CCDA312F93C6 /* KeyboardToolsDraft.swift in Sources */,
+				12E64080851E0BC621A10701 /* KeyboardToolsSettingsView.swift in Sources */,
 				A0000000000000000000000027 /* HostApp.swift in Sources */,
 				A0000000000000000000000029 /* MainTabView.swift in Sources */,
 				A000000000000000000000002B /* OnboardingView.swift in Sources */,
@@ -977,6 +1041,12 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4D97A88F8072281414EC7BE4 /* KeyboardToolsWording.swift in Sources */,
+				AC19DB73BC1960F3554C6CC0 /* KeyboardToolsStore.swift in Sources */,
+				C81F4E3A8C2501667F34BC8C /* KeyboardToolsOpenCCAdapter.swift in Sources */,
+				D73F5C7825CA4B5A2342590A /* KeyboardToolsModel.swift in Sources */,
+				A6AA46AAE658A82628C461E4 /* KeyboardToolsPanelView.swift in Sources */,
+				FF6F1BB16C6327F833A7397B /* KeyboardController+Tools.swift in Sources */,
 				A0000000000000000000000033 /* KeyboardViewController.swift in Sources */,
 				99F553BE7A114FEBBFFA773C /* KeyboardViewController+HostDocument.swift in Sources */,
 				8EAF2E0FAE044AB4ABE24CEF /* KeyboardViewController+TimingProbe.swift in Sources */,

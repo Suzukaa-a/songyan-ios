@@ -64,7 +64,7 @@ final class RimeConfigModel: ObservableObject {
 
     func createScript() async {
         guard RimeConfigEditor.isScriptName(scriptName), let packageID else {
-            result = "名字只能用小写字母、数字和下划线。"
+            result = String(localized: "名字只能用小写字母、数字和下划线。")
             return
         }
         do {
@@ -89,11 +89,11 @@ final class RimeConfigModel: ObservableObject {
         defer { restoring = false }
         do {
             let removed = try await center.manager(packageID).restoreRimeConfigFile(path)
-            result = removed ? "已恢复原样。应用更改后生效。" : "这个文件已经是原样。"
+            result = removed ? String(localized: "已恢复原样。应用更改后生效。") : String(localized: "这个文件已经是原样。")
             await refresh()
         } catch {
             HostLog.append("restore config failed: \(error.localizedDescription)")
-            result = "没能恢复这个文件，请重试。"
+            result = String(localized: "没能恢复这个文件，请重试。")
         }
     }
 
@@ -113,26 +113,29 @@ private struct RimeConfigAlerts: ViewModifier {
     func body(content: Content) -> some View {
         content
             .alert(
-                model.confirmation?.firstTime == true ? "使用你自己的扩展脚本？" : "以下扩展脚本有改动。",
+                model.confirmation?.firstTime == true
+                    ? String(localized: "使用你自己的扩展脚本？") : String(localized: "以下扩展脚本有改动。"),
                 isPresented: Binding(get: { model.confirmation != nil }, set: { if !$0 { model.confirmation = nil } })
             ) {
-                Button("使用") { model.confirmScripts() }
-                Button("取消", role: .cancel) { model.confirmation = nil }
+                Button(String(localized: "使用")) { model.confirmScripts() }
+                Button(String(localized: "取消"), role: .cancel) { model.confirmation = nil }
             } message: {
                 if let confirmation = model.confirmation {
                     let list = confirmation.scripts.joined(separator: "\n")
                     Text(
                         confirmation.firstTime
-                            ? "扩展脚本能读取你输入的所有内容。松烟已禁止脚本运行命令、加载外部程序和联网，但脚本引擎自身的漏洞仍可能被利用。只使用你信任来源的脚本。\n\n" + list
+                            ? String(
+                                localized:
+                                    "扩展脚本能读取你输入的所有内容。松烟已禁止脚本运行命令、加载外部程序和联网，但脚本引擎自身的漏洞仍可能被利用。只使用你信任来源的脚本。\n\n\(list)")
                             : list)
                 }
             }
             .alert(
-                "以下文件已改成你的版本，输入方案更新时这些文件不会跟着更新；其余文件照常更新。",
+                String(localized: "以下文件已改成你的版本，输入方案更新时这些文件不会跟着更新；其余文件照常更新。"),
                 isPresented: Binding(
                     get: { model.overrideNotice != nil }, set: { if !$0 { Task { await model.acknowledgeNotice() } } })
             ) {
-                Button("知道了") { Task { await model.acknowledgeNotice() } }
+                Button(String(localized: "知道了")) { Task { await model.acknowledgeNotice() } }
             } message: {
                 Text((model.overrideNotice ?? []).joined(separator: "\n"))
             }
@@ -161,9 +164,9 @@ struct RimeConfigRows: View {
 
     var body: some View {
         Section {
-            Button("应用更改") { Task { await model.apply() } }
+            Button(String(localized: "应用更改")) { Task { await model.apply() } }
                 .disabled(center.busy || model.applying || model.restoring)
-            if model.applying { ProgressView("正在应用…") }
+            if model.applying { ProgressView(String(localized: "正在应用…")) }
             if let result = model.result {
                 Text(result).font(.footnote).foregroundStyle(.secondary)
             }
@@ -172,9 +175,11 @@ struct RimeConfigRows: View {
                     .font(.footnote).foregroundStyle(.secondary)
             }
             if let packageID = model.packageID {
-                NavigationLink("修改输入方式") { RimeInputMethodListView(packageID: packageID, model: model) }
-                NavigationLink("方案文件") { RimePackageFilesView(packageID: packageID, model: model) }
-                Button("新建扩展脚本") {
+                NavigationLink(String(localized: "修改输入方式")) {
+                    RimeInputMethodListView(packageID: packageID, model: model)
+                }
+                NavigationLink(String(localized: "方案文件")) { RimePackageFilesView(packageID: packageID, model: model) }
+                Button(String(localized: "新建扩展脚本")) {
                     model.scriptName = ""
                     model.newScript = true
                 }
@@ -185,7 +190,7 @@ struct RimeConfigRows: View {
             Text("用 xxx.custom.yaml 等文件修改输入方案，和电脑上的 Rime 一样。文件在「文件」App 的「我的 iPhone › 松烟 › Rime 配置」里，改完轻点「应用更改」才会生效。")
         }
         if let overview = model.overview, !overview.overrides.isEmpty {
-            Section("改过的文件") {
+            Section(String(localized: "改过的文件")) {
                 ForEach(overview.overrides, id: \.path) { entry in
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
@@ -196,7 +201,7 @@ struct RimeConfigRows: View {
                             }
                         }
                         Spacer(minLength: 8)
-                        Button("恢复原样") { model.restoringPath = entry.path }
+                        Button(String(localized: "恢复原样")) { model.restoringPath = entry.path }
                             .disabled(model.restoring || model.applying || center.busy)
                             .font(.footnote).buttonStyle(.borderless)
                     }
@@ -221,26 +226,26 @@ private struct RimeConfigHost: ViewModifier {
             }
             .rimeConfigAlerts(model)
             .confirmationDialog(
-                "恢复「\(model.restoringPath ?? "")」？",
+                String(localized: "恢复「\(model.restoringPath ?? "")」？"),
                 isPresented: Binding(
                     get: { model.restoringPath != nil }, set: { if !$0 { model.restoringPath = nil } }),
                 titleVisibility: .visible
             ) {
                 if let path = model.restoringPath {
-                    Button("恢复原样", role: .destructive) {
+                    Button(String(localized: "恢复原样"), role: .destructive) {
                         model.restoringPath = nil
                         Task { await model.restore(path) }
                     }
                 }
-                Button("取消", role: .cancel) { model.restoringPath = nil }
+                Button(String(localized: "取消"), role: .cancel) { model.restoringPath = nil }
             } message: {
                 Text("你对这个文件的修改会删除。")
             }
-            .alert("新建扩展脚本", isPresented: $model.newScript) {
-                TextField("名字", text: $model.scriptName)
+            .alert(String(localized: "新建扩展脚本"), isPresented: $model.newScript) {
+                TextField(String(localized: "名字"), text: $model.scriptName)
                     .textInputAutocapitalization(.never).autocorrectionDisabled()
-                Button("新建") { Task { await model.createScript() } }
-                Button("取消", role: .cancel) {}
+                Button(String(localized: "新建")) { Task { await model.createScript() } }
+                Button(String(localized: "取消"), role: .cancel) {}
             } message: {
                 Text("只能用小写字母、数字和下划线。")
             }
@@ -266,9 +271,10 @@ struct RimeInputMethodListView: View {
 
     var body: some View {
         List {
-            NavigationLink("全局设置") {
+            NavigationLink(String(localized: "全局设置")) {
                 RimeFileEditorView(
-                    route: RimeEditRoute(packageID: packageID, path: RimeConfigEditor.globalPath, title: "全局设置"),
+                    route: RimeEditRoute(
+                        packageID: packageID, path: RimeConfigEditor.globalPath, title: String(localized: "全局设置")),
                     model: model)
             }
             ForEach(schemas, id: \.id) { schema in
@@ -282,7 +288,7 @@ struct RimeInputMethodListView: View {
                 }
             }
         }
-        .navigationTitle("修改输入方式")
+        .navigationTitle(String(localized: "修改输入方式"))
         .navigationBarTitleDisplayMode(.inline)
     }
 }
@@ -305,7 +311,7 @@ struct RimePackageFilesView: View {
                 ProgressView()
             }
         }
-        .navigationTitle("方案文件")
+        .navigationTitle(String(localized: "方案文件"))
         .navigationBarTitleDisplayMode(.inline)
         .task { paths = (try? await center.manager(packageID).rimeConfigPackageFiles()) ?? [] }
     }
@@ -322,7 +328,7 @@ private struct RimePackageFileView: View {
 
     var body: some View {
         ScrollView {
-            Text(text ?? (loaded ? "文件太大，不能在这里查看。" : ""))
+            Text(text ?? (loaded ? String(localized: "文件太大，不能在这里查看。") : ""))
                 .font(.footnote.monospaced())
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding()
@@ -331,7 +337,7 @@ private struct RimePackageFileView: View {
         .navigationTitle((path as NSString).lastPathComponent)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            Button("修改") { editing = RimeEditRoute(packageID: packageID, path: path, title: path) }
+            Button(String(localized: "修改")) { editing = RimeEditRoute(packageID: packageID, path: path, title: path) }
         }
         .navigationDestination(item: $editing) { RimeFileEditorView(route: $0, model: model) }
         .task {
@@ -374,7 +380,7 @@ final class RimeFileEditorModel: ObservableObject {
             text = file.text
             baseline = file.text
         } catch {
-            loadFailure = (error as? LocalizedError)?.errorDescription ?? "没能打开这个文件。"
+            loadFailure = (error as? LocalizedError)?.errorDescription ?? String(localized: "没能打开这个文件。")
         }
         loading = false
     }
@@ -403,7 +409,7 @@ final class RimeFileEditorModel: ObservableObject {
             case .refused(let message): failure = .message(message)
             }
         } catch {
-            failure = .message((error as? LocalizedError)?.errorDescription ?? "没能保存这个文件。")
+            failure = .message((error as? LocalizedError)?.errorDescription ?? String(localized: "没能保存这个文件。"))
         }
     }
 }
@@ -425,11 +431,13 @@ struct RimeFileEditorView: View {
     var body: some View {
         VStack(spacing: 0) {
             if editor.hasScripts {
-                Label("这个文件带有扩展脚本。扩展脚本能读取你输入的内容，只在你信任来源时使用。", systemImage: "exclamationmark.triangle")
-                    .font(.footnote)
-                    .padding(10)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color.orange.opacity(0.15))
+                Label(
+                    String(localized: "这个文件带有扩展脚本。扩展脚本能读取你输入的内容，只在你信任来源时使用。"), systemImage: "exclamationmark.triangle"
+                )
+                .font(.footnote)
+                .padding(10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.orange.opacity(0.15))
             }
             if editor.loading {
                 ProgressView().frame(maxHeight: .infinity)
@@ -456,25 +464,25 @@ struct RimeFileEditorView: View {
                 } label: {
                     Image(systemName: "chevron.backward")
                 }
-                .accessibilityLabel("返回")
+                .accessibilityLabel(String(localized: "返回"))
                 .disabled(editor.saving)
             }
             ToolbarItem(placement: .confirmationAction) {
-                Button("保存") { Task { await editor.save() } }
+                Button(String(localized: "保存")) { Task { await editor.save() } }
                     .disabled(!editor.dirty || editor.loading || editor.saving || editor.loadFailure != nil)
             }
         }
-        .confirmationDialog("放弃修改？", isPresented: $confirmDiscard, titleVisibility: .visible) {
-            Button("放弃", role: .destructive) { dismiss() }
-            Button("继续修改", role: .cancel) {}
+        .confirmationDialog(String(localized: "放弃修改？"), isPresented: $confirmDiscard, titleVisibility: .visible) {
+            Button(String(localized: "放弃"), role: .destructive) { dismiss() }
+            Button(String(localized: "继续修改"), role: .cancel) {}
         } message: {
             Text("你改的内容还没有保存。")
         }
         .interactiveDismissDisabled(editor.dirty || editor.saving)
         .rimeConfigAlerts(model)
-        .onChange(of: editor.saved) { _, saved in if saved { toast = "已保存" } }
-        .alert("没有保存", isPresented: $editor.failureAlert) {
-            Button("好", role: .cancel) {}
+        .onChange(of: editor.saved) { _, saved in if saved { toast = String(localized: "已保存") } }
+        .alert(String(localized: "没有保存"), isPresented: $editor.failureAlert) {
+            Button(String(localized: "好"), role: .cancel) {}
         } message: {
             Text(failureText ?? "")
         }
@@ -484,8 +492,8 @@ struct RimeFileEditorView: View {
 
     private var failureText: String? {
         switch editor.failure {
-        case .invalid(let line?): return "第 \(line) 行格式有误，没有保存。"
-        case .invalid(nil): return "格式有误，没有保存。"
+        case .invalid(let line?): return String(localized: "第 \(line) 行格式有误，没有保存。")
+        case .invalid(nil): return String(localized: "格式有误，没有保存。")
         case .message(let text): return text
         case nil: return nil
         }
@@ -494,7 +502,7 @@ struct RimeFileEditorView: View {
     @ViewBuilder
     private var status: some View {
         if editor.saving {
-            ProgressView("正在保存…").padding(10)
+            ProgressView(String(localized: "正在保存…")).padding(10)
         } else if let text = failureText {
             Text(text)
                 .font(.footnote).foregroundStyle(.red)
@@ -503,7 +511,7 @@ struct RimeFileEditorView: View {
             HStack {
                 Text("已保存。应用更改后生效。").font(.footnote).foregroundStyle(.secondary)
                 Spacer(minLength: 8)
-                Button("应用更改") { Task { await model.apply() } }
+                Button(String(localized: "应用更改")) { Task { await model.apply() } }
                     .font(.footnote).disabled(model.applying)
             }
             .padding(10)

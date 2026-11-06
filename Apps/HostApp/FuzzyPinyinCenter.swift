@@ -116,7 +116,7 @@ final class FuzzyPinyinCenter: ObservableObject {
         } catch {
             guard refreshToken == token else { return }
             HostLog.append("fuzzy pinyin status read failed: \(error.localizedDescription)")
-            state = .unavailable("暂时无法读取当前输入方式的设置。")
+            state = .unavailable(String(localized: "暂时无法读取当前输入方式的设置。"))
             return
         }
         // Latest wins: a newer refresh or a save invalidates this read as a whole.
@@ -140,7 +140,7 @@ final class FuzzyPinyinCenter: ObservableObject {
             return
         }
         guard supported else {
-            state = .unavailable("这个输入方式暂不支持模糊音，请选择其他输入方式。")
+            state = .unavailable(String(localized: "这个输入方式暂不支持模糊音，请选择其他输入方式。"))
             displayed = nil
             draft = []
             failure = nil
@@ -194,11 +194,11 @@ final class FuzzyPinyinCenter: ObservableObject {
             guard let id = activation.packageID else { return nil }
             packageID = id
         case .userDictionary:
-            return make(nil, "", .unavailable("当前输入方案不支持模糊音。"), nil, packageID: nil)
+            return make(nil, "", .unavailable(String(localized: "当前输入方案不支持模糊音。")), nil, packageID: nil)
         }
         guard let schemaID = activation.selectedSchemaID ?? activation.requiredSchemaIDs.first else { return nil }
         let keyboard = activation.selectedLayout.map { PublishedKeyboard(schemaID: schemaID, layout: $0) }
-        let unavailable = State.unavailable("当前输入方式不支持模糊音。")
+        let unavailable = State.unavailable(String(localized: "当前输入方式不支持模糊音。"))
         guard
             let compiled = try? Data(
                 contentsOf: InstalledPackageLayout.compiledSchemaURL(build: snapshot.build, id: schemaID)),
@@ -251,7 +251,9 @@ final class FuzzyPinyinCenter: ObservableObject {
         }
         // An appended list we cannot recognize means the block was edited outside the app.
         guard let ids = FuzzyPinyin.pairIDs(rules: appended) else {
-            return make(keyboard, schemaID, .unavailable("模糊音设置无法识别，可能是被其他工具修改过。"), target, packageID: packageID)
+            return make(
+                keyboard, schemaID, .unavailable(String(localized: "模糊音设置无法识别，可能是被其他工具修改过。")), target,
+                packageID: packageID)
         }
         return make(keyboard, schemaID, .managed(ids), target, packageID: packageID)
     }
@@ -261,7 +263,7 @@ final class FuzzyPinyinCenter: ObservableObject {
         do {
             let data = try Data(contentsOf: url, options: .mappedIfSafe)
             guard data.count <= RecipeResourceBudget.sourceFile else {
-                throw RecipeInstallError.invalidResource("设置文件过大，请重新导入输入方案。")
+                throw RecipeInstallError.invalidResource(String(localized: "设置文件过大，请重新导入输入方案。"))
             }
             return data
         } catch let error as CocoaError where error.code == .fileReadNoSuchFile || error.code == .fileNoSuchFile {
@@ -278,7 +280,7 @@ final class FuzzyPinyinCenter: ObservableObject {
     /// Inspect prebuilt Rime data in an isolated learning directory before offering edits.
     private static func nativeSupport(for context: PublishedContext) async throws -> Bool {
         guard let resources = context.resourcesURL, let build = context.buildURL else {
-            throw RecipeInstallError.invalidResource("无法读取输入方式，请在「我的键盘」中重新选择。")
+            throw RecipeInstallError.invalidResource(String(localized: "无法读取输入方式，请在「我的键盘」中重新选择。"))
         }
         return try await EngineOwnershipCoordinator.shared.withExclusive {
             try await EngineOpQueue.async {
@@ -297,7 +299,7 @@ final class FuzzyPinyinCenter: ObservableObject {
                     let projection = engine.sourceProjectionMap()
                         .flatMap(CompactSchemaAdapter.SourceProjection.decode(json:))
                 else {
-                    throw RecipeInstallError.deployment("暂时无法检查输入方式，请稍后重试。")
+                    throw RecipeInstallError.deployment(String(localized: "暂时无法检查输入方式，请稍后重试。"))
                 }
                 return FuzzyPinyinPlanning.supportsFullPinyin(projection)
             }
@@ -342,7 +344,7 @@ final class FuzzyPinyinCenter: ObservableObject {
         defer { working = false }
         do {
             guard let packageID = displayed.packageID else {
-                throw RecipeInstallError.invalidResource("当前输入方案不支持模糊音")
+                throw RecipeInstallError.invalidResource(String(localized: "当前输入方案不支持模糊音"))
             }
             let imports = SchemeImportCenter.shared
             let pending = unpublishedSave.flatMap { $0.displayed == displayed ? $0.generation : nil }
@@ -372,14 +374,14 @@ final class FuzzyPinyinCenter: ObservableObject {
                         // saving again from this page republishes instead of being refused.
                         unpublishedSave = (displayed, outcome.generation)
                         HostLog.append("fuzzy pinyin republish failed: \(error.localizedDescription)")
-                        failure = "模糊音已保存，但键盘还没用上新设置，请再保存一次。"
+                        failure = String(localized: "模糊音已保存，但键盘还没用上新设置，请再保存一次。")
                         failureAnchor = displayed
                         working = false
                         await refresh()
                         return
                     }
                 } else {
-                    notice = "将在使用新版本后生效。"
+                    notice = String(localized: "将在使用新版本后生效。")
                 }
             }
             HostLog.append(
@@ -387,7 +389,7 @@ final class FuzzyPinyinCenter: ObservableObject {
             )
         } catch {
             HostLog.append("fuzzy pinyin apply failed: \(error.localizedDescription)")
-            failure = (error as? UserKeyboardPublicationError)?.localizedDescription ?? "未能保存，请重试。"
+            failure = (error as? UserKeyboardPublicationError)?.localizedDescription ?? String(localized: "未能保存，请重试。")
             failureAnchor = displayed
         }
         working = false
@@ -416,7 +418,8 @@ extension SchemeImportCenter {
         viewedGeneration: String?, savedGeneration: String? = nil
     ) async throws -> FuzzyPinyinOutcome {
         let result = try await applyManagedPatch(
-            packageID: packageID, message: enabledPairIDs.isEmpty ? "正在关闭模糊音…" : "正在保存模糊音…",
+            packageID: packageID,
+            message: enabledPairIDs.isEmpty ? String(localized: "正在关闭模糊音…") : String(localized: "正在保存模糊音…"),
             preflight: { active in
                 // `savedGeneration` is the version an earlier save of this page installed but the
                 // keyboard never picked up; retrying from it only has to finish the republish.
@@ -426,7 +429,7 @@ extension SchemeImportCenter {
                         || (savedGeneration != nil && installedGeneration == savedGeneration)
                 else {
                     throw UserKeyboardPublicationError.unavailable(
-                        "输入方案已有新版本，请先在「我的键盘」中选择要使用的版本。")
+                        String(localized: "输入方案已有新版本，请先在「我的键盘」中选择要使用的版本。"))
                 }
             },
             plan: { context in
@@ -470,7 +473,7 @@ enum FuzzyPinyinPlanning {
     /// The written patch is trusted; the engine only has to confirm the input method is enabled.
     static func verify(enabledSchemaIDs: [String], target: FuzzyPinyin.Target) throws {
         guard enabledSchemaIDs.contains(target.schemaID) else {
-            throw RecipeInstallError.deployment("这个输入方式（\(target.schemaID)）还没有启用，模糊音没有保存。")
+            throw RecipeInstallError.deployment(String(localized: "这个输入方式（\(target.schemaID)）还没有启用，模糊音没有保存。"))
         }
     }
 }

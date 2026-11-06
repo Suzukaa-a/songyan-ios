@@ -4,6 +4,7 @@ import Foundation
 import KeyboardCore
 import LayoutKit
 import OSLog
+import QuickContentKit
 import UIKit
 import os
 
@@ -514,6 +515,12 @@ public final class KeyboardController: ObservableObject {
     /// Layout change callback (`KeyboardPadSession` syncs its own layout and persists the selection from it).
     public var onLayoutChanged: ((KeyboardLayoutKind) -> Void)?
 
+    /// Tool panel hooks. The host owns the document text; the controller only carries the three
+    /// operations a tool may perform, so no keyboard view touches a text proxy itself.
+    public var onReadToolTextSource: (() -> ToolPanelEditorSnapshot?)?
+    public var onReplaceToolAnchor: ((ToolPanelAnchor, String) -> Bool)?
+    public var onCopyToolResult: ((String) -> Bool)?
+
     /// - Parameters:
     ///   - layout: initial layout (the caller should normalize it to a layout the resource set offers).
     ///   - engine: engine backend (production path = RimeBackend).
@@ -556,7 +563,7 @@ public final class KeyboardController: ObservableObject {
             DispatchQueue.global(qos: .utility).async {
                 diagnosticLogger.error("input operation failed: \(String(describing: error), privacy: .private)")
             }
-            let message = "输入操作未完成，请重试。"
+            let message = String(localized: "输入操作未完成，请重试。")
             self.inputError = message
             self.onInputError?(message)
             self.refresh()
@@ -571,7 +578,7 @@ public final class KeyboardController: ObservableObject {
                 if let error {
                     Self.diagnosticLogger.error(
                         "option persistence failed: \(error.localizedDescription, privacy: .private)")
-                    self.optionError = "选项已在本次会话生效，但未能保存，请重试。"
+                    self.optionError = String(localized: "选项已在本次会话生效，但未能保存，请重试。")
                 } else {
                     self.optionError = nil
                 }

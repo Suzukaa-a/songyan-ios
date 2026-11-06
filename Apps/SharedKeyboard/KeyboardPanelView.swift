@@ -128,6 +128,8 @@ public struct KeyboardPanelView: View {
     /// Whether a symbol has been entered on the current number/symbol page (used to return to letters after space); reset on every page change.
     @State private var typedOnSymbolPage = false
     @StateObject var quickSymbols = T9QuickSymbolModel()
+    /// Keyboard tools: the catalog, the panel state and one run at a time (M2).
+    @StateObject private var tools = KeyboardToolsModel()
     /// The symbol library behind the 9-key symbol page's themed tabs and recents.
     /// Read only when that page opens; the page inserts through `handleKey` and
     /// only reports uses, so the model's own insert exit is never called.
@@ -255,11 +257,11 @@ public struct KeyboardPanelView: View {
             let _ = widthBox.record(contentWidth: contentWidth - 8, mainSplitWidth: rawWidth - 8)
             panelBody(isWide: isWideSurface)
                 .frame(width: contentWidth, alignment: .topLeading)
-                .disabled(showsUtilitiesMenu || showsSymbolLibrary)
-                .accessibilityHidden(showsUtilitiesMenu || showsSymbolLibrary)
+                .disabled(showsCoveringPanel)
+                .accessibilityHidden(showsCoveringPanel)
                 // Hidden rather than painted over, so the covering panels can sit on the
                 // keyboard's own surface instead of a second opaque sheet.
-                .opacity(showsUtilitiesMenu || showsSymbolLibrary ? 0 : 1)
+                .opacity(showsCoveringPanel ? 0 : 1)
                 .overlay {
                     // Overlays are pinned to the panel's own height. Without this the overlay
                     // grows to its intrinsic content height, so its inner ScrollView believes
@@ -287,6 +289,14 @@ public struct KeyboardPanelView: View {
                             .frame(width: contentWidth, height: geometry.size.height)
                             .background(Color.black.opacity(0.001))
                             .clipped()
+                    } else if tools.isOpen {
+                        KeyboardToolsPanel(
+                            controller: controller, model: tools,
+                            onClose: { tools.close() }
+                        )
+                        .frame(width: contentWidth, height: geometry.size.height)
+                        .background(Color.black.opacity(0.001))
+                        .clipped()
                     }
                 }
                 // The covering overlay (tools / symbol library) swaps in immediately: no
@@ -358,7 +368,7 @@ public struct KeyboardPanelView: View {
                 }
                 .buttonStyle(KeyboardPressStyle())
                 .contentShape(Rectangle())
-                .accessibilityLabel("收起键盘")
+                .accessibilityLabel(String(localized: "收起键盘"))
                 .accessibilityIdentifier("keyboard.wideDismiss")
             }
             Spacer(minLength: 0)
@@ -648,6 +658,14 @@ public struct KeyboardPanelView: View {
         showsSymbolLibrary = true
     }
 
+    /// Any panel that covers the keys; while one is open the key area takes no touches and is
+    /// hidden from VoiceOver, and the idle toolbar treats the panel as covered.
+    private var showsCoveringPanel: Bool {
+        showsUtilitiesMenu || showsSymbolLibrary || tools.isOpen
+    }
+
+    private var clipboardToolTitle: String { String(localized: "剪贴板") }
+
     private func idleTool(_ title: String, icon: String, action: @escaping () -> Void) -> some View {
         Button {
             emitSelectionFeedback()
@@ -725,6 +743,36 @@ public struct KeyboardPanelView: View {
         }
     }
 
+    /// A pinned tool runs from the toolbar and opens its preview; the panel does the writing.
+    private func pinnedTool(_ item: KeyboardToolsModel.Item) -> some View {
+        Button {
+            emitSelectionFeedback()
+            tools.open(controller: controller, toolID: item.id)
+        } label: {
+            Text(tools.displayName(for: item))
+                .font(.system(size: 13, weight: .medium))
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+                .padding(.horizontal, 6)
+                .frame(maxWidth: .infinity, minHeight: min(44, CGFloat(layoutPlan.headerHeight)))
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(Color(uiColor: appearance.text(on: "panel", secondary: true)))
+        .accessibilityLabel(tools.displayName(for: item))
+        .accessibilityHint(KeyboardToolsWording.pinnedHint)
+        .accessibilityIdentifier("keyboard.toolbar.tool." + item.id)
+    }
+
+    /// Reads the catalog for the current input language. The built-in conversion follows that
+    /// language, so a scheme switch re-reads it; every read happens in the model, off the main
+    /// thread.
+    private func refreshToolsCatalog() {
+        let model = tools
+        let language = controller.inputLanguage.language
+        Task { await model.refresh(inputLanguage: language) }
+    }
+
     private var quickPasteIdleInput: QuickPasteIdleInput {
         QuickPasteIdleInput(
             isComposing: controller.snapshot.isComposing,
@@ -740,7 +788,7 @@ public struct KeyboardPanelView: View {
             hasReadingContent: controller.ambiguityPicker.showsPicker || controller.readingFilter.isFiltering,
             hasPendingQueries: controller.readingQueryPending || controller.ambiguityQueryPending,
             isExpanded: showsAllCandidates,
-            isCovered: showsUtilitiesMenu || showsSymbolLibrary)
+            isCovered: showsCoveringPanel)
     }
 
     private func panelSurface(isWide: Bool) -> some View {
@@ -764,11 +812,23 @@ public struct KeyboardPanelView: View {
                     .overlay(alignment: .trailing) {
                         if idleToolbarEnabled, idle, plan.headerHeight >= 32 {
                             HStack(spacing: 4) {
-                                idleTool("剪贴板", icon: "list.clipboard") { openQuickContent(section: "clipboard") }
-                                idleTool("颜文字", icon: "face.smiling") {
+                                idleTool(clipboardToolTitle, icon: "list.clipboard") {
+                                    openQuickContent(section: "clipboard")
+                                }
+                                idleTool(String(localized: "颜文字"), icon: "face.smiling") {
                                     openQuickContent(section: "symbols", category: "kaomoji")
                                 }
-                                idleTool("键盘设置", icon: "gearshape") { showsUtilitiesMenu = true }
+                                idleTool(String(localized: "键盘设置"), icon: "gearshape") { showsUtilitiesMenu = true }
+                                if controller.showsTextTools {
+                                    // Pinned tools are one tap away, and still stop at the
+                                    // preview: a tool never writes without the user's word.
+                                    ForEach(tools.pinned) { item in
+                                        pinnedTool(item)
+                                    }
+                                    idleTool(KeyboardToolsWording.toolbarButton, icon: "wand.and.stars") {
+                                        tools.open(controller: controller)
+                                    }
+                                }
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.horizontal, 8)
@@ -785,7 +845,7 @@ public struct KeyboardPanelView: View {
                             .buttonStyle(KeyboardPressStyle())
                             .frame(width: 44, height: min(44, CGFloat(plan.headerHeight)))
                             .contentShape(Rectangle())
-                            .accessibilityLabel("收起键盘")
+                            .accessibilityLabel(String(localized: "收起键盘"))
                             .accessibilityIdentifier("keyboard.wideDismiss")
                         }
                     }
@@ -973,12 +1033,21 @@ public struct KeyboardPanelView: View {
                 symbolPageKeepsCandidates = page != .letters && controller.snapshot.isComposing
             }
             .onChange(of: controller.keyboardType) { syncHostPage() }
+            // The tool catalog is the host's file; re-read it on every new host binding (another
+            // app, unlock, settings changes) and when the input language changes what the built-in
+            // conversion means.
+            .onChange(of: controller.inputLanguage) { refreshToolsCatalog() }
             .onAppear { syncHostPage() }
             .onAppear { refreshContentDock() }
+            .onAppear { refreshToolsCatalog() }
             .onChange(of: hostBindingTick) {
                 refreshContentDock()
                 clearSymbolMarksOverride()
                 refreshKana12Preferences()
+                // The open panel described the previous host's text; closing it is the only safe
+                // answer, and the toolbar can open a fresh one.
+                if tools.isOpen { tools.close() }
+                refreshToolsCatalog()
             }
     }
 

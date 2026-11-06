@@ -20,11 +20,11 @@ extension SchemeImportCenter {
         guard !busy, let workspace = installedWorkspace else { return nil }
         let desired = Array(Set(selectedSchemaIDs)).sorted()
         guard desired.allSatisfy({ workspace.schemaIDs.contains($0) }) else {
-            error = "当前未安装该输入方案"
+            error = String(localized: "当前未安装该输入方案")
             return nil
         }
         guard GrammarModelRecipe.validModelPath(modelPath) else {
-            error = "所选语法模型无效，请选择 .gram 文件。"
+            error = String(localized: "所选语法模型无效，请选择 .gram 文件。")
             return nil
         }
         // Only bindings this transaction changes produce patch blocks; the rest of the model's
@@ -33,7 +33,7 @@ extension SchemeImportCenter {
         let changedClearing: [String] = []
         let hasProvidedModel = providedDownloadFiles[modelPath] != nil
         if changedBinding.isEmpty, changedClearing.isEmpty, !hasProvidedModel {
-            error = "未作任何更改"
+            error = String(localized: "未作任何更改")
             return nil
         }
         // Binding a not-yet-installed model requires an explicitly provided file; unbinding an
@@ -41,13 +41,13 @@ extension SchemeImportCenter {
         if !changedBinding.isEmpty, providedDownloadFiles[modelPath] == nil,
             workspace.snapshot.fileResources[modelPath] == nil
         {
-            error = "请先导入或下载 \(modelPath)"
+            error = String(localized: "请先导入或下载 \(modelPath)")
             return nil
         }
         busy = true
         error = nil
         plannedRecipe = nil
-        message = "正在检查…"
+        message = String(localized: "正在检查…")
         let provided = providedDownloadFiles
         let modelDisplayName =
             displayName
@@ -68,7 +68,7 @@ extension SchemeImportCenter {
                     guard let model = provided[modelPath] ?? workspace.snapshot.fileResources[modelPath] else {
                         // Unbinding an already-installed model still needs its file reference so the
                         // unchanged install_files entry can be re-verified, not re-downloaded.
-                        throw RecipeInstallError.invalidResource("未找到模型文件引用：\(modelPath)")
+                        throw RecipeInstallError.invalidResource(String(localized: "未找到模型文件引用：\(modelPath)"))
                     }
                     var files = workspace.sources?.files ?? [:]
                     files[recipe.path] = recipe.source
@@ -112,10 +112,10 @@ extension SchemeImportCenter {
 
     /// Plain-language summary of the whole model → input-method-set operation.
     static func grammarPlanSummary(modelPath: String, binding: [String], clearing: [String]) -> [String] {
-        var lines: [String] = ["模型：\(modelPath)"]
-        if binding.isEmpty, clearing.isEmpty { lines.append("将安装或更新模型文件") }
-        if !binding.isEmpty { lines.append("将用于 \(binding.count) 个输入方式") }
-        if !clearing.isEmpty { lines.append("将停止用于 \(clearing.count) 个输入方式") }
+        var lines: [String] = [String(localized: "模型：\(modelPath)")]
+        if binding.isEmpty, clearing.isEmpty { lines.append(String(localized: "将安装或更新模型文件")) }
+        if !binding.isEmpty { lines.append(String(localized: "将用于 \(binding.count) 个输入方式")) }
+        if !clearing.isEmpty { lines.append(String(localized: "将停止用于 \(clearing.count) 个输入方式")) }
         return lines
     }
 
@@ -125,13 +125,13 @@ extension SchemeImportCenter {
         guard !busy, let workspace = installedWorkspace else { return nil }
         let selected = Array(Set(schemaIDs)).sorted()
         guard !selected.isEmpty, selected.allSatisfy({ workspace.schemaIDs.contains($0) }) else {
-            error = "请选择当前安装中的输入方式"
+            error = String(localized: "请选择当前安装中的输入方式")
             return nil
         }
         busy = true
         error = nil
         plannedRecipe = nil
-        message = "正在检查…"
+        message = String(localized: "正在检查…")
         let step = Task {
             defer {
                 busy = false
@@ -170,7 +170,10 @@ extension SchemeImportCenter {
                 let schemaID = packageSchema ?? workspace.schemaIDs.first ?? ""
                 plannedRecipe = PlannedRecipeInstall(
                     recipePath: plan.recipePath, rx: plan.rx, schemaID: schemaID,
-                    changedPaths: plan.changedPaths, summary: [restoreDefaults ? "恢复默认" : "不使用语法模型"],
+                    changedPaths: plan.changedPaths,
+                    summary: [
+                        restoreDefaults ? String(localized: "恢复默认") : String(localized: "不使用语法模型")
+                    ],
                     plan: plan)
                 diagnostics = []
             } catch { fail(.nothingCommitted, error) }
@@ -191,11 +194,11 @@ extension SchemeImportCenter {
         restoreDefaults: Bool = false
     ) async -> Bool {
         guard !busy else {
-            error = "另一项操作正在进行，请稍后再试。"
+            error = String(localized: "另一项操作正在进行，请稍后再试。")
             return false
         }
         guard let current = installedWorkspace else {
-            error = "正在读取方案，请稍后再试。"
+            error = String(localized: "正在读取方案，请稍后再试。")
             return false
         }
         let packageID = current.packageID
@@ -225,11 +228,11 @@ extension SchemeImportCenter {
         requirementPath: String? = nil
     ) async -> Bool {
         guard !busy else {
-            error = "另一项操作正在进行，请稍后再试。"
+            error = String(localized: "另一项操作正在进行，请稍后再试。")
             return false
         }
         guard let target = requirementPath ?? GrammarModelRecipe.installPath(for: filename) else {
-            error = "请选择 .gram 模型文件。"
+            error = String(localized: "请选择 .gram 模型文件。")
             return false
         }
         if let fileURL {
@@ -237,7 +240,7 @@ extension SchemeImportCenter {
         } else if let address {
             downloadExternalResource(.init(path: target, url: address))
         } else {
-            error = "请选择 .gram 模型文件。"
+            error = String(localized: "请选择 .gram 模型文件。")
             return false
         }
         await sourceTask?.value

@@ -78,7 +78,7 @@ struct InputOptionsView: View {
         List {
             inlineCompositionSection
             Section {
-                Toggle("快捷工具栏", isOn: $idleToolbarEnabled)
+                Toggle(String(localized: "快捷工具栏"), isOn: $idleToolbarEnabled)
                     .accessibilityIdentifier("inputOptions.idleToolbar")
             }
             keyboardHeightSection
@@ -86,9 +86,9 @@ struct InputOptionsView: View {
             wideDockSection
             if UIDevice.current.userInterfaceIdiom == .phone { oneHandSection }
             Section {
-                NavigationLink("双拼提示") { ShuangpinHintManagementView() }
+                NavigationLink(String(localized: "双拼提示")) { ShuangpinHintManagementView() }
                     .accessibilityIdentifier("inputOptions.shuangpinHints")
-                NavigationLink("模糊音") { FuzzyPinyinSettingsView() }
+                NavigationLink(String(localized: "模糊音")) { FuzzyPinyinSettingsView() }
                     .accessibilityIdentifier("inputOptions.fuzzyPinyin")
             }
             typoCorrectionSection
@@ -97,7 +97,7 @@ struct InputOptionsView: View {
             keyFeelSection
             optionSection
         }
-        .navigationTitle("输入选项")
+        .navigationTitle(String(localized: "输入选项"))
         .navigationBarTitleDisplayMode(.inline)
         .task {
             reloadWideDocks()
@@ -122,7 +122,7 @@ struct InputOptionsView: View {
             case .failure(let error):
                 let failure = error as NSError
                 guard failure.domain != NSCocoaErrorDomain || failure.code != NSUserCancelledError else { return }
-                predictionImportError = "无法打开所选文件，请重新选择。"
+                predictionImportError = String(localized: "无法打开所选文件，请重新选择。")
             }
         }
     }
@@ -130,7 +130,7 @@ struct InputOptionsView: View {
     private var oneHandSection: some View {
         Section {
             Picker(
-                "位置",
+                String(localized: "位置"),
                 selection: Binding(
                     get: { KeyboardOneHandMode.resolve(oneHandValue) },
                     set: { oneHandValue = $0.rawValue }
@@ -164,7 +164,7 @@ struct InputOptionsView: View {
 
     private var keyboardHeightPicker: some View {
         Picker(
-            "高度",
+            String(localized: "高度"),
             selection: Binding(
                 get: { KeyboardHeightPreset.resolve(heightPresetValue) },
                 set: { heightPresetValue = $0.rawValue }
@@ -180,7 +180,7 @@ struct InputOptionsView: View {
     private var readingPlacementSection: some View {
         Section {
             Picker(
-                "读音位置",
+                String(localized: "读音位置"),
                 selection: Binding(
                     get: { ReadingPlacement.resolve(readingPlacementValue) },
                     set: { readingPlacementValue = $0.rawValue }
@@ -242,7 +242,7 @@ struct InputOptionsView: View {
                 Text("在输入框中显示拼写")
             }
             .accessibilityIdentifier("inputOptions.inlineSpelling")
-            .accessibilityValue(inlineEnabled ? "已开启" : "已关闭")
+            .accessibilityValue(inlineEnabled ? String(localized: "已开启") : String(localized: "已关闭"))
         } header: {
             Text("输入显示")
         } footer: {
@@ -264,7 +264,7 @@ struct InputOptionsView: View {
             .disabled(!typoCorrectionToggleable)
             .accessibilityIdentifier("inputOptions.typoCorrection")
             if typoCorrection.working {
-                ProgressView("正在保存…").font(.footnote)
+                ProgressView(String(localized: "正在保存…")).font(.footnote)
             } else if let failure = typoCorrection.failure {
                 Label(failure, systemImage: "exclamationmark.triangle")
                     .font(.caption).foregroundStyle(.red)
@@ -291,10 +291,10 @@ struct InputOptionsView: View {
 
     private var typoCorrectionStatus: String? {
         switch typoCorrection.state {
-        case .loading: return "正在读取…"
-        case .noSource: return "未选择输入方案。"
+        case .loading: return String(localized: "正在读取…")
+        case .noSource: return String(localized: "未选择输入方案。")
         case .unavailable(let reason): return reason
-        case .userManaged: return "由输入方案决定"
+        case .userManaged: return String(localized: "由输入方案决定")
         case .on, .off: return nil
         }
     }
@@ -304,7 +304,7 @@ struct InputOptionsView: View {
     private var predictionSection: some View {
         Section {
             if prediction.state == .schemeManaged || prediction.state == .userManaged {
-                LabeledContent("上屏联想", value: "由输入方案决定")
+                LabeledContent(String(localized: "上屏联想"), value: String(localized: "由输入方案决定"))
             } else {
                 Toggle(
                     isOn: Binding(
@@ -317,7 +317,10 @@ struct InputOptionsView: View {
                 .accessibilityIdentifier("inputOptions.nextWordPrediction")
             }
             if predictionImportable {
-                Button(prediction.databaseBytes == nil ? "导入联想词库（predict.db）" : "替换联想词库") {
+                Button(
+                    prediction.databaseBytes == nil
+                        ? String(localized: "导入联想词库（predict.db）") : String(localized: "替换联想词库")
+                ) {
                     predictionImportError = nil
                     importingPrediction = true
                 }
@@ -332,7 +335,7 @@ struct InputOptionsView: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
             if prediction.working {
-                ProgressView("正在保存…").font(.footnote)
+                ProgressView(String(localized: "正在保存…")).font(.footnote)
             } else if let failure = prediction.failure {
                 Label(failure, systemImage: "exclamationmark.triangle")
                     .font(.caption).foregroundStyle(.red)
@@ -369,12 +372,12 @@ struct InputOptionsView: View {
 
     private var predictionStatus: String? {
         switch prediction.state {
-        case .loading: return "正在读取…"
-        case .noSource: return "未选择输入方案。"
+        case .loading: return String(localized: "正在读取…")
+        case .noSource: return String(localized: "未选择输入方案。")
         case .unavailable(let reason): return reason
         case .schemeManaged, .userManaged: return nil
-        case .noDatabase: return "导入联想词库后即可开启。"
-        case .databaseMissing: return "联想词库缺失或已损坏，请重新导入。"
+        case .noDatabase: return String(localized: "导入联想词库后即可开启。")
+        case .databaseMissing: return String(localized: "联想词库缺失或已损坏，请重新导入。")
         case .on, .off: return nil
         }
     }
@@ -387,7 +390,7 @@ struct InputOptionsView: View {
                 Text("按键声音")
             }
             .accessibilityIdentifier("inputOptions.keySound")
-            .accessibilityValue(keySoundEnabled ? "已开启" : "已关闭")
+            .accessibilityValue(keySoundEnabled ? String(localized: "已开启") : String(localized: "已关闭"))
             if keySoundEnabled {
                 if dynamicTypeSize.isAccessibilitySize {
                     keySoundLevelPicker.pickerStyle(.inline)
@@ -399,7 +402,7 @@ struct InputOptionsView: View {
                 Text("按键触感")
             }
             .accessibilityIdentifier("inputOptions.keyHaptic")
-            .accessibilityValue(keyHapticEnabled ? "已开启" : "已关闭")
+            .accessibilityValue(keyHapticEnabled ? String(localized: "已开启") : String(localized: "已关闭"))
             if keyHapticEnabled {
                 if dynamicTypeSize.isAccessibilitySize {
                     keyHapticLevelPicker.pickerStyle(.inline)
@@ -422,9 +425,9 @@ struct InputOptionsView: View {
                 Text("上下滑输入数字与符号")
             }
             .accessibilityIdentifier("inputOptions.keyFlick")
-            .accessibilityValue(keyFlickEnabled ? "已开启" : "已关闭")
+            .accessibilityValue(keyFlickEnabled ? String(localized: "已开启") : String(localized: "已关闭"))
             Picker(
-                "长按延迟",
+                String(localized: "长按延迟"),
                 selection: Binding(
                     get: { LongPressDelaySetting.resolve(longPressDelayValue) ?? 0 },
                     set: { longPressDelayValue = $0 }
@@ -448,7 +451,7 @@ struct InputOptionsView: View {
     }
 
     private var keySoundLevelPicker: some View {
-        Picker("声音强度", selection: keySoundLevelBinding) {
+        Picker(String(localized: "声音强度"), selection: keySoundLevelBinding) {
             ForEach(KeyboardFeedbackLevel.allCases, id: \.self) { level in
                 Text(level.displayName).tag(level.rawValue)
             }
@@ -457,7 +460,7 @@ struct InputOptionsView: View {
     }
 
     private var keyHapticLevelPicker: some View {
-        Picker("触感强度", selection: keyHapticLevelBinding) {
+        Picker(String(localized: "触感强度"), selection: keyHapticLevelBinding) {
             ForEach(KeyboardFeedbackLevel.allCases, id: \.self) { level in
                 Text(level.displayName).tag(level.rawValue)
             }
@@ -493,8 +496,8 @@ struct InputOptionsView: View {
     private var optionSection: some View {
         Section {
             if let loadError {
-                failureRow("无法读取选项", detail: loadError)
-                Button("重新读取") { Task { await reload() } }
+                failureRow(String(localized: "无法读取选项"), detail: loadError)
+                Button(String(localized: "重新读取")) { Task { await reload() } }
             } else if rows.isEmpty {
                 Text(hasActiveScheme ? "暂无可以调整的选项。" : "未选择输入方案。")
                     .font(.footnote)
@@ -546,7 +549,7 @@ struct InputOptionsView: View {
             .disabled(members.contains { saveRequests[$0.id] != nil })
             .accessibilityIdentifier("inputOptions.engine.\(representative.descriptor.name)")
             if members.contains(where: { saveRequests[$0.id] != nil }) {
-                ProgressView("正在保存…").font(.caption)
+                ProgressView(String(localized: "正在保存…")).font(.caption)
             }
             if let error = members.compactMap({ saveErrors[$0.id] }).first {
                 Label(error, systemImage: "exclamationmark.triangle")
@@ -564,7 +567,7 @@ struct InputOptionsView: View {
             .accessibilityIdentifier("inputOptions.engine.\(row.descriptor.name)")
             .accessibilityValue(row.state.value ? row.descriptor.enabledLabel : row.descriptor.disabledLabel)
             if saveRequests[row.id] != nil {
-                ProgressView("正在保存…").font(.caption)
+                ProgressView(String(localized: "正在保存…")).font(.caption)
             }
             if let error = saveErrors[row.id] {
                 Label(error, systemImage: "exclamationmark.triangle")
@@ -611,7 +614,7 @@ struct InputOptionsView: View {
                         saveErrors[row.id] = nil
                     case .failure(let error):
                         HostLog.append("input option save failed: \(error.localizedDescription)")
-                        saveErrors[row.id] = "保存失败，请重试。"
+                        saveErrors[row.id] = String(localized: "保存失败，请重试。")
                     }
                 }
             })
@@ -676,7 +679,7 @@ struct InputOptionsView: View {
         } catch {
             guard viewRevision == scope, loadRequest == request, !Task.isCancelled else { return }
             HostLog.append("input options reload failed: \(error.localizedDescription)")
-            loadError = "无法读取选项，请重试。"
+            loadError = String(localized: "无法读取选项，请重试。")
         }
     }
 

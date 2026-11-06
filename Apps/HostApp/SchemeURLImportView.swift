@@ -42,7 +42,7 @@ struct SchemeURLImportView: View {
             }
             Section {
                 if source == nil {
-                    TextField("ZIP 链接或 GitHub 仓库地址", text: $address)
+                    TextField(String(localized: "ZIP 链接或 GitHub 仓库地址"), text: $address)
                         .keyboardType(.URL)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
@@ -62,10 +62,10 @@ struct SchemeURLImportView: View {
                         .font(.footnote)
                         .foregroundStyle(.red)
                         .textSelection(.enabled)
-                    Button("重试") { submit() }
+                    Button(String(localized: "重试")) { submit() }
                 }
                 if !service.isDownloading && service.lastError == nil {
-                    Button("下载") { submit() }
+                    Button(String(localized: "下载")) { submit() }
                         .disabled(address.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || center.busy)
                 }
             } header: {
@@ -74,7 +74,7 @@ struct SchemeURLImportView: View {
                 if source == nil { Text("支持 ZIP 下载链接或 GitHub 仓库地址。") }
             }
         }
-        .navigationTitle(source?.name ?? "从链接导入")
+        .navigationTitle(source?.name ?? String(localized: "从链接导入"))
         .navigationBarTitleDisplayMode(.inline)
         // Navigating back cancels the download (onDisappear), so there is no separate duplicate cancel button.
         .onAppear { addressFocused = address.isEmpty }

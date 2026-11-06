@@ -59,7 +59,7 @@ public enum KeyboardRecipeStore {
         public var kind: ResourceKind { resourceKind }
         /// Source display name (not the input-method name).
         public var name: String {
-            dictionaryName ?? packageID ?? "用户方案"
+            dictionaryName ?? packageID ?? String(localized: "用户方案")
         }
         /// Configuration-level display name (home page / scheme list): an imported dictionary maps to
         /// the "custom pinyin" configuration, and the dictionary name (a resource name, possibly any
@@ -67,8 +67,8 @@ public enum KeyboardRecipeStore {
         /// Source identity and input method are separate dimensions: this property only gives the source name.
         public var displayConfigName: String {
             switch kind {
-            case .userDictionary: return "自定义拼音"
-            case .userScheme: return dictionaryName ?? packageID ?? "用户方案"
+            case .userDictionary: return String(localized: "自定义拼音")
+            case .userScheme: return dictionaryName ?? packageID ?? String(localized: "用户方案")
             }
         }
         /// One authoritative OptionStore namespace, shared by Host settings and every runtime.
@@ -177,13 +177,13 @@ public enum KeyboardRecipeStore {
     /// Resolves the App Group container and creates the recipe directory. Writers use this; readers use `readRoot()`.
     public static func root() throws -> URL {
         guard let container = sharedContainerURL() else {
-            throw StoreError(message: "无法访问共享数据，请在系统设置中开启「允许完全访问」")
+            throw StoreError(message: String(localized: "无法访问共享数据，请在系统设置中开启「允许完全访问」"))
         }
         let root = container.appendingPathComponent("KeyboardRecipes", isDirectory: true)
         do {
             try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
         } catch {
-            throw StoreError(message: "共享存储空间无法读写，请检查存储权限与设备可用空间")
+            throw StoreError(message: String(localized: "共享存储空间无法读写，请检查存储权限与设备可用空间"))
         }
         return root
     }
@@ -195,7 +195,7 @@ public enum KeyboardRecipeStore {
     public static func readRoot() throws -> URL {
         if let cached = cachedReadRoot.withLock({ $0 }) { return cached }
         guard let container = sharedContainerURL() else {
-            throw StoreError(message: "无法访问共享数据，请在系统设置中开启「允许完全访问」")
+            throw StoreError(message: String(localized: "无法访问共享数据，请在系统设置中开启「允许完全访问」"))
         }
         let resolved = container.appendingPathComponent("KeyboardRecipes", isDirectory: true)
         cachedReadRoot.withLock { $0 = resolved }
@@ -218,7 +218,7 @@ public enum KeyboardRecipeStore {
         } catch {
             return SelectionRead(
                 root: nil, data: nil,
-                readError: "共享存储空间不可用：\(error.localizedDescription)")
+                readError: String(localized: "共享存储空间不可用：\(error.localizedDescription)"))
         }
         let active = root.appendingPathComponent("active.json")
         switch BoundedFileRead.read(active) {
@@ -229,11 +229,11 @@ public enum KeyboardRecipeStore {
         case .failure(.tooLarge(let size)):
             return SelectionRead(
                 root: root, data: nil,
-                readError: "输入方案配置过大（\(size) 字节），已取消读取")
+                readError: String(localized: "输入方案配置过大（\(size) 字节），已取消读取"))
         case .failure(.unreadable(let detail)):
             return SelectionRead(
                 root: root, data: nil,
-                readError: "输入方案配置无法读取：\(detail)")
+                readError: String(localized: "输入方案配置无法读取：\(detail)"))
         }
     }
 
@@ -252,7 +252,7 @@ public enum KeyboardRecipeStore {
 
     public static func snapshot(selection: SelectionRead, selectedOnly: Bool = false) throws -> Snapshot? {
         if let readError = selection.readError {
-            throw StoreError(message: "无法读取已保存的输入方案配置：\(readError)")
+            throw StoreError(message: String(localized: "无法读取已保存的输入方案配置：\(readError)"))
         }
         guard let root = selection.root, let data = selection.data else { return nil }
         // Single production resolve path: parse from the same immutable active.json bytes (identity and content share one source).
@@ -276,7 +276,7 @@ public enum KeyboardRecipeStore {
         case .failure(.missing):
             return nil
         case .failure(let error):
-            throw StoreError(message: "无法读取已保存的输入方案配置：\(error)")
+            throw StoreError(message: String(localized: "无法读取已保存的输入方案配置：\(error)"))
         }
     }
 
@@ -300,7 +300,7 @@ public enum KeyboardRecipeStore {
         guard !activation.generation.isEmpty,
             activation.generation.allSatisfy({ $0.isLetter || $0.isNumber || $0 == "-" })
         else {
-            throw StoreError(message: "输入方案版本标识格式无效")
+            throw StoreError(message: String(localized: "输入方案版本标识格式无效"))
         }
         let version = root.appendingPathComponent("versions/\(activation.generation)")
         let resources = version.appendingPathComponent("resources")
@@ -316,11 +316,11 @@ public enum KeyboardRecipeStore {
     {
         // Private Config object: no global config_open, engine startup, deployment or select.
         let yaml = try String(contentsOf: build.appendingPathComponent("default.yaml"), encoding: .utf8)
-        guard let api = rime_get_api() else { throw StoreError(message: "Rime 配置接口不可用") }
+        guard let api = rime_get_api() else { throw StoreError(message: String(localized: "Rime 配置接口不可用")) }
         var config = RimeConfig()
         defer { _ = api.pointee.config_close(&config) }
         guard yaml.withCString({ api.pointee.config_load_string(&config, $0) }) != 0 else {
-            throw StoreError(message: "方案默认配置文件（default.yaml）解析失败，请重新安装输入方案")
+            throw StoreError(message: String(localized: "方案默认配置文件（default.yaml）解析失败，请重新安装输入方案"))
         }
         let count = Int(api.pointee.config_list_size(&config, "schema_list"))
         let ids: [String] = (0..<count).compactMap { index in
@@ -331,26 +331,26 @@ public enum KeyboardRecipeStore {
         guard !ids.isEmpty, ids.count == count, Set(ids).count == ids.count,
             ids.allSatisfy({ !$0.isEmpty && !$0.contains("/") && !$0.contains("..") })
         else {
-            throw StoreError(message: "方案默认配置中缺少有效的方案列表，请重新安装输入方案")
+            throw StoreError(message: String(localized: "方案默认配置中缺少有效的方案列表，请重新安装输入方案"))
         }
         let result = (metadata?.isEmpty == false) ? metadata! : ids.map { .init(id: $0, name: $0) }
         guard Set(result.map(\.id)).count == result.count,
             result.allSatisfy({ ids.contains($0.id) })
         else {
-            throw StoreError(message: "已添加的键盘与方案默认配置不一致，请重新选择")
+            throw StoreError(message: String(localized: "已添加的键盘与方案默认配置不一致，请重新选择"))
         }
         return result
     }
 
     static func deployedSchemas(build: URL) throws -> [KeyboardSchemaDescriptor] {
         let enabled = try resolvedSchemas(nil, build: build)
-        guard let api = rime_get_api() else { throw StoreError(message: "Rime 配置接口不可用") }
+        guard let api = rime_get_api() else { throw StoreError(message: String(localized: "Rime 配置接口不可用")) }
         return try enabled.map { entry in
             let yaml = try String(contentsOf: build.appendingPathComponent(entry.id + ".schema.yaml"), encoding: .utf8)
             var config = RimeConfig()
             defer { _ = api.pointee.config_close(&config) }
             guard yaml.withCString({ api.pointee.config_load_string(&config, $0) }) != 0 else {
-                throw StoreError(message: "无法读取输入方案：\(entry.id)")
+                throw StoreError(message: String(localized: "无法读取输入方案：\(entry.id)"))
             }
             let name = api.pointee.config_get_cstring(&config, "schema/name").map { String(cString: $0) } ?? entry.id
             let alphabet = api.pointee.config_get_cstring(&config, "speller/alphabet").map { String(cString: $0) } ?? ""

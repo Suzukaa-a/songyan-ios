@@ -216,8 +216,12 @@ struct KeyboardPageAuthoredState: Equatable {
     func accessibilityValue(for key: LayoutKey) -> String? {
         guard key.titleMode == .automatic else { return nil }
         switch key.action.type {
-        case .symbolLock: return symbolLocked ? "已开启" : "已关闭"
-        case .shift: return shiftState == .locked ? "大写锁定" : (shiftState == .once ? "下一字母大写" : "小写")
+        case .symbolLock: return symbolLocked ? String(localized: "已开启") : String(localized: "已关闭")
+        case .shift:
+            // Shift draws a glyph in every language, so the spoken state is interface copy.
+            return shiftState == .locked
+                ? String(localized: "大写锁定")
+                : (shiftState == .once ? String(localized: "下一字母大写") : String(localized: "小写"))
         default: return nil
         }
     }
@@ -231,16 +235,16 @@ enum KeyboardPageControlFace {
         switch key.action.type {
         case .pageSwitch:
             switch key.action.pageSwitchTarget {
-            case .letters: return "返回"
+            case .letters: return policy.languageTitle(for: .letters)
             case .numeric: return KeyLabelPolicy.numericPageTitle
             case .symbols: return policy.symbolPageTitle
             case nil: return key.label
             }
         case .layoutPageSwitch: return key.action.layoutPageJump?.pageLabel ?? key.label
         case .languageSwitch: return policy.languageTitle(for: key.action.languageSwitchBehavior)
-        case .symbolLock: return "锁定"
-        case .clearInput: return "重输"
-        case .shift: return "上档"
+        case .symbolLock: return KeyLabelPolicy.symbolLockTitle(script: policy.script)
+        case .clearInput: return KeyLabelPolicy.clearInputTitle(script: policy.script)
+        case .shift: return KeyLabelPolicy.shiftTitle(script: policy.script)
         default: return nil
         }
     }
@@ -259,10 +263,12 @@ enum KeyboardPageControlFace {
         case .layoutPageSwitch:
             guard let jump = key.action.layoutPageJump else { return title(for: key, policy: policy) }
             let name = KeyboardLayoutKind(rawValue: jump.layout.rawValue)?.userTitle ?? jump.layout.rawValue
-            return "切换到\(name)并打开\(jump.page == .symbols ? "符号页" : "数字符号页")"
+            let pageName =
+                jump.page == .symbols ? String(localized: "符号页") : String(localized: "数字符号页")
+            return String(localized: "切换到\(name)并打开\(pageName)")
         case .languageSwitch: return policy.languageAccessibilityLabel(for: key.action.languageSwitchBehavior)
-        case .symbolLock: return "锁定符号页"
-        case .shift: return "上档键"
+        case .symbolLock: return String(localized: "锁定符号页")
+        case .shift: return String(localized: "上档键")
         default: return title(for: key, policy: policy)
         }
     }

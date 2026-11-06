@@ -35,7 +35,7 @@ struct RimeSourceInstallView: View {
                     .font(.footnote).foregroundStyle(.secondary)
             }
         }
-        .navigationTitle("从 Rime 来源安装")
+        .navigationTitle(String(localized: "从 Rime 来源安装"))
         .onChange(of: entrySchemaID) { _, _ in center.invalidateSourcePlan() }
         .task {
             if let id = updatingPackageID { target = SchemeImportCenter.recordedSourceTarget(packageID: id) ?? "" }
@@ -49,7 +49,9 @@ struct RimeSourceInstallView: View {
                     let scoped = url.startAccessingSecurityScopedResource()
                     defer { if scoped { url.stopAccessingSecurityScopedResource() } }
                     let size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? Int.max
-                    guard size <= 256 * 1024 else { throw RecipeInstallError.invalidResource("配置文件超过256 KiB") }
+                    guard size <= 256 * 1024 else {
+                        throw RecipeInstallError.invalidResource(String(localized: "配置文件超过256 KiB"))
+                    }
                     target = try RimeSourceOrder.parseConfiguration(String(contentsOf: url, encoding: .utf8)).map(
                         \.expression
                     ).joined(separator: "\n")
@@ -61,28 +63,30 @@ struct RimeSourceInstallView: View {
     @ViewBuilder
     private var rimeSourceList: some View {
         List {
-            Section("Rime 来源（rime-install）") {
+            Section(String(localized: "Rime 来源（rime-install）")) {
                 TextEditor(text: $target).frame(minHeight: 85).autocorrectionDisabled().textInputAutocapitalization(
                     .never)
                 Text("格式示例：owner/repo@分支:目标配置:参数=值；也可填写 :preset、HTTPS .conf 链接，或分行填写多个来源。")
                     .font(.caption).foregroundStyle(.secondary)
                 Text("缺少的官方依赖会自动补齐。")
                     .font(.caption).foregroundStyle(.secondary)
-                Button("读取配置文件（.conf）") {
+                Button(String(localized: "读取配置文件（.conf）")) {
                     resourcePath = nil
                     importer = true
                 }
-                Button("获取来源 / 检查更新") { center.acquireSource(target, updatingPackageID: updatingPackageID) }
-                    .disabled(target.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                Button(String(localized: "获取来源 / 检查更新")) {
+                    center.acquireSource(target, updatingPackageID: updatingPackageID)
+                }
+                .disabled(target.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }.disabled(center.busy)
             if center.busy {
                 Section {
-                    ProgressView(center.message ?? "正在处理…")
-                    Button("取消") { center.cancelSourceOperation() }
+                    ProgressView(center.message ?? String(localized: "正在处理…"))
+                    Button(String(localized: "取消")) { center.cancelSourceOperation() }
                 }
             }
             ForEach(Array(center.acquiredSources.enumerated()), id: \.offset) { index, source in
-                Section("步骤 \(index + 1)") {
+                Section(String(localized: "步骤 \(index + 1)")) {
                     Text(source.order.expression).textSelection(.enabled)
                     Text("固定修订 \(source.revision)").font(.caption.monospaced()).textSelection(.enabled)
                     Text(source.recipe.displayDescription ?? source.recipe.path).font(.footnote)
@@ -90,7 +94,7 @@ struct RimeSourceInstallView: View {
                 }
             }
             ForEach(requirements, id: \.path) { requirement in
-                Section("所需资源：\(requirement.path)") {
+                Section(String(localized: "所需资源：\(requirement.path)")) {
                     Text(requirement.url.absoluteString).font(.caption).textSelection(.enabled)
                     if let model = center.providedDownloadFiles[requirement.path] {
                         Text(
@@ -99,8 +103,8 @@ struct RimeSourceInstallView: View {
                     } else if let file = center.providedOrdinaryResources[requirement.path] {
                         Text("已提供 \(file.size) 字节").font(.caption)
                     }
-                    Button("下载 / 更新此资源") { center.downloadExternalResource(requirement) }
-                    Button("从文件提供") {
+                    Button(String(localized: "下载 / 更新此资源")) { center.downloadExternalResource(requirement) }
+                    Button(String(localized: "从文件提供")) {
                         resourcePath = requirement.path
                         importer = true
                     }
@@ -108,28 +112,31 @@ struct RimeSourceInstallView: View {
             }
             if !center.acquiredSources.isEmpty {
                 Section {
-                    Picker("启用的输入方式", selection: $entrySchemaID) {
+                    Picker(String(localized: "启用的输入方式"), selection: $entrySchemaID) {
                         Text("保持来源配置").tag("")
                         ForEach(schemaIDs, id: \.self) { Text($0).tag($0) }
                     }.disabled(center.busy)
                     Text("选择默认使用的输入方式；不选时沿用方案自带的设置。")
                         .font(.caption).foregroundStyle(.secondary)
-                    Button("检查安装计划") { center.checkSourcePlan(entrySchemaID: entrySchemaID) }
+                    Button(String(localized: "检查安装计划")) { center.checkSourcePlan(entrySchemaID: entrySchemaID) }
                         .disabled(center.busy || target != center.sourceTarget)
                     if let plan = center.sourcePlan {
                         Text("按序执行 \(plan.stageReceipts.count) 步，修改 \(plan.changedPaths.count) 个文件。")
-                        DisclosureGroup("将安装或修改的文件") {
+                        DisclosureGroup(String(localized: "将安装或修改的文件")) {
                             ForEach(plan.changedPaths, id: \.self) { Text($0).font(.caption) }
                         }
-                        Button("安装并验证") { center.installSourcePlan() }
+                        Button(String(localized: "安装并验证")) { center.installSourcePlan() }
                             .disabled(center.busy || target != center.sourceTarget)
                     }
                 }
             }
             if let id = center.lastInstalledPackageID, center.acquiredSources.isEmpty {
                 Section {
-                    Label("安装完成 · \(UserTerminology.statusNotApplied)", systemImage: "checkmark.circle")
-                    NavigationLink("选择键盘并开始使用") {
+                    Label(
+                        String(localized: "安装完成 · \(UserTerminology.statusNotApplied)"),
+                        systemImage: "checkmark.circle"
+                    )
+                    NavigationLink(String(localized: "选择键盘并开始使用")) {
                         UserKeyboardManagementView(source: .package(id), returnsToSource: true)
                     }
                 }

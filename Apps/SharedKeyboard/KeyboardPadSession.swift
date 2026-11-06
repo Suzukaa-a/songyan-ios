@@ -2,6 +2,7 @@ import Combine
 import Foundation
 import KeyboardCore
 import OSLog
+import QuickContentKit
 
 /// Where the session's engine output goes: the keyboard controller that is presenting.
 /// The session holds one host at a time and calls nothing else, so a controller the
@@ -26,6 +27,13 @@ public protocol KeyboardPadHost: AnyObject {
     func refreshHostTraits()
     func moveCursor(by offset: Int)
     func switchKeyboard()
+    /// The text a tool may process right now: the selection, or the paragraph before the cursor,
+    /// with the document identity a replacement must still match. nil when nothing is editable.
+    func readToolTextSource() -> ToolPanelEditorSnapshot?
+    /// Replaces exactly the anchored text and only while the field still holds it.
+    func replaceToolAnchor(_ anchor: ToolPanelAnchor, with text: String) -> Bool
+    /// Copies a tool result; false when this keyboard may not touch the pasteboard.
+    func copyToolResult(_ text: String) -> Bool
 }
 
 /// Interactive keyboard session: starts the real Rime engine in the background, then builds a `KeyboardController`.
@@ -167,7 +175,7 @@ public final class KeyboardPadSession: ObservableObject {
             // A failed read is not "no keyboards": keep the old list and surface the error.
             Self.diagnosticLogger.error(
                 "published keyboard read failed: \(error.localizedDescription, privacy: .private)")
-            applyPublishedKeyboards(publishedKeyboards, error: "无法读取我的键盘，请稍后重试。")
+            applyPublishedKeyboards(publishedKeyboards, error: String(localized: "无法读取我的键盘，请稍后重试。"))
         }
     }
 
@@ -406,7 +414,7 @@ public final class KeyboardPadSession: ObservableObject {
     /// would take the old resume and override the new target.
     private func recordUnreadySelection(schemaID: String?, layout newLayout: KeyboardLayoutKind) {
         guard availableLayouts.contains(newLayout) else {
-            transitionError = "当前输入方式不支持所选键盘布局，已保留当前输入。"
+            transitionError = String(localized: "当前输入方式不支持所选键盘布局，已保留当前输入。")
             return
         }
         transitionError = nil
@@ -435,7 +443,7 @@ public final class KeyboardPadSession: ObservableObject {
         let candidates = [requested] + newSet.availableLayouts
         guard let boot = newSet.bootSelection(candidates: candidates, restrictedToSource: newSet.selectedSchemaID)
         else {
-            transitionError = "所选键盘布局暂时无法使用，已保留当前输入。"
+            transitionError = String(localized: "所选键盘布局暂时无法使用，已保留当前输入。")
             return
         }
         if let reason = newSet.incompatibilityReason(layout: boot.layout, schemaID: boot.schemaID) {
@@ -467,7 +475,7 @@ public final class KeyboardPadSession: ObservableObject {
                 atPath: (newSet.prebuiltDirectory ?? newSet.sharedDirectory)
                     .appendingPathComponent(boot.schemaID + ".schema.yaml").path)
         else {
-            transitionError = "所选键盘布局暂时无法使用，已保留当前输入。"
+            transitionError = String(localized: "所选键盘布局暂时无法使用，已保留当前输入。")
             return
         }
         let running = routeState.running
@@ -508,7 +516,7 @@ public final class KeyboardPadSession: ObservableObject {
         startTapped = false
         controller?.retire()
         controller = nil
-        phase = .failed("键盘已停止，请轻点「重试」")
+        phase = .failed(String(localized: "键盘已停止，请轻点「重试」"))
         EngineOwnershipCoordinator.shared.release(ownershipID)
     }
 
@@ -557,7 +565,7 @@ public final class KeyboardPadSession: ObservableObject {
             return true
         }
         guard controller.prepareForConfigurationChange() else {
-            transitionError = controller.inputError ?? "当前输入尚未确认，已保留原布局。"
+            transitionError = controller.inputError ?? String(localized: "当前输入尚未确认，已保留原布局。")
             return false
         }
         return true
@@ -652,7 +660,7 @@ public final class KeyboardPadSession: ObservableObject {
             } catch {
                 Self.diagnosticLogger.error(
                     "resource resolver failed: \(error.localizedDescription, privacy: .private)")
-                if routeState.isCurrent(generation) { phase = .failed("无法读取输入方案，请重试。") }
+                if routeState.isCurrent(generation) { phase = .failed(String(localized: "无法读取输入方案，请重试。")) }
                 return
             }
         }
@@ -663,7 +671,7 @@ public final class KeyboardPadSession: ObservableObject {
         } else {
             guard let shared = RimePaths.builtinPackage() else {
                 if routeState.isCurrent(generation) {
-                    phase = .failed("找不到内置输入方案，请重新安装 App。")
+                    phase = .failed(String(localized: "找不到内置输入方案，请重新安装 App。"))
                 }
                 return
             }
@@ -674,7 +682,7 @@ public final class KeyboardPadSession: ObservableObject {
                 user = interactive
             } else {
                 if routeState.isCurrent(generation) {
-                    phase = .failed("无法访问本地存储目录，请重试")
+                    phase = .failed(String(localized: "无法访问本地存储目录，请重试"))
                 }
                 return
             }
@@ -689,7 +697,7 @@ public final class KeyboardPadSession: ObservableObject {
         // The rules live in `bootPlan(on:)`, so external route checks always agree with this.
         guard let plan = bootPlan(on: resolvedSet) else {
             if routeState.isCurrent(generation) {
-                phase = .failed("当前输入方案没有可用的键盘布局。")
+                phase = .failed(String(localized: "当前输入方案没有可用的键盘布局。"))
             }
             return
         }
@@ -752,7 +760,8 @@ public final class KeyboardPadSession: ObservableObject {
                         for key in resume.input {
                             let state = try engine.processKey(String(key))
                             guard state.committed.isEmpty else {
-                                throw EngineBackendError.operationFailed("恢复输入状态时输入方案提前上屏；已保留原始编码：\(resume.input)")
+                                throw EngineBackendError.operationFailed(
+                                    String(localized: "恢复输入状态时输入方案提前上屏；已保留原始编码：\(resume.input)"))
                             }
                         }
                     }
@@ -765,7 +774,7 @@ public final class KeyboardPadSession: ObservableObject {
             routeState.clearPending(token: generation)
             Self.diagnosticLogger.error("engine start failed: \(String(describing: error), privacy: .private)")
             if routeState.isCurrent(generation) {
-                phase = .failed("键盘引擎未能启动，请重试。")
+                phase = .failed(String(localized: "键盘引擎未能启动，请重试。"))
             }
             return
         }
@@ -824,13 +833,18 @@ public final class KeyboardPadSession: ObservableObject {
         ctrl.onRequestHostTraitsRefresh = { [weak self] in self?.host?.refreshHostTraits() }
         ctrl.onRequestSwitchKeyboard = { [weak self] in self?.host?.switchKeyboard() }
         ctrl.onMoveCursor = { [weak self] offset in self?.host?.moveCursor(by: offset) }
+        ctrl.onReadToolTextSource = { [weak self] in self?.host?.readToolTextSource() }
+        ctrl.onReplaceToolAnchor = { [weak self] anchor, text in
+            self?.host?.replaceToolAnchor(anchor, with: text) ?? false
+        }
+        ctrl.onCopyToolResult = { [weak self] text in self?.host?.copyToolResult(text) ?? false }
         ctrl.onInputError = { [weak self, weak ctrl] message in
             guard let self else { return }
             self.transitionError = message
             if let reason = ctrl?.session.inputUnavailableReason {
                 Self.diagnosticLogger.error("input became unavailable: \(reason, privacy: .private)")
                 self.selectedSchemaID = ctrl?.session.selectedSchemaID ?? ""
-                self.phase = .failed("当前输入方案无法启用，已保留原布局；请重试或改用其他方案。")
+                self.phase = .failed(String(localized: "当前输入方案无法启用，已保留原布局；请重试或改用其他方案。"))
             }
         }
         ctrl.onMarkedComposition = { [weak self] composition in

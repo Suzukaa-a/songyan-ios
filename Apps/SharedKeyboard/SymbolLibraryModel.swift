@@ -93,7 +93,7 @@ private final class SymbolLibraryIOWorker: @unchecked Sendable {
                 }
                 var recentError: String?
                 let texts = RecentSymbolStore(directory: directory).read {
-                    recentError = "无法读取最近使用记录：\($0.localizedDescription)"
+                    recentError = String(localized: "无法读取最近使用记录：\($0.localizedDescription)")
                 }
                 return Outcome(
                     directory: directory, catalog: catalog,
@@ -103,7 +103,7 @@ private final class SymbolLibraryIOWorker: @unchecked Sendable {
         } catch {
             return Outcome(
                 directory: directory, catalogReadError: error.localizedDescription,
-                persistenceNote: "无法读取符号库：\(error.localizedDescription)",
+                persistenceNote: String(localized: "无法读取符号库：\(error.localizedDescription)"),
                 updatesPersistenceNote: true, isRead: true)
         }
     }
@@ -119,7 +119,9 @@ private final class SymbolLibraryIOWorker: @unchecked Sendable {
             let result = RecentSymbolStore(directory: directory).record(text)
             return Outcome(
                 directory: directory, texts: result.saveError == nil ? result.texts : nil,
-                persistenceNote: result.saveError.map { "未能保存最近使用记录，已保留原有记录：\($0.localizedDescription)" },
+                persistenceNote: result.saveError.map {
+                    String(localized: "未能保存最近使用记录，已保留原有记录：\($0.localizedDescription)")
+                },
                 updatesPersistenceNote: true)
         }
     }
@@ -130,7 +132,7 @@ private final class SymbolLibraryIOWorker: @unchecked Sendable {
             guard SymbolLibraryStorage.allowsWrites(to: directory) else {
                 return Outcome(
                     directory: directory,
-                    persistenceNote: "未能清空最近使用记录，请在系统设置中打开「允许完全访问」后重试",
+                    persistenceNote: String(localized: "未能清空最近使用记录，请在系统设置中打开「允许完全访问」后重试"),
                     updatesPersistenceNote: true)
             }
             do {
@@ -139,7 +141,7 @@ private final class SymbolLibraryIOWorker: @unchecked Sendable {
             } catch {
                 return Outcome(
                     directory: directory,
-                    persistenceNote: "未能清空最近使用记录：\(error.localizedDescription)",
+                    persistenceNote: String(localized: "未能清空最近使用记录：\(error.localizedDescription)"),
                     updatesPersistenceNote: true)
             }
         }

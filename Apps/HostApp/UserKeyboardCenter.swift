@@ -111,7 +111,7 @@ final class UserKeyboardCenter: ObservableObject {
         } catch {
             // A failed read keeps the old list (no flicker to empty).
             HostLog.append("user keyboard list failed: \(error.localizedDescription)")
-            phase = .failed("无法读取我的键盘，请重试。")
+            phase = .failed(String(localized: "无法读取我的键盘，请重试。"))
         }
     }
 
@@ -129,7 +129,7 @@ final class UserKeyboardCenter: ObservableObject {
             // Only structured pre-write errors prove that the published list did not change.
             HostLog.append("user keyboard add failed: \(error.localizedDescription)")
             errorMessage = UserTerminology.userKeyboardFailureMessage(
-                error, fallback: "无法确认结果，请重新读取后重试。")
+                error, fallback: String(localized: "无法确认结果，请重新读取后重试。"))
             await reloadAfterMutation(succeeded: false)
         }
     }
@@ -147,7 +147,7 @@ final class UserKeyboardCenter: ObservableObject {
         } catch {
             HostLog.append("user keyboard removal failed: \(error.localizedDescription)")
             errorMessage = UserTerminology.userKeyboardFailureMessage(
-                error, fallback: "无法确认结果，请重新读取后重试。")
+                error, fallback: String(localized: "无法确认结果，请重新读取后重试。"))
             await reloadAfterMutation(succeeded: false)
         }
     }
@@ -179,7 +179,7 @@ final class UserKeyboardCenter: ObservableObject {
         do {
             if let production = manager as? DictionaryImportCenterUserKeyboards {
                 guard let viewedPublication else {
-                    throw UserKeyboardPublicationError.unavailable("键盘列表尚未读取，请重新读取后保存。")
+                    throw UserKeyboardPublicationError.unavailable(String(localized: "键盘列表尚未读取，请重新读取后保存。"))
                 }
                 resultMessage = try await production.replaceKeyboards(
                     keyboards, selecting: selecting, viewed: viewedPublication)
@@ -192,7 +192,7 @@ final class UserKeyboardCenter: ObservableObject {
             // Structured pre-write errors preserve the list; an atomic publish error may not.
             HostLog.append("user keyboard batch apply failed: \(error.localizedDescription)")
             errorMessage = UserTerminology.userKeyboardFailureMessage(
-                error, fallback: "无法确认结果，请重新读取后重试。")
+                error, fallback: String(localized: "无法确认结果，请重新读取后重试。"))
             await reloadAfterMutation(succeeded: false)
             return false
         }
@@ -224,9 +224,9 @@ final class UserKeyboardCenter: ObservableObject {
             HostLog.append("user keyboard reload failed after mutation: \(error.localizedDescription)")
             phase = .failed(
                 succeeded
-                    ? "操作已完成，但列表未能刷新，请重新打开此页面。"
+                    ? String(localized: "操作已完成，但列表未能刷新，请重新打开此页面。")
                     : (errorMessage ?? UserTerminology.genericOperationFailure)
-                        + "\n列表未能刷新，请重试。")
+                        + "\n" + String(localized: "列表未能刷新，请重试。"))
         }
     }
 

@@ -372,7 +372,7 @@ struct AlternateCharacterKey: UIViewRepresentable {
             accessibilityValue = cap.subtitle
             accessibilityHint =
                 accessibilityHintOverride
-                ?? (alternates.isEmpty ? nil : "长按并滑动选择副键，也可使用辅助功能操作")
+                ?? (alternates.isEmpty ? nil : String(localized: "长按并滑动选择副键，也可使用辅助功能操作"))
             if letterGroup.count > 1 {
                 accessibilityLabel = letterGroup.joined(separator: " ")
                 let described = zip(letterGroup, groupHints).compactMap { letter, hint in
@@ -380,26 +380,30 @@ struct AlternateCharacterKey: UIViewRepresentable {
                 }
                 accessibilityValue = described.isEmpty ? nil : described.joined(separator: "，")
                 if !self.letterSwipe.isEmpty, alternates.isEmpty, accessibilityHintOverride == nil {
-                    accessibilityHint = "向左或向右滑动可输入对应的字母，也可使用辅助功能操作"
+                    accessibilityHint = String(localized: "向左或向右滑动可输入对应的字母，也可使用辅助功能操作")
                 }
             }
             if layoutPicker {
-                if cap.subtitle == "返回" {
-                    accessibilityLabel = cap.title == "中文" ? "返回中文字母页" : "返回英文字母页"
-                } else {
-                    accessibilityLabel = cap.title == "中文" ? "切换到中文输入" : "切换到英文输入"
-                }
+                // The spoken name comes from the owner: every caller passes the label table's value
+                // for this key's real action (toggle the language or return to letters), and that
+                // name follows the scheme's input language. Guessing it from the visible face here
+                // announced Chinese for Japanese schemes, and treated one wording as the action.
                 // Final assignment: the long-press list contains the added keyboards and, at the end, More tools.
                 accessibilityHint =
                     alternates.isEmpty
                     ? UserTerminology.userKeyboardSwitcherEmpty
-                    : "长按滑选已添加的键盘或更多工具，按住列表边缘滚动；也可使用辅助功能操作"
+                    : String(localized: "长按滑选已添加的键盘或更多工具，按住列表边缘滚动；也可使用辅助功能操作")
             }
             accessibilityCustomActions = (self.letterSwipe + alternates).map { alternate in
-                UIAccessibilityCustomAction(
-                    name:
-                        "\(requiresExplicitAlternateSelection ? "设为快捷符号：" : layoutPicker ? "切换键盘：" : "输入 ")\(alternate.title)"
-                ) { [weak self] _ in
+                let actionName: String
+                if requiresExplicitAlternateSelection {
+                    actionName = String(localized: "设为快捷符号：\(alternate.title)")
+                } else if layoutPicker {
+                    actionName = String(localized: "切换键盘：\(alternate.title)")
+                } else {
+                    actionName = String(localized: "输入 \(alternate.title)")
+                }
+                return UIAccessibilityCustomAction(name: actionName) { [weak self] _ in
                     guard let self, self.isEnabled else { return false }
                     self.onSelect?(alternate)
                     return true

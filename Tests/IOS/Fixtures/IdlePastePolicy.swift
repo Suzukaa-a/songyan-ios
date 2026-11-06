@@ -73,6 +73,7 @@ private final class IdleEngine: EngineBackend {
     let quickSymbols: T9QuickSymbolModel
     var statusMessage: String?
     var showsAllCandidates = false
+    var showsCoveringPanel: Bool { showsUtilitiesMenu || showsSymbolLibrary }
     var showsUtilitiesMenu = false
     var showsSymbolLibrary = false
     var page: KeyboardControlPolicy.Page = .letters

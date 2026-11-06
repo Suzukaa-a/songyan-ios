@@ -25,11 +25,11 @@ struct DictionaryImportView: View {
             installedSection
 
             Section {
-                Button("从文件导入") {
+                Button(String(localized: "从文件导入")) {
                     dependencyPath = nil
                     choosingFile = true
                 }
-                Button("从链接导入") { openURL(nil) }
+                Button(String(localized: "从链接导入")) { openURL(nil) }
             } header: {
                 Text("导入词库")
             } footer: {
@@ -38,7 +38,7 @@ struct DictionaryImportView: View {
             .disabled(center.busy)
 
             if !center.inspections.isEmpty {
-                Section("读取结果") {
+                Section(String(localized: "读取结果")) {
                     ForEach(center.inspections, id: \.path) { source in
                         VStack(alignment: .leading) {
                             Text(source.name).font(.headline)
@@ -51,16 +51,16 @@ struct DictionaryImportView: View {
                 }
             }
             if !center.missing.isEmpty {
-                Section("还缺少以下词库文件") {
+                Section(String(localized: "还缺少以下词库文件")) {
                     ForEach(center.missing, id: \.self) { path in
                         VStack(alignment: .leading, spacing: 8) {
                             Text(path).font(.subheadline).textSelection(.enabled)
                             HStack {
-                                Button("选择文件") {
+                                Button(String(localized: "选择文件")) {
                                     dependencyPath = path
                                     choosingFile = true
                                 }
-                                Button("从链接下载") { openURL(path) }
+                                Button(String(localized: "从链接下载")) { openURL(path) }
                             }.buttonStyle(.borderless)
                         }
                     }
@@ -71,17 +71,19 @@ struct DictionaryImportView: View {
             {
                 Section {
                     if center.canPrepare {
-                        Button("下一步") { center.prepare() }.disabled(center.busy)
+                        Button(String(localized: "下一步")) { center.prepare() }.disabled(center.busy)
                     }
                     if let prepared = center.prepared {
                         Text("共 \(prepared.entryCount) 条词条")
                             .font(.footnote)
-                        Button(center.installed == nil ? "安装" : "安装并替换当前词库") {
+                        Button(center.installed == nil ? String(localized: "安装") : String(localized: "安装并替换当前词库")) {
                             if center.installed == nil { center.install() } else { confirmingReplace = true }
                         }
                         .disabled(center.busy)
-                        .confirmationDialog("替换当前词库？", isPresented: $confirmingReplace, titleVisibility: .visible) {
-                            Button("替换", role: .destructive) { center.install() }
+                        .confirmationDialog(
+                            String(localized: "替换当前词库？"), isPresented: $confirmingReplace, titleVisibility: .visible
+                        ) {
+                            Button(String(localized: "替换"), role: .destructive) { center.install() }
                         } message: {
                             Text("新词库将替换已安装的词库，原词库无法恢复。")
                         }
@@ -96,7 +98,7 @@ struct DictionaryImportView: View {
                 }
             }
         }
-        .navigationTitle("词库")
+        .navigationTitle(String(localized: "词库"))
         .navigationBarTitleDisplayMode(.inline)
         // Structured: the selection snapshot is read via refreshTick on the read queue; body does not touch disk.
         .task(id: refreshTick) {
@@ -113,7 +115,7 @@ struct DictionaryImportView: View {
         .sheet(isPresented: $enteringURL) {
             NavigationStack {
                 Form {
-                    Section(dependencyPath.map { "还需要：\($0)" } ?? "链接") {
+                    Section(dependencyPath.map { String(localized: "还需要：\($0)") } ?? String(localized: "链接")) {
                         TextField("https://", text: $address)
                             .keyboardType(.URL).textInputAutocapitalization(.never).autocorrectionDisabled()
                         if let addressError { Text(addressError).foregroundStyle(.red).font(.footnote) }
@@ -121,15 +123,17 @@ struct DictionaryImportView: View {
                             .font(.footnote).foregroundStyle(.secondary)
                     }
                 }
-                .navigationTitle("从链接导入")
+                .navigationTitle(String(localized: "从链接导入"))
                 .toolbar {
-                    ToolbarItem(placement: .cancellationAction) { Button("取消") { enteringURL = false } }
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button(String(localized: "取消")) { enteringURL = false }
+                    }
                     ToolbarItem(placement: .confirmationAction) {
-                        Button("读取") {
+                        Button(String(localized: "读取")) {
                             guard let url = URL(string: address.trimmingCharacters(in: .whitespacesAndNewlines)),
                                 url.scheme?.lowercased() == "https", url.host != nil
                             else {
-                                addressError = "请输入以 https:// 开头的链接。"
+                                addressError = String(localized: "请输入以 https:// 开头的链接。")
                                 return
                             }
                             center.accept(url, dependencyPath: dependencyPath)
@@ -163,7 +167,7 @@ struct DictionaryImportView: View {
                         Button(UserTerminology.startUsing) { center.apply() }
                             .disabled(center.busy)
                     }
-                    NavigationLink("查看输入方案") { CustomPinyinDetailView() }
+                    NavigationLink(String(localized: "查看输入方案")) { CustomPinyinDetailView() }
                 } header: {
                     Text("已安装词库")
                 }
@@ -172,7 +176,7 @@ struct DictionaryImportView: View {
     }
 
     private var slotStatusLine: String {
-        let entryNote = "\(summaryCount) 条"
+        let entryNote = String(localized: "\(summaryCount) 条")
         if usingInstalledRevision {
             return "\(entryNote) · \(UserTerminology.statusInUse)"
         }

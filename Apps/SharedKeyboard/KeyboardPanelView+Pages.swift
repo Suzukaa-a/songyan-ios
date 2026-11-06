@@ -217,7 +217,7 @@ extension KeyboardPanelView {
     func showAuthoredPageNeedsGlobeHint() {
         let token = UUID()
         layoutHintToken = token
-        layoutHintName = "这一页缺少地球键，先显示默认页面"
+        layoutHintName = String(localized: "这一页缺少地球键，先显示默认页面")
         Task { @MainActor in
             try? await Task.sleep(nanoseconds: 2_500_000_000)
             if layoutHintToken == token { layoutHintName = nil }
@@ -268,7 +268,7 @@ extension KeyboardPanelView {
 
     /// The extra everyday-marks page's switch, in the same slot: it turns to the usual symbol rows.
     var moreSymbolsKey: some View {
-        MarkPageSwitchKey(target: .symbols, title: "#+=", accessibilityText: "打开更多符号") {
+        MarkPageSwitchKey(target: .symbols, title: "#+=", accessibilityText: String(localized: "打开更多符号")) {
             emitKeyFeedback()
             showsEverydayMarksPage = false
         }

@@ -18,8 +18,9 @@ struct MainTabView: View {
     /// Scheme in use, for the 输入方案 row; nil until read.
     @State private var inUseSchemeName: String?
     /// The keyboard in use, for the 我的键盘 row.
-    @State private var keyboardLine = "正在读取…"
+    @State private var keyboardLine = String(localized: "正在读取…")
     @StateObject private var center = KeyboardSelectionCenter.shared
+    @StateObject private var tools = KeyboardToolsCenter.shared
     @StateObject private var imports = DictionaryImportCenter.shared
     @StateObject private var schemeImports = SchemeImportCenter.shared
     /// Observes the appearance manager so the home summary refreshes with the appearance in use.
@@ -55,7 +56,9 @@ struct MainTabView: View {
                     NavigationLink {
                         TryInputView()
                     } label: {
-                        HomeRow(title: "试打", subtitle: "体验键盘输入与候选上屏", systemImage: "text.cursor")
+                        HomeRow(
+                            title: String(localized: "试打"),
+                            subtitle: String(localized: "体验键盘输入与候选上屏"), systemImage: "text.cursor")
                     }
                 } header: {
                     Text("键盘")
@@ -66,18 +69,33 @@ struct MainTabView: View {
                         DictionaryImportView()
                     } label: {
                         HomeRow(
-                            title: UserTerminology.dictionary, subtitle: "管理自定义词库与补充词汇", systemImage: "text.book.closed"
+                            title: UserTerminology.dictionary,
+                            subtitle: String(localized: "管理自定义词库与补充词汇"),
+                            systemImage: "text.book.closed"
                         )
                     }
                     NavigationLink {
                         SymbolCatalogManagementView()
                     } label: {
-                        HomeRow(title: "符号库", subtitle: "标点、特殊符号与颜文字", systemImage: "number")
+                        HomeRow(
+                            title: String(localized: "符号库"),
+                            subtitle: String(localized: "标点、特殊符号与颜文字"), systemImage: "number")
+                    }
+                    NavigationLink {
+                        KeyboardToolsSettingsView()
+                    } label: {
+                        HomeRow(
+                            title: KeyboardToolsCopy.text("keyboardTools.title"),
+                            subtitle: KeyboardToolsCopy.text("keyboardTools.home.subtitle"),
+                            systemImage: "wand.and.stars")
                     }
                     NavigationLink {
                         LearningBackupView()
                     } label: {
-                        HomeRow(title: "学习备份", subtitle: "备份与合并个人词条和词频", systemImage: "tray.and.arrow.up")
+                        HomeRow(
+                            title: String(localized: "学习备份"),
+                            subtitle: String(localized: "备份与合并个人词条和词频"),
+                            systemImage: "tray.and.arrow.up")
                     }
                 } header: {
                     Text("工具")
@@ -90,10 +108,10 @@ struct MainTabView: View {
                     } label: {
                         Image(systemName: "gearshape")
                     }
-                    .accessibilityLabel("设置")
+                    .accessibilityLabel(String(localized: "设置"))
                 }
             }
-            .navigationTitle("松烟")
+            .navigationTitle(String(localized: "松烟"))
             // Structured: the first frame is read once by .task; refreshTick is incremented on apply/install state changes,
             // cancelling and rerunning the old task; no bare Task is created (the main thread never reads disk).
             .task(id: refreshTick) {
@@ -116,6 +134,7 @@ struct MainTabView: View {
                 // Commit prediction (on by default once a dictionary is imported) converges after typo correction so the two do not contend for the install transaction.
                 PredictionCenter.shared.scheduleReconcile(after: TypoCorrectionCenter.shared.reconcileTask)
             }
+            .navigationDestination(isPresented: $tools.isPresented) { KeyboardToolsSettingsView() }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active { refreshTick &+= 1 }
             }
@@ -141,7 +160,8 @@ struct MainTabView: View {
             inUseSchemeName = nil
             keyboardLine =
                 result.error == AppliedSelectionLoader.missingGroupMessage
-                ? "暂时无法读取设置" : "暂时无法读取正在使用的键盘"
+                ? String(localized: "暂时无法读取设置")
+                : String(localized: "暂时无法读取正在使用的键盘")
             return
         }
         if snapshot.recipeEnabled {
@@ -162,7 +182,7 @@ struct MainTabView: View {
                     layout: board == nil ? snapshot.selectedLayout : nil) ?? Self.keyboardSwitchHint
         } else {
             // Nothing published: the keyboard runs the built-in scheme's fallback input method.
-            inUseSchemeName = ProductionInputAvailability.builtinDisplayName
+            inUseSchemeName = ProductionInputAvailability.localizedBuiltinDisplayName
             keyboardLine =
                 UserTerminology.currentKeyboardSummary(
                     inputMethod: ProductionInputAvailability.fallbackInputMethodName, layout: nil)
@@ -180,7 +200,7 @@ struct MainTabView: View {
 
     /// Appearance summary: the name of the appearance in use (candidate-bar details live on the appearance page; the home page does not pile up technical parameters).
     private var appearanceSummary: String {
-        "正在使用：\(appearance.applied.name)"
+        String(localized: "正在使用：\(appearance.applied.displayName)")
     }
 }
 

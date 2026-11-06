@@ -151,13 +151,13 @@ enum SymbolPageTable {
                 caps: literals("ps-\(id)", symbols.filter { !$0.isEmpty && seen.insert($0).inserted }))
         }
         let common = category(
-            commonCategoryID, "常用",
+            commonCategoryID, String(localized: "常用"),
             KeyboardPageMarkCoverage.commonSymbols(
                 phoneCommonSymbols(ascii: ascii, script: script), leading: leadingMarks))
         let widths = [
-            category("chinese", "中文", phoneChineseSymbols),
-            category("english", "英文", phoneEnglishSymbols),
-            category("brackets", "括号", phoneBracketSymbols),
+            category("chinese", String(localized: "中文"), phoneChineseSymbols),
+            category("english", String(localized: "英文"), phoneEnglishSymbols),
+            category("brackets", String(localized: "括号"), phoneBracketSymbols),
         ]
         let covered = Set(([common] + widths).flatMap { $0.caps.map(\.title) })
         let themed = library.compactMap { set -> PhoneSymbolCategory? in
@@ -165,7 +165,7 @@ enum SymbolPageTable {
             guard result.caps.contains(where: { !covered.contains($0.title) }) else { return nil }
             return result
         }
-        let recent = recents.isEmpty ? [] : [category(recentCategoryID, "最近", recents)]
+        let recent = recents.isEmpty ? [] : [category(recentCategoryID, String(localized: "最近"), recents)]
         return [common] + recent + widths + themed
     }
 

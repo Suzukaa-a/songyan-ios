@@ -29,7 +29,7 @@ extension SchemeImportCenter {
         retryState.begin(.acquireSource(target: target, updatingPackageID: updatingPackageID))
         busy = true
         error = nil
-        message = "正在解析来源…"
+        message = String(localized: "正在解析来源…")
         acquiredSources = []
         sourcePlan = nil
         sourcePackageID = nil
@@ -46,12 +46,13 @@ extension SchemeImportCenter {
             do {
                 let orders = try await RimeSourceOrder.expand(target)
                 guard !orders.isEmpty, orders.count <= 64 else {
-                    throw RecipeInstallError.invalidResource("请填写1至64个来源")
+                    throw RecipeInstallError.invalidResource(String(localized: "请填写1至64个来源"))
                 }
                 var refs: [String: String] = [:]
                 for order in orders {
                     if let previous = refs[order.repository], previous != (order.ref ?? "HEAD") {
-                        throw RecipeInstallError.invalidResource("同一事务不能混装同仓库不同 ref：\(order.repository)")
+                        throw RecipeInstallError.invalidResource(
+                            String(localized: "同一事务不能混装同仓库不同 ref：\(order.repository)"))
                     }
                     refs[order.repository] = order.ref ?? "HEAD"
                 }
@@ -75,13 +76,15 @@ extension SchemeImportCenter {
                 var fixedRevisions: [String: String] = [:]
                 for source in acquired {
                     if let revision = fixedRevisions[source.order.repository], revision != source.revision {
-                        throw RecipeInstallError.invalidResource("仓库在获取步骤期间发生更新，请重新获取：\(source.order.repository)")
+                        throw RecipeInstallError.invalidResource(
+                            String(localized: "仓库在获取步骤期间发生更新，请重新获取：\(source.order.repository)"))
                     }
                     fixedRevisions[source.order.repository] = source.revision
                 }
                 for resource in acquired.flatMap(\.externalResources) {
                     if let previous = externalURLs[resource.path], previous != resource.url {
-                        throw RecipeInstallError.invalidResource("输入方案中包含同名但下载地址不同的文件：\(resource.path)，请分别安装。")
+                        throw RecipeInstallError.invalidResource(
+                            String(localized: "输入方案中包含同名但下载地址不同的文件：\(resource.path)，请分别安装。"))
                     }
                     externalURLs[resource.path] = resource.url
                 }
@@ -121,7 +124,7 @@ extension SchemeImportCenter {
 
     func cancelSourceOperation() {
         sourceTask?.cancel()
-        if preparingExternalResource { message = "正在取消资源准备并清理临时文件…" }
+        if preparingExternalResource { message = String(localized: "正在取消资源准备并清理临时文件…") }
     }
 
     /// Page-level cancel of a one-action update; it propagates only to the steps and download
@@ -140,7 +143,7 @@ extension SchemeImportCenter {
         busy = true
         error = nil
         sourcePlan = nil
-        message = "正在检查输入方案安装配置…"
+        message = String(localized: "正在检查输入方案安装配置…")
         let sources = acquiredSources, baseline = sourceBaseline, generation = sourceGeneration
         let downloads = providedOrdinaryResources.mapValues(\.data), models = providedDownloadFiles
         let step = Task {
@@ -198,12 +201,12 @@ extension SchemeImportCenter {
         retryState.begin(.installSourcePlan)
         guard let schema = InstalledPackageLayout.topLevelSchemaFiles(in: plan.files.keys).sorted().first
         else {
-            error = "来源列表里没有可用的输入方案。请把输入方案和它需要的文件放进同一个来源列表。"
+            error = String(localized: "来源列表里没有可用的输入方案。请把输入方案和它需要的文件放进同一个来源列表。")
             return nil
         }
         busy = true
         error = nil
-        message = "正在安装并检查输入方案…"
+        message = String(localized: "正在安装并检查输入方案…")
         let target = sourceTarget
         let step = Task {
             defer {
@@ -229,7 +232,8 @@ extension SchemeImportCenter {
                 } catch {
                     // The install itself is committed; only one-action updates lose their address.
                     HostLog.append("source update record failed after install: \(error.localizedDescription)")
-                    userNotice = "输入方案已安装，但没能记住它的来源。以后更新时，请重新输入来源。"
+                    userNotice = String(
+                        localized: "输入方案已安装，但没能记住它的来源。以后更新时，请重新输入来源。")
                 }
                 sourcePlan = nil
                 acquiredSources = []

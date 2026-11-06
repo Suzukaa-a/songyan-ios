@@ -37,7 +37,7 @@ struct OnboardingView: View {
     @State private var step = 0
     @State private var verificationText = ""
     @FocusState private var verificationFocused: Bool
-    @State private var statusLine = "读取中…"
+    @State private var statusLine = String(localized: "读取中…")
     @State private var hasRealScheme = false
     @State private var activeSupportsUserKeyboards = false
     /// Structured refresh tick: bumped on return to foreground / install-apply state changes, rerunning `.task(id:)`.
@@ -96,8 +96,8 @@ struct OnboardingView: View {
             }
             .padding(.vertical, 12)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("引导进度")
-            .accessibilityValue("第 \(step + 1) 步，共 \(steps.count) 步")
+            .accessibilityLabel(String(localized: "引导进度"))
+            .accessibilityValue(String(localized: "第 \(step + 1) 步，共 \(steps.count) 步"))
             .accessibilityAdjustableAction { direction in
                 withAnimation {
                     switch direction {
@@ -125,20 +125,24 @@ struct OnboardingView: View {
                 Button {
                     if step < steps.count - 1 { withAnimation { step += 1 } } else { finish() }
                 } label: {
-                    Text(step == 1 ? "继续试打" : (step < steps.count - 1 ? "下一步" : "完成"))
-                        .frame(maxWidth: dynamicTypeSize.isAccessibilitySize ? .infinity : nil)
+                    Text(
+                        step == 1
+                            ? String(localized: "继续试打")
+                            : (step < steps.count - 1 ? String(localized: "下一步") : String(localized: "完成"))
+                    )
+                    .frame(maxWidth: dynamicTypeSize.isAccessibilitySize ? .infinity : nil)
                 }
                 .buttonStyle(.borderedProminent)
             }
             .padding(.horizontal)
             .padding(.bottom)
         }
-        .navigationTitle(presentation == .standalone ? "欢迎使用松烟" : "键盘与完全访问")
+        .navigationTitle(presentation == .standalone ? String(localized: "欢迎使用松烟") : String(localized: "键盘与完全访问"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             if presentation == .standalone {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("跳过") { skip() }
+                    Button(String(localized: "跳过")) { skip() }
                 }
             }
         }
@@ -182,26 +186,17 @@ struct OnboardingView: View {
     private var steps: [(title: String, body: String)] {
         [
             (
-                "添加键盘",
-                """
-                前往系统「设置」，轻点「键盘」并添加「松烟」。
-
-                键盘不会连接网络，输入内容仅在设备端处理。开启「允许完全访问」后，才能使用按键声音和常用语，并记住你在键盘里做的切换。
-                """
+                String(localized: "添加键盘"),
+                String(
+                    localized: "前往系统「设置」，轻点「键盘」并添加「松烟」。\n\n键盘不会连接网络，输入内容仅在设备端处理。开启「允许完全访问」后，才能使用按键声音和常用语，并记住你在键盘里做的切换。")
             ),
             (
-                "下载输入方案",
-                """
-                \(statusLine)
-
-                内置拼音已默认启用，可以直接试打。下载完整的输入方案，获得更丰富的词库和输入方式。
-                """
+                String(localized: "下载输入方案"),
+                String(localized: "\(statusLine)\n\n内置拼音已默认启用，可以直接试打。下载完整的输入方案，获得更丰富的词库和输入方式。")
             ),
             (
-                "试一试",
-                """
-                轻点下方输入框，长按 🌐 键并选择「松烟」。
-                """
+                String(localized: "试一试"),
+                String(localized: "轻点下方输入框，长按 🌐 键并选择「松烟」。")
             ),
         ]
     }
@@ -272,7 +267,7 @@ struct OnboardingView: View {
                                 .fill(Color(uiColor: .secondarySystemBackground))
                         )
 
-                        Link("前往设置", destination: URL(string: UIApplication.openSettingsURLString)!)
+                        Link(String(localized: "前往设置"), destination: URL(string: UIApplication.openSettingsURLString)!)
                             .accessibilityIdentifier("onboarding.openSettings")
                             .buttonStyle(.borderedProminent)
                             .controlSize(.large)
@@ -287,7 +282,7 @@ struct OnboardingView: View {
                         NavigationLink {
                             destinationView(.addScheme)
                         } label: {
-                            Label("浏览并下载输入方案", systemImage: "arrow.down.circle.fill")
+                            Label(String(localized: "浏览并下载输入方案"), systemImage: "arrow.down.circle.fill")
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
                         .buttonStyle(.borderedProminent)
@@ -300,7 +295,10 @@ struct OnboardingView: View {
                                 if activeSupportsUserKeyboards {
                                     Label(UserTerminology.userKeyboard, systemImage: "keyboard")
                                 } else {
-                                    Label("已安装的\(UserTerminology.inputScheme)", systemImage: "list.bullet")
+                                    Label(
+                                        String(localized: "已安装的\(UserTerminology.inputScheme)"),
+                                        systemImage: "list.bullet"
+                                    )
                                 }
                                 Spacer()
                                 Image(systemName: "chevron.forward")
@@ -320,7 +318,7 @@ struct OnboardingView: View {
                             Text("试打区域")
                                 .font(.footnote.weight(.medium))
                                 .foregroundStyle(.secondary)
-                            TextField("轻点此处输入", text: $verificationText, axis: .vertical)
+                            TextField(String(localized: "轻点此处输入"), text: $verificationText, axis: .vertical)
                                 .focused($verificationFocused)
                                 .padding(12)
                                 .background(
@@ -333,7 +331,7 @@ struct OnboardingView: View {
                                 )
                         }
 
-                        Label("成功调出「松烟」键盘即表示设置完成。", systemImage: "hand.tap")
+                        Label(String(localized: "成功调出「松烟」键盘即表示设置完成。"), systemImage: "hand.tap")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
@@ -378,7 +376,7 @@ struct OnboardingView: View {
         let inputs = await AppliedSelectionDisplayLoader.load()
         guard !Task.isCancelled else { return }
         let summary = AppliedSelectionDisplaySummary.make(from: inputs)
-        statusLine = summary.hasRealScheme ? summary.statusLine : "正在使用：内置拼音"
+        statusLine = summary.hasRealScheme ? summary.statusLine : String(localized: "正在使用：内置拼音")
         hasRealScheme = summary.hasRealScheme
         activeSupportsUserKeyboards =
             summary.hasRealScheme

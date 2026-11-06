@@ -115,13 +115,13 @@ final class ShuangpinHintManager: ObservableObject {
                 } catch {
                     return ReadOutcome(
                         store: store, snapshot: nil, location: location,
-                        error: "暂时无法读取双拼提示，请重试。")
+                        error: String(localized: "暂时无法读取双拼提示，请重试。"))
                 }
             }
         } catch {
             return ReadOutcome(
                 store: nil, snapshot: nil, location: nil,
-                error: "暂时无法读取双拼提示，请重试。")
+                error: String(localized: "暂时无法读取双拼提示，请重试。"))
         }
     }
 
@@ -152,7 +152,7 @@ final class ShuangpinHintManager: ObservableObject {
         defer { isBusy = false }
         // Never write over a file we refused to read: the user may still repair or export it.
         guard let current = snapshot, let store else {
-            lastError = "暂时无法读取双拼提示，请重试。"
+            lastError = String(localized: "暂时无法读取双拼提示，请重试。")
             return false
         }
         loadGate.invalidate()
@@ -185,20 +185,21 @@ final class ShuangpinHintManager: ObservableObject {
     @discardableResult
     func setEnabled(_ enabled: Bool) async -> Bool {
         guard canToggleHints else {
-            lastError = "提示暂时无法用于键盘，你可以先导出文件保存。"
+            lastError = String(localized: "提示暂时无法用于键盘，你可以先导出文件保存。")
             return false
         }
         return await persist(
             { $0.enabled = enabled },
-            success: enabled ? "已开启双拼提示。" : "已关闭双拼提示。")
+            success: enabled
+                ? String(localized: "已开启双拼提示。") : String(localized: "已关闭双拼提示。"))
     }
 
     func select(_ id: String) async {
         guard snapshot?.preset(id: id) != nil else {
-            lastError = "找不到这个提示预设，请重新选择。"
+            lastError = String(localized: "找不到这个提示预设，请重新选择。")
             return
         }
-        await persist({ $0.selectedPresetID = id }, success: "已切换提示预设。")
+        await persist({ $0.selectedPresetID = id }, success: String(localized: "已切换提示预设。"))
     }
 
     /// Saves an edited or imported preset. A new preset is appended; an existing one is replaced only
@@ -211,29 +212,30 @@ final class ShuangpinHintManager: ObservableObject {
             return false
         }
         if !replacing, let existing = snapshot?.preset(id: value.id), !(snapshot?.isBuiltin(existing) ?? false) {
-            lastError = "已有相同标识的提示预设，请改名或选择替换。"
+            lastError = String(localized: "已有相同标识的提示预设，请改名或选择替换。")
             return false
         }
         return await persist(
             { snapshot in
                 guard replacing || snapshot.preset(id: value.id) == nil else {
-                    throw ShuangpinHintError("已有相同标识的提示预设，请复制一份后再保存。")
+                    throw ShuangpinHintError(
+                        String(localized: "已有相同标识的提示预设，请复制一份后再保存。"))
                 }
                 var presets = snapshot.presets.filter { $0.id != value.id }
                 presets.append(value)
                 snapshot.presets = presets
-            }, success: "已保存提示预设「\(value.name)」。")
+            }, success: String(localized: "已保存提示预设「\(value.name)」。"))
     }
 
     /// Deletes a user preset; the built-in preset is kept so the switch cannot point at nothing.
     @discardableResult
     func removePreset(id: String) async -> Bool {
         guard let preset = snapshot?.preset(id: id) else {
-            lastError = "找不到这个提示预设，它可能已被删除。"
+            lastError = String(localized: "找不到这个提示预设，它可能已被删除。")
             return false
         }
         guard !(snapshot?.isBuiltin(preset) ?? false) else {
-            lastError = "内置提示预设不能删除，可以复制一份再修改。"
+            lastError = String(localized: "内置提示预设不能删除，可以复制一份再修改。")
             return false
         }
         return await persist(
@@ -244,7 +246,7 @@ final class ShuangpinHintManager: ObservableObject {
                     snapshot.selectedPresetID = ShuangpinHintPresets.builtinID
                     snapshot.enabled = false
                 }
-            }, success: "已删除提示预设「\(preset.name)」。")
+            }, success: String(localized: "已删除提示预设「\(preset.name)」。"))
     }
 
     /// Recovery is offered only after a read finished with a refused file; a valid snapshot, or one
@@ -274,7 +276,7 @@ final class ShuangpinHintManager: ObservableObject {
             self.loadFailed = false
             self.isLoading = false
             self.lastError = nil
-            self.message = "已恢复默认设置，双拼提示为关闭。"
+            self.message = String(localized: "已恢复默认设置，双拼提示为关闭。")
             NotificationCenter.default.post(name: .shuangpinHintsChanged, object: nil)
             return true
         } catch {
@@ -293,7 +295,7 @@ final class ShuangpinHintManager: ObservableObject {
     /// Imports a preset document read from a local file. A colliding identity becomes a copy, so
     /// importing is additive.
     @discardableResult
-    func importPreset(data: Data, fallbackName: String = "导入的提示") async -> Bool {
+    func importPreset(data: Data, fallbackName: String = String(localized: "导入的提示")) async -> Bool {
         let preset: ShuangpinHintPreset
         do {
             var decoded = try ShuangpinHintStore.decodePresetFile(data)
@@ -307,7 +309,7 @@ final class ShuangpinHintManager: ObservableObject {
         }
         return await persist(
             { $0.presets.append(preset) },
-            success: "已导入提示预设「\(preset.name)」。")
+            success: String(localized: "已导入提示预设「\(preset.name)」。"))
     }
 
     /// Imports a preset from a file the user picked; the security-scoped read runs on the background
@@ -337,7 +339,7 @@ final class ShuangpinHintManager: ObservableObject {
         guard let url = URL(string: trimmed), url.scheme?.lowercased() == "https",
             url.host?.isEmpty == false, url.user == nil, url.password == nil
         else {
-            lastError = "请输入以 https:// 开头的链接。"
+            lastError = String(localized: "请输入以 https:// 开头的链接。")
             return false
         }
         isBusy = true
@@ -377,7 +379,7 @@ final class ShuangpinHintManager: ObservableObject {
 
     private func uniqueCopy(of preset: ShuangpinHintPreset) -> ShuangpinHintPreset {
         guard let snapshot, snapshot.preset(id: preset.id) != nil else { return preset }
-        return preset.copy(name: preset.name + "（导入）")
+        return preset.copy(name: String(localized: "\(preset.name)（导入）"))
     }
 
     // MARK: - Errors
@@ -386,10 +388,10 @@ final class ShuangpinHintManager: ObservableObject {
         if let hintError = error as? ShuangpinHintError { return hintError.message }
         if let layoutError = error as? LayoutError { return ShuangpinHintStore.friendly(layoutError) }
         if let posixError = error as? POSIXError, posixError.code == .ENOENT {
-            return "找不到这个文件，请重新选择。"
+            return String(localized: "找不到这个文件，请重新选择。")
         }
-        if error is POSIXError { return "提示文件无法读取，请重新选择文件。" }
-        return "操作没有完成，请重试。"
+        if error is POSIXError { return String(localized: "提示文件无法读取，请重新选择文件。") }
+        return String(localized: "操作没有完成，请重试。")
     }
 
     /// Download failures read as one short sentence; the transport's own description is not shown.
@@ -398,13 +400,13 @@ final class ShuangpinHintManager: ObservableObject {
         if let urlError = error as? URLError {
             switch urlError.code {
             case .notConnectedToInternet, .networkConnectionLost, .dataNotAllowed:
-                return "网络未连接，请检查后重试。"
-            case .timedOut: return "下载超时，请稍后重试。"
-            case .cancelled: return "已取消。"
+                return String(localized: "网络未连接，请检查后重试。")
+            case .timedOut: return String(localized: "下载超时，请稍后重试。")
+            case .cancelled: return String(localized: "已取消。")
             default: break
             }
         }
-        return "下载失败，请检查链接后重试。"
+        return String(localized: "下载失败，请检查链接后重试。")
     }
 }
 

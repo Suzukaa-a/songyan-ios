@@ -150,20 +150,20 @@ public final class RimeBackend: EngineBackend, @unchecked Sendable {
         guard rime == nil else { return }
         let fm = FileManager.default
         guard fm.fileExists(atPath: sharedDirectory.path) else {
-            throw EngineBackendError.setupFailed("方案资源目录不存在: \(sharedDirectory.path)")
+            throw EngineBackendError.setupFailed(String(localized: "方案资源目录不存在: \(sharedDirectory.path)"))
         }
         // Missing prebuilt resources fail explicitly here (the engine-side check would also catch it; failing early
         // gives a clearer error), never silently degrading to a full deploy.
         if let prebuilt = prebuiltDirectory {
             guard fm.fileExists(atPath: prebuilt.appendingPathComponent("default.yaml").path) else {
                 throw EngineBackendError.setupFailed(
-                    "缺少已编译的方案资源: \(prebuilt.path)，请打开「松烟」App 重新构建方案")
+                    String(localized: "缺少已编译的方案资源: \(prebuilt.path)，请打开「松烟」App 重新构建方案"))
             }
         }
         do {
             try fm.createDirectory(at: userDirectory, withIntermediateDirectories: true)
         } catch {
-            throw EngineBackendError.setupFailed("无法创建用户词库存储目录: \(error)")
+            throw EngineBackendError.setupFailed(String(localized: "无法创建用户词库存储目录: \(error)"))
         }
 
         let engine = RimeEngine(
@@ -298,7 +298,7 @@ public final class RimeBackend: EngineBackend, @unchecked Sendable {
             return false
         } catch {
             guard acceptHostResume(token, state: nil) else { return false }
-            let reason = "用户词库恢复失败：\(error)"
+            let reason = String(localized: "用户词库恢复失败：\(error)")
             inputUnavailableReason = reason
             lastErrorText = reason
             lastState = .empty
@@ -340,7 +340,7 @@ public final class RimeBackend: EngineBackend, @unchecked Sendable {
             var detail = error.localizedDescription
             do {
                 guard let previousSchema else {
-                    throw EngineBackendError.operationFailed("没有可恢复的上一方案")
+                    throw EngineBackendError.operationFailed(String(localized: "没有可恢复的上一方案"))
                 }
                 // A select Bool alone does not establish a live grammar instance.
                 try engine.validateSchemaForActivation(schemaID: previousSchema)
@@ -350,8 +350,9 @@ public final class RimeBackend: EngineBackend, @unchecked Sendable {
                 }
                 inputUnavailableReason = nil
             } catch {
-                detail +=
-                    "；恢复上一输入方案失败：\(error.localizedDescription)；当前输入方案为 \(engine.currentSchemaID ?? "未知")，输入功能已停用，请重试以恢复输入"
+                let currentSchema = engine.currentSchemaID ?? String(localized: "未知")
+                detail += String(
+                    localized: "；恢复上一输入方案失败：\(error.localizedDescription)；当前输入方案为 \(currentSchema)，输入功能已停用，请重试以恢复输入")
                 inputUnavailableReason = detail
             }
             lastState = engine.state()
@@ -389,7 +390,7 @@ public final class RimeBackend: EngineBackend, @unchecked Sendable {
                     }
                 }
             }
-        } catch { lastErrorText = "选项恢复失败：\(error)" }
+        } catch { lastErrorText = String(localized: "选项恢复失败：\(error)") }
     }
 
     private func recordRuntimeGrammarReceipt(engine: RimeEngine, schemaID: String) {
@@ -413,7 +414,7 @@ public final class RimeBackend: EngineBackend, @unchecked Sendable {
         guard enabledSchemas.contains(where: { $0.id == sourceID }),
             allowedSchemaIDs?.contains(sourceID) != false
         else {
-            throw EngineBackendError.unsupportedSchema("输入方案 \(schemaID) 不在当前已启用的列表中，已保留当前输入。")
+            throw EngineBackendError.unsupportedSchema(String(localized: "输入方案 \(schemaID) 不在当前已启用的列表中，已保留当前输入。"))
         }
     }
 
@@ -449,18 +450,18 @@ public final class RimeBackend: EngineBackend, @unchecked Sendable {
         try requireAvailableInput()
         guard let engine = rime else { throw EngineBackendError.engineNotStarted }
         guard let descriptor = optionDescriptors.first(where: { $0.name == name }) else {
-            throw EngineBackendError.operationFailed("当前输入方案不支持选项 \(name)")
+            throw EngineBackendError.operationFailed(String(localized: "当前输入方案不支持选项 \(name)"))
         }
         if descriptor.choiceGroup.isEmpty {
             engine.setOption(name, value: value)
         } else {
-            guard value else { throw EngineBackendError.operationFailed("请选择一种字形") }
+            guard value else { throw EngineBackendError.operationFailed(String(localized: "请选择一种字形")) }
             applyChoice(descriptor, on: engine)
         }
         // librime's option notification refreshes the context without synthetic keys.
         lastState = try Self.verifiedState(from: engine)
         guard let optionPreferences else {
-            throw EngineBackendError.operationFailed("选项已生效，但未设置存储目录，无法保存")
+            throw EngineBackendError.operationFailed(String(localized: "选项已生效，但未设置存储目录，无法保存"))
         }
         let key = OptionPreferenceKey(descriptor)
         let saving = optionPreferences.beginSave(value, for: descriptor)
@@ -472,7 +473,7 @@ public final class RimeBackend: EngineBackend, @unchecked Sendable {
             let error: Error?
             if case .failure(let failure) = outcome.result { error = failure } else { error = nil }
             self.locked { self.persistenceErrors[key] = error }
-            self.lastErrorText = error.map { "选项已生效，但保存失败：\($0.localizedDescription)" }
+            self.lastErrorText = error.map { String(localized: "选项已生效，但保存失败：\($0.localizedDescription)") }
             self.onOptionPersistenceCompleted?(error)
         }
         lastErrorText = nil
@@ -598,8 +599,8 @@ public final class RimeBackend: EngineBackend, @unchecked Sendable {
         try requireAvailableInput()
         guard let engine = rime else { throw EngineBackendError.engineNotStarted }
         guard let state = engine.selectCandidate(index) else {
-            lastErrorText = "选择候选字词失败（索引 \(index) 返回空）"
-            throw EngineBackendError.operationFailed("选择候选字词失败（索引 \(index)）")
+            lastErrorText = String(localized: "选择候选字词失败（索引 \(index) 返回空）")
+            throw EngineBackendError.operationFailed(String(localized: "选择候选字词失败（索引 \(index)）"))
         }
         let finalized = try commitFullyConfirmedZhuyin(state, on: engine)
         lastState = finalized
@@ -616,8 +617,8 @@ public final class RimeBackend: EngineBackend, @unchecked Sendable {
         try requireAvailableInput()
         guard let engine = rime else { throw EngineBackendError.engineNotStarted }
         guard let state = engine.selectCandidateAbsolute(index) else {
-            lastErrorText = "绝对索引选择候选字词失败（索引 \(index) 返回空）"
-            throw EngineBackendError.operationFailed("绝对索引选择候选字词失败（索引 \(index)）")
+            lastErrorText = String(localized: "绝对索引选择候选字词失败（索引 \(index) 返回空）")
+            throw EngineBackendError.operationFailed(String(localized: "绝对索引选择候选字词失败（索引 \(index)）"))
         }
         let finalized = try commitFullyConfirmedZhuyin(state, on: engine)
         lastState = finalized
@@ -640,7 +641,7 @@ public final class RimeBackend: EngineBackend, @unchecked Sendable {
         guard let engine = rime else { throw EngineBackendError.engineNotStarted }
         guard fromIndex >= 0, count > 0 else {
             throw EngineBackendError.operationFailed(
-                "候选读取请求参数无效 fromIndex=\(fromIndex) count=\(count)")
+                String(localized: "候选读取请求参数无效 fromIndex=\(fromIndex) count=\(count)"))
         }
         return try engine.readCandidatePage(fromIndex: fromIndex, count: count)
             .enumerated().map {
@@ -756,7 +757,7 @@ public final class RimeBackend: EngineBackend, @unchecked Sendable {
         if Self.isPrediction(state) { state = try engine.cancelComposition() }
         lastState = state
         guard !state.isComposing else {
-            throw EngineBackendError.operationFailed("未能收起联想候选")
+            throw EngineBackendError.operationFailed(String(localized: "未能收起联想候选"))
         }
     }
 

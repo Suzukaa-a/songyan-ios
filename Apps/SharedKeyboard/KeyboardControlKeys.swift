@@ -73,6 +73,9 @@ struct ControlRow<ModeKey: View>: View {
                     for: policy.pageTarget, isBundledPhonePad: policy.isBundledPhonePad))
         case .symbolPage:
             // Long press types 0 on the 9-key letter page, which has no other key for it.
+            let longPressHint =
+                policy.isBundledPhonePad && policy.page == .letters
+                ? String(localized: "长按输入 0") : ""
             AlternateCharacterKey(
                 cap: KeyCap(
                     id: "control-symbol-page", title: policy.symbolPageTitle,
@@ -85,23 +88,29 @@ struct ControlRow<ModeKey: View>: View {
             .accessibilityLabel(
                 policy.pageSwitchAccessibilityLabel(for: .symbols, isBundledPhonePad: policy.isBundledPhonePad)
             )
-            .accessibilityHint(policy.isBundledPhonePad && policy.page == .letters ? "长按输入 0" : "")
+            .accessibilityHint(longPressHint)
         case .symbolLock:
+            let symbolLockHint =
+                symbolPageLocked
+                ? String(localized: "输入符号后留在符号页")
+                : String(localized: "输入一个符号后回到字母页")
             AlternateCharacterKey(
                 cap: KeyCap(id: "control-symbol-lock", title: "锁定", action: .cycleLayout),
                 alternates: [], visualRole: symbolPageLocked ? "selected" : "control"
             ) { _ in onToggleSymbolLock() }
-            .accessibilityLabel("锁定符号页")
-            .accessibilityValue(symbolPageLocked ? "已开启" : "已关闭")
-            .accessibilityHint(symbolPageLocked ? "输入符号后留在符号页" : "输入一个符号后回到字母页")
+            .accessibilityLabel(String(localized: "锁定符号页"))
+            .accessibilityValue(symbolPageLocked ? String(localized: "已开启") : String(localized: "已关闭"))
+            .accessibilityHint(symbolLockHint)
         case .returnToLetters:
-            // Semantic page switch, not a language key: the auto face is always 返回 and the
-            // Chinese/English input state is untouched.
+            // Semantic page switch, not a language key: the face names the return in the scheme's
+            // own language while the Chinese/English input state stays untouched.
             AlternateCharacterKey(
-                cap: KeyCap(id: "control-return-letters", title: "返回", action: .cycleLayout),
+                cap: KeyCap(
+                    id: "control-return-letters", title: policy.languageTitle(for: .letters),
+                    action: .cycleLayout),
                 alternates: []
             ) { _ in onPage(.letters) }
-            .accessibilityLabel("返回主键盘")
+            .accessibilityLabel(policy.languageAccessibilityLabel(for: .letters))
         case .language:
             modeKey
         case .markLeft:
@@ -114,12 +123,12 @@ struct ControlRow<ModeKey: View>: View {
                     KeyCap(id: "control-mark-left-\(index)", title: mark, action: .literal(mark))
                 }
             ) { onKey($0.action) }
-            .accessibilityLabel("\(policy.utilityText)，长按选择标点")
+            .accessibilityLabel(String(localized: "\(policy.utilityText)，长按选择标点"))
         case .markRight:
             periodKey
         case .space:
             CursorSpaceKey(
-                title: policy.spaceTitle(isComposing: isComposing),
+                title: policy.spaceTitle(isComposing: isComposing), isComposing: isComposing,
                 layoutName: layoutName,
                 layoutHintName: layoutHintName,
                 layoutHintToken: layoutHintToken,
@@ -136,7 +145,7 @@ struct ControlRow<ModeKey: View>: View {
                             id: "control-punctuation-\($0.offset)", title: $0.element, action: .literal($0.element))
                     }
                 ) { onKey($0.action) }
-                .accessibilityLabel("\(text)，长按选择标点")
+                .accessibilityLabel(String(localized: "\(text)，长按选择标点"))
             case .digit(let digit):
                 AlternateCharacterKey(
                     cap: KeyCap(id: "control-digit-\(digit)", title: digit, action: .literal(digit)),
@@ -284,14 +293,19 @@ struct ShiftKey: UIViewRepresentable {
             glyph: state == .locked ? "capslock.fill" : (state == .once ? "shift.fill" : "shift"))
         // Shift works in Chinese mode too: the next letter reaches the engine as a capital.
         button.alpha = 1
-        button.accessibilityLabel = button.authorTitle ?? "上档键"
+        // Shift draws a glyph in every language, so its spoken name is interface copy rather than
+        // an input-language key face and follows the app language.
+        button.accessibilityLabel = button.authorTitle ?? String(localized: "上档键")
         button.accessibilityTraits = state == .locked ? [.keyboardKey, .selected] : .keyboardKey
-        let shiftValue = state == .off ? "小写" : (state == .once ? "下一字母大写" : "大写锁定")
+        let shiftValue =
+            state == .off
+            ? String(localized: "小写")
+            : (state == .once ? String(localized: "下一字母大写") : String(localized: "大写锁定"))
         button.accessibilityValue =
             subtitle?.isEmpty == false ? "\(shiftValue)，\(subtitle ?? "")" : shiftValue
-        button.accessibilityHint = "轻点切换一次大写，连续点按两次锁定大写"
+        button.accessibilityHint = String(localized: "轻点切换一次大写，连续点按两次锁定大写")
         button.accessibilityCustomActions = [
-            UIAccessibilityCustomAction(name: "切换大写锁定") { _ in
+            UIAccessibilityCustomAction(name: String(localized: "切换大写锁定")) { _ in
                 doubleTap()
                 return true
             }
@@ -344,6 +358,9 @@ struct CursorSpaceKey: UIViewRepresentable {
     @Environment(\.keyboardAppearance) private var appearance
     @Environment(\.keyboardInputLanguage) private var inputLanguage
     let title: String
+    /// A live composition keeps the space face (空白, 変換) over the transient layout hint. The
+    /// spoken name stays the face: the label table already resolved it for this language.
+    var isComposing = false
     var layoutName: String? = nil
     /// Brief hint driven by a real switch event (passed in by PanelView after token dedup).
     var layoutHintName: String? = nil
@@ -372,6 +389,7 @@ struct CursorSpaceKey: UIViewRepresentable {
         button.skinRole = "key"
         if button.moveCursor != nil && moveCursor == nil { button.cancelPress() }
         button.normalTitle = title
+        button.isComposing = isComposing
         button.inputLanguage = inputLanguage
         button.layoutName = layoutName
         button.authorSubtitle = subtitle
@@ -379,9 +397,9 @@ struct CursorSpaceKey: UIViewRepresentable {
         button.moveCursor = moveCursor
         button.applyTransientHint(layoutHintName, token: layoutHintToken)
         button.refreshAppearance()
-        button.accessibilityLabel = title == "确认" ? "确认候选" : title
+        button.accessibilityLabel = title
         button.accessibilityValue = layoutName
-        button.accessibilityHint = moveCursor == nil ? nil : "长按后左右滑动移动光标"
+        button.accessibilityHint = moveCursor == nil ? nil : String(localized: "长按后左右滑动移动光标")
         button.accessibilityTraits = moveCursor == nil ? [.keyboardKey] : [.keyboardKey, .adjustable]
     }
 
@@ -397,6 +415,8 @@ struct CursorSpaceKey: UIViewRepresentable {
         }
         private let layoutLabel = UILabel()
         var normalTitle = "空格"
+        /// A live composition keeps the space face; the layout hint would replace it.
+        var isComposing = false
         /// Scheme language of the current keyboard: the space caption ("空白", "変換") draws that
         /// language's glyph forms. Simplified Chinese keeps the plain title as before.
         var inputLanguage: InputLanguage = .simplifiedChinese {
@@ -489,8 +509,8 @@ struct CursorSpaceKey: UIViewRepresentable {
             (title: String, hint: String?, appearance: KeyboardAppearance, language: InputLanguage)?
 
         func refreshAppearance() {
-            let title = isDragging ? "移动光标" : normalTitle
-            let transientHint = showsLayoutHint && !isDragging && normalTitle != "确认" ? transientHintName : nil
+            let title = isDragging ? String(localized: "移动光标") : normalTitle
+            let transientHint = showsLayoutHint && !isDragging && !isComposing ? transientHintName : nil
             let hint = transientHint ?? (isDragging ? nil : authorSubtitle)
             skinRole = isDragging ? "pressed" : "key"
             if let paintedState, paintedState.title == title, paintedState.hint == hint,
@@ -654,7 +674,7 @@ struct NativeInputModeKey: UIViewRepresentable {
         let button = InputModeButton(type: .custom)
         button.appearance = appearance
         button.tintColor = .label
-        button.accessibilityHint = "长按或向上滑动显示系统键盘列表"
+        button.accessibilityHint = String(localized: "长按或向上滑动显示系统键盘列表")
         button.addTarget(button, action: #selector(InputModeButton.forwardEvent(_:event:)), for: .allTouchEvents)
         button.handleEvent = handleEvent
         button.accessibilitySwitch = accessibilitySwitch
@@ -671,7 +691,7 @@ struct NativeInputModeKey: UIViewRepresentable {
 
     private func apply(to button: InputModeButton) {
         button.applyAuthorFace(title: title, subtitle: subtitle, glyph: "globe")
-        button.accessibilityLabel = button.authorTitle ?? "切换系统输入法"
+        button.accessibilityLabel = button.authorTitle ?? String(localized: "切换系统输入法")
     }
 
     final class InputModeButton: SkinnedButton {
@@ -717,7 +737,7 @@ struct RepeatingDeleteKey: UIViewRepresentable {
         button.hostLifetime = hostLifetime
         button.appearance = appearance
         button.tintColor = .label
-        button.accessibilityHint = "轻点删除一个字符，按住连续删除"
+        button.accessibilityHint = String(localized: "轻点删除一个字符，按住连续删除")
         // As with letter/space keys: under VoiceOver touch typing, lifting the finger triggers it, rather than needing a double tap.
         button.accessibilityTraits = .keyboardKey
         button.action = action
@@ -737,7 +757,7 @@ struct RepeatingDeleteKey: UIViewRepresentable {
 
     private func apply(to button: DeleteButton) {
         button.applyAuthorFace(title: title, subtitle: subtitle, glyph: "delete.left")
-        button.accessibilityLabel = button.authorTitle ?? "退格"
+        button.accessibilityLabel = button.authorTitle ?? String(localized: "退格")
     }
 
     final class DeleteButton: SkinnedButton {

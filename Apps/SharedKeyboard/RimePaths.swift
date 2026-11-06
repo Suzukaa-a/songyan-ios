@@ -101,7 +101,7 @@ public enum RimePaths {
         case .userDictionary: root = applicationSupport.appendingPathComponent("DictionaryImportStore")
         case .userScheme:
             guard let id = activation.packageID, recipeUserDirectory(kind: .userScheme, packageID: id) != nil else {
-                throw KeyboardRecipeStore.StoreError(message: "试打方案标识无效，请重新打开试打")
+                throw KeyboardRecipeStore.StoreError(message: String(localized: "试打方案标识无效，请重新打开试打"))
             }
             root = applicationSupport.appendingPathComponent("SchemePackages/" + id)
         }
@@ -124,7 +124,7 @@ public enum RimePaths {
             return directory.appendingPathComponent("user")
         }
         guard let fallback = publishedTrialUserDirectory(activation) else {
-            throw KeyboardRecipeStore.StoreError(message: "找不到与当前版本对应的试打词库目录，请在「松烟」App 中重新试打")
+            throw KeyboardRecipeStore.StoreError(message: String(localized: "找不到与当前版本对应的试打词库目录，请在「松烟」App 中重新试打"))
         }
         return fallback
     }

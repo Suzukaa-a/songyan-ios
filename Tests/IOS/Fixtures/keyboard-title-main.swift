@@ -97,15 +97,15 @@ checkEqual(
         publishedTitle("songyan_quanpin", .qwerty26, name: "全拼"),
         scheme: rosterName("songyan_quanpin", .qwerty26, name: "全拼"), isBundled: true,
         physicalLayoutID: "qwerty26"),
-    "全拼 · 26 键",
+    "全拼 · " + UserTerminology.layoutName(.qwerty26),
     "the bundled 26-key board keeps today's name")
 checkEqual(
     title(nil, scheme: nil, isBundled: true, physicalLayoutID: "qwerty26"),
-    "26 键",
+    UserTerminology.layoutName(.qwerty26),
     "the bundled 26-key board keeps today's fallback")
 checkEqual(
     title(nil, scheme: nil, isBundled: true, physicalLayoutID: "mine", definitionName: "ignored"),
-    "26 键",
+    UserTerminology.layoutName(.qwerty26),
     "an unknown bundled-content id falls back to the shape name")
 checkEqual(
     title(nil, scheme: nil, isBundled: false, physicalLayoutID: "copy-id", definitionName: "我的布局"),
@@ -113,7 +113,7 @@ checkEqual(
     "a user layout keeps its own author name")
 checkEqual(
     title(nil, scheme: nil, isBundled: false, physicalLayoutID: "copy-id"),
-    "26 键",
+    UserTerminology.layoutName(.qwerty26),
     "a nameless user layout keeps the shape name")
 checkEqual(
     title("我的布局", scheme: nil, isBundled: false, physicalLayoutID: "copy-id"),
@@ -129,7 +129,7 @@ checkEqual(
 for id in ["qwerty26", "merged14", "merged18", "phone9", "mine", ""] {
     check(builtinName(id) == nil, "unknown layout id is not renamed: \(id)")
 }
-check(UserTerminology.layoutName(.qwerty26) == "26 键", "the 26-key shape name is unchanged")
+check(!UserTerminology.layoutName(.qwerty26).isEmpty, "the 26-key shape name resolves")
 check(builtinName("zhuyin41") != nil && builtinName("cangjie26") != nil, "both shipped board names resolve")
 
 if failures > 0 { fatalError("\(failures) keyboard title checks failed") }

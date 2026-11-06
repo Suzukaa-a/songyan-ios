@@ -14,9 +14,16 @@ struct KeyboardPageEditorView: View {
     @State private var selected: KeyboardPageKeyPath = .row(0, key: 0)
     /// Which branch the preview draws; a view of the page, never saved with it.
     @State private var previewMarks: KeyboardNumericMarks
-    private enum EditorSection: String, CaseIterable {
-        case keys = "按键"
-        case arrangement = "页面"
+    private enum EditorSection: CaseIterable, Hashable {
+        case keys
+        case arrangement
+
+        var title: String {
+            switch self {
+            case .keys: return String(localized: "按键")
+            case .arrangement: return String(localized: "页面")
+            }
+        }
     }
 
     @State private var editorSection: EditorSection = .keys
@@ -61,16 +68,16 @@ struct KeyboardPageEditorView: View {
     var body: some View {
         Form {
             Section {
-                Picker("编辑内容", selection: $editorSection) {
+                Picker(String(localized: "编辑内容"), selection: $editorSection) {
                     ForEach(EditorSection.allCases, id: \.self) { section in
-                        Text(section.rawValue).tag(section)
+                        Text(section.title).tag(section)
                     }
                 }
                 .pickerStyle(.segmented)
             }
             Section {
                 if showsInitialSymbolChoice {
-                    Picker("预览符号", selection: $previewMarks) {
+                    Picker(String(localized: "预览符号"), selection: $previewMarks) {
                         Text("中文").tag(KeyboardNumericMarks.chinese)
                         Text("英文").tag(KeyboardNumericMarks.ascii)
                     }
@@ -103,13 +110,13 @@ struct KeyboardPageEditorView: View {
             }
             if editorSection == .arrangement {
                 Section(draft.kind.title) {
-                    LabeledContent("名称") {
-                        TextField("名称", text: $draft.name).multilineTextAlignment(.trailing)
+                    LabeledContent(String(localized: "名称")) {
+                        TextField(String(localized: "名称"), text: $draft.name).multilineTextAlignment(.trailing)
                     }
                     if showsInitialSymbolChoice {
                         // Nil follows the input language; an explicit choice pins the branch the page opens in.
                         Picker(
-                            "初始符号",
+                            String(localized: "初始符号"),
                             selection: Binding(
                                 get: { draft.defaultSymbolMarks },
                                 set: {
@@ -125,8 +132,10 @@ struct KeyboardPageEditorView: View {
                 }
                 if draft.chrome != nil, !draft.hasInputModeSwitchKey {
                     Section {
-                        Button("添加\(UserTerminology.globeKey)", systemImage: "globe") { addInputModeSwitchKey() }
-                            .disabled(!draft.canAppendKey(to: .chrome(.bottom)))
+                        Button(String(localized: "添加\(UserTerminology.globeKey)"), systemImage: "globe") {
+                            addInputModeSwitchKey()
+                        }
+                        .disabled(!draft.canAppendKey(to: .chrome(.bottom)))
                     }
                 }
                 if categorized {
@@ -152,24 +161,28 @@ struct KeyboardPageEditorView: View {
         }
         .disabled(saving)
         .environment(\.widthFieldValidity, widthValidity)
-        .navigationTitle("编辑页面")
+        .navigationTitle(String(localized: "编辑页面"))
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(draft != original || saving)
         .interactiveDismissDisabled(draft != original || saving)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button("取消") { if draft != original { confirmingDiscard = true } else { dismiss() } }.disabled(saving)
+                Button(String(localized: "取消")) { if draft != original { confirmingDiscard = true } else { dismiss() } }
+                    .disabled(saving)
             }
             ToolbarItem(placement: .confirmationAction) {
-                Button("保存页面") { save() }.disabled(saving)
+                Button(String(localized: "保存页面")) { save() }.disabled(saving)
             }
         }
-        .confirmationDialog("放弃未保存的更改？", isPresented: $confirmingDiscard, titleVisibility: .visible) {
-            Button("放弃更改", role: .destructive) { dismiss() }
-            Button("继续编辑", role: .cancel) {}
+        .confirmationDialog(String(localized: "放弃未保存的更改？"), isPresented: $confirmingDiscard, titleVisibility: .visible)
+        {
+            Button(String(localized: "放弃更改"), role: .destructive) { dismiss() }
+            Button(String(localized: "继续编辑"), role: .cancel) {}
         }
-        .alert("页面没有保存", isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })) {
-            Button("好", role: .cancel) { error = nil }
+        .alert(
+            String(localized: "页面没有保存"), isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })
+        ) {
+            Button(String(localized: "好"), role: .cancel) { error = nil }
         } message: {
             Text(error ?? "")
         }
@@ -185,8 +198,8 @@ struct KeyboardPageEditorView: View {
     }
 
     private var splitEditorRowTitles: [String] {
-        var titles = draft.rows.indices.map { "第 \($0 + 1) 行" }
-        if let bottom = draft.chrome?.bottom, !bottom.isEmpty { titles.append("底行") }
+        var titles = draft.rows.indices.map { String(localized: "第 \($0 + 1) 行") }
+        if let bottom = draft.chrome?.bottom, !bottom.isEmpty { titles.append(String(localized: "底行")) }
         return titles
     }
 
@@ -218,7 +231,7 @@ struct KeyboardPageEditorView: View {
         if let key = draft.key(at: selected) {
             LayoutKeyFields(
                 key: key, allowsCode: false, allowsTitleMode: true,
-                widthLabel: isRailSelection ? "高度比例" : "宽度比例",
+                widthLabel: isRailSelection ? String(localized: "高度比例") : String(localized: "宽度比例"),
                 allowsJump: selected.allowsJumpKey
             ) { updated in
                 draft = draft.replacingKey(at: selected, with: updated)
@@ -232,28 +245,32 @@ struct KeyboardPageEditorView: View {
     private var keyPositionSection: some View {
         let current = selected.region
         let targets = draft.editableKeyRegions.filter { $0 != current }
-        Section("按键位置") {
+        Section(String(localized: "按键位置")) {
             if case .chrome(let region, let index) = selected {
                 let count = draft.chrome?.keys(in: region).count ?? 0
                 HStack {
-                    Button(isRail(region) ? "上移" : "前移") { apply(draft.reorderingChromeKey(at: selected, by: -1)) }
-                        .disabled(index == 0)
+                    Button(isRail(region) ? String(localized: "上移") : String(localized: "前移")) {
+                        apply(draft.reorderingChromeKey(at: selected, by: -1))
+                    }
+                    .disabled(index == 0)
                     Spacer()
-                    Button(isRail(region) ? "下移" : "后移") { apply(draft.reorderingChromeKey(at: selected, by: 1)) }
-                        .disabled(index >= count - 1)
+                    Button(isRail(region) ? String(localized: "下移") : String(localized: "后移")) {
+                        apply(draft.reorderingChromeKey(at: selected, by: 1))
+                    }
+                    .disabled(index >= count - 1)
                 }
-                Button("复制按键") { apply(draft.duplicatingChromeKey(at: selected)) }
+                Button(String(localized: "复制按键")) { apply(draft.duplicatingChromeKey(at: selected)) }
                     .disabled(!draft.canAppendKey(to: current))
-                Button("删除按键", role: .destructive) { removeSelectedChromeKey() }
+                Button(String(localized: "删除按键"), role: .destructive) { removeSelectedChromeKey() }
             }
             if !targets.isEmpty {
-                Menu("移到其他区域") {
+                Menu(String(localized: "移到其他区域")) {
                     ForEach(targets, id: \.self) { target in
                         Button(title(target)) { apply(draft.movingKey(at: selected, to: target)) }
                             .disabled(!draft.canMoveKey(at: selected, to: target))
                     }
                 }
-                Menu("复制到其他区域") {
+                Menu(String(localized: "复制到其他区域")) {
                     ForEach(targets, id: \.self) { target in
                         Button(title(target)) { apply(draft.copyingKey(at: selected, to: target)) }
                             .disabled(!draft.canCopyKey(at: selected, to: target))
@@ -266,10 +283,10 @@ struct KeyboardPageEditorView: View {
 
     private func title(_ region: KeyboardPageKeyRegion) -> String {
         switch region {
-        case .rows: return "按键区"
-        case .chrome(.bottom): return "底行"
-        case .chrome(.leading): return "左侧栏"
-        case .chrome(.trailing): return "右侧栏"
+        case .rows: return String(localized: "按键区")
+        case .chrome(.bottom): return String(localized: "底行")
+        case .chrome(.leading): return String(localized: "左侧栏")
+        case .chrome(.trailing): return String(localized: "右侧栏")
         }
     }
 
@@ -298,7 +315,7 @@ struct KeyboardPageEditorView: View {
 
     private func save() {
         guard !widthValidity.isInvalid else {
-            error = "有按键宽度没填对，请改成大于 0 的数字，或者留空。"
+            error = String(localized: "有按键宽度没填对，请改成大于 0 的数字，或者留空。")
             return
         }
         saving = true

@@ -8,7 +8,10 @@ struct SkippedEngineSchema: Codable, Sendable {
     let name: String?
     let components: [String]
 
-    var notice: String { "「\(name ?? "未命名输入方式")」需要松烟暂不支持的功能，已跳过" }
+    var notice: String {
+        let display = name ?? String(localized: "未命名输入方式")
+        return String(localized: "「\(display)」需要松烟暂不支持的功能，已跳过")
+    }
 }
 
 enum EngineSchemaSelection {
@@ -23,14 +26,15 @@ enum EngineSchemaSelection {
         do {
             try engine.start()
             let original = engine.schemas().map(\.id)
-            guard !original.isEmpty else { throw RecipeInstallError.deployment("引擎未找到可用的输入方式") }
+            guard !original.isEmpty else { throw RecipeInstallError.deployment(String(localized: "引擎未找到可用的输入方式")) }
             let skipped = original.compactMap { id -> SkippedEngineSchema? in
                 let missing = engine.unavailableComponents(schemaID: id)
                 return missing.isEmpty
                     ? nil
                     : SkippedEngineSchema(
                         id: id,
-                        name: engine.schemaValue(id, key: "schema/name") ?? "未命名输入方式", components: missing)
+                        name: engine.schemaValue(id, key: "schema/name") ?? String(localized: "未命名输入方式"),
+                        components: missing)
             }
             guard !skipped.isEmpty else { return (engine, original, []) }
             let omitted = Set(skipped.map(\.id))
@@ -43,7 +47,7 @@ enum EngineSchemaSelection {
             try engine.start()
             let actual = engine.schemas().map(\.id)
             guard Set(actual) == Set(kept), actual.count == kept.count else {
-                throw RecipeInstallError.deployment("安装配置后启用的输入方式与预期不一致")
+                throw RecipeInstallError.deployment(String(localized: "安装配置后启用的输入方式与预期不一致"))
             }
             try JSONEncoder().encode(skipped).write(
                 to: deployment.resourceURL.appendingPathComponent(reportName), options: .atomic)
@@ -87,7 +91,7 @@ enum EngineSchemaSelection {
             do { try fm.copyItem(at: entry, to: destination) } catch {
                 throw RecipeInstallError.deployment(
                     Bundle.main.localizedString(
-                        forKey: "scheme.prepareFilesFailed", value: "输入方案没有准备好，请重新导入。", table: nil))
+                        forKey: "scheme.prepareFilesFailed", value: nil, table: nil))
             }
         }
     }
@@ -116,7 +120,10 @@ enum DictionaryDeployVerifier {
             // that adds schemes would leave the core's enabled-set check facing unverified items.
             guard Set(enabled) == Set(sources) else {
                 throw RecipeInstallError.deployment(
-                    "导入词库时启用的输入方式应为 \(sources.joined(separator: "、"))，实际为 \(enabled.sorted().joined(separator: "、"))；请移除自定义配置中对输入方式列表的修改后重试"
+                    String(
+                        localized:
+                            "导入词库时启用的输入方式应为 \(sources.joined(separator: "、"))，实际为 \(enabled.sorted().joined(separator: "、"))；请移除自定义配置中对输入方式列表的修改后重试"
+                    )
                 )
             }
             // The compact layouts are generated against the imported dictionary, exactly as for
@@ -136,7 +143,8 @@ enum DictionaryDeployVerifier {
                 let code = source == BuiltinTemplateSchemas.flypy ? "nihc" : "nihao"
                 for layout in KeyboardLayoutKind.allCases {
                     guard let schema = set.engineSchemaID(source: source, layout: layout) else {
-                        throw RecipeInstallError.deployment("没能为「\(source)」生成\(layout.userTitle)")
+                        throw RecipeInstallError.deployment(
+                            String(localized: "没能为「\(source)」生成\(layout.userTitle)"))
                     }
                     let typed = layout.compactFold.map { fold in String(code.map { fold.map[$0] ?? $0 }) } ?? code
                     try engine.validateSchemaForActivation(schemaID: schema)
@@ -149,11 +157,11 @@ enum DictionaryDeployVerifier {
                 contentsOf: deployment.resourceURL.appendingPathComponent("songyan_imported.dict.yaml"), encoding: .utf8
             )
             guard let row = text.components(separatedBy: "...\n").last?.split(separator: "\n").first else {
-                throw RecipeInstallError.deployment("导入的词条内容为空")
+                throw RecipeInstallError.deployment(String(localized: "导入的词条内容为空"))
             }
             let fields = row.split(separator: "\t")
             guard fields.count >= 2 else {
-                throw RecipeInstallError.deployment("无法验证导入的词条")
+                throw RecipeInstallError.deployment(String(localized: "无法验证导入的词条"))
             }
             engine.clearComposition()
             try engine.validateSchemaForActivation(schemaID: BuiltinTemplateSchemas.quanpin)
@@ -173,7 +181,9 @@ enum DictionaryDeployVerifier {
     /// element is the effective entry used for the receipt.
     static func enabledSchemaIDs(engine: RimeEngine) throws -> [String] {
         let enabled = engine.schemas().map(\.id)
-        guard !enabled.isEmpty else { throw RecipeInstallError.deployment("安装后引擎未启用任何输入方式") }
+        guard !enabled.isEmpty else {
+            throw RecipeInstallError.deployment(String(localized: "安装后引擎未启用任何输入方式"))
+        }
         return enabled
     }
 
@@ -190,10 +200,12 @@ enum DictionaryDeployVerifier {
         }
         let preview = snap.candidates.map(\.text).prefix(8).joined(separator: "/")
         guard let idx = snap.candidates.firstIndex(where: { $0.text == target }) else {
-            throw RecipeInstallError.deployment("输入「\(code)」后未在候选栏中找到「\(target)」：\(preview)")
+            throw RecipeInstallError.deployment(
+                String(localized: "输入「\(code)」后未在候选栏中找到「\(target)」：\(preview)"))
         }
         guard engine.selectCandidate(idx)?.commitText == target else {
-            throw RecipeInstallError.deployment("选择「\(target)」后上屏内容为「\((engine.state().commitText))」，与预期不符")
+            throw RecipeInstallError.deployment(
+                String(localized: "选择「\(target)」后上屏内容为「\((engine.state().commitText))」，与预期不符"))
         }
     }
 

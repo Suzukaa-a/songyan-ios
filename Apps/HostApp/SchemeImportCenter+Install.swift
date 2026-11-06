@@ -27,7 +27,7 @@ extension SchemeImportCenter {
         onFinished: (() -> Void)? = nil
     ) {
         guard !busy else {
-            message = "上一项导入还没完成，请稍后再选择文件。"
+            message = String(localized: "上一项导入还没完成，请稍后再选择文件。")
             onFinished?()
             return
         }
@@ -62,7 +62,7 @@ extension SchemeImportCenter {
     @discardableResult
     func prepareRecognizedImport(_ urls: [URL], capture: ImportCapture) async -> Bool {
         guard !busy else {
-            message = "上一项导入还没完成，请稍后再选择文件。"
+            message = String(localized: "上一项导入还没完成，请稍后再选择文件。")
             return false
         }
         let leases = urls.map { ($0, $0.startAccessingSecurityScopedResource()) }
@@ -76,7 +76,10 @@ extension SchemeImportCenter {
         lastInstalledPackageID = nil
         retryState.succeeded()
         resetRecipePlanningState()
-        message = urls.count == 1 || capture.recommendation != nil ? "正在读取…" : "正在读取 \(urls.count) 个文件…"
+        message =
+            urls.count == 1 || capture.recommendation != nil
+            ? String(localized: "正在读取…")
+            : String(localized: "正在读取 \(urls.count) 个文件…")
         defer {
             busy = false
             for (url, scoped) in leases where scoped { url.stopAccessingSecurityScopedResource() }
@@ -128,7 +131,11 @@ extension SchemeImportCenter {
                 }
             }
             prepared = result
-            diagnostics = result.diagnostics + result.schemaIDs.map { "包含输入方式：\($0)" }
+            diagnostics =
+                result.diagnostics
+                + result.schemaIDs.map {
+                    String(localized: "包含输入方式：\($0)")
+                }
             message = nil
         } catch {
             fail(.nothingCommitted, error)
@@ -182,7 +189,7 @@ extension SchemeImportCenter {
         let recorded: String?
         do {
             guard let bundled = RimePaths.builtinPackage() else {
-                throw RecipeInstallError.invalidResource("找不到内置输入方案，请重新安装 App。")
+                throw RecipeInstallError.invalidResource(String(localized: "找不到内置输入方案，请重新安装 App。"))
             }
             (prepared, recorded) = try await Task.detached {
                 (
@@ -287,7 +294,7 @@ extension SchemeImportCenter {
         error = nil
         defer { busy = false }
         let sourceURLAtInstall = preparedSourceURL
-        message = "正在安装…"
+        message = String(localized: "正在安装…")
         do {
             let manager = manager(prepared.declaration.id)
             let installed = try await EngineOwnershipCoordinator.shared.withExclusive {
@@ -302,7 +309,7 @@ extension SchemeImportCenter {
                                 engine.clearComposition()
                                 for key in binding.code {
                                     guard let event = RimeKey(character: key) else {
-                                        throw RecipeInstallError.deployment("输入码不是有效按键")
+                                        throw RecipeInstallError.deployment(String(localized: "输入码不是有效按键"))
                                     }
                                     _ = try engine.processKey(event)
                                 }
@@ -311,7 +318,10 @@ extension SchemeImportCenter {
                                     engine.selectCandidate(index)?.commitText == binding.candidate
                                 else {
                                     throw RecipeInstallError.deployment(
-                                        "试打后没有出现预期的候选词：输入方式「\(binding.schemaID)」，键盘布局「\(binding.layout)」，输入码「\(binding.code)」"
+                                        String(
+                                            localized:
+                                                "试打后没有出现预期的候选词：输入方式「\(binding.schemaID)」，键盘布局「\(binding.layout)」，输入码「\(binding.code)」"
+                                        )
                                     )
                                 }
                             }

@@ -30,7 +30,7 @@ extension KeyboardPanelView {
                         appearance.color("border"), lineWidth: appearance.skin.keycap.borderWidth)
                 )
                 .foregroundStyle(Color(uiColor: appearance.text(on: "key", secondary: true)))
-                .accessibilityLabel("当前组合：\(marked.text)")
+                .accessibilityLabel(String(localized: "当前组合：\(marked.text)"))
             }
         }
     }
@@ -55,8 +55,8 @@ extension KeyboardPanelView {
                 .contentShape(Rectangle())
         }
         .buttonStyle(KeyboardPressStyle())
-        .accessibilityLabel(statusMessage ?? "状态详情")
-        .accessibilityHint("打开详情与恢复操作")
+        .accessibilityLabel(statusMessage ?? String(localized: "状态详情"))
+        .accessibilityHint(String(localized: "打开详情与恢复操作"))
     }
 
     /// Header layout family (9/14/26 facts merged): decides only the content kind and
@@ -151,7 +151,7 @@ extension KeyboardPanelView {
                 .buttonStyle(CandidateTapStyle(tint: Color(uiColor: appearance.text(on: "panel"))))
                 .foregroundStyle(Color(uiColor: appearance.text(on: "panel")))
                 .accessibilityLabel(word)
-                .accessibilityHint("替换正在输入的单词")
+                .accessibilityHint(String(localized: "替换正在输入的单词"))
             }
         }
         .frame(height: candidateRowHeight)
@@ -204,7 +204,7 @@ extension KeyboardPanelView {
                 Button {
                     quickSymbols.reload()
                 } label: {
-                    Label("快捷符号未保存，轻点重试", systemImage: "exclamationmark.circle")
+                    Label(String(localized: "快捷符号未保存，轻点重试"), systemImage: "exclamationmark.circle")
                         .font(appearance.font(14))
                         .lineLimit(1)
                         .frame(maxWidth: .infinity, minHeight: candidateRowHeight, alignment: .leading)
@@ -259,7 +259,7 @@ extension KeyboardPanelView {
         .buttonStyle(.plain)
         .padding(.horizontal, 8)
         .accessibilityLabel(statusMessage ?? "")
-        .accessibilityHint("打开详情与恢复操作")
+        .accessibilityHint(String(localized: "打开详情与恢复操作"))
     }
 
     /// Standalone trusted reading row: a 32pt band granted by the host, above the fixed-height word candidate row, one font size smaller than candidates.
@@ -286,7 +286,7 @@ extension KeyboardPanelView {
             .sharpCandidateScrollEdges()
             .scrollDisabled(content.isEmpty)
             .accessibilityElement(children: .contain)
-            .accessibilityLabel("读音")
+            .accessibilityLabel(String(localized: "读音"))
             .accessibilityHidden(content.isEmpty)
         }
         .frame(maxWidth: .infinity)
@@ -408,27 +408,27 @@ extension KeyboardPanelView {
                 ) {
                     Text(option).font(font).lineLimit(1)
                 }
-                .accessibilityLabel("锁定组合 \(option)")
+                .accessibilityLabel(String(localized: "锁定组合 \(option)"))
                 .accessibilityInputLabels([Text(verbatim: option), Text("锁定组合 \(option)")])
             }
         case .locked(let chosen):
             // Backspace undoes the lock (`KeyboardController.handleBackspaceTap`).
             readingRowSelection(chosen, font: font, height: height)
-                .accessibilityLabel("已锁定组合 \(chosen)")
-                .accessibilityHint("按删除键撤销组合")
+                .accessibilityLabel(String(localized: "已锁定组合 \(chosen)"))
+                .accessibilityHint(String(localized: "按删除键撤销组合"))
         case .readings(let selected, let options):
             if !selected.isEmpty {
                 // Backspace cancels the last syllable (`KeyboardController.handleBackspaceTap`).
                 readingRowSelection(selected.joined(separator: " "), font: font, height: height)
-                    .accessibilityLabel("已选读音 \(selected.joined(separator: " "))")
-                    .accessibilityHint("按删除键取消上一音节")
+                    .accessibilityLabel(String(localized: "已选读音 \(selected.joined(separator: " "))"))
+                    .accessibilityHint(String(localized: "按删除键取消上一音节"))
             }
             ForEach(Array(options.enumerated()), id: \.offset) { _, reading in
                 readingRowCell(height: height, interactive: interactive, action: { controller.selectReading(reading) })
                 {
                     Text(reading).font(font).lineLimit(1)
                 }
-                .accessibilityLabel("选择读音 \(reading)")
+                .accessibilityLabel(String(localized: "选择读音 \(reading)"))
                 .accessibilityInputLabels([Text(verbatim: reading), Text("选择读音 \(reading)")])
             }
             // Only reached when scrolled to the end: reads the next real candidate

@@ -8,7 +8,7 @@ import SwiftUI
 /// private-container fallback that could imply settings reached the extension.
 private struct LocalQuickContentAccessError: LocalizedError {
     var errorDescription: String? {
-        "常用语与剪贴板暂不可用，请在系统设置中打开「允许完全访问」后重试"
+        String(localized: "常用语与剪贴板暂不可用，请在系统设置中打开「允许完全访问」后重试")
     }
 }
 
@@ -43,7 +43,7 @@ enum SharedQuickContentStorage {
             try FileManager.default.removeItem(at: probe)
         } catch {
             if isPermissionDenied(error) { throw LocalQuickContentAccessError() }
-            throw SymbolCatalogError("暂时无法保存，请稍后重试")
+            throw SymbolCatalogError(String(localized: "暂时无法保存，请稍后重试"))
         }
         return LocalQuickContentStore(directory: directory)
     }
@@ -81,7 +81,7 @@ enum SharedQuickContentStorage {
                 _ = try store.recordExplicitPaste(text)
                 return nil
             } catch {
-                return "已粘贴，但没能保存到剪贴板历史"
+                return String(localized: "已粘贴，但没能保存到剪贴板历史")
             }
         }
     }
@@ -109,7 +109,7 @@ final class LocalQuickContentModel: ObservableObject {
         if !content.phrases.contains(where: { $0.id == phrase.id }),
             content.phrases.count >= LocalQuickContentStore.maximumPhrases
         {
-            let message = "常用语最多保存 100 条，请先删除一条再保存"
+            let message = String(localized: "常用语最多保存 100 条，请先删除一条再保存")
             error = message
             return message
         }
@@ -145,7 +145,7 @@ final class LocalQuickContentModel: ObservableObject {
     nonisolated static func message(for error: Error) -> String {
         if error is LocalQuickContentAccessError { return LocalQuickContentAccessError().localizedDescription }
         if let error = error as? SymbolCatalogError { return error.message }
-        return "无法读取或保存内容，请稍后重试"
+        return String(localized: "无法读取或保存内容，请稍后重试")
     }
 
     func exportPhrases() {
