@@ -319,30 +319,39 @@ struct AlternateCharacterKey: UIViewRepresentable {
             else { return Flick(configured: nil) }
             // Only text types: a page-level control option in the same list stays a long press.
             let options = alternates.filter { $0.action.typesText }
-            let corner = cornerHintText(
-                cap: cap, alternates: alternates, systemDefault: systemDefault,
-                syllableHintBelow: syllableHintBelow)
+            let hints = hintTexts(
+                cap: cap, alternates: alternates, phoneKey: false, phoneSideKey: false,
+                layoutPicker: false, systemDefault: systemDefault, syllableHintBelow: syllableHintBelow)
+            // What the key shows besides its title: the corner mark, else the subtitle.
+            let corner = nonEmpty(hints.corner) ?? nonEmpty(hints.subtitle)
             guard KeyFlick.target(options: options, label: { $0.title }, hint: corner, digit: nil) != nil
             else { return Flick(configured: nil) }
             return Flick(configured: direction, options: options, digit: nil, eligible: true)
         }
 
-        /// The text a key finally shows in its corner, mirroring the hint assignments in
-        /// `configure`. A flick may only type a character the user can see, so the derived default
-        /// needs the text that is actually drawn, not just the first alternate.
-        private static func cornerHintText(
-            cap: KeyCap, alternates: [KeyCap], systemDefault: Bool, syllableHintBelow: Bool
-        ) -> String? {
-            // configure: the subtitle gives way to the key's own title (nil when they match).
-            let subtitleText: String? = cap.subtitle == cap.title ? nil : cap.subtitle
-            let firstAlternate = alternates.first?.title
-            let alternateText: String? = firstAlternate == cap.subtitle ? nil : firstAlternate
-            if systemDefault, !syllableHintBelow {
-                // The system-default appearance moves whatever the subtitle holds into the corner;
-                // an empty one still takes it and draws nothing, so it must not fall back.
-                return nonEmpty(subtitleText ?? alternateText)
+        /// The texts `configure` draws under the title and in the corner. Flick eligibility reads
+        /// the same values, so a flick can only type a mark the key really shows.
+        private static func hintTexts(
+            cap: KeyCap, alternates: [KeyCap], phoneKey: Bool, phoneSideKey: Bool,
+            layoutPicker: Bool, systemDefault: Bool, syllableHintBelow: Bool
+        ) -> (subtitle: String?, corner: String?) {
+            var subtitle: String? = cap.subtitle == cap.title ? nil : cap.subtitle
+            var corner: String? = alternates.first?.title == cap.subtitle ? nil : alternates.first?.title
+            if phoneKey {
+                subtitle = nil
+                corner = phoneSideKey ? alternates.first?.title : cap.subtitle
             }
-            return nonEmpty(alternateText) ?? nonEmpty(subtitleText)
+            if layoutPicker {
+                // Visible menu indicator: a long press on the language key opens the published-keyboard switch list (ending with "More tools").
+                corner = KeyboardToolsAffordance.indicatorGlyph
+                subtitle = nil
+            }
+            if systemDefault, !phoneKey, !layoutPicker, !syllableHintBelow {
+                // Secondary codes/digits live in the corner, not a second centered baseline.
+                corner = subtitle ?? corner
+                subtitle = nil
+            }
+            return (subtitle, corner)
         }
 
         private static func nonEmpty(_ text: String?) -> String? {
@@ -452,32 +461,14 @@ struct AlternateCharacterKey: UIViewRepresentable {
             self.reservesHintBand = reservesHintBand
             self.accessibilityHintOverride = accessibilityHintOverride
             title.text = cap.title
-            subtitle.text =
-                cap.subtitle == cap.title
-                ? nil
-                : cap.subtitle
-            alternateHint.text = alternates.first?.title == cap.subtitle ? nil : alternates.first?.title
+            let hints = Self.hintTexts(
+                cap: cap, alternates: alternates, phoneKey: phoneKey, phoneSideKey: phoneSideKey,
+                layoutPicker: layoutPicker, systemDefault: appearance.isSystemDefault,
+                syllableHintBelow: syllableHintBelow)
+            subtitle.text = hints.subtitle
+            alternateHint.text = hints.corner
             // Hint policy: every hint is one line (`KeyHintLayoutPolicy`).
-            if phoneKey {
-                subtitle.text = nil
-                alternateHint.text = phoneSideKey ? alternates.first?.title : cap.subtitle
-                alternateHint.font = .systemFont(ofSize: 11)
-            } else {
-                alternateHint.font = .systemFont(ofSize: 9)
-            }
-            if layoutPicker {
-                // Visible menu indicator: a long press on the language key opens the published-keyboard switch list (ending with "More tools").
-                // A genuinely drawn corner badge, not explanatory text.
-                alternateHint.text = KeyboardToolsAffordance.indicatorGlyph
-                subtitle.text = nil
-                // Note: do **not** set accessibilityHint here -- the layoutPicker branch below
-                // assigns after this and would override it. The visible entry is described in the final assignment.
-            }
-            if appearance.isSystemDefault, !phoneKey, !layoutPicker, !syllableHintBelow {
-                // Secondary codes/digits live in the corner, not a second centered baseline.
-                alternateHint.text = subtitle.text ?? alternateHint.text
-                subtitle.text = nil
-            }
+            alternateHint.font = .systemFont(ofSize: phoneKey ? 11 : 9)
             accessibilityLabel = cap.title
             accessibilityValue = cap.subtitle
             accessibilityHint =
