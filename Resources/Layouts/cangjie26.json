@@ -1,0 +1,46 @@
+{
+  "id": "cangjie26",
+  "name": "仓颉 26 键",
+  "input": {"builtinLayout": "qwerty26"},
+  "rows": [
+    {"keys": [
+      {"label":"手","secondaryLabel":"Q","action":{"type":"code","value":"q"}},
+      {"label":"田","secondaryLabel":"W","action":{"type":"code","value":"w"}},
+      {"label":"水","secondaryLabel":"E","action":{"type":"code","value":"e"}},
+      {"label":"口","secondaryLabel":"R","action":{"type":"code","value":"r"}},
+      {"label":"廿","secondaryLabel":"T","action":{"type":"code","value":"t"}},
+      {"label":"卜","secondaryLabel":"Y","action":{"type":"code","value":"y"}},
+      {"label":"山","secondaryLabel":"U","action":{"type":"code","value":"u"}},
+      {"label":"戈","secondaryLabel":"I","action":{"type":"code","value":"i"}},
+      {"label":"人","secondaryLabel":"O","action":{"type":"code","value":"o"}},
+      {"label":"心","secondaryLabel":"P","action":{"type":"code","value":"p"}}
+    ]},
+    {"keys": [
+      {"label":"日","secondaryLabel":"A","action":{"type":"code","value":"a"}},
+      {"label":"尸","secondaryLabel":"S","action":{"type":"code","value":"s"}},
+      {"label":"木","secondaryLabel":"D","action":{"type":"code","value":"d"}},
+      {"label":"火","secondaryLabel":"F","action":{"type":"code","value":"f"}},
+      {"label":"土","secondaryLabel":"G","action":{"type":"code","value":"g"}},
+      {"label":"竹","secondaryLabel":"H","action":{"type":"code","value":"h"}},
+      {"label":"十","secondaryLabel":"J","action":{"type":"code","value":"j"}},
+      {"label":"大","secondaryLabel":"K","action":{"type":"code","value":"k"}},
+      {"label":"中","secondaryLabel":"L","action":{"type":"code","value":"l"}}
+    ]},
+    {"keys": [
+      {"label":"重","secondaryLabel":"Z","action":{"type":"code","value":"z"}},
+      {"label":"難","secondaryLabel":"X","action":{"type":"code","value":"x"}},
+      {"label":"金","secondaryLabel":"C","action":{"type":"code","value":"c"}},
+      {"label":"女","secondaryLabel":"V","action":{"type":"code","value":"v"}},
+      {"label":"月","secondaryLabel":"B","action":{"type":"code","value":"b"}},
+      {"label":"弓","secondaryLabel":"N","action":{"type":"code","value":"n"}},
+      {"label":"一","secondaryLabel":"M","action":{"type":"code","value":"m"}}
+    ]},
+    {"keys": [
+      {"label":"🌐","titleMode":"automatic","action":{"type":"globe"}},
+      {"label":"123","titleMode":"automatic","action":{"type":"pageSwitch","value":"numeric"}},
+      {"label":"中/英","titleMode":"automatic","action":{"type":"languageSwitch"}},
+      {"label":"空格","width":4,"titleMode":"automatic","action":{"type":"space"}},
+      {"label":"⏎","titleMode":"automatic","action":{"type":"enter"}}
+    ]}
+  ]
+}

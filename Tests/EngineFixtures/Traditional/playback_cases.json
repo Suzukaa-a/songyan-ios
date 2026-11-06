@@ -1,0 +1,54 @@
+[
+ {
+  "schema": "bopomofo_tw",
+  "layout": "zhuyin41",
+  "text": "你好",
+  "keys": "su3cl3",
+  "expect_top3": "你好",
+  "expect_text": "你好",
+  "commit_action": "confirm",
+  "expect_preedit": "ㄋㄧˇ ㄏㄠˇ"
+ },
+ {
+  "schema": "bopomofo_tw",
+  "layout": "zhuyin41",
+  "text": "這",
+  "keys": "5k4",
+  "expect_first": "這",
+  "expect_text": "這",
+  "commit_action": "confirm",
+  "expect_preedit": "ㄓㄜˋ"
+ },
+ {
+  "schema": "bopomofo_tw",
+  "layout": "zhuyin41",
+  "text": "你",
+  "keys": "su3",
+  "expect_first": "你",
+  "expect_preedit": "ㄋㄧˇ"
+ },
+ {
+  "schema": "cangjie5",
+  "layout": "cangjie26",
+  "text": "你",
+  "keys": "onf",
+  "expect_first": "你",
+  "expect_text": "你"
+ },
+ {
+  "schema": "quick5",
+  "layout": "cangjie26",
+  "text": "你",
+  "keys": "of",
+  "expect_top5": "你",
+  "expect_text": "你"
+ },
+ {
+  "schema": "jyut6ping3",
+  "layout": "qwerty26",
+  "text": "你好",
+  "keys": "neihou",
+  "expect_top3": "你好",
+  "expect_text": "你好"
+ }
+]

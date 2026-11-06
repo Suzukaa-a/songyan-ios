@@ -2,7 +2,9 @@ import Foundation
 
 /// Independently authored layout data, also available as editable JSON in Resources/Layouts.
 public enum BuiltinLayouts {
-    public static let all: [LayoutDefinition] = [qwerty26, merged14, merged18, phone9]
+    public static let all: [LayoutDefinition] = [
+        qwerty26, merged14, merged18, phone9, zhuyin41, cangjie26,
+    ]
 
     public static let qwerty26 = LayoutDefinition(
         id: "qwerty26", name: "26 键", input: .init(builtinLayout: .qwerty26),
@@ -366,6 +368,95 @@ public enum BuiltinLayouts {
                 })
         }
     }
+
+    // MARK: - Traditional Chinese boards
+
+    /// The 大千 (Daqian) 41-key board: four letter rows of 11 / 10 / 10 / 10 caps. A cap draws the
+    /// bopomofo symbol and sends the ASCII key that symbol sits on, which is the code the scheme's
+    /// own keymap expects; the codes never appear on a cap. The space bar sends the first tone.
+    public static let zhuyin41 = LayoutDefinition(
+        id: "zhuyin41", name: "注音 41 键",
+        // The encoding kind stays the 26-key one: the board is a layout of its own, identified by
+        // its id, so no new kind and no new engine case come with it.
+        input: .init(builtinLayout: .qwerty26),
+        rows: zhuyinLetterRows() + [zhuyinControlRow])
+
+    private static let zhuyinKeys: [[(cap: String, code: String)]] = [
+        [
+            ("ㄅ", "1"), ("ㄉ", "2"), ("ˇ", "3"), ("ˋ", "4"), ("ㄓ", "5"), ("ˊ", "6"), ("˙", "7"),
+            ("ㄚ", "8"), ("ㄞ", "9"), ("ㄢ", "0"), ("ㄦ", "-"),
+        ],
+        [
+            ("ㄆ", "q"), ("ㄊ", "w"), ("ㄍ", "e"), ("ㄐ", "r"), ("ㄔ", "t"), ("ㄗ", "y"), ("ㄧ", "u"),
+            ("ㄛ", "i"), ("ㄟ", "o"), ("ㄣ", "p"),
+        ],
+        [
+            ("ㄇ", "a"), ("ㄋ", "s"), ("ㄎ", "d"), ("ㄑ", "f"), ("ㄕ", "g"), ("ㄘ", "h"), ("ㄨ", "j"),
+            ("ㄜ", "k"), ("ㄠ", "l"), ("ㄤ", ";"),
+        ],
+        [
+            ("ㄈ", "z"), ("ㄌ", "x"), ("ㄏ", "c"), ("ㄒ", "v"), ("ㄖ", "b"), ("ㄙ", "n"), ("ㄩ", "m"),
+            ("ㄝ", ","), ("ㄡ", "."), ("ㄥ", "/"),
+        ],
+    ]
+
+    private static func zhuyinLetterRows() -> [LayoutRow] {
+        zhuyinKeys.map { row in
+            LayoutRow(keys: row.map { LayoutKey(label: $0.cap, action: .init(.code, value: $0.code)) })
+        }
+    }
+
+    /// The controls a 41-key board draws itself: its four letter rows take the whole width, so no
+    /// shell key surrounds them. Every face is automatic, so traditional input reads 空白 and the
+    /// live Return title. Delete stays here because no shell row slot is left for it.
+    private static let zhuyinControlRow = LayoutRow(keys: [
+        LayoutKey(label: "🌐", action: .init(.globe), titleMode: .automatic),
+        LayoutKey(label: "123", action: .pageSwitch(.numeric), titleMode: .automatic),
+        LayoutKey(label: "中/英", action: .languageSwitch(), titleMode: .automatic),
+        LayoutKey(label: "空格", width: 4, action: .init(.space), titleMode: .automatic),
+        LayoutKey(label: "⌫", action: .init(.backspace), titleMode: .automatic),
+        LayoutKey(label: "⏎", action: .init(.enter), titleMode: .automatic),
+    ])
+
+    /// The 倉頡 (Cangjie) 26-key board: the letters keep their QWERTY positions, each cap draws the
+    /// radical its letter stands for and the corner label is the letter itself.
+    public static let cangjie26 = LayoutDefinition(
+        id: "cangjie26", name: "仓颉 26 键",
+        input: .init(builtinLayout: .qwerty26),
+        rows: cangjieLetterRows() + [cangjieControlRow])
+
+    private static let cangjieKeys: [[(letter: String, radical: String)]] = [
+        [
+            ("q", "手"), ("w", "田"), ("e", "水"), ("r", "口"), ("t", "廿"), ("y", "卜"), ("u", "山"),
+            ("i", "戈"), ("o", "人"), ("p", "心"),
+        ],
+        [
+            ("a", "日"), ("s", "尸"), ("d", "木"), ("f", "火"), ("g", "土"), ("h", "竹"), ("j", "十"),
+            ("k", "大"), ("l", "中"),
+        ],
+        [("z", "重"), ("x", "難"), ("c", "金"), ("v", "女"), ("b", "月"), ("n", "弓"), ("m", "一")],
+    ]
+
+    private static func cangjieLetterRows() -> [LayoutRow] {
+        cangjieKeys.map { row in
+            LayoutRow(
+                keys: row.map { key in
+                    LayoutKey(
+                        label: key.radical, secondaryLabel: key.letter.uppercased(),
+                        action: .init(.code, value: key.letter))
+                })
+        }
+    }
+
+    /// The same controls as the 41-key board minus Delete: the 26-key shell already draws Shift and
+    /// Delete around its third letter row, so a declared Delete would appear twice.
+    private static let cangjieControlRow = LayoutRow(keys: [
+        LayoutKey(label: "🌐", action: .init(.globe), titleMode: .automatic),
+        LayoutKey(label: "123", action: .pageSwitch(.numeric), titleMode: .automatic),
+        LayoutKey(label: "中/英", action: .languageSwitch(), titleMode: .automatic),
+        LayoutKey(label: "空格", width: 4, action: .init(.space), titleMode: .automatic),
+        LayoutKey(label: "⏎", action: .init(.enter), titleMode: .automatic),
+    ])
 }
 
 // MARK: - Bundled shell identity
