@@ -58,16 +58,22 @@ extension CandidateReadingRowContent {
             return []
         case .options(let options):
             return options.map { option in
-                InlineReadingItem(
+                let label = String(
+                    format: String(localized: "candidate.reading.lockOption", bundle: .module), option)
+                return InlineReadingItem(
                     label: option, kind: .choice, action: .lockSpelling(option),
-                    accessibilityLabel: "锁定组合 \(option)", accessibilityHint: nil,
-                    inputLabels: [option, "锁定组合 \(option)"])
+                    accessibilityLabel: label, accessibilityHint: nil,
+                    inputLabels: [option, label])
             }
         case .locked(let chosen):
             return [
                 InlineReadingItem(
                     label: chosen, kind: .selected, action: nil,
-                    accessibilityLabel: "已锁定组合 \(chosen)", accessibilityHint: "按删除键撤销组合",
+                    accessibilityLabel: String(
+                        format: String(localized: "candidate.reading.lockedOption", bundle: .module),
+                        chosen),
+                    accessibilityHint: String(
+                        localized: "candidate.reading.undoLockHint", bundle: .module),
                     inputLabels: [])
             ]
         case .readings(let selected, let options):
@@ -77,14 +83,20 @@ extension CandidateReadingRowContent {
                 items.append(
                     InlineReadingItem(
                         label: joined, kind: .selected, action: nil,
-                        accessibilityLabel: "已选读音 \(joined)", accessibilityHint: "按删除键取消上一音节",
+                        accessibilityLabel: String(
+                            format: String(localized: "candidate.reading.selectedReadings", bundle: .module),
+                            joined),
+                        accessibilityHint: String(
+                            localized: "candidate.reading.undoReadingHint", bundle: .module),
                         inputLabels: []))
             }
             items += options.map { reading in
-                InlineReadingItem(
+                let label = String(
+                    format: String(localized: "candidate.reading.chooseReading", bundle: .module), reading)
+                return InlineReadingItem(
                     label: reading, kind: .choice, action: .selectReading(reading),
-                    accessibilityLabel: "选择读音 \(reading)", accessibilityHint: nil,
-                    inputLabels: [reading, "选择读音 \(reading)"])
+                    accessibilityLabel: label, accessibilityHint: nil,
+                    inputLabels: [reading, label])
             }
             return items
         }

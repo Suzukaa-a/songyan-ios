@@ -142,8 +142,7 @@ public actor RecipePackageManager {
     ) throws -> PreparedSchemeImport {
         guard archiveURLs.count == source.archives.count else {
             throw RecipeInstallError.invalidResource(
-                Bundle.main.localizedString(
-                    forKey: "catalog.incompleteDownload", value: "下载的文件不完整，请重新下载。", table: nil))
+                PackageText.string("download.error.incompleteArchive"))
         }
         // A single-archive entry keeps the streaming directory import (models become file
         // references there too) while still restricting the installed input method list.
@@ -216,7 +215,9 @@ public actor RecipePackageManager {
         // generation check: it runs under the lock, so nothing can commit between it and our commit.
         let active = try activeInstallation()?.installation.generation
         if let expected = expectedActiveGeneration {
-            guard active == expected else { throw RecipeInstallError.invalidResource("安装期间配置状态已改变，请重试。") }
+            guard active == expected else {
+                throw RecipeInstallError.invalidResource(PackageText.string("install.error.generationChanged"))
+            }
         }
         // Every engine is stopped while the lock is held, so anything but the active generation
         // (leftovers of failed or superseded installs) can go.

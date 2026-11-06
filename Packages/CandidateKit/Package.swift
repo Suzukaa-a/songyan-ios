@@ -18,10 +18,13 @@
 //     Colors and fonts are injected through CandidateAreaEnvironment, so there is no third skin.
 //   - Renderers are a source-level extension point (registered at compile time); user JSON can only
 //     choose parameters within the schema.
+//   - User-facing wording lives in Resources/Localizable.xcstrings (zh-Hans source, zh-Hant and
+//     ja translations) and is read through the package bundle.
 import PackageDescription
 
 let package = Package(
     name: "CandidateKit",
+    defaultLocalization: "zh-Hans",
     platforms: [
         .iOS(.v17),
         .macOS(.v13),
@@ -37,7 +40,9 @@ let package = Package(
         .package(path: "../LayoutKit"),
     ],
     targets: [
-        .target(name: "CandidateKit", dependencies: ["KeyboardCore", "LayoutKit"]),
+        .target(
+            name: "CandidateKit", dependencies: ["KeyboardCore", "LayoutKit"],
+            resources: [.process("Resources")]),
         .testTarget(
             name: "CandidateKitTests",
             dependencies: ["CandidateKit"]

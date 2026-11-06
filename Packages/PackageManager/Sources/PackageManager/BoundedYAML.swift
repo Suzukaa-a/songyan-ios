@@ -18,7 +18,7 @@ public enum BoundedYAML {
 
     public struct LimitExceeded: Error, LocalizedError, Equatable {
         public let reason: String
-        public var errorDescription: String? { "YAML 别名展开规模过大（\(reason)），已拒绝以保护设备" }
+        public var errorDescription: String? { PackageText.format("yaml.error.scaleExceeded", reason) }
     }
 
     /// Drop-in replacement for `Yams.load(yaml:)`.
@@ -64,7 +64,8 @@ public enum BoundedYAML {
                         guard repairs <= maximumDuplicateRepairs,
                             mark.line >= 1, mark.line <= lines.count
                         else {
-                            throw LimitExceeded(reason: "重复的键超过 \(maximumDuplicateRepairs) 个")
+                            throw LimitExceeded(
+                                reason: PackageText.format("yaml.error.tooManyDuplicates", maximumDuplicateRepairs))
                         }
                         let line = lines[mark.line - 1]
                         let from = line.index(line.startIndex, offsetBy: min(mark.column - 1, line.count))
@@ -120,7 +121,7 @@ public enum BoundedYAML {
     static func requiresExpansionCheck(_ text: String, maximumShadowBytes: Int = maximumShadowBytes) throws -> Bool {
         guard text.utf8.contains(0x2A) else { return false }
         let byteCount = text.utf8.count
-        let sizeError = LimitExceeded(reason: "别名安全预检超过 \(maximumShadowBytes) 字节")
+        let sizeError = LimitExceeded(reason: PackageText.format("yaml.error.shadowBudget", maximumShadowBytes))
         guard byteCount <= maximumShadowBytes else { throw sizeError }
         // Use a short ASCII prefix, also legal inside YAML tags. An absent
         // random prefix avoids merging ordinary keys such as 'a*b' and 'axb'.
@@ -151,7 +152,7 @@ public enum BoundedYAML {
                 if isAlias(scalar) {
                     aliases += 1
                     guard aliases <= maximumAliases else {
-                        throw LimitExceeded(reason: "别名超过 \(maximumAliases) 个")
+                        throw LimitExceeded(reason: PackageText.format("yaml.error.tooManyAliases", maximumAliases))
                     }
                 }
             case .mapping(let mapping):
@@ -173,7 +174,7 @@ public enum BoundedYAML {
         guard aliases > 0 else { return false }
         // Collection keys may contain aliases anywhere in their descendants;
         // reject them before composing the original, regardless of key syntax.
-        if unsupportedKey { throw LimitExceeded(reason: "不支持以别名或复杂结构作为键") }
+        if unsupportedKey { throw LimitExceeded(reason: PackageText.string("yaml.error.unsupportedKey")) }
         return true
     }
 
@@ -183,7 +184,10 @@ public enum BoundedYAML {
         var count = 0
         while let node = stack.popLast() {
             count += 1
-            if count > maximumExpandedNodes { throw LimitExceeded(reason: "展开后超过 \(maximumExpandedNodes) 个节点") }
+            if count > maximumExpandedNodes {
+                throw LimitExceeded(
+                    reason: PackageText.format("yaml.error.tooManyExpandedNodes", maximumExpandedNodes))
+            }
             if count & 0xFFF == 0 { try Task.checkCancellation() }
             switch node {
             case .mapping(let mapping):
@@ -227,7 +231,10 @@ public enum BoundedYAML {
         var budget = maximumTextNodes
         func convert(_ node: Node) throws -> TextNode? {
             budget -= 1
-            guard budget >= 0 else { throw LimitExceeded(reason: "要读取的节点超过 \(maximumTextNodes) 个") }
+            guard budget >= 0 else {
+                throw LimitExceeded(
+                    reason: PackageText.format("yaml.error.tooManyTextNodes", maximumTextNodes))
+            }
             if budget & 0xFFF == 0 { try Task.checkCancellation() }
             switch node {
             case .scalar(let scalar):

@@ -477,7 +477,7 @@ public final class RimeEngine: @unchecked Sendable {
                 count > 0, count <= 1024, count <= Int(Int32.max) - fromIndex
             else {
                 throw RimeEngineError.operationFailed(
-                    "非法候选读取请求 fromIndex=\(fromIndex) count=\(count)")
+                    RimeText.format("engine.diagnostic.candidateRequestInvalid", fromIndex, count))
             }
             guard engine != nil else { throw RimeEngineError.notStarted }
             guard session != 0, let api = rime_get_api() else {

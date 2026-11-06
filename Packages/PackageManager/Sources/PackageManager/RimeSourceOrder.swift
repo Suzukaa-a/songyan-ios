@@ -47,20 +47,22 @@ public struct RimeSourceOrder: Codable, Equatable, Sendable {
     }
 
     private static func invalid(_ value: String) -> RecipeInstallError {
-        .invalidManifest("不支持的来源格式：\(value)。正确格式为 owner/repo@ref:recipe:key=value。")
+        .invalidManifest(PackageText.format("sourceOrder.error.format", value))
     }
 
     /// Strict literal subset of the actual shell package_list declaration. Reject every
     /// non-comment statement outside the array instead of ignoring executable configuration.
     public static func parseConfiguration(_ text: String) throws -> [RimeSourceOrder] {
-        guard text.utf8.count <= 256 * 1024 else { throw invalid("配置文件超过 256 KiB") }
+        guard text.utf8.count <= 256 * 1024 else { throw invalid(PackageText.string("sourceOrder.error.tooLarge")) }
         var inside = false, found = false
         var result: [RimeSourceOrder] = []
         for raw in text.components(separatedBy: .newlines) {
             let line = raw.trimmingCharacters(in: .whitespaces)
             if line.isEmpty || line.hasPrefix("#") { continue }
             if !inside {
-                guard line == "package_list=(" || line == "package_list+=(" else { throw invalid("不支持的配置语句：\(line)") }
+                guard line == "package_list=(" || line == "package_list+=(" else {
+                    throw invalid(PackageText.format("sourceOrder.error.unsupportedStatement", line))
+                }
                 if line == "package_list=(" { result = [] }
                 inside = true
                 found = true
@@ -77,10 +79,10 @@ public struct RimeSourceOrder: Codable, Equatable, Sendable {
                     value = String(value.dropFirst().dropLast())
                 }
                 result.append(try Self(value))
-                guard result.count <= 64 else { throw invalid("来源列表超过 64 项") }
+                guard result.count <= 64 else { throw invalid(PackageText.string("sourceOrder.error.tooMany")) }
             }
         }
-        guard found, !inside, !result.isEmpty else { throw invalid("配置列表为空或未正确闭合") }
+        guard found, !inside, !result.isEmpty else { throw invalid(PackageText.string("sourceOrder.error.unclosed")) }
         return result
     }
 
@@ -106,7 +108,7 @@ public struct RimeSourceOrder: Codable, Equatable, Sendable {
             configuration = URL(string: target)
         } else if target.hasSuffix("-packages.conf") {
             let parts = target.split(separator: "/", omittingEmptySubsequences: false)
-            guard parts.count >= 3 else { throw invalid("本地 .conf 配置文件请直接从文件导入") }
+            guard parts.count >= 3 else { throw invalid(PackageText.string("sourceOrder.error.localConf")) }
             let repoRef = String(parts[0]) + "/" + String(parts[1])
             let order = try Self(repoRef)
             let path = parts.dropFirst(2).joined(separator: "/")
@@ -118,7 +120,9 @@ public struct RimeSourceOrder: Codable, Equatable, Sendable {
         }
         guard let configuration else { throw invalid(target) }
         let data = try await transport.read(configuration, maximumBytes: 256 * 1024)
-        guard let text = String(data: data, encoding: .utf8) else { throw invalid("配置文件不是 UTF-8 编码") }
+        guard let text = String(data: data, encoding: .utf8) else {
+            throw invalid(PackageText.string("sourceOrder.error.notUTF8"))
+        }
         return try parseConfiguration(text)
     }
 }

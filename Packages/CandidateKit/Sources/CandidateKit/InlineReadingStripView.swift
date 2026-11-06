@@ -81,7 +81,7 @@ public struct InlineReadingStripView: View {
         }
         .frame(width: width, height: height)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("读音")
+        .accessibilityLabel(Text("candidate.reading.accessibilityTitle", bundle: .module))
     }
 
     @ViewBuilder

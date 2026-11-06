@@ -139,7 +139,7 @@ public struct PreparedSchemeImport: Sendable {
         if let data = sourceFiles[InstalledPackageLayout.keyboardPackageFile] {
             let declared = try JSONDecoder().decode(SchemePackageDeclaration.self, from: data)
             guard declared.id == id else {
-                throw RecipeInstallError.invalidManifest("所选文件属于另一个输入方案，请从「导入方案」添加。")
+                throw RecipeInstallError.invalidManifest(PackageText.string("schemeImport.error.otherSchemeFile"))
             }
         }
         let declaration = SchemePackageDeclaration(id: id, name: name, bindings: declaration.bindings)
@@ -200,7 +200,7 @@ public extension RecipePackageManager {
                 snapshotBytes += size
             } else {
                 guard entry.uncompressedSize <= UInt64(RecipeResourceBudget.maximumFileBytes(logicalPath)) else {
-                    throw RecipeInstallError.invalidResource("ZIP 解压后大小超过限制")
+                    throw RecipeInstallError.invalidResource(PackageText.string("schemeImport.error.zipTooLarge"))
                 }
                 if entry.type != .directory { sizes[logicalPath] = Int(entry.uncompressedSize) }
                 try RecipeResourceBudget.validate(sizes)
@@ -221,12 +221,13 @@ public extension RecipePackageManager {
                     try Task.checkCancellation()
                     count += chunk.count
                     guard UInt64(count) <= entry.uncompressedSize else {
-                        throw RecipeInstallError.invalidResource("ZIP 实际解压大小超出文件声明：\(path)")
+                        throw RecipeInstallError.invalidResource(
+                            PackageText.format("schemeImport.error.zipDeclaredSize", path))
                     }
                     try output.write(contentsOf: chunk)
                 }
                 guard checksum == entry.checksum, UInt64(count) == entry.uncompressedSize else {
-                    throw RecipeInstallError.invalidResource("ZIP 文件校验失败：\(path)")
+                    throw RecipeInstallError.invalidResource(PackageText.format("schemeImport.error.zipChecksum", path))
                 }
                 try output.synchronize()
             }
@@ -285,7 +286,7 @@ public extension RecipePackageManager {
                     guard size <= RecipeResourceBudget.maximumFileBytes(logicalPath),
                         sourceBytes + size <= RecipeResourceBudget.sourceTotal
                     else {
-                        throw RecipeInstallError.invalidResource("ZIP 解压后大小超过限制")
+                        throw RecipeInstallError.invalidResource(PackageText.string("schemeImport.error.zipTooLarge"))
                     }
                     let staged = workspace.appendingPathComponent("compiled-\(index)-\(stagedEntries).bin")
                     stagedEntries += 1
@@ -327,17 +328,17 @@ public extension RecipePackageManager {
                 // import refuses them the same way.
                 guard !logicalPath.contains(".userdb") else {
                     throw RecipeInstallError.invalidResource(
-                        "路径不安全、重复或包含不支持的用户数据文件：\(logicalPath)")
+                        PackageText.format("schemeImport.error.unsafePath", logicalPath))
                 }
                 guard size <= RecipeResourceBudget.maximumFileBytes(logicalPath) else {
-                    throw RecipeInstallError.invalidResource("ZIP 解压后大小超过限制")
+                    throw RecipeInstallError.invalidResource(PackageText.string("schemeImport.error.zipTooLarge"))
                 }
                 if RecipeResourceBudget.isModel(logicalPath) {
                     // Models travel by file reference exactly as a single package's do: extracted
                     // once, snapshotted on disk, and a root prediction database is validated before
                     // it may be installed.
                     guard modelBytes + size <= RecipeResourceBudget.modelTotal else {
-                        throw RecipeInstallError.invalidResource("方案文件或模型文件总大小超过限制")
+                        throw RecipeInstallError.invalidResource(PackageText.string("schemeImport.error.totalTooLarge"))
                     }
                     let staged = workspace.appendingPathComponent("model-\(index)-\(stagedEntries).bin")
                     stagedEntries += 1
@@ -359,7 +360,7 @@ public extension RecipePackageManager {
                     continue
                 }
                 guard sourceBytes + size <= RecipeResourceBudget.sourceTotal else {
-                    throw RecipeInstallError.invalidResource("ZIP 解压后大小超过限制")
+                    throw RecipeInstallError.invalidResource(PackageText.string("schemeImport.error.zipTooLarge"))
                 }
                 let data = try Self.readArchiveEntry(entry, from: archive, path: path)
                 sourceBytes += data.count
@@ -377,9 +378,7 @@ public extension RecipePackageManager {
         var hash = SHA256()
         try file.consume { hash.update(data: $0) }
         guard hash.finalize().hex == expected else {
-            throw RecipeInstallError.invalidResource(
-                Bundle.main.localizedString(
-                    forKey: "catalog.checksumFailure", value: "下载的文件校验失败，请重新下载。", table: nil))
+            throw RecipeInstallError.invalidResource(PackageText.string("schemeImport.error.checksumFailure"))
         }
     }
 
@@ -393,7 +392,10 @@ public extension RecipePackageManager {
             if SchemeSourceCheck.isFinderMetadata(path) { continue }
             guard SchemeSourceCheck.safe(path), paths.insert(path.lowercased()).inserted,
                 entry.type != .symlink, paths.count <= 2000
-            else { throw RecipeInstallError.invalidResource("ZIP 文件路径无效或包含符号链接：\(entry.path)") }
+            else {
+                throw RecipeInstallError.invalidResource(
+                    PackageText.format("schemeImport.error.zipEntryPath", entry.path))
+            }
             entries.append((entry, path))
         }
         return entries
@@ -421,11 +423,7 @@ public extension RecipePackageManager {
     /// One runtime path two archives fill differently cannot be resolved to either upstream.
     private static func archiveConflict(path: String, owner: String, label: String) -> RecipeInstallError {
         RecipeInstallError.invalidResource(
-            String(
-                format: Bundle.main.localizedString(
-                    forKey: "scheme.archive.conflict.format",
-                    value: "「%1$@」在「%2$@」与「%3$@」中内容不同，请只保留其中一个压缩包。", table: nil),
-                path, owner, label))
+            PackageText.format("schemeImport.error.archiveConflict", path, owner, label))
     }
 
     /// Extracts one entry to a staging file and returns its SHA-256, refusing bytes beyond the size
@@ -447,13 +445,13 @@ public extension RecipePackageManager {
             try Task.checkCancellation()
             count += chunk.count
             guard count <= declared else {
-                throw RecipeInstallError.invalidResource("ZIP 实际解压大小超出文件声明：\(path)")
+                throw RecipeInstallError.invalidResource(PackageText.format("schemeImport.error.zipDeclaredSize", path))
             }
             hash.update(data: chunk)
             try output.write(contentsOf: chunk)
         }
         guard checksum == entry.checksum, count == declared else {
-            throw RecipeInstallError.invalidResource("ZIP 文件校验失败：\(path)")
+            throw RecipeInstallError.invalidResource(PackageText.format("schemeImport.error.zipChecksum", path))
         }
         try output.synchronize()
         return hash.finalize().hex
@@ -467,12 +465,12 @@ public extension RecipePackageManager {
         let checksum = try archive.extract(entry) { chunk in
             try Task.checkCancellation()
             guard data.count + chunk.count <= declared else {
-                throw RecipeInstallError.invalidResource("ZIP 实际解压大小超出文件声明：\(path)")
+                throw RecipeInstallError.invalidResource(PackageText.format("schemeImport.error.zipDeclaredSize", path))
             }
             data.append(chunk)
         }
         guard checksum == entry.checksum, data.count == declared else {
-            throw RecipeInstallError.invalidResource("ZIP 文件校验失败：\(path)")
+            throw RecipeInstallError.invalidResource(PackageText.format("schemeImport.error.zipChecksum", path))
         }
         return data
     }
@@ -514,7 +512,7 @@ public extension RecipePackageManager {
         let fm = FileManager.default
         let info = try directory.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
         guard info.isDirectory == true, info.isSymbolicLink != true else {
-            throw RecipeInstallError.invalidResource("请选择解压后的完整输入方案目录；ZIP 文件请先在「文件」App 中解压")
+            throw RecipeInstallError.invalidResource(PackageText.string("schemeImport.error.pickExtractedFolder"))
         }
         var files: [DictionaryImportFile] = []
         var visited = 0
@@ -536,7 +534,8 @@ public extension RecipePackageManager {
                             .isSymbolicLinkKey, .isRegularFileKey, .fileSizeKey,
                         ])
                         guard value.isSymbolicLink != true, value.isRegularFile == true, value.fileSize == 0 else {
-                            throw RecipeInstallError.invalidResource("build/.gitkeep 必须为空文件")
+                            throw RecipeInstallError.invalidResource(
+                                PackageText.string("schemeImport.error.gitkeepMustBeEmpty"))
                         }
                         files.append(DictionaryImportFile(path: prefix + "build/.gitkeep", location: placeholder))
                     }
@@ -550,7 +549,8 @@ public extension RecipePackageManager {
                         guard SchemeSourceCheck.isCompiledBuildFile(compiledPath) else { continue }
                         let entryInfo = try entry.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
                         guard entryInfo.isSymbolicLink != true, entryInfo.isDirectory != true else {
-                            throw RecipeInstallError.invalidResource("不支持符号链接：\(entry.path)")
+                            throw RecipeInstallError.invalidResource(
+                                PackageText.format("schemeImport.error.symlink", entry.path))
                         }
                         files.append(DictionaryImportFile(path: compiledPath, location: entry))
                     }
@@ -558,18 +558,21 @@ public extension RecipePackageManager {
                 }
                 visited += 1
                 guard visited <= 2000, prefix.split(separator: "/").count < 32 else {
-                    throw RecipeInstallError.invalidResource("输入方案目录超过 2000 个文件或目录层级超过 32 层")
+                    throw RecipeInstallError.invalidResource(PackageText.string("schemeImport.error.tooManyEntries"))
                 }
                 let values = try child.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
                 guard values.isSymbolicLink != true else {
-                    throw RecipeInstallError.invalidResource("不支持符号链接：\(child.path)")
+                    throw RecipeInstallError.invalidResource(
+                        PackageText.format("schemeImport.error.symlink", child.path))
                 }
                 let path = prefix + name
                 if values.isDirectory != true, SchemeSourceCheck.isLearningSnapshot(path) {
                     sawSnapshot = true
                     continue
                 }
-                guard files.count < 2000 else { throw RecipeInstallError.invalidResource("输入方案文件超过 2000 个") }
+                guard files.count < 2000 else {
+                    throw RecipeInstallError.invalidResource(PackageText.string("schemeImport.error.tooManyFiles"))
+                }
                 if values.isDirectory == true {
                     try visit(child, prefix: path + "/")
                 } else {
@@ -595,7 +598,7 @@ public extension RecipePackageManager {
         var names = Set<String>()
         var total = 0, modelTotal = 0, compiledTotal = 0
         guard !files.isEmpty, files.count <= 2000 else {
-            throw RecipeInstallError.invalidResource("导入的输入方案为空或文件数量超过 2000 个")
+            throw RecipeInstallError.invalidResource(PackageText.string("schemeImport.error.emptyOrTooManyFiles"))
         }
         var snapshotFiles: [PickedFile] = []
         for file in files {
@@ -611,7 +614,7 @@ public extension RecipePackageManager {
             guard SchemeSourceCheck.safe(file.path), names.insert(file.path.lowercased()).inserted,
                 file.location.isFileURL, !file.path.contains(".userdb")
             else {
-                throw RecipeInstallError.invalidResource("路径不安全、重复或包含不支持的用户数据文件：\(file.path)")
+                throw RecipeInstallError.invalidResource(PackageText.format("schemeImport.error.unsafePath", file.path))
             }
             if RecipeResourceBudget.isModel(file.path) {
                 fileResources[file.path] = try RecipeFileResource.snapshot(
@@ -671,7 +674,7 @@ public extension RecipePackageManager {
             let id = root["id"] as? String, let name = root["name"] as? String,
             let entries = (root["entrypoints"] as? [String: Any])?["schemas"] as? [String], !entries.isEmpty
         else {
-            throw RecipeInstallError.invalidManifest("内置输入方案的说明文件无效")
+            throw RecipeInstallError.invalidManifest(PackageText.string("schemeImport.error.bundledManifest"))
         }
         var bytes: [String: Data] = [:]
         for file in try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil) {
@@ -681,7 +684,7 @@ public extension RecipePackageManager {
             bytes[path] = try BoundedLocalFile.read(file, maximumBytes: RecipeResourceBudget.sourceFile)
         }
         guard let defaults = bytes["default.yaml"] else {
-            throw RecipeInstallError.invalidManifest("内置输入方案缺少 default.yaml")
+            throw RecipeInstallError.invalidManifest(PackageText.string("schemeImport.error.bundledMissingDefaults"))
         }
         let kept = String(decoding: defaults, as: UTF8.self).split(separator: "\n", omittingEmptySubsequences: false)
             .filter { line in
@@ -708,9 +711,7 @@ public extension RecipePackageManager {
         if let advertisedSchemaIDs,
             advertisedSchemaIDs.isEmpty || !Set(advertisedSchemaIDs).isSubset(of: Set(availableSchemas))
         {
-            throw RecipeInstallError.invalidManifest(
-                Bundle.main.localizedString(
-                    forKey: "catalog.missingInputMethod", value: "下载的方案缺少输入方式，请重新下载。", table: nil))
+            throw RecipeInstallError.invalidManifest(PackageText.string("schemeImport.error.missingInputMethod"))
         }
         let declaration: SchemePackageDeclaration
         if let supplied {
@@ -720,7 +721,7 @@ public extension RecipePackageManager {
         } else {
             let ids = availableSchemas
             guard let first = ids.first else {
-                throw RecipeInstallError.invalidManifest("导入内容缺少根目录下的 .schema.yaml 方案文件")
+                throw RecipeInstallError.invalidManifest(PackageText.string("schemeImport.error.noSchemaFile"))
             }
             let identities = bytes.mapValues(SchemeSourceCheck.hash).merging(fileResources.mapValues(\.sha256)) {
                 _, new in new
@@ -745,7 +746,7 @@ public extension RecipePackageManager {
         }
         guard SchemeSourceCheck.safe(declaration.id), !declaration.id.contains("/"), !declaration.name.isEmpty,
             !declaration.id.contains("..")
-        else { throw RecipeInstallError.invalidManifest("输入方案声明为空或标识无效") }
+        else { throw RecipeInstallError.invalidManifest(PackageText.string("schemeImport.error.invalidDeclaration")) }
         var layouts = Set<String>()
         for binding in declaration.bindings {
             guard let layout = KeyboardLayoutKind(rawValue: binding.layout),
@@ -756,16 +757,20 @@ public extension RecipePackageManager {
                 }),
                 bytes["\(binding.schemaID).schema.yaml"] != nil
             else {
-                throw RecipeInstallError.invalidManifest("每个键盘布局的输入方式映射必须有效且唯一：\(binding.schemaID)/\(binding.layout)")
+                throw RecipeInstallError.invalidManifest(
+                    PackageText.format("schemeImport.error.invalidBinding", binding.schemaID, binding.layout))
             }
             if layout.keyFold == .letterGroups, let fold = layout.compactFold,
                 !Set(binding.code).isSubset(of: fold.keysSent.union(["'"]))
             {
-                throw RecipeInstallError.invalidManifest("\(layout.userTitle)的验证码只能用这个布局按键实际发送的字母：\(binding.code)")
+                throw RecipeInstallError.invalidManifest(
+                    PackageText.format("schemeImport.error.codeNotOnLayout", layout.userTitle, binding.code))
             }
         }
         let schemas = advertisedSchemaIDs ?? availableSchemas
-        guard !schemas.isEmpty else { throw RecipeInstallError.invalidManifest("没有可安装的输入方案") }
+        guard !schemas.isEmpty else {
+            throw RecipeInstallError.invalidManifest(PackageText.string("schemeImport.error.noInstallableSchema"))
+        }
         try SharedRimePresets.supplement(
             &bytes, openCCDirectory: sharedOpenCCDirectory, enabledSchemaIDs: advertisedSchemaIDs)
         if let advertisedSchemaIDs {
@@ -796,7 +801,8 @@ public extension RecipePackageManager {
             SchemeSourceCheck.hash(Data(records.map { $0.path + $0.sha256 }.joined().utf8)).prefix(40))
         let manifest = RecipeManifest(
             id: declaration.id, repository: "user/import", revision: revision,
-            recipePath: InstalledPackageLayout.keyboardPackageFile, license: "用户提供的方案文件",
+            recipePath: InstalledPackageLayout.keyboardPackageFile,
+            license: PackageText.string("manifest.license.userProvided"),
             schemaID: entrySchema, requiredComponents: [], files: records, origin: .userScheme)
         return PreparedSchemeImport(
             declaration: declaration, manifest: manifest, schemaIDs: schemas, bytes: bytes, sourceFiles: sourceFiles,
@@ -813,10 +819,7 @@ public extension RecipePackageManager {
         if let custom = bytes["default.custom.yaml"] {
             let text = String(decoding: custom, as: UTF8.self)
             guard let root = try? BoundedYAML.load(yaml: text) as? [String: Any] else {
-                throw RecipeInstallError.invalidManifest(
-                    Bundle.main.localizedString(
-                        forKey: "catalog.schemaListUnreadable",
-                        value: "无法核对这个输入方案的输入方式列表，请重新下载。", table: nil))
+                throw RecipeInstallError.invalidManifest(PackageText.string("schemeImport.error.schemaListUnreadable"))
             }
             switch SchemeSourceCheck.schemaListPatch(in: root) {
             case .untouched:
@@ -824,19 +827,13 @@ public extension RecipePackageManager {
             case .replaced(let list) where list == advertised:
                 break
             case .replaced, .unreadable:
-                throw RecipeInstallError.invalidManifest(
-                    Bundle.main.localizedString(
-                        forKey: "catalog.schemaListConflict",
-                        value: "这个输入方案会改动输入方式列表，和推荐目录不一致，请重新下载。", table: nil))
+                throw RecipeInstallError.invalidManifest(PackageText.string("schemeImport.error.schemaListConflict"))
             }
         }
         guard let data = bytes["default.yaml"] else { return }
         guard var root = try BoundedYAML.load(yaml: String(decoding: data, as: UTF8.self)) as? [String: Any]
         else {
-            throw RecipeInstallError.invalidManifest(
-                Bundle.main.localizedString(
-                    forKey: "catalog.schemaListUnreadable",
-                    value: "无法核对这个输入方案的输入方式列表，请重新下载。", table: nil))
+            throw RecipeInstallError.invalidManifest(PackageText.string("schemeImport.error.schemaListUnreadable"))
         }
         root["schema_list"] = advertised.map { ["schema": $0] }
         bytes["default.yaml"] = Data(try Yams.dump(object: root).utf8)
@@ -990,7 +987,8 @@ enum SchemeSourceCheck {
             if missing.allSatisfy({ $0.hasSuffix(".schema.yaml") }) {
                 throw RecipeInstallError.missingSchemaFiles(missing)
             }
-            throw RecipeInstallError.invalidResource("缺少输入方案依赖项：" + missing.joined(separator: "、"))
+            throw RecipeInstallError.invalidResource(
+                PackageText.format("schemeImport.error.missingDependency", missing.joined(separator: "、")))
         }
     }
     /// Every referenced path the tree lacks, the optional ones included, so a source download can fetch them all.
@@ -1063,7 +1061,10 @@ enum SchemeSourceCheck {
         }
         var visited = Set<String>()
         func require(_ name: String) throws {
-            guard safe(name) else { throw RecipeInstallError.invalidResource("依赖项路径非法：\(name)") }
+            guard safe(name) else {
+                throw RecipeInstallError.invalidResource(
+                    PackageText.format("schemeImport.error.illegalDependencyPath", name))
+            }
             if files[name] == nil {
                 // A compiled-only dictionary has no text header or import_tables to traverse; its
                 // table already holds the merged rows. A shipped text header is still followed.
@@ -1075,7 +1076,10 @@ enum SchemeSourceCheck {
         }
         func requireOptional(_ name: String) throws {
             if soft { return try require(name) }
-            guard safe(name) else { throw RecipeInstallError.invalidResource("依赖项路径非法：\(name)") }
+            guard safe(name) else {
+                throw RecipeInstallError.invalidResource(
+                    PackageText.format("schemeImport.error.illegalDependencyPath", name))
+            }
             softPending.append(name)
         }
         func requireModule(_ module: String) throws {
@@ -1104,7 +1108,7 @@ enum SchemeSourceCheck {
             let opencc = path.hasPrefix("opencc/") && path.hasSuffix(".json")
             guard yaml || lua || opencc else { continue }
             guard let text = String(data: data, encoding: .utf8) else {
-                throw RecipeInstallError.invalidResource("文件不是 UTF-8 编码：\(path)")
+                throw RecipeInstallError.invalidResource(PackageText.format("schemeImport.error.notUTF8", path))
             }
             if yaml {
                 // Dictionary rows following the YAML document terminator are tabular text.
@@ -1115,9 +1119,11 @@ enum SchemeSourceCheck {
                 let source = end.map { String(text[..<$0]) } ?? text
                 let root: Node?
                 do { root = try BoundedYAML.compose(yaml: source) } catch let error as BoundedYAML.LimitExceeded {
-                    throw RecipeInstallError.invalidResource("\(path)：\(error.localizedDescription)")
+                    throw RecipeInstallError.invalidResource(
+                        PackageText.format("schemeImport.error.fileRejected", path, error.localizedDescription))
                 } catch is CancellationError { throw CancellationError() } catch {
-                    throw RecipeInstallError.invalidResource("YAML 格式无效：\(path)：\(error)")
+                    throw RecipeInstallError.invalidResource(
+                        PackageText.format("schemeImport.error.yamlInvalid", path, String(describing: error)))
                 }
                 // A dictionary under a root namespace no native component can name is never loaded by
                 // librime (DictionaryComponent::Create reads ticket.name_space + "/dictionary"), so
@@ -1131,7 +1137,10 @@ enum SchemeSourceCheck {
                 var budget = 2 * BoundedYAML.maximumExpandedNodes  // two walks below
                 func spend() throws {
                     budget -= 1
-                    guard budget >= 0 else { throw RecipeInstallError.invalidResource("\(path)：YAML 节点数量过多") }
+                    guard budget >= 0 else {
+                        throw RecipeInstallError.invalidResource(
+                            PackageText.format("schemeImport.error.tooManyNodes", path))
+                    }
                     if budget & 0xFFF == 0 { try Task.checkCancellation() }
                 }
                 func scalar(_ node: Node) -> String? { node.tag == Tag(.null) ? nil : node.string }
@@ -1142,7 +1151,10 @@ enum SchemeSourceCheck {
                     // refer to the current resource; '?' marks an optional reference.
                     let name = String(value[..<colon])
                     let file = name.hasSuffix(".yaml") ? name : name + ".yaml"
-                    guard safe(file) else { throw RecipeInstallError.invalidResource("依赖项路径非法：\(file)") }
+                    guard safe(file) else {
+                        throw RecipeInstallError.invalidResource(
+                            PackageText.format("schemeImport.error.illegalDependencyPath", file))
+                    }
                     if !value.contains("?") || files[file] != nil { try require(file) }
                 }
                 func visit(_ node: Node, _ top: String? = nil) throws {
@@ -1389,7 +1401,7 @@ public enum SupportedSchemaSelection {
         guard !schemaIDs.isEmpty, Set(schemaIDs).count == schemaIDs.count,
             schemaIDs.allSatisfy({ !$0.contains("/") && SchemeSourceCheck.safe($0) })
         else {
-            throw RecipeInstallError.invalidResource("没有可启用的输入方案")
+            throw RecipeInstallError.invalidResource(PackageText.string("schemeImport.error.noEnabledSchema"))
         }
         let name = "default.custom.yaml"
         let user = deployment.userDataURL.appendingPathComponent(name)
@@ -1398,7 +1410,7 @@ public enum SupportedSchemaSelection {
         var original = ""
         if FileManager.default.fileExists(atPath: existing.path) {
             guard let text = String(data: try Data(contentsOf: existing), encoding: .utf8) else {
-                throw RecipeInstallError.invalidResource("default.custom.yaml 不是 UTF-8 文本，请改成 UTF-8 编码后重试。")
+                throw RecipeInstallError.invalidResource(PackageText.string("schemeImport.error.defaultCustomNotUTF8"))
             }
             original = text.isEmpty || text.hasSuffix("\n") ? text : text + "\n"
         }
@@ -1409,7 +1421,7 @@ public enum SupportedSchemaSelection {
         let body = "  - patch/+:\n      schema_list:\n" + items.joined()
         let merged: String
         do { merged = try RecipePlanSupport.patch(original, body: body, rx: rx) } catch {
-            throw RecipeInstallError.invalidResource("default.custom.yaml 的写法无法自动加入输入方案选择，请检查这个文件后重试。")
+            throw RecipeInstallError.invalidResource(PackageText.string("schemeImport.error.defaultCustomUneditable"))
         }
         try Data(merged.utf8).write(to: user, options: .atomic)
     }

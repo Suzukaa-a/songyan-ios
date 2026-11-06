@@ -46,21 +46,23 @@ public enum RimeEngineError: Error, Equatable, LocalizedError {
     public var errorDescription: String? {
         switch self {
         case .notStarted:
-            return "RimeEngine is not started; call start() first."
+            return RimeText.string("engine.error.notStarted")
         case .initializationFailed(let detail):
-            return "RimeEngine initialization failed: \(detail)"
+            return RimeText.format("engine.error.initializationFailed", detail)
         case .stopped:
-            return "RimeEngine has been stopped."
+            return RimeText.string("engine.error.stopped")
         case .noSession:
-            return "RimeEngine has no live session."
+            return RimeText.string("engine.error.noSession")
         case .snapshotUnavailable:
-            return "引擎状态读取失败，输入已暂停；请放弃当前组合并重试。"
+            return RimeText.string("engine.error.snapshotUnavailable")
         case .schemaSelectionFailed(let schemaID):
-            return "Could not select schema '\(schemaID)'."
+            return RimeText.format("engine.error.schemaSelectionFailed", schemaID)
         case .syncFailed(let detail):
-            return "Rime sync failed: \(detail)"
+            return RimeText.format("engine.error.syncFailed", detail)
         case .operationFailed(let detail):
-            return "Rime operation failed: \(detail)"
+            // The detail is already a user-facing sentence localized where it is raised; no
+            // prefix is invented around it.
+            return detail
         }
     }
 }

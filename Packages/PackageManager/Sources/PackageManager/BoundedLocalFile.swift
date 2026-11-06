@@ -20,19 +20,21 @@ final class BoundedLocalFile {
 
     init(_ url: URL, maximumBytes: Int, followingSymlinks: Bool = true) throws {
         guard url.isFileURL, maximumBytes >= 0 else {
-            throw RecipeInstallError.invalidResource("本地文件路径或大小限制无效")
+            throw RecipeInstallError.invalidResource(PackageText.string("file.error.invalidLimit"))
         }
         let path = followingSymlinks ? url.resolvingSymlinksInPath().path : url.path
         // O_NONBLOCK keeps the open of a FIFO from waiting for a writer; it has no effect on a regular file.
         let flags = O_RDONLY | O_CLOEXEC | O_NONBLOCK | (followingSymlinks ? 0 : O_NOFOLLOW)
         let descriptor = open(path, flags)
         guard descriptor >= 0 else {
-            throw RecipeInstallError.invalidResource("文件类型不支持或文件过大：\(url.lastPathComponent)")
+            throw RecipeInstallError.invalidResource(
+                PackageText.format("file.error.unsupportedOrTooLarge", url.lastPathComponent))
         }
         var info = stat()
         guard fstat(descriptor, &info) == 0, info.st_mode & S_IFMT == S_IFREG, info.st_size <= maximumBytes else {
             close(descriptor)
-            throw RecipeInstallError.invalidResource("文件类型不支持或文件过大：\(url.lastPathComponent)")
+            throw RecipeInstallError.invalidResource(
+                PackageText.format("file.error.unsupportedOrTooLarge", url.lastPathComponent))
         }
         input = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
         size = Int(info.st_size)
@@ -47,7 +49,9 @@ final class BoundedLocalFile {
             let remaining = maximumBytes - count
             let limit = remaining < RecipeResourceBudget.bufferBytes ? remaining + 1 : RecipeResourceBudget.bufferBytes
             guard let chunk = try input.read(upToCount: limit), !chunk.isEmpty else { return false }
-            guard chunk.count <= remaining else { throw RecipeInstallError.invalidResource("文件超过大小限制") }
+            guard chunk.count <= remaining else {
+                throw RecipeInstallError.invalidResource(PackageText.string("file.error.tooLarge"))
+            }
             count += chunk.count
             try body(chunk)
             return true
@@ -99,7 +103,7 @@ final class BoundedLocalFile {
         var info = stat()
         guard fstat(descriptor, &info) == 0 else { throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO) }
         guard info.st_mode & S_IFMT == S_IFREG, info.st_size <= maximumBytes else {
-            throw RecipeInstallError.invalidResource("文件超过大小限制")
+            throw RecipeInstallError.invalidResource(PackageText.string("file.error.tooLarge"))
         }
         guard fchmod(descriptor, S_IRUSR | S_IWUSR) == 0, fsync(descriptor) == 0 else {
             throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)

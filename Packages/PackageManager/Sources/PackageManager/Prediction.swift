@@ -67,7 +67,7 @@ public enum Prediction {
     public static func validateDatabases(in resources: [String: RecipeFileResource]) throws {
         for (path, resource) in resources where isDatabasePath(path) {
             do { try validateDatabase(at: resource.url) } catch {
-                throw RecipeInstallError.invalidResource("\(path) 不是有效的联想词库文件")
+                throw RecipeInstallError.invalidResource(PackageText.format("prediction.error.notDatabasePath", path))
             }
         }
     }
@@ -84,7 +84,7 @@ public enum Prediction {
         guard bytes.count == metadataSize, header.starts(with: formatPrefix),
             bytes[0..<32].contains(0)
         else {
-            throw RecipeInstallError.invalidResource("不是有效的联想词库文件（需为 Rime::Predict 格式）")
+            throw RecipeInstallError.invalidResource(PackageText.string("prediction.error.notDatabase"))
         }
         func u32(_ at: Int) -> UInt32 {
             UInt32(bytes[at]) | UInt32(bytes[at + 1]) << 8 | UInt32(bytes[at + 2]) << 16 | UInt32(bytes[at + 3]) << 24
@@ -99,7 +99,7 @@ public enum Prediction {
         guard region(pointer: 36, size: Int(u32(40)) * 4),  // Darts units are 4 bytes
             region(pointer: 44, size: Int(u32(48)))
         else {
-            throw RecipeInstallError.invalidResource("联想词库结构不完整或已损坏")
+            throw RecipeInstallError.invalidResource(PackageText.string("prediction.error.damaged"))
         }
     }
 
@@ -222,19 +222,20 @@ public enum Prediction {
         let onIDs = Set(on.map(\.schemaID))
         let off = Array(Set(disabling)).filter { !onIDs.contains($0.schemaID) }.sorted { $0.schemaID < $1.schemaID }
         guard installDatabase || !(on.isEmpty && off.isEmpty) else {
-            throw RecipeInstallError.invalidResource("没有需要调整上屏联想的输入方式")
+            throw RecipeInstallError.invalidResource(PackageText.string("prediction.error.noTargets"))
         }
         for target in on + off {
             guard TypoCorrection.validIdentifier(target.schemaID),
                 !CompactSchemaAdapter.isGeneratedCompanionID(target.schemaID)
             else {
-                throw RecipeInstallError.invalidResource("输入方式标识无效：\(target.schemaID)")
+                throw RecipeInstallError.invalidResource(
+                    PackageText.format("schema.error.invalidIDWithDetail", target.schemaID))
             }
         }
         var lines = [
             "recipe:",
             "  Rx: \(recipeName)",
-            "  description: 上屏联想",
+            "  description: " + PackageText.string("recipe.description.prediction"),
         ]
         if installDatabase {
             lines.append("install_files:")

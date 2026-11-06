@@ -36,6 +36,13 @@ public struct CandidateBarDefinition: Codable, Equatable, Identifiable, Sendable
 
     public static let systemDefaultID = "system-default"
 
+    /// The name to show in the interface. The stored `name` keeps the record's own value (it is
+    /// written into saved files), so changing the system language never rewrites a saved record.
+    public var displayName: String {
+        id == Self.systemDefaultID
+            ? String(localized: "candidate.name.systemDefault", bundle: .module) : name
+    }
+
     /// The built-in system default: a 40pt collapsed strip. The text block of the 21pt default primary candidate
     /// is about 30pt, and 40pt already leaves about 5pt of touch margin above and below; the 44pt version leaves about
     /// 7pt each side, which on 14-key (which also has a reading row) adds up to a large empty top margin.
@@ -149,7 +156,8 @@ public struct CandidateBarDefinition: Codable, Equatable, Identifiable, Sendable
     public func copy() -> Self {
         var copy = self
         copy.id = UUID().uuidString.lowercased()
-        copy.name += " 副本"
+        copy.name = String(
+            format: String(localized: "candidate.name.copySuffix", bundle: .module), copy.name)
         return copy
     }
 
@@ -166,9 +174,11 @@ public struct CandidateBarDefinition: Codable, Equatable, Identifiable, Sendable
     private static let controlsFields: Set<String> = ["pagePosition", "showsExpand"]
 
     public static func decode(_ data: Data) throws -> Self {
-        guard data.count <= 128 * 1024 else { throw CandidateBarError("$: JSON 超过 128KB") }
+        guard data.count <= 128 * 1024 else {
+            throw CandidateBarError(String(localized: "candidate.error.fileTooLarge", bundle: .module))
+        }
         guard let source = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            throw CandidateBarError("$: 需要对象")
+            throw CandidateBarError(String(localized: "candidate.error.notAnObject", bundle: .module))
         }
         // V1 imports that omit height retain their original 44pt default.
         var defaults =
@@ -186,7 +196,12 @@ public struct CandidateBarDefinition: Codable, Equatable, Identifiable, Sendable
         ) throws -> [String: Any] {
             var result = base
             for (key, value) in input {
-                guard allowed(path).contains(key) else { throw CandidateBarError("\(path).\(key): 未知字段") }
+                guard allowed(path).contains(key) else {
+                    throw CandidateBarError(
+                        String(
+                            format: String(localized: "candidate.error.unknownField", bundle: .module),
+                            key, "\(path).\(key)"))
+                }
                 if let object = value as? [String: Any] {
                     result[key] = try merge(object, base[key] as? [String: Any] ?? [:], "\(path).\(key)", allowed)
                 } else {
@@ -205,7 +220,11 @@ public struct CandidateBarDefinition: Codable, Equatable, Identifiable, Sendable
             default: return []
             }
         }
-        guard source["formatVersion"] as? Int == 1 else { throw CandidateBarError("$.formatVersion: 只支持 1") }
+        guard source["formatVersion"] as? Int == 1 else {
+            throw CandidateBarError(
+                String(
+                    format: String(localized: "candidate.error.unsupportedVersion", bundle: .module), "1"))
+        }
         let bar = try JSONDecoder().decode(
             Self.self,
             from: JSONSerialization.data(withJSONObject: merge(source, defaults, "$", allowedFields))
@@ -215,7 +234,13 @@ public struct CandidateBarDefinition: Codable, Equatable, Identifiable, Sendable
     }
 
     public func validate() throws {
-        func require(_ test: Bool, _ path: String) throws { if !test { throw CandidateBarError("\(path): 值无效") } }
+        func require(_ test: Bool, _ path: String) throws {
+            if !test {
+                throw CandidateBarError(
+                    String(
+                        format: String(localized: "candidate.error.invalidValue", bundle: .module), path))
+            }
+        }
         try require(formatVersion == 1, "$.formatVersion")
         try require(
             !id.isEmpty
@@ -240,7 +265,9 @@ public struct CandidateBarDefinition: Codable, Equatable, Identifiable, Sendable
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let data = try encoder.encode(self)
-        guard data.count <= 128 * 1024 else { throw CandidateBarError("$: JSON 超过 128KB") }
+        guard data.count <= 128 * 1024 else {
+            throw CandidateBarError(String(localized: "candidate.error.fileTooLarge", bundle: .module))
+        }
         return data
     }
 }

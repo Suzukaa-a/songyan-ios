@@ -16,7 +16,7 @@ enum SharedRimePresets {
         if let directory = openCCDirectory {
             let info = try directory.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
             guard info.isDirectory == true, info.isSymbolicLink != true else {
-                throw RecipeInstallError.invalidResource("共享 OpenCC 目录无效")
+                throw RecipeInstallError.invalidResource(PackageText.string("presets.error.invalidOpenCCDirectory"))
             }
             for url in try FileManager.default.contentsOfDirectory(
                 at: directory, includingPropertiesForKeys: [.isRegularFileKey, .isSymbolicLinkKey, .fileSizeKey])
@@ -64,7 +64,7 @@ enum SharedRimePresets {
 
     static func bundled(_ name: String) throws -> Data {
         guard let root = Bundle.module.url(forResource: "RimePrelude", withExtension: nil) else {
-            throw RecipeInstallError.invalidResource("缺少内置 rime-prelude 基础配置")
+            throw RecipeInstallError.invalidResource(PackageText.string("presets.error.missingPrelude"))
         }
         return try Data(contentsOf: root.appendingPathComponent(name))
     }

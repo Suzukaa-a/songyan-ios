@@ -70,7 +70,7 @@ public enum RimeConfigEditor {
     }
 
     static func message(_ error: UserConfigError) -> String {
-        error.errorDescription ?? "没能保存这个文件。"
+        error.errorDescription ?? PackageText.string("rimeConfig.error.saveFallback")
     }
 }
 
@@ -204,7 +204,9 @@ extension RecipePackageManager {
 
     /// Saves `text` as the user's file at `path` when it passes the checks every file of the folder passes.
     public func saveRimeConfigFile(_ path: String, text: String) throws -> RimeConfigSave {
-        guard let context = try rimeConfigContext() else { return .refused("现在没法保存，请稍后再试。") }
+        guard let context = try rimeConfigContext() else {
+            return .refused(PackageText.string("rimeConfig.error.saveUnavailable"))
+        }
         let data = Data(text.utf8)
         if let error = UserConfigFiles.check(path, data) {
             return error.problem == .invalidYAML
@@ -297,5 +299,5 @@ extension RecipePackageManager {
 /// The package already has a script with the name asked for; a new one would replace it.
 public struct RimeScriptNameTaken: Error, LocalizedError, Equatable, Sendable {
     public let name: String
-    public var errorDescription: String? { "输入方案里已经有叫「\(name)」的脚本，换个名字。" }
+    public var errorDescription: String? { PackageText.format("rimeConfig.error.scriptNameTaken", name) }
 }

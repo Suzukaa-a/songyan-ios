@@ -484,7 +484,7 @@ public extension CompactSchemaAdapter {
         guard let text = String(data: compiled, encoding: .utf8),
             var root = try BoundedYAML.load(yaml: text) as? [String: Any]
         else {
-            throw RecipeInstallError.invalidResource("无法重新读取输入方案以添加展示能力")
+            throw RecipeInstallError.invalidResource(PackageText.string("adapter.error.rereadForDisplay"))
         }
         // Strip any inherited blocks: a source clone must never carry a stale
         // capability for a different adapter.
@@ -528,12 +528,12 @@ public extension CompactSchemaAdapter {
         // codes stay intact and the compact fold is added per letter.
         guard let producer = Self.autoAdaptableProducer(inCompiled: compiled) else {
             throw RecipeInstallError.invalidResource(
-                "输入方案缺少默认主转换器，无法自动适配")
+                PackageText.string("adapter.error.missingGenerator"))
         }
         let nineKey = compactFold.isPhoneDigits
         if producer.klass == .table {
             guard let projection = sourceProjection else {
-                throw RecipeInstallError.invalidResource("码表适配方案缺少必要数据")
+                throw RecipeInstallError.invalidResource(PackageText.string("adapter.error.tableMissingData"))
             }
             return try generateTableCompanion(
                 compiled: compiled, sourceID: sourceID,

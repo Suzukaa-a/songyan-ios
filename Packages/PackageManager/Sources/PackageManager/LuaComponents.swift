@@ -140,14 +140,16 @@ public enum LuaComponents {
         -> DeclarativeRecipe
     {
         guard TypoCorrection.validIdentifier(schemaID), !CompactSchemaAdapter.isGeneratedCompanionID(schemaID) else {
-            throw RecipeInstallError.invalidResource("输入方式标识无效：\(schemaID)")
+            throw RecipeInstallError.invalidResource(PackageText.format("schema.error.invalidIDWithDetail", schemaID))
         }
         let known = Set(lists.flatMap { baseline[$0] ?? [] }.filter(isLua))
-        guard disabled.isSubset(of: known) else { throw RecipeInstallError.invalidResource("不是属于此输入方式的 Lua 组件") }
+        guard disabled.isSubset(of: known) else {
+            throw RecipeInstallError.invalidResource(PackageText.string("lua.error.foreignComponent"))
+        }
         var lines = [
             "recipe:",
             "  Rx: \(recipeName)",
-            "  description: Lua 组件开关",
+            "  description: " + PackageText.string("recipe.description.luaComponents"),
             "patch_files:",
             "  \(schemaID).custom.yaml:",
             "    - patch/+:",

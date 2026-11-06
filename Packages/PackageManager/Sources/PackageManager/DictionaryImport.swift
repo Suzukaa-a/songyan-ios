@@ -18,10 +18,14 @@ public enum DictionaryImportError: Error, LocalizedError {
     case missingDependencies([String])
     public var errorDescription: String? {
         switch self {
-        case .unsupported(let detail): return "暂不支持这个词库：\(detail)"
-        case .invalid(let detail): return "词库检查未通过：\(detail)"
+        case .unsupported(let detail):
+            return PackageText.format("dictionary.error.unsupported", detail)
+        case .invalid(let detail):
+            return PackageText.format("dictionary.error.invalid", detail)
         case .missingDependencies(let paths):
-            return "还需要添加这些词库文件：\(paths.map { ($0 as NSString).lastPathComponent }.joined(separator: "、"))"
+            return PackageText.format(
+                "dictionary.error.missingFiles",
+                paths.map { ($0 as NSString).lastPathComponent }.joined(separator: "、"))
         }
     }
 }
@@ -59,7 +63,7 @@ extension RecipePackageManager {
     ) async throws -> PreparedDictionaryImport {
         let inputs = [root] + dependencies
         guard inputs.count <= 128, Set(inputs.map { $0.path.lowercased() }).count == inputs.count else {
-            throw DictionaryImportError.invalid("一次最多选择 128 个文件，且文件名不能重复")
+            throw DictionaryImportError.invalid(PackageText.string("dictionary.error.tooManyFiles"))
         }
         var parsed: [String: PinyinDictionarySource] = [:]
         var raw: [String: Data] = [:]
@@ -68,14 +72,18 @@ extension RecipePackageManager {
             try Task.checkCancellation()
             let data = try await readDictionarySource(source, maximumBytes: 64 * 1024 * 1024 - total)
             total += data.count
-            guard total <= 64 * 1024 * 1024 else { throw DictionaryImportError.invalid("词库文件合计超过 64 MiB") }
+            guard total <= 64 * 1024 * 1024 else {
+                throw DictionaryImportError.invalid(PackageText.string("dictionary.error.totalTooLarge"))
+            }
             parsed[source.path] = try PinyinDictionarySource(data: data, path: source.path)
             raw[source.path] = data
         }
         var visiting = Set<String>(), visited = Set<String>(), missing = Set<String>()
         var ordered: [String] = []
         func visit(_ path: String) throws {
-            if visiting.contains(path) { throw DictionaryImportError.invalid("词库引用存在循环依赖（import_tables）：\(path)") }
+            if visiting.contains(path) {
+                throw DictionaryImportError.invalid(PackageText.format("dictionary.error.importCycle", path))
+            }
             if visited.contains(path) { return }
             guard let source = parsed[path] else {
                 missing.insert(path)
@@ -90,10 +98,12 @@ extension RecipePackageManager {
         try visit(root.path)
         guard missing.isEmpty else { throw DictionaryImportError.missingDependencies(missing.sorted()) }
         guard visited.count == inputs.count else {
-            throw DictionaryImportError.invalid("有文件没有被主词库引用；请只选择主词库及它引用的文件")
+            throw DictionaryImportError.invalid(PackageText.string("dictionary.error.unusedFile"))
         }
         let count = ordered.reduce(0) { $0 + parsed[$1]!.inspection.entryCount }
-        guard count > 0, count <= 2_000_000 else { throw DictionaryImportError.invalid("词库为空或超过 200 万条") }
+        guard count > 0, count <= 2_000_000 else {
+            throw DictionaryImportError.invalid(PackageText.string("dictionary.error.emptyOrTooManyEntries"))
+        }
         var resources: [String: Data] = [:]
         let schemaIDs = BuiltinTemplateSchemas.sourceSchemaIDs
         // Only known app-owned files are copied. No imported Lua, scripts, schemas or userdb.
@@ -107,7 +117,8 @@ extension RecipePackageManager {
                     text.components(separatedBy: "  dictionary: songyan_basic\n").count == 2,
                     text.contains("  user_dict: songyan_shared\n")
                 else {
-                    throw DictionaryImportError.invalid("内置输入方案的文件不兼容：\(name)")
+                    throw DictionaryImportError.invalid(
+                        PackageText.format("dictionary.error.builtinIncompatible", name))
                 }
                 data = Data(
                     text.replacingOccurrences(
@@ -177,7 +188,9 @@ extension RecipePackageManager {
         let source = active.resourceURL.deletingLastPathComponent().appendingPathComponent(
             InstalledPackageLayout.sourceFile)
         let manifest = try JSONDecoder().decode(RecipeManifest.self, from: Data(contentsOf: source))
-        guard manifest.origin == .userDictionary else { throw DictionaryImportError.invalid("已安装的内容不是词库") }
+        guard manifest.origin == .userDictionary else {
+            throw DictionaryImportError.invalid(PackageText.string("dictionary.error.notADictionary"))
+        }
         let resources = active.resourceURL
         return try await installResources(
             manifest, initialUserDataURL: nil, deploy: deploy,
@@ -198,7 +211,9 @@ extension RecipePackageManager {
             try HTTPSResourceReader.validate(source.location)
             data = try await fetch(source.location)
         }
-        guard data.count <= maximumBytes else { throw DictionaryImportError.invalid("词库文件超过大小限制") }
+        guard data.count <= maximumBytes else {
+            throw DictionaryImportError.invalid(PackageText.string("dictionary.error.fileTooLarge"))
+        }
         return data
     }
 
@@ -212,25 +227,25 @@ private struct PinyinDictionarySource {
 
     static func validatePath(_ path: String) throws {
         guard path.hasSuffix(".dict.yaml") else {
-            throw DictionaryImportError.unsupported("这里只能导入 .dict.yaml 词库文件；输入方案请在「添加输入方案」中导入")
+            throw DictionaryImportError.unsupported(PackageText.string("dictionary.error.onlyDictYaml"))
         }
         guard path.utf8.count <= 240, !path.hasPrefix("/"),
             path.split(separator: "/", omittingEmptySubsequences: false).allSatisfy({
                 !$0.isEmpty && $0 != "." && $0 != ".."
                     && $0.range(of: "^[A-Za-z0-9_.-]+$", options: .regularExpression) != nil
             })
-        else { throw DictionaryImportError.invalid("不安全的相对路径：\(path)") }
+        else { throw DictionaryImportError.invalid(PackageText.format("dictionary.error.unsafePath", path)) }
     }
 
     init(data: Data, path: String) throws {
         try Self.validatePath(path)
         guard let text = String(data: data, encoding: .utf8), !text.contains("\0") else {
-            throw DictionaryImportError.invalid("文件不是 UTF-8 文本：\(path)")
+            throw DictionaryImportError.invalid(PackageText.format("dictionary.error.notUTF8", path))
         }
         let lines = text.replacingOccurrences(of: "\r\n", with: "\n").replacingOccurrences(of: "\u{feff}", with: "")
             .components(separatedBy: "\n")
         guard let end = lines.firstIndex(where: { $0.trimmingCharacters(in: .whitespaces) == "..." }), end < 512 else {
-            throw DictionaryImportError.unsupported("缺少 Rime 词典头结束标记「...」：\(path)")
+            throw DictionaryImportError.unsupported(PackageText.format("dictionary.error.missingHeaderEnd", path))
         }
         var fields: [String: String] = [:], lists: [String: [String]] = [:]
         var currentList: String?
@@ -242,12 +257,15 @@ private struct PinyinDictionarySource {
                 continue
             }
             guard !line.hasPrefix(" "), let colon = clean.firstIndex(of: ":") else {
-                throw DictionaryImportError.unsupported("不支持的 YAML 语法：\(path)")
+                throw DictionaryImportError.unsupported(PackageText.format("dictionary.error.unsupportedYAML", path))
             }
             let key = String(clean[..<colon])
             guard ["name", "version", "sort", "use_preset_vocabulary", "import_tables", "columns"].contains(key),
                 fields[key] == nil
-            else { throw DictionaryImportError.unsupported("不支持的词典头字段 \(key)") }
+            else {
+                throw DictionaryImportError.unsupported(
+                    PackageText.format("dictionary.error.unsupportedHeaderField", key))
+            }
             let value = clean[clean.index(after: colon)...].trimmingCharacters(in: .whitespaces)
             fields[key] = value
             currentList = nil
@@ -261,21 +279,22 @@ private struct PinyinDictionarySource {
                         try Self.scalar(String($0).trimmingCharacters(in: .whitespaces))
                     }
                 } else {
-                    throw DictionaryImportError.unsupported("\(key) 必须是字符串列表")
+                    throw DictionaryImportError.unsupported(
+                        PackageText.format("dictionary.error.listValueRequired", key))
                 }
             } else {
                 fields[key] = try Self.scalar(value)
             }
         }
         guard let name = fields["name"], !name.isEmpty else {
-            throw DictionaryImportError.invalid("词典缺少名称声明（name）：\(path)")
+            throw DictionaryImportError.invalid(PackageText.format("dictionary.error.missingName", path))
         }
         try Self.validatePath(name + ".dict.yaml")
         guard fields["use_preset_vocabulary"] == nil || fields["use_preset_vocabulary"] == "false" else {
-            throw DictionaryImportError.unsupported("此词库依赖预设词表（use_preset_vocabulary），暂不支持；请使用包含完整拼音和词频的词库")
+            throw DictionaryImportError.unsupported(PackageText.string("dictionary.error.presetVocabulary"))
         }
         guard fields["sort"] == nil || fields["sort"] == "by_weight" else {
-            throw DictionaryImportError.unsupported("暂不支持按原始顺序排序的词库（sort: original），请使用按词频排序的词库")
+            throw DictionaryImportError.unsupported(PackageText.string("dictionary.error.originalSort"))
         }
         let dependencies = try (lists["import_tables"] ?? []).map { value -> String in
             let file = value + ".dict.yaml"
@@ -286,7 +305,7 @@ private struct PinyinDictionarySource {
         guard Set(columns).count == columns.count, columns.contains("text"), columns.contains("code"),
             Set(columns).isSubset(of: ["text", "code", "weight"])
         else {
-            throw DictionaryImportError.unsupported("词库只能包含「词语、拼音、词频」三列，暂不支持自动注音与辅助码")
+            throw DictionaryImportError.unsupported(PackageText.string("dictionary.error.unsupportedColumns"))
         }
         var rows: [String] = [], changed = false
         for (offset, line) in lines.dropFirst(end + 1).enumerated() {
@@ -295,7 +314,9 @@ private struct PinyinDictionarySource {
             let cells = line.components(separatedBy: "\t")
             // Default Rime layout allows the weight to be omitted; explicit columns are exact.
             guard cells.count == columns.count || (fields["columns"] == nil && cells.count == 2) else {
-                throw DictionaryImportError.invalid("\(path):\(end + offset + 2) 列数不符合规范或缺少显式拼音")
+                throw DictionaryImportError.invalid(
+                    PackageText.format(
+                        "dictionary.error.columnCount", path, String(end + offset + 2)))
             }
             let word = cells[columns.firstIndex(of: "text")!]
             let code = cells[columns.firstIndex(of: "code")!]
@@ -303,11 +324,15 @@ private struct PinyinDictionarySource {
                 let invalid = word.unicodeScalars.filter { !Self.isAcceptedHan($0) }
                     .map { String(format: "U+%04X", $0.value) }.joined(separator: "、")
                 throw DictionaryImportError.unsupported(
-                    "\(path):\(end + offset + 2) 只支持汉字词条（不支持：\(invalid.isEmpty ? "空词条" : invalid)）")
+                    PackageText.format(
+                        "dictionary.error.nonHanEntry", path, String(end + offset + 2),
+                        invalid.isEmpty ? PackageText.string("dictionary.error.emptyEntry") : invalid))
             }
             let syllables = try code.split(separator: " ").map { try Self.normalize(String($0)) }
             guard syllables.count == word.count, !syllables.isEmpty else {
-                throw DictionaryImportError.unsupported("\(path):\(end + offset + 2) 字数与注音不一致")
+                throw DictionaryImportError.unsupported(
+                    PackageText.format(
+                        "dictionary.error.entrySyllableCount", path, String(end + offset + 2)))
             }
             let normalized = syllables.joined(separator: " ")
             changed = changed || normalized != code
@@ -315,9 +340,11 @@ private struct PinyinDictionarySource {
             let weight = weightIndex.flatMap { $0 < cells.count ? cells[$0] : nil } ?? "1"
             guard weight.range(of: "^[0-9]+(?:\\.[0-9]+)?%?$", options: .regularExpression) != nil,
                 weight.count <= 16
-            else { throw DictionaryImportError.invalid("\(path) 词频格式无效") }
+            else { throw DictionaryImportError.invalid(PackageText.format("dictionary.error.weightFormat", path)) }
             rows.append("\(word)\t\(normalized)\t\(weight)")
-            guard rows.count <= 2_000_000 else { throw DictionaryImportError.invalid("单个词库超过 200 万条") }
+            guard rows.count <= 2_000_000 else {
+                throw DictionaryImportError.invalid(PackageText.string("dictionary.error.tooManyEntries"))
+            }
         }
         self.rows = rows
         inspection = DictionarySourceInspection(
@@ -357,7 +384,7 @@ private struct PinyinDictionarySource {
         guard !result.isEmpty, !result.contains("\\"),
             result.range(of: "^[A-Za-z0-9_./%-]+$", options: .regularExpression) != nil
         else {
-            throw DictionaryImportError.unsupported("不支持复杂的 YAML 格式或别名：\(value)")
+            throw DictionaryImportError.unsupported(PackageText.format("dictionary.error.complexYAML", value))
         }
         return result
     }
@@ -373,7 +400,8 @@ private struct PinyinDictionarySource {
             if s.hasPrefix(initial + "v") { s = initial + "u" + s.dropFirst(2) }
         }
         guard syllables.contains(s) else {
-            throw DictionaryImportError.unsupported("拼音「\(input)」无法识别（\(s)）；仅支持全拼词库，形码、双拼、辅码词库无法直接导入。")
+            throw DictionaryImportError.unsupported(
+                PackageText.format("dictionary.error.unknownPinyin", input, s))
         }
         return s
     }

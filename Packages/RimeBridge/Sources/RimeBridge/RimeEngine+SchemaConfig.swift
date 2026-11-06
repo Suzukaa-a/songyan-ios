@@ -89,7 +89,7 @@ extension RimeEngine {
         try queue.sync {
             guard engine != nil else { throw RimeEngineError.notStarted }
             guard let json = rb_grammar_diagnostics_json() else {
-                throw RimeEngineError.operationFailed("无法获取语法模型诊断信息")
+                throw RimeEngineError.operationFailed(RimeText.string("engine.error.grammarDiagnosticsUnavailable"))
             }
             defer { rb_grammar_diagnostics_free(json) }
             return try JSONDecoder().decode(RimeGrammarDiagnostics.self, from: Data(String(cString: json).utf8))
@@ -101,7 +101,9 @@ extension RimeEngine {
     /// Uses the actual registry, compiled dependency closure and live grammar instance.
     public func validateSchemaForActivation(schemaID: String) throws {
         try validateSchemaPrerequisites(schemaID: schemaID)
-        guard selectSchema(schemaID) else { throw RimeEngineError.operationFailed("输入方式无法启用：\(schemaID)") }
+        guard selectSchema(schemaID) else {
+            throw RimeEngineError.operationFailed(RimeText.format("engine.error.schemaActivationFailed", schemaID))
+        }
         try validateGrammarLoaded(schemaID: schemaID)
     }
 
@@ -114,7 +116,7 @@ extension RimeEngine {
             try validateGrammarRequirements(schemaID: schemaID)
             return
         }
-        throw RimeEngineError.operationFailed("引擎组件不可用：\(component)")
+        throw RimeEngineError.operationFailed(RimeText.format("engine.error.engineComponentUnavailable", component))
     }
 
     /// Query the live registry, not a bundled capability list or schema-name heuristic.
@@ -137,12 +139,14 @@ extension RimeEngine {
     public func loadedGrammarLanguage(schemaID: String) throws -> String? {
         try validateGrammarRequirements(schemaID: schemaID)
         guard let language = schemaValue(schemaID, key: "grammar/language"), !language.isEmpty else { return nil }
-        guard currentSchemaID == schemaID else { throw RimeEngineError.operationFailed("语法模型验证目标不是当前正在使用的输入方式") }
+        guard currentSchemaID == schemaID else {
+            throw RimeEngineError.operationFailed(RimeText.string("engine.error.grammarTargetNotCurrent"))
+        }
         let paths = [configuration.userDirectory, configuration.sharedDirectory].map {
             $0.appendingPathComponent(language + ".gram")
         }
         guard let expected = paths.first(where: { FileManager.default.fileExists(atPath: $0.path) }) else {
-            throw RimeEngineError.operationFailed("找不到语法模型文件")
+            throw RimeEngineError.operationFailed(RimeText.string("engine.error.grammarFileMissing"))
         }
         let canonical = expected.resolvingSymlinksInPath().standardizedFileURL.path
         let associated: Bool = queue.sync { () -> Bool in
@@ -150,7 +154,7 @@ extension RimeEngine {
             return canonical.withCString { rb_grammar_session_loaded(session, $0) != 0 }
         }
         guard associated else {
-            throw RimeEngineError.operationFailed("\(language) 语法模型未能成功加载")
+            throw RimeEngineError.operationFailed(RimeText.format("engine.error.grammarLoadFailed", language))
         }
         return language
     }
@@ -161,21 +165,22 @@ extension RimeEngine {
         try queue.sync { guard engine != nil else { throw RimeEngineError.notStarted } }
         guard let language = schemaValue(schemaID, key: "grammar/language"), !language.isEmpty else { return }
         guard hasModule("grammar") || hasModule("octagram") else {
-            throw RimeEngineError.operationFailed("\(schemaID) 设置了语法模型 \(language)，但当前输入引擎未启用语法模型支持")
+            throw RimeEngineError.operationFailed(
+                RimeText.format("engine.error.grammarEngineUnsupported", schemaID, language))
         }
         guard
             language.split(separator: "/", omittingEmptySubsequences: false).allSatisfy({
                 !$0.isEmpty && $0 != "." && $0 != ".." && !$0.contains("\\") && !$0.contains(":")
                     && $0.unicodeScalars.allSatisfy { !CharacterSet.controlCharacters.contains($0) }
             })
-        else { throw RimeEngineError.operationFailed("找不到语法模型文件或路径不支持：\(language).gram") }
+        else { throw RimeEngineError.operationFailed(RimeText.format("engine.error.grammarPathUnsupported", language)) }
         let sharedModel = configuration.sharedDirectory.appendingPathComponent(language + ".gram")
         let userModel = configuration.userDirectory.appendingPathComponent(language + ".gram")
         guard
             FileManager.default.fileExists(atPath: sharedModel.path)
                 || FileManager.default.fileExists(atPath: userModel.path)
         else {
-            throw RimeEngineError.operationFailed("找不到语法模型文件或路径不支持：\(language).gram")
+            throw RimeEngineError.operationFailed(RimeText.format("engine.error.grammarPathUnsupported", language))
         }
     }
 
@@ -193,10 +198,12 @@ extension RimeEngine {
         var visited = Set<String>()
         func visit(_ id: String) throws {
             guard !id.isEmpty, !id.contains("/"), !id.contains("\\"), !id.contains("..") else {
-                throw RimeEngineError.operationFailed("输入方案依赖无效：\(id)")
+                throw RimeEngineError.operationFailed(RimeText.format("engine.error.schemaDependencyInvalid", id))
             }
             guard visited.insert(id).inserted else { return }
-            guard visited.count <= 256 else { throw RimeEngineError.operationFailed("输入方案依赖项过多（超过 256 项）") }
+            guard visited.count <= 256 else {
+                throw RimeEngineError.operationFailed(RimeText.string("engine.error.schemaDependencyTooMany"))
+            }
             if !fm.fileExists(atPath: build.appendingPathComponent(id + ".schema.yaml").path) {
                 let sources = [configuration.userDirectory, configuration.sharedDirectory]
                     .map { $0.appendingPathComponent(id + ".schema.yaml") }
@@ -204,7 +211,7 @@ extension RimeEngine {
                     // A dependency the package does not ship (a reverse lookup relying on a desktop
                     // Rime's shared luna_pinyin, say) is skipped as librime skips it.
                     if !schemaIDs.contains(id) { return }
-                    throw RimeEngineError.operationFailed("缺少配套方案文件：\(id).schema.yaml")
+                    throw RimeEngineError.operationFailed(RimeText.format("engine.error.companionSchemaMissing", id))
                 }
                 try deploySchemaFile(source)
             }
@@ -226,7 +233,7 @@ extension RimeEngine {
                 FileManager.default.fileExists(atPath: build.appendingPathComponent(id + ".schema.yaml").path),
                 schemaValue(id, key: "schema/schema_id") == id
             else {
-                throw RimeEngineError.operationFailed("输入方案或配套依赖未成功准备：\(id)")
+                throw RimeEngineError.operationFailed(RimeText.format("engine.error.schemaNotPrepared", id))
             }
             for dependency in schemaStringList(id, key: "schema/dependencies") ?? [] { try visit(dependency) }
         }

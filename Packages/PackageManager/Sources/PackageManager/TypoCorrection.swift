@@ -178,20 +178,21 @@ public enum TypoCorrection {
         let onIDs = Set(on.map(\.schemaID))
         let off = Array(Set(disabling)).filter { !onIDs.contains($0.schemaID) }.sorted { $0.schemaID < $1.schemaID }
         guard !(on.isEmpty && off.isEmpty) else {
-            throw RecipeInstallError.invalidResource("没有需要调整错键纠正的输入方式")
+            throw RecipeInstallError.invalidResource(PackageText.string("typo.error.noTargets"))
         }
         for target in on + off {
             guard validIdentifier(target.schemaID),
                 !CompactSchemaAdapter.isGeneratedCompanionID(target.schemaID),
                 target.namespace.range(of: "^[A-Za-z0-9_]+$", options: .regularExpression) != nil
             else {
-                throw RecipeInstallError.invalidResource("输入方式标识无效：\(target.schemaID)")
+                throw RecipeInstallError.invalidResource(
+                    PackageText.format("schema.error.invalidIDWithDetail", target.schemaID))
             }
         }
         var lines = [
             "recipe:",
             "  Rx: \(recipeName)",
-            "  description: 错键纠正",
+            "  description: " + PackageText.string("recipe.description.typoCorrection"),
             "patch_files:",
         ]
         for (target, value) in on.map({ ($0, "true") }) + off.map({ ($0, "false") }) {

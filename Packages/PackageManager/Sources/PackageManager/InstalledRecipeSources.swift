@@ -76,7 +76,8 @@ public struct InstalledRecipeSources: Sendable {
             if let file = fileResources[path] {
                 let logical = RecipeResourceBudget.sourceArchiveLogicalPath(path)
                 guard RecipeResourceBudget.isModel(logical) || SchemeSourceCheck.isCompiledBuildFile(path) else {
-                    throw RecipeInstallError.invalidResource("不是有效的模型文件引用：\(path)")
+                    throw RecipeInstallError.invalidResource(
+                        PackageText.format("resource.error.invalidModelReference", path))
                 }
                 if !SchemeSourceCheck.isCompiledBuildFile(path) {
                     try Prediction.validateDatabases(in: [logical: file])

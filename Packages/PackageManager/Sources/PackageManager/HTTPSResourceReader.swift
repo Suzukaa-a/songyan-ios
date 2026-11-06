@@ -133,7 +133,7 @@ final class HTTPSResourceDelegate: NSObject, URLSessionDataDelegate, Sendable {
         newRequest request: URLRequest, completionHandler: @escaping (URLRequest?) -> Void
     ) {
         guard let url = request.url, (try? HTTPSResourceReader.validate(url)) != nil else {
-            fail(RecipeInstallError.invalidResource("链接跳转到了不安全的地址，已停止下载"))
+            fail(RecipeInstallError.invalidResource(PackageText.string("download.error.unsafeRedirect")))
             // Refusing the redirect alone leaves URLSession waiting for the original
             // request until the 60s timeout; cancel the task so refusal completes now.
             task.cancel()

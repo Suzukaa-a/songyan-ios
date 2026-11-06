@@ -122,7 +122,7 @@ public struct AmbiguitySpellingPicker: Equatable, Sendable {
             report = nil
             lock = nil
             phase = .idle
-            message = "拼音组合列表被截断，未能完整显示。"
+            message = String(localized: "candidate.ambiguity.truncated", bundle: .module)
             return
         }
         // Fewer than 2 lockable options = unambiguous: not shown, but diagnostics are kept.
