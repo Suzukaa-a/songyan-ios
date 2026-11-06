@@ -11,10 +11,12 @@
 //     never reaches Rime and never calls the engine.
 //   - The default data is a small, original set of common Unicode symbols (names and
 //     pinyin aliases written for this repo); no third-party symbol library is bundled.
+//   - Tool-file errors use Resources/Localizable.xcstrings (zh-Hans, zh-Hant, ja and en).
 import PackageDescription
 
 let package = Package(
     name: "QuickContentKit",
+    defaultLocalization: "zh-Hans",
     platforms: [
         .iOS(.v17),
         .macOS(.v13),

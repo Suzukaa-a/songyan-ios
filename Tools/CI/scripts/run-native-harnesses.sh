@@ -25,6 +25,7 @@ SCRIPTS=(
   25-ambiguity-harness.sh
   38-resource-id-harness.sh
   39-builtin-playback-harness.sh
+  44-opencc-harness.sh
 )
 
 for harness in "${SCRIPTS[@]}"; do

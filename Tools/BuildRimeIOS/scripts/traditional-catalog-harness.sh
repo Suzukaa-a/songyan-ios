@@ -115,6 +115,7 @@ EOF
 compile_bridge_cpp rime_spelling
 compile_bridge_cpp rime_display_map
 compile_bridge_cpp rime_grammar_diagnostics
+compile_bridge_cpp rime_opencc
 
 say "compile learning C adapter"
 python3 "${PROJECT_ROOT}/Tools/BuildRimeIOS/scripts/build-learning-support.py" \
@@ -147,7 +148,8 @@ swiftc -O -parse-as-library \
   "${PM_BIN}/PackageManager.o" "${PM_BIN}/KeyboardCore.o" "${PM_BIN}/Yams.o" \
   "${PM_BIN}/CYaml.o" "${PM_BIN}/ZIPFoundation.o" \
   "${RUN_DIR}/rime_bridge.o" "${RUN_DIR}/rime_spelling.o" "${RUN_DIR}/rime_display_map.o" \
-  "${RUN_DIR}/rime_grammar_diagnostics.o" "${RUN_DIR}/rb_grammar_noop.o" \
+  "${RUN_DIR}/rime_grammar_diagnostics.o" "${RUN_DIR}/rime_opencc.o" \
+  "${RUN_DIR}/rb_grammar_noop.o" \
   "${RUN_DIR}/learning-support/RimeLeversSupport.o" \
   "${MAC_LINK_FLAGS[@]}" \
   -target arm64-apple-macos13.0 -o "${RUN_DIR}/harness"

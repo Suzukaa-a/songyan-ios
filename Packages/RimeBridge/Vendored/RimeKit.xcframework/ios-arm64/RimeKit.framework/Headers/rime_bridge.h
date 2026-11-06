@@ -35,6 +35,11 @@
 #include <stddef.h>
 #include <stdint.h>
 
+/* Standalone OpenCC conversion has no librime dependency of its own but is part
+ * of this reviewed bridge ABI; including it here is what makes the shipped
+ * RimeKit umbrella expose it next to the rest of the bridge. */
+#include "rime_opencc.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
