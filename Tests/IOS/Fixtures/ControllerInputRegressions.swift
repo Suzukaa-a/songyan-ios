@@ -124,6 +124,95 @@ final class ProbeEngine: EngineBackend {
     func shutdown() {}
 }
 
+/// Commits exactly the candidate text the front end renders at that index. ProbeEngine answers
+/// every selection with a synthetic "c<index>", so it cannot show whether a stale tap commits a
+/// word the user never saw.
+final class SelectionEngine: EngineBackend {
+    let kind: EngineBackendKind = .demoSimulator("controller-regression")
+    var statusSummary: String { "fixture" }
+    private var candidates: [String]
+    private let pageSize: Int
+    private var pageIndex = 0
+    private var state = EngineSnapshot()
+
+    init(candidates: [String], pageSize: Int = 2) {
+        self.candidates = candidates
+        self.pageSize = pageSize
+        publish()
+    }
+
+    /// A new engine result for the running composition. The front end has not re-rendered yet.
+    func replaceCandidates(_ texts: [String]) {
+        candidates = texts
+        pageIndex = 0
+        publish()
+    }
+
+    var visibleTexts: [String] { state.candidates.map(\.text) }
+
+    func setup(sharedDirectory: URL, userDirectory: URL) throws {}
+    func selectSchema(_ schemaID: String) throws {}
+    func processKey(_ keyValue: String) throws -> EngineSnapshot { state }
+
+    func selectCandidate(_ index: Int) throws -> EngineSnapshot {
+        try commit(absolute: pageIndex * pageSize + index)
+    }
+
+    func selectCandidateAbsolute(_ index: Int) throws -> EngineSnapshot { try commit(absolute: index) }
+
+    func nextPage() throws -> EngineSnapshot {
+        let next = pageIndex + 1
+        guard next * pageSize < candidates.count else { return state }
+        pageIndex = next
+        publish()
+        return state
+    }
+
+    func previousPage() throws -> EngineSnapshot {
+        guard pageIndex > 0 else { return state }
+        pageIndex -= 1
+        publish()
+        return state
+    }
+
+    func currentSnapshot() -> EngineSnapshot { state }
+    var supportsReadOnlyBrowsing: Bool { true }
+
+    /// Read by offset like the real engine: never moves the page or the highlight.
+    func readCandidates(fromIndex: Int, count: Int) throws -> [Candidate] {
+        guard fromIndex < candidates.count else { return [] }
+        return (fromIndex..<min(candidates.count, fromIndex + count)).map {
+            Candidate(index: $0 - fromIndex, text: candidates[$0])
+        }
+    }
+
+    func shutdown() {}
+
+    private func publish() {
+        let start = pageIndex * pageSize
+        let page = start < candidates.count ? Array(candidates[start..<min(candidates.count, start + pageSize)]) : []
+        state = EngineSnapshot(
+            candidates: page.enumerated().map { Candidate(index: $0.offset, text: $0.element) },
+            preedit: "x", rawInput: "x", isComposing: !page.isEmpty,
+            highlightedIndex: page.isEmpty ? -1 : 0,
+            pageIndex: pageIndex, pageSize: pageSize,
+            isLastPage: start + pageSize >= candidates.count)
+    }
+
+    /// Real engine semantics: the chosen candidate commits its own text and the composition ends.
+    /// The stored snapshot must not keep that commit, or a later refresh would deliver it again.
+    private func commit(absolute index: Int) throws -> EngineSnapshot {
+        guard candidates.indices.contains(index) else {
+            throw EngineBackendError.operationFailed("no candidate at \(index)")
+        }
+        let committed = candidates[index]
+        candidates = []
+        pageIndex = 0
+        state = EngineSnapshot()
+        return EngineSnapshot(committed: committed)
+    }
+}
+
 @main struct ControllerInputChecks {
     @MainActor static func eventually(_ message: String, _ predicate: () -> Bool) async {
         for _ in 0..<500 {
@@ -367,6 +456,81 @@ final class ProbeEngine: EngineBackend {
         controller.retire()
     }
 
+    /// A renderer action captured by one render can arrive after the engine published a new
+    /// result but before SwiftUI rebuilds the view: the retained sink still carries the old
+    /// render's indices. Those two selection cases must then be rejected, while everything that
+    /// re-reads the engine's current state (paging, read-only loading) stays allowed.
+    @MainActor static func staleCandidateSink() async {
+        let engine = SelectionEngine(candidates: ["alpha", "beta", "gamma", "delta"])
+        let controller = KeyboardController(engine: engine)
+        var document = ""
+        controller.onDispatchCommit = { text in
+            document += text
+            return true
+        }
+        precondition(
+            controller.snapshot.candidates.map(\.text) == ["alpha", "beta"],
+            "fixture must show the first page")
+        let staleSink = CandidateAreaActionSink.live(controller: controller, onExpand: {}, onCollapse: {})
+
+        // The engine result is published through the real session; the view has not rebuilt, so the
+        // sink above is still what a tap under the user's finger would call.
+        engine.replaceCandidates(["gamma", "delta", "epsilon", "zeta"])
+        controller.session.refresh()
+        precondition(
+            controller.snapshot.candidates.map(\.text) == ["gamma", "delta"],
+            "fixture must publish the changed list: \(controller.snapshot.candidates.map(\.text))")
+
+        staleSink.perform(.select(0))
+        precondition(
+            document.isEmpty,
+            "a tap from the previous render must not commit the newly published candidate: \(document)")
+        staleSink.perform(.selectOnPage(page: 0, index: 1))
+        precondition(
+            document.isEmpty,
+            "a cross-page tap from the previous render must not commit: \(document)")
+
+        // Paging reads the engine's current state instead of an index from the old render, so it
+        // must keep working from a sink created before the result was published.
+        staleSink.perform(.pageForward)
+        precondition(
+            controller.snapshot.pageIndex == 1
+                && controller.snapshot.candidates.map(\.text) == ["epsilon", "zeta"],
+            "paging from an older render must not be swallowed: \(controller.snapshot.candidates.map(\.text))")
+        controller.retire()
+
+        // A sink created for the render that shows the current list selects the word the user sees.
+        let current = KeyboardController(engine: SelectionEngine(candidates: ["gamma", "delta"]))
+        var currentDocument = ""
+        current.onDispatchCommit = { text in
+            currentDocument += text
+            return true
+        }
+        let currentSink = CandidateAreaActionSink.live(controller: current, onExpand: {}, onCollapse: {})
+        currentSink.perform(.select(1))
+        precondition(
+            currentDocument == "delta",
+            "a current sink must commit the tapped candidate: \(currentDocument)")
+        current.retire()
+
+        // The same for a candidate from a browsed page: read-only loading does not change the
+        // composition revision, so a sink created before it must still select.
+        let browsed = KeyboardController(engine: SelectionEngine(candidates: ["one", "two", "three", "four"]))
+        var browsedDocument = ""
+        browsed.onDispatchCommit = { text in
+            browsedDocument += text
+            return true
+        }
+        let browsedSink = CandidateAreaActionSink.live(controller: browsed, onExpand: {}, onCollapse: {})
+        browsed.loadMoreCandidates()
+        await eventually("the read-only second page did not land") { browsed.candidateBrowser.count == 4 }
+        browsedSink.perform(.selectOnPage(page: 1, index: 0))
+        precondition(
+            browsedDocument == "three",
+            "a read-only append keeps the same revision, so the older sink must still select: \(browsedDocument)")
+        browsed.retire()
+    }
+
     /// For the built-in nine-key digits 2-9, long-press and tap must be two distinct semantic paths:
     /// - tap = `.code(digit)`: handed to the engine (composition/candidates);
     /// - long-press = `.literal(digit)`: types the digit directly, bypassing engine composition.
@@ -431,6 +595,7 @@ final class ProbeEngine: EngineBackend {
         await probeWhileTyping()
         await probeAfterLeavingABC()
         await predictionPaging()
+        await staleCandidateSink()
         print("controller input regression checks passed")
     }
 }

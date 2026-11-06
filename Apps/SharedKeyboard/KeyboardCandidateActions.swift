@@ -52,11 +52,17 @@ extension CandidateAreaActionSink {
         onExpand: @escaping () -> Void,
         onCollapse: @escaping () -> Void
     ) -> CandidateAreaActionSink {
-        CandidateAreaActionSink { action in
+        // The engine can publish before SwiftUI rebuilds this view. Retained candidate indices
+        // belong to the composition shown when this sink was created.
+        let revision = controller.session.compositionRevision
+        return CandidateAreaActionSink { action in
             MainActor.assumeIsolated {
                 switch action {
-                case .select(let index): controller.candidateAreaSelect(index: index)
+                case .select(let index):
+                    guard controller.session.compositionRevision == revision else { return }
+                    controller.candidateAreaSelect(index: index)
                 case .selectOnPage(let page, let index):
+                    guard controller.session.compositionRevision == revision else { return }
                     controller.candidateAreaSelect(page: page, index: index)
                 case .pageForward: controller.candidateAreaPageForward()
                 case .pageBackward: controller.candidateAreaPageBackward()

@@ -73,6 +73,8 @@ At runtime [KeyboardPanelView+Pages.swift](Apps/SharedKeyboard/KeyboardPanelView
 
 The globe-key requirement is checked by [InputModeSwitchKeyRequirement.swift](Packages/LayoutKit/Sources/LayoutKit/InputModeSwitchKeyRequirement.swift) when layouts are saved or imported; the extension records the real requirement in [KeyboardSystemRequirements.swift](Apps/SharedKeyboard/KeyboardSystemRequirements.swift) and the host reads it on `HostConfigIOQueue`. Wide-surface content widths and docking come from [KeyboardWideContentPolicy.swift](Packages/CandidateKit/Sources/CandidateKit/KeyboardWideContentPolicy.swift).
 
+Candidate selections pass through [KeyboardCandidateActions.swift](Apps/SharedKeyboard/KeyboardCandidateActions.swift). Each live action sink captures the composition revision shown by its view and rejects selection indices after a newer engine result arrives; read-only candidate appends preserve that revision.
+
 ## 5. Host app entry points
 
 | Entry | Symbols and files |
