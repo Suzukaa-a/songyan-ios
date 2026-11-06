@@ -1,0 +1,12 @@
+# Real-engine prediction fixture dictionary: one syllable code, one candidate.
+---
+name: prediction_probe
+version: "0.1.0"
+sort: by_weight
+use_preset_vocabulary: false
+columns:
+  - text
+  - code
+  - weight
+...
+你	ni	100

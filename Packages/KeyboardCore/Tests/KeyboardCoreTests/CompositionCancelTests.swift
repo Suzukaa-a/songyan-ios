@@ -339,4 +339,120 @@ final class CompositionCancelTests: XCTestCase {
         XCTAssertTrue(commits.isEmpty)
         XCTAssertEqual(errors, 0)
     }
+
+    // MARK: - A post-commit prediction is engine state the host's clear must also drop
+
+    /// Models the backend contract; the native fixture probe verifies Escape dismisses predictions.
+    private final class PredictingClearEngine: EngineBackend {
+        enum CancelOutcome {
+            /// The backend dismissed the prediction.
+            case clears
+            /// The clear did not take effect; the engine returns the prediction it still owns.
+            case stillPredicting
+        }
+
+        let kind: EngineBackendKind = .demoSimulator("predicting-clear")
+        var statusSummary: String { "predicting-clear" }
+        var outcome: CancelOutcome = .clears
+        private var predictions: [String] = []
+        private var input = ""
+
+        func setup(sharedDirectory: URL, userDirectory: URL) throws {}
+        func selectSchema(_ schemaID: String) throws {}
+
+        func processKey(_ keyValue: String) throws -> EngineSnapshot {
+            switch keyValue {
+            case "Esc":
+                predictions = []
+                input = ""
+                return currentSnapshot()
+            case " ", "\n":
+                // An empty composition releases the key to the host, as librime does.
+                guard !input.isEmpty else { return currentSnapshot() }
+                input = ""
+                predictions = ["好"]
+                var snapshot = currentSnapshot()
+                snapshot.committed = "你"
+                return snapshot
+            case "\u{08}":
+                if !input.isEmpty { input.removeLast() }
+                return currentSnapshot()
+            default:
+                predictions = []
+                input.append(keyValue)
+                return currentSnapshot()
+            }
+        }
+
+        func selectCandidate(_ index: Int) throws -> EngineSnapshot { currentSnapshot() }
+        func nextPage() throws -> EngineSnapshot { currentSnapshot() }
+        func previousPage() throws -> EngineSnapshot { currentSnapshot() }
+
+        func currentSnapshot() -> EngineSnapshot {
+            if !predictions.isEmpty {
+                var snapshot = EngineSnapshot(
+                    candidates: predictions.enumerated().map { Candidate(index: $0.offset, text: $0.element) },
+                    preedit: "", rawInput: "", isComposing: false)
+                snapshot.isPrediction = true
+                return snapshot
+            }
+            return EngineSnapshot(
+                candidates: input.isEmpty ? [] : [Candidate(index: 0, text: "你")],
+                preedit: input, rawInput: input, isComposing: !input.isEmpty)
+        }
+
+        func shutdown() {}
+
+        func cancelComposition() throws -> EngineSnapshot {
+            if outcome == .stillPredicting { return currentSnapshot() }
+            predictions = []
+            input = ""
+            return currentSnapshot()
+        }
+    }
+
+    /// The Host's clear must also drop a prediction: it has no input code and no marked text, so an
+    /// `isComposing`-only guard reported success without ever asking the engine to clear it, leaving the
+    /// previous word's suggestions visible (and selectable) in the bar after the field had moved on.
+    func testDiscardClearsPrediction() {
+        let engine = PredictingClearEngine()
+        let session = InputSession(engine: engine, layout: .qwerty26)
+        var commits: [String] = []
+        var errors = 0
+        session.onCommitted = { commits.append($0) }
+        session.onError = { _ in errors += 1 }
+        session.tap(.code("n"))
+        session.tap(.code("i"))
+        session.tap(.space)
+        XCTAssertTrue(session.snapshot.isPrediction)
+        XCTAssertFalse(session.snapshot.isComposing, "a prediction is never marked text")
+
+        XCTAssertTrue(session.discardComposition(), "a prediction must be cleared, not reported as already gone")
+        XCTAssertFalse(session.snapshot.isPrediction)
+        XCTAssertFalse(session.snapshot.isComposing)
+        XCTAssertTrue(session.snapshot.candidates.isEmpty)
+        XCTAssertEqual(commits, ["你"], "clearing a prediction never commits one")
+        XCTAssertEqual(errors, 0)
+    }
+
+    /// A cancel that does not take effect keeps the engine's genuine state and reports failure, so the
+    /// Host never clears its document on a prediction that is still there.
+    func testDiscardPredictionThatSurvivesTheCancelReportsFailure() {
+        let engine = PredictingClearEngine()
+        let session = InputSession(engine: engine, layout: .qwerty26)
+        var commits: [String] = []
+        var errors = 0
+        session.onCommitted = { commits.append($0) }
+        session.onError = { _ in errors += 1 }
+        session.tap(.code("n"))
+        session.tap(.code("i"))
+        session.tap(.space)
+        XCTAssertTrue(session.snapshot.isPrediction)
+        engine.outcome = .stillPredicting
+
+        XCTAssertFalse(session.discardComposition())
+        XCTAssertTrue(session.snapshot.isPrediction, "the real remaining prediction is kept, not faked away")
+        XCTAssertEqual(errors, 1)
+        XCTAssertEqual(commits, ["你"])
+    }
 }

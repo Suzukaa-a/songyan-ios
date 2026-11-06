@@ -754,13 +754,23 @@ public final class RimeBackend: EngineBackend, @unchecked Sendable {
     /// Cancels the current composition (without committing). Public so self-checks/upper layers can clear at a safe point.
     public func clearComposition() {
         guard let engine = rime else { return }
+        if !engine.requiresSnapshotRecovery && Self.isPrediction(lastState) {
+            do {
+                try closePrediction(on: engine)
+            } catch {
+                inputUnavailableReason = error.localizedDescription
+                lastErrorText = error.localizedDescription
+                return
+            }
+        }
         engine.clearComposition()
         lastState = engine.state()
     }
 
     /// `EngineBackend.cancelComposition()`: goes through librime's dedicated `clear_composition`,
     /// （`Session::ClearComposition` → `Context::AbortComposition` → `Context::Clear`），
-    /// which clears the composition unconditionally and never commits. Unlike a synthesized `Esc`, it is not
+    /// which clears typed composition without committing. Predictions are dismissed with Escape first,
+    /// since a direct clear would let the predictor recreate them. Unlike a synthesized `Esc`, the clear API is not
     /// affected by schema editor semantics: librime `Editor::CancelComposition`, when a previous segment exists
     /// (remaining syllables keep composing after a partial commit), only rolls back that segment
     /// (`ClearPreviousSegment` in `context.cc`) and the composition survives.
@@ -775,7 +785,11 @@ public final class RimeBackend: EngineBackend, @unchecked Sendable {
         guard let engine = rime else { throw EngineBackendError.engineNotStarted }
         // Cancellation is the explicit recovery path; the unread-snapshot gate
         // must block ordinary input, not the action that drains its pending commit.
-        if !engine.requiresSnapshotRecovery { try requireAvailableInput() }
+        if !engine.requiresSnapshotRecovery {
+            try requireAvailableInput()
+            // A direct clear lets the predictor recreate suggestions from commit history.
+            if Self.isPrediction(lastState) { return try dismissPrediction() }
+        }
         let state = try engine.cancelComposition()
         lastState = state
         lastErrorText = nil

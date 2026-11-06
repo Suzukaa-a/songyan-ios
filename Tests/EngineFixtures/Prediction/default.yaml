@@ -1,0 +1,9 @@
+# Minimal shared data for the post-commit prediction fixture.
+# predict.db is built by Tools/BuildRimeIOS/scripts/gen-prediction-fixture.sh.
+config_version: "0.1"
+
+schema_list:
+  - schema: prediction_probe
+
+menu:
+  page_size: 5

@@ -730,17 +730,22 @@ public final class InputSession {
     /// Failure contract: if the engine throws (unavailable / state read fails after cancel),
     /// nothing is applied; the last trusted composition is kept, an error is reported and false is
     /// returned, so a failure is never folded into an empty non-composing state that would
-    /// wrongly authorize the host to clear the document. Returns true only when the real state after `apply` is `!isComposing`.
+    /// wrongly authorize the host to clear the document. Returns true only when the real state after `apply` is
+    /// neither composing nor a post-commit prediction.
+    ///
+    /// A prediction is engine state too, even though it has no input code and no marked text: the predictor keeps a
+    /// zero-length composition open, so the host's clear has to ask the engine to drop it as well. Guarding only on
+    /// `isComposing` reported success without clearing it, which left the previous word's suggestions in the bar.
     @discardableResult
     public func discardComposition() -> Bool {
         cancelPendingCodes()
         guard !retired else { return false }
-        guard snapshot.isComposing || inputUnavailableReason != nil else { return true }
+        guard snapshot.isComposing || snapshot.isPrediction || inputUnavailableReason != nil else { return true }
         do {
             var updated = try engine.cancelComposition()
             updated.committed = ""
             apply(updated)
-            guard !snapshot.isComposing else {
+            guard !snapshot.isComposing, !snapshot.isPrediction else {
                 onError?(EngineBackendError.operationFailed("未能取消当前输入，拼音组合仍保留，请重试。"))
                 return false
             }
