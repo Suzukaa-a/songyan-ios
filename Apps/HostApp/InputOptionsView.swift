@@ -64,6 +64,10 @@ struct InputOptionsView: View {
     /// Milliseconds; 0 follows each keyboard layout's own delay.
     @AppStorage(KeyboardKeyFeelPreferences.longPressDelayKey, store: KeyboardKeyFeelPreferences.defaults)
     private var longPressDelayValue = 0
+    /// The Japanese twelve-key board's flick-only option (default off), read by the keyboard at
+    /// each presentation like the key-feel options above.
+    @AppStorage(KeyboardKana12Preferences.flickOnlyKey, store: KeyboardKana12Preferences.defaults)
+    private var kanaFlickOnly = KeyboardKana12Preferences.defaultFlickOnly
     @State private var wideDockValues: [String: KeyboardContentDock] = [:]
     @StateObject private var typoCorrection = TypoCorrectionCenter.shared
     @StateObject private var prediction = PredictionCenter.shared
@@ -432,6 +436,10 @@ struct InputOptionsView: View {
                 }
             }
             .accessibilityIdentifier("inputOptions.longPressDelay")
+            Toggle(isOn: $kanaFlickOnly) {
+                Text(Kana12Wording.flickOnlyTitle)
+            }
+            .accessibilityIdentifier("inputOptions.kanaFlickOnly")
         } header: {
             Text("按键手感")
         } footer: {

@@ -483,6 +483,11 @@ private struct LayoutActionFields: View {
         case .languageSwitch: return UserTerminology.languageKey
         case .symbolLock: return "符号锁定"
         case .clearInput: return "重输"
+        // Kana gestures only come from the Japanese twelve-key board; the editor shows a stored
+        // one when an edited copy is opened, it never offers them for an ordinary key.
+        case .kana: return String(localized: "layout.action.kanaRow")
+        case .kanaModifier: return String(localized: "layout.action.kanaModifier")
+        case .cursorLeft: return String(localized: "kana.cursorLeft")
         }
     }
 
@@ -493,6 +498,9 @@ private struct LayoutActionFields: View {
         case .pageSwitch: return .pageSwitch(.numeric)
         case .layoutPageSwitch: return .layoutPageSwitch(LayoutAction.PageJump.all[0])
         case .languageSwitch: return .languageSwitch()
+        // A kana row id is required by validation; the first grid row is the harmless default a
+        // future picker would land on.
+        case .kana: return .kana(LayoutAction.kanaRowIDs[0])
         default: return LayoutAction(kind)
         }
     }

@@ -453,6 +453,11 @@ extension KeyboardPanelView {
             }
         case .globe:
             controller.handle(.switchKeyboard)
+        case .kana, .kanaModifier, .cursorLeft:
+            // An authored or edited page can store a kana gesture (the kana board's own keys are
+            // drawn by its surface select). It still means that gesture; the kana handler spells
+            // the row or moves the composition caret instead of the action becoming an engine key.
+            performKana12LayoutAction(action)
         case .code:
             break
         }
@@ -587,6 +592,8 @@ extension KeyboardPanelView {
             performAuthoredPageAction(action, isAlternate: isAlternate)
         case .modeSwitch:
             recordCategoryAction(.cycleLayout)
+        case .kana, .kanaModifier, .cursorLeft:
+            performAuthoredPageAction(action, isAlternate: isAlternate)
         case .literal:
             if let value = action.literalValue(usesASCIIPunctuation: effectiveUsesASCIIPunctuation) {
                 recordCategoryAction(.literal(value))

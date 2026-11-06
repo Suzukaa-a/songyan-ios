@@ -65,7 +65,7 @@ final class RomajiLayoutTests: XCTestCase {
     func testTheJapaneseBoardFollowsTheExistingPresets() {
         XCTAssertEqual(
             BuiltinLayouts.all.map(\.id),
-            ["qwerty26", "merged14", "merged18", "phone9", "zhuyin41", "cangjie26", "romaji26"],
+            ["qwerty26", "merged14", "merged18", "phone9", "zhuyin41", "cangjie26", "romaji26", "kana12"],
             "the bundled order stays predictable for a host that lists the presets")
     }
 

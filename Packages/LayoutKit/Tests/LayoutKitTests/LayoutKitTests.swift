@@ -66,7 +66,7 @@ final class LayoutKitTests: XCTestCase {
         XCTAssertEqual(registry.defaultMainLayoutID(for: .init(inputMethodID: "other", layout: .qwerty26)), "qwerty26")
         XCTAssertEqual(
             Set(registry.mainLayoutCandidates(for: key).map(\.id)),
-            ["qwerty26", "zhuyin41", "cangjie26", "romaji26", "mine", "luna-a", "luna-b"])
+            ["qwerty26", "zhuyin41", "cangjie26", "romaji26", "kana12", "mine", "luna-a", "luna-b"])
     }
 
     func testRejectInvalidActionsIncludingAlternates() throws {
@@ -234,13 +234,14 @@ final class LayoutAvailabilityTests: XCTestCase {
     }
 
     func testUnrestrictedAvailabilityKeepsEveryCandidate() throws {
-        // zhuyin41, cangjie26 and romaji26 ship as bundled layouts: a catalog without a stored copy
-        // still offers them, so the candidate list is every 26-key-shape layout it can resolve.
+        // zhuyin41, cangjie26, romaji26 and kana12 ship as bundled layouts: a catalog without a
+        // stored copy still offers them, so the candidate list is every 26-key-shape layout it can
+        // resolve.
         let registry = try registryWith([definition("mine")])
         let key = KeyboardCompositionKey(inputMethodID: "bopomofo", layout: .qwerty26)
         XCTAssertEqual(
             Set(registry.mainLayoutCandidates(for: key).map(\.id)),
-            ["qwerty26", "zhuyin41", "cangjie26", "romaji26", "mine"])
+            ["qwerty26", "zhuyin41", "cangjie26", "romaji26", "kana12", "mine"])
         XCTAssertEqual(registry.defaultMainLayoutID(for: key), "qwerty26")
         XCTAssertEqual(registry.usableMainLayoutID(for: key), "qwerty26")
     }
@@ -311,7 +312,7 @@ final class LayoutAvailabilityTests: XCTestCase {
             bundled.usableMainLayoutID(for: key, availability: preferred), "romaji26",
             "an unsaved keyboard still resolves the registered family layout")
         // A family-preferred layout this build does not ship falls back to the shape preset.
-        let unshipped = availability(allowing: ["qwerty26", "kana12"], preferred: "kana12")
+        let unshipped = availability(allowing: ["qwerty26", "unshipped26"], preferred: "unshipped26")
         XCTAssertEqual(
             try registryWith([]).usableMainLayoutID(for: key, availability: unshipped), "qwerty26")
     }

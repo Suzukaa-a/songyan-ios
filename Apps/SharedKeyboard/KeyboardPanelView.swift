@@ -341,6 +341,7 @@ public struct KeyboardPanelView: View {
             // App-owned panels do not share an extension process session.
             controller.cancelRailSelection()
         }
+        clearKana12PanelBinding()
         feedback.end(token: feedbackLifecycleToken)
     }
 
@@ -813,27 +814,33 @@ public struct KeyboardPanelView: View {
                 case .phonePad:
                     standardT9Keypad
                 case .authoredRows, .standardQwerty, .mergedPad, .configuredRows, .symbolRows, .splitHalves:
-                    VStack(spacing: 4) {
-                        if showsAllCandidates && !controller.snapshot.candidates.isEmpty {
-                            expandedCandidates
-                        } else if CGFloat(mainRowCount) * (keyHeight + 4) - 4 > mainAreaHeight + 1 {
-                            ScrollView {
+                    if showsKana12Surface {
+                        // The Japanese twelve-key board draws its four rows as one surface, so the
+                        // standard rows area and its footer are replaced by it in place.
+                        kana12KeyArea
+                    } else {
+                        VStack(spacing: 4) {
+                            if showsAllCandidates && !controller.snapshot.candidates.isEmpty {
+                                expandedCandidates
+                            } else if CGFloat(mainRowCount) * (keyHeight + 4) - 4 > mainAreaHeight + 1 {
+                                ScrollView {
+                                    gatedKeyRows
+                                }
+                                .sharpCandidateScrollEdges()
+                                .frame(height: mainAreaHeight)
+                            } else {
                                 gatedKeyRows
                             }
-                            .sharpCandidateScrollEdges()
-                            .frame(height: mainAreaHeight)
-                        } else {
-                            gatedKeyRows
                         }
-                    }
-                    .frame(height: mainAreaHeight, alignment: .top)
-                    if usesConfiguredLayout && !definitionFacts.isBundledControlRowPolicy {
-                        // Author layout bar: the declared control row is rendered with its actions,
-                        // order, widths and long-press menus; shortcut injections are de-duplicated
-                        // against entries the author already declared.
-                        KeyAreaRenderGate(token: keyAreaRenderToken) { layoutUtilityBar }.equatable()
-                    } else {
-                        KeyAreaRenderGate(token: keyAreaRenderToken) { controlRow }.equatable()
+                        .frame(height: mainAreaHeight, alignment: .top)
+                        if usesConfiguredLayout && !definitionFacts.isBundledControlRowPolicy {
+                            // Author layout bar: the declared control row is rendered with its actions,
+                            // order, widths and long-press menus; shortcut injections are de-duplicated
+                            // against entries the author already declared.
+                            KeyAreaRenderGate(token: keyAreaRenderToken) { layoutUtilityBar }.equatable()
+                        } else {
+                            KeyAreaRenderGate(token: keyAreaRenderToken) { controlRow }.equatable()
+                        }
                     }
                 }
             }
@@ -971,6 +978,7 @@ public struct KeyboardPanelView: View {
             .onChange(of: hostBindingTick) {
                 refreshContentDock()
                 clearSymbolMarksOverride()
+                refreshKana12Preferences()
             }
     }
 
@@ -1014,6 +1022,7 @@ public struct KeyboardPanelView: View {
                 // still have a cost, so zero overhead is not claimed.
                 feedback.refreshPreferences()
                 feedbackLifecycleToken = feedback.prepare()
+                installKana12PanelBinding()
             }
             .onDisappear(perform: finishPanelLifecycle)
     }

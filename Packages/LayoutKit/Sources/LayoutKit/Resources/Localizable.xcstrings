@@ -1,0 +1,34 @@
+{
+  "sourceLanguage": "zh-Hans",
+  "strings": {
+    "layout.error.kanaRow": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "假名键只能填一个假名行，请重新选择。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "假名鍵只能填一個假名行，請重新選擇。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "かなキーには、かな行を 1 つだけ指定できます。選び直してください。"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A kana key can name only one kana row. Choose the row again."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

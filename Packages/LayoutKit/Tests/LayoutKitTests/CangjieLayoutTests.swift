@@ -55,7 +55,7 @@ final class CangjieLayoutTests: XCTestCase {
         // predictable for a host that lists them.
         XCTAssertEqual(
             Array(BuiltinLayouts.all.map(\.id).dropFirst(4)),
-            ["zhuyin41", "cangjie26", "romaji26"])
+            ["zhuyin41", "cangjie26", "romaji26", "kana12"])
     }
 
     func testTheThreeLetterRowsHaveTenNineSevenKeys() throws {

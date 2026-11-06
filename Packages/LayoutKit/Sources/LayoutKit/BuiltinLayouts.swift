@@ -3,7 +3,7 @@ import Foundation
 /// Independently authored layout data, also available as editable JSON in Resources/Layouts.
 public enum BuiltinLayouts {
     public static let all: [LayoutDefinition] = [
-        qwerty26, merged14, merged18, phone9, zhuyin41, cangjie26, romaji26,
+        qwerty26, merged14, merged18, phone9, zhuyin41, cangjie26, romaji26, kana12,
     ]
 
     public static let qwerty26 = LayoutDefinition(
@@ -481,6 +481,63 @@ public enum BuiltinLayouts {
         rows[2] = LayoutRow(keys: rows[2].keys + [longVowelKey])
         return rows
     }
+
+    /// The Japanese twelve-key (kana12) board: the 4 x 3 kana grid between a leading rail
+    /// (composition caret left, 記号, あ/A, the system keyboard switch) and a trailing rail
+    /// (delete, space, Return spanning the lower two rows). The grid carries the tap key of each
+    /// row only: flick and repeated-tap targets belong to the kana input model, so a cap names its
+    /// row and the handler spells that row's kana into the engine. Because the fourth row types
+    /// kana it is content, not a control row, so neither the 26-key Shift/Delete chrome nor the
+    /// automatic footer is drawn over the grid; the leading rail's globe is the only keyboard
+    /// switch, which keeps the four rows intact.
+    public static let kana12 = LayoutDefinition(
+        id: "kana12", name: "假名 12 键",
+        input: .init(builtinLayout: .qwerty26),
+        rows: kana12Rows(),
+        auxiliaryAreas: [kana12LeadingRail, kana12TrailingRail])
+
+    /// あ か さ / た な は / ま や ら: the tap glyph of each row with the row id the kana handler
+    /// turns into romaji.
+    private static let kana12Grid: [[(cap: String, rowID: String)]] = [
+        [("あ", "a"), ("か", "ka"), ("さ", "sa")],
+        [("た", "ta"), ("な", "na"), ("は", "ha")],
+        [("ま", "ma"), ("や", "ya"), ("ら", "ra")],
+    ]
+
+    /// 小゛゜ わ 、。?!: the modifier edits the kana just typed, わ taps its row, and 標点 types its
+    /// tap mark (。 ？ ！ … are flick targets of the kana model).
+    private static let kana12BottomRow = LayoutRow(keys: [
+        LayoutKey(label: "小゛゜", action: .kanaModifier),
+        LayoutKey(label: "わ", action: .kana("wa")),
+        LayoutKey(label: "、。?!", action: .init(.literal, value: "、")),
+    ])
+
+    private static func kana12Rows() -> [LayoutRow] {
+        kana12Grid.map { row in
+            LayoutRow(keys: row.map { LayoutKey(label: $0.cap, action: .kana($0.rowID)) })
+        } + [kana12BottomRow]
+    }
+
+    /// Four keys, one per grid row. Every face is automatic, so the board reads 記号 and あ/A for
+    /// Japanese; only the named caret key keeps its stored face because no control draws it.
+    private static let kana12LeadingRail = LayoutAuxiliaryArea(
+        position: .leading, role: .editing,
+        keys: [
+            LayoutKey(label: "←", action: .cursorLeft),
+            LayoutKey(label: "記号", action: .pageSwitch(.symbols), titleMode: .automatic),
+            LayoutKey(label: "あ/A", action: .languageSwitch(), titleMode: .automatic),
+            LayoutKey(label: "🌐", action: .init(.globe), titleMode: .automatic),
+        ])
+
+    /// Delete, space and Return; Return's span is two rows, the existing rail width field, so the
+    /// rail covers the same four rows as the grid without a height metadata of its own.
+    private static let kana12TrailingRail = LayoutAuxiliaryArea(
+        position: .trailing, role: .editing,
+        keys: [
+            LayoutKey(label: "⌫", action: .init(.backspace), titleMode: .automatic),
+            LayoutKey(label: "空格", action: .init(.space), titleMode: .automatic),
+            LayoutKey(label: "⏎", width: 2, action: .init(.enter), titleMode: .automatic),
+        ])
 }
 
 // MARK: - Bundled shell identity

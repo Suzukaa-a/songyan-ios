@@ -329,6 +329,15 @@ public final class KeyboardController: ObservableObject {
     /// Memory only, bounded; a guess source for display, never for commits.
     var knownCharacterReadings: [Character: [String]] = [:]
 
+    // MARK: Kana12 input binding state (see KeyboardController+Kana12.swift)
+
+    /// Pure kana12 model, the gestures that arrived while an earlier gesture's batch was still
+    /// decoding, and the document generation those gestures belong to.
+    var kana12 = Kana12BindingState()
+    /// Panel-level navigation for the kana12 surface (symbols page, language key). The
+    /// controller calls it in press order, after every earlier kana gesture has landed.
+    var onKana12Navigation: ((Kana12ViewAction) -> Void)?
+
     // MARK: Input effect observation (feedback/recents fire once, only after a real effect)
 
     /// Snapshot of the "observable effects" around one action: host commit/delete counts, engine
@@ -523,14 +532,23 @@ public final class KeyboardController: ObservableObject {
         self.inputMode = session.mode
         self.shiftState = session.shiftState
         // The engine's composition display request was already installed by `InputSession` for the actual layout; nothing to set here.
-        session.onUpdate = { [weak self] in self?.refresh() }
+        session.onUpdate = { [weak self] in
+            guard let self else { return }
+            self.refresh()
+            self.observeKana12AfterRefresh()
+        }
         // Composing code keys decode on the engine queue (`InputSession.codeKeyQueue`);
         // the field echoes keys still decoding so none of them looks lost.
         if engine is RimeBackend {
             session.codeKeyQueue = EngineOpCodeKeyQueue.shared
             session.codeBatchLookaheadPages = Self.candidatePagesPerRead - 1
         }
-        session.onPendingCodesChanged = { [weak self] in self?.publishPendingEcho() }
+        session.onPendingCodesChanged = { [weak self] in
+            guard let self else { return }
+            self.publishPendingEcho()
+            // A landed batch frees the next kana12 gesture to compute its keys.
+            self.pumpKana12Intents()
+        }
         session.onError = { [weak self] error in
             guard let self else { return }
             // The first reflective description is expensive (about 17ms measured on the simulator): format it in the background, off the key-press main thread.
@@ -582,6 +600,8 @@ public final class KeyboardController: ObservableObject {
         onReadDocumentContext = nil
         onReplaceLiteralSuffix = nil
         punctuationCycle.reset()
+        resetKana12State()
+        onKana12Navigation = nil
         onRequestHostTraitsRefresh = nil
         onRequestSwitchKeyboard = nil
         onMoveCursor = nil
@@ -595,6 +615,8 @@ public final class KeyboardController: ObservableObject {
     /// semantics; digit/symbol keys (`.literal`) go through the common direct-insert entry `insertLiteral`.
     public func handle(_ action: KeyAction) {
         guard !retired else { return }
+        // A key from another surface ends kana12's claim on the composition tail.
+        invalidateKana12Ownership()
         punctuationCycle.reset()
         #if SONGYAN_PERF
             let endPerformanceInterval = KeyboardPerformanceTrace.interval("key")

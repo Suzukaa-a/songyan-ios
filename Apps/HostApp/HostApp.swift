@@ -89,7 +89,8 @@ struct HostApp: App {
             let fixtures = environment[fixturesKey].map { URL(fileURLWithPath: $0, isDirectory: true) }
             do {
                 let outcome = try await EngineOwnershipCoordinator.shared.withExclusive {
-                    try await EngineOpQueue.async { probe(mode: mode, fixtures: fixtures) }
+                    if mode == "K" { return try await kanaRuntimeProbe(fixtures: fixtures) }
+                    return try await EngineOpQueue.async { probe(mode: mode, fixtures: fixtures) }
                 }
                 print("DEPLOYMENT_PROBE_RESULT success=\(outcome.success) report=\(outcome.reportPath)")
                 return mode == "E" && outcome.success
@@ -106,6 +107,93 @@ struct HostApp: App {
         private struct Outcome {
             let reportPath: String
             let success: Bool
+        }
+
+        @MainActor private static func kanaRuntimeProbe(fixtures: URL?) async throws -> Outcome {
+            guard let fixtures else { throw ProbeError.message("missing kana fixture") }
+            let run = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+                .appendingPathComponent("Kana12Probe/" + UUID().uuidString, isDirectory: true)
+            let reportURL = run.appendingPathComponent("report.json")
+            let backend = RimeBackend(
+                sharedDirectory: fixtures.appendingPathComponent("source"),
+                userDirectory: run.appendingPathComponent("user"),
+                prebuiltDirectory: fixtures.appendingPathComponent("compiled"))
+            var report: [String: Any] = ["mode": "K", "success": false]
+            var checks: [[String: Any]] = []
+            var controller: KeyboardController?
+            do {
+                try await EngineOpQueue.async {
+                    try FileManager.default.createDirectory(at: run, withIntermediateDirectories: true)
+                    try backend.startIfNeeded()
+                    try backend.selectSchema("kagiroi")
+                }
+                let keyboard = KeyboardController(layout: .qwerty26, engine: backend)
+                controller = keyboard
+                var committed = ""
+                keyboard.onDispatchCommit = {
+                    committed += $0
+                    return true
+                }
+                func press(_ action: Kana12ViewAction) async throws {
+                    keyboard.handleKana12(action)
+                    for _ in 0..<200 {
+                        if keyboard.session.pendingCodes.isEmpty && keyboard.kana12.queued.isEmpty { return }
+                        try await Task.sleep(nanoseconds: 5_000_000)
+                    }
+                    throw ProbeError.message("kana queue did not settle")
+                }
+                func clear() async throws {
+                    try await EngineOpQueue.async { backend.clearComposition() }
+                    keyboard.session.refresh()
+                    keyboard.resetKana12State()
+                    committed = ""
+                }
+                func check(_ name: String, _ actual: String, _ expected: String) {
+                    checks.append(["name": name, "actual": actual, "expected": expected, "passed": actual == expected])
+                }
+                try await press(.kana(rowId: "ka", direction: .center))
+                check("first kana", keyboard.snapshot.rawInput, "か")
+                try await press(.kana(rowId: "ka", direction: .center))
+                check("repeated tap replaces the kana", keyboard.snapshot.rawInput, "き")
+                try await clear()
+                try await press(.kana(rowId: "sa", direction: .up))
+                try await press(.kana(rowId: "sa", direction: .left))
+                check("flick types sushi", keyboard.snapshot.rawInput, "すし")
+                try await press(.enter)
+                check("Return commits raw kana", committed, "すし")
+                try await clear()
+                try await press(.kana(rowId: "ta", direction: .up))
+                try await press(.modify)
+                check("modifier makes small tsu", keyboard.snapshot.rawInput, "っ")
+                try await press(.modify)
+                check("modifier makes voiced tsu", keyboard.snapshot.rawInput, "づ")
+                try await clear()
+                keyboard.kana12FlickOnly = true
+                try await press(.kana(rowId: "ka", direction: .center))
+                try await press(.kana(rowId: "ka", direction: .center))
+                check("flick only keeps repeated kana", keyboard.snapshot.rawInput, "かか")
+                let before = keyboard.snapshot.preeditCaretByte
+                try await press(.cursorLeft)
+                checks.append([
+                    "name": "left moves composition caret without committing",
+                    "passed":
+                        keyboard.snapshot.isComposing && keyboard.snapshot.preeditCaretByte < before
+                        && committed.isEmpty,
+                ])
+                report["success"] = checks.allSatisfy { $0["passed"] as? Bool == true }
+                report["checks"] = checks
+            } catch {
+                report["checks"] = checks
+                report["error"] = String(describing: error)
+            }
+            controller?.retire()
+            let data = try JSONSerialization.data(withJSONObject: report, options: [.prettyPrinted, .sortedKeys])
+            try await EngineOpQueue.async {
+                backend.shutdown()
+                try FileManager.default.createDirectory(at: run, withIntermediateDirectories: true)
+                try data.write(to: reportURL)
+            }
+            return Outcome(reportPath: reportURL.path, success: report["success"] as? Bool == true)
         }
 
         private static func probe(mode: String, fixtures: URL?) -> Outcome {

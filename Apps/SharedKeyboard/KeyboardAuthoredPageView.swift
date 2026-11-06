@@ -265,7 +265,10 @@ struct KeyboardAuthoredPageKey: View {
         case .globe: return .switchKeyboard
         case .modeSwitch: return .cycleLayout
         case .code: return .code(action.value ?? "")
-        case .shift, .pageSwitch, .languageSwitch, .symbolLock, .clearInput, .layoutPageSwitch:
+        case .shift, .pageSwitch, .languageSwitch, .symbolLock, .clearInput, .layoutPageSwitch,
+            .kana, .kanaModifier, .cursorLeft:
+            // A page-level action has no engine face; the tap is routed through the action table
+            // (the kana gestures reach the kana handler there), so the face only picks the tone.
             return .cycleLayout
         }
     }

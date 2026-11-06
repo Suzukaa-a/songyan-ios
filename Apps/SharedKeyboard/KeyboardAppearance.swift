@@ -93,6 +93,23 @@ public enum KeyboardKeyFeelPreferences {
     }
 }
 
+/// The Japanese twelve-key board's "只用 flick" option (default off): when off, repeated taps of the
+/// same key cycle that row's kana; when on, only flicks do. Read at each presentation like the key
+/// feel options, never per key.
+public enum KeyboardKana12Preferences {
+    public static let flickOnlyKey = "keyboard.kana12FlickOnly.v1"
+    public static let defaultFlickOnly = false
+    public static var defaults: UserDefaults { KeyboardRecipeStore.sharedDefaults() ?? .standard }
+
+    public static var flickOnly: Bool {
+        (SharedPreferences.object(forKey: flickOnlyKey, in: defaults) as? Bool) ?? defaultFlickOnly
+    }
+
+    public static func setFlickOnly(_ value: Bool) {
+        SharedPreferences.set(value, forKey: flickOnlyKey, in: defaults)
+    }
+}
+
 /// Where a width-capped wide-screen keyboard sits. One value per physical layout, so a
 /// 9-key phone pad can hug the left while a 14-key pad stays centred. Unknown or missing
 /// values resolve to centre; the keyboard re-reads them per presentation, never per key.

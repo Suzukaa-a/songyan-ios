@@ -295,9 +295,14 @@ struct KeyboardPageAuthoredActions {
 
 extension LayoutAction.Kind {
     /// Page-level controls the host dispatches itself; they never become an engine key action.
+    /// The kana kinds belong here too: a row, the modifier and the composition caret are resolved
+    /// by the kana handler, so an edited board's stored kana key keeps working through the same
+    /// page/definition dispatcher instead of needing a fake engine codeword.
     var isPageUI: Bool {
         switch self {
-        case .shift, .pageSwitch, .languageSwitch, .symbolLock, .clearInput, .layoutPageSwitch: return true
+        case .shift, .pageSwitch, .languageSwitch, .symbolLock, .clearInput, .layoutPageSwitch,
+            .kana, .kanaModifier, .cursorLeft:
+            return true
         default: return false
         }
     }

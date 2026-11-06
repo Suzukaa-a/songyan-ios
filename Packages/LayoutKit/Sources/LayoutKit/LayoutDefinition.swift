@@ -11,6 +11,16 @@ public struct LayoutAction: Codable, Equatable, Sendable {
         /// A kind of its own (not a `pageSwitch` value) so a decoder that predates it rejects the
         /// file instead of opening a page of the wrong layout.
         case layoutPageSwitch
+        /// One tap key of the Japanese twelve-key kana grid, addressed by its row id (`a`, `ka`,
+        /// …, `punctuation`). The kana handler sends the row's romaji spelling to the engine as
+        /// one batch, so the value names a row rather than a single engine key: a decoder that
+        /// predates this kind rejects the board instead of drawing a kana cap as a letter.
+        case kana
+        /// The Japanese twelve-key modifier (小゛゜): the kana renderer applies it to the kana just
+        /// typed in the live composition, so the key carries no value and sends no key of its own.
+        case kanaModifier
+        /// Moves the composition caret left through the engine's own Left key; nothing is typed.
+        case cursorLeft
     }
 
     /// The only page a `.pageSwitch` key may open.
@@ -72,6 +82,28 @@ public struct LayoutAction: Codable, Equatable, Sendable {
         self.value = value
         self.asciiValue = asciiValue
     }
+
+    /// Every row id a `.kana` key may carry: one per tap glyph of the Japanese twelve-key grid,
+    /// in draw order. The flick and toggle targets of a row belong to the kana input model, not to
+    /// layout data, so the ids name rows rather than individual kana.
+    public static let kanaRowIDs: [String] = [
+        "a", "ka", "sa", "ta", "na", "ha", "ma", "ya", "ra", "wa", "punctuation",
+    ]
+
+    /// The tap key of one kana12 grid row.
+    public static func kana(_ rowID: String) -> LayoutAction {
+        LayoutAction(.kana, value: rowID)
+    }
+
+    /// The kana12 modifier key (小゛゜).
+    public static let kanaModifier = LayoutAction(.kanaModifier)
+
+    /// The kana12 composition caret-left key.
+    public static let cursorLeft = LayoutAction(.cursorLeft)
+
+    /// Whether the key reaches the engine as input instead of being dispatched by the host alone:
+    /// a Latin code key, or a kana row key the kana handler spells out for the engine.
+    public var isEngineInput: Bool { type == .code || type == .kana }
 
     /// The page a `.pageSwitch` key opens, or nil for every other kind.
     public var pageSwitchTarget: PageTarget? {
@@ -160,7 +192,12 @@ public struct LayoutAction: Codable, Equatable, Sendable {
             guard value.map({ LanguageSwitchBehavior(rawValue: $0) != nil }) ?? true else {
                 throw LayoutError.invalid("中英键的行为无法识别，请重新选择。")
             }
-        case .shift, .symbolLock, .clearInput, .space, .backspace, .enter, .globe:
+        case .kana:
+            guard let value, Self.kanaRowIDs.contains(value) else {
+                throw LayoutError.invalid(String(localized: "layout.error.kanaRow", bundle: .module))
+            }
+        case .shift, .symbolLock, .clearInput, .space, .backspace, .enter, .globe, .kanaModifier,
+            .cursorLeft:
             guard value == nil else {
                 throw LayoutError.invalid("这个功能键不需要填写输入的文字，请清空后保存。")
             }
@@ -314,7 +351,7 @@ public struct LayoutDefinition: Codable, Equatable, Sendable, Identifiable {
             rows.flatMap(\.keys) + (split?.halves ?? []).flatMap(\.keys)
             + (auxiliaryAreas ?? []).flatMap(\.keys)
         return keys.contains { key in
-            key.action.type == .code || (key.longPress ?? []).contains { $0.action.type == .code }
+            key.action.isEngineInput || (key.longPress ?? []).contains { $0.action.isEngineInput }
         }
     }
     public var effectiveCandidateArea: LayoutCandidateArea {

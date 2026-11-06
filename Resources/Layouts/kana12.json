@@ -1,0 +1,40 @@
+{
+  "id": "kana12",
+  "name": "假名 12 键",
+  "input": {"builtinLayout": "qwerty26"},
+  "rows": [
+    {"keys": [
+      {"label":"あ","action":{"type":"kana","value":"a"}},
+      {"label":"か","action":{"type":"kana","value":"ka"}},
+      {"label":"さ","action":{"type":"kana","value":"sa"}}
+    ]},
+    {"keys": [
+      {"label":"た","action":{"type":"kana","value":"ta"}},
+      {"label":"な","action":{"type":"kana","value":"na"}},
+      {"label":"は","action":{"type":"kana","value":"ha"}}
+    ]},
+    {"keys": [
+      {"label":"ま","action":{"type":"kana","value":"ma"}},
+      {"label":"や","action":{"type":"kana","value":"ya"}},
+      {"label":"ら","action":{"type":"kana","value":"ra"}}
+    ]},
+    {"keys": [
+      {"label":"小゛゜","action":{"type":"kanaModifier"}},
+      {"label":"わ","action":{"type":"kana","value":"wa"}},
+      {"label":"、。?!","action":{"type":"literal","value":"、"}}
+    ]}
+  ],
+  "auxiliaryAreas": [
+    {"position":"leading","role":"editing","keys": [
+      {"label":"←","action":{"type":"cursorLeft"}},
+      {"label":"記号","titleMode":"automatic","action":{"type":"pageSwitch","value":"symbols"}},
+      {"label":"あ/A","titleMode":"automatic","action":{"type":"languageSwitch"}},
+      {"label":"🌐","titleMode":"automatic","action":{"type":"globe"}}
+    ]},
+    {"position":"trailing","role":"editing","keys": [
+      {"label":"⌫","titleMode":"automatic","action":{"type":"backspace"}},
+      {"label":"空格","titleMode":"automatic","action":{"type":"space"}},
+      {"label":"⏎","width":2,"titleMode":"automatic","action":{"type":"enter"}}
+    ]}
+  ]
+}

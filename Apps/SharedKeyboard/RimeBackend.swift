@@ -863,6 +863,9 @@ public final class RimeBackend: EngineBackend, @unchecked Sendable {
         case "\u{08}": return .backspace
         case "\n": return .return
         case "Esc": return RimeKey(keycode: RimeKeyCode.keyEscape)
+        // Kana12 queues a composition caret move through the same code-key batch, so a
+        // replacement typed after it can never overtake it.
+        case "Left": return RimeKey(keycode: RimeKeyCode.keyLeft)
         case " ": return .space
         default:
             guard value.count == 1, let ch = value.first else { return nil }

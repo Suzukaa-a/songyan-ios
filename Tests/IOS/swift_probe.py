@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 import platform
+import plistlib
 import subprocess
 import tempfile
 from contextlib import contextmanager
@@ -28,6 +29,20 @@ def type_source_text(directory, stem):
     return "\n".join(path.read_text(encoding="utf-8") for path in type_sources(directory, stem))
 
 
+def kana_surface_contract(directory):
+    """The kana surface's plain view-action contract, copied from its production view file.
+
+    The controller stores the queued navigation callback typed by `Kana12ViewAction`, so a probe
+    that compiles the controller without SwiftUI still needs the two value enums the surface
+    declares. They are pure values, so the declarations themselves are the fixture.
+    """
+    view = (ROOT / "Apps/SharedKeyboard/Kana12KeyboardView.swift").read_text(encoding="utf-8")
+    contract = section(view, "/// A flick direction on a kana key.", "/// One kana key of the 4x3 grid")
+    target = directory / "Kana12SurfaceContract.swift"
+    target.write_text(contract, encoding="utf-8")
+    return target
+
+
 def controller_sources(directory):
     """Every production KeyboardController file, with UIKit swapped for the macOS QuartzCore seam."""
     paths = []
@@ -36,6 +51,7 @@ def controller_sources(directory):
         target.write_text(source.read_text(encoding="utf-8").replace("import UIKit", "import QuartzCore"),
                           encoding="utf-8")
         paths.append(target)
+    paths.append(kana_surface_contract(directory))
     return paths
 
 
@@ -120,7 +136,8 @@ def module_cache_is_valid(directory):
 
 def module_sources():
     return [(path, path.read_bytes()) for name, _ in MODULES
-            for path in sorted((ROOT / f"Packages/{name}/Sources/{name}").rglob("*.swift"))]
+            for path in sorted((ROOT / f"Packages/{name}/Sources/{name}").rglob("*"))
+            if path.suffix in (".swift", ".xcstrings")]
 
 
 def production_modules():
@@ -141,7 +158,20 @@ def production_modules():
         marker.unlink(missing_ok=True)
         for name, dependencies in MODULES:
             paths = [path for path, _ in sources
-                     if path.is_relative_to(ROOT / f"Packages/{name}/Sources/{name}")]
+                     if path.suffix == ".swift" and path.is_relative_to(ROOT / f"Packages/{name}/Sources/{name}")]
+            catalogs = [path for path, _ in sources
+                        if path.suffix == ".xcstrings" and path.is_relative_to(ROOT / f"Packages/{name}/Sources/{name}")]
+            if catalogs:
+                bundle = directory / f"{name}.bundle"
+                bundle.mkdir(exist_ok=True)
+                (bundle / "Info.plist").write_bytes(plistlib.dumps({"CFBundleDevelopmentRegion": "zh-Hans"}))
+                for catalog in catalogs:
+                    run(["xcrun", "xcstringstool", "compile", str(catalog), "--output-directory", str(bundle)])
+                accessor = directory / f"{name}-resources.swift"
+                accessor.write_text(
+                    "import Foundation\nextension Bundle { static let module = Bundle(path: "
+                    + json.dumps(str(bundle)) + ")! }\n")
+                paths.append(accessor)
             run(["xcrun", "swiftc", *MODULE_FLAGS, "-module-name", name,
                  "-sdk", identity["sdk"], "-I", str(directory), "-L", str(directory),
                  "-module-cache-path", str(directory / "module-cache"),
@@ -159,6 +189,10 @@ def production_modules():
 
 
 def compile_swift(directory, sources, *, library=False, dependencies=()):
+    sources = list(sources)
+    if ROOT / "Packages/LayoutKit/Sources/LayoutKit/LayoutDefinition.swift" in sources:
+        # Source-level host probes use the same compiled catalog as the package module.
+        sources.append(production_modules() / "LayoutKit-resources.swift")
     binary = directory / "probe"
     flags = ["-parse-as-library"] if library else []
     if dependencies:

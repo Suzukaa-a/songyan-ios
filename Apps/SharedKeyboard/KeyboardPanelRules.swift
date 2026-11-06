@@ -83,6 +83,13 @@ enum KeyboardPanelRules {
         return facts.isBundledMergedPad ? .mergedPad : .configuredRows
     }
 
+    /// Whether the resolved definition is the bundled Japanese twelve-key board, field for field.
+    /// Only that exact board may draw the fixed kana surface: an edited copy (label, action, rail or
+    /// long-press change) is the author's board and keeps its own faces through the ordinary rows.
+    static func isCanonicalKana12(_ definition: LayoutDefinition?) -> Bool {
+        definition == BuiltinLayouts.kana12
+    }
+
     /// The phone treatment belongs to the visible shell: an English QWERTY letter page uses the
     /// shared symbol entry and bottom Return even when the Chinese definition is a phone pad.
     static func phoneShellVisible(
@@ -226,7 +233,11 @@ extension LayoutAction {
         case .enter: return .enter
         case .globe: return .switchKeyboard
         case .modeSwitch: return .cycleLayout
-        case .shift, .pageSwitch, .languageSwitch, .symbolLock, .clearInput, .layoutPageSwitch:
+        case .shift, .pageSwitch, .languageSwitch, .symbolLock, .clearInput, .layoutPageSwitch,
+            // The kana kinds are dispatched by the kana renderer/handler, never as one engine key:
+            // a whole kana row or a caret move has no single Latin codeword, and an edited board's
+            // stored kana action must not be flattened into one.
+            .kana, .kanaModifier, .cursorLeft:
             return .cycleLayout
         }
     }
