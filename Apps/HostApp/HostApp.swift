@@ -155,6 +155,9 @@ struct HostApp: App {
                     }
                 }
 
+                if mode == "A" {
+                    try EngineSchemaSelection.seedCompiledBuild(resources: shared, user: user)
+                }
                 deployStart = CFAbsoluteTimeGetCurrent()
                 let engine = RimeEngine(
                     configuration: .init(

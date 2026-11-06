@@ -7,10 +7,12 @@ or otherwise distributed with the app). The same list applies to every
 platform build; components that only one platform ships are listed in that
 platform's own notice file.
 
-License texts for components 1-8 are reproduced in the appendix below. The
-additional full terms for components 9-18 are bundled with the app as the
-license files named in each entry; the project's own GPL-3.0-only terms are in
-the repository root LICENSE.
+License texts for components 1-8 and 20 are reproduced in the appendix below.
+The additional full terms for the remaining components are bundled with the
+app as the license files named in each entry; the project's own GPL-3.0-only
+terms are in the repository root LICENSE. Components 19 and 20 belong to
+optional Japanese input scheme packages imported by the user; their dictionary
+data is not bundled with the app.
 
 1. librime 1.17.0
    - Upstream: https://github.com/rime/librime
@@ -176,6 +178,38 @@ the repository root LICENSE.
     - License: Boost Software License 1.0; Copyright 2006 Nemanja Trifunovic
     - Role: UTF-8 iteration inside librime (header only).
     - Full text: boost-1.89.0-LICENSE_1_0.txt (same license)
+
+19. rime-kagiroi (Japanese input scheme)
+    - Upstream: https://github.com/rimeinn/rime-kagiroi
+    - Pinned: commit 808a195415e6d7bd3a41b1747039d8459bfde207
+    - License: GPL-3.0; full text: GPL-3.0.txt (also the repository root
+      LICENSE).
+    - Role: Japanese scheme with its Lua components in optional imported
+      packages. The package carries the Mozc-derived dictionaries and
+      connection data of component 20; it also carries default.yaml,
+      key_bindings.yaml and punctuation.yaml derived from rime-prelude
+      (component 15, LGPL-3.0). The kagiroi.nico dictionary is not part of the
+      package.
+
+20. Mozc dictionary data
+    - Upstream: https://github.com/google/mozc
+    - Pinned: commit 006ed69bf545548a8a3596b13f58cb22cf3d8a2f (dictionary
+      data under src/data/dictionary_oss)
+    - License reference cited by rime-kagiroi:
+      https://github.com/google/mozc/blob/006ed69bf545548a8a3596b13f58cb22cf3d8a2f/src/data/dictionary_oss/README.txt
+    - License: BSD 3-Clause, Copyright 2010-2018 Google Inc.; the dictionary
+      data additionally carries the IPAdic terms (Copyright 2000, 2001, 2002,
+      2003 Nara Institute of Science and Technology, with the ICOT Free
+      Software conditions) and the Okinawa dictionary notice (public domain).
+      Full text: Mozc-006ed69b-LICENSE.txt.
+    - IPAdic 2.7.0 (mecab-ipadic-2.7.0-20070801):
+      https://github.com/taku910/mecab (mecab-ipadic)
+    - Okinawa dictionary data: public domain; its notice is reproduced in
+      Mozc-006ed69b-LICENSE.txt.
+    - Role: source of kagiroi.mozc.dict.yaml and of the converted kanji,
+      symbol and connection data in the kagiroi package
+      (kagiroi_kanji.dict.yaml, kagiroi_symbols.dict.yaml,
+      kagiroi_matrix.dict.yaml); not bundled with the app.
 
 Distribution note
 -----------------
@@ -404,6 +438,123 @@ Lesser General Public License for more details.
 You should have received a copy of the GNU Lesser General Public
 License along with this library; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+
+
+================================================================
+% licenses/Mozc-006ed69b-LICENSE.txt
+================================================================
+
+Copyright 2010-2018, Google Inc.
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+  * Redistributions of source code must retain the above copyright
+    notice, this list of conditions and the following disclaimer.
+  * Redistributions in binary form must reproduce the above
+    copyright notice, this list of conditions and the following disclaimer
+    in the documentation and/or other materials provided with the
+    distribution.
+  * Neither the name of Google Inc. nor the names of its
+    contributors may be used to endorse or promote products derived from
+    this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+---
+
+Files: src/data/dictionary*
+
+Copyright 2000, 2001, 2002, 2003 Nara Institute of Science
+and Technology.  All Rights Reserved.
+
+Use, reproduction, and distribution of this software is permitted.
+Any copy of this software, whether in its original form or modified,
+must include both the above copyright notice and the following
+paragraphs.
+
+Nara Institute of Science and Technology (NAIST),
+the copyright holders, disclaims all warranties with regard to this
+software, including all implied warranties of merchantability and
+fitness, in no event shall NAIST be liable for
+any special, indirect or consequential damages or any damages
+whatsoever resulting from loss of use, data or profits, whether in an
+action of contract, negligence or other tortuous action, arising out
+of or in connection with the use or performance of this software.
+
+A large portion of the dictionary entries
+originate from ICOT Free Software.  The following conditions for ICOT
+Free Software applies to the current dictionary as well.
+
+Each User may also freely distribute the Program, whether in its
+original form or modified, to any third party or parties, PROVIDED
+that the provisions of Section 3 ("NO WARRANTY") will ALWAYS appear
+on, or be attached to, the Program, which is distributed substantially
+in the same form as set out herein and that such intended
+distribution, if actually made, will neither violate or otherwise
+contravene any of the laws and regulations of the countries having
+jurisdiction over the User or the intended distribution itself.
+
+NO WARRANTY
+
+The program was produced on an experimental basis in the course of the
+research and development conducted during the project and is provided
+to users as so produced on an experimental basis.  Accordingly, the
+program is provided without any warranty whatsoever, whether express,
+implied, statutory or otherwise.  The term "warranty" used herein
+includes, but is not limited to, any warranty of the quality,
+performance, merchantability and fitness for a particular purpose of
+the program and the nonexistence of any infringement or violation of
+any right of any third party.
+
+Each user of the program will agree and understand, and be deemed to
+have agreed and understood, that there is no warranty whatsoever for
+the program and, accordingly, the entire risk arising from or
+otherwise connected with the program is assumed by the user.
+
+Therefore, neither ICOT, the copyright holder, or any other
+organization that participated in or was otherwise related to the
+development of the program and their respective officials, directors,
+officers and other employees shall be held liable for any and all
+damages, including, without limitation, general, special, incidental
+and consequential damages, arising out of or otherwise in connection
+with the use or inability to use the program or any product, material
+or result produced or otherwise obtained by using the program,
+regardless of whether they have been advised of, or otherwise had
+knowledge of, the possibility of such damages at any time during the
+project or thereafter.  Each user will be deemed to have agreed to the
+foregoing by his or her commencement of use of the program.  The term
+"use" as used herein includes, but is not limited to, the use,
+modification, copying and distribution of the program and the
+production of secondary products from the program.
+
+In the case where the program, whether in its original form or
+modified, was distributed or delivered to or received by a user from
+any person, organization or entity other than ICOT, unless it makes or
+grants independently of ICOT any specific warranty to the user in
+writing, such person, organization or entity, will also be exempted
+from and not be held liable to the user for any such damages as noted
+above as far as the program is concerned.
+
+---
+
+Files: src/data/dictionary*
+
+Public Domain Dataです。使用・変更・配布に関しては一切の制限をつけません。
+商品などに組み込むことも自由に行なってください。すでにいくつかの辞書には沖縄辞書が採用されています。
+勝手ながら、沖縄辞書に寄贈された辞書も in the Public Domain' 扱いとさせていただきます。
 
 
 ================================================================

@@ -261,9 +261,9 @@ public extension RecipePackageManager {
         var sourceBytes = 0
         var modelBytes = 0
         var stagedEntries = 0
-        // Model snapshots must outlive this reader: the installation copies them after it returns.
-        let modelStaging = FileManager.default.temporaryDirectory
-            .appendingPathComponent("scheme-models-" + UUID().uuidString)
+        // Resource snapshots must outlive this reader: the installation copies them after it returns.
+        let resourceStaging = FileManager.default.temporaryDirectory
+            .appendingPathComponent("scheme-resources-" + UUID().uuidString)
         for (index, url) in urls.enumerated() {
             let snapshot = workspace.appendingPathComponent("source-\(index).zip")
             try inputs[index].copy(to: snapshot)
@@ -277,7 +277,35 @@ public extension RecipePackageManager {
             for (entry, path) in entries where entry.type != .directory {
                 let logicalPath = wrapper.map { String(path.dropFirst($0.count + 1)) } ?? path
                 if logicalPath == ".git" || logicalPath.hasPrefix(".git/") { continue }
-                if logicalPath.hasPrefix("build/") && logicalPath != "build/.gitkeep" { continue }
+                if logicalPath.hasPrefix("build/"), logicalPath != "build/.gitkeep" {
+                    // Compiled artifacts are the deployment product of a locally built package:
+                    // they keep their build/ path as file references, never as in-memory Data.
+                    guard SchemeSourceCheck.isCompiledBuildFile(logicalPath) else { continue }
+                    let size = Int(clamping: entry.uncompressedSize)
+                    guard size <= RecipeResourceBudget.maximumFileBytes(logicalPath),
+                        sourceBytes + size <= RecipeResourceBudget.sourceTotal
+                    else {
+                        throw RecipeInstallError.invalidResource("ZIP 解压后大小超过限制")
+                    }
+                    let staged = workspace.appendingPathComponent("compiled-\(index)-\(stagedEntries).bin")
+                    stagedEntries += 1
+                    let digest = try Self.extractArchiveEntry(entry, from: archive, path: path, to: staged)
+                    if let owner = claimedPaths[logicalPath.lowercased()] {
+                        guard fileResources[owner.path]?.sha256 == digest else {
+                            throw Self.archiveConflict(path: logicalPath, owner: owner.label, label: label)
+                        }
+                        continue
+                    }
+                    let resource = try RecipeFileResource.snapshot(
+                        from: staged, directory: resourceStaging,
+                        maximumBytes: min(
+                            RecipeResourceBudget.sourceFile,
+                            max(0, RecipeResourceBudget.sourceTotal - sourceBytes)))
+                    sourceBytes += resource.size
+                    fileResources[logicalPath] = resource
+                    claimedPaths[logicalPath.lowercased()] = (logicalPath, label)
+                    continue
+                }
                 // The entry archive owns the package's default configuration; a dependency's
                 // default.yaml (or its schema_list patch) must never become the published list.
                 if index > 0, ["default.yaml", "default.custom.yaml"].contains(logicalPath.lowercased()) {
@@ -321,7 +349,7 @@ public extension RecipePackageManager {
                         continue
                     }
                     let resource = try RecipeFileResource.snapshot(
-                        from: staged, directory: modelStaging,
+                        from: staged, directory: resourceStaging,
                         maximumBytes: min(
                             RecipeResourceBudget.modelFile, RecipeResourceBudget.modelTotal - modelBytes))
                     modelBytes += resource.size
@@ -512,6 +540,20 @@ public extension RecipePackageManager {
                         }
                         files.append(DictionaryImportFile(path: prefix + "build/.gitkeep", location: placeholder))
                     }
+                    // A package compiled on a machine ships the deployment product instead of text
+                    // dictionaries; only the known compiled files are read, and they stay file
+                    // references in the file import below.
+                    for entry in try fm.contentsOfDirectory(
+                        at: child, includingPropertiesForKeys: [.isDirectoryKey, .isSymbolicLinkKey])
+                    {
+                        let compiledPath = prefix + "build/" + entry.lastPathComponent
+                        guard SchemeSourceCheck.isCompiledBuildFile(compiledPath) else { continue }
+                        let entryInfo = try entry.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
+                        guard entryInfo.isSymbolicLink != true, entryInfo.isDirectory != true else {
+                            throw RecipeInstallError.invalidResource("不支持符号链接：\(entry.path)")
+                        }
+                        files.append(DictionaryImportFile(path: compiledPath, location: entry))
+                    }
                     continue
                 }
                 visited += 1
@@ -549,9 +591,9 @@ public extension RecipePackageManager {
     ) throws -> PreparedSchemeImport {
         var bytes: [String: Data] = [:]
         var fileResources: [String: RecipeFileResource] = [:]
-        let modelStaging = FileManager.default.temporaryDirectory
+        let resourceStaging = FileManager.default.temporaryDirectory
         var names = Set<String>()
-        var total = 0, modelTotal = 0
+        var total = 0, modelTotal = 0, compiledTotal = 0
         guard !files.isEmpty, files.count <= 2000 else {
             throw RecipeInstallError.invalidResource("导入的输入方案为空或文件数量超过 2000 个")
         }
@@ -573,11 +615,22 @@ public extension RecipePackageManager {
             }
             if RecipeResourceBudget.isModel(file.path) {
                 fileResources[file.path] = try RecipeFileResource.snapshot(
-                    from: file.location, directory: modelStaging,
+                    from: file.location, directory: resourceStaging,
                     maximumBytes: min(RecipeResourceBudget.modelFile, RecipeResourceBudget.modelTotal - modelTotal))
                 modelTotal += fileResources[file.path]!.size
                 try RecipeResourceBudget.validate(fileResources.mapValues(\.size))
                 try Prediction.validateDatabases(in: [file.path: fileResources[file.path]!])
+                continue
+            }
+            if SchemeSourceCheck.isCompiledBuildFile(file.path) {
+                // librime's compiled tables and prisms are the deployment product of a package
+                // built elsewhere: referenced from disk, never loaded as Data, and paid from the
+                // source budget the text dictionary they replace would have used.
+                let remaining = RecipeResourceBudget.sourceTotal - total - compiledTotal
+                fileResources[file.path] = try RecipeFileResource.snapshot(
+                    from: file.location, directory: resourceStaging,
+                    maximumBytes: min(RecipeResourceBudget.sourceFile, max(0, remaining)))
+                compiledTotal += fileResources[file.path]!.size
                 continue
             }
             let data = try BoundedLocalFile.read(
@@ -718,7 +771,8 @@ public extension RecipePackageManager {
         if let advertisedSchemaIDs {
             try Self.enforceAdvertisedSchemaList(&bytes, advertised: advertisedSchemaIDs)
         }
-        try SchemeSourceCheck.dependencies(bytes)
+        let compiled = Set(fileResources.keys.filter { SchemeSourceCheck.isCompiledBuildFile($0) })
+        try SchemeSourceCheck.dependencies(bytes, compiled: compiled)
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
         if bytes[InstalledPackageLayout.keyboardPackageFile] == nil || supplied != nil {
@@ -800,8 +854,14 @@ public extension RecipePackageManager {
         return try await installResources(
             prepared.manifest, initialUserDataURL: nil,
             deploy: { deployment in
+                // Compiled-only inputs stay as references to installed resources, so applying
+                // options can prepare another generation without losing its dictionary tables.
                 try InstalledRecipeSources(
-                    files: prepared.sourceFiles, fileResources: prepared.sourceFileResources, receipts: []
+                    files: prepared.sourceFiles,
+                    fileResources: prepared.sourceFileResources.filter {
+                        RecipeResourceBudget.isModel($0.key) || SchemeSourceCheck.isCompiledBuildFile($0.key)
+                    },
+                    receipts: []
                 )
                 .write(to: deployment.resourceURL.deletingLastPathComponent())
                 return try await deploy(deployment)
@@ -856,6 +916,23 @@ enum SchemeSourceCheck {
         return [".yaml", ".lua", ".txt", ".json", ".gram", ".ocd", ".ocd2"].contains(where: lower.hasSuffix)
             || Prediction.isDatabasePath(path)
     }
+    /// librime's compiled deployment artifacts: `build/<dictionary>.{table,reverse}.bin` and
+    /// `build/<schema>.prism.bin`. They are products of a deploy, not source text, and belong to
+    /// the package's file references rather than its configuration bytes.
+    static func isCompiledBuildFile(_ path: String) -> Bool {
+        let parts = path.split(separator: "/", omittingEmptySubsequences: false)
+        guard parts.count == 2, parts[0] == "build" else { return false }
+        let name = String(parts[1])
+        return [".table.bin", ".reverse.bin", ".prism.bin"].contains {
+            name.hasSuffix($0) && name.count > $0.count
+        }
+    }
+    /// The compiled table a missing dictionary would have produced. A table only stands in for
+    /// its dictionary's text; imports named by text headers still need their own files.
+    private static func compiledTablePath(for dictionary: String) -> String? {
+        guard dictionary.hasSuffix(".dict.yaml") else { return nil }
+        return "build/" + String(dictionary.dropLast(".dict.yaml".count)) + ".table.bin"
+    }
     /// What a default.custom.yaml patch does to the schema_list. Untouched keeps the author's
     /// other customisations; replaced is accepted only when it equals the advertised list;
     /// unreadable cannot be proven to keep that choice and is refused.
@@ -907,8 +984,8 @@ enum SchemeSourceCheck {
             Range($0.range(at: 1), in: text).map { String(text[$0]) }
         }
     }
-    static func dependencies(_ files: [String: Data]) throws {
-        let missing = try dependencyClosure(files).required
+    static func dependencies(_ files: [String: Data], compiled: Set<String> = []) throws {
+        let missing = try dependencyClosure(files, compiled: compiled).required
         guard missing.isEmpty else {
             if missing.allSatisfy({ $0.hasSuffix(".schema.yaml") }) {
                 throw RecipeInstallError.missingSchemaFiles(missing)
@@ -917,8 +994,10 @@ enum SchemeSourceCheck {
         }
     }
     /// Every referenced path the tree lacks, the optional ones included, so a source download can fetch them all.
-    static func missingDependencies(_ files: [String: Data], inventory: [String: Data]? = nil) throws -> [String] {
-        let closure = try dependencyClosure(files, inventory: inventory)
+    static func missingDependencies(
+        _ files: [String: Data], inventory: [String: Data]? = nil, compiled: Set<String> = []
+    ) throws -> [String] {
+        let closure = try dependencyClosure(files, inventory: inventory, compiled: compiled)
         return (closure.required + closure.optional).sorted()
     }
 
@@ -927,9 +1006,9 @@ enum SchemeSourceCheck {
     /// dictionary's `use_preset_vocabulary`. librime deploys the input method without them and only that
     /// lookup, or the preset vocabulary, is absent; packages such as 薄荷 and 白霜 rely on the shared
     /// `luna_pinyin` and `essay` that a desktop Rime installs.
-    static func dependencyClosure(_ files: [String: Data], inventory: [String: Data]? = nil) throws -> (
-        required: [String], optional: [String]
-    ) {
+    static func dependencyClosure(
+        _ files: [String: Data], inventory: [String: Data]? = nil, compiled: Set<String> = []
+    ) throws -> (required: [String], optional: [String]) {
         var missing = Set<String>()
         var optional = Set<String>()
         var softPending: [String] = []
@@ -986,6 +1065,9 @@ enum SchemeSourceCheck {
         func require(_ name: String) throws {
             guard safe(name) else { throw RecipeInstallError.invalidResource("依赖项路径非法：\(name)") }
             if files[name] == nil {
+                // A compiled-only dictionary has no text header or import_tables to traverse; its
+                // table already holds the merged rows. A shipped text header is still followed.
+                if let table = compiledTablePath(for: name), compiled.contains(table) { return }
                 if soft { optional.insert(name) } else { missing.insert(name) }
             } else if !visited.contains(name) {
                 pending.append(name)
@@ -1037,6 +1119,14 @@ enum SchemeSourceCheck {
                 } catch is CancellationError { throw CancellationError() } catch {
                     throw RecipeInstallError.invalidResource("YAML 格式无效：\(path)：\(error)")
                 }
+                // A dictionary under a root namespace no native component can name is never loaded by
+                // librime (DictionaryComponent::Create reads ticket.name_space + "/dictionary"), so
+                // the closure keeps it optional instead of blocking the import.
+                let relaxedNamespaces =
+                    root.map {
+                        // A custom patch can live outside the checked subset; inventory sees the tree.
+                        relaxedDictionaryNamespaces(schemaPath: path, root: $0, files: inventory ?? files)
+                    } ?? []
                 // BoundedYAML already caps expansion; keep an independent budget for the walkers below.
                 var budget = 2 * BoundedYAML.maximumExpandedNodes  // two walks below
                 func spend() throws {
@@ -1055,7 +1145,7 @@ enum SchemeSourceCheck {
                     guard safe(file) else { throw RecipeInstallError.invalidResource("依赖项路径非法：\(file)") }
                     if !value.contains("?") || files[file] != nil { try require(file) }
                 }
-                func visit(_ node: Node) throws {
+                func visit(_ node: Node, _ top: String? = nil) throws {
                     try spend()
                     if let mapping = node.mapping {
                         for (key, value) in mapping {
@@ -1068,7 +1158,15 @@ enum SchemeSourceCheck {
                                     try reference(value)
                                 }
                             case "dictionary":
-                                if let name = scalar(value), !name.isEmpty { try require(name + ".dict.yaml") }
+                                if let name = scalar(value), !name.isEmpty {
+                                    // A namespace no engine entry claims is never loaded natively, so
+                                    // its dictionary stays optional; every claimed one stays required.
+                                    if let top, relaxedNamespaces.contains(top) {
+                                        try requireOptional(name + ".dict.yaml")
+                                    } else {
+                                        try require(name + ".dict.yaml")
+                                    }
+                                }
                             case "use_preset_vocabulary":
                                 if value.bool == true { try requireOptional("essay.txt") }
                             case "import_preset":
@@ -1088,10 +1186,10 @@ enum SchemeSourceCheck {
                                 }
                             default: break
                             }
-                            try visit(value)
+                            try visit(value, top ?? key.string ?? "")
                         }
                     } else if let list = node.sequence {
-                        for item in list { try visit(item) }
+                        for item in list { try visit(item, top) }
                     }
                 }
                 if let root { try visit(root) }
@@ -1104,8 +1202,11 @@ enum SchemeSourceCheck {
                     } else if let list = node.sequence {
                         for value in list { try luaReferences(value) }
                     } else if let value = scalar(node) {
+                        // A component names its module path under lua/ (for example
+                        // `kagiroi/kagiroi_translator`). The resolved file still goes through the
+                        // safe-path check, so a path climbing out of lua/ is refused as before.
                         for module in matches(
-                            "^lua_(?:processor|translator|filter|segmentor)@\\*([A-Za-z0-9_.]+)", value)
+                            "^lua_(?:processor|translator|filter|segmentor)@\\*([A-Za-z0-9_./-]+)", value)
                         {
                             try requireModule(module)
                         }
@@ -1118,7 +1219,8 @@ enum SchemeSourceCheck {
                 }
                 if let root { try luaReferences(root) }
             } else if path.hasSuffix(".lua") {
-                for module in matches("require\\s*\\(?\\s*[\"']([A-Za-z0-9_./-]+)[\"']", text)
+                // The lexical scan skips comments and string literals, so only a real call names a module.
+                for module in LuaRequireScanner.modules(in: text)
                 where !["math", "string", "table", "utf8", "rime"].contains(module) {
                     try requireModule(module)
                 }
@@ -1136,6 +1238,140 @@ enum SchemeSourceCheck {
             }
         }
         return (missing.sorted(), optional.subtracting(missing).sorted())
+    }
+
+    // MARK: - Inactive dictionary namespaces
+
+    /// Engine component classes this checker can reason about. A class outside this set may remap
+    /// its config namespace the way reverse_lookup_translator does, so nothing is relaxed for a
+    /// schema mounting one. Keep in sync with the pinned librime / librime-lua build.
+    private static let knownEngineComponents: Set<String> = [
+        "abc_segmentor", "affix_segmentor", "ascii_composer", "ascii_segmentor", "charset_filter",
+        "chord_composer", "cjk_minifier", "echo_translator", "express_editor", "fallback_segmentor",
+        "fluency_editor", "fluid_editor", "grammar", "history_translator", "key_binder", "lua_filter",
+        "lua_processor", "lua_segmentor", "lua_translator", "matcher", "navigator", "predict_translator",
+        "predictor", "punct_segmentor", "punct_translator", "punctuator", "recognizer",
+        "reverse_lookup_filter", "reverse_lookup_translator", "schema_list_translator",
+        "script_translator", "selector", "shape_formatter", "shape_processor", "simplifier",
+        "single_char_filter", "speller", "switch_translator", "t9_processor", "table_translator",
+        "uniquifier",
+    ]
+
+    /// Root config sections a native component reads without an alias, or that this checker must
+    /// keep strict: translator/dictionary is what deployment compiles, whatever the engine says.
+    private static let reservedSections: Set<String> = [
+        "schema", "engine", "switches", "speller", "punctuator", "recognizer", "key_binder", "editor",
+        "menu", "style", "translator", "reverse_lookup", "history", "simplifier", "var", "__build_info",
+    ]
+
+    /// A gear constructed without @ reads its own section instead of the component kind.
+    private static let componentSections: [String: String] = [
+        "history_translator": "history",
+        "matcher": "recognizer",
+        "recognizer": "recognizer",
+        "reverse_lookup_filter": "reverse_lookup",
+        "reverse_lookup_translator": "reverse_lookup",
+        "simplifier": "simplifier",
+    ]
+
+    /// Root namespaces whose dictionary no native component can name: librime creates a Dictionary
+    /// with ticket.name_space + "/dictionary", and components exist only for the engine lists, so
+    /// no native component reads it. Empty whenever the engine block or a sibling schema custom
+    /// file is not fully literal; the caller then keeps the old closure. A Lua component that
+    /// builds a native translator for such a namespace at run time is not proven either way, which
+    /// is why the edge is optional and still reported, never ignored.
+    private static func relaxedDictionaryNamespaces(
+        schemaPath: String, root: Node, files: [String: Data]
+    ) -> Set<String> {
+        guard schemaPath.hasSuffix(".schema.yaml"), let document = root.mapping else { return [] }
+        // A missing or null engine block proves nothing about the deployed components.
+        guard let engineEntry = document.first(where: { $0.key.string == "engine" }),
+            let lists = engineEntry.value.mapping
+        else { return [] }
+        // Only literal lists can be read: a directive composes an engine this checker cannot see.
+        if lists.contains(where: { ($0.key.string ?? "").hasPrefix("__") }) { return [] }
+        // kind of a component list to the config section a component of that kind reads.
+        let engineLists: [(kind: String, key: String)] = [
+            ("processor", "processors"),
+            ("segmentor", "segmentors"),
+            ("translator", "translators"),
+            ("filter", "filters"),
+        ]
+        var active = reservedSections
+        for (kind, key) in engineLists {
+            guard let listEntry = lists.first(where: { $0.key.string == key }) else { continue }
+            guard let entries = listEntry.value.sequence else { return [] }
+            for item in entries {
+                guard let name = configScalar(item) else { return [] }
+                let at = name.firstIndex(of: "@")
+                let klass = at.map { String(name[..<$0]) } ?? name
+                // Lua components name no config namespace of their own; a native translator they
+                // build at run time stays an optional lookup, never a proven one.
+                if klass.hasPrefix("lua_") { continue }
+                // A class this checker cannot interpret may remap its config namespace.
+                guard knownEngineComponents.contains(klass) else { return [] }
+                if let at = at {
+                    let namespace = String(name[name.index(after: at)...])
+                    guard !namespace.isEmpty, !namespace.hasPrefix("*") else { return [] }
+                    active.insert(namespace)
+                } else {
+                    active.insert(kind)
+                    if let section = componentSections[klass] { active.insert(section) }
+                }
+            }
+        }
+        // A sibling custom file can mount the component, or hide a patch behind a form this
+        // checker cannot model; then inactivity is not proven.
+        let customPath = String(schemaPath.dropLast(".schema.yaml".count)) + ".custom.yaml"
+        if let custom = files[customPath], !customPatchLeavesEngineAlone(custom) { return [] }
+        return Set(document.compactMap { $0.key.string }).subtracting(active)
+    }
+
+    private static func configScalar(_ node: Node) -> String? {
+        node.tag == Tag(.null) ? nil : node.string
+    }
+
+    /// Only a literal patch that leaves engine alone keeps a custom file's effect provable.
+    private static func customPatchLeavesEngineAlone(_ data: Data) -> Bool {
+        guard let text = String(data: data, encoding: .utf8) else { return false }
+        if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return true }
+        guard let root = try? BoundedYAML.load(yaml: text) as? [String: Any] else { return false }
+        for (key, value) in root {
+            switch key {
+            case "patch":
+                guard let patch = value as? [String: Any], patchKeysLeaveEngineAlone(patch) else { return false }
+            case "__patch":
+                // plume-style list of patch entries; only fully literal maps are modelable.
+                guard let list = value as? [Any] else { return false }
+                for item in list {
+                    guard let entry = item as? [String: Any], entry.count == 1,
+                        let patch = entry["patch/+"] as? [String: Any],
+                        patchKeysLeaveEngineAlone(patch)
+                    else { return false }
+                }
+            default:
+                if key.hasPrefix("__") { return false }
+            }
+        }
+        return true
+    }
+
+    private static func patchKeysLeaveEngineAlone(_ patch: [String: Any]) -> Bool {
+        for (key, value) in patch {
+            if key.hasPrefix("__") { return false }
+            if key == "engine" || key.hasPrefix("engine/")
+                || key.split(separator: "/").contains(where: { $0 == "engine" })
+            {
+                return false
+            }
+            if let nested = value as? [String: Any], !patchKeysLeaveEngineAlone(nested) { return false }
+            if let list = value as? [Any] {
+                for item in list {
+                    if let nested = item as? [String: Any], !patchKeysLeaveEngineAlone(nested) { return false }
+                }
+            }
+        }
+        return true
     }
 }
 

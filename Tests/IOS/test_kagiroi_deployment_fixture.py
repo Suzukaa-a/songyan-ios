@@ -1,6 +1,9 @@
 """Check the offline deployment comparison without downloading dictionaries."""
 
 import importlib.util
+import json
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -37,6 +40,29 @@ class KagiroiDeploymentFixtureTests(unittest.TestCase):
                 (output / "source/kagiroi.schema.yaml").read_bytes(),
                 (output / "prebuilt/kagiroi.schema.yaml").read_bytes(),
             )
+
+    def test_source_only_needs_no_upstream_prebuilt_payload(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "upstream"
+            source.mkdir()
+            original = "name: kagiroi\nimport_tables:\n  - kagiroi.mozc\n  - kagiroi.nico\n...\n"
+            (source / "kagiroi.schema.yaml").write_text("schema: {}\n", encoding="utf-8")
+            (source / "kagiroi.dict.yaml").write_text(original, encoding="utf-8")
+            (source / "kagiroi.mozc.dict.yaml").write_text("mozc", encoding="utf-8")
+            (source / "kagiroi.nico.dict.yaml").write_text("nico", encoding="utf-8")
+            output = root / "prepared"
+            result = subprocess.run(
+                [sys.executable, str(SCRIPT), "--source", str(source), "--source-only", "--output", str(output)],
+                capture_output=True, text=True, check=False,
+            )
+            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertEqual({"source"}, set(json.loads(result.stdout)))
+            self.assertFalse((output / "prebuilt").exists())
+            self.assertFalse((output / "source/kagiroi.nico.dict.yaml").exists())
+            self.assertNotIn("kagiroi.nico", (output / "source/kagiroi.dict.yaml").read_text())
+            self.assertEqual("mozc", (output / "source/kagiroi.mozc.dict.yaml").read_text())
+            self.assertEqual(original, (source / "kagiroi.dict.yaml").read_text())
 
 
 if __name__ == "__main__":

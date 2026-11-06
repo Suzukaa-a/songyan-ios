@@ -1,7 +1,9 @@
 import Foundation
 
 /// Frontend-owned configuration, distinct from package source and private dictionaries.
-/// Missing files only: Rime retains ownership of include/custom/patch merge semantics.
+/// Missing prelude files are supplied from the frontend copy, and the kagiroi scheme
+/// gets the install-time patch it needs beside the package; Rime retains ownership of
+/// include/custom/patch merge semantics.
 enum SharedRimePresets {
     static let revision = "082425ea0684bca36474415d4a0e8db9b016487e"
     static let configurationNames = ["default.yaml", "key_bindings.yaml", "punctuation.yaml", "symbols.yaml"]
@@ -56,6 +58,8 @@ enum SharedRimePresets {
             let path = "frontend-rime-prelude/" + name
             if files[path] == nil { files[path] = try bundled(name) }
         }
+        // Scheme-specific patches travel beside the source, never inside it.
+        JapaneseSchemePresets.supplement(&files)
     }
 
     static func bundled(_ name: String) throws -> Data {

@@ -638,6 +638,28 @@
           }
         }
       }
+    },
+    "scheme.prepareFilesFailed": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入方案没有准备好，请重新导入。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "輸入方案沒有準備好，請重新匯入。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力方式を準備できませんでした。もう一度読み込んでください。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

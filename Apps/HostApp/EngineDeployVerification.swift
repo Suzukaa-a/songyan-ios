@@ -15,6 +15,7 @@ enum EngineSchemaSelection {
     static let reportName = "keyboard-skipped-schemas.json"
 
     static func start(_ deployment: RecipeDeployment) throws -> (RimeEngine, [String], [SkippedEngineSchema]) {
+        try seedCompiledBuild(resources: deployment.resourceURL, user: deployment.userDataURL)
         let engine = RimeEngine(
             configuration: .init(
                 sharedDirectory: deployment.resourceURL,
@@ -50,6 +51,44 @@ enum EngineSchemaSelection {
         } catch {
             engine.shutdown()
             throw error
+        }
+    }
+
+    /// A compiled-only package ships librime's deploy products instead of dictionary text:
+    /// `<dictionary>.table.bin`, `<dictionary>.reverse.bin` and `<schema>.prism.bin`. librime only
+    /// reuses them from `user/build`, so without this the deploy builds no table and the engine starts
+    /// with an empty candidate list. Only these three top-level bin kinds are copied — configuration
+    /// is compiled from the package's YAML sources — and they are copied, never linked, so the
+    /// read-only package is untouched. A same-named leftover is replaced so a previous source's table
+    /// never survives into this install.
+    static func seedCompiledBuild(resources: URL, user: URL) throws {
+        let fm = FileManager.default
+        let source = resources.appendingPathComponent("build", isDirectory: true)
+        let target = user.appendingPathComponent("build", isDirectory: true)
+        // Nothing to seed for a package that ships dictionary text; the deploy compiles it itself.
+        guard source.resolvingSymlinksInPath() != target.resolvingSymlinksInPath(),
+            (try? source.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true
+        else { return }
+        try fm.createDirectory(at: target, withIntermediateDirectories: true)
+        let entries = try fm.contentsOfDirectory(
+            at: source, includingPropertiesForKeys: [.isRegularFileKey, .isSymbolicLinkKey])
+        for entry in entries {
+            let name = entry.lastPathComponent
+            guard
+                [".table.bin", ".reverse.bin", ".prism.bin"].contains(where: {
+                    name.hasSuffix($0) && name.count > $0.count
+                }),
+                let values = try? entry.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey]),
+                values.isRegularFile == true, values.isSymbolicLink != true
+            else { continue }
+            let destination = target.appendingPathComponent(name)
+            // copyItem refuses an existing target; the current source's bytes must win.
+            try? fm.removeItem(at: destination)
+            do { try fm.copyItem(at: entry, to: destination) } catch {
+                throw RecipeInstallError.deployment(
+                    Bundle.main.localizedString(
+                        forKey: "scheme.prepareFilesFailed", value: "输入方案没有准备好，请重新导入。", table: nil))
+            }
         }
     }
 }

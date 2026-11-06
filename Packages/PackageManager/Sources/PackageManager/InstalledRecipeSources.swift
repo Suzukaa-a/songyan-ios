@@ -17,8 +17,8 @@ public struct InstalledRecipeSources: Sendable {
         self.grammarOverrides = grammarOverrides
     }
 
-    /// The single on-disk record: data files live under `recipe-inputs/`, models are referenced
-    /// with the identity captured when they were imported.
+    /// Data files live under recipe-inputs; large inputs retain their imported identity.
+    /// Compiled inputs reference installed resources, while model snapshots keep their own files.
     private struct Catalog: Codable {
         let files: [String]
         let models: [RecipeManifest.File]
@@ -75,11 +75,13 @@ public struct InstalledRecipeSources: Sendable {
                 at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
             if let file = fileResources[path] {
                 let logical = RecipeResourceBudget.sourceArchiveLogicalPath(path)
-                guard RecipeResourceBudget.isModel(logical) else {
+                guard RecipeResourceBudget.isModel(logical) || SchemeSourceCheck.isCompiledBuildFile(path) else {
                     throw RecipeInstallError.invalidResource("不是有效的模型文件引用：\(path)")
                 }
-                try Prediction.validateDatabases(in: [logical: file])
-                try file.copy(to: target, maximumBytes: RecipeResourceBudget.maximumFileBytes(logical))
+                if !SchemeSourceCheck.isCompiledBuildFile(path) {
+                    try Prediction.validateDatabases(in: [logical: file])
+                    try file.copy(to: target, maximumBytes: RecipeResourceBudget.maximumFileBytes(logical))
+                }
                 models.append(.init(path: path, sha256: file.sha256, size: file.size))
             } else if let data = files[path] {
                 try data.write(to: target, options: .atomic)
@@ -110,7 +112,9 @@ public struct InstalledRecipeSources: Sendable {
         for model in catalog.models {
             guard SchemeSourceCheck.safe(model.path) else { throw RecipeInstallError.invalidResource(model.path) }
             models[model.path] = RecipeFileResource(
-                url: inputs.appendingPathComponent(model.path), size: model.size, sha256: model.sha256)
+                url: (SchemeSourceCheck.isCompiledBuildFile(model.path) ? resources : inputs)
+                    .appendingPathComponent(model.path),
+                size: model.size, sha256: model.sha256)
         }
         return Self(
             files: files, fileResources: models, receipts: catalog.receipts, grammarOverrides: catalog.grammarOverrides)

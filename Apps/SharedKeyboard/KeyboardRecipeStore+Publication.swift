@@ -140,7 +140,15 @@ extension KeyboardRecipeStore {
         where entry.lastPathComponent != "build" {
             try fm.copyItem(at: entry, to: destination.appendingPathComponent(entry.lastPathComponent))
         }
-        try fm.copyItem(at: compiledBuild, to: destination.appendingPathComponent("build"))
+        // The previous generation is a read-only sibling of this one: its compiled bins may already
+        // be shared with the installed source, so a matching bin can be linked instead of copied.
+        // The authoritative baseline is re-read under the lock below.
+        let previousGeneration = (try? activation(rootURL: root))?.generation
+        try installCompiledBuild(
+            from: compiledBuild, resources: resources,
+            previousGeneration: previousGeneration.map {
+                root.appendingPathComponent("versions").appendingPathComponent($0)
+            }, into: destination.appendingPathComponent("build"))
         for schema in schemas.map(\.id) {
             guard fm.fileExists(atPath: destination.appendingPathComponent("build/\(schema).schema.yaml").path) else {
                 throw StoreError(message: "启用失败，输入方案 \(schema) 尚未编译")
@@ -308,6 +316,88 @@ extension KeyboardRecipeStore {
         activeWriteAttempted = true
         try encodedActivation.write(to: root.appendingPathComponent("active.json"), options: .atomic)
         pruneUnreferencedGenerations(root: root, keeping: [generation, current?.generation].compactMap { $0 })
+    }
+
+    // MARK: - Compiled build sharing
+
+    /// Writes the current work build into a publication generation, sharing the large compiled
+    /// bins with read-only trees when the work bytes are identical.
+    ///
+    /// Keeping the previous generation for rebinding used to double the App Group footprint because
+    /// every publication copied the whole compiled build again. The work build stays authoritative: a
+    /// bin only links a read-only candidate after a byte-for-byte stream compare, a stale installed
+    /// bin never wins on its name, and the writable work build itself is never an inode source.
+    /// Compiled YAML, learning databases and every other resource are still copied.
+    private static func installCompiledBuild(
+        from work: URL, resources: URL, previousGeneration: URL?, into destination: URL
+    ) throws {
+        let fm = FileManager.default
+        try fm.createDirectory(at: destination, withIntermediateDirectories: true)
+        let installedBuild = resources.appendingPathComponent("build", isDirectory: true)
+        let previousBuild = previousGeneration.map {
+            $0.appendingPathComponent("resources", isDirectory: true)
+                .appendingPathComponent("build", isDirectory: true)
+        }
+        var candidates = [installedBuild]
+        if let previousBuild { candidates.append(previousBuild) }
+        for entry in try fm.contentsOfDirectory(
+            at: work, includingPropertiesForKeys: [.isRegularFileKey, .isSymbolicLinkKey]
+        ) {
+            let target = destination.appendingPathComponent(entry.lastPathComponent)
+            let values = try entry.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey])
+            guard values.isSymbolicLink != true, values.isRegularFile == true,
+                isShareableCompiledBin(entry.lastPathComponent)
+            else {
+                try fm.copyItem(at: entry, to: target)
+                continue
+            }
+            if try linkSharedBin(entry, candidates: candidates, into: target) { continue }
+            try fm.copyItem(at: entry, to: target)
+        }
+    }
+
+    /// Links the first read-only candidate whose bytes stream equal to the work file. Returns false
+    /// when no candidate matches or no hard link can be created (a different file system), so the
+    /// caller copies the current work bytes instead.
+    private static func linkSharedBin(_ work: URL, candidates: [URL], into target: URL) throws -> Bool {
+        for candidate in candidates {
+            let source = candidate.appendingPathComponent(work.lastPathComponent)
+            let values = try? source.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey])
+            guard values?.isRegularFile == true, values?.isSymbolicLink != true,
+                try streamsEqual(source, work)
+            else { continue }
+            let linked = source.path.withCString { sourcePath in
+                target.path.withCString { targetPath in
+                    link(sourcePath, targetPath) == 0
+                }
+            }
+            if linked { return true }
+            Logger.keyboardStorage.error(
+                "failed to share the compiled bin \(work.lastPathComponent, privacy: .public); copying instead")
+        }
+        return false
+    }
+
+    /// Byte-for-byte streaming comparison; no digest is computed or stored.
+    private static func streamsEqual(_ first: URL, _ second: URL) throws -> Bool {
+        let left = try FileHandle(forReadingFrom: first)
+        let right = try FileHandle(forReadingFrom: second)
+        defer {
+            try? left.close()
+            try? right.close()
+        }
+        while true {
+            let firstChunk = try left.read(upToCount: 256 * 1024) ?? Data()
+            let secondChunk = try right.read(upToCount: 256 * 1024) ?? Data()
+            if firstChunk != secondChunk { return false }
+            if firstChunk.isEmpty { return true }
+        }
+    }
+
+    /// The three top-level compiled bin kinds a deployment produces: `<dictionary>.table.bin`,
+    /// `<dictionary>.reverse.bin` and `<schema>.prism.bin`. Only these are large enough to share.
+    private static func isShareableCompiledBin(_ name: String) -> Bool {
+        [".table.bin", ".reverse.bin", ".prism.bin"].contains { name.hasSuffix($0) && name.count > $0.count }
     }
 
     /// Every publication copies the resources whole; without reclaiming, the App Group grows
