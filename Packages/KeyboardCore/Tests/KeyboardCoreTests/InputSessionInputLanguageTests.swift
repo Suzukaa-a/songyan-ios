@@ -57,6 +57,20 @@ final class InputSessionInputLanguageTests: XCTestCase {
             selectedSchemaID: schemaID)
     }
 
+    /// The backend lists no schemas until the engine is up; the empty answer must not be cached.
+    func testAnAlphabetReadBeforeTheEngineIsUpIsNotCached() {
+        let schemaID = "custom_zhuyin"
+        let engine = AlphabetEngine(schemas: [], options: [], current: schemaID)
+        let session = InputSession(
+            engine: engine, layout: .qwerty26,
+            resourceSet: resource(schemaID: schemaID, descriptorAlphabet: ""))
+        engine.schemas = [KeyboardSchemaDescriptor(id: schemaID, name: "", alphabet: bopomofoAlphabet)]
+        session.reloadOptions()
+        XCTAssertEqual(
+            session.inputLanguage,
+            InputLanguageProfile(language: .traditionalChinese, family: .zhuyin))
+    }
+
     func testEmptyResourceAlphabetFallsBackToTheBackendCacheForTheFamily() {
         let schemaID = "custom_zhuyin"
         let engine = AlphabetEngine(

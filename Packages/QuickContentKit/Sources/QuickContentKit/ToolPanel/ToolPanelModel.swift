@@ -283,9 +283,12 @@ public enum ToolPanelPrivacy {
     ///
     /// Fails closed: when the emptiness answer is missing (nil), the keyboard keeps offering the
     /// tools, because that case is indistinguishable from a host that simply has not reported yet.
+    ///
+    /// A selected range proves the host does share text with the keyboard, so a caret at the very
+    /// start of the field (no text before it) with a selection is not a protected field.
     public static func suppressesTextTools(
-        documentIsEmpty: Bool?, contextIsAvailable: Bool
+        documentIsEmpty: Bool?, contextIsAvailable: Bool, hasSelectedText: Bool = false
     ) -> Bool {
-        documentIsEmpty == false && !contextIsAvailable
+        documentIsEmpty == false && !contextIsAvailable && !hasSelectedText
     }
 }

@@ -15,7 +15,8 @@ extension KeyboardController {
     public var suppressesTextTools: Bool {
         ToolPanelPrivacy.suppressesTextTools(
             documentIsEmpty: hostDocumentIsEmpty,
-            contextIsAvailable: hostContextBeforeInput != nil)
+            contextIsAvailable: hostContextBeforeInput != nil,
+            hasSelectedText: hostHasSelectedText)
     }
 
     /// A fresh read of the field for the tool panel; nil when no editable target exists.

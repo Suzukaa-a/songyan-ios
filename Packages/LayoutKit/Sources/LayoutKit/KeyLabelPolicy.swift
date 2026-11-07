@@ -69,9 +69,14 @@ public enum KeyLabelPolicy {
         }
     }
 
-    /// The native space bar speaks its face; only the converting Japanese face needs its own word.
+    /// Spoken names follow the app language, never the scheme's script: VoiceOver reads them in the
+    /// user's language, while the drawn key faces follow the input language. Only a Japanese
+    /// scheme's converting space keeps its own word.
     public static func spaceAccessibilityLabel(script: KeyLabelScript, isComposing: Bool) -> String {
-        spaceTitle(script: script, isComposing: isComposing)
+        if script == .japanese && isComposing {
+            return String(localized: "key.space.converting", bundle: .module)
+        }
+        return String(localized: "key.space", bundle: .module)
     }
 
     // MARK: Return
@@ -127,17 +132,20 @@ public enum KeyLabelPolicy {
         }
     }
 
-    public static func returnAccessibilityLabel(
-        script: KeyLabelScript, isComposing: Bool, intent: ReturnIntent
-    ) -> String {
-        if isComposing {
-            switch script {
-            case .simplifiedChinese: return "确认输入"
-            case .traditionalChinese: return "確認輸入"
-            case .japanese: return "確定"
-            }
+    public static func returnAccessibilityLabel(isComposing: Bool, intent: ReturnIntent) -> String {
+        if isComposing { return String(localized: "key.return.confirmInput", bundle: .module) }
+        switch intent {
+        case .lineBreak: return String(localized: "key.return.lineBreak", bundle: .module)
+        case .search: return String(localized: "key.return.search", bundle: .module)
+        case .send: return String(localized: "key.return.send", bundle: .module)
+        case .go: return String(localized: "key.return.go", bundle: .module)
+        case .done: return String(localized: "key.return.done", bundle: .module)
+        case .next: return String(localized: "key.return.next", bundle: .module)
+        case .join: return String(localized: "key.return.join", bundle: .module)
+        case .route: return String(localized: "key.return.route", bundle: .module)
+        case .emergencyCall: return String(localized: "key.return.emergencyCall", bundle: .module)
+        case .continueAction: return String(localized: "key.return.continue", bundle: .module)
         }
-        return returnTitle(script: script, isComposing: false, intent: intent)
     }
 
     // MARK: Language key
@@ -160,29 +168,33 @@ public enum KeyLabelPolicy {
         }
     }
 
+    /// A Japanese scheme names Japanese and English, never Chinese; the other schemes name the
+    /// target. The wording itself is the app language's.
     public static func languageAccessibilityLabel(
         script: KeyLabelScript, action: KeyboardControlPolicy.LanguageAction,
         isEnglishMode: Bool, usesASCIIPunctuation: Bool
     ) -> String {
         switch action {
         case .returnToLetters:
-            switch script {
-            case .simplifiedChinese: return "返回主键盘"
-            case .traditionalChinese: return "返回主鍵盤"
-            case .japanese: return "文字キーボードに戻る"
-            }
+            return String(localized: "key.language.returnToLetters", bundle: .module)
         case .toggleLanguage:
-            switch script {
-            case .simplifiedChinese: return isEnglishMode ? "切换到中文" : "切换到英文"
-            case .traditionalChinese: return isEnglishMode ? "切換到中文" : "切換到英文"
-            case .japanese: return isEnglishMode ? "かな入力に切り替え" : "英字入力に切り替え"
+            if script == .japanese {
+                return isEnglishMode
+                    ? String(localized: "key.language.englishToJapanese", bundle: .module)
+                    : String(localized: "key.language.japaneseToEnglish", bundle: .module)
             }
+            return isEnglishMode
+                ? String(localized: "key.language.toChinese", bundle: .module)
+                : String(localized: "key.language.toEnglish", bundle: .module)
         case .toggleSymbols:
-            switch script {
-            case .simplifiedChinese: return usesASCIIPunctuation ? "切换到中文符号" : "切换到英文符号"
-            case .traditionalChinese: return usesASCIIPunctuation ? "切換到中文符號" : "切換到英文符號"
-            case .japanese: return usesASCIIPunctuation ? "和文記号に切り替え" : "欧文記号に切り替え"
+            if script == .japanese {
+                return usesASCIIPunctuation
+                    ? String(localized: "key.symbols.englishToJapanese", bundle: .module)
+                    : String(localized: "key.symbols.japaneseToEnglish", bundle: .module)
             }
+            return usesASCIIPunctuation
+                ? String(localized: "key.symbols.toChinese", bundle: .module)
+                : String(localized: "key.symbols.toEnglish", bundle: .module)
         }
     }
 
@@ -196,34 +208,15 @@ public enum KeyLabelPolicy {
     public static let numericPageTitle = "123"
 
     public static func pageSwitchAccessibilityLabel(
-        script: KeyLabelScript, target: LayoutAction.PageTarget, isBundledPhonePad: Bool
+        target: LayoutAction.PageTarget, isBundledPhonePad: Bool
     ) -> String {
         switch target {
-        case .letters:
-            switch script {
-            case .simplifiedChinese: return "返回主键盘"
-            case .traditionalChinese: return "返回主鍵盤"
-            case .japanese: return "文字キーボードに戻る"
-            }
-        case .numeric:
-            switch script {
-            case .simplifiedChinese: return "打开数字符号页"
-            case .traditionalChinese: return "開啟數字符號頁"
-            case .japanese: return "数字・記号ページを開く"
-            }
+        case .letters: return String(localized: "key.language.returnToLetters", bundle: .module)
+        case .numeric: return String(localized: "key.page.numeric", bundle: .module)
         case .symbols:
-            if isBundledPhonePad {
-                switch script {
-                case .simplifiedChinese: return "打开符号页"
-                case .traditionalChinese: return "開啟符號頁"
-                case .japanese: return "記号ページを開く"
-                }
-            }
-            switch script {
-            case .simplifiedChinese: return "打开更多符号页"
-            case .traditionalChinese: return "開啟更多符號頁"
-            case .japanese: return "記号ページを開く"
-            }
+            return isBundledPhonePad
+                ? String(localized: "key.page.symbols", bundle: .module)
+                : String(localized: "key.page.moreSymbols", bundle: .module)
         }
     }
 }

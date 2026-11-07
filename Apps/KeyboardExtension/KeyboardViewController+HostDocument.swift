@@ -391,7 +391,8 @@ extension KeyboardViewController {
             autocapitalizationType: proxy.autocapitalizationType,
             enablesReturnKeyAutomatically: proxy.enablesReturnKeyAutomatically,
             beforeCursor: ownsDocument ? proxy.documentContextBeforeInput : nil,
-            documentIsEmpty: ownsDocument ? !proxy.hasText : nil)
+            documentIsEmpty: ownsDocument ? !proxy.hasText : nil,
+            hasSelectedText: ownsDocument && proxy.selectedText?.isEmpty == false)
     }
 }
 

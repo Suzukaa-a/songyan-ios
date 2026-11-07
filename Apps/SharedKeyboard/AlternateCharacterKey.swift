@@ -550,13 +550,15 @@ struct AlternateCharacterKey: UIViewRepresentable {
         }
 
         /// The cap face follows the scheme's input language, so "空白"/"変換"/"確定" take that language's
-        /// glyph forms for all three input languages.
+        /// glyph forms; Simplified Chinese keeps the plain label.
         private func applyTitleLanguage(font: UIFont) {
             guard let cap else { return }
             // Only CJK faces can take another language's glyph forms; ASCII letters, digits and marks
-            // keep the plain-label path, so ordinary typing adds no attributed-string work. All three
-            // input languages use the attributed path, including Simplified Chinese.
-            guard cap.title.unicodeScalars.contains(where: { $0.value > 0x2E80 }) else {
+            // keep the plain-label path, so ordinary typing adds no attributed-string work. Simplified
+            // Chinese is the system default form and keeps the plain label too.
+            guard inputLanguage != .simplifiedChinese,
+                cap.title.unicodeScalars.contains(where: { $0.value > 0x2E80 })
+            else {
                 if title.attributedText != nil { title.text = cap.title }
                 return
             }

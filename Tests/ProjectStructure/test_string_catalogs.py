@@ -506,6 +506,18 @@ class ScannerUnitTests(unittest.TestCase):
         self.assertTrue(any("/Sources/" in str(path) for path in discovered))
 
 
+class RimeTextFormatTests(unittest.TestCase):
+    """`%@` templates take objects; an Int passed to one crashes at runtime."""
+
+    def test_object_placeholders_never_receive_raw_integers(self):
+        sources = (ROOT / "Packages/RimeBridge/Sources/RimeBridge").rglob("*.swift")
+        text = "\n".join(path.read_text(encoding="utf-8") for path in sources)
+        call = re.search(r'engine\.diagnostic\.candidateRequestInvalid",(.{0,160})', text, re.S)
+        self.assertIsNotNone(call, "the candidate request message call must exist")
+        self.assertNotRegex(call.group(1), r"\bfromIndex,\s*count\b")
+        self.assertIn("String(describing: fromIndex)", call.group(1))
+
+
 class HardcodedChineseTests(unittest.TestCase):
     def test_sources_have_no_raw_chinese_user_visible_literals(self):
         config = scanner.load_config(SCAN_CONFIG)

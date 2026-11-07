@@ -198,4 +198,13 @@ final class ToolPanelModelTests: XCTestCase {
         XCTAssertFalse(
             ToolPanelPrivacy.suppressesTextTools(documentIsEmpty: nil, contextIsAvailable: false))
     }
+
+    func testASelectionAtTheFieldStartKeepsTheToolbarEntry() {
+        XCTAssertFalse(
+            ToolPanelPrivacy.suppressesTextTools(
+                documentIsEmpty: false, contextIsAvailable: false, hasSelectedText: true))
+        XCTAssertTrue(
+            ToolPanelPrivacy.suppressesTextTools(
+                documentIsEmpty: false, contextIsAvailable: false, hasSelectedText: false))
+    }
 }

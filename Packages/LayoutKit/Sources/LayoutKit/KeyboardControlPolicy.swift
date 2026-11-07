@@ -202,8 +202,7 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
 
     /// Spoken name of a page switch, read by the panel and both previews.
     public func pageSwitchAccessibilityLabel(for target: Page, isBundledPhonePad: Bool) -> String {
-        KeyLabelPolicy.pageSwitchAccessibilityLabel(
-            script: script, target: target, isBundledPhonePad: isBundledPhonePad)
+        KeyLabelPolicy.pageSwitchAccessibilityLabel(target: target, isBundledPhonePad: isBundledPhonePad)
     }
 
     /// The page-following default: letters toggle the input language; 123 (the 9-key digit pad
@@ -256,12 +255,17 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
 
     /// The punctuation slot's long-press list, its first entry being the corner hint. Japanese
     /// adds ・ here; ASCII fields keep only typeable marks.
+    ///
+    /// With the split footer the full stop sits on its own key, so this comma holds only the pauses;
+    /// the single-mark footer keeps the full sentence-mark list.
     public var utilityAlternates: [String] {
-        if usesASCIIPunctuation { return [".", "?", "!", "'", ":", ";"] }
-        return script == .japanese
-            ? ["。", "？", "！", "・", "：", "；"]
-            : ["。", "？", "！", "、", "：", "；"]
+        if usesASCIIPunctuation { return [".", "?", "!", "'", "\""] }
+        if showsSpaceSideMarks { return [script == .japanese ? "・" : "、", "：", "；"] }
+        return script == .japanese ? ["。", "？", "！", "・", "…"] : ["。", "？", "！", "、", "…"]
     }
+
+    /// The split footer's full stop key holds the sentence-ending marks.
+    public var fullStopAlternates: [String] { ["？", "！", "…"] }
 
     /// One budget for every builtin page. Fractions apply to *content* width after gaps.
     /// At 382pt content (390pt phone minus panel insets) with globe:

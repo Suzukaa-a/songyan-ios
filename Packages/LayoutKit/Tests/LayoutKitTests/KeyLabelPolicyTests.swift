@@ -110,29 +110,42 @@ final class KeyLabelPolicyTests: XCTestCase {
         XCTAssertEqual(policy(.simplifiedChinese).spaceTitleForTests, "空格")
     }
 
-    func testAccessibilityFollowsTheInputLanguage() {
+    /// Drawn faces follow the scheme's input language; spoken names are the app language's, so a
+    /// Traditional or Japanese scheme under a Simplified interface is still read in Simplified.
+    func testAccessibilityFollowsTheAppLanguageNotTheScheme() {
+        for script in KeyLabelScript.allCases {
+            XCTAssertEqual(
+                KeyLabelPolicy.spaceAccessibilityLabel(script: script, isComposing: false), "空格")
+        }
+        XCTAssertEqual(KeyLabelPolicy.spaceAccessibilityLabel(script: .japanese, isComposing: true), "空格")
+        XCTAssertEqual(KeyLabelPolicy.returnAccessibilityLabel(isComposing: true, intent: .lineBreak), "确认输入")
+        XCTAssertEqual(KeyLabelPolicy.returnAccessibilityLabel(isComposing: false, intent: .lineBreak), "换行")
+        XCTAssertEqual(KeyLabelPolicy.returnAccessibilityLabel(isComposing: false, intent: .search), "搜索")
+        for script in [KeyLabelScript.simplifiedChinese, .traditionalChinese] {
+            XCTAssertEqual(
+                KeyLabelPolicy.languageAccessibilityLabel(
+                    script: script, action: .toggleLanguage, isEnglishMode: false,
+                    usesASCIIPunctuation: false), "切换到英文")
+        }
         XCTAssertEqual(
-            KeyLabelPolicy.spaceTitle(script: .japanese, isComposing: true),
-            KeyLabelPolicy.spaceAccessibilityLabel(script: .japanese, isComposing: true))
+            KeyLabelPolicy.pageSwitchAccessibilityLabel(target: .symbols, isBundledPhonePad: false), "打开更多符号页")
         XCTAssertEqual(
-            KeyLabelPolicy.returnAccessibilityLabel(
-                script: .traditionalChinese, isComposing: true, intent: .lineBreak), "確認輸入")
-        XCTAssertEqual(
-            KeyLabelPolicy.returnAccessibilityLabel(script: .japanese, isComposing: true, intent: .lineBreak), "確定")
-        XCTAssertEqual(
-            KeyLabelPolicy.languageAccessibilityLabel(
-                script: .traditionalChinese, action: .toggleLanguage, isEnglishMode: false,
-                usesASCIIPunctuation: false), "切換到英文")
+            KeyLabelPolicy.pageSwitchAccessibilityLabel(target: .numeric, isBundledPhonePad: false), "打开数字符号页")
+    }
+
+    func testJapaneseLanguageKeySpeaksJapaneseAndEnglishNeverChinese() {
         XCTAssertEqual(
             KeyLabelPolicy.languageAccessibilityLabel(
                 script: .japanese, action: .toggleLanguage, isEnglishMode: false,
-                usesASCIIPunctuation: false), "英字入力に切り替え")
+                usesASCIIPunctuation: false), "日文，轻点切换为英文")
         XCTAssertEqual(
-            KeyLabelPolicy.pageSwitchAccessibilityLabel(
-                script: .japanese, target: .symbols, isBundledPhonePad: false), "記号ページを開く")
+            KeyLabelPolicy.languageAccessibilityLabel(
+                script: .japanese, action: .toggleLanguage, isEnglishMode: true,
+                usesASCIIPunctuation: false), "英文，轻点切换为日文")
         XCTAssertEqual(
-            KeyLabelPolicy.pageSwitchAccessibilityLabel(
-                script: .traditionalChinese, target: .numeric, isBundledPhonePad: false), "開啟數字符號頁")
+            KeyLabelPolicy.languageAccessibilityLabel(
+                script: .japanese, action: .toggleSymbols, isEnglishMode: false,
+                usesASCIIPunctuation: false), "日文符号，轻点切换为英文符号")
     }
 }
 

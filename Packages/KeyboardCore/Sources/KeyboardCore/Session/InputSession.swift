@@ -101,7 +101,9 @@ public final class InputSession {
             declared.isEmpty
             ? (engine.availableSchemas.first { $0.id == schemaID }?.alphabet ?? "")
             : declared
-        alphabetBySchema[schemaID] = alphabet
+        // The backend lists no schemas until the engine is up; caching that empty answer would pin
+        // an unknown alphabet for the whole session.
+        if !alphabet.isEmpty { alphabetBySchema[schemaID] = alphabet }
         return alphabet
     }
 

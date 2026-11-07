@@ -100,13 +100,13 @@ public enum InputLayoutPolicy {
     public static func allows(kind: KeyboardLayoutKind, family: InputSchemeFamily) -> Bool {
         switch kind {
         case .qwerty26: return true
-        case .merged14, .merged18, .phone9: return family == .generic
+        case .merged14, .merged18, .phone9: return family == .generic || family == .latinPhonetic
         }
     }
 
     /// Whether any folded (14 / 18 / 9-key) layout may be generated for a scheme of this family.
-    /// A known family has its own physical layout and never offers the folded shapes; an unknown
-    /// (generic) scheme keeps the legacy adapters.
+    /// Families with their own physical layout (zhuyin, cangjie radicals, japanese) never offer the
+    /// folded shapes; generic and latin-phonetic schemes fold like any other.
     public static func allowsCompactLayouts(family: InputSchemeFamily) -> Bool {
         KeyboardLayoutKind.allCases.filter(\.requiresSpellingDisplay).contains {
             allows(kind: $0, family: family)

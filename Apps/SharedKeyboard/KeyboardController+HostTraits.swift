@@ -16,7 +16,8 @@ extension KeyboardController {
         autocapitalizationType: UITextAutocapitalizationType? = nil,
         enablesReturnKeyAutomatically: Bool? = nil,
         beforeCursor: String? = nil,
-        documentIsEmpty: Bool? = nil
+        documentIsEmpty: Bool? = nil,
+        hasSelectedText: Bool = false
     ) {
         let kindChanged = self.keyboardType != keyboardType
         let capitalization = autocapitalizationType.map(HostKeyboardTypePolicy.AutoCapitalization.init)
@@ -25,6 +26,7 @@ extension KeyboardController {
         let returnEnabledChanged =
             self.enablesReturnKeyAutomatically != enablesReturnKeyAutomatically
             || hostDocumentIsEmpty != documentIsEmpty
+            || hostHasSelectedText != hasSelectedText
         var changed = false
         if kindChanged {
             self.keyboardType = keyboardType
@@ -42,6 +44,7 @@ extension KeyboardController {
         hostContextBeforeInput = beforeCursor
         self.enablesReturnKeyAutomatically = enablesReturnKeyAutomatically
         hostDocumentIsEmpty = documentIsEmpty
+        hostHasSelectedText = hasSelectedText
         if kindChanged { reconcileHostInput() }
         if kindChanged || capitalizationChanged || contextChanged { reconcileAutomaticShift() }
         // The return key reads `isReturnKeyEnabled` while rendering; repaint the panel
@@ -126,7 +129,6 @@ extension KeyboardController {
 
     /// Spoken Return name: composition confirms, otherwise the visible action word.
     public var returnKeyAccessibilityLabel: String {
-        KeyLabelPolicy.returnAccessibilityLabel(
-            script: inputLanguageScript, isComposing: snapshot.isComposing, intent: returnKeyIntent)
+        KeyLabelPolicy.returnAccessibilityLabel(isComposing: snapshot.isComposing, intent: returnKeyIntent)
     }
 }

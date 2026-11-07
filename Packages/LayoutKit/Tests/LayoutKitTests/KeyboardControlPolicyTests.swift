@@ -31,10 +31,27 @@ final class KeyboardControlPolicyTests: XCTestCase {
         XCTAssertEqual(text(.traditionalChinese).0, "，")
         XCTAssertEqual(text(.japanese).0, "、")
         XCTAssertEqual(text(.simplifiedChinese, ascii: true).0, ",")
-        XCTAssertEqual(text(.simplifiedChinese).1, ["。", "？", "！", "、", "：", "；"])
-        XCTAssertEqual(text(.traditionalChinese).1, ["。", "？", "！", "、", "：", "；"])
-        XCTAssertEqual(text(.japanese).1, ["。", "？", "！", "・", "：", "；"])
-        XCTAssertEqual(text(.japanese, ascii: true).1, [".", "?", "!", "'", ":", ";"])
+        XCTAssertEqual(text(.simplifiedChinese).1, ["。", "？", "！", "、", "…"])
+        XCTAssertEqual(text(.traditionalChinese).1, ["。", "？", "！", "、", "…"])
+        XCTAssertEqual(text(.japanese).1, ["。", "？", "！", "・", "…"])
+        XCTAssertEqual(text(.simplifiedChinese, ascii: true).1, [".", "?", "!", "'", "\""])
+        XCTAssertEqual(text(.japanese, ascii: true).1, [".", "?", "!", "'", "\""])
+    }
+
+    /// The split footer gives the full stop its own key: the comma holds the pauses, the full stop
+    /// holds the sentence-ending marks.
+    func testSplitFooterLongPressListsAreSplitBetweenCommaAndFullStop() {
+        func policy(_ script: KeyLabelScript, ascii: Bool = false) -> KeyboardControlPolicy {
+            KeyboardControlPolicy(
+                page: .letters, isEnglishMode: false, hasGlobe: true, isPhoneLayout: false,
+                usesASCIIPunctuation: ascii, script: script, showsSpaceSideMarks: true)
+        }
+        XCTAssertEqual(policy(.simplifiedChinese).utilityAlternates, ["、", "：", "；"])
+        XCTAssertEqual(policy(.traditionalChinese).utilityAlternates, ["、", "：", "；"])
+        XCTAssertEqual(policy(.japanese).utilityAlternates, ["・", "：", "；"])
+        XCTAssertEqual(policy(.japanese).fullStopAlternates, ["？", "！", "…"])
+        XCTAssertEqual(policy(.simplifiedChinese).fullStopAlternates, ["？", "！", "…"])
+        XCTAssertEqual(policy(.simplifiedChinese, ascii: true).utilityAlternates, [".", "?", "!", "'", "\""])
     }
 
     /// Without the globe the keys left of the space bar and the keys right of it take the same
@@ -576,7 +593,8 @@ final class KeyboardControlPolicyTests: XCTestCase {
                 XCTAssertEqual(policy.key(at: .markRight), .markRight)
                 XCTAssertEqual(policy.utility, .punctuation("。"))
                 XCTAssertEqual(policy.utilityText, "、")
-                XCTAssertEqual(policy.utilityAlternates.first, "。")
+                XCTAssertEqual(policy.utilityAlternates.first, "・")
+                XCTAssertEqual(policy.fullStopAlternates, ["？", "！", "…"])
             }
         }
     }
@@ -612,7 +630,7 @@ final class KeyboardControlPolicyTests: XCTestCase {
                 XCTAssertEqual(policy.key(at: .utility), .utility)
                 XCTAssertEqual(policy.utility, .punctuation(ascii ? "," : "，"))
                 XCTAssertEqual(
-                    policy.utilityAlternates, ascii ? [".", "?", "!", "'", ":", ";"] : ["。", "？", "！", "、", "：", "；"])
+                    policy.utilityAlternates, ascii ? [".", "?", "!", "'", "\""] : ["。", "？", "！", "、", "…"])
             }
         }
     }

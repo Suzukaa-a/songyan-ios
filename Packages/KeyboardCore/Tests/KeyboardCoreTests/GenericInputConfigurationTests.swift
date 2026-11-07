@@ -82,12 +82,9 @@ final class GenericInputConfigurationTests: XCTestCase {
             "14-key is a front-end compact capability that only an adapter/author may declare, never granted by source identity"
         )
 
-        // The dialect scheme's author declaration still lists 9-key, but the shared family rule wins:
-        // a known family does not offer the folded layouts, whatever the author declared.
-        XCTAssertFalse(choices.isAvailable(schemaID: "jyut6ping3", layout: .phone9))
-        XCTAssertEqual(
-            choices.reason(schemaID: "jyut6ping3", layout: .phone9),
-            UserTerminology.layoutUnavailableReason(.phone9))
+        // The dialect scheme folds like any other: its author declaration of 9-key stands, and the
+        // shapes nobody declared stay unavailable.
+        XCTAssertTrue(choices.isAvailable(schemaID: "jyut6ping3", layout: .phone9))
         XCTAssertFalse(choices.isAvailable(schemaID: "jyut6ping3", layout: .merged14))
         XCTAssertFalse(choices.isAvailable(schemaID: "jyut6ping3", layout: .merged18))
         XCTAssertTrue(choices.isAvailable(schemaID: "jyut6ping3", layout: .qwerty26))
@@ -105,7 +102,7 @@ final class GenericInputConfigurationTests: XCTestCase {
         XCTAssertFalse(choices.canStartUsing(schemaID: "numeric_radical", layout: .qwerty26))
 
         // The supported layouts are the union of each input method's available layouts, listing only the really available ones.
-        XCTAssertEqual(choices.supportedLayouts, [.qwerty26])
+        XCTAssertEqual(choices.supportedLayouts, [.qwerty26, .phone9], "jyut6ping3 declares 9-key")
 
         // Compact layouts (14 / 9 keys): not available and **not selectable** while the install fact does not hold; there is no pseudo-state of "tick it first,
         // prepare later" (adding a compact keyboard goes through the separate "add keyboard" transaction).
@@ -148,17 +145,21 @@ final class GenericInputConfigurationTests: XCTestCase {
         XCTAssertEqual(selected.schemas, set.schemas)
         XCTAssertTrue(selected.availableCombinations.contains { $0.schemaID == "jyut6ping3" && $0.layout == .qwerty26 })
 
-        // The author's 9-key declaration is refused by the family rule; the preference is dropped, never invented.
-        let refused = set.selecting(schemaID: "jyut6ping3", layout: .phone9)
-        XCTAssertEqual(refused.selectedSchemaID, "jyut6ping3", "source identity is kept")
+        // A latin-phonetic scheme keeps its declared 9-key.
+        let folded = set.selecting(schemaID: "jyut6ping3", layout: .phone9)
+        XCTAssertEqual(folded.preferredLayout, .phone9)
+
+        // The family rule refuses a folded layout for cangjie; the preference is dropped, never invented.
+        let refused = set.selecting(schemaID: "cangjie5", layout: .phone9)
+        XCTAssertEqual(refused.selectedSchemaID, "cangjie5", "source identity is kept")
         XCTAssertNil(refused.preferredLayout, "a disallowed layout is not written into the preference")
 
         // A source-restricted startup selection never crosses into another schema, and never falls back
         // to a layout the family forbids.
-        XCTAssertNil(set.bootSelection(candidates: [.phone9], restrictedToSource: "jyut6ping3"))
-        let boot = set.bootSelection(candidates: [.phone9, .qwerty26], restrictedToSource: "jyut6ping3")
+        XCTAssertNil(set.bootSelection(candidates: [.phone9], restrictedToSource: "cangjie5"))
+        let boot = set.bootSelection(candidates: [.phone9, .qwerty26], restrictedToSource: "cangjie5")
         XCTAssertEqual(boot?.layout, .qwerty26)
-        XCTAssertEqual(boot?.schemaID, "jyut6ping3")
+        XCTAssertEqual(boot?.schemaID, "cangjie5")
         // The 26-key of another source remains available on its own.
         let cangjie = set.bootSelection(candidates: [.qwerty26], restrictedToSource: "cangjie5")
         XCTAssertEqual(cangjie?.schemaID, "cangjie5")
@@ -204,10 +205,13 @@ final class GenericInputConfigurationTests: XCTestCase {
             "an unconfirmed compact layout must not be a preference landing point")
         XCTAssertEqual(choices.firstAvailableLayout(for: "jyut6ping3"), .qwerty26)
         XCTAssertEqual(
-            choices.firstAvailableLayout(for: "jyut6ping3", preferred: .phone9), .qwerty26,
+            choices.firstAvailableLayout(for: "jyut6ping3", preferred: .phone9), .phone9,
+            "a latin-phonetic scheme keeps its declared compact layout")
+        XCTAssertEqual(
+            choices.firstAvailableLayout(for: "cangjie5", preferred: .merged14), .qwerty26,
             "a family-forbidden compact layout must not be a landing point")
         XCTAssertNil(choices.firstAvailableLayout(for: "nonexistent"))
-        XCTAssertFalse(choices.canStartUsing(schemaID: "jyut6ping3", layout: .phone9))
+        XCTAssertTrue(choices.canStartUsing(schemaID: "jyut6ping3", layout: .phone9))
         XCTAssertFalse(
             choices.canStartUsing(schemaID: "numeric_radical", layout: .qwerty26),
             "26-key is genuinely unavailable for this input method; no combination is invented")
@@ -253,7 +257,7 @@ final class GenericInputConfigurationTests: XCTestCase {
     func testKnownFamiliesOnlyKeepTheQwertyShape() throws {
         let fixture = try fixture()
         let choices = InputConfigurationChoices(resourceSet: genericSet(fixture))
-        for schemaID in ["cangjie5", "quick5", "bopomofo", "jyut6ping3", "kagiroi"] {
+        for schemaID in ["cangjie5", "quick5", "bopomofo", "kagiroi"] {
             XCTAssertTrue(choices.isAvailable(schemaID: schemaID, layout: .qwerty26), schemaID)
             for layout in [KeyboardLayoutKind.merged14, .merged18, .phone9] {
                 XCTAssertFalse(
@@ -286,14 +290,21 @@ final class InputLayoutPolicyTests: XCTestCase {
         .generic, .japanese, .zhuyin, .cangjieRadicals, .latinPhonetic,
     ]
 
-    func testFoldedKindsStayWithTheLegacyGenericFamily() {
+    func testFoldedKindsAreRestrictedToZhuyinCangjieAndJapanese() {
         for family in families {
             XCTAssertTrue(InputLayoutPolicy.allows(kind: .qwerty26, family: family), family.rawValue)
             for kind in [KeyboardLayoutKind.merged14, .merged18, .phone9] {
                 XCTAssertEqual(
-                    InputLayoutPolicy.allows(kind: kind, family: family), family == .generic,
+                    InputLayoutPolicy.allows(kind: kind, family: family),
+                    family == .generic || family == .latinPhonetic,
                     "\(kind.rawValue) / \(family.rawValue)")
             }
+        }
+    }
+
+    func testALatinPhoneticSchemeFoldsLikeAnyOther() {
+        for kind in KeyboardLayoutKind.allCases {
+            XCTAssertTrue(InputLayoutPolicy.allows(kind: kind, family: .latinPhonetic), kind.rawValue)
         }
     }
 

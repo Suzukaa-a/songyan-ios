@@ -131,8 +131,7 @@ extension KeyboardPanelView {
             .cursorLeft: Kana12FunctionKeyAccessibility(label: Kana12Wording.cursorLeft),
             .modify: Kana12FunctionKeyAccessibility(label: Kana12Wording.modify),
             .symbols: Kana12FunctionKeyAccessibility(
-                label: KeyLabelPolicy.pageSwitchAccessibilityLabel(
-                    script: script, target: .symbols, isBundledPhonePad: false)),
+                label: KeyLabelPolicy.pageSwitchAccessibilityLabel(target: .symbols, isBundledPhonePad: false)),
             .language: Kana12FunctionKeyAccessibility(
                 label: KeyLabelPolicy.languageAccessibilityLabel(
                     script: script, action: .toggleLanguage,
@@ -142,8 +141,7 @@ extension KeyboardPanelView {
             .space: Kana12FunctionKeyAccessibility(
                 label: KeyLabelPolicy.spaceAccessibilityLabel(script: script, isComposing: false)),
             .enter: Kana12FunctionKeyAccessibility(
-                label: KeyLabelPolicy.returnAccessibilityLabel(
-                    script: script, isComposing: false, intent: intent)),
+                label: KeyLabelPolicy.returnAccessibilityLabel(isComposing: false, intent: intent)),
         ]
     }
 
@@ -154,7 +152,7 @@ extension KeyboardPanelView {
                 label: KeyLabelPolicy.spaceAccessibilityLabel(script: script, isComposing: true)),
             .enter: Kana12FunctionKeyAccessibility(
                 label: KeyLabelPolicy.returnAccessibilityLabel(
-                    script: script, isComposing: true, intent: controller.returnKeyIntent)),
+                    isComposing: true, intent: controller.returnKeyIntent)),
         ]
     }
 

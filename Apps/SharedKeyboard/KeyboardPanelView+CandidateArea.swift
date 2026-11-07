@@ -11,26 +11,38 @@ extension KeyboardPanelView {
     /// It has its own explicit width budget (`compositionBadgeWidthBudget`) and sits beside the candidates in the
     /// reserved right edge of the candidate row (HStack), never covering candidate text;
     /// nil (inline has taken over) shows nothing.
+    /// Simplified Chinese keeps the plain SwiftUI text; Traditional and Japanese draw the language-tagged label.
+    @ViewBuilder
+    private func compositionBadgeText(_ text: String) -> some View {
+        if controller.inputLanguage.language == .simplifiedChinese {
+            Text(text)
+                .font(appearance.font(appearance.skin.typography.secondarySize))
+                .lineLimit(1)
+                .truncationMode(.middle)
+        } else {
+            CandidateLanguageText(
+                text: text, language: controller.inputLanguage.language,
+                fontSize: appearance.skin.typography.secondarySize,
+                fontFamily: appearance.skin.typography.family,
+                fontWeight: appearance.skin.typography.weight,
+                color: Color(uiColor: appearance.text(on: "key", secondary: true)),
+                lineLimit: 1, truncation: .middle)
+        }
+    }
+
     private var compositionFallbackBadge: some View {
         Group {
             if let marked = controller.keyboardCompositionFallback, !marked.text.isEmpty {
-                CandidateLanguageText(
-                    text: marked.text, language: controller.inputLanguage.language,
-                    fontSize: appearance.skin.typography.secondarySize,
-                    fontFamily: appearance.skin.typography.family,
-                    fontWeight: appearance.skin.typography.weight,
-                    color: Color(uiColor: appearance.text(on: "key", secondary: true)),
-                    lineLimit: 1, truncation: .middle
-                )
-                .padding(.horizontal, 8)
-                .padding(.vertical, 2)
-                .background(Capsule().fill(appearance.color("key")).opacity(0.92))
-                .overlay(
-                    Capsule().strokeBorder(
-                        appearance.color("border"), lineWidth: appearance.skin.keycap.borderWidth)
-                )
-                .foregroundStyle(Color(uiColor: appearance.text(on: "key", secondary: true)))
-                .accessibilityLabel(String(localized: "当前组合：\(marked.text)"))
+                compositionBadgeText(marked.text)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 2)
+                    .background(Capsule().fill(appearance.color("key")).opacity(0.92))
+                    .overlay(
+                        Capsule().strokeBorder(
+                            appearance.color("border"), lineWidth: appearance.skin.keycap.borderWidth)
+                    )
+                    .foregroundStyle(Color(uiColor: appearance.text(on: "key", secondary: true)))
+                    .accessibilityLabel(String(localized: "当前组合：\(marked.text)"))
             }
         }
     }

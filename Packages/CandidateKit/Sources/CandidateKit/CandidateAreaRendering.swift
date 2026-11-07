@@ -495,11 +495,20 @@ struct CollapsedCandidateRow: View {
                             .foregroundStyle(skin.secondaryColor)
                             .lineLimit(1)
                     }
-                    CandidateLanguageText(
-                        text: entry.text, language: context.inputLanguage,
-                        fontSize: context.typography.candidateSize,
-                        fontFamily: skin.fontFamily, fontWeight: skin.fontWeight,
-                        color: skin.candidateColor, lineLimit: 1, truncation: .tail)
+                    // Simplified Chinese is the system's default glyph form, so it keeps the plain
+                    // SwiftUI text; only Traditional and Japanese need the language-tagged label.
+                    if context.inputLanguage == .simplifiedChinese {
+                        Text(entry.text)
+                            .font(skin.font(context.typography.candidateSize))
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                    } else {
+                        CandidateLanguageText(
+                            text: entry.text, language: context.inputLanguage,
+                            fontSize: context.typography.candidateSize,
+                            fontFamily: skin.fontFamily, fontWeight: skin.fontWeight,
+                            color: skin.candidateColor, lineLimit: 1, truncation: .tail)
+                    }
                 }
                 // Reserve the same baseline for every candidate, including the underline.
                 Group {
@@ -846,16 +855,24 @@ struct ExpandedCandidateRows: View {
                             .foregroundStyle(skin.secondaryColor)
                             .lineLimit(1)
                     }
-                    CandidateLanguageText(
-                        text: entry.text, language: context.inputLanguage,
-                        fontSize: context.typography.candidateSize,
-                        fontFamily: skin.fontFamily, fontWeight: skin.fontWeight,
-                        color: skin.candidateColor, lineLimit: nil, truncation: .tail
-                    )
-                    .modifier(
-                        CandidateLanguageTextBaseline(
+                    if context.inputLanguage == .simplifiedChinese {
+                        Text(entry.text)
+                            .font(skin.font(context.typography.candidateSize))
+                            .lineLimit(nil)
+                            .truncationMode(.tail)
+                            .fixedSize(horizontal: false, vertical: true)
+                    } else {
+                        CandidateLanguageText(
+                            text: entry.text, language: context.inputLanguage,
                             fontSize: context.typography.candidateSize,
-                            fontFamily: skin.fontFamily, fontWeight: skin.fontWeight))
+                            fontFamily: skin.fontFamily, fontWeight: skin.fontWeight,
+                            color: skin.candidateColor, lineLimit: nil, truncation: .tail
+                        )
+                        .modifier(
+                            CandidateLanguageTextBaseline(
+                                fontSize: context.typography.candidateSize,
+                                fontFamily: skin.fontFamily, fontWeight: skin.fontWeight))
+                    }
                 }
                 if !entry.comment.isEmpty {
                     Text(entry.comment)

@@ -13,9 +13,11 @@ extension ControlRow {
             cap: KeyCap(
                 id: "control-mark-right", title: KeyboardControlPolicy.fullStop,
                 action: .literal(KeyboardControlPolicy.fullStop)),
-            alternates: []
+            alternates: policy.fullStopAlternates.enumerated().map { index, mark in
+                KeyCap(id: "control-mark-right-\(index)", title: mark, action: .literal(mark))
+            }
         ) { onKey($0.action) }
-        .accessibilityLabel(KeyboardControlPolicy.fullStop)
+        .accessibilityLabel(String(localized: "\(KeyboardControlPolicy.fullStop)，长按选择标点"))
     }
 }
 
@@ -186,9 +188,7 @@ struct MarkPageSwitchKey: View {
         .accessibilityLabel(
             accessibilityText
                 ?? KeyLabelPolicy.pageSwitchAccessibilityLabel(
-                    script: .simplifiedChinese,
-                    target: target == .symbols ? .symbols : .numeric,
-                    isBundledPhonePad: false))
+                    target: target == .symbols ? .symbols : .numeric, isBundledPhonePad: false))
     }
 }
 

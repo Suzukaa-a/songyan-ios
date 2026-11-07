@@ -400,6 +400,9 @@ public final class KeyboardController: ObservableObject {
     var hostContextBeforeInput: String?
     var enablesReturnKeyAutomatically: Bool?
     var hostDocumentIsEmpty: Bool?
+    /// Whether the host reports a non-empty selection; with no text before the caret it still proves the
+    /// field is readable.
+    var hostHasSelectedText = false
     var automaticShiftArmed = false
     /// Fires only when a host text-field trait actually changes (not on every keystroke),
     /// so appearance consumers can refresh without observing the whole snapshot.

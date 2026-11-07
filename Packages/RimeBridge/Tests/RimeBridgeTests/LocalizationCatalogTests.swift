@@ -122,4 +122,15 @@ final class LocalizationCatalogTests: XCTestCase {
         // The wrapped detail is the sentence: the engine adds no prefix of its own around it.
         XCTAssertEqual(RimeEngineError.operationFailed("已停止输入").errorDescription, "已停止输入")
     }
+
+    /// The request-range message formats integers through a `%@` template; handing it raw `Int`s
+    /// crashed instead of reporting the invalid range.
+    func testAnInvalidCandidateRequestReportsItsRange() throws {
+        let scratch = FileManager.default.temporaryDirectory
+        let engine = RimeEngine(configuration: .init(sharedDirectory: scratch, userDirectory: scratch))
+        XCTAssertThrowsError(try engine.readCandidatePage(fromIndex: -3, count: 7)) { error in
+            let text = error.localizedDescription
+            XCTAssertTrue(text.contains("-3") && text.contains("7"), text)
+        }
+    }
 }

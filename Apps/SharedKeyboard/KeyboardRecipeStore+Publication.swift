@@ -4,6 +4,22 @@ import KeyboardCore
 import OSLog
 
 extension KeyboardRecipeStore {
+    /// Replaces keyboards whose scheme family does not allow their shape with the 26-key of the same
+    /// scheme, keeping order and never duplicating an existing entry.
+    static func droppingRestrictedShapes(
+        _ keyboards: [PublishedKeyboard], schemas: [KeyboardSchemaDescriptor]
+    ) -> [PublishedKeyboard] {
+        var result: [PublishedKeyboard] = []
+        for keyboard in keyboards {
+            let family = InputLayoutPolicy.family(schemaID: keyboard.schemaID, descriptors: schemas)
+            let kept =
+                InputLayoutPolicy.allows(kind: keyboard.layout, family: family)
+                ? keyboard : PublishedKeyboard(schemaID: keyboard.schemaID, layout: .qwerty26)
+            if !result.contains(kept) { result.append(kept) }
+        }
+        return result
+    }
+
     /// Publish-time consistency checks; readers rely on them and surface a missing file as an ordinary error.
     private static func validatePublication(_ activation: Activation, build: URL) throws {
         if let selected = activation.selectedSchemaID, !activation.requiredSchemaIDs.contains(selected) {
@@ -274,6 +290,21 @@ extension KeyboardRecipeStore {
             effectiveRoster = merged.rosters
         } else if effectiveKeyboards != nil {
             throw StoreError(message: String(localized: "输入方案来源信息不完整，无法保存已添加的键盘"))
+        }
+        // A persisted compact keyboard whose family no longer allows that shape (for example an
+        // imported cangjie scheme published on 14-key by an earlier version) has no generated
+        // adapter and never will; it falls back to the identity 26-key instead of blocking publication.
+        if let list = effectiveKeyboards {
+            effectiveKeyboards = Self.droppingRestrictedShapes(list, schemas: schemas)
+        }
+        if let targetKey = rosterKey(kind: kind, packageID: packageID), let list = effectiveRoster?[targetKey] {
+            effectiveRoster?[targetKey] = Self.droppingRestrictedShapes(list, schemas: schemas)
+        }
+        if let id = effectiveSchemaID, let shape = effectiveLayout,
+            !InputLayoutPolicy.allows(
+                kind: shape, family: InputLayoutPolicy.family(schemaID: id, descriptors: schemas))
+        {
+            effectiveLayout = .qwerty26
         }
         if inheritedEnglishCandidateRoutes, let routes = effectiveEnglishCandidateRoutes {
             let owners = Set(effectiveKeyboards ?? [])
