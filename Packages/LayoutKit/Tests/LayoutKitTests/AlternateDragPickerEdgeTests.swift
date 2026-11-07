@@ -421,15 +421,37 @@ extension AlternateDragPickerTests {
                 current: 0, anchor: 0), 0)
     }
 
-    /// Dragging down cancels: only past 72pt, fading proportionally on the way.
-    func testDropProgressRampsToTheCancel() {
-        XCTAssertEqual(AlternateDragPicker.dropProgress(0), 0)
-        XCTAssertEqual(AlternateDragPicker.dropProgress(AlternateDragPicker.Tuning.cancelFeedbackStart), 0)
-        XCTAssertEqual(AlternateDragPicker.dropProgress(AlternateDragPicker.Tuning.cancelDrop), 1)
-        XCTAssertEqual(AlternateDragPicker.dropProgress(-40), 0)
-        XCTAssertGreaterThan(
-            AlternateDragPicker.Tuning.cancelDrop, 54, "longer than one key row so ordinary hand jitter does not cancel"
-        )
-        XCTAssertFalse(AlternateDragPicker.isCancelled(point: .zero, geometry: singleRow, drop: 50))
+    func testSmallDownwardDriftShowsNoCancelFeedbackAndKeepsTheAlternate() {
+        let g = singleRow
+        let o = origin(below: g)
+        for drop in [-40.0, 0, 16, 24, 36, 43.5, 44] {
+            let p = CGPoint(x: o.x, y: o.y + drop)
+            XCTAssertEqual(AlternateDragPicker.dropProgress(drop), 0, "drop: \(drop)")
+            XCTAssertEqual(
+                AlternateDragPicker.selection(origin: o, point: p, geometry: g, current: 0, drop: drop), 0)
+            XCTAssertEqual(
+                AlternateDragPicker.releaseResolution(highlighted: 0, point: p, geometry: g, drop: drop),
+                .alternate(0))
+        }
+    }
+
+    func testDropProgressRampsAfter44PointsAndCancelsAt72Points() {
+        XCTAssertGreaterThan(AlternateDragPicker.dropProgress(44.5), 0)
+        XCTAssertEqual(AlternateDragPicker.dropProgress(58), 0.5, accuracy: 0.0001)
+        XCTAssertLessThan(AlternateDragPicker.dropProgress(71.5), 1)
+        XCTAssertEqual(AlternateDragPicker.dropProgress(72), 1)
+        XCTAssertEqual(AlternateDragPicker.dropProgress(96), 1)
+        XCTAssertEqual(AlternateDragPicker.dropProgress(44), 0, "moving back up removes the feedback")
+
+        let g = singleRow
+        let o = origin(below: g)
+        XCTAssertFalse(AlternateDragPicker.isCancelled(point: o, geometry: g, drop: 71.5))
+        XCTAssertEqual(
+            AlternateDragPicker.releaseResolution(highlighted: 0, point: o, geometry: g, drop: 71.5),
+            .alternate(0))
+        XCTAssertTrue(AlternateDragPicker.isCancelled(point: o, geometry: g, drop: 72))
+        XCTAssertNil(AlternateDragPicker.selection(origin: o, point: o, geometry: g, current: 0, drop: 72))
+        XCTAssertEqual(
+            AlternateDragPicker.releaseResolution(highlighted: 0, point: o, geometry: g, drop: 72), .none)
     }
 }
