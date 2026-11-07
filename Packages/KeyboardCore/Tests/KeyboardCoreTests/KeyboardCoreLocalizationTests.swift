@@ -92,6 +92,20 @@ final class KeyboardCoreLocalizationTests: XCTestCase {
         XCTAssertTrue(
             try Self.renderings("core.term.installedSourceSummary", "2")
                 .contains(UserTerminology.installedSourceSummary(count: 2)))
+        // A bundled scheme and its companions are named in the app language, not by their YAML name.
+        let quanpin = try Self.renderings("core.builtin.quanpinName")
+        XCTAssertTrue(
+            quanpin.contains(KeyboardSchemaDescriptor(id: BuiltinTemplateSchemas.quanpin, name: "内置全拼").displayName))
+        for adapter in BuiltinTemplateSchemas.adapters {
+            let key =
+                adapter.sourceSchemaID == BuiltinTemplateSchemas.quanpin
+                ? "core.builtin.quanpinName" : "core.builtin.flypyName"
+            let descriptor = KeyboardSchemaDescriptor(
+                id: adapter.schemaID, name: BuiltinTemplateSchemas.names[adapter.sourceSchemaID] ?? "")
+            XCTAssertTrue(try Self.renderings(key).contains(descriptor.displayName), adapter.schemaID)
+            XCTAssertEqual(descriptor.humanReadableName, descriptor.displayName, adapter.schemaID)
+        }
+        XCTAssertNil(BuiltinTemplateSchemas.localizedName(for: "rime_ice"))
         // The Japanese clause separator is 、: a hard-coded Chinese comma used to join the two parts.
         let summaryEntries = try Self.catalog()
         let summaryRenderings = Self.languages.compactMap { language -> String? in

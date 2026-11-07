@@ -24,7 +24,7 @@ public enum ProductionInputAvailability: Sendable {
     }
     /// The input method the keyboard falls back to when nothing is in use.
     public static var fallbackInputMethodName: String {
-        BuiltinTemplateSchemas.names[BuiltinTemplateSchemas.quanpin] ?? builtinDisplayName
+        BuiltinTemplateSchemas.localizedName(for: BuiltinTemplateSchemas.quanpin) ?? builtinDisplayName
     }
 
     /// Standard title when no scheme is configured.

@@ -1470,7 +1470,7 @@
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "キーボードは組み込み全拼を使用中です。タップして入力パックを追加"
+            "value": "キーボードは内蔵全拼を使用中です。タップして入力パックを追加"
           }
         }
       }
@@ -3561,6 +3561,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "%1$@ · %2$@配套"
+          }
+        }
+      }
+    },
+    "core.builtin.quanpinName": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内置全拼"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "內建全拼"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内蔵全拼"
+          }
+        }
+      }
+    },
+    "core.builtin.flypyName": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内置小鹤双拼"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "內建小鶴雙拼"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内蔵小鶴双拼"
           }
         }
       }

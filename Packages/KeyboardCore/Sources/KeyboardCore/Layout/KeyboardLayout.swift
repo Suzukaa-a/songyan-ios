@@ -137,6 +137,20 @@ public enum BuiltinTemplateSchemas {
     /// Same as `schema/name` in the YAML; a companion shows its source's name.
     public static let names = [quanpin: "内置全拼", flypy: "内置小鹤双拼"]
 
+    /// What the interface calls a bundled scheme or one of its companions while it carries its
+    /// bundled name (or none). The YAML keeps the Simplified Chinese name the engine and saved
+    /// choices know; the words follow the app language. A name the user gave it (a dictionary
+    /// built on it) is theirs and stays.
+    public static func localizedName(for id: String, name: String = "") -> String? {
+        let source = sourceSchemaIDs.contains(id) ? id : adapters.first { $0.schemaID == id }?.sourceSchemaID
+        guard let source, name.isEmpty || name == id || name == source || name == names[source] else { return nil }
+        switch source {
+        case quanpin: return String(localized: "core.builtin.quanpinName", bundle: .module)
+        case flypy: return String(localized: "core.builtin.flypyName", bundle: .module)
+        default: return nil
+        }
+    }
+
     /// The generated companions shipped in the bundle. Ids follow
     /// `CompactSchemaAdapter.identifier`; the PackageManager tests regenerate the files and
     /// check them against this table.

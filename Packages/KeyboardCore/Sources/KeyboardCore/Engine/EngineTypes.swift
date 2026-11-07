@@ -449,6 +449,7 @@ public struct KeyboardSchemaDescriptor: Codable, Equatable, Sendable, Identifiab
     /// Resource manifests sometimes carry an ID as their label. Preserve real
     /// source-provided names; only known ID fallbacks get a friendly presentation name.
     public var displayName: String {
+        if let builtin = BuiltinTemplateSchemas.localizedName(for: id, name: name) { return builtin }
         guard name.isEmpty || name == id else { return name }
         return [
             "rime_ice": "雾凇拼音", "double_pinyin_flypy": "小鹤双拼",
@@ -469,6 +470,7 @@ public struct KeyboardSchemaDescriptor: Codable, Equatable, Sendable, Identifiab
     /// ID/brand special-casing. On nil callers fall back to generic copy (e.g. 「当前输入方式」)
     /// or omit it, so internal IDs are not exposed to users.
     public var humanReadableName: String? {
+        if let builtin = BuiltinTemplateSchemas.localizedName(for: id, name: name) { return builtin }
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, trimmed != id else { return nil }
         return trimmed
