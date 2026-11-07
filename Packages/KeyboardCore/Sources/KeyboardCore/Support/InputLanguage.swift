@@ -29,8 +29,10 @@ public struct InputLanguageProfile: Equatable, Sendable {
     }
 }
 
-/// One ordered table decides the language and family of a scheme. A known family wins over the
-/// scheme's declared conversion, so a zhuyin scheme showing simplified output stays zhuyin.
+/// One ordered table decides the language and family of a scheme. The family is decided first and
+/// never changes; a known Chinese family defaults to traditional, but a declared simplifying
+/// conversion in force makes its language simplified (a cangjie scheme showing simplified output
+/// keeps the radical keys with simplified glyphs). kagiroi stays Japanese regardless.
 /// Unknown facts fail closed to today's simplified behaviour instead of guessing.
 public enum InputLanguageResolver {
     /// `alphabet` is the scheme's `speller/alphabet`; empty means unknown.
@@ -44,14 +46,20 @@ public enum InputLanguageResolver {
         if schemaID.hasPrefix("kagiroi") {
             return InputLanguageProfile(language: .japanese, family: .japanese)
         }
+        let chineseFamily: InputSchemeFamily?
         if schemaID.hasPrefix("bopomofo") || isBopomofoAlphabet(alphabet) {
-            return InputLanguageProfile(language: .traditionalChinese, family: .zhuyin)
+            chineseFamily = .zhuyin
+        } else if schemaID.hasPrefix("cangjie") || schemaID.hasPrefix("quick") {
+            chineseFamily = .cangjieRadicals
+        } else if schemaID.hasPrefix("jyut6ping3") {
+            chineseFamily = .latinPhonetic
+        } else {
+            chineseFamily = nil
         }
-        if schemaID.hasPrefix("cangjie") || schemaID.hasPrefix("quick") {
-            return InputLanguageProfile(language: .traditionalChinese, family: .cangjieRadicals)
-        }
-        if schemaID.hasPrefix("jyut6ping3") {
-            return InputLanguageProfile(language: .traditionalChinese, family: .latinPhonetic)
+        if let family = chineseFamily {
+            let simplifies = declaredConversion.map { simplifiedConversions.contains($0) } ?? false
+            return InputLanguageProfile(
+                language: simplifies ? .simplifiedChinese : .traditionalChinese, family: family)
         }
         if let declaredConversion, traditionalConversions.contains(declaredConversion) {
             return InputLanguageProfile(language: .traditionalChinese, family: .generic)
@@ -65,11 +73,14 @@ public enum InputLanguageResolver {
         alphabet.contains("1qaz2wsx") && Set("-;,./").isSubset(of: Set(alphabet))
     }
 
-    /// OpenCC configs whose output is traditional Chinese. `t2s` converts the other way, and
-    /// anything not listed here is unknown, so neither is treated as traditional output.
+    /// OpenCC configs whose output is traditional Chinese. Anything not listed here is unknown and
+    /// is never treated as traditional output.
     private static let traditionalConversions: Set<String> = [
         "s2t", "s2tw", "s2twp", "s2hk", "t2tw", "t2hk",
     ]
+
+    /// OpenCC configs whose output is simplified Chinese.
+    private static let simplifiedConversions: Set<String> = ["t2s", "tw2s", "tw2sp", "hk2s"]
 }
 
 /// Physical keyboard availability, shared by the host app and the keyboard.

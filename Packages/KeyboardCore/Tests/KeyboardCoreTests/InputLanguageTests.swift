@@ -4,8 +4,8 @@ import XCTest
 @testable import KeyboardCore
 
 /// The schema table that decides an input method's display language and keyboard family.
-/// Rows are ordered: a recognised family wins over the scheme's declared conversion, so a
-/// zhuyin scheme switched to simplified output still reports the zhuyin family.
+/// Rows are ordered: the family is decided first and never changes, while a declared simplifying
+/// conversion turns a Chinese family's language to simplified (zhuyin stays zhuyin).
 final class InputLanguageTests: XCTestCase {
     /// 大千 keyboard: the first row is contiguous, the tone keys 6 3 4 7 and the punctuation
     /// keys may be written in any order.
@@ -47,8 +47,31 @@ final class InputLanguageTests: XCTestCase {
     func testBopomofoPrefixIsTraditionalZhuyin() {
         XCTAssertEqual(profile("bopomofo"), traditionalZhuyin)
         XCTAssertEqual(profile("bopomofo_tw", bopomofoAlphabet), traditionalZhuyin)
-        // A known family wins over the declared conversion, so simplified output stays zhuyin.
-        XCTAssertEqual(profile("bopomofo_tw", bopomofoAlphabet, conversion: "t2s"), traditionalZhuyin)
+        XCTAssertEqual(profile("bopomofo_tw", bopomofoAlphabet, conversion: "s2t"), traditionalZhuyin)
+    }
+
+    func testSimplifyingConversionKeepsFamilyButMakesChineseFamiliesSimplified() {
+        for config in ["t2s", "tw2s", "tw2sp", "hk2s"] {
+            XCTAssertEqual(
+                profile("bopomofo_tw", bopomofoAlphabet, conversion: config),
+                InputLanguageProfile(language: .simplifiedChinese, family: .zhuyin), config)
+            XCTAssertEqual(
+                profile("cangjie5", latinAlphabet, conversion: config),
+                InputLanguageProfile(language: .simplifiedChinese, family: .cangjieRadicals), config)
+            XCTAssertEqual(
+                profile("quick5", latinAlphabet, conversion: config),
+                InputLanguageProfile(language: .simplifiedChinese, family: .cangjieRadicals), config)
+            XCTAssertEqual(
+                profile("jyut6ping3", latinAlphabet, conversion: config),
+                InputLanguageProfile(language: .simplifiedChinese, family: .latinPhonetic), config)
+            XCTAssertEqual(
+                profile("kagiroi", latinAlphabet, conversion: config),
+                InputLanguageProfile(language: .japanese, family: .japanese), config)
+        }
+        // An unknown converter is not script evidence.
+        XCTAssertEqual(
+            profile("cangjie5", latinAlphabet, conversion: "t2hkf"),
+            InputLanguageProfile(language: .traditionalChinese, family: .cangjieRadicals))
     }
 
     func testBopomofoAlphabetIsTraditionalZhuyin() {
