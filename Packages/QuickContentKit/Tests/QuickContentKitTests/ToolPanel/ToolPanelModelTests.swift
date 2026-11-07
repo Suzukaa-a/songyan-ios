@@ -98,6 +98,19 @@ final class ToolPanelModelTests: XCTestCase {
                     documentIdentifier: "doc-a")))
     }
 
+    func testAParagraphIsNotOfferedWhileTextIsSelected() {
+        let model = ToolPanelModel(editor: editor(selected: " ", beforeCursor: "前文\n软件"))
+        XCTAssertNil(model.prepared?.anchor)
+        XCTAssertEqual(model.availability(of: .paragraphBeforeCursor), .noTextBeforeCursor)
+    }
+
+    func testAParagraphAnchorDoesNotMatchOnceTextIsSelected() {
+        let model = ToolPanelModel(editor: editor(beforeCursor: "前文\n软件"))
+        XCTAssertEqual(
+            model.replacementDecision(current: editor(selected: "软", beforeCursor: "前文\n软件")),
+            .insertOnly(.textChanged))
+    }
+
     func testChangedSelectionTextFallsBackToInsertOnly() {
         let model = ToolPanelModel(editor: editor(selected: "软件"))
         XCTAssertEqual(

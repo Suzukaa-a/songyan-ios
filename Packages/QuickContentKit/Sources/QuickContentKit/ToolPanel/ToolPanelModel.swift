@@ -15,6 +15,10 @@ public struct ToolPanelEditorSnapshot: Equatable, Sendable {
     /// The host's own answer for an empty field; nil when it does not say.
     public let documentIsEmpty: Bool?
 
+    /// Whether the cursor is a caret. A paragraph is removed with backwards deletes, and the first
+    /// one would only consume a selection, so a paragraph is never anchored over a selection.
+    public var hasEmptySelection: Bool { selectedText?.isEmpty != false }
+
     public init(
         selectedText: String? = nil,
         textBeforeCursor: String? = nil,
@@ -62,6 +66,7 @@ extension ToolPanelAnchor {
         case .selection:
             return ToolPanelText.usableText(current.selectedText) == text
         case .paragraphBeforeCursor:
+            guard current.hasEmptySelection else { return false }
             // A long paragraph was processed from its tail; compare against the same bounded
             // window, not the whole paragraph.
             guard let paragraph = ToolPanelText.paragraphBeforeCursor(current.textBeforeCursor)
@@ -154,6 +159,7 @@ public struct ToolPanelModel: Equatable, Sendable {
         case .selection:
             return ToolPanelText.usableText(editor.selectedText) == nil ? .nothingSelected : nil
         case .paragraphBeforeCursor:
+            guard editor.hasEmptySelection else { return .noTextBeforeCursor }
             return ToolPanelText.paragraphBeforeCursor(editor.textBeforeCursor) == nil
                 ? .noTextBeforeCursor : nil
         case .clipboard:
@@ -239,7 +245,9 @@ public struct ToolPanelModel: Equatable, Sendable {
         editor: ToolPanelEditorSnapshot, clipboardText: String?
     ) -> ToolPanelSource {
         if ToolPanelText.usableText(editor.selectedText) != nil { return .selection }
-        if ToolPanelText.paragraphBeforeCursor(editor.textBeforeCursor) != nil {
+        if editor.hasEmptySelection,
+            ToolPanelText.paragraphBeforeCursor(editor.textBeforeCursor) != nil
+        {
             return .paragraphBeforeCursor
         }
         if ToolPanelText.usableText(clipboardText) != nil { return .clipboard }
@@ -259,7 +267,8 @@ public struct ToolPanelModel: Equatable, Sendable {
                     location: .selection, text: bounded.text,
                     documentIdentifier: editor.documentIdentifier))
         case .paragraphBeforeCursor:
-            guard let paragraph = ToolPanelText.paragraphBeforeCursor(editor.textBeforeCursor)
+            guard editor.hasEmptySelection,
+                let paragraph = ToolPanelText.paragraphBeforeCursor(editor.textBeforeCursor)
             else { return nil }
             let bounded = ToolPanelText.boundedSuffix(paragraph)
             return ToolPanelPreparedText(
