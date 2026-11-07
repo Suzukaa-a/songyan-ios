@@ -15,6 +15,12 @@ class ControllerInputRegressions(unittest.TestCase):
             production = controller_sources(directory)
             queue = directory / "EngineOpQueue.swift"
             queue.write_text((ROOT / "Apps/SharedKeyboard/EngineOpQueue.swift").read_text())
+            # The shipping candidate-action bridge is compiled unchanged, so the checks below retain
+            # and call the real `.live` sink instead of a copy of its forwarding switch.
+            candidate_actions = directory / "KeyboardCandidateActions.swift"
+            candidate_actions.write_text(
+                (ROOT / "Apps/SharedKeyboard/KeyboardCandidateActions.swift").read_text(encoding="utf-8"),
+                encoding="utf-8")
             fixture = ROOT / "Tests/IOS/Fixtures/ControllerInputRegressions.swift"
             binary = directory / "probe"
             run(["xcrun", "swiftc", "-swift-version", "5", "-parse-as-library",
@@ -22,7 +28,8 @@ class ControllerInputRegressions(unittest.TestCase):
                  "-module-cache-path", str(directory / "module-cache"),
                  "-lKeyboardCore", "-lLayoutKit", "-lCandidateKit",
                  "-Xlinker", "-rpath", "-Xlinker", str(modules),
-                 *map(str, production), str(queue), str(fixture), "-o", str(binary)])
+                 *map(str, production), str(queue), str(candidate_actions), str(fixture),
+                 "-o", str(binary)])
             print(run([str(binary)]), end="")
 
 

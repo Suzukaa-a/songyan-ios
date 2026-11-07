@@ -1,0 +1,57 @@
+# Real-engine fixture for librime-predict: typing `ni` gives 你; committing it
+# must leave EMPTY raw input with a live zero-length prediction segment
+# (native Context::IsComposing() is true) whose only candidate is 好; Esc
+# dismisses that segment.
+# predict.db is built by Tools/BuildRimeIOS/scripts/gen-prediction-fixture.sh.
+schema:
+  schema_id: prediction_probe
+  name: 联想回归测试
+  version: "0.1.0"
+
+switches:
+  # reset 0 keeps the real keyboard controller on the Chinese/schema mode.
+  - name: ascii_mode
+    reset: 0
+    states: [ 中文, 英文 ]
+  - name: prediction
+    reset: 1
+    states: [ 关闭联想, 开启联想 ]
+
+engine:
+  processors:
+    # librime-predict expects the predictor ahead of the other processors.
+    - predictor
+    - speller
+    - selector
+    # express_editor supplies _auto_commit, so picking 你 commits it the same
+    # way a real keyboard does.
+    - express_editor
+  segmentors:
+    - abc_segmentor
+    - fallback_segmentor
+  translators:
+    - script_translator
+    - predict_translator
+  filters:
+    - uniquifier
+
+speller:
+  alphabet: zyxwvutsrqponmlkjihgfedcba
+  delimiter: " "
+
+translator:
+  dictionary: prediction_probe
+  prism: prediction_probe
+  user_dict: prediction_probe
+  db_class: userdb
+  enable_user_dict: true
+  enable_sentence: false
+  enable_completion: false
+
+predictor:
+  db: predict.db
+  max_iterations: 1
+  max_candidates: 5
+
+menu:
+  page_size: 5

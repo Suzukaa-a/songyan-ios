@@ -14015,28 +14015,6 @@
         }
       }
     },
-    "上下滑输入数字与符号": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "上下滑输入数字与符号"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "上下滑輸入數字與符號"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "フリックで数字と記号を入力"
-          }
-        }
-      }
-    },
     "长按延迟": {
       "localizations": {
         "zh-Hans": {
@@ -33833,6 +33811,94 @@
           "stringUnit": {
             "state": "translated",
             "value": "切換到%@並開啟%@"
+          }
+        }
+      }
+    },
+    "滑动输入角上的字符": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "角の文字をフリックで入力"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "滑动输入角上的字符"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "滑動輸入角上的字元"
+          }
+        }
+      }
+    },
+    "上滑": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上フリック"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上滑"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上滑"
+          }
+        }
+      }
+    },
+    "下滑": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下フリック"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下滑"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下滑"
+          }
+        }
+      }
+    },
+    "按键右上角的小字，滑一下就能输入。下次打开键盘时生效。": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キー右上の小さな文字は、フリックで入力できます。次にキーボードを開いたときに反映されます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按键右上角的小字，滑一下就能输入。下次打开键盘时生效。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按鍵右上角的小字，滑一下就能輸入。下次開啟鍵盤時生效。"
           }
         }
       }

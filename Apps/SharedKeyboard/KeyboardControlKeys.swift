@@ -710,20 +710,35 @@ struct NativeInputModeKey: UIViewRepresentable {
     }
 }
 
+private struct KeyboardDeleteCompositionKey: EnvironmentKey {
+    static var defaultValue: @MainActor () -> Bool { { false } }
+}
+
+extension EnvironmentValues {
+    var keyboardDeleteHasComposition: @MainActor () -> Bool {
+        get { self[KeyboardDeleteCompositionKey.self] }
+        set { self[KeyboardDeleteCompositionKey.self] = newValue }
+    }
+}
+
 /// The UIKit touch lifecycle ensures repeat-delete stops immediately on move-out, lift, and view disappearance.
 struct RepeatingDeleteKey: UIViewRepresentable {
     @Environment(\.keyboardPanelHostLifetime) private var hostLifetime
+    @Environment(\.keyboardDeleteHasComposition) private var hasComposition
     @Environment(\.keyboardAppearance) private var appearance
     @Environment(\.isEnabled) private var isEnabled
     /// An author label replaces the delete glyph; a secondary label shows under it. The repeat
     /// gesture is untouched, because the author data must not silently lose native behavior.
     var title: String? = nil
     var subtitle: String? = nil
+    var skinRole = "control"
     let action: (Bool) -> Void
 
-    init(title: String? = nil, subtitle: String? = nil, action: @escaping (Bool) -> Void) {
+    init(title: String? = nil, subtitle: String? = nil, skinRole: String = "control", action: @escaping (Bool) -> Void)
+    {
         self.title = title
         self.subtitle = subtitle
+        self.skinRole = skinRole
         self.action = action
     }
     init(title: String? = nil, subtitle: String? = nil, action: @escaping () -> Void) {
@@ -741,6 +756,7 @@ struct RepeatingDeleteKey: UIViewRepresentable {
         // As with letter/space keys: under VoiceOver touch typing, lifting the finger triggers it, rather than needing a double tap.
         button.accessibilityTraits = .keyboardKey
         button.action = action
+        button.hasComposition = hasComposition
         apply(to: button)
         return button
     }
@@ -748,6 +764,7 @@ struct RepeatingDeleteKey: UIViewRepresentable {
     func updateUIView(_ button: DeleteButton, context: Context) {
         button.hostLifetime = hostLifetime
         button.action = action
+        button.hasComposition = hasComposition
         button.appearance = appearance
         apply(to: button)
         if button.isEnabled != isEnabled { button.isEnabled = isEnabled }
@@ -756,6 +773,7 @@ struct RepeatingDeleteKey: UIViewRepresentable {
     static func dismantleUIView(_ button: DeleteButton, coordinator: ()) { button.stopRepeating() }
 
     private func apply(to button: DeleteButton) {
+        button.skinRole = skinRole
         button.applyAuthorFace(title: title, subtitle: subtitle, glyph: "delete.left")
         button.accessibilityLabel = button.authorTitle ?? String(localized: "退格")
     }
@@ -769,8 +787,15 @@ struct RepeatingDeleteKey: UIViewRepresentable {
             }
         }
         var action: ((Bool) -> Void)?
+        var hasComposition: @MainActor () -> Bool = { false }
         private var timer: Timer?
         private var repeatCount = 0
+        private var startedWithComposition = false
+
+        private var canRepeat: Bool {
+            isEnabled && isTracking && isHighlighted && window != nil
+                && (!startedWithComposition || hasComposition())
+        }
 
         override var isEnabled: Bool {
             didSet { if !isEnabled { stopRepeating() } }
@@ -799,17 +824,17 @@ struct RepeatingDeleteKey: UIViewRepresentable {
         @objc private func beginRepeating() {
             stopRepeating()
             guard isEnabled, window != nil else { return }
+            // Read live state before the first deletion: it may already remove the final composing code.
+            startedWithComposition = hasComposition()
             action?(false)
             scheduleRepeat(after: 0.45)
         }
 
         private func scheduleRepeat(after interval: TimeInterval) {
-            guard isEnabled, isTracking, isHighlighted, window != nil else { return }
+            guard canRepeat else { return }
             let next = Timer(timeInterval: interval, repeats: false) { [weak self] _ in
                 MainActor.assumeIsolated {
-                    guard let self, self.isEnabled, self.isTracking,
-                        self.isHighlighted, self.window != nil
-                    else { return }
+                    guard let self, self.canRepeat else { return }
                     self.action?(true)
                     self.repeatCount += 1
                     // One key event remains one grapheme/engine backspace. Never infer

@@ -49,16 +49,16 @@ public enum KeyboardOneHandPreferences {
 }
 
 /// Key feel shared by the app and the keyboard extension: the global long-press delay and the
-/// up/down flick of character keys. Keys read the in-process copy on every render, so the stored
+/// corner-hint flick of character keys. Keys read the in-process copy on every render, so the stored
 /// values are re-read only when a keyboard presentation starts (`refresh`).
 public enum KeyboardKeyFeelPreferences {
     public static let longPressDelayKey = "keyboard.longPressDelayMs.v1"
-    public static let flickKey = "keyboard.keyFlickEnabled.v1"
+    public static let flickKey = KeyFlick.Setting.storageKey
     public static var defaults: UserDefaults { KeyboardRecipeStore.sharedDefaults() ?? .standard }
 
     private struct Snapshot {
         var longPressMilliseconds: Int?
-        var flickEnabled: Bool
+        var flick: KeyFlick.Setting
     }
 
     private static let cache = OSAllocatedUnfairLock<Snapshot?>(uncheckedState: nil)
@@ -67,7 +67,14 @@ public enum KeyboardKeyFeelPreferences {
         Snapshot(
             longPressMilliseconds: LongPressDelaySetting.resolve(
                 SharedPreferences.object(forKey: longPressDelayKey, in: defaults)),
-            flickEnabled: (SharedPreferences.object(forKey: flickKey, in: defaults) as? Bool) ?? true)
+            flick: storedFlick)
+    }
+
+    /// The stored choice read now, for settings screens that are not on the key hot path.
+    public static var storedFlick: KeyFlick.Setting {
+        KeyFlick.Setting.resolve(
+            stored: SharedPreferences.object(forKey: flickKey, in: defaults),
+            legacyEnabled: SharedPreferences.object(forKey: KeyFlick.Setting.legacyEnabledKey, in: defaults))
     }
 
     private static var snapshot: Snapshot {
@@ -86,7 +93,15 @@ public enum KeyboardKeyFeelPreferences {
 
     /// Milliseconds; nil follows each layout's own delay.
     public static var longPressMilliseconds: Int? { snapshot.longPressMilliseconds }
-    public static var flickEnabled: Bool { snapshot.flickEnabled }
+    public static var flick: KeyFlick.Setting { snapshot.flick }
+
+    /// Writing the new value retires the old on/off switch, so a later read never revives it.
+    public static func setFlick(_ setting: KeyFlick.Setting) {
+        SharedPreferences.set(setting.rawValue, forKey: flickKey, in: defaults)
+        if KeyboardRecipeStore.canWriteSharedContainer {
+            defaults.removeObject(forKey: KeyFlick.Setting.legacyEnabledKey)
+        }
+    }
 
     public static func longPressDelay(layout: Double?) -> TimeInterval {
         LongPressDelaySetting.effectiveDelay(layout: layout, override: longPressMilliseconds)

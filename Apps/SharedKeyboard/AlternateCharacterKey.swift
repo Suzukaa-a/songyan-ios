@@ -58,13 +58,19 @@ struct AlternateCharacterKey: UIViewRepresentable {
     var groupHints: [String?] = []
     /// One cap per letter of a two-letter key: a sideways swipe types the left or right one.
     var letterSwipe: [KeyCap] = []
-    /// Committed by a short upward swipe that starts on the key (phone digits).
-    var swipeUp: KeyCap? = nil
-    /// Committed by a short downward swipe that starts on the key (letter keys).
-    var swipeDown: KeyCap? = nil
-    /// A vertical flick on this key is a flick whether or not it has something to type that way:
-    /// past the threshold with no target the release types nothing.
-    var flickEligible = false
+    /// The user's flick direction; nil while flicking is off, or while the key leaves flicking to
+    /// the shared default (see `flickEligible`).
+    var flickConfigured: KeyFlick.Direction? = nil
+    /// The typed long-press options; a flick types the one that shows the key's corner hint.
+    /// nil asks the shared default to use the drawn `alternates`.
+    var flickOptions: [KeyCap]? = nil
+    /// A nine-key digit key's own digit, typed whatever the hint shows.
+    var flickDigit: KeyCap? = nil
+    /// Whether a vertical drag on this key past the threshold is a flick or voids the press,
+    /// whether or not the key has a target. nil asks the shared default: an ordinary character key
+    /// that draws a corner mark flicks it, every other key keeps its taps. A caller that manages
+    /// flicking itself (the definition rows) passes it explicitly, false included.
+    var flickEligible: Bool? = nil
     /// The subtitle is a shuangpin final table: draw it as a small line under the
     /// letter and keep the corner for the first long-press alternate (the digit),
     /// as on the quanpin 26-key.
@@ -91,7 +97,8 @@ struct AlternateCharacterKey: UIViewRepresentable {
             showsKeyPreview: showsKeyPreview,
             visualRole: visualRole, titleSize: titleSize, letterGroup: letterGroup,
             groupHints: groupHints, letterSwipe: letterSwipe,
-            swipeUp: swipeUp, swipeDown: swipeDown, flickEligible: flickEligible,
+            flickConfigured: flickConfigured, flickOptions: flickOptions, flickDigit: flickDigit,
+            flickEligible: flickEligible,
             syllableHintBelow: syllableHintBelow, reservesHintBand: reservesHintBand,
             accessibilityHintOverride: accessibilityHintOverride, inputLanguage: inputLanguage, onSelect: onSelect)
         button.isEnabled = isEnabled
@@ -110,7 +117,8 @@ struct AlternateCharacterKey: UIViewRepresentable {
             showsKeyPreview: showsKeyPreview,
             visualRole: visualRole, titleSize: titleSize, letterGroup: letterGroup,
             groupHints: groupHints, letterSwipe: letterSwipe,
-            swipeUp: swipeUp, swipeDown: swipeDown, flickEligible: flickEligible,
+            flickConfigured: flickConfigured, flickOptions: flickOptions, flickDigit: flickDigit,
+            flickEligible: flickEligible,
             syllableHintBelow: syllableHintBelow, reservesHintBand: reservesHintBand,
             accessibilityHintOverride: accessibilityHintOverride, inputLanguage: inputLanguage, onSelect: onSelect)
         // `isEnabled` repaints the cap in its setter; only write a real change.
@@ -196,11 +204,21 @@ struct AlternateCharacterKey: UIViewRepresentable {
         var exitedSideways = false
         /// The letter the swipe currently picks; drawn in the primary tone.
         private var swipeChoice: Int?
-        private var swipeUp: KeyCap?
-        private var swipeDown: KeyCap?
+        private var flickConfigured: KeyFlick.Direction?
+        private var flickOptions: [KeyCap] = []
+        private var flickDigit: KeyCap?
         private var flickEligible = false
-        /// The direction the armed flick went; nil until one arms.
+        /// The direction the vertical drag past the threshold went; nil until one does. Only the
+        /// configured direction types, the other one voids the press.
         var flickDirection: KeyFlick.Direction?
+        /// Drawn progress of the flick transition, and what it is drawn on.
+        private var flickEase = EasedProgress()
+        private var flickLink: CADisplayLink?
+        private var flickSide: Int?
+        private let flickLayer = UIView()
+        private let flickTitle = UILabel()
+        private let flickHint = UILabel()
+        private var flickLetters: [UILabel] = []
         private var syllableHintBelow = false
         private var reservesHintBand = false
         /// The key font the row's letters are aligned to, so a shrunk merged cap keeps the shared baseline.
@@ -209,13 +227,28 @@ struct AlternateCharacterKey: UIViewRepresentable {
         /// Assigned only from `configure`; takes no part in state outside `Configuration`.
         private var accessibilityHintOverride: String?
         /// Window-space touch-down point; an upward travel past
-        /// `flickThreshold` before the hold fires selects `swipeUp` (or `swipeDown` going down).
+        /// `flickThreshold` before the hold fires, in the configured direction, types the flick target.
         private var touchOrigin = CGPoint.zero
         var didSwipeUp = false
         /// A flick shorter than this (or than 40% of the key) is finger drift in a
         /// normal tap; 20pt let slightly upward taps on 9-key type the digit (`KeyFlick`).
         private var flickThreshold: Double { KeyFlick.threshold(keyHeight: Double(bounds.height)) }
-        private var hasFlick: Bool { flickEligible || swipeUp != nil || swipeDown != nil }
+        private var hasFlick: Bool { flickEligible }
+
+        /// The corner hint as drawn: the corner label, or the subtitle that took its place when the
+        /// first option is the subtitle itself.
+        private var drawnHintLabel: UILabel? {
+            if !(alternateHint.text ?? "").isEmpty { return alternateHint }
+            if !(subtitle.text ?? "").isEmpty { return subtitle }
+            return nil
+        }
+
+        /// A flick types only what the key shows: its digit, or the option labelled like the hint.
+        private var flickTarget: KeyCap? {
+            guard hasFlick else { return nil }
+            return KeyFlick.target(
+                options: flickOptions, label: \.title, hint: drawnHintLabel?.text, digit: flickDigit)
+        }
         /// The finger left the key before a hold completed. Like the system
         /// keyboard, the character key under the finger at lift types instead.
         var slidOff = false
@@ -244,8 +277,9 @@ struct AlternateCharacterKey: UIViewRepresentable {
             let letterGroup: [String]
             let groupHints: [String?]
             let letterSwipe: [KeyCap]
-            let swipeUp: KeyCap?
-            let swipeDown: KeyCap?
+            let flickConfigured: KeyFlick.Direction?
+            let flickOptions: [KeyCap]
+            let flickDigit: KeyCap?
             let flickEligible: Bool
             let syllableHintBelow: Bool
             let reservesHintBand: Bool
@@ -254,6 +288,80 @@ struct AlternateCharacterKey: UIViewRepresentable {
             let appearance: KeyboardAppearance
         }
         private var configuration: Configuration?
+
+        /// The flick a key has once the shared default is applied (see `resolvedFlick`).
+        private struct Flick {
+            var configured: KeyFlick.Direction? = nil
+            var options: [KeyCap] = []
+            var digit: KeyCap? = nil
+            var eligible = false
+        }
+
+        /// What a vertical drag on this key types.
+        ///
+        /// The page renderers do not configure flicking: their keys hand over the drawn `alternates`
+        /// and nothing else, so only the mark the key finally shows in its corner may be typed. A
+        /// caller that manages flicking itself (the definition rows) passes at least one flick
+        /// input, and that decision is used as given, a false `flickEligible` or an empty option
+        /// list included.
+        private static func resolvedFlick(
+            cap: KeyCap, alternates: [KeyCap], flickConfigured: KeyFlick.Direction?,
+            flickOptions: [KeyCap]?, flickDigit: KeyCap?, flickEligible: Bool?,
+            layoutPicker: Bool, phoneKey: Bool, phoneSideKey: Bool,
+            systemDefault: Bool, syllableHintBelow: Bool
+        ) -> Flick {
+            if flickEligible != nil || flickConfigured != nil || flickOptions != nil || flickDigit != nil {
+                return Flick(
+                    configured: flickConfigured, options: flickOptions ?? [],
+                    digit: flickDigit, eligible: (flickEligible ?? false) && flickConfigured != nil)
+            }
+            // A menu key, a nine-key shell key and every action that is not plain text keep their
+            // taps: those keys select tools, switch keyboards or write a preference.
+            let setting = KeyboardKeyFeelPreferences.flick
+            guard let direction = setting.direction, !layoutPicker, !phoneKey, !phoneSideKey,
+                cap.action.flicksItsHint
+            else { return Flick(configured: nil) }
+            // Only text types: a page-level control option in the same list stays a long press.
+            let options = alternates.filter { $0.action.typesText }
+            let hints = hintTexts(
+                cap: cap, alternates: alternates, phoneKey: false, phoneSideKey: false,
+                layoutPicker: false, systemDefault: systemDefault, syllableHintBelow: syllableHintBelow)
+            // What the key shows besides its title: the corner mark, else the subtitle.
+            let corner = nonEmpty(hints.corner) ?? nonEmpty(hints.subtitle)
+            guard KeyFlick.target(options: options, label: { $0.title }, hint: corner, digit: nil) != nil
+            else { return Flick(configured: nil) }
+            return Flick(configured: direction, options: options, digit: nil, eligible: true)
+        }
+
+        /// The texts `configure` draws under the title and in the corner. Flick eligibility reads
+        /// the same values, so a flick can only type a mark the key really shows.
+        private static func hintTexts(
+            cap: KeyCap, alternates: [KeyCap], phoneKey: Bool, phoneSideKey: Bool,
+            layoutPicker: Bool, systemDefault: Bool, syllableHintBelow: Bool
+        ) -> (subtitle: String?, corner: String?) {
+            var subtitle: String? = cap.subtitle == cap.title ? nil : cap.subtitle
+            var corner: String? = alternates.first?.title == cap.subtitle ? nil : alternates.first?.title
+            if phoneKey {
+                subtitle = nil
+                corner = phoneSideKey ? alternates.first?.title : cap.subtitle
+            }
+            if layoutPicker {
+                // Visible menu indicator: a long press on the language key opens the published-keyboard switch list (ending with "More tools").
+                corner = KeyboardToolsAffordance.indicatorGlyph
+                subtitle = nil
+            }
+            if systemDefault, !phoneKey, !layoutPicker, !syllableHintBelow {
+                // Secondary codes/digits live in the corner, not a second centered baseline.
+                corner = subtitle ?? corner
+                subtitle = nil
+            }
+            return (subtitle, corner)
+        }
+
+        private static func nonEmpty(_ text: String?) -> String? {
+            guard let text, !text.isEmpty else { return nil }
+            return text
+        }
 
         override init(frame: CGRect) {
             super.init(frame: frame)
@@ -277,6 +385,16 @@ struct AlternateCharacterKey: UIViewRepresentable {
                 label.isUserInteractionEnabled = false
                 addSubview(label)
             }
+            // The flick transition is drawn on copies of the labels in their own layer, because the
+            // press physics owns the transforms of the real labels' layers.
+            flickLayer.isUserInteractionEnabled = false
+            flickLayer.isHidden = true
+            for label in [flickTitle, flickHint] {
+                label.textAlignment = .center
+                label.isUserInteractionEnabled = false
+                flickLayer.addSubview(label)
+            }
+            addSubview(flickLayer)
         }
 
         required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
@@ -288,7 +406,8 @@ struct AlternateCharacterKey: UIViewRepresentable {
             showsKeyPreview: Bool,
             visualRole: String?, titleSize: Double? = nil,
             letterGroup: [String] = [], groupHints: [String?] = [],
-            letterSwipe: [KeyCap] = [], swipeUp: KeyCap? = nil, swipeDown: KeyCap? = nil, flickEligible: Bool = false,
+            letterSwipe: [KeyCap] = [], flickConfigured: KeyFlick.Direction? = nil,
+            flickOptions: [KeyCap]? = nil, flickDigit: KeyCap? = nil, flickEligible: Bool? = nil,
             syllableHintBelow: Bool = false, reservesHintBand: Bool = false,
             accessibilityHintOverride: String? = nil,
             inputLanguage: InputLanguage = .simplifiedChinese,
@@ -296,6 +415,11 @@ struct AlternateCharacterKey: UIViewRepresentable {
         ) {
             // The action closure is cheap to swap and must always be the latest one.
             self.onSelect = onSelect
+            let flick = Self.resolvedFlick(
+                cap: cap, alternates: alternates, flickConfigured: flickConfigured,
+                flickOptions: flickOptions, flickDigit: flickDigit, flickEligible: flickEligible,
+                layoutPicker: layoutPicker, phoneKey: phoneKey, phoneSideKey: phoneSideKey,
+                systemDefault: appearance.isSystemDefault, syllableHintBelow: syllableHintBelow)
             let next = Configuration(
                 cap: cap, alternates: alternates, longPressDelay: longPressDelay,
                 layoutPicker: layoutPicker, phoneKey: phoneKey, phoneSideKey: phoneSideKey,
@@ -303,7 +427,8 @@ struct AlternateCharacterKey: UIViewRepresentable {
                 showsKeyPreview: showsKeyPreview,
                 visualRole: visualRole, titleSize: titleSize, letterGroup: letterGroup,
                 groupHints: groupHints, letterSwipe: letterSwipe,
-                swipeUp: swipeUp, swipeDown: swipeDown, flickEligible: flickEligible,
+                flickConfigured: flick.configured, flickOptions: flick.options,
+                flickDigit: flick.digit, flickEligible: flick.eligible,
                 syllableHintBelow: syllableHintBelow, reservesHintBand: reservesHintBand,
                 accessibilityHintOverride: accessibilityHintOverride,
                 inputLanguage: inputLanguage,
@@ -335,39 +460,22 @@ struct AlternateCharacterKey: UIViewRepresentable {
             self.groupHints = groupHints
             self.letterSwipe = letterSwipe.count == 2 ? letterSwipe : []
             configureColumnHints()
-            self.swipeUp = swipeUp
-            self.swipeDown = swipeDown
-            self.flickEligible = flickEligible
+            self.flickConfigured = flick.configured
+            self.flickOptions = flick.options
+            self.flickDigit = flick.digit
+            self.flickEligible = flick.eligible
             self.syllableHintBelow = syllableHintBelow
             self.reservesHintBand = reservesHintBand
             self.accessibilityHintOverride = accessibilityHintOverride
             title.text = cap.title
-            subtitle.text =
-                cap.subtitle == cap.title
-                ? nil
-                : cap.subtitle
-            alternateHint.text = alternates.first?.title == cap.subtitle ? nil : alternates.first?.title
+            let hints = Self.hintTexts(
+                cap: cap, alternates: alternates, phoneKey: phoneKey, phoneSideKey: phoneSideKey,
+                layoutPicker: layoutPicker, systemDefault: appearance.isSystemDefault,
+                syllableHintBelow: syllableHintBelow)
+            subtitle.text = hints.subtitle
+            alternateHint.text = hints.corner
             // Hint policy: every hint is one line (`KeyHintLayoutPolicy`).
-            if phoneKey {
-                subtitle.text = nil
-                alternateHint.text = phoneSideKey ? alternates.first?.title : cap.subtitle
-                alternateHint.font = .systemFont(ofSize: 11)
-            } else {
-                alternateHint.font = .systemFont(ofSize: 9)
-            }
-            if layoutPicker {
-                // Visible menu indicator: a long press on the language key opens the published-keyboard switch list (ending with "More tools").
-                // A genuinely drawn corner badge, not explanatory text.
-                alternateHint.text = KeyboardToolsAffordance.indicatorGlyph
-                subtitle.text = nil
-                // Note: do **not** set accessibilityHint here -- the layoutPicker branch below
-                // assigns after this and would override it. The visible entry is described in the final assignment.
-            }
-            if appearance.isSystemDefault, !phoneKey, !layoutPicker, !syllableHintBelow {
-                // Secondary codes/digits live in the corner, not a second centered baseline.
-                alternateHint.text = subtitle.text ?? alternateHint.text
-                subtitle.text = nil
-            }
+            alternateHint.font = .systemFont(ofSize: phoneKey ? 11 : 9)
             accessibilityLabel = cap.title
             accessibilityValue = cap.subtitle
             accessibilityHint =
@@ -457,6 +565,12 @@ struct AlternateCharacterKey: UIViewRepresentable {
                     width: content.width, height: hintHeight > 0 ? 29 : content.height)
             }
             layoutColumnHints(in: content)
+            // Bounds and centre, not frame: the press physics may have transformed this layer.
+            flickLayer.bounds = bounds
+            flickLayer.center = CGPoint(x: bounds.midX, y: bounds.midY)
+            if flickEase.targetValue > 0 || !flickLayer.isHidden {
+                applyFlick(flickEase.value(at: CACurrentMediaTime()))
+            }
             // Under a callout the keycap keeps its full size so the callout's stem meets its edges.
             releaseAnimator.updatePressVisual(
                 container: layer, layers: pressVisualLayers,
@@ -478,7 +592,7 @@ struct AlternateCharacterKey: UIViewRepresentable {
         /// deliberately not transformed, so `bounds.contains` in tracking, the hit
         /// target and the popup placement stay exactly as before.
         private var pressVisualLayers: [CALayer?] {
-            [capLayer, title.layer, subtitle.layer, alternateHint.layer] + columnHints.map(\.layer)
+            [capLayer, title.layer, subtitle.layer, alternateHint.layer, flickLayer.layer] + columnHints.map(\.layer)
         }
 
         private func updateAppearance(in bounds: CGRect) {
@@ -740,20 +854,39 @@ struct AlternateCharacterKey: UIViewRepresentable {
         override func continueTracking(_ touch: UITouch, with event: UIEvent?) -> Bool {
             lastLocation = touch.location(in: window)
             if slidOff || consumed { return true }
-            if popup == nil, trackLetterSwipe() { return true }
-            if popup == nil, hasFlick, !didSwipeUp,
+            // A merged key picks a letter sideways and flicks vertically, whichever way the finger
+            // first goes clearly: a swipe that locked ignores vertical travel, and a flick past the
+            // threshold ignores sideways travel until the finger comes back.
+            var sideways = false
+            if popup == nil, letterTracker != nil {
+                let rise = Double(touchOrigin.y - lastLocation.y)
+                let flickOwns = didSwipeUp && !KeyFlick.isGivenBack(rise: rise, direction: flickDirection ?? .up)
+                if !flickOwns {
+                    let swiped = trackLetterSwipe()
+                    if swiped || abs(lastLocation.x - touchOrigin.x) > abs(lastLocation.y - touchOrigin.y) {
+                        updateSidewaysFlick()
+                        if swiped { return true }
+                        sideways = true
+                    }
+                }
+            }
+            // Re-read on every crossing: a drag that voided the wrong way and came back can still
+            // arm the configured way.
+            if popup == nil, !sideways, hasFlick,
                 let direction = KeyFlick.direction(
                     rise: Double(touchOrigin.y - lastLocation.y),
                     dx: Double(lastLocation.x - touchOrigin.x), threshold: flickThreshold)
             {
-                // A short vertical flick: the hold popup no longer opens for this press. With
-                // nothing to type that way the release types nothing, not the key under the finger.
+                // A short vertical drag: the hold popup no longer opens for this press. Past the
+                // threshold the wrong way, or with nothing to type, the release types nothing, not
+                // the key under the finger.
                 holdTimer?.invalidate()
                 holdTimer = nil
                 didSwipeUp = true
                 flickDirection = direction
             }
-            if didSwipeUp { return true }
+            if popup == nil, !sideways { updateVerticalFlick() }
+            if didSwipeUp, !sideways { return true }
             if popup != nil {
                 updateSelection(at: lastLocation)
             } else if !isOnKey(touch) {
@@ -823,11 +956,13 @@ struct AlternateCharacterKey: UIViewRepresentable {
                 if touch != nil { updateSelection(at: point, emitHighlight: false) }
                 selected = popupReleaseSelection(at: point, in: popup)
                 if selected == nil, !layoutPicker,
-                    AlternateDragPicker.dropProgress(dragDrop(at: point)) >= 1
+                    AlternateDragPicker.dropProgress(dragDrop(at: point)) >= 1,
+                    !UIAccessibility.isReduceMotionEnabled,
+                    let cancelled = popupHost as? KeyCalloutView
                 {
-                    // A drop-cancel finishes the fade it showed instead of vanishing.
-                    let cancelled = popup
+                    // Keep the whole visual alive until its exit finishes; touch state clears below.
                     self.popup = nil
+                    popupHost = nil
                     UIView.animate(withDuration: 0.18, delay: 0, options: [.curveEaseOut]) {
                         cancelled.alpha = 0
                         cancelled.transform = cancelled.transform.translatedBy(x: 0, y: 8)
@@ -840,14 +975,21 @@ struct AlternateCharacterKey: UIViewRepresentable {
                 cancelPress()
                 if let target, let cap = target.cap { target.onSelect?(cap) }
                 return
+            } else if didLetterSwipe {
+                // A picked letter types wherever the finger lifts, as a flick does. A flick given
+                // back before the swipe locked no longer counts.
+                selected = swipeChoice.map { letterSwipe[$0] } ?? (isHighlighted ? cap : nil)
             } else if didSwipeUp {
                 let rise = Double(touchOrigin.y - (touch?.location(in: window) ?? lastLocation).y)
-                let direction = flickDirection ?? .up
+                let target = flickTarget
                 switch KeyFlick.release(
-                    rise: rise, direction: direction, hasOption: flickCap(direction) != nil)
+                    rise: rise, direction: flickDirection ?? .up, configured: flickConfigured ?? .up,
+                    hasTarget: target != nil)
                 {
-                case .tap: selected = isHighlighted ? cap : nil
-                case .option: selected = isHighlighted ? flickCap(direction) : nil
+                // Not gated on `isHighlighted`: UIKit drops it as soon as the finger leaves the
+                // key, and a flick naturally ends past the key. Only coming back cancels it.
+                case .tap: selected = cap
+                case .option: selected = target
                 case .nothing: selected = nil
                 }
             } else if exitedDownward {
@@ -856,8 +998,6 @@ struct AlternateCharacterKey: UIViewRepresentable {
                 cancelPress()
                 if let target, let cap = target.cap { target.onSelect?(cap) }
                 return
-            } else if didLetterSwipe {
-                selected = isHighlighted ? (swipeChoice.map { letterSwipe[$0] } ?? cap) : nil
             } else {
                 selected =
                     !didHold && (exitedUpward || exitedSideways || touch.map(isOnKey) == true)
@@ -869,8 +1009,204 @@ struct AlternateCharacterKey: UIViewRepresentable {
 
         override func cancelTracking(with event: UIEvent?) { cancelPress() }
 
-        private func flickCap(_ direction: KeyFlick.Direction) -> KeyCap? {
-            direction == .up ? swipeUp : swipeDown
+        // MARK: - Flick transition
+
+        /// Progress of a vertical flick toward the corner hint, along the configured direction.
+        private func updateVerticalFlick() {
+            guard let configured = flickConfigured, hasFlick, flickTarget != nil else {
+                return setFlickTarget(0, side: nil)
+            }
+            let rise = Double(touchOrigin.y - lastLocation.y)
+            let armed =
+                didSwipeUp && flickDirection == configured && !KeyFlick.isGivenBack(rise: rise, direction: configured)
+            let progress = KeyFlick.progress(
+                travel: KeyFlick.travel(rise: rise, direction: configured), threshold: flickThreshold,
+                armed: armed)
+            setFlickTarget(progress, side: nil)
+        }
+
+        /// Progress of the sideways swipe of a merged key toward the letter it would pick.
+        private func updateSidewaysFlick() {
+            guard letterTracker != nil, letterSwipe.count == 2 else { return }
+            let dx = Double(lastLocation.x - touchOrigin.x)
+            let dy = Double(lastLocation.y - touchOrigin.y)
+            let picked = swipeChoice
+            let progress = KeyFlick.sidewaysProgress(
+                dx: dx, dy: dy, lockDistance: LetterSwipeTracker.lockDistance, picked: picked != nil)
+            setFlickTarget(progress, side: picked ?? (dx < 0 ? 0 : letterSwipe.count - 1))
+        }
+
+        private func setFlickTarget(_ progress: Double, side: Int?) {
+            if progress > 0 { flickSide = side }
+            let now = CACurrentMediaTime()
+            guard flickEase.setTarget(progress, at: now, reduceMotion: UIAccessibility.isReduceMotionEnabled) else {
+                return
+            }
+            applyFlick(flickEase.value(at: now))
+            guard !flickEase.isSettled(at: now), flickLink == nil else { return }
+            let link = CADisplayLink(target: self, selector: #selector(flickTick))
+            link.add(to: .main, forMode: .common)
+            flickLink = link
+        }
+
+        @objc private func flickTick() {
+            let now = CACurrentMediaTime()
+            applyFlick(flickEase.value(at: now))
+            if flickEase.isSettled(at: now) { stopFlickLink() }
+        }
+
+        private func stopFlickLink() {
+            flickLink?.invalidate()
+            flickLink = nil
+        }
+
+        /// Ends the transition at once and shows the key as it is.
+        func resetFlickVisual() {
+            stopFlickLink()
+            flickEase.reset()
+            flickSide = nil
+            applyFlick(0)
+        }
+
+        private func blend(_ from: UIColor, _ to: UIColor, _ p: CGFloat) -> UIColor {
+            var a: (CGFloat, CGFloat, CGFloat, CGFloat) = (0, 0, 0, 0)
+            var b = a
+            guard from.getRed(&a.0, green: &a.1, blue: &a.2, alpha: &a.3),
+                to.getRed(&b.0, green: &b.1, blue: &b.2, alpha: &b.3)
+            else { return p < 0.5 ? from : to }
+            return UIColor(
+                red: a.0 + (b.0 - a.0) * p, green: a.1 + (b.1 - a.1) * p,
+                blue: a.2 + (b.2 - a.2) * p, alpha: a.3 + (b.3 - a.3) * p)
+        }
+
+        /// Draws the transition at progress `value`: on the keycap and in the bubble above it.
+        private func applyFlick(_ value: Double) {
+            let p = CGFloat(value)
+            guard p > 0, window != nil else {
+                guard !flickLayer.isHidden else { return }
+                flickLayer.isHidden = true
+                title.alpha = 1
+                alternateHint.alpha = 1
+                subtitle.alpha = 1
+                flickLetters.forEach { $0.isHidden = true }
+                keyPreview?.setTransition(
+                    incoming: nil, direction: .zero, progress: 0, bubbleAlpha: showsCallout ? 1 : 0)
+                return
+            }
+            // Geometry comes from bounds and centres: the press physics transforms the real labels'
+            // layers (and this overlay alike), which makes their frames unreliable.
+            let titleCentre = title.center
+            if let side = flickSide {
+                guard flickLetterTexts.count >= 2 else { return }
+                flickLayer.isHidden = false
+                title.alpha = 0
+                flickHint.isHidden = true
+                flickTitle.isHidden = true
+                layoutFlickLetters(side: side, progress: p, titleCentre: titleCentre)
+                showFlickBubble(
+                    incoming: letterSwipe[side].title, direction: CGVector(dx: side == 0 ? -1 : 1, dy: 0),
+                    progress: p)
+                return
+            }
+            guard let source = drawnHintLabel else { return }
+            flickLayer.isHidden = false
+            title.alpha = 0
+            source.alpha = 0
+            flickLetters.forEach { $0.isHidden = true }
+            flickTitle.isHidden = false
+            flickHint.isHidden = false
+            flickTitle.attributedText = nil
+            flickTitle.text = title.text
+            flickTitle.font = title.font
+            flickTitle.textColor = title.textColor
+            flickTitle.transform = .identity
+            flickTitle.bounds = title.bounds
+            flickTitle.center = titleCentre
+            flickTitle.alpha = 1 - p
+            flickTitle.transform = CGAffineTransform(scaleX: 1 - 0.4 * p, y: 1 - 0.4 * p)
+            let hintFont = source.font ?? .systemFont(ofSize: 9)
+            let size = hintFont.pointSize + (title.font.pointSize - hintFont.pointSize) * p
+            let text = source.text ?? ""
+            flickHint.text = text
+            flickHint.font = hintFont.withSize(size)
+            flickHint.textColor = blend(source.textColor, title.textColor, p)
+            // The label keeps the title's frame; only its centre glides from where the hint is drawn.
+            flickHint.transform = .identity
+            flickHint.bounds = CGRect(origin: .zero, size: title.bounds.size)
+            let hintWidth = KeyboardTextMeasure.width(of: text, font: hintFont)
+            let half = source.bounds.width / 2
+            let from: CGPoint
+            switch source.textAlignment {
+            case .right: from = CGPoint(x: source.center.x + half - hintWidth / 2, y: source.center.y)
+            case .left: from = CGPoint(x: source.center.x - half + hintWidth / 2, y: source.center.y)
+            default: from = source.center
+            }
+            flickHint.center = CGPoint(
+                x: from.x + (titleCentre.x - from.x) * p, y: from.y + (titleCentre.y - from.y) * p)
+            let direction = CGVector(dx: 0, dy: flickConfigured == .down ? 1 : -1)
+            showFlickBubble(incoming: text, direction: direction, progress: p)
+        }
+
+        /// The letters a merged key's swipe draws: its letter group, or the title's own characters
+        /// when the key has no group, so the title is never hidden with nothing drawn in its place.
+        private var flickLetterTexts: [String] {
+            if letterGroup.count >= 2 { return letterGroup }
+            return (title.text ?? "").filter { !$0.isWhitespace }.map(String.init)
+        }
+
+        /// The letters of a merged key as separate labels: the picked one glides to the key's
+        /// centre and grows, the others fade.
+        private func layoutFlickLetters(side: Int, progress p: CGFloat, titleCentre: CGPoint) {
+            let letterGroup = flickLetterTexts
+            while flickLetters.count < letterGroup.count {
+                let label = UILabel()
+                label.textAlignment = .center
+                label.isUserInteractionEnabled = false
+                flickLayer.addSubview(label)
+                flickLetters.append(label)
+            }
+            let font = title.font ?? .systemFont(ofSize: 22)
+            let widths = letterGroup.map { KeyboardTextMeasure.width(of: $0, font: font) }
+            let text = title.attributedText ?? NSAttributedString(string: letterGroup.joined())
+            let total = text.size().width
+            var left = titleCentre.x - total / 2
+            var offset = 0
+            for (index, letter) in letterGroup.enumerated() {
+                let label = flickLetters[index]
+                label.isHidden = false
+                label.text = letter
+                label.font = font
+                label.textColor = appearance.text(on: "pressed")
+                label.transform = .identity
+                label.bounds = CGRect(
+                    origin: .zero, size: CGSize(width: widths[index] + 4, height: title.bounds.height))
+                let centre = CGPoint(x: left + widths[index] / 2, y: titleCentre.y)
+                let picked = index == side
+                let target = titleCentre
+                label.center =
+                    picked
+                    ? CGPoint(x: centre.x + (target.x - centre.x) * p, y: centre.y + (target.y - centre.y) * p)
+                    : centre
+                let scale = picked ? 1 + 0.25 * p : 1
+                label.transform = CGAffineTransform(scaleX: scale, y: scale)
+                label.alpha = picked ? 1 : 1 - p
+                let length = (letter as NSString).length
+                let kern =
+                    offset + length - 1 < text.length
+                    ? (text.attribute(.kern, at: offset + length - 1, effectiveRange: nil) as? CGFloat ?? 0) : 0
+                left += widths[index] + kern
+                offset += length
+            }
+            for index in letterGroup.count..<flickLetters.count { flickLetters[index].isHidden = true }
+        }
+
+        /// The key preview, or a bubble that fades in when the key has none, scrolling the key's
+        /// label out in the finger's direction and the new one in from the opposite side.
+        private func showFlickBubble(incoming: String, direction: CGVector, progress p: CGFloat) {
+            if keyPreview == nil { presentKeyPreview(text: cap?.title ?? "") }
+            guard let callout = keyPreview else { return }
+            callout.setTransition(
+                incoming: incoming, direction: direction, progress: p, bubbleAlpha: showsCallout ? 1 : p)
         }
 
         /// Feeds the sideways swipe of a two-letter key; true once the swipe owns the press.
@@ -921,5 +1257,25 @@ struct AlternateCharacterKey: UIViewRepresentable {
             if window == nil { cancelPress() }
         }
 
+    }
+}
+
+private extension KeyAction {
+    /// Whether a key carrying this action is a plain character key, the same set `KeyFlick`
+    /// treats as flick eligible.
+    var flicksItsHint: Bool {
+        switch self {
+        case .code(_), .literal(_): return true
+        default: return false
+        }
+    }
+
+    /// Whether this action types text: the only thing a flick may type. A letter variant is text
+    /// too, even though a key carrying it is not a flick key of its own.
+    var typesText: Bool {
+        switch self {
+        case .code(_), .literal(_), .letterVariant(_): return true
+        default: return false
+        }
     }
 }

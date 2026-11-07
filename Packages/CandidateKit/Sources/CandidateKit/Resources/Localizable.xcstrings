@@ -594,6 +594,28 @@
           }
         }
       }
+    },
+    "candidate.control.backspace": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "削除"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "退格"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "退格"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

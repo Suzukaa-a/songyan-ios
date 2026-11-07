@@ -333,7 +333,7 @@ extension KeyboardPanelView {
         // Uses are recorded when the page closes, so 最近 never reorders under the
         // finger while several symbols are typed in a row.
         .onDisappear {
-            for text in pendingSymbolUses { symbolLibrary.recordUse(text) }
+            symbolLibrary.recordUses(pendingSymbolUses)
             pendingSymbolUses = []
         }
     }

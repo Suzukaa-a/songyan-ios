@@ -59,8 +59,7 @@ struct InputOptionsView: View {
     private var readingPlacementValue = ReadingPlacement.row.rawValue
     /// Per-physical wide-screen dock. Read once per visit, written through the same shared
     /// preference path the keyboard reads at presentation, never from a per-key disk read.
-    @AppStorage(KeyboardKeyFeelPreferences.flickKey, store: KeyboardKeyFeelPreferences.defaults)
-    private var keyFlickEnabled = true
+    @State private var keyFlick = KeyboardKeyFeelPreferences.storedFlick
     /// Milliseconds; 0 follows each keyboard layout's own delay.
     @AppStorage(KeyboardKeyFeelPreferences.longPressDelayKey, store: KeyboardKeyFeelPreferences.defaults)
     private var longPressDelayValue = 0
@@ -421,11 +420,21 @@ struct InputOptionsView: View {
 
     private var keyFeelSection: some View {
         Section {
-            Toggle(isOn: $keyFlickEnabled) {
-                Text("上下滑输入数字与符号")
+            Picker(
+                String(localized: "滑动输入角上的字符"),
+                selection: Binding(
+                    get: { keyFlick },
+                    set: {
+                        keyFlick = $0
+                        KeyboardKeyFeelPreferences.setFlick($0)
+                    }
+                )
+            ) {
+                Text("关闭").tag(KeyFlick.Setting.off)
+                Text("上滑").tag(KeyFlick.Setting.up)
+                Text("下滑").tag(KeyFlick.Setting.down)
             }
             .accessibilityIdentifier("inputOptions.keyFlick")
-            .accessibilityValue(keyFlickEnabled ? String(localized: "已开启") : String(localized: "已关闭"))
             Picker(
                 String(localized: "长按延迟"),
                 selection: Binding(
@@ -446,7 +455,7 @@ struct InputOptionsView: View {
         } header: {
             Text("按键手感")
         } footer: {
-            Text("上滑输入键上的第一个符号，下滑输入第二个。下次打开键盘时生效。")
+            Text("按键右上角的小字，滑一下就能输入。下次打开键盘时生效。")
         }
     }
 

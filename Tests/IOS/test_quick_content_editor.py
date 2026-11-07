@@ -5,7 +5,7 @@ import unittest
 from swift_probe import ROOT, run, run_swift, scratch_directory, section
 
 SERIAL_IO_QUEUE = ROOT / "Packages/KeyboardCore/Sources/KeyboardCore/Support/SerialIOQueue.swift"
-SYMBOL_MODEL = ROOT / "Apps/SharedKeyboard/SymbolLibraryModel.swift"
+SYMBOL_STORAGE = ROOT / "Apps/SharedKeyboard/SymbolLibraryStorage.swift"
 LOCAL_MODEL = ROOT / "Apps/SharedKeyboard/LocalQuickContentModel.swift"
 EDITOR = ROOT / "Apps/HostApp/SymbolCatalogManagementView.swift"
 QUICK_CONTENT = ROOT / "Packages/QuickContentKit/Sources/QuickContentKit"
@@ -15,7 +15,7 @@ VIEW_MARK = "\n// MARK: - Common phrase editor view"
 
 # SharedQuickContentStorage and LocalQuickContentModel; the symbol panel views are not compiled.
 STORAGE_MARK = "/// All local quick-content work uses a shared writable directory"
-WRITE_QUEUE = ("enum SymbolLibraryWriteQueue {", "\nprivate final class SymbolLibraryIOWorker")
+WRITE_QUEUE = ("enum SymbolLibraryWriteQueue {", "\nfinal class SymbolLibraryIOWorker")
 
 PROBE = r'''
 import Foundation
@@ -161,12 +161,12 @@ func settle(_ model: LocalQuickContentModel) async {
 
 
 def production_source():
-    symbol_model = SYMBOL_MODEL.read_text(encoding="utf-8")
+    symbol_storage = SYMBOL_STORAGE.read_text(encoding="utf-8")
     local_model = LOCAL_MODEL.read_text(encoding="utf-8")
     editor = EDITOR.read_text(encoding="utf-8")
     pieces = [
         SERIAL_IO_QUEUE.read_text(encoding="utf-8").replace("import Foundation\n", ""),
-        section(symbol_model, *WRITE_QUEUE),
+        section(symbol_storage, *WRITE_QUEUE),
         local_model[local_model.index(STORAGE_MARK):],
         section(editor, SAVE_PATH_MARK, VIEW_MARK),
         # SwiftPM synthesises Bundle.module for the package; the probe supplies it.

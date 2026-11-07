@@ -90,8 +90,12 @@ extension InputSession {
         }
     }
 
+    /// Code keys decode on `codeKeyQueue`: every key after the first of a composition, and with
+    /// no composition yet the first ordinary lowercase letter of a plain definition (`tap` applies
+    /// that value check). Compact/numeric codes and capitals stay synchronous.
     var defersCodeKeys: Bool {
-        codeKeyQueue != nil && mode == .chinese && snapshot.isComposing && !snapshot.isAsciiMode
+        codeKeyQueue != nil && mode == .chinese && !snapshot.isAsciiMode
+            && (snapshot.isComposing || (!compactSpellingLayout && !numericTransportLayout))
     }
 
     func deferCode(_ value: String) {
@@ -154,6 +158,11 @@ extension InputSession {
             onError?(error)
         }
     }
+
+    /// Host entry point of `drainPendingCodes()`: lands the accepted code keys in order so a
+    /// non-code action (confirm/delete/mode switch) can branch on the real state — a first key
+    /// may compose, commit itself, or do nothing. No-op when nothing is pending.
+    public func settlePendingCodes() { drainPendingCodes() }
 
     /// Every other engine action first lands the deferred keys, in order, so it sees
     /// exactly the composition a synchronous engine would have had. It waits at most

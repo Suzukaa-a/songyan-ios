@@ -91,7 +91,8 @@ extension KeyboardController {
 
     public var isReturnKeyEnabled: Bool {
         let isSearch = [.search, .google, .yahoo].contains(returnKeyType)
-        return snapshot.isComposing
+        // Never look disabled while a first key is still decoding; the tap settles it first.
+        return isComposingOrDecoding
             || HostKeyboardTypePolicy.returnEnabled(
                 isSearch: isSearch, enablesAutomatically: enablesReturnKeyAutomatically,
                 documentIsEmpty: hostDocumentIsEmpty)

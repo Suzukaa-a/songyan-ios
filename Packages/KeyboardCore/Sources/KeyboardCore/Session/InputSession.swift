@@ -572,9 +572,19 @@ public final class InputSession {
         // A capital in Chinese mode goes to the engine at once and in order, never as a deferred key.
         let chineseCapital =
             mode == .chinese && !snapshot.isAsciiMode && shiftState.isActive
-        if case .code(let value) = action, defersCodeKeys, !(chineseCapital && Self.isLowercaseLetter(value)) {
-            deferCode(value)
-            return
+        if case .code(let value) = action, defersCodeKeys {
+            // With no composition yet only a plain definition's first lowercase letter defers:
+            // its echo is the letter itself. Other idle codes stay synchronous (the schema may
+            // commit them directly instead of composing).
+            let defersFirstLetter =
+                !snapshot.isComposing && !chineseCapital && Self.isLowercaseLetter(value)
+                && !compactSpellingLayout && !numericTransportLayout
+            if (snapshot.isComposing && !(chineseCapital && Self.isLowercaseLetter(value)))
+                || defersFirstLetter
+            {
+                deferCode(value)
+                return
+            }
         }
         drainPendingCodes()
         if case .letterVariant(let text) = action {
@@ -753,19 +763,16 @@ public final class InputSession {
 
     /// Where code keys decode off the main thread. nil keeps every key synchronous.
     public var codeKeyQueue: EngineWorkQueue?
-    /// Code keys accepted but not yet reflected in `snapshot`: the batch decoding now,
-    /// then the keys typed meanwhile. The front end echoes them so no press looks lost.
+    /// Code keys accepted but not yet reflected in `snapshot`: the batch decoding now, then the
+    /// keys typed meanwhile. The front end echoes them so no press looks lost. On a plain
+    /// definition it also holds a new composition's first key while it decodes.
     public internal(set) var pendingCodes: [String] = []
     /// Bumps on every change of `pendingCodes`; a deferred key is an effect too.
     public internal(set) var pendingCodesRevision = 0
     public var onPendingCodesChanged: (() -> Void)?
-    /// Every code key after the first one of a composition decodes on `codeKeyQueue`;
-    /// keys typed meanwhile go in one batch. A long ambiguous composition (a 9-key
-    /// sentence) costs librime tens of milliseconds per key, and the engine queue may
-    /// still be busy with the previous key's reading queries: decoding on the main
-    /// thread froze the keys and let them land in bursts. Deferring only after one
-    /// slow key kept that key (and every key after a fast batch) on the main thread,
-    /// so long compositions still hitched every few keys.
+    /// Every code key after the first one of a composition decodes on `codeKeyQueue`, and on a
+    /// plain definition the first key does too (see `defersCodeKeys`); keys typed meanwhile go in
+    /// one batch, so a slow decode never blocks the main thread.
     var batch: CodeBatch?
     /// Candidate pages after the first that a deferred batch reads in the same engine
     /// hop as its decode. The front end otherwise read them in a separate hop after the
@@ -788,17 +795,22 @@ public final class InputSession {
     /// Failure contract: if the engine throws (unavailable / state read fails after cancel),
     /// nothing is applied; the last trusted composition is kept, an error is reported and false is
     /// returned, so a failure is never folded into an empty non-composing state that would
-    /// wrongly authorize the host to clear the document. Returns true only when the real state after `apply` is `!isComposing`.
+    /// wrongly authorize the host to clear the document. Returns true only when the real state after `apply` is
+    /// neither composing nor a post-commit prediction.
+    ///
+    /// A prediction is engine state too, even though it has no input code and no marked text: the predictor keeps a
+    /// zero-length composition open, so the host's clear has to ask the engine to drop it as well. Guarding only on
+    /// `isComposing` reported success without clearing it, which left the previous word's suggestions in the bar.
     @discardableResult
     public func discardComposition() -> Bool {
         cancelPendingCodes()
         guard !retired else { return false }
-        guard snapshot.isComposing || inputUnavailableReason != nil else { return true }
+        guard snapshot.isComposing || snapshot.isPrediction || inputUnavailableReason != nil else { return true }
         do {
             var updated = try engine.cancelComposition()
             updated.committed = ""
             apply(updated)
-            guard !snapshot.isComposing else {
+            guard !snapshot.isComposing, !snapshot.isPrediction else {
                 onError?(
                     EngineBackendError.operationFailed(
                         String(

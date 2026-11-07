@@ -805,6 +805,11 @@
       "reason": "Unrendered composition-presentation fallback reason; never displayed."
     },
     {
+      "path": "Apps/SharedKeyboard/KeyboardController+MarkedComposition.swift",
+      "value": "输入框暂不可用",
+      "reason": "Unrendered composition-presentation fallback reason; never displayed."
+    },
+    {
       "path": "Apps/SharedKeyboard/KeyboardPadSession.swift",
       "value": "输入框暂不可用",
       "reason": "Unrendered composition-presentation fallback reason; never displayed."

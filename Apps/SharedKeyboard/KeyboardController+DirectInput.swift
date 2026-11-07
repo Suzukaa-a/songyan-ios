@@ -32,6 +32,8 @@ extension KeyboardController {
     public func toggleInputMode() {
         hostRestoredMode = nil
         automaticShiftArmed = false
+        // Settle a decoding first key so the raw composition is committed only when one exists.
+        session.settlePendingCodes()
         if inputMode == .english {
             setInputMode(.chinese)
         } else if snapshot.isAsciiMode {

@@ -119,10 +119,23 @@ final class DeferredCodeKeyTests: XCTestCase {
         func takeFirst() -> @Sendable () -> Void { queued.removeFirst() }
     }
 
+    /// A compact definition, where the first key stays synchronous (a lone merged code has no
+    /// readable echo); production marks it proven-compact, so the tests do too.
     private func makeSession(delay: TimeInterval) -> (InputSession, SlowEngine, ManualQueue) {
         let engine = SlowEngine()
         engine.decodeDelay = delay
         let session = InputSession(engine: engine, layout: .phone9)
+        session.compactSpellingLayout = true
+        let queue = ManualQueue()
+        session.codeKeyQueue = queue
+        return (session, engine, queue)
+    }
+
+    /// A plain 26-key definition: its first ordinary letter decodes on the engine queue too.
+    private func makePlainSession(delay: TimeInterval) -> (InputSession, SlowEngine, ManualQueue) {
+        let engine = SlowEngine()
+        engine.decodeDelay = delay
+        let session = InputSession(engine: engine, layout: .qwerty26)
         let queue = ManualQueue()
         session.codeKeyQueue = queue
         return (session, engine, queue)
@@ -149,6 +162,75 @@ final class DeferredCodeKeyTests: XCTestCase {
         XCTAssertEqual(session.snapshot.rawInput, "644")
         XCTAssertTrue(session.pendingCodes.isEmpty)
         XCTAssertEqual(engine.processed, ["6", "4", "4"])
+    }
+
+    /// The plain definition's first letter is the one engine read every new word paid on the
+    /// main thread; it now decodes on the queue like the rest of the composition.
+    func testPlainFirstLetterDecodesOnTheEngineQueue() {
+        let (session, _, queue) = makePlainSession(delay: 0)
+        session.tap(.code("n"))
+        XCTAssertEqual(session.pendingCodes, ["n"], "the tap returns with the letter still decoding")
+        XCTAssertFalse(session.snapshot.isComposing, "no engine result is applied before the queue runs")
+        XCTAssertEqual(session.snapshot.rawInput, "")
+        queue.runAll()
+        deliverMainQueue()
+        XCTAssertEqual(session.snapshot.rawInput, "n")
+        XCTAssertTrue(session.snapshot.isComposing)
+        XCTAssertTrue(session.pendingCodes.isEmpty)
+    }
+
+    /// Only an ordinary lowercase letter may defer without a composition: a digit, punctuation or
+    /// a capital can be committed directly by the schema, so it keeps the synchronous path.
+    func testPlainFirstDigitAndCapitalKeepTheSynchronousPath() {
+        let (session, _, queue) = makePlainSession(delay: 0)
+        session.tap(.code("1"))
+        XCTAssertEqual(session.snapshot.rawInput, "1", "an idle digit stays synchronous")
+        XCTAssertTrue(queue.queued.isEmpty)
+        session.tapShift()
+        session.tap(.code("n"))
+        XCTAssertEqual(session.snapshot.rawInput, "1N", "an armed capital reaches the engine in order")
+        XCTAssertTrue(queue.queued.isEmpty, "a capital is never a deferred key")
+    }
+
+    func testKeysTypedWhileTheFirstKeyDecodesGoInOneBatch() {
+        let (session, _, queue) = makePlainSession(delay: 0.03)
+        session.tap(.code("n"))
+        session.tap(.code("i"))
+        XCTAssertEqual(session.pendingCodes, ["n", "i"], "the second key joins the undecoded first key")
+        XCTAssertFalse(session.snapshot.isComposing)
+        queue.runAll()
+        deliverMainQueue()
+        // The key typed meanwhile waits for the next batch (the queue hop that applies the first one).
+        XCTAssertEqual(session.snapshot.rawInput, "n")
+        XCTAssertEqual(session.pendingCodes, ["i"])
+        queue.runAll()
+        deliverMainQueue()
+        XCTAssertEqual(session.snapshot.rawInput, "ni")
+        XCTAssertTrue(session.pendingCodes.isEmpty)
+    }
+
+    /// The host settles the pending keys before deciding a non-code action, so the decision reads
+    /// the real state (the key may compose, commit itself, or do nothing).
+    func testSettlingPendingCodesLandsTheFirstKeyForHostDecisions() {
+        let (session, _, queue) = makePlainSession(delay: 0)
+        session.tap(.code("n"))
+        session.settlePendingCodes()
+        XCTAssertEqual(session.snapshot.rawInput, "n")
+        XCTAssertTrue(session.pendingCodes.isEmpty)
+        queue.runAll()
+        deliverMainQueue()
+        XCTAssertEqual(session.snapshot.rawInput, "n", "the stopped batch never applies twice")
+    }
+
+    func testCancelDropsThePendingFirstKeyBeforeItReachesTheEngine() {
+        let (session, _, queue) = makePlainSession(delay: 0)
+        session.tap(.code("n"))
+        session.cancelPendingCodes()
+        XCTAssertTrue(session.pendingCodes.isEmpty)
+        queue.runAll()
+        deliverMainQueue()
+        XCTAssertEqual(session.snapshot.rawInput, "")
+        XCTAssertFalse(session.snapshot.isComposing, "a cancelled first key never produces a result")
     }
 
     func testKeysTypedDuringADecodeGoInOneBatch() {

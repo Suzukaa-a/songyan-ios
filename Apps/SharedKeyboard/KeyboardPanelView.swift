@@ -426,7 +426,7 @@ public struct KeyboardPanelView: View {
 
     @ViewBuilder
     func candidateRendererView(expanded: Bool) -> some View {
-        // All candidate-area actions go through this sink: select/paging are real input-session actions and emit
+        // Renderer actions go through this sink: select/paging are real input-session actions and emit
         // one selection feedback only once the action took effect (no-ops give none); expand/collapse are pure UI state
         // and give none (highlight is managed inside the renderer, also without feedback).
         let live = CandidateAreaActionSink.live(
@@ -445,6 +445,8 @@ public struct KeyboardPanelView: View {
                 controller.loadMoreReadings()
             case .select, .selectOnPage, .pageForward, .pageBackward, .loadMore:
                 selectionFeedbackAfterEffect { live.perform(action) }
+            case .backspace:
+                keyFeedbackAfterEffect { live.perform(action) }
             case .expand, .collapse, .highlightNext, .highlightPrevious:
                 live.perform(action)
             }
@@ -481,6 +483,18 @@ public struct KeyboardPanelView: View {
         } else {
             CandidateRendererRegistry.renderer(id: DefaultCandidateAreaRenderer.rendererID)
                 .makeCollapsed(context)
+                .environment(
+                    \.candidateBackspaceControl,
+                    AnyView(
+                        RepeatingDeleteKey(skinRole: "panel") { isRepeating in
+                            handleKey(.backspace, emitFeedback: !isRepeating)
+                        }
+                        .environment(
+                            \.keyboardDeleteHasComposition,
+                            { controller.snapshot.isComposing || !controller.session.pendingCodes.isEmpty }
+                        )
+                    )
+                )
         }
     }
     var mainRowCount: Int {
@@ -923,6 +937,10 @@ public struct KeyboardPanelView: View {
         .environment(\.keyboardKeyHeight, keyHeight)
         .environment(\.keyboardPopupSurface, popupSurface)
         .environment(\.keyboardFlashSurface, popupSurface)
+        .environment(
+            \.keyboardDeleteHasComposition,
+            { controller.snapshot.isComposing || !controller.session.pendingCodes.isEmpty }
+        )
         .environment(
             \.candidateSkinToken,
             CandidateSkinToken(

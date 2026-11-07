@@ -146,6 +146,22 @@ public enum AlternateKeyPolicy {
         return marks[key] ?? defaultLetters[key] ?? []
     }
 
+    /// The marks of a bundled merged pair key ("df"), empty for any other group. Each pair
+    /// borrows one letter's 26-key marks, picked so the most used Chinese marks sit on the home
+    /// row of both merged layouts.
+    public static func mergedPairLiterals(for pair: String) -> [String] {
+        mergedPairMarks[pair.lowercased()].flatMap { defaultLetters[$0] } ?? []
+    }
+
+    private static let mergedPairMarks: [String: String] = [
+        // 14 keys: qw er ty ui op / as df gh jk l / zx cv bn m
+        "qw": "q", "er": "e", "ty": "t", "ui": "u", "op": "o",
+        "as": "a", "df": "s", "gh": "d", "jk": "f",
+        "zx": "z", "cv": "c", "bn": "b",
+        // 18 keys: q we rt y u io p / a sd fg h jk l / z xc v bn m
+        "we": "w", "rt": "r", "io": "i", "sd": "s", "fg": "d", "xc": "x",
+    ]
+
     /// Each full-width mark is paired with the ASCII key a desktop Chinese IME types it
     /// from, so English mode and ASCII fields (which drop the full-width form) still show a
     /// distinct mark: 、 comes from `\`, as on Sogou and Microsoft Pinyin. No two letters

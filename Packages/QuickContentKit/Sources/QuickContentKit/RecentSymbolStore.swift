@@ -33,17 +33,31 @@ public struct RecentSymbolStore: Sendable {
         return []
     }
 
-    /// Records a use: dedupes the text to the front, trims to `limit`, saves atomically
-    /// (backing up the old value first).
-    /// - Returns: (updated list, save error). On a failed save the old file is kept and
-    ///   the returned list is the in-memory expected value for immediate display.
+    /// Records one use. Callers that record a single symbol share the batch code path.
     @discardableResult
     public func record(_ text: String) -> (texts: [String], saveError: Error?) {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return (read(), nil) }
-        var texts = read().filter { $0 != trimmed }
-        texts.insert(trimmed, at: 0)
-        if texts.count > limit { texts = Array(texts.prefix(limit)) }
+        record([text])
+    }
+
+    /// Records a batch of uses in the order they happened: every text is deduped to the
+    /// front (MRU), blanks are ignored, the result is trimmed to `limit`, and the whole
+    /// batch is persisted in one save with the same backup rules.
+    /// - Returns: (updated list, save error). An empty or all-blank batch only reads and
+    ///   writes nothing. On a failed save the old file is kept and the returned list is
+    ///   the in-memory expected value for immediate display.
+    @discardableResult
+    public func record(_ uses: [String]) -> (texts: [String], saveError: Error?) {
+        var texts = read()
+        var recorded = false
+        for use in uses {
+            let trimmed = use.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { continue }
+            recorded = true
+            texts.removeAll { $0 == trimmed }
+            texts.insert(trimmed, at: 0)
+            if texts.count > limit { texts.removeLast(texts.count - limit) }
+        }
+        guard recorded else { return (texts, nil) }
         return (texts, save(texts))
     }
 

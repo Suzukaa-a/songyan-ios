@@ -16,7 +16,8 @@ extension KeyboardController {
         snapshot.displayMode != .native && !snapshot.highlightedDisplay.isEmpty
     }
     public var keyboardCompositionFallback: MarkedComposition? {
-        guard snapshot.isComposing, case .keyboard = compositionPresentation else { return nil }
+        // A decoding plain first key already shows its echo (see `isComposingOrDecoding`).
+        guard isComposingOrDecoding, case .keyboard = compositionPresentation else { return nil }
         return withPendingEcho(markedComposition)
     }
 
@@ -35,8 +36,16 @@ extension KeyboardController {
     func publishPendingEcho() {
         pendingEchoWork?.cancel()
         pendingEchoWork = nil
-        guard !retired, snapshot.isComposing else { return }
+        guard !retired else { return }
         let pending = session.pendingCodes.count
+        // Return-enablement reads the pending count, which is not `@Published`: repaint only on
+        // the plain-first-key 0↔1 flip (a landed composition repaints through `snapshot`).
+        if !snapshot.isComposing, pending <= 1 { objectWillChange.send() }
+        guard isComposingOrDecoding else {
+            // Dropped keys must not leave their echo in the field; a real composition echo is kept.
+            if showsPendingOnlyEcho { clearPendingOnlyEcho() }
+            return
+        }
         if pending > echoedPendingCodes {
             let work = DispatchWorkItem { [weak self] in
                 guard let self else { return }
@@ -51,9 +60,28 @@ extension KeyboardController {
     }
 
     private func showPendingEcho() {
-        guard !retired, snapshot.isComposing else { return }
-        if compositionPresentation.isKeyboardFallback { objectWillChange.send() }
-        publishMarked(holdsMarkedCompositionForReading ? publishedMarkedBase : markedComposition)
+        guard !retired, isComposingOrDecoding else { return }
+        if snapshot.isComposing {
+            showsPendingOnlyEcho = false
+            if compositionPresentation.isKeyboardFallback { objectWillChange.send() }
+            publishMarked(holdsMarkedCompositionForReading ? publishedMarkedBase : markedComposition)
+            return
+        }
+        // Pending-only: the field shows the raw letters; nothing is derived from the empty snapshot.
+        showsPendingOnlyEcho = true
+        reportCompositionPresentation(
+            onMarkedComposition == nil ? .keyboard(reason: "输入框暂不可用") : .awaitingHost)
+        publishMarked(nil)
+    }
+
+    /// The pending-only echo is gone (its keys were dropped): clear it. The caller already
+    /// repainted Return-enablement for the 1→0 transition.
+    private func clearPendingOnlyEcho() {
+        showsPendingOnlyEcho = false
+        pendingEchoWork?.cancel()
+        pendingEchoWork = nil
+        reportCompositionPresentation(.idle)
+        publishMarked(nil)
     }
 
     static let pendingEchoDelay: TimeInterval = 0.03
