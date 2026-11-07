@@ -784,6 +784,34 @@ class SkinnedButton: UIButton, KeyboardKeyHitTarget {
         setNeedsLayout()
     }
 
+    /// The button's own title and glyph views, captured whenever its face changes. A layout pass
+    /// must not use the `titleLabel` / `imageView` getters: they create the view or apply the
+    /// title again, and either invalidates the key's size. A creation lays the button out from
+    /// inside the pass until the stack runs out; a reapplied language-tagged title makes the
+    /// SwiftUI host lay the key out again, for ever.
+    private(set) weak var titleView: UILabel?
+    private weak var glyphView: UIImageView?
+
+    override func setTitle(_ title: String?, for state: UIControl.State) {
+        super.setTitle(title, for: state)
+        captureFaceViews()
+    }
+
+    override func setAttributedTitle(_ title: NSAttributedString?, for state: UIControl.State) {
+        super.setAttributedTitle(title, for: state)
+        captureFaceViews()
+    }
+
+    override func setImage(_ image: UIImage?, for state: UIControl.State) {
+        super.setImage(image, for: state)
+        captureFaceViews()
+    }
+
+    private func captureFaceViews() {
+        titleView = currentTitle != nil || currentAttributedTitle != nil ? titleLabel : nil
+        glyphView = currentImage != nil ? imageView : nil
+    }
+
     private func makeAuthorSubtitleLabel() -> UILabel {
         let label = UILabel()
         label.textAlignment = .center
@@ -809,16 +837,25 @@ class SkinnedButton: UIButton, KeyboardKeyHitTarget {
         capLayer.update(in: self, appearance: appearance, role: role, pressed: isHighlighted)
         releaseAnimator.update(layer: capLayer, isPressed: isHighlighted)
         releaseAnimator.updatePressVisual(container: layer, layers: pressVisualLayers, isPressed: isHighlighted)
-        tintColor = appearance.text(on: role)
-        setTitleColor(appearance.text(on: role), for: .normal)
-        titleLabel?.font = appearance.uiFont(appearance.controlTextSize)
-        setPreferredSymbolConfiguration(
-            UIImage.SymbolConfiguration(pointSize: appearance.controlIconSize, weight: .regular), forImageIn: .normal)
+        // Each of these writes invalidates the key's size even when the value is the same, and the
+        // SwiftUI host answers that with another layout pass: only a change is written.
+        let textColor = appearance.text(on: role)
+        if tintColor != textColor { tintColor = textColor }
+        if titleColor(for: .normal) != textColor { setTitleColor(textColor, for: .normal) }
+        // A language-tagged title carries its own font.
+        if currentAttributedTitle == nil, let label = titleView {
+            let font = appearance.uiFont(appearance.controlTextSize)
+            if label.font != font { label.font = font }
+        }
+        let symbols = UIImage.SymbolConfiguration(pointSize: appearance.controlIconSize, weight: .regular)
+        if preferredSymbolConfigurationForImage(in: .normal) != symbols {
+            setPreferredSymbolConfiguration(symbols, forImageIn: .normal)
+        }
     }
     /// The keycap surface plus its glyphs move together; the button's own layer
     /// (hit testing / tracking geometry) is deliberately not transformed.
     private var pressVisualLayers: [CALayer?] {
-        [capLayer, titleLabel?.layer, imageView?.layer, authorSubtitleLabel?.layer]
+        [capLayer, titleView?.layer, glyphView?.layer, authorSubtitleLabel?.layer]
     }
     /// A secondary label lifts the title/glyph so the two read as one face.
     override func contentRect(forBounds bounds: CGRect) -> CGRect {

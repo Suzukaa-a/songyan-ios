@@ -632,9 +632,8 @@ struct CursorSpaceKey: UIViewRepresentable {
                 cancelPress()
                 previousSize = bounds.size
             }
-            if layoutLabel.text != nil, var titleFrame = titleLabel?.frame {
-                titleFrame.origin.y -= 6
-                titleLabel?.frame = titleFrame
+            if layoutLabel.text != nil, let title = titleView {
+                title.frame.origin.y -= 6
             }
             layoutLabel.frame = CGRect(x: 4, y: bounds.height - 16, width: max(0, bounds.width - 8), height: 12)
         }
