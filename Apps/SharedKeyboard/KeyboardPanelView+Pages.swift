@@ -279,7 +279,7 @@ extension KeyboardPanelView {
     var moreSymbolsKey: some View {
         MarkPageSwitchKey(
             target: .symbols,
-            title: controlPolicy.symbolPageTitle,
+            title: "#+=",
             accessibilityText: String(localized: "打开更多符号")
         ) {
             emitKeyFeedback()
