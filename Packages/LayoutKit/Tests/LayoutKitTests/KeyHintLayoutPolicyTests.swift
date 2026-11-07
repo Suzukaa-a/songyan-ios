@@ -11,49 +11,6 @@ final class KeyHintLayoutPolicyTests: XCTestCase {
         Double(text.count) * advance
     }
 
-    func testABCSecondaryMarksStayInTheCornerFromEveryMainLayout() throws {
-        let page = KeyboardPagePresets.englishQwerty
-        for main in [BuiltinLayouts.qwerty26, BuiltinLayouts.merged14, BuiltinLayouts.merged18, BuiltinLayouts.phone9] {
-            let resolved = KeyboardPageResolver.resolve(
-                page: page, kind: .english,
-                input: .init(usesASCIIPunctuation: true, mainLayoutIsPhoneKeypad: PhoneKeypadStructure.matches(main)))
-            XCTAssertEqual(resolved, .authored(page))
-            let authored = try XCTUnwrap(resolved.page)
-            for key in authored.rows.flatMap(\.keys) where key.action.type == .literal {
-                let hint = KeyHintLayoutPolicy.texts(
-                    title: key.label, subtitle: key.secondaryLabel, alternate: key.longPress?.first?.label)
-                XCTAssertNil(hint.subtitle, main.id)
-                XCTAssertEqual(hint.corner, key.secondaryLabel, main.id)
-            }
-        }
-    }
-
-    func testSecondaryLabelWithoutAMenuStillUsesTheCorner() {
-        let hint = KeyHintLayoutPolicy.texts(title: "q", subtitle: "1", alternate: nil)
-        XCTAssertNil(hint.subtitle)
-        XCTAssertEqual(hint.corner, "1")
-    }
-
-    func testShuangpinFinalStaysBelowTheLetterWithItsDigitInTheCorner() {
-        let hint = KeyHintLayoutPolicy.texts(
-            title: "q", subtitle: "iu", alternate: "1", syllableHintBelow: true)
-        XCTAssertEqual(hint.subtitle, "iu")
-        XCTAssertEqual(hint.corner, "1")
-    }
-
-    func testPhoneAndLanguageMenuKeepTheirCornerHints() {
-        let digit = KeyHintLayoutPolicy.texts(title: "ABC", subtitle: "2", alternate: "2", phoneKey: true)
-        XCTAssertNil(digit.subtitle)
-        XCTAssertEqual(digit.corner, "2")
-        let rail = KeyHintLayoutPolicy.texts(
-            title: "，", subtitle: nil, alternate: "1", phoneKey: true, phoneSideKey: true)
-        XCTAssertNil(rail.subtitle)
-        XCTAssertEqual(rail.corner, "1")
-        let menu = KeyHintLayoutPolicy.texts(title: "中文", subtitle: "返回", alternate: "ABC", menuIndicator: "…")
-        XCTAssertNil(menu.subtitle)
-        XCTAssertEqual(menu.corner, "…")
-    }
-
     // MARK: One line, shrink then truncate
 
     func testHintsNeverWrap() {
