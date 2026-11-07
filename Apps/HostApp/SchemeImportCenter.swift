@@ -60,7 +60,7 @@ final class SchemeImportCenter: ObservableObject {
             return nil
         } catch {
             HostLog.append("source metadata save failed: \(error.localizedDescription)")
-            return "方案已安装，但未能记录下载地址。"
+            return String(localized: "方案已安装，但未能记录下载地址。")
         }
     }
     struct DamagedPackage: Identifiable {
@@ -203,7 +203,7 @@ final class SchemeImportCenter: ObservableObject {
             if let declaredName, !declaredName.trimmingCharacters(in: .whitespaces).isEmpty {
                 return declaredName.trimmingCharacters(in: .whitespaces)
             }
-            return "方案选项"
+            return String(localized: "方案选项")
         }
     }
 
@@ -321,7 +321,7 @@ final class SchemeImportCenter: ObservableObject {
     func incompatibilityReason(packageID: String, schemaID: String, layout: KeyboardLayoutKind) -> String? {
         guard let item = installedPackages.first(where: { $0.id == packageID }),
             item.schemas.contains(where: { $0.id == schemaID })
-        else { return "方案未安装" }
+        else { return String(localized: "方案未安装") }
         let set = KeyboardResourceSet(
             id: item.id, name: item.name, sharedDirectory: item.active.resourceURL,
             userDirectory: item.active.userDataURL, layoutEntries: item.bindings, schemas: item.schemas,
@@ -352,14 +352,16 @@ final class SchemeImportCenter: ObservableObject {
             item.schemas.contains(where: { $0.id == binding.schemaID }),
             let layout = KeyboardLayoutKind(rawValue: binding.layout), !binding.code.isEmpty, !binding.candidate.isEmpty
         else {
-            throw RecipeInstallError.invalidResource("无效方案关联或另一项操作正在进行")
+            throw RecipeInstallError.invalidResource(String(localized: "无效方案关联或另一项操作正在进行"))
         }
         let codes = Set(
             KeyboardLayoutTable.mainRows(for: layout).flatMap(\.caps).compactMap { cap -> String? in
                 if case .code(let value) = cap.action { return value }
                 return nil
             }.joined() + "'")
-        guard Set(binding.code).isSubset(of: codes) else { throw RecipeInstallError.invalidResource("试打码包含此布局未发送的逻辑键") }
+        guard Set(binding.code).isSubset(of: codes) else {
+            throw RecipeInstallError.invalidResource(String(localized: "试打码包含此布局未发送的逻辑键"))
+        }
         busy = true
         defer { busy = false }
         let directory = Self.storeRoot.appendingPathComponent(item.id)
@@ -378,7 +380,7 @@ final class SchemeImportCenter: ObservableObject {
                     try engine.validateSchemaForActivation(schemaID: binding.schemaID)
                     for character in binding.code {
                         guard let event = RimeKey(character: character) else {
-                            throw RecipeInstallError.deployment("无效的按键编码")
+                            throw RecipeInstallError.deployment(String(localized: "无效的按键编码"))
                         }
                         _ = try engine.processKey(event)
                     }
@@ -386,14 +388,15 @@ final class SchemeImportCenter: ObservableObject {
                     for _ in 0..<20 {
                         if let index = state.candidates.firstIndex(where: { $0.text == binding.candidate }) {
                             guard engine.selectCandidate(index)?.commitText == binding.candidate else {
-                                throw RecipeInstallError.deployment("候选词未完整上屏")
+                                throw RecipeInstallError.deployment(String(localized: "候选词未完整上屏"))
                             }
                             return
                         }
                         guard !state.isLastPage, let next = engine.pageForward() else { break }
                         state = next
                     }
-                    throw RecipeInstallError.deployment("输入「\(binding.code)」后未在候选栏中找到「\(binding.candidate)」")
+                    throw RecipeInstallError.deployment(
+                        String(localized: "输入「\(binding.code)」后未在候选栏中找到「\(binding.candidate)」"))
                 }
             }
         } catch {
@@ -443,29 +446,33 @@ final class SchemeImportCenter: ObservableObject {
     nonisolated private static func userFacingOperationError(_ failure: Error) -> String {
         switch failure {
         case RecipeInstallError.http(let code):
-            return "下载未完成（HTTP \(code)），请检查网络和来源后重试。"
+            return String(localized: "下载未完成（HTTP \(code)），请检查网络和来源后重试。")
         case RecipeInstallError.busy:
-            return "另一项操作正在进行，请稍后再试。"
+            return String(localized: "另一项操作正在进行，请稍后再试。")
         case RecipeInstallError.missingComponents:
-            return (failure as? RecipeInstallError)?.userFacingDescription ?? "暂不支持此方案。"
+            return (failure as? RecipeInstallError)?.userFacingDescription
+                ?? String(localized: "暂不支持此方案。")
         case RecipeInstallError.missingSchemaFiles(let names):
             // Show file names only (no paths within the source), at most 5.
             let files = names.prefix(5).map { ($0 as NSString).lastPathComponent }.joined(separator: "、")
-            let more = names.count > 5 ? " 等 \(names.count) 个文件" : ""
+            let more = names.count > 5 ? String(localized: " 等 \(names.count) 个文件") : ""
             return names.isEmpty
-                ? "输入方案缺少所依赖的文件，请将所需文件放入同一个 ZIP 压缩包或文件夹后重新导入。"
-                : "输入方案缺少文件：\(files)\(more)。请将所需文件放入同一个 ZIP 压缩包或文件夹后重新导入。"
+                ? String(localized: "输入方案缺少所依赖的文件，请将所需文件放入同一个 ZIP 压缩包或文件夹后重新导入。")
+                : String(
+                    localized:
+                        "输入方案缺少文件：\(files)\(more)。请将所需文件放入同一个 ZIP 压缩包或文件夹后重新导入。")
         case RecipeInstallError.invalidManifest, RecipeInstallError.invalidResource,
             RecipeInstallError.missingGrammarModels, RecipeInstallError.deployment:
-            return (failure as? RecipeInstallError)?.userFacingDescription ?? "无法完成安装，请重试。"
+            return (failure as? RecipeInstallError)?.userFacingDescription
+                ?? String(localized: "无法完成安装，请重试。")
         case RimeEngineError.operationFailed(let detail)
         where detail.unicodeScalars.contains(where: { (0x4E00...0x9FFF).contains($0.value) }):
             // The engine's own Chinese reasons name the file or input method at fault; its English
             // ones are internal and stay behind the generic message.
-            return "无法完成安装：\(detail)。"
+            return String(localized: "无法完成安装：\(detail)。")
         default:
             // The 「Rime 配置」 folder's own errors already carry their text.
-            return rimeConfigUserMessage(failure) ?? "操作未完成，请重试。"
+            return rimeConfigUserMessage(failure) ?? String(localized: "操作未完成，请重试。")
         }
     }
 
@@ -494,7 +501,7 @@ final class SchemeImportCenter: ObservableObject {
             SchemePackageDeclaration.self,
             from: Data(
                 contentsOf: active.resourceURL.appendingPathComponent(InstalledPackageLayout.keyboardPackageFile)))
-        guard declaration.id == id else { throw RecipeInstallError.invalidResource("安装身份不匹配") }
+        guard declaration.id == id else { throw RecipeInstallError.invalidResource(String(localized: "安装身份不匹配")) }
         let schemas = try JSONDecoder().decode(
             [KeyboardSchemaDescriptor].self,
             from: Data(contentsOf: active.resourceURL.appendingPathComponent(InstalledPackageLayout.keyboardSchemas)))
@@ -581,10 +588,10 @@ final class SchemeImportCenter: ObservableObject {
                                     contentsOf: active.resourceURL.appendingPathComponent(
                                         InstalledPackageLayout.keyboardPackageFile))
                                 let declaration = try JSONDecoder().decode(SchemePackageDeclaration.self, from: data)
-                                return declaration.id == id ? declaration.name : "输入方案已损坏"
-                            }) ?? "输入方案已损坏"
+                                return declaration.id == id ? declaration.name : String(localized: "输入方案已损坏")
+                            }) ?? String(localized: "输入方案已损坏")
                     } else {
-                        name = "输入方案已损坏"
+                        name = String(localized: "输入方案已损坏")
                     }
                     damaged.append(DamagedPackage(id: id, name: name, schemaIDs: schemaIDs))
                 }

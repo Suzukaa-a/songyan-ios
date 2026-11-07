@@ -20,7 +20,7 @@ extension KeyboardViewController {
             }
             do {
                 guard hasFullAccess else {
-                    throw KeyboardRecipeStore.StoreError(message: "保存切换需要开启「允许完全访问」；已保留上次的选择")
+                    throw KeyboardRecipeStore.StoreError(message: String(localized: "保存切换需要开启「允许完全访问」；已保留上次的选择"))
                 }
                 try await EngineOpQueue.async {
                     try KeyboardRecipeStore.setEnabled(!builtin, expectedGeneration: runningGeneration)
@@ -35,7 +35,7 @@ extension KeyboardViewController {
                 guard isBoundHost else { return }
                 Self.diagnosticLogger.error(
                     "recipe selection save failed: \(error.localizedDescription, privacy: .private)")
-                let message = "无法确认方案保存结果，请重新读取后重试。"
+                let message = String(localized: "无法确认方案保存结果，请重新读取后重试。")
                 route.selectionError = message
                 route.recovery = builtin ? .saveBuiltin : .applyRecipe
                 route.notice = message
@@ -60,7 +60,7 @@ extension KeyboardViewController {
         if Self.rescuedRoute == nil { Self.rescuedRoute = Self.applied?.key ?? "" }
         Self.applied?.key = "builtin"
         route.schemeName = ProductionInputAvailability.runtimeUnconfiguredSchemeName
-        route.message = "已临时使用\(ProductionInputAvailability.fallbackInputMethodName)；已保存的选择未更改。"
+        route.message = String(localized: "已临时使用\(ProductionInputAvailability.fallbackInputMethodName)；已保存的选择未更改。")
         if session.resourceSet != nil {
             session.restoreConfiguredRoute()
         } else if case .failed = session.phase {
@@ -95,7 +95,7 @@ extension KeyboardViewController {
             return
         }
         guard session.resourceSet?.publicationGeneration != nil else {
-            route.notice = "已临时切换，但未能保存。下次呼出键盘时需重新选择。"
+            route.notice = String(localized: "已临时切换，但未能保存。下次呼出键盘时需重新选择。")
             Self.diagnosticLogger.error(
                 """
                 selection save skipped: missing publication identity \
@@ -147,18 +147,18 @@ extension KeyboardViewController {
                 else { return }
                 Self.diagnosticLogger.error(
                     "selection save failed: \(error.localizedDescription, privacy: .public)")
-                self.route.notice = "选择已在本次会话生效，但未能保存。下次呼出键盘时请重新选择。"
+                self.route.notice = String(localized: "选择已在本次会话生效，但未能保存。下次呼出键盘时请重新选择。")
             }
         }
     }
 
     /// Shown when a choice is made while the keyboard was temporarily switched to the bundled fallback.
     var temporaryBuiltinSelectionNotice: String {
-        "暂时使用\(ProductionInputAvailability.fallbackInputMethodName)，下次打开键盘时恢复原来的选择。"
+        String(localized: "暂时使用\(ProductionInputAvailability.fallbackInputMethodName)，下次打开键盘时恢复原来的选择。")
     }
 
     var inactivePublicationSelectionNotice: String {
-        "输入方案已在 App 中更改：本次切换仅在本次打开键盘时有效，未保存。"
+        String(localized: "输入方案已在 App 中更改：本次切换仅在本次打开键盘时有效，未保存。")
     }
 
     /// One route resolution. Crosses concurrency domains, so it holds only Sendable values.
@@ -204,7 +204,7 @@ extension KeyboardViewController {
                         kind: snapshot.activation.kind,
                         packageID: snapshot.activation.packageID)
                 else {
-                    throw KeyboardRecipeStore.StoreError(message: "无法访问键盘词库存储目录")
+                    throw KeyboardRecipeStore.StoreError(message: String(localized: "无法访问键盘词库存储目录"))
                 }
                 let base = snapshot.resourceSet(userDirectory: user)
                 // The extension offers only keyboards the host app has added: a record with a list or a selection shows
@@ -218,7 +218,7 @@ extension KeyboardViewController {
                     "resolved published revision: \(snapshot.activation.revision, privacy: .private)")
                 return ResolvedRoute(
                     outcome: .resource(desired), key: key,
-                    reason: "\(snapshot.activation.name) · 预编译", notice: nil,
+                    reason: String(localized: "\(snapshot.activation.name) · 预编译"), notice: nil,
                     schemeName: desired.name)
             }
             return ResolvedRoute(
@@ -248,16 +248,16 @@ extension KeyboardViewController {
         if let storeError = error as? KeyboardRecipeStore.StoreError {
             diagnosticLogger.error(
                 "shared recipe store read failed: \(storeError.localizedDescription, privacy: .private)")
-            return ("store", 0, "暂时无法读取输入方案，请打开「松烟」App 重新选择。")
+            return ("store", 0, String(localized: "暂时无法读取输入方案，请打开「松烟」App 重新选择。"))
         }
         if error is DecodingError {
-            return ("decode", 0, "输入方案记录已损坏，请打开「松烟」App 重新选择。")
+            return ("decode", 0, String(localized: "输入方案记录已损坏，请打开「松烟」App 重新选择。"))
         }
         let cocoa = error as NSError
         if cocoa.domain == NSCocoaErrorDomain {
-            return ("filesystem", cocoa.code, "暂时无法读取输入方案文件，请打开「松烟」App 重新选择。")
+            return ("filesystem", cocoa.code, String(localized: "暂时无法读取输入方案文件，请打开「松烟」App 重新选择。"))
         }
-        return ("unexpected", cocoa.code, "无法读取输入方案，请打开「松烟」App 重新选择。")
+        return ("unexpected", cocoa.code, String(localized: "无法读取输入方案，请打开「松烟」App 重新选择。"))
     }
 
     /// The route status outlives the controller, so a notice raised by a choice made in this presentation
@@ -341,7 +341,7 @@ extension KeyboardViewController {
                 code=\(code, privacy: .public)
                 """)
             route.message = userMessage
-            route.notice = route.selectionError ?? "无法读取输入方案更新；继续使用当前输入方案。"
+            route.notice = route.selectionError ?? String(localized: "无法读取输入方案更新；继续使用当前输入方案。")
             if route.selectionError == nil { route.recovery = .reloadConfiguration }
             // A read failure must not tear down a usable session or save a fallback.
             // `start()` is idempotent and only boots when nothing is running.
@@ -352,7 +352,7 @@ extension KeyboardViewController {
             if key == rescuedRoute {
                 desired = nil
                 key = "builtin"
-                reason = "临时使用\(ProductionInputAvailability.fallbackInputMethodName)；已保存的选择未更改。"
+                reason = String(localized: "临时使用\(ProductionInputAvailability.fallbackInputMethodName)；已保存的选择未更改。")
                 notice = nil
             } else {
                 Self.rescuedRoute = nil
@@ -414,7 +414,7 @@ extension KeyboardViewController {
                         guard location.isShared else {
                             Self.diagnosticLogger.error(
                                 "shared layout directory unavailable: \(location.url.path, privacy: .private)")
-                            return .unavailable("自定义布局暂时不可用，当前使用内置布局。")
+                            return .unavailable(String(localized: "自定义布局暂时不可用，当前使用内置布局。"))
                         }
                         do {
                             let registry = try LayoutStore(directoryURL: location.url).load()
@@ -422,11 +422,11 @@ extension KeyboardViewController {
                         } catch {
                             Self.diagnosticLogger.error(
                                 "shared layout read failed: \(error.localizedDescription, privacy: .private)")
-                            return .failed("无法读取布局，当前使用内置布局。")
+                            return .failed(String(localized: "无法读取布局，当前使用内置布局。"))
                         }
                     }
                 } catch {
-                    return .failed("无法读取布局，当前使用内置布局。")
+                    return .failed(String(localized: "无法读取布局，当前使用内置布局。"))
                 }
             }
             guard let self, isBoundHost, self.layoutReadGate.accepts(token) else { return }
@@ -437,14 +437,14 @@ extension KeyboardViewController {
                 self.route.assignIfChanged(\.layoutRegistry, registry)
                 self.route.assignIfChanged(\.layoutNotice, nil)
                 Self.diagnosticLogger.debug("shared layout loaded: \(path, privacy: .private)")
-                self.route.assignIfChanged(\.layoutMessage, "自定义布局已加载。")
+                self.route.assignIfChanged(\.layoutMessage, String(localized: "自定义布局已加载。"))
             case .unavailable(let message):
                 self.route.assignIfChanged(\.layoutRegistry, nil)
-                self.route.assignIfChanged(\.layoutNotice, "自定义布局暂时不可用，当前使用内置布局。")
+                self.route.assignIfChanged(\.layoutNotice, String(localized: "自定义布局暂时不可用，当前使用内置布局。"))
                 self.route.assignIfChanged(\.layoutMessage, message)
             case .failed(let message):
                 self.route.assignIfChanged(\.layoutRegistry, nil)
-                self.route.assignIfChanged(\.layoutNotice, "无法读取布局，当前使用内置布局。")
+                self.route.assignIfChanged(\.layoutNotice, String(localized: "无法读取布局，当前使用内置布局。"))
                 self.route.assignIfChanged(\.layoutMessage, message)
             }
         }

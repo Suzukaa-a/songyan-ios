@@ -70,7 +70,7 @@ struct InputSchemeListView: View {
             Section {
                 NavigationLink {
                     List { RimeConfigRows(model: rimeConfig) }
-                        .navigationTitle("Rime 配置")
+                        .navigationTitle(String(localized: "Rime 配置"))
                         .navigationBarTitleDisplayMode(.inline)
                         .rimeConfigHost(rimeConfig)
                 } label: {
@@ -138,7 +138,7 @@ struct InputSchemeListView: View {
             rows.append(
                 InstalledSchemeRow(
                     id: "damaged-\(package.id)", name: package.name,
-                    inputMethodNames: [], layoutNames: [], status: "已损坏", isSelected: false,
+                    inputMethodNames: [], layoutNames: [], status: String(localized: "已损坏"), isSelected: false,
                     needsNewVersion: false, isBusy: schemeImports.busy, apply: nil,
                     destination: AnyView(SchemePackageDetailView(packageID: package.id))))
         }
@@ -147,7 +147,7 @@ struct InputSchemeListView: View {
 
     private func statusText(needsNewVersion: Bool) -> String {
         needsNewVersion
-            ? "有新版本"
+            ? String(localized: "有新版本")
             : UserTerminology.statusInUse
     }
 
@@ -157,7 +157,7 @@ struct InputSchemeListView: View {
         let needsNewVersion = applied && installedRevision != nil && selectedRevision != installedRevision
         return InstalledSchemeRow(
             id: "user-dictionary",
-            name: "自定义拼音",
+            name: String(localized: "自定义拼音"),
             inputMethodNames: presentations["user-dictionary"]?.inputMethods ?? [],
             layoutNames: presentations["user-dictionary"]?.layouts ?? [],
             status: applied ? statusText(needsNewVersion: needsNewVersion) : UserTerminology.statusNotApplied,
@@ -262,7 +262,7 @@ struct InputSchemeListView: View {
                 }
                 .buttonStyle(.borderless)
                 .fixedSize()
-                .accessibilityLabel("查看输入方案详情")
+                .accessibilityLabel(String(localized: "查看输入方案详情"))
             }
         }
         .padding(.vertical, 2)
@@ -298,26 +298,28 @@ struct InputSchemeListView: View {
             || imports.busy || imports.error != nil || schemeImports.error != nil
         {
             Section {
-                if applying { ProgressView("正在切换…") }
-                if imports.busy { ProgressView("正在准备导入词库…") }
+                if applying { ProgressView(String(localized: "正在切换…")) }
+                if imports.busy { ProgressView(String(localized: "正在准备导入词库…")) }
                 if let error = selectionError {
-                    failureRow("无法读取当前选择", detail: error)
-                    Button("重试") { refreshTick &+= 1 }
+                    failureRow(String(localized: "无法读取当前选择"), detail: error)
+                    Button(String(localized: "重试")) { refreshTick &+= 1 }
                     // A damaged selection is replaced by switching to built-in or applying any scheme.
-                    Button("改用\(ProductionInputAvailability.fallbackInputMethodName)") { center.switchToBuiltin() }
-                        .disabled(center.isBusy)
+                    Button(String(localized: "改用\(ProductionInputAvailability.fallbackInputMethodName)")) {
+                        center.switchToBuiltin()
+                    }
+                    .disabled(center.isBusy)
                 }
                 if let resourceError {
-                    failureRow("无法读取输入方案", detail: resourceError)
+                    failureRow(String(localized: "无法读取输入方案"), detail: resourceError)
                 }
                 if case .failed(let message) = center.applicationPhase {
-                    failureRow("未能启用", detail: message)
+                    failureRow(String(localized: "未能启用"), detail: message)
                 }
                 if let error = imports.error {
-                    failureRow("词库操作未完成", detail: error)
+                    failureRow(String(localized: "词库操作未完成"), detail: error)
                 }
                 if let error = schemeImports.error {
-                    failureRow("输入方案导入未完成", detail: error)
+                    failureRow(String(localized: "输入方案导入未完成"), detail: error)
                 }
             }
         }
@@ -345,7 +347,7 @@ struct InputSchemeListView: View {
         let result = await AppliedSelectionLoader.loadWithResourceValidation()
         guard token == selectionGeneration else { return }
         guard let snapshot = result.snapshot else {
-            selectionError = result.selectionError ?? "无法读取状态"
+            selectionError = result.selectionError ?? String(localized: "无法读取状态")
             resourceError = nil
             return
         }
@@ -382,9 +384,9 @@ struct InputSchemeListView: View {
 
     @ViewBuilder
     private var developerSection: some View {
-        Section("技术详情（开发者）") {
+        Section(String(localized: "技术详情（开发者）")) {
             if let caps = engineCapabilities {
-                LabeledRow(label: "已加载组件", value: caps.components.joined(separator: ", "))
+                LabeledRow(label: String(localized: "已加载组件"), value: caps.components.joined(separator: ", "))
                 if !caps.unsupported.isEmpty {
                     Text("不支持：\(caps.unsupported.joined(separator: ", "))")
                         .font(.footnote).foregroundStyle(.orange)

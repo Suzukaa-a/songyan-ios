@@ -68,7 +68,7 @@ public struct SymbolCatalog: Codable, Equatable, Sendable {
     /// packaging error and is thrown rather than silently replaced with other data.
     public static func bundledDefault() throws -> SymbolCatalog {
         guard let url = Bundle.module.url(forResource: "default-symbols", withExtension: "json") else {
-            throw SymbolCatalogError("默认符号目录资源缺失")
+            throw SymbolCatalogError(QuickContentText.string("symbol.error.defaultMissing"))
         }
         return try decode(contentsOf: url)
     }
@@ -179,35 +179,41 @@ extension SymbolCatalog {
         try decode(
             QuickContentFileReader.read(
                 url, maximumBytes: maxJSONBytes,
-                sizeError: "$: JSON 超过 256KB"))
+                sizeError: QuickContentText.string("symbol.error.fileTooLarge")))
     }
 
     public static func decode(_ data: Data) throws -> SymbolCatalog {
-        guard data.count <= maxJSONBytes else { throw SymbolCatalogError("$: JSON 超过 256KB") }
-        guard let source = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            throw SymbolCatalogError("$: 需要对象")
+        guard data.count <= maxJSONBytes else {
+            throw SymbolCatalogError(QuickContentText.string("symbol.error.fileTooLarge"))
         }
-        guard source["version"] as? Int == 1 else { throw SymbolCatalogError("$.version: 只支持 1") }
+        guard let source = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw SymbolCatalogError(QuickContentText.string("symbol.error.notAnObject"))
+        }
+        guard source["version"] as? Int == 1 else {
+            throw SymbolCatalogError(QuickContentText.string("symbol.error.unsupportedVersion"))
+        }
         // Only schema fields are allowed; categories may be omitted.
         let allowed: Set<String> = ["version", "categories", "items"]
         for key in source.keys where !allowed.contains(key) {
-            throw SymbolCatalogError("$.\(key): 未知字段")
+            throw SymbolCatalogError(QuickContentText.format("symbol.error.unknownField", key))
         }
         if let categories = source["categories"] as? [[String: Any]] {
             for (index, category) in categories.enumerated() {
                 let keys = Set(category.keys)
                 guard keys.isSubset(of: ["id", "name", "order"]) else {
-                    throw SymbolCatalogError("$.categories[\(index)]: 未知字段")
+                    throw SymbolCatalogError(
+                        QuickContentText.format("symbol.error.unknownCategoryField", String(index + 1)))
                 }
             }
         }
         guard let items = source["items"] as? [[String: Any]] else {
-            throw SymbolCatalogError("$.items: 需要数组")
+            throw SymbolCatalogError(QuickContentText.string("symbol.error.missingItems"))
         }
         for (index, item) in items.enumerated() {
             let keys = Set(item.keys)
             guard keys.isSubset(of: ["id", "text", "name", "aliases", "category"]) else {
-                throw SymbolCatalogError("$.items[\(index)]: 未知字段")
+                throw SymbolCatalogError(
+                    QuickContentText.format("symbol.error.unknownItemField", String(index + 1)))
             }
         }
         let catalog = try JSONDecoder().decode(SymbolCatalog.self, from: data)
@@ -216,37 +222,58 @@ extension SymbolCatalog {
     }
 
     public func validate() throws {
-        func require(_ test: Bool, _ path: String) throws { if !test { throw SymbolCatalogError("\(path): 值无效") } }
-        try require(version == 1, "$.version")
-        try require(items.count <= SymbolCatalog.maxItems, "$.items")
+        func require(_ test: Bool, _ message: @autoclosure () -> String) throws {
+            if !test { throw SymbolCatalogError(message()) }
+        }
+        try require(version == 1, QuickContentText.string("symbol.error.unsupportedVersion"))
+        try require(
+            items.count <= SymbolCatalog.maxItems,
+            QuickContentText.format("symbol.error.tooManyItems", String(SymbolCatalog.maxItems)))
         var seenIDs = Set<String>()
         var seenTexts = Set<String>()
         for (index, item) in items.enumerated() {
-            let path = "$.items[\(index)]"
+            let number = String(index + 1)
             try require(
                 !item.id.isEmpty && item.id.utf8.count <= 64
                     && item.id.allSatisfy { $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "-" || $0 == "_") },
-                "\(path).id")
-            try require(seenIDs.insert(item.id).inserted, "\(path).id: 重复 \(item.id)")
-            try require(!item.text.isEmpty && item.text.count <= 32, "\(path).text")
-            try require(seenTexts.insert(item.text).inserted, "\(path).text: 重复 \(item.text)")
-            try require(!item.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, "\(path).name")
-            try require(item.aliases.count <= SymbolCatalog.maxAliasesPerItem, "\(path).aliases")
-            try require(!item.category.isEmpty, "\(path).category")
+                QuickContentText.format("symbol.error.itemID", number))
+            try require(
+                seenIDs.insert(item.id).inserted,
+                QuickContentText.format("symbol.error.duplicateItemID", item.id))
+            try require(
+                !item.text.isEmpty && item.text.count <= 32,
+                QuickContentText.format("symbol.error.itemText", number))
+            try require(
+                seenTexts.insert(item.text).inserted,
+                QuickContentText.format("symbol.error.duplicateText", item.text))
+            try require(
+                !item.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                QuickContentText.format("symbol.error.itemName", number))
+            try require(
+                item.aliases.count <= SymbolCatalog.maxAliasesPerItem,
+                QuickContentText.format("symbol.error.itemAliases", number))
+            try require(
+                !item.category.isEmpty,
+                QuickContentText.format("symbol.error.itemCategory", number))
             for (aliasIndex, alias) in item.aliases.enumerated() {
                 try require(
-                    !alias.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, "\(path).aliases[\(aliasIndex)]")
+                    !alias.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                    QuickContentText.format("symbol.error.itemAlias", number, String(aliasIndex + 1)))
             }
         }
         var seenCategoryIDs = Set<String>()
         for (index, category) in categories.enumerated() {
-            let path = "$.categories[\(index)]"
+            let number = String(index + 1)
             try require(
                 !category.id.isEmpty && category.id.utf8.count <= 64
                     && category.id.allSatisfy { $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "-" || $0 == "_") },
-                "\(path).id")
-            try require(seenCategoryIDs.insert(category.id).inserted, "\(path).id: 重复 \(category.id)")
-            try require(!category.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, "\(path).name")
+                QuickContentText.format("symbol.error.categoryID", number))
+            try require(
+                seenCategoryIDs.insert(category.id).inserted,
+                QuickContentText.format("symbol.error.duplicateCategoryID", category.id))
+            try require(
+                !category.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                QuickContentText.format("symbol.error.categoryName", number))
         }
     }
 
@@ -255,7 +282,9 @@ extension SymbolCatalog {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let data = try encoder.encode(self)
-        guard data.count <= SymbolCatalog.maxJSONBytes else { throw SymbolCatalogError("$: JSON 超过 256KB") }
+        guard data.count <= SymbolCatalog.maxJSONBytes else {
+            throw SymbolCatalogError(QuickContentText.string("symbol.error.fileTooLarge"))
+        }
         return data
     }
 }

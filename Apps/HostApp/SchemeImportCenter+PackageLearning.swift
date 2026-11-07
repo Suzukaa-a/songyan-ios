@@ -1,3 +1,4 @@
+import Foundation
 import KeyboardCore
 import PackageManager
 import SwiftUI
@@ -65,7 +66,7 @@ extension SchemeImportCenter {
                 submit: { archive in _ = try await LearningBackupIO.withStore { try $0.submitRestore(archive) } })
             try await flow.accept()
             learningOffer = nil
-            learningOfferNotice = "已安排并入。请调出「松烟」键盘一次，进度可在「学习备份」查看。"
+            learningOfferNotice = String(localized: "已安排并入。请调出「松烟」键盘一次，进度可在「学习备份」查看。")
         } catch {
             HostLog.append("package learning merge failed: \(error.localizedDescription)")
             learningOfferNotice = Self.packageLearningMessage(for: error)
@@ -75,9 +76,9 @@ extension SchemeImportCenter {
     private static func packageLearningMessage(for error: Error) -> String {
         switch error {
         case PackageLearningFailure.noKeyboard, PackageLearningError.notInUse:
-            return "没能使用这个输入方案，用词记录没有并入。"
+            return String(localized: "没能使用这个输入方案，用词记录没有并入。")
         case is UserKeyboardPublicationError:
-            return "没能使用这个输入方案，用词记录没有并入。"
+            return String(localized: "没能使用这个输入方案，用词记录没有并入。")
         default:
             return LearningBackupModel.userMessage(for: error)
         }
@@ -113,11 +114,11 @@ struct PackageLearningOfferSection: View {
         if let offer = center.learningOffer, packageID == nil || packageID == offer.packageID {
             Section {
                 Text("这个方案包带有 \(offer.dictionaryCount) 份词库的用词记录，要一起并入吗？")
-                Button(offer.inUse ? "并入" : "使用并并入") {
+                Button(offer.inUse ? String(localized: "并入") : String(localized: "使用并并入")) {
                     Task { await center.acceptPackageLearning() }
                 }
                 .disabled(center.learningOfferBusy)
-                Button("不并入") { center.declinePackageLearning() }
+                Button(String(localized: "不并入")) { center.declinePackageLearning() }
                     .disabled(center.learningOfferBusy)
                 if center.learningOfferBusy {
                     ProgressView()

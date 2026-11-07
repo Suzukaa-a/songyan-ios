@@ -1,0 +1,6122 @@
+{
+  "sourceLanguage": "zh-Hans",
+  "strings": {
+    "adapter.error.alphabetUnfit": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力パックの字母表をコンパクトなキーボード配置に合わせられません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入方案的字母表无法适配紧凑键盘布局"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "輸入方案的字母表無法適配緊湊鍵盤配置"
+          }
+        }
+      }
+    },
+    "adapter.error.cannotCheckRecognizer": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "識別ルールを確認できません：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法检查识别规则：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無法檢查識別規則：%1$@"
+          }
+        }
+      }
+    },
+    "adapter.error.compiledFormat": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コンパイル済みの入力パックファイルの形式が正しくありません：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "方案编译文件格式不正确：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "方案編譯檔案格式不正確：%1$@"
+          }
+        }
+      }
+    },
+    "adapter.error.compiledIdentity": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コンパイル済みファイルの入力パック識別子が一致しません：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "方案编译文件的方案标识不符：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "方案編譯檔案的方案標識不符：%1$@"
+          }
+        }
+      }
+    },
+    "adapter.error.compiledIncomplete": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コンパイル済みファイルにメイン変換器の設定または辞書がありません：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "方案编译文件缺少主转换器配置或词典：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "方案編譯檔案缺少主轉換器配置或詞典：%1$@"
+          }
+        }
+      }
+    },
+    "adapter.error.compiledNotUTF8": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コンパイル済みの入力パックファイルが UTF-8 ではありません：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "方案编译文件不是 UTF-8 编码：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "方案編譯檔案不是 UTF-8 編碼：%1$@"
+          }
+        }
+      }
+    },
+    "adapter.error.compiledTooLarge": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コンパイル済みの入力パックファイルがサイズ上限を超えています：%1$@（%2$ld バイト）"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "方案编译文件超过大小限制：%1$@（%2$ld 字节）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "方案編譯檔案超過大小限制：%1$@（%2$ld 位元組）"
+          }
+        }
+      }
+    },
+    "adapter.error.compiledUnreadable": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コンパイル済みの入力パックファイルを解析できません：%1$@：%2$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "方案编译文件解析失败：%1$@：%2$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "方案編譯檔案解析失敗：%1$@：%2$@"
+          }
+        }
+      }
+    },
+    "adapter.error.missingGenerator": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力パックに既定のメイン変換器がないため、自動適合できません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入方案缺少默认主转换器，无法自动适配"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "輸入方案缺少預設主轉換器，無法自動適配"
+          }
+        }
+      }
+    },
+    "adapter.error.notPinyinOrShuangpin": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この入力パックは自動適合できるピンイン／双拼の設定ではありません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入方案不是可自动适配的拼音或双拼配置"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "輸入方案不是可自動適配的拼音或雙拼配置"
+          }
+        }
+      }
+    },
+    "adapter.error.notTable": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この入力パックは自動適合できるテーブル形式の設定ではありません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入方案不是可自动适配的码表配置"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "輸入方案不是可自動適配的碼錶配置"
+          }
+        }
+      }
+    },
+    "adapter.error.rereadForDisplay": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "表示機能を追加するため入力パックを読み直せません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法重新读取输入方案以添加展示能力"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無法重新讀取輸入方案以新增展示能力"
+          }
+        }
+      }
+    },
+    "adapter.error.tableMissingData": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "テーブル形式の自動適合に必要なデータがありません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "码表适配方案缺少必要数据"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "碼錶適配方案缺少必要資料"
+          }
+        }
+      }
+    },
+    "adapter.name.compact": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ · %2$@ キー向け"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ · %2$@键适配"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ · %2$@鍵適配"
+          }
+        }
+      }
+    },
+    "delete.error.invalidPackageID": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力パックの識別子が無効です"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入方案包标识无效"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "輸入方案包標識無效"
+          }
+        }
+      }
+    },
+    "delete.error.invalidPath": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力パックのパスが無効です：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入方案路径无效：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "輸入方案路徑無效：%1$@"
+          }
+        }
+      }
+    },
+    "delete.error.invalidTarget": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "削除する入力パックを確認できませんでした。何も変更していません。一覧に戻ってからやり直してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法确认要删除的输入方案，未作任何更改。请返回列表后重试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無法確認要刪除的輸入方案，未作任何更改。請返回列表後重試。"
+          }
+        }
+      }
+    },
+    "delete.error.moveFailed": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "削除が完了しませんでした。一覧に戻って確認してから、もう一度操作してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除未完成。请返回列表核对后再操作。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刪除未完成。請返回列表核對後再操作。"
+          }
+        }
+      }
+    },
+    "delete.error.rootMissing": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インストール先のフォルダーがありません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安装目录不存在"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安裝目錄不存在"
+          }
+        }
+      }
+    },
+    "delete.error.targetNotDirectory": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "対象がインストール先のフォルダーではありません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目标不是安装目录"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目標不是安裝目錄"
+          }
+        }
+      }
+    },
+    "delete.error.targetNotInRoot": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "対象がインストール先のフォルダー内にありません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目标不在安装目录内"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目標不在安裝目錄內"
+          }
+        }
+      }
+    },
+    "delete.error.targetOutsideRoot": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "対象がインストール先のフォルダーの外を指しています"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目标指向安装目录之外"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目標指向安裝目錄之外"
+          }
+        }
+      }
+    },
+    "delete.error.trashDetail": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "削除用の一時保管先を使えません：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除暂存区不可用：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刪除暫存區不可用：%1$@"
+          }
+        }
+      }
+    },
+    "delete.error.trashUnavailable": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今はこの入力パックを削除できません。何も変更していません。しばらくしてからやり直してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂时无法删除这个输入方案，未作任何更改。请稍后重试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暫時無法刪除這個輸入方案，未作任何更改。請稍後重試。"
+          }
+        }
+      }
+    },
+    "dependencies.error.indexTruncated": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "公式ソースのファイル一覧が途中で切れています：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "官方源文件索引被截断：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "官方原始檔索引被截斷：%1$@"
+          }
+        }
+      }
+    },
+    "dependencies.error.noUniqueProvider": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "依存ファイル %1$@ の公式な提供元が 1 つに定まりません。このファイルを提供するリポジトリを、ソース一覧に明示的に追加してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "依赖项 %1$@ 没有唯一可用的官方来源；请在来源列表中明确添加提供该文件的仓库。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "依賴項 %1$@ 沒有唯一可用的官方來源；請在來源列表中明確新增提供該檔案的倉庫。"
+          }
+        }
+      }
+    },
+    "dependencies.error.tooDeep": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力パックの依存関係が深すぎます（16 階層を超えています）。循環していないか確認してください"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入方案依赖层级过多（超过 16 层）；请检查是否存在循环依赖"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "輸入方案依賴層級過多（超過 16 層）；請檢查是否存在迴圈依賴"
+          }
+        }
+      }
+    },
+    "dependencies.progress.downloading": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "公式の依存関係をダウンロードしています：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在下载官方依赖：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在下載官方依賴：%1$@"
+          }
+        }
+      }
+    },
+    "dependencies.progress.querying": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "公式の依存関係一覧を確認しています…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在查询官方依赖列表…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在查詢官方依賴列表…"
+          }
+        }
+      }
+    },
+    "dictionary.error.builtinIncompatible": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内蔵の入力パックのファイルと互換性がありません：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内置输入方案的文件不兼容：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "內建輸入方案的檔案不相容：%1$@"
+          }
+        }
+      }
+    },
+    "dictionary.error.columnCount": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@:%2$@ の列数が正しくないか、ピンインが明示されていません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@:%2$@ 列数不符合规范或缺少显式拼音"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@:%2$@ 列數不符合規範或缺少顯式拼音"
+          }
+        }
+      }
+    },
+    "dictionary.error.complexYAML": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "複雑な YAML 形式や別名には対応していません：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不支持复杂的 YAML 格式或别名：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不支援複雜的 YAML 格式或別名：%1$@"
+          }
+        }
+      }
+    },
+    "dictionary.error.emptyEntry": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "空の見出し語"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "空词条"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "空詞條"
+          }
+        }
+      }
+    },
+    "dictionary.error.emptyOrTooManyEntries": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "辞書が空か、200 万件を超えています"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "词库为空或超过 200 万条"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "詞庫為空或超過 200 萬條"
+          }
+        }
+      }
+    },
+    "dictionary.error.entrySyllableCount": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@:%2$@ で、ピンインの数と文字数が一致しません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@:%2$@ 字数与注音不一致"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@:%2$@ 字數與注音不一致"
+          }
+        }
+      }
+    },
+    "dictionary.error.fileTooLarge": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "辞書ファイルがサイズ上限を超えています"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "词库文件超过大小限制"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "詞庫檔案超過大小限制"
+          }
+        }
+      }
+    },
+    "dictionary.error.importCycle": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "辞書の参照が循環しています（import_tables）：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "词库引用存在循环依赖（import_tables）：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "詞庫引用存在迴圈依賴（import_tables）：%1$@"
+          }
+        }
+      }
+    },
+    "dictionary.error.invalid": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "辞書の確認に合格しませんでした：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "词库检查未通过：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "詞庫檢查未透過：%1$@"
+          }
+        }
+      }
+    },
+    "dictionary.error.listValueRequired": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ は文字列のリストにしてください"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ 必须是字符串列表"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ 必須是字串列表"
+          }
+        }
+      }
+    },
+    "dictionary.error.missingFiles": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "次の辞書ファイルも必要です：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还需要添加这些词库文件：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "還需要新增這些詞庫檔案：%1$@"
+          }
+        }
+      }
+    },
+    "dictionary.error.missingHeaderEnd": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rime 辞書ヘッダーの終了マーカー「...」がありません：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "缺少 Rime 词典头结束标记「...」：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "缺少 Rime 詞典頭結束標記「...」：%1$@"
+          }
+        }
+      }
+    },
+    "dictionary.error.missingName": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "辞書に名前の宣言（name）がありません：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "词典缺少名称声明（name）：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "詞典缺少名稱宣告（name）：%1$@"
+          }
+        }
+      }
+    },
+    "dictionary.error.nonHanEntry": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@:%2$@ は漢字の見出し語だけに対応しています（非対応：%3$@）"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@:%2$@ 只支持汉字词条（不支持：%3$@）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@:%2$@ 只支援漢字詞條（不支援：%3$@）"
+          }
+        }
+      }
+    },
+    "dictionary.error.notADictionary": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インストール済みの内容は辞書ではありません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已安装的内容不是词库"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已安裝的內容不是詞庫"
+          }
+        }
+      }
+    },
+    "dictionary.error.notUTF8": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイルが UTF-8 のテキストではありません：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件不是 UTF-8 文本：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "檔案不是 UTF-8 文字：%1$@"
+          }
+        }
+      }
+    },
+    "dictionary.error.onlyDictYaml": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ここにインポートできるのは .dict.yaml の辞書ファイルだけです。入力パックは「入力パックを追加」からインポートしてください"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这里只能导入 .dict.yaml 词库文件；输入方案请在「添加输入方案」中导入"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這裡只能匯入 .dict.yaml 詞庫檔案；輸入方案請在「新增輸入方案」中匯入"
+          }
+        }
+      }
+    },
+    "dictionary.error.originalSort": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "元の順序で並べる辞書（sort: original）には対応していません。頻度順の辞書を使ってください"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂不支持按原始顺序排序的词库（sort: original），请使用按词频排序的词库"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暫不支援按原始順序排序的詞庫（sort: original），請使用按詞頻排序的詞庫"
+          }
+        }
+      }
+    },
+    "dictionary.error.presetVocabulary": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この辞書はプリセット語彙（use_preset_vocabulary）を使うため対応していません。完全なピンインと頻度を含む辞書を使ってください"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此词库依赖预设词表（use_preset_vocabulary），暂不支持；请使用包含完整拼音和词频的词库"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此詞庫依賴預設詞表（use_preset_vocabulary），暫不支援；請使用包含完整拼音和詞頻的詞庫"
+          }
+        }
+      }
+    },
+    "dictionary.error.tooManyEntries": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 つの辞書が 200 万件を超えています"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "单个词库超过 200 万条"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "單個詞庫超過 200 萬條"
+          }
+        }
+      }
+    },
+    "dictionary.error.tooManyFiles": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一度に選べるのは 128 ファイルまでで、ファイル名は重複できません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一次最多选择 128 个文件，且文件名不能重复"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一次最多選擇 128 個檔案，且檔名不能重複"
+          }
+        }
+      }
+    },
+    "dictionary.error.totalTooLarge": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "辞書ファイルの合計が 64 MiB を超えています"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "词库文件合计超过 64 MiB"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "詞庫檔案合計超過 64 MiB"
+          }
+        }
+      }
+    },
+    "dictionary.error.unknownPinyin": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ピンイン「%1$@」を認識できません（%2$@）。全拼の辞書だけに対応しており、形碼・双拼・補助碼の辞書は直接インポートできません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拼音「%1$@」无法识别（%2$@）；仅支持全拼词库，形码、双拼、辅码词库无法直接导入。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "拼音「%1$@」無法識別（%2$@）；僅支援全拼詞庫，形碼、雙拼、輔碼詞庫無法直接匯入。"
+          }
+        }
+      }
+    },
+    "dictionary.error.unsafePath": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安全でない相対パスです：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不安全的相对路径：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不安全的相對路徑：%1$@"
+          }
+        }
+      }
+    },
+    "dictionary.error.unsupported": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この辞書には対応していません：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂不支持这个词库：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暫不支援這個詞庫：%1$@"
+          }
+        }
+      }
+    },
+    "dictionary.error.unsupportedColumns": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "辞書に置けるのは「見出し語、ピンイン、頻度」の 3 列だけで、自動注音と補助コードには対応していません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "词库只能包含「词语、拼音、词频」三列，暂不支持自动注音与辅助码"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "詞庫只能包含「詞語、拼音、詞頻」三列，暫不支援自動注音與輔助碼"
+          }
+        }
+      }
+    },
+    "dictionary.error.unsupportedHeaderField": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "対応していない辞書ヘッダーの項目 %1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不支持的词典头字段 %1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不支援的詞典頭欄位 %1$@"
+          }
+        }
+      }
+    },
+    "dictionary.error.unsupportedYAML": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "対応していない YAML の書き方です：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不支持的 YAML 语法：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不支援的 YAML 語法：%1$@"
+          }
+        }
+      }
+    },
+    "dictionary.error.unusedFile": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "メインの辞書から参照されていないファイルがあります。メインの辞書と、それが参照するファイルだけを選んでください"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有文件没有被主词库引用；请只选择主词库及它引用的文件"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有檔案沒有被主詞庫引用；請只選擇主詞庫及它引用的檔案"
+          }
+        }
+      }
+    },
+    "dictionary.error.weightFormat": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ の頻度の形式が正しくありません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ 词频格式无效"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ 詞頻格式無效"
+          }
+        }
+      }
+    },
+    "download.error.incomplete": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "モデルのダウンロードが途中で終わりました。やり直してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "模型下载未返回完整文件，请重试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "模型下載未返回完整檔案，請重試。"
+          }
+        }
+      }
+    },
+    "download.error.incompleteArchive": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ダウンロードしたファイルが不足しています。もう一度ダウンロードしてください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下载的文件不完整，请重新下载。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下載的檔案不完整，請重新下載。"
+          }
+        }
+      }
+    },
+    "download.error.saveFailed": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ダウンロードしたモデルファイルを保存できませんでした：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存模型下载文件失败：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "儲存模型下載檔案失敗：%1$@"
+          }
+        }
+      }
+    },
+    "download.error.tooLarge": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ダウンロードしたファイルがサイズ上限を超えています"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外部下载文件超过大小限制"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外部下載檔案超過大小限制"
+          }
+        }
+      }
+    },
+    "download.error.unsafeRedirect": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安全でないアドレスに転送されたため、ダウンロードを中止しました"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "链接跳转到了不安全的地址，已停止下载"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "連結跳轉到了不安全的地址，已停止下載"
+          }
+        }
+      }
+    },
+    "file.error.archiveBudget": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイルの合計サイズが上限を超えています。選び直すか、もう一度ダウンロードしてください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件总大小超过限制，请重新选择或下载。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "檔案總大小超過限制，請重新選擇或下載。"
+          }
+        }
+      }
+    },
+    "file.error.changedWhilePreparing": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "準備中にファイルが変更されました：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件在准备期间已被修改：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "檔案在準備期間已被修改：%1$@"
+          }
+        }
+      }
+    },
+    "file.error.checksumMismatch": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイルのチェックサムが一致しません：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件校验不符：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "檔案校驗不符：%1$@"
+          }
+        }
+      }
+    },
+    "file.error.compiledConfigTooLarge": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "コンパイル済みの設定ファイルがサイズ上限を超えています"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "编译配置文件超过大小限制"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "編譯配置檔案超過大小限制"
+          }
+        }
+      }
+    },
+    "file.error.destinationExists": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存先にファイルがすでにあります：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目标文件已存在：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目標檔案已存在：%1$@"
+          }
+        }
+      }
+    },
+    "file.error.invalidLimit": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ローカルファイルのパスまたはサイズ上限が正しくありません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本地文件路径或大小限制无效"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本地檔案路徑或大小限制無效"
+          }
+        }
+      }
+    },
+    "file.error.invalidSizeArgument": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイルサイズの指定が上限を超えています"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件大小参数超出限制"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "檔案大小引數超出限制"
+          }
+        }
+      }
+    },
+    "file.error.singleTooLarge": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1 つのファイルがサイズ上限を超えています：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "单个文件超过大小限制：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "單個檔案超過大小限制：%1$@"
+          }
+        }
+      }
+    },
+    "file.error.tooLarge": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイルがサイズ上限を超えています"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件超过大小限制"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "檔案超過大小限制"
+          }
+        }
+      }
+    },
+    "file.error.tooManyFiles": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイル数が 2000 個を超えています"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件数量超过 2000 个"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "檔案數量超過 2000 個"
+          }
+        }
+      }
+    },
+    "file.error.unsupportedOrTooLarge": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "対応していない種類か、サイズが大きすぎるファイルです：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件类型不支持或文件过大：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "檔案型別不支援或檔案過大：%1$@"
+          }
+        }
+      }
+    },
+    "fuzzy.error.compactKeyboard": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この入力方式は 9 キーまたは 14 キーのキーボード専用のため、あいまい音には対応していません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这个输入方式专供 9 键或 14 键键盘使用，暂不支持模糊音。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這個輸入方式專供 9 鍵或 14 鍵鍵盤使用，暫不支援模糊音。"
+          }
+        }
+      }
+    },
+    "fuzzy.error.generatedCompanion": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この入力方式はほかの入力方式から自動で作られたものです。元の入力方式で設定してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这个输入方式由其他输入方式自动生成，请在原来的输入方式里设置模糊音。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這個輸入方式由其他輸入方式自動生成，請在原來的輸入方式裡設定模糊音。"
+          }
+        }
+      }
+    },
+    "fuzzy.error.mismatch": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "あいまい音の設定と入力方式が一致しません。設定を開き直してください"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "模糊音设置与输入方式不一致，请重新打开设置"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "模糊音設定與輸入方式不一致，請重新開啟設定"
+          }
+        }
+      }
+    },
+    "fuzzy.error.noDictionary": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この入力方式に使える辞書がありません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入方式没有可用的词典"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "輸入方式沒有可用的詞典"
+          }
+        }
+      }
+    },
+    "fuzzy.error.noTargets": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "あいまい音を調整する入力方式がありません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有需要调整模糊音的输入方式"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "沒有需要調整模糊音的輸入方式"
+          }
+        }
+      }
+    },
+    "fuzzy.error.notEnabled": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この入力方式はまだ有効になっていません。「マイキーボード」で選び直してから、やり直してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这个输入方式还没有启用，请在「我的键盘」中重新选择后再试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這個輸入方式還沒有啟用，請在「我的鍵盤」中重新選擇後再試。"
+          }
+        }
+      }
+    },
+    "fuzzy.error.notPinyin": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この入力方式はピンイン入力ではないため、あいまい音には対応していません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这个输入方式不是拼音输入，暂不支持模糊音。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這個輸入方式不是拼音輸入，暫不支援模糊音。"
+          }
+        }
+      }
+    },
+    "fuzzy.error.schemaUnreadable": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力パックの設定を読み取れません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入方案配置无法读取"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "輸入方案配置無法讀取"
+          }
+        }
+      }
+    },
+    "fuzzy.error.settingsIncomplete": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この入力方式の設定ファイルが不完全です。入力パックをインポートし直してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这个输入方式的设置文件不完整，请重新导入输入方案。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這個輸入方式的設定檔案不完整，請重新匯入輸入方案。"
+          }
+        }
+      }
+    },
+    "fuzzy.error.spellerUnsupported": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この入力方式の綴り設定ではあいまい音に対応できません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前输入方式的拼写设置暂不支持模糊音"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "當前輸入方式的拼寫設定暫不支援模糊音"
+          }
+        }
+      }
+    },
+    "fuzzy.error.unrecognized": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "あいまい音の設定を認識できません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法识别的模糊音设置"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無法識別的模糊音設定"
+          }
+        }
+      }
+    },
+    "fuzzy.error.unsupported": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この入力方式はあいまい音に対応していません。ほかの入力方式を選んでください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这个输入方式暂不支持模糊音，请选择其他输入方式。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這個輸入方式暫不支援模糊音，請選擇其他輸入方式。"
+          }
+        }
+      }
+    },
+    "fuzzy.error.userManaged": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "あいまい音はあなたのカスタム設定で決まっています。カスタム設定で変更してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "模糊音已由你的自定义设置决定，请在自定义设置里修改。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "模糊音已由你的自訂設定決定，請在自訂設定裡修改。"
+          }
+        }
+      }
+    },
+    "grammar.error.changedNotRestored": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "モデルの設定が変更されたか確認できないため、入力パックの既定の設定に戻していません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "模型设置已被修改或无法核实；未恢复输入方案的默认设置"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "模型設定已被修改或無法核實；未恢復輸入方案的預設設定"
+          }
+        }
+      }
+    },
+    "grammar.error.enabledSchemasDeferred": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "どの入力方式を有効にするかは、インストールするときに決まります。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "启用哪些输入方式要到安装时才能确定。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "啟用哪些輸入方式要到安裝時才能確定。"
+          }
+        }
+      }
+    },
+    "grammar.error.invalidDisableTarget": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文法モデルをオフにする入力方式が無効です"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "要关闭语法模型的输入方式无效"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "要關閉語法模型的輸入方式無效"
+          }
+        }
+      }
+    },
+    "grammar.error.invalidRestoreTarget": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "既定の設定に戻す入力方式が無効です"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "要恢复默认设置的输入方式无效"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "要恢復預設設定的輸入方式無效"
+          }
+        }
+      }
+    },
+    "grammar.error.modelsDeferred": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ に必要なモデルは、インストールするときに決まります。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ 需要哪些模型要到安装时才能确定。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ 需要哪些模型要到安裝時才能確定。"
+          }
+        }
+      }
+    },
+    "grammar.error.noManualModel": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選んだ入力方式には手動で設定したモデルがないため、戻す必要はありません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所选输入方式没有手动设置的模型，无需恢复"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所選輸入方式沒有手動設定的模型，無需恢復"
+          }
+        }
+      }
+    },
+    "grammar.error.pathUnsupported": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このモデルのパス形式には対応しておらず、直接設定できません。入力パックの元の設定を残したまま、モデルファイルを追加してください"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此模型路径格式不受支持，无法直接配置；请保留方案原配置并补充模型文件"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此模型路徑格式不受支援，無法直接配置；請保留方案原配置並補充模型檔案"
+          }
+        }
+      }
+    },
+    "grammar.error.unknownOldSettings": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "識別できない古いモデル設定があるため、既定の設定に戻していません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有无法识别的旧模型设置，未恢复默认设置"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有無法識別的舊模型設定，未恢復預設設定"
+          }
+        }
+      }
+    },
+    "grammarState.awaitingLoad": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在の入力方式に %1$@ を設定しました。次にキーボードを開いたときに反映されます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已为当前输入方式设置 %1$@，下次打开键盘时生效。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已為當前輸入方式設定 %1$@，下次開啟鍵盤時生效。"
+          }
+        }
+      }
+    },
+    "grammarState.disabled": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在の入力方式では文法モデルが有効になっていません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前输入方式未开启语法模型。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "當前輸入方式未開啟語法模型。"
+          }
+        }
+      }
+    },
+    "grammarState.inactive": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーボードはまだこの入力パックを使っていません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "键盘还没有使用这个输入方案。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "鍵盤還沒有使用這個輸入方案。"
+          }
+        }
+      }
+    },
+    "grammarState.loaded": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "前回キーボードを使ったときに %1$@ を読み込みました。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上次使用键盘时已载入 %1$@。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上次使用鍵盤時已載入 %1$@。"
+          }
+        }
+      }
+    },
+    "grammarState.noInputMethod": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力方式がまだ選ばれていません。「マイキーボード」で選んでください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还没有选择输入方式，请在「我的键盘」中选择。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "還沒有選擇輸入方式，請在「我的鍵盤」中選擇。"
+          }
+        }
+      }
+    },
+    "grammarState.olderVersion": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーボードはまだ古いバージョンを使っています。パックの詳細で「新しいバージョンを使う」をタップしてください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "键盘仍在使用旧版本，请在方案详情中轻点「使用新版本」。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "鍵盤仍在使用舊版本，請在方案詳情中點一下「使用新版本」。"
+          }
+        }
+      }
+    },
+    "grammarState.unverifiedVersion": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーボードが使っているバージョンを確認できません。「マイキーボード」で選び直してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂时无法确认键盘使用的版本，请在「我的键盘」中重新选择。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暫時無法確認鍵盤使用的版本，請在「我的鍵盤」中重新選擇。"
+          }
+        }
+      }
+    },
+    "install.error.generationChanged": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インストール中に設定の状態が変わったため、やり直してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安装期间配置状态已改变，请重试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安裝期間配置狀態已改變，請重試。"
+          }
+        }
+      }
+    },
+    "lua.error.foreignComponent": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この入力方式の Lua コンポーネントではありません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不是属于此输入方式的 Lua 组件"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不是屬於此輸入方式的 Lua 元件"
+          }
+        }
+      }
+    },
+    "manifest.license.originalDeclaration": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "元のパッケージの宣言"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原包声明"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原包宣告"
+          }
+        }
+      }
+    },
+    "manifest.license.userProvided": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ユーザーが提供した入力パックのファイル"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "用户提供的方案文件"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用者提供的方案檔案"
+          }
+        }
+      }
+    },
+    "modelState.currentInstallation": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在のキーボードはこのバージョンを使っています"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前键盘正在使用此版本"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "當前鍵盤正在使用此版本"
+          }
+        }
+      }
+    },
+    "modelState.notPublished": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この入力パックはまだキーボードで有効になっていません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此输入方案尚未在键盘中启用"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此輸入方案尚未在鍵盤中啟用"
+          }
+        }
+      }
+    },
+    "modelState.olderInstallation": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在のキーボードは古いバージョンを使っています。「新しいバージョンを使う」をタップすると更新できます"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前键盘使用的是旧版本；轻点「使用新版本」即可更新"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "當前鍵盤使用的是舊版本；點一下「使用新版本」即可更新"
+          }
+        }
+      }
+    },
+    "modelState.otherSource": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在のキーボードは別の入力パックを使っています。「マイキーボード」で「使う」をタップすると、このパックに切り替えられます"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前键盘使用的是其他输入方案；在「我的键盘」中轻点「使用」即可换用此方案"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "當前鍵盤使用的是其他輸入方案；在「我的鍵盤」中點一下「使用」即可換用此方案"
+          }
+        }
+      }
+    },
+    "modelState.revisionOnly": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同じバージョンの入力パックは有効になっていますが、このインストールのものかは確認できません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已启用相同版本的输入方案，但无法核实是否为此安装版本"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已啟用相同版本的輸入方案，但無法核實是否為此安裝版本"
+          }
+        }
+      }
+    },
+    "prediction.error.damaged": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "予測辞書の構造が不完全か、壊れています"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "联想词库结构不完整或已损坏"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "聯想詞庫結構不完整或已損壞"
+          }
+        }
+      }
+    },
+    "prediction.error.noTargets": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力後の予測変換を調整する入力方式がありません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有需要调整上屏联想的输入方式"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "沒有需要調整上屏聯想的輸入方式"
+          }
+        }
+      }
+    },
+    "prediction.error.notDatabase": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有効な予測辞書ファイルではありません（Rime::Predict 形式である必要があります）"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不是有效的联想词库文件（需为 Rime::Predict 格式）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不是有效的聯想詞庫檔案（需為 Rime::Predict 格式）"
+          }
+        }
+      }
+    },
+    "prediction.error.notDatabasePath": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ は有効な予測辞書ファイルではありません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ 不是有效的联想词库文件"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ 不是有效的聯想詞庫檔案"
+          }
+        }
+      }
+    },
+    "presets.error.invalidOpenCCDirectory": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "共有の OpenCC フォルダーが無効です"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "共享 OpenCC 目录无效"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "共享 OpenCC 目錄無效"
+          }
+        }
+      }
+    },
+    "presets.error.missingPrelude": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内蔵の rime-prelude 基本設定がありません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "缺少内置 rime-prelude 基础配置"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "缺少內建 rime-prelude 基礎配置"
+          }
+        }
+      }
+    },
+    "recipe.description.fuzzyPinyin": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "あいまい音"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "模糊音"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "模糊音"
+          }
+        }
+      }
+    },
+    "recipe.description.grammarBinding": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文法モデルの割り当て"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "语法模型绑定"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "語法模型繫結"
+          }
+        }
+      }
+    },
+    "recipe.description.grammarDisable": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選んだ入力方式の文法モデルをオフにする"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭所选输入方式的语法模型"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "關閉所選輸入方式的語法模型"
+          }
+        }
+      }
+    },
+    "recipe.description.grammarRestoreDefaults": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力パックの既定の文法モデルに戻す"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "恢复输入方案默认语法模型"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "恢復輸入方案預設語法模型"
+          }
+        }
+      }
+    },
+    "recipe.description.luaComponents": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lua コンポーネントのオン・オフ"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lua 组件开关"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lua 元件開關"
+          }
+        }
+      }
+    },
+    "recipe.description.prediction": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力後の予測変換"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上屏联想"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上屏聯想"
+          }
+        }
+      }
+    },
+    "recipe.description.sourceDependencies": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ソースファイルと実際に必要な依存ファイル"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "源码文件及实际依赖闭包"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原始碼檔案及實際依賴閉包"
+          }
+        }
+      }
+    },
+    "recipe.description.typoCorrection": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打ち間違いの補正"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "错键纠正"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "錯字修正"
+          }
+        }
+      }
+    },
+    "recipe.error.argumentFormat": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "引数は name=value の形式だけに対応しています"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "参数仅支持 name=value 格式"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "引數僅支援 name=value 格式"
+          }
+        }
+      }
+    },
+    "recipe.error.busy": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インストール中です。しばらくしてからやり直してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在安装，请稍后再试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在安裝，請稍後再試。"
+          }
+        }
+      }
+    },
+    "recipe.error.checksumMismatch": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外部ファイルのチェックサムが一致しません：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外部文件校验不符：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外部檔案校驗不符：%1$@"
+          }
+        }
+      }
+    },
+    "recipe.error.componentsMissed": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "必要な機能コンポーネントがありません：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "缺少所需功能组件：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "缺少所需功能元件：%1$@"
+          }
+        }
+      }
+    },
+    "recipe.error.customChangedDuringInstall": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インストールの準備中にユーザー設定が変わったため、もう一度インストールしてください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安装准备期间自定义配置发生改变，请重新尝试安装。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安裝準備期間自訂配置發生改變，請重新嘗試安裝。"
+          }
+        }
+      }
+    },
+    "recipe.error.declaredSchemaNotEnabled": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "宣言された入力方式は実際には有効になっていません：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所声明的输入方式未实际启用：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所宣告的輸入方式未實際啟用：%1$@"
+          }
+        }
+      }
+    },
+    "recipe.error.deploymentFailed": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インストールを完了できませんでした。やり直してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法完成安装，请重试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無法完成安裝，請重試。"
+          }
+        }
+      }
+    },
+    "recipe.error.directoryPattern": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォルダーに一致する展開規則には未対応です：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂不支持匹配目录的展开规则：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暫不支援匹配目錄的展開規則：%1$@"
+          }
+        }
+      }
+    },
+    "recipe.error.directoryTooDeep": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フォルダーの階層が深すぎます（32 階層を超えています）"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目录层级过深（超过 32 层）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目錄層級過深（超過 32 層）"
+          }
+        }
+      }
+    },
+    "recipe.error.dollarFormat": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この $ 変数の書式には対応していません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不支持此 $ 变量格式"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不支援此 $ 變數格式"
+          }
+        }
+      }
+    },
+    "recipe.error.downloadFailed": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ダウンロードに失敗しました。ネットワークを確認して、やり直してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下载失败，请检查网络后重试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下載失敗，請檢查網路後重試。"
+          }
+        }
+      }
+    },
+    "recipe.error.duplicateDownload": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同じ保存先へのダウンロードには未対応です：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂不支持重复的下载目标：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暫不支援重複的下載目標：%1$@"
+          }
+        }
+      }
+    },
+    "recipe.error.duplicateModelRecord": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同じモデル設定の記録が重複しています"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "存在重复的模型配置记录"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "存在重複的模型配置記錄"
+          }
+        }
+      }
+    },
+    "recipe.error.expandFormat": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この変数の展開形式には対応していません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不支持此变量展开格式"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不支援此變數展開格式"
+          }
+        }
+      }
+    },
+    "recipe.error.externalModelOnly": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外部ファイルで扱えるのは .gram の文法モデルと予測辞書だけです：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前外部文件仅支持 .gram 语法模型与联想词库：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "當前外部檔案僅支援 .gram 語法模型與聯想詞庫：%1$@"
+          }
+        }
+      }
+    },
+    "recipe.error.fileCheck": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力パックのファイルのチェックに失敗しました：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "方案文件检查失败：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "方案檔案檢查失敗：%1$@"
+          }
+        }
+      }
+    },
+    "recipe.error.filesIncomplete": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイルが不完全か、形式が正しくありません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件不完整或格式不正确。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "檔案不完整或格式不正確。"
+          }
+        }
+      }
+    },
+    "recipe.error.gitkeepOnly": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "build フォルダーには空の .gitkeep だけを置けます"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "build 目录只允许包含空的 .gitkeep 占位文件"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "build 目錄只允許包含空的 .gitkeep 佔位檔案"
+          }
+        }
+      }
+    },
+    "recipe.error.grammarDisableUnverified": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文法モデルをオフにする設定の出どころを確認できません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭语法模型的配置来源无法核实"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "關閉語法模型的配置來源無法核實"
+          }
+        }
+      }
+    },
+    "recipe.error.grammarFormatUnverified": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文法モデルの設定形式を確認できません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "语法模型配置格式无法核实"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "語法模型配置格式無法核實"
+          }
+        }
+      }
+    },
+    "recipe.error.grammarModelsMissed": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文法モデルがありません：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "缺少语法模型：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "缺少語法模型：%1$@"
+          }
+        }
+      }
+    },
+    "recipe.error.grammarSourceUnverified": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文法モデルの設定の出どころを確認できません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "语法模型配置来源无法核实"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "語法模型配置來源無法核實"
+          }
+        }
+      }
+    },
+    "recipe.error.grammarUnknownOperation": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文法モデルの設定が既知の有効な操作ではありません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "语法模型配置不是已知有效操作"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "語法模型配置不是已知有效操作"
+          }
+        }
+      }
+    },
+    "recipe.error.heredocUnsupported": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ヒアドキュメントの評価とバックスラッシュのエスケープには対応していません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不支持 heredoc 求值或反斜线转义"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不支援 heredoc 求值或反斜線轉義"
+          }
+        }
+      }
+    },
+    "recipe.error.httpFailure": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ダウンロードに失敗しました（HTTP %1$ld）"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下载失败（HTTP %1$ld）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下載失敗（HTTP %1$ld）"
+          }
+        }
+      }
+    },
+    "recipe.error.httpsOnly": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外部からのダウンロードは HTTPS のリンクのみ対応しています：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外部下载仅支持 HTTPS 链接：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外部下載僅支援 HTTPS 連結：%1$@"
+          }
+        }
+      }
+    },
+    "recipe.error.information": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インストール情報が正しくありません：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安装信息无效：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安裝資訊無效：%1$@"
+          }
+        }
+      }
+    },
+    "recipe.error.installFailed": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インストールの設定に失敗しました：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安装配置失败：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安裝配置失敗：%1$@"
+          }
+        }
+      }
+    },
+    "recipe.error.invalidArchivePrefix": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インストール元アーカイブの接頭辞が正しくありません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安装源归档前缀无效"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安裝源歸檔字首無效"
+          }
+        }
+      }
+    },
+    "recipe.error.invalidEncoding": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定ファイルは UTF-8 で保存し、改行は LF、インデントは空白にしてください"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "配置文件格式必须为 UTF-8 编码，且使用换行符与空格缩进"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "配置檔案格式必須為 UTF-8 編碼，且使用換行符與空格縮排"
+          }
+        }
+      }
+    },
+    "recipe.error.invalidYAML": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ の YAML 形式が正しくありません：%2$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ YAML 格式无效：%2$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ YAML 格式無效：%2$@"
+          }
+        }
+      }
+    },
+    "recipe.error.labelExistingCustom": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在のユーザー設定"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "现有自定义配置"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現有自訂配置"
+          }
+        }
+      }
+    },
+    "recipe.error.labelMergedCustom": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "統合後のユーザー設定"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "合并后的自定义配置"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "合併後的自訂配置"
+          }
+        }
+      }
+    },
+    "recipe.error.labelPatchBody": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "パッチの内容"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "补丁内容"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "補丁內容"
+          }
+        }
+      }
+    },
+    "recipe.error.labelRestoreDefaults": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "既定の設定に戻す"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "恢复默认配置"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "恢復預設配置"
+          }
+        }
+      }
+    },
+    "recipe.error.legacyRegex": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正規表現のメタ文字を含む旧形式の更新規則には未対応です"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂不支持包含正则元字符的旧版更新规则"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暫不支援包含正則元字元的舊版更新規則"
+          }
+        }
+      }
+    },
+    "recipe.error.listOnly": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ はリスト形式か 1 行 1 項目のテキストのみ対応しています"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ 仅支持列表或每行一项的文本"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ 僅支援列表或每行一項的文字"
+          }
+        }
+      }
+    },
+    "recipe.error.missingComponents": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この入力パックには、松煙がまだ対応していない機能が必要です。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此输入方案需要「松烟」暂不支持的功能。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此輸入方案需要「松煙」暫不支援的功能。"
+          }
+        }
+      }
+    },
+    "recipe.error.missingExternal": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定に必要な外部ファイルがありません：%1$@（%2$@）"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "缺少配置所需的外部文件：%1$@（%2$@）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "缺少配置所需的外部檔案：%1$@（%2$@）"
+          }
+        }
+      }
+    },
+    "recipe.error.missingGrammarModels": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この入力パックには文法モデルが必要です。「文法モデル」で追加してから、やり直してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这个方案还需要语法模型文件。请在「语法模型」里添加后重试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這個方案還需要語法模型檔案。請在「語法模型」裡新增後重試。"
+          }
+        }
+      }
+    },
+    "recipe.error.missingMetadata": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定ファイルにメタ情報の宣言がありません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "配置文件缺少元信息声明"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "配置檔案缺少元資訊宣告"
+          }
+        }
+      }
+    },
+    "recipe.error.missingModelTarget": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "変更するモデルの対象ファイルがありません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "要修改的模型目标文件不存在"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "要修改的模型目標檔案不存在"
+          }
+        }
+      }
+    },
+    "recipe.error.missingTopLevel": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定ファイルにトップレベルの宣言がありません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "配置文件缺少顶层声明"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "配置檔案缺少頂層宣告"
+          }
+        }
+      }
+    },
+    "recipe.error.mixedSources": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同じパスにメモリ上のデータと外部ファイル参照の両方が指定されています"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同一路径同时提供了内存数据和外部文件引用"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同一路徑同時提供了記憶體資料和外部檔案引用"
+          }
+        }
+      }
+    },
+    "recipe.error.modelFileMissing": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "モデルの設定ファイルにファイル参照がありません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "模型配置文件缺少文件引用"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "模型配置檔案缺少檔案引用"
+          }
+        }
+      }
+    },
+    "recipe.error.modelTooLarge": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "大きなモデルファイルはメモリの上限を超えます。外部ファイル参照を使ってください：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "大型模型文件超出内存限制，请使用外部文件引用：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "大型模型檔案超出記憶體限制，請使用外部檔案引用：%1$@"
+          }
+        }
+      }
+    },
+    "recipe.error.multiplePatchKeys": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "__patch のトップレベルキーが複数ある設定には対応していません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不支持包含多个 __patch 顶层键"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不支援包含多個 __patch 頂層鍵"
+          }
+        }
+      }
+    },
+    "recipe.error.noMatchedFiles": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インストール規則に一致するファイルが見つかりません：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未找到符合安装规则的文件：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未找到符合安裝規則的檔案：%1$@"
+          }
+        }
+      }
+    },
+    "recipe.error.noQuotesOrVariables": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ では引用符と変数の埋め込みに対応していません：%2$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ 不支持引号或变量插值：%2$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ 不支援引號或變數插值：%2$@"
+          }
+        }
+      }
+    },
+    "recipe.error.patchIndentation": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "patch_files のインデントが正しくありません：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "patch_files 缩进格式不正确：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "patch_files 縮排格式不正確：%1$@"
+          }
+        }
+      }
+    },
+    "recipe.error.patchListRequired": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "patch_files の対象にはパッチのリストが必要です：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "patch_files 目标必须包含补丁列表：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "patch_files 目標必須包含補丁列表：%1$@"
+          }
+        }
+      }
+    },
+    "recipe.error.patchNotList": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "既存の __patch がリスト形式になっていません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已有 __patch 格式不是列表结构"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已有 __patch 格式不是列表結構"
+          }
+        }
+      }
+    },
+    "recipe.error.patchTargetLF": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "パッチ対象のファイルは LF で終わっている必要があります"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "补丁目标文件必须使用换行符（LF）结尾"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "補丁目標檔案必須使用換行符（LF）結尾"
+          }
+        }
+      }
+    },
+    "recipe.error.patchTargetNotUTF8": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "パッチ対象のファイルが UTF-8 ではありません：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "补丁目标文件不是 UTF-8 编码：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "補丁目標檔案不是 UTF-8 編碼：%1$@"
+          }
+        }
+      }
+    },
+    "recipe.error.patchTargetYAMLOnly": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "パッチの対象は YAML ファイルのみ対応しています"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "补丁目标仅支持 YAML 文件"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "補丁目標僅支援 YAML 檔案"
+          }
+        }
+      }
+    },
+    "recipe.error.pathUnsupported": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この設定ファイルのパスは使えません：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "配置文件路径不受支持：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "配置檔案路徑不受支援：%1$@"
+          }
+        }
+      }
+    },
+    "recipe.error.recipePathMismatch": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インストール規則と選んだ設定ファイルのパスが一致しません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安装规则与所选配置文件路径不一致"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安裝規則與所選配置檔案路徑不一致"
+          }
+        }
+      }
+    },
+    "recipe.error.samePathConflict": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選んだ設定ファイルが同じパスの元ファイルと食い違っています：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所选配置文件与同路径原始文件冲突：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所選配置檔案與同路徑原始檔案衝突：%1$@"
+          }
+        }
+      }
+    },
+    "recipe.error.schemaFilesMissed": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有効化や依存に必要な入力パックのファイルがありません：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "缺少启用或依赖的输入方案文件：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "缺少啟用或依賴的輸入方案檔案：%1$@"
+          }
+        }
+      }
+    },
+    "recipe.error.symlinkUnsupported": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "シンボリックリンクには対応していません：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不支持符号链接：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不支援符號連結：%1$@"
+          }
+        }
+      }
+    },
+    "recipe.error.tooManyWorkspaceFiles": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "作業フォルダーのファイル数が上限を超えています：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "工作区文件数量超过限制：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "工作區檔案數量超過限制：%1$@"
+          }
+        }
+      }
+    },
+    "recipe.error.unclosedExpression": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "変数の式が閉じていません（} がありません）"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "变量表达式未闭合（缺少 }）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "變量表達式未閉合（缺少 }）"
+          }
+        }
+      }
+    },
+    "recipe.error.unclosedManagedBlock": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "既存の管理ブロックが閉じていません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已有配置管理块未闭合"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已有配置管理塊未閉合"
+          }
+        }
+      }
+    },
+    "recipe.error.unsupportedMetadata": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "対応していないメタ情報の記述です：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不支持的配置元信息语句：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不支援的配置元資訊語句：%1$@"
+          }
+        }
+      }
+    },
+    "recipe.error.unsupportedTopLevel": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "対応していないトップレベルの記述です：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不支持的配置顶层语句：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不支援的配置頂層語句：%1$@"
+          }
+        }
+      }
+    },
+    "recipe.error.variableFormat": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "変数は $name、${name}、${name:-literal} の形式だけに対応しています"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "变量格式仅支持 $name、${name} 与 ${name:-literal}"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "變數格式僅支援 $name、${name} 與 ${name:-literal}"
+          }
+        }
+      }
+    },
+    "resource.error.invalidModelReference": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有効なモデルファイル参照ではありません：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不是有效的模型文件引用：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不是有效的模型檔案引用：%1$@"
+          }
+        }
+      }
+    },
+    "rimeConfig.error.badName": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ の名前は使えないため、変更は反映されておらず、キーボードは元の設定のままです。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@的名字不能用，改动没有应用，键盘仍用原来的设置。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@的名字不能用，改動沒有應用，鍵盤仍用原來的設定。"
+          }
+        }
+      }
+    },
+    "rimeConfig.error.fileGeneric": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイル"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "檔案"
+          }
+        }
+      }
+    },
+    "rimeConfig.error.fileName": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%1$@」"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%1$@」"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%1$@」"
+          }
+        }
+      }
+    },
+    "rimeConfig.error.invalidYAML": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@%2$@の形式が正しくありません。変更は反映されておらず、キーボードは元の設定のままです。直すか、このファイルを削除してからやり直してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@%2$@格式有误，改动没有应用，键盘仍用原来的设置。改好或删掉这个文件后再试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@%2$@格式有誤，改動沒有應用，鍵盤仍用原來的設定。改好或刪掉這個檔案後再試。"
+          }
+        }
+      }
+    },
+    "rimeConfig.error.line": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ 行目"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "第 %1$@ 行"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "第 %1$@ 行"
+          }
+        }
+      }
+    },
+    "rimeConfig.error.managedMarker": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ に「# Rx: 」で始まる行、または「# }」だけの行があります。これは松煙が使う目印のため、変更は反映されていません。これらの行を削除してからやり直してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@里有以「# Rx: 」开头的行或单独的「# }」行，这是松烟自己用的标记，改动没有应用。删掉这些行后再试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@裡有以「# Rx: 」開頭的行或單獨的「# }」行，這是松煙自己用的標記，改動沒有應用。刪掉這些行後再試。"
+          }
+        }
+      }
+    },
+    "rimeConfig.error.notText": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ は UTF-8 のテキストではありません。変更は反映されておらず、キーボードは元の設定のままです。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@不是 UTF-8 文本，改动没有应用，键盘仍用原来的设置。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@不是 UTF-8 文字，改動沒有應用，鍵盤仍用原來的設定。"
+          }
+        }
+      }
+    },
+    "rimeConfig.error.saveFallback": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このファイルを保存できませんでした。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没能保存这个文件。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "沒能儲存這個檔案。"
+          }
+        }
+      }
+    },
+    "rimeConfig.error.saveUnavailable": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今は保存できません。しばらくしてからやり直してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "现在没法保存，请稍后再试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在沒法儲存，請稍後再試。"
+          }
+        }
+      }
+    },
+    "rimeConfig.error.scriptNameTaken": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力パックに「%1$@」というスクリプトがすでにあります。別の名前にしてください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入方案里已经有叫「%1$@」的脚本，换个名字。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "輸入方案裡已經有叫「%1$@」的指令碼，換個名字。"
+          }
+        }
+      }
+    },
+    "rimeConfig.error.tooLarge": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ が大きすぎるため、変更は反映されていません。1 ファイル 4 MB、合計 8 MB までです。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@太大，改动没有应用。每个文件不超过 4 MB，全部加起来不超过 8 MB。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@太大，改動沒有應用。每個檔案不超過 4 MB，全部加起來不超過 8 MB。"
+          }
+        }
+      }
+    },
+    "rimeConfig.error.tooMany": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイルが多すぎるため、変更は反映されていません。置けるのは 100 ファイルまでです。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件太多，改动没有应用。最多放 100 个文件。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "檔案太多，改動沒有應用。最多放 100 個檔案。"
+          }
+        }
+      }
+    },
+    "rimeConfig.error.unconfirmedScriptChanged": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "確認したあとに拡張スクリプトが変更されたため、変更は反映されていません。もう一度「変更を適用」をタップしてください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "扩展脚本在你确认之后又有改动，改动没有应用。再点一次「应用更改」。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "擴充套件指令碼在你確認之後又有改動，改動沒有應用。再點一次「應用更改」。"
+          }
+        }
+      }
+    },
+    "rimeConfig.error.unconfirmedScriptNew": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ はまだ許可していない拡張スクリプトを使っています。設定ファイルを確認してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@使用了尚未允许的扩展脚本，请检查配置文件。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@使用了尚未允許的擴充套件指令碼，請檢查配置檔案。"
+          }
+        }
+      }
+    },
+    "rimeConfig.error.unsafeReference": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ に別の場所のファイルを指す書き方があるため、変更は反映されておらず、キーボードは元の設定のままです。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@里有指向别处文件的写法，改动没有应用，键盘仍用原来的设置。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@裡有指向別處檔案的寫法，改動沒有應用，鍵盤仍用原來的設定。"
+          }
+        }
+      }
+    },
+    "schema.error.invalidID": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力方式の識別子が無効です"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入方式标识无效"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "輸入方式標識無效"
+          }
+        }
+      }
+    },
+    "schema.error.invalidIDWithDetail": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力方式の識別子が無効です：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入方式标识无效：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "輸入方式標識無效：%1$@"
+          }
+        }
+      }
+    },
+    "scheme.error.selectedNotInstalled": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選んだ入力方式が最終的なインストール内容に含まれていません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所选输入方式不在最终安装文件中"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所選輸入方式不在最終安裝檔案中"
+          }
+        }
+      }
+    },
+    "schemeImport.error.archiveConflict": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%1$@」の内容が「%2$@」と「%3$@」で異なります。どちらか一方の ZIP ファイルを選んでください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%1$@」在「%2$@」与「%3$@」中内容不同，请只保留其中一个压缩包。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%1$@」在「%2$@」與「%3$@」中內容不同，請只保留其中一個壓縮包。"
+          }
+        }
+      }
+    },
+    "schemeImport.error.bundledManifest": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内蔵入力パックの説明ファイルが無効です"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内置输入方案的说明文件无效"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "內建輸入方案的說明檔案無效"
+          }
+        }
+      }
+    },
+    "schemeImport.error.bundledMissingDefaults": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内蔵入力パックに default.yaml がありません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内置输入方案缺少 default.yaml"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "內建輸入方案缺少 default.yaml"
+          }
+        }
+      }
+    },
+    "schemeImport.error.checksumFailure": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ダウンロードしたファイルを確認できませんでした。もう一度ダウンロードしてください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下载的文件校验失败，请重新下载。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下載的檔案校驗失敗，請重新下載。"
+          }
+        }
+      }
+    },
+    "schemeImport.error.codeNotOnLayout": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ の確認コードには、このキーボード配置のキーが実際に送る文字だけを使えます：%2$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@的验证码只能用这个布局按键实际发送的字母：%2$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@的驗證碼只能用這個佈局按鍵實際傳送的字母：%2$@"
+          }
+        }
+      }
+    },
+    "schemeImport.error.defaultCustomNotUTF8": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "default.custom.yaml が UTF-8 のテキストではありません。UTF-8 で保存し直してからやり直してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "default.custom.yaml 不是 UTF-8 文本，请改成 UTF-8 编码后重试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "default.custom.yaml 不是 UTF-8 文字，請改成 UTF-8 編碼後重試。"
+          }
+        }
+      }
+    },
+    "schemeImport.error.defaultCustomUneditable": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "default.custom.yaml の書き方のため、入力パックの選択を自動で追加できません。このファイルを確認してからやり直してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "default.custom.yaml 的写法无法自动加入输入方案选择，请检查这个文件后重试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "default.custom.yaml 的寫法無法自動加入輸入方案選擇，請檢查這個檔案後重試。"
+          }
+        }
+      }
+    },
+    "schemeImport.error.emptyOrTooManyFiles": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インポートする入力パックが空か、ファイル数が 2000 個を超えています"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "导入的输入方案为空或文件数量超过 2000 个"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "匯入的輸入方案為空或檔案數量超過 2000 個"
+          }
+        }
+      }
+    },
+    "schemeImport.error.fileRejected": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%1$@」を読み込めませんでした：%2$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "读取「%1$@」时被拒绝：%2$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "讀取「%1$@」時被拒絕：%2$@"
+          }
+        }
+      }
+    },
+    "schemeImport.error.gitkeepMustBeEmpty": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "build/.gitkeep は空のファイルにしてください"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "build/.gitkeep 必须为空文件"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "build/.gitkeep 必須為空檔案"
+          }
+        }
+      }
+    },
+    "schemeImport.error.illegalDependencyPath": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "依存ファイルのパスが正しくありません：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "依赖项路径非法：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "依賴項路徑非法：%1$@"
+          }
+        }
+      }
+    },
+    "schemeImport.error.invalidBinding": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーボード配置ごとの入力方式の対応は、有効かつ重複しないようにしてください：%1$@/%2$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每个键盘布局的输入方式映射必须有效且唯一：%1$@/%2$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每個鍵盤配置的輸入方式對映必須有效且唯一：%1$@/%2$@"
+          }
+        }
+      }
+    },
+    "schemeImport.error.invalidDeclaration": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力パックの宣言が空か、識別子が無効です"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入方案声明为空或标识无效"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "輸入方案宣告為空或標識無效"
+          }
+        }
+      }
+    },
+    "schemeImport.error.missingDependency": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力パックに必要な依存ファイルがありません：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "缺少输入方案依赖项：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "缺少輸入方案依賴項：%1$@"
+          }
+        }
+      }
+    },
+    "schemeImport.error.missingInputMethod": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ダウンロードしたファイルに入力方式がありません。もう一度ダウンロードしてください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下载的方案缺少输入方式，请重新下载。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下載的方案缺少輸入方式，請重新下載。"
+          }
+        }
+      }
+    },
+    "schemeImport.error.noEnabledSchema": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有効にできる入力パックがありません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有可启用的输入方案"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "沒有可啟用的輸入方案"
+          }
+        }
+      }
+    },
+    "schemeImport.error.noInstallableSchema": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インストールできる入力パックがありません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有可安装的输入方案"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "沒有可安裝的輸入方案"
+          }
+        }
+      }
+    },
+    "schemeImport.error.noSchemaFile": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インポートする内容に、ルート直下の .schema.yaml がありません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "导入内容缺少根目录下的 .schema.yaml 方案文件"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "匯入內容缺少根目錄下的 .schema.yaml 方案檔案"
+          }
+        }
+      }
+    },
+    "schemeImport.error.notUTF8": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイルが UTF-8 ではありません：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件不是 UTF-8 编码：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "檔案不是 UTF-8 編碼：%1$@"
+          }
+        }
+      }
+    },
+    "schemeImport.error.otherSchemeFile": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選んだファイルは別の入力パックのものです。「入力パックを追加」からインポートしてください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所选文件属于另一个输入方案，请在「添加输入方案」中导入。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所選檔案屬於另一個輸入方案，請在「新增輸入方案」中匯入。"
+          }
+        }
+      }
+    },
+    "schemeImport.error.pickExtractedFolder": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "展開した入力パックのフォルダーを選んでください。ZIP ファイルは先に「ファイル」App で展開してください"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请选择解压后的完整输入方案目录；ZIP 文件请先在「文件」App 中解压"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請選擇解壓後的完整輸入方案目錄；ZIP 檔案請先在「檔案」App 中解壓"
+          }
+        }
+      }
+    },
+    "schemeImport.error.schemaListConflict": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この入力方式の内容がおすすめ一覧の入力方式と一致しません。もう一度ダウンロードしてください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这个输入方案会改动输入方式列表，和推荐目录不一致，请重新下载。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這個輸入方案會改動輸入方式列表，和推薦目錄不一致，請重新下載。"
+          }
+        }
+      }
+    },
+    "schemeImport.error.schemaListUnreadable": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この入力方式の入力方式一覧を確認できません。もう一度ダウンロードしてください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法核对这个输入方案的输入方式列表，请重新下载。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無法核對這個輸入方案的輸入方式列表，請重新下載。"
+          }
+        }
+      }
+    },
+    "schemeImport.error.symlink": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "シンボリックリンクには対応していません：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不支持符号链接：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不支援符號連結：%1$@"
+          }
+        }
+      }
+    },
+    "schemeImport.error.tooManyEntries": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力パックのフォルダーが 2000 ファイルを超えるか、階層が 32 を超えています"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入方案目录超过 2000 个文件或目录层级超过 32 层"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "輸入方案目錄超過 2000 個檔案或目錄層級超過 32 層"
+          }
+        }
+      }
+    },
+    "schemeImport.error.tooManyFiles": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力パックのファイルが 2000 個を超えています"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入方案文件超过 2000 个"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "輸入方案檔案超過 2000 個"
+          }
+        }
+      }
+    },
+    "schemeImport.error.tooManyNodes": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@：YAML のノードが多すぎます"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@：YAML 节点数量过多"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@：YAML 節點數量過多"
+          }
+        }
+      }
+    },
+    "schemeImport.error.totalTooLarge": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力パックのファイルとモデルファイルの合計サイズが上限を超えています"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "方案文件或模型文件总大小超过限制"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "方案檔案或模型檔案總大小超過限制"
+          }
+        }
+      }
+    },
+    "schemeImport.error.unsafePath": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "パスが安全でないか、重複しているか、対応していないユーザーデータファイルが含まれています：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "路径不安全、重复或包含不支持的用户数据文件：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "路徑不安全、重複或包含不支援的使用者資料檔案：%1$@"
+          }
+        }
+      }
+    },
+    "schemeImport.error.yamlInvalid": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YAML の形式が正しくありません：%1$@：%2$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YAML 格式无效：%1$@：%2$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YAML 格式無效：%1$@：%2$@"
+          }
+        }
+      }
+    },
+    "schemeImport.error.zipChecksum": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ZIP ファイルのチェックサムが一致しません：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ZIP 文件校验失败：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ZIP 檔案校驗失敗：%1$@"
+          }
+        }
+      }
+    },
+    "schemeImport.error.zipDeclaredSize": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ZIP の実際の展開サイズがファイルの宣言を超えています：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ZIP 实际解压大小超出文件声明：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ZIP 實際解壓大小超出檔案宣告：%1$@"
+          }
+        }
+      }
+    },
+    "schemeImport.error.zipEntryPath": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ZIP 内のパスが無効か、シンボリックリンクが含まれています：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ZIP 文件路径无效或包含符号链接：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ZIP 檔案路徑無效或包含符號連結：%1$@"
+          }
+        }
+      }
+    },
+    "schemeImport.error.zipTooLarge": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ZIP を展開した後のサイズが上限を超えています"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ZIP 解压后大小超过限制"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ZIP 解壓後大小超過限制"
+          }
+        }
+      }
+    },
+    "source.error.defaultRecipeMissing": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "既定のインストール用設定ファイルが見つかりません：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未找到默认安装配置文件：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未找到預設安裝配置檔案：%1$@"
+          }
+        }
+      }
+    },
+    "source.error.gitLFS": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Git LFS で保存されているファイルには対応していません：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂不支持通过 Git LFS 存储的文件：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暫不支援透過 Git LFS 儲存的檔案：%1$@"
+          }
+        }
+      }
+    },
+    "source.error.invalidEntry": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイルのパスまたはサイズが正しくありません：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件路径或大小无效：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "檔案路徑或大小無效：%1$@"
+          }
+        }
+      }
+    },
+    "source.error.modelSizeMismatch": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "モデルファイルのサイズが一致しません：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "模型文件大小不符：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "模型檔案大小不符：%1$@"
+          }
+        }
+      }
+    },
+    "source.error.recipeMismatch": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インストール規則と選んだ入力パックの設定が一致しません：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安装规则与所选方案配置不一致：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安裝規則與所選方案配置不一致：%1$@"
+          }
+        }
+      }
+    },
+    "source.error.recipeMissing": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インストール用の設定ファイルが見つかりません：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未找到安装配置文件：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未找到安裝配置檔案：%1$@"
+          }
+        }
+      }
+    },
+    "source.error.sizeOrGitLFS": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイルのサイズが一致しないか、Git LFS のファイルには対応していません：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件大小不符或暂不支持 Git LFS 文件：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "檔案大小不符或暫不支援 Git LFS 檔案：%1$@"
+          }
+        }
+      }
+    },
+    "source.error.submoduleOrSymlink": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サブモジュールとシンボリックリンクには対応していません：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂不支持子模块或符号链接：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暫不支援子模組或符號連結：%1$@"
+          }
+        }
+      }
+    },
+    "source.error.totalTooLarge": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力パックのファイルとモデルファイルの合計が上限を超えています"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "方案文件或模型文件累计大小超过限制"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "方案檔案或模型檔案累計大小超過限制"
+          }
+        }
+      }
+    },
+    "source.error.treeTruncated": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイル一覧が途中で切れているか、上限を超えています"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件列表被截断或超过限制"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "檔案列表被截斷或超過限制"
+          }
+        }
+      }
+    },
+    "source.error.versionUnavailable": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "バージョン情報を取得できませんでした"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "版本信息获取失败"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "版本資訊獲取失敗"
+          }
+        }
+      }
+    },
+    "source.progress.downloading": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@/%2$@ をダウンロードしています"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在下载 %1$@/%2$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在下載 %1$@/%2$@"
+          }
+        }
+      }
+    },
+    "sourceOrder.error.format": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "対応していないソースの書式です：%1$@。owner/repo@ref:recipe:key=value の形で書いてください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不支持的来源格式：%1$@。正确格式为 owner/repo@ref:recipe:key=value。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不支援的來源格式：%1$@。正確格式為 owner/repo@ref:recipe:key=value。"
+          }
+        }
+      }
+    },
+    "sourceOrder.error.localConf": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ローカルの .conf 設定ファイルは、ファイルから直接インポートしてください"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本地 .conf 配置文件请直接从文件导入"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本地 .conf 配置檔案請直接從檔案匯入"
+          }
+        }
+      }
+    },
+    "sourceOrder.error.notUTF8": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定ファイルが UTF-8 ではありません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "配置文件不是 UTF-8 编码"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "配置檔案不是 UTF-8 編碼"
+          }
+        }
+      }
+    },
+    "sourceOrder.error.tooLarge": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定ファイルが 256 KiB を超えています"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "配置文件超过 256 KiB"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "配置檔案超過 256 KiB"
+          }
+        }
+      }
+    },
+    "sourceOrder.error.tooMany": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ソース一覧が 64 件を超えています"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "来源列表超过 64 项"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "來源列表超過 64 項"
+          }
+        }
+      }
+    },
+    "sourceOrder.error.unclosed": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定の一覧が空か、正しく閉じられていません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "配置列表为空或未正确闭合"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "配置列表為空或未正確閉合"
+          }
+        }
+      }
+    },
+    "sourceOrder.error.unsupportedStatement": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "対応していない設定の記述です：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不支持的配置语句：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不支援的配置語句：%1$@"
+          }
+        }
+      }
+    },
+    "template.customPatchExample": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "例：1 ページに 7 件の候補を表示"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "例：每页显示 7 个候选"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "例：每頁顯示 7 個候選"
+          }
+        }
+      }
+    },
+    "template.customPatchHint": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "変更したい項目は patch の下に書き、書き終えたら松煙に戻って「変更を適用」をタップしてください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在 patch 下写要改的项，改完回到松烟轻点「应用更改」。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在 patch 下寫要改的項，改完回到松煙點一下「應用更改」。"
+          }
+        }
+      }
+    },
+    "template.grammarHeadingEmpty": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文法モデルのパラメータ例（先に上の patch: {} を patch: に変え、行頭の # を消すと有効になります）："
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "语法模型参数示例（先把上面的 patch: {} 改成 patch:，再去掉行首的 # 后生效）："
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "語法模型引數示例（先把上面的 patch: {} 改成 patch:，再去掉行首的 # 後生效）："
+          }
+        }
+      }
+    },
+    "template.grammarHeadingNew": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文法モデルのパラメータ例（行頭の # を消すと有効になります）："
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "语法模型参数示例（去掉行首的 # 后生效）："
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "語法模型引數示例（去掉行首的 # 後生效）："
+          }
+        }
+      }
+    },
+    "template.grammarHeadingUnder": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文法モデルのパラメータ例（行頭の # を消すと有効になります。この行は上の patch: の下に置いてください）："
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "语法模型参数示例（去掉行首的 # 后生效，这些行要放在上面的 patch: 下面）："
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "語法模型引數示例（去掉行首的 # 後生效，這些行要放在上面的 patch: 下面）："
+          }
+        }
+      }
+    },
+    "template.scriptHint": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定ファイルに lua_filter@*%1$@ と書くと使われます（lua_translator、lua_processor、lua_segmentor でもかまいません）。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在配置文件里写上 lua_filter@*%1$@ 就会用到它（也可以是 lua_translator、lua_processor、lua_segmentor）。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在配置檔案裡寫上 lua_filter@*%1$@ 就會用到它（也可以是 lua_translator、lua_processor、lua_segmentor）。"
+          }
+        }
+      }
+    },
+    "typo.error.noTargets": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打ち間違いの補正を調整する入力方式がありません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有需要调整错键纠正的输入方式"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "沒有需要調整錯字修正的輸入方式"
+          }
+        }
+      }
+    },
+    "yaml.error.scaleExceeded": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YAML のエイリアス展開が大きすぎます（%1$@）。安全のため中止しました"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YAML 别名展开规模过大（%1$@），已拒绝以保护设备"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YAML 別名展開規模過大（%1$@），已拒絕以保護裝置"
+          }
+        }
+      }
+    },
+    "yaml.error.shadowBudget": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "エイリアスの事前確認が %1$ld バイトを超えています"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "别名安全预检超过 %1$ld 字节"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "別名安全預檢超過 %1$ld 位元組"
+          }
+        }
+      }
+    },
+    "yaml.error.tooManyAliases": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "エイリアスが %1$ld 個を超えています"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "别名超过 %1$ld 个"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "別名超過 %1$ld 個"
+          }
+        }
+      }
+    },
+    "yaml.error.tooManyDuplicates": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重複したキーが %1$ld 個を超えています"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重复的键超过 %1$ld 个"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重複的鍵超過 %1$ld 個"
+          }
+        }
+      }
+    },
+    "yaml.error.tooManyExpandedNodes": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "展開後に %1$ld 個のノードを超えています"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "展开后超过 %1$ld 个节点"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "展開後超過 %1$ld 個節點"
+          }
+        }
+      }
+    },
+    "yaml.error.tooManyTextNodes": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "読み取るノードが %1$ld 個を超えています"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "要读取的节点超过 %1$ld 个"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "要讀取的節點超過 %1$ld 個"
+          }
+        }
+      }
+    },
+    "yaml.error.unsupportedKey": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "エイリアスや複雑な構造をキーにすることには対応していません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不支持以别名或复杂结构作为键"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不支援以別名或複雜結構作為鍵"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

@@ -45,10 +45,14 @@ public enum UserKeyboardPublicationError: Error, LocalizedError, Equatable, Send
 
     public var errorDescription: String? {
         switch self {
-        case .busy: return "另一项键盘操作正在进行，请稍后。"
-        case .sourceNotInstalled: return "这个输入方案还没有安装。"
-        case .notAdded: return "这个键盘不在当前列表中。"
-        case .noAddableKeyboards: return "这个输入方案没有可添加的键盘。"
+        case .busy:
+            return String(localized: "core.error.keyboardBusy", bundle: .module)
+        case .sourceNotInstalled:
+            return String(localized: "core.error.sourceNotInstalled", bundle: .module)
+        case .notAdded:
+            return String(localized: "core.error.keyboardNotAdded", bundle: .module)
+        case .noAddableKeyboards:
+            return String(localized: "core.error.noAddableKeyboards", bundle: .module)
         case .unavailable(let value): return value
         }
     }

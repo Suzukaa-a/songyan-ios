@@ -116,26 +116,28 @@ public extension CompactSchemaAdapter {
     static func adaptability(compiled: Data, sourceID: String) throws -> Adaptability {
         // Budget is a hard precondition, checked before any parse/hash work is trusted.
         guard compiled.count <= RecipeResourceBudget.sourceFile else {
-            throw RecipeInstallError.invalidResource("方案编译文件超过大小限制：\(sourceID)（\(compiled.count) 字节）")
+            throw RecipeInstallError.invalidResource(
+                PackageText.format("adapter.error.compiledTooLarge", sourceID, compiled.count))
         }
         guard let text = String(data: compiled, encoding: .utf8) else {
-            throw RecipeInstallError.invalidResource("方案编译文件不是 UTF-8 编码：\(sourceID)")
+            throw RecipeInstallError.invalidResource(PackageText.format("adapter.error.compiledNotUTF8", sourceID))
         }
         let root: [String: Any]
         do {
             guard let parsed = try BoundedYAML.load(yaml: text) as? [String: Any] else {
-                throw RecipeInstallError.invalidResource("方案编译文件格式不正确：\(sourceID)")
+                throw RecipeInstallError.invalidResource(PackageText.format("adapter.error.compiledFormat", sourceID))
             }
             root = parsed
         } catch let error as RecipeInstallError {
             throw error
         } catch {
-            throw RecipeInstallError.invalidResource("方案编译文件解析失败：\(sourceID)：\(error)")
+            throw RecipeInstallError.invalidResource(
+                PackageText.format("adapter.error.compiledUnreadable", sourceID, String(describing: error)))
         }
         guard let schema = root["schema"] as? [String: Any],
             schema["schema_id"] as? String == sourceID
         else {
-            throw RecipeInstallError.invalidResource("方案编译文件的方案标识不符：\(sourceID)")
+            throw RecipeInstallError.invalidResource(PackageText.format("adapter.error.compiledIdentity", sourceID))
         }
         // From here down, absence is an explicit "this scheme is not auto-adaptable".
         guard let engine = root["engine"] as? [String: Any],
@@ -162,7 +164,7 @@ public extension CompactSchemaAdapter {
             let translator = root[producer.namespace] as? [String: Any],
             let dictionary = translator["dictionary"] as? String, !dictionary.isEmpty
         else {
-            throw RecipeInstallError.invalidResource("方案编译文件缺少主转换器配置或词典：\(sourceID)")
+            throw RecipeInstallError.invalidResource(PackageText.format("adapter.error.compiledIncomplete", sourceID))
         }
         // Adaptability is about whether the letter→merged/numeric FOLD is
         // CONSTRUCTIBLE for this schema's declared physical input alphabet: the

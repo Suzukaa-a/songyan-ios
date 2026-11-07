@@ -4,6 +4,7 @@ import Foundation
 import KeyboardCore
 import LayoutKit
 import OSLog
+import QuickContentKit
 import UIKit
 import os
 
@@ -196,6 +197,19 @@ public final class KeyboardController: ObservableObject {
     }
     private var cachedSchemaDescriptors: [KeyboardSchemaDescriptor]?
 
+    /// The running input method's language and keyboard family, computed and cached by the
+    /// session on scheme/switch changes only. Rendering reads this value; the key path never asks.
+    public var inputLanguage: InputLanguageProfile { session.inputLanguage }
+
+    /// The same language as the label policy's value.
+    public var inputLanguageScript: KeyLabelScript {
+        switch inputLanguage.language {
+        case .simplifiedChinese: return .simplifiedChinese
+        case .traditionalChinese: return .traditionalChinese
+        case .japanese: return .japanese
+        }
+    }
+
     /// The real alphabet declared by the current source schema; empty string if not found. Long-press
     /// policy fails closed on it and never guesses sendable codes from layout names or key caps.
     public var activeSchemaAlphabet: String {
@@ -316,6 +330,15 @@ public final class KeyboardController: ObservableObject {
     /// Memory only, bounded; a guess source for display, never for commits.
     var knownCharacterReadings: [Character: [String]] = [:]
 
+    // MARK: Kana12 input binding state (see KeyboardController+Kana12.swift)
+
+    /// Pure kana12 model, the gestures that arrived while an earlier gesture's batch was still
+    /// decoding, and the document generation those gestures belong to.
+    var kana12 = Kana12BindingState()
+    /// Panel-level navigation for the kana12 surface (symbols page, language key). The
+    /// controller calls it in press order, after every earlier kana gesture has landed.
+    var onKana12Navigation: ((Kana12ViewAction) -> Void)?
+
     // MARK: Input effect observation (feedback/recents fire once, only after a real effect)
 
     /// Snapshot of the "observable effects" around one action: host commit/delete counts, engine
@@ -377,6 +400,9 @@ public final class KeyboardController: ObservableObject {
     var hostContextBeforeInput: String?
     var enablesReturnKeyAutomatically: Bool?
     var hostDocumentIsEmpty: Bool?
+    /// Whether the host reports a non-empty selection; with no text before the caret it still proves the
+    /// field is readable.
+    var hostHasSelectedText = false
     var automaticShiftArmed = false
     /// Fires only when a host text-field trait actually changes (not on every keystroke),
     /// so appearance consumers can refresh without observing the whole snapshot.
@@ -500,6 +526,12 @@ public final class KeyboardController: ObservableObject {
     /// Layout change callback (`KeyboardPadSession` syncs its own layout and persists the selection from it).
     public var onLayoutChanged: ((KeyboardLayoutKind) -> Void)?
 
+    /// Tool panel hooks. The host owns the document text; the controller only carries the three
+    /// operations a tool may perform, so no keyboard view touches a text proxy itself.
+    public var onReadToolTextSource: (() -> ToolPanelEditorSnapshot?)?
+    public var onReplaceToolAnchor: ((ToolPanelAnchor, String) -> Bool)?
+    public var onCopyToolResult: ((String) -> Bool)?
+
     /// - Parameters:
     ///   - layout: initial layout (the caller should normalize it to a layout the resource set offers).
     ///   - engine: engine backend (production path = RimeBackend).
@@ -518,14 +550,23 @@ public final class KeyboardController: ObservableObject {
         self.inputMode = session.mode
         self.shiftState = session.shiftState
         // The engine's composition display request was already installed by `InputSession` for the actual layout; nothing to set here.
-        session.onUpdate = { [weak self] in self?.refresh() }
+        session.onUpdate = { [weak self] in
+            guard let self else { return }
+            self.refresh()
+            self.observeKana12AfterRefresh()
+        }
         // Composing code keys decode on the engine queue (`InputSession.codeKeyQueue`);
         // the field echoes keys still decoding so none of them looks lost.
         if engine is RimeBackend {
             session.codeKeyQueue = EngineOpCodeKeyQueue.shared
             session.codeBatchLookaheadPages = Self.candidatePagesPerRead - 1
         }
-        session.onPendingCodesChanged = { [weak self] in self?.publishPendingEcho() }
+        session.onPendingCodesChanged = { [weak self] in
+            guard let self else { return }
+            self.publishPendingEcho()
+            // A landed batch frees the next kana12 gesture to compute its keys.
+            self.pumpKana12Intents()
+        }
         session.onError = { [weak self] error in
             guard let self else { return }
             // The first reflective description is expensive (about 17ms measured on the simulator): format it in the background, off the key-press main thread.
@@ -533,7 +574,7 @@ public final class KeyboardController: ObservableObject {
             DispatchQueue.global(qos: .utility).async {
                 diagnosticLogger.error("input operation failed: \(String(describing: error), privacy: .private)")
             }
-            let message = "输入操作未完成，请重试。"
+            let message = String(localized: "输入操作未完成，请重试。")
             self.inputError = message
             self.onInputError?(message)
             self.refresh()
@@ -548,7 +589,7 @@ public final class KeyboardController: ObservableObject {
                 if let error {
                     Self.diagnosticLogger.error(
                         "option persistence failed: \(error.localizedDescription, privacy: .private)")
-                    self.optionError = "选项已在本次会话生效，但未能保存，请重试。"
+                    self.optionError = String(localized: "选项已在本次会话生效，但未能保存，请重试。")
                 } else {
                     self.optionError = nil
                 }
@@ -577,6 +618,8 @@ public final class KeyboardController: ObservableObject {
         onReadDocumentContext = nil
         onReplaceLiteralSuffix = nil
         punctuationCycle.reset()
+        resetKana12State()
+        onKana12Navigation = nil
         onRequestHostTraitsRefresh = nil
         onRequestSwitchKeyboard = nil
         onMoveCursor = nil
@@ -590,6 +633,8 @@ public final class KeyboardController: ObservableObject {
     /// semantics; digit/symbol keys (`.literal`) go through the common direct-insert entry `insertLiteral`.
     public func handle(_ action: KeyAction) {
         guard !retired else { return }
+        // A key from another surface ends kana12's claim on the composition tail.
+        invalidateKana12Ownership()
         punctuationCycle.reset()
         #if SONGYAN_PERF
             let endPerformanceInterval = KeyboardPerformanceTrace.interval("key")
@@ -635,7 +680,11 @@ public final class KeyboardController: ObservableObject {
                 noteCommitForEnglishWord(". ")
                 break
             }
-            confirmOrInsert(commitWhenIdle: " ")
+            if !isEnglishMode, !snapshot.isAsciiMode, inputLanguage.family == .zhuyin {
+                session.tap(.space)
+            } else {
+                confirmOrInsert(commitWhenIdle: " ")
+            }
             if englishDocumentGeneration == documentGeneration,
                 doubleSpacePeriodAllowed, wordCharBefore
             {

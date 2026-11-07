@@ -84,12 +84,26 @@ public struct CandidateReadingRowReport: Equatable, Sendable {
     /// The grant describes the current ABC/123 page, not the definition itself.
     public var pageOverride: Bool
 
+    /// Letter rows the selected physical definition draws above its control row. The host budgets
+    /// the fixed shell with this count, so it must be a fact of the definition, not of the page.
+    public var physicalMainRowCount: Int
+
+    /// Letter rows the current page draws inside the fixed shell, already clamped to the physical
+    /// budget: the letters page of a four-row board reports four, its ABC/123 pages report three.
+    /// The host re-fits the current page inside the unchanged shell with this row count, so a page
+    /// with fewer rows recovers the standard row height instead of stretching the candidate band.
+    public var drawnMainRowCount: Int
+
     public init(
         eligible: Bool, definitionID: String?, resolvedFromRegistry: Bool,
-        candidateAreaRequired: Bool = true, pageOverride: Bool = false
+        candidateAreaRequired: Bool = true, pageOverride: Bool = false,
+        physicalMainRowCount: Int = KeyboardPanelGeometry.standardMainRowCount,
+        drawnMainRowCount: Int = KeyboardPanelGeometry.standardMainRowCount
     ) {
         self.candidateAreaRequired = candidateAreaRequired
         self.pageOverride = pageOverride
+        self.physicalMainRowCount = physicalMainRowCount
+        self.drawnMainRowCount = drawnMainRowCount
         self.eligible = eligible
         self.definitionID = definitionID
         self.resolvedFromRegistry = resolvedFromRegistry

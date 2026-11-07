@@ -57,7 +57,7 @@ struct SchemePackageDetailView: View {
                     NavigationLink(UserTerminology.userKeyboard) {
                         UserKeyboardManagementView(source: .package(packageID), returnsToSource: true)
                     }
-                    NavigationLink("试打") {
+                    NavigationLink(String(localized: "试打")) {
                         PackageSourceTryView(
                             packageID: packageID, name: item.name,
                             inUse: isCurrentlyInUse)
@@ -79,8 +79,8 @@ struct SchemePackageDetailView: View {
                     managementSection()
                 }
             } else if center.damagedPackages.contains(where: { $0.id == packageID }) {
-                Section("状态") {
-                    Label("已损坏", systemImage: "exclamationmark.triangle")
+                Section(String(localized: "状态")) {
+                    Label(String(localized: "已损坏"), systemImage: "exclamationmark.triangle")
                         .foregroundStyle(.orange)
                     Text("无法读取该方案，你可以删除后重新导入。")
                         .font(.footnote).foregroundStyle(.secondary)
@@ -92,7 +92,7 @@ struct SchemePackageDetailView: View {
             }
             if let operationError {
                 Section {
-                    failureRow("操作未完成", detail: operationError)
+                    failureRow(String(localized: "操作未完成"), detail: operationError)
                 }
             }
         }
@@ -120,9 +120,9 @@ struct SchemePackageDetailView: View {
                 operationFailureState = center.failureState ?? .unknown
             }
         }
-        .confirmationDialog("删除输入方案？", isPresented: $confirmsDeletion, titleVisibility: .visible) {
-            Button("删除", role: .destructive) { deletePackage() }
-            Button("取消", role: .cancel) {}
+        .confirmationDialog(String(localized: "删除输入方案？"), isPresented: $confirmsDeletion, titleVisibility: .visible) {
+            Button(String(localized: "删除"), role: .destructive) { deletePackage() }
+            Button(String(localized: "取消"), role: .cancel) {}
         } message: {
             Text(deletionScopeMessage)
         }
@@ -130,7 +130,7 @@ struct SchemePackageDetailView: View {
 
     /// Deletion scope note: states what is and is not deleted, without internal terms.
     private var deletionScopeMessage: String {
-        "将删除这个输入方案。已学习的词会保留，重新导入后可继续使用。"
+        String(localized: "将删除这个输入方案。已学习的词会保留，重新导入后可继续使用。")
     }
 
     /// Deletion after second confirmation: on success return to the list (the row is gone); on failure show a clear, retryable notice.
@@ -167,7 +167,7 @@ struct SchemePackageDetailView: View {
         if let packageError = error as? SchemePackageDeletion.Failure {
             return packageError.userFacingDescription
         }
-        return "删除失败，请重试。"
+        return String(localized: "删除失败，请重试。")
     }
 
     /// The delete entry belongs to a specific install: an install in use gets no vague failure, only an inline note to switch first.
@@ -181,7 +181,7 @@ struct SchemePackageDetailView: View {
         } else if developerOptions {
             Section {
                 deletionRow
-                NavigationLink("从 Rime 来源更新") { RimeSourceInstallView(updatingPackageID: packageID) }
+                NavigationLink(String(localized: "从 Rime 来源更新")) { RimeSourceInstallView(updatingPackageID: packageID) }
             } header: {
                 Text("资源管理")
             }
@@ -198,20 +198,20 @@ struct SchemePackageDetailView: View {
     private var deletionRow: some View {
         if !selectionReadable {
             Label(
-                operationError == nil ? "正在读取…" : "暂时无法读取状态，请稍后再试。",
+                operationError == nil ? String(localized: "正在读取…") : String(localized: "暂时无法读取状态，请稍后再试。"),
                 systemImage: operationError == nil ? "hourglass" : "exclamationmark.triangle"
             )
             .font(.footnote).foregroundStyle(.orange)
         } else if isCurrentlyInUse {
-            Label("正在使用的方案无法删除", systemImage: "lock")
+            Label(String(localized: "正在使用的方案无法删除"), systemImage: "lock")
                 .font(.footnote).foregroundStyle(.secondary)
             // Even the only scheme is not a dead end: after stopping use the keyboard returns to the built-in offline base pinyin, and deletion can follow.
-            Button("停止使用") { selectionCenter.switchToBuiltin() }
+            Button(String(localized: "停止使用")) { selectionCenter.switchToBuiltin() }
                 .disabled(center.busy || selectionCenter.isBusy)
             Text("停止使用后，键盘将改用\(ProductionInputAvailability.fallbackInputMethodName)。")
                 .font(.caption).foregroundStyle(.secondary)
         } else {
-            Button("删除输入方案", role: .destructive) { confirmsDeletion = true }
+            Button(String(localized: "删除输入方案"), role: .destructive) { confirmsDeletion = true }
                 .disabled(center.busy)
         }
     }
@@ -261,25 +261,28 @@ struct SchemePackageDetailView: View {
     // MARK: - Status
 
     private func statusSection(_ item: SchemeImportCenter.InstalledPackage) -> some View {
-        Section("状态") {
+        Section(String(localized: "状态")) {
             if !selectionReadable && operationError == nil {
                 // The first read has not finished: show loading instead of flashing a read failure.
-                Label("正在读取…", systemImage: "hourglass")
+                Label(String(localized: "正在读取…"), systemImage: "hourglass")
                     .foregroundStyle(.secondary)
             } else if !selectionReadable {
                 Text("暂时无法读取状态")
                     .foregroundStyle(.orange)
             } else if isCurrentlyInUse {
-                Text(revisionIsCurrent(item) ? UserTerminology.statusInUse : "\(UserTerminology.statusInUse) · 有新版本")
+                Text(
+                    revisionIsCurrent(item)
+                        ? UserTerminology.statusInUse : "\(UserTerminology.statusInUse) · " + String(localized: "有新版本"))
             } else {
                 Text(UserTerminology.statusNotApplied)
             }
             if developerOptions {
-                LabeledRow(label: "版本", value: String(item.active.installation.revision.prefix(12)) + "…")
+                LabeledRow(
+                    label: String(localized: "版本"), value: String(item.active.installation.revision.prefix(12)) + "…")
             }
             if !isBuiltin {
                 LabeledRow(
-                    label: "安装时间",
+                    label: String(localized: "安装时间"),
                     value: item.active.installation.activatedAt.formatted(date: .abbreviated, time: .omitted))
             }
         }
@@ -299,7 +302,7 @@ struct SchemePackageDetailView: View {
                 schemaRow(item, schema)
             }
             if !item.sourceSchemas.isEmpty, developerOptions {
-                DisclosureGroup("未启用（\(item.sourceSchemas.count)）") {
+                DisclosureGroup(String(localized: "未启用（\(item.sourceSchemas.count)）")) {
                     ForEach(item.sourceSchemas, id: \.self) { id in
                         VStack(alignment: .leading, spacing: 2) {
                             Text(id).font(.body.monospaced())
@@ -372,7 +375,7 @@ struct SchemePackageDetailView: View {
     private func sourceSection(_ item: SchemeImportCenter.InstalledPackage) -> some View {
         Section {
             if let sourceURL = item.sourceURL {
-                LabeledRow(label: "来自", value: sourceURL.host ?? "下载链接")
+                LabeledRow(label: String(localized: "来自"), value: sourceURL.host ?? String(localized: "下载链接"))
                 if developerOptions {
                     Text(sourceURL.absoluteString)
                         .font(.caption)
@@ -383,14 +386,14 @@ struct SchemePackageDetailView: View {
                 Button {
                     startUpdate(address: sourceURL.absoluteString)
                 } label: {
-                    Label("更新", systemImage: "arrow.down.circle")
+                    Label(String(localized: "更新"), systemImage: "arrow.down.circle")
                 }
                 .disabled(center.busy || updating)
             } else if let target = SchemeImportCenter.recordedSourceTarget(packageID: packageID) {
                 Button {
                     startSourceUpdate(target)
                 } label: {
-                    Label("更新", systemImage: "arrow.down.circle")
+                    Label(String(localized: "更新"), systemImage: "arrow.down.circle")
                 }
                 .disabled(center.busy || updating)
                 if developerOptions {
@@ -401,18 +404,20 @@ struct SchemePackageDetailView: View {
                         .lineLimit(2)
                 }
             } else {
-                LabeledRow(label: "来自", value: "本机文件")
+                LabeledRow(label: String(localized: "来自"), value: String(localized: "本机文件"))
             }
             if updating {
                 ProgressView {
-                    Text(downloadService.isDownloading ? "正在下载…" : (center.message ?? "正在更新…"))
+                    Text(
+                        downloadService.isDownloading
+                            ? String(localized: "正在下载…") : (center.message ?? String(localized: "正在更新…")))
                 }
                 if let progress = downloadService.progress, progress.downloadedBytes > 0 {
                     Text("已下载 \(HostStorePaths.fileSizeText(progress.downloadedBytes))")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                Button("取消") { cancelUpdate() }
+                Button(String(localized: "取消")) { cancelUpdate() }
             } else if let updateFailure {
                 Label(updateFailure, systemImage: "xmark.octagon")
                     .font(.footnote)
@@ -478,9 +483,9 @@ struct SchemePackageDetailView: View {
     private func reportUpdate(_ outcome: SchemeImportCenter.SchemeUpdateOutcome) {
         switch outcome {
         case .applied:
-            updateNotice = "已更新，键盘已使用新版本。"
+            updateNotice = String(localized: "已更新，键盘已使用新版本。")
         case .installedOnly:
-            updateNotice = center.userNotice ?? "方案已更新，但键盘仍在使用旧版本。"
+            updateNotice = center.userNotice ?? String(localized: "方案已更新，但键盘仍在使用旧版本。")
         case .busy:
             updateFailure = center.error
         case .unchanged:
@@ -497,7 +502,7 @@ struct SchemePackageDetailView: View {
             NavigationLink {
                 SchemePackageImportView(installedPackageID: packageID)
             } label: {
-                Label("方案选项", systemImage: "doc.badge.gearshape")
+                Label(String(localized: "方案选项"), systemImage: "doc.badge.gearshape")
             }
         } footer: {
             Text("修改选项后需要更新。")
@@ -534,7 +539,7 @@ private struct PackageSourceTryView: View {
 
     var body: some View {
         SystemKeyboardTestView(
-            title: "试打",
+            title: String(localized: "试打"),
             context: SystemKeyboardTestView.sourceContext(
                 name: name, inUse: inUse, howToUse: UserTerminology.tryHowToUseViaUserKeyboard))
     }

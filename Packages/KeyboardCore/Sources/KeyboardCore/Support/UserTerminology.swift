@@ -16,6 +16,11 @@ import Foundation
 ///  - Keyboard appearance: colors / fonts / candidate-area light-dark (separate entry).
 ///  - Dictionary: supplementary vocabulary (separate entry).
 ///
+/// Every user-facing wording is read from this package's compiled String Catalog
+/// (`Resources/Localizable.xcstrings`; Simplified Chinese is the source language, Traditional
+/// Chinese and Japanese are translated), so the interface language comes from the process instead
+/// of literals compiled into the code.
+///
 /// Internal terms that must not appear in ordinary UI are listed in `bannedInternalTerms`;
 /// the copy gate is `leaksInternalTerminology`.
 public enum UserTerminology: Sendable {
@@ -23,70 +28,83 @@ public enum UserTerminology: Sendable {
     // MARK: - Objects and groups
 
     /// An installable/usable unit of data.
-    public static let inputScheme = "输入方案"
+    public static var inputScheme: String { String(localized: "core.term.inputScheme", bundle: .module) }
     /// A concrete way of typing within a scheme (schema).
-    public static let inputMethod = "输入方式"
+    public static var inputMethod: String { String(localized: "core.term.inputMethod", bundle: .module) }
     /// Front-end keyboard layout (26 / 14 / 9 / custom).
-    public static let keyboardLayout = "键盘布局"
+    public static var keyboardLayout: String { String(localized: "core.term.keyboardLayout", bundle: .module) }
     /// Colors/fonts/candidate-area light-dark.
-    public static let keyboardAppearance = "键盘外观"
+    public static var keyboardAppearance: String {
+        String(localized: "core.term.keyboardAppearance", bundle: .module)
+    }
     /// Supplementary vocabulary.
-    public static let dictionary = "词库"
+    public static var dictionary: String { String(localized: "core.term.dictionary", bundle: .module) }
     /// Language model that predicts whole sentences from the composition.
-    public static let grammarModel = "语法模型"
+    public static var grammarModel: String { String(localized: "core.term.grammarModel", bundle: .module) }
     /// A set of added "input method + keyboard layout" combinations (managed in the main app, switched by long-press in the keyboard).
-    public static let userKeyboard = "我的键盘"
+    public static var userKeyboard: String { String(localized: "core.term.userKeyboard", bundle: .module) }
     /// The main layout plus the 123, symbol and ABC pages one keyboard in 我的键盘 uses.
-    public static let pageComposition = "页面搭配"
+    public static var pageComposition: String { String(localized: "core.term.pageComposition", bundle: .module) }
     /// The layout a keyboard opens on; the pages are reached from it.
-    public static let mainLayout = "主布局"
+    public static var mainLayout: String { String(localized: "core.term.mainLayout", bundle: .module) }
     /// Every 123, symbol and ABC page the user can pair with a keyboard.
-    public static let pageLibrary = "页面库"
+    public static var pageLibrary: String { String(localized: "core.term.pageLibrary", bundle: .module) }
     /// The phone-style 1–9 digit grid.
-    public static let phoneDigitPad = "数字九宫格"
+    public static var phoneDigitPad: String { String(localized: "core.term.phoneDigitPad", bundle: .module) }
     /// The key that switches between Chinese and English (long-press switches keyboards).
-    public static let languageKey = "中英键"
+    public static var languageKey: String { String(localized: "core.term.languageKey", bundle: .module) }
     /// The key that opens the system keyboard list.
-    public static let globeKey = "地球键"
+    public static var globeKey: String { String(localized: "core.term.globeKey", bundle: .module) }
 
     /// Shown where a layout or page cannot be deleted because a keyboard's 页面搭配 uses it.
     /// `keyboards` are display names; with more than one only the first is named.
     public static func usedByKeyboards(_ keyboards: [String]) -> String? {
         guard let first = keyboards.first else { return nil }
         return keyboards.count == 1
-            ? "正在被「\(first)」使用"
-            : "正在被「\(first)」等 \(keyboards.count) 个键盘使用"
+            ? String(
+                format: String(localized: "core.term.usedByOneKeyboard", bundle: .module), first)
+            : String(
+                format: String(localized: "core.term.usedByKeyboards", bundle: .module),
+                first, String(keyboards.count))
     }
 
     // MARK: - Status (identical wording in Host and keyboard)
 
     /// Has become the current selection.
-    public static let statusInUse = "正在使用"
+    public static var statusInUse: String { String(localized: "core.term.statusInUse", bundle: .module) }
     /// Installed but not the current selection.
-    public static let statusNotApplied = "未使用"
+    public static var statusNotApplied: String {
+        String(localized: "core.term.statusNotApplied", bundle: .module)
+    }
 
     // MARK: - Actions
 
     /// Apply action: switch to a keyboard in 我的键盘, or to a scheme without one (custom pinyin).
-    public static let startUsing = "使用"
+    public static var startUsing: String { String(localized: "core.term.startUsing", bundle: .module) }
     /// Apply action when a newer version is installed.
-    public static let startUsingNewVersion = "使用新版本"
+    public static var startUsingNewVersion: String {
+        String(localized: "core.term.startUsingNewVersion", bundle: .module)
+    }
     /// Add entry.
-    public static let addInputScheme = "添加输入方案"
+    public static var addInputScheme: String { String(localized: "core.term.addInputScheme", bundle: .module) }
 
     // MARK: - Failure and retry (plain wording)
 
     /// Plain wording when reading the current selection fails (cause and retry entry are supplied in place by the caller).
-    public static let readFailureWithRetry = "无法读取当前选择，请重试。"
+    public static var readFailureWithRetry: String {
+        String(localized: "core.term.readFailureWithRetry", bundle: .module)
+    }
 
     /// Generic plain wording for an operation that did not complete. Raw errors show only in
     /// developer options; the ordinary flow shows no internal prefix or low-level error string.
-    public static let genericOperationFailure = "操作未完成，请重试。"
+    public static var genericOperationFailure: String {
+        String(localized: "core.term.genericOperationFailure", bundle: .module)
+    }
 
     // MARK: - Home summary
 
     /// Prefix of the in-use summaries.
-    public static let inUsePrefix = "正在使用"
+    public static var inUsePrefix: String { String(localized: "core.term.inUsePrefix", bundle: .module) }
 
     /// Scheme summary: "In use: <scheme> · <input method> · <keyboard layout>" (Chinese wording).
     ///
@@ -118,13 +136,36 @@ public enum UserTerminology: Sendable {
     public static func installedSourceSummary(count: Int) -> String {
         count <= 0
             ? ProductionInputAvailability.unconfiguredCountSummary
-            : "已安装 \(count) 个输入方案"
+            : String(
+                format: String(localized: "core.term.installedSourceSummary", bundle: .module),
+                String(count))
     }
 
     // MARK: - Dynamic dimension display
 
     /// User-facing keyboard layout name (same in Host and keyboard).
     public static func layoutName(_ layout: KeyboardLayoutKind) -> String { layout.userTitle }
+
+    /// User-facing name of a bundled physical keyboard layout, or nil for an id this build does
+    /// not ship (a user layout keeps its own name). The words live in the app's compiled string
+    /// catalog; the bundle stays injectable so probes read the real compiled resources instead of
+    /// a translation copy kept in code.
+    public static func builtinLayoutName(
+        physicalLayoutID: String, in bundle: Bundle = .main
+    ) -> String? {
+        guard let key = builtinLayoutNameKey(physicalLayoutID) else { return nil }
+        return String(localized: key, bundle: bundle)
+    }
+
+    private static func builtinLayoutNameKey(_ physicalLayoutID: String) -> String.LocalizationValue? {
+        switch physicalLayoutID {
+        case "zhuyin41": "layout.name.zhuyin41"
+        case "cangjie26": "layout.name.cangjie26"
+        case "romaji26": "layout.name.romaji26"
+        case "kana12": "layout.name.kana12"
+        default: nil
+        }
+    }
 
     /// Input method display name (from the resource snapshot, always dynamic).
     public static func inputMethodName(_ schema: KeyboardSchemaDescriptor) -> String { schema.displayName }
@@ -159,55 +200,83 @@ public enum UserTerminology: Sendable {
 
     /// Plain-language reason when the input method does not support a layout (avoids the banned terms).
     public static func layoutUnavailableReason(_ layout: KeyboardLayoutKind) -> String {
-        "此输入方式暂不支持「\(layoutName(layout))」，请改用其他键盘布局。"
+        String(
+            format: String(localized: "core.term.layoutUnavailableReason", bundle: .module),
+            layoutName(layout), keyboardLayout)
     }
 
     // MARK: - User keyboards (input method + keyboard layout)
 
     /// Add entry (main app).
-    public static let addUserKeyboard = "添加键盘"
+    public static var addUserKeyboard: String { String(localized: "core.term.addUserKeyboard", bundle: .module) }
     /// Marks the current item in the switcher.
-    public static let userKeyboardCurrent = "当前键盘"
+    public static var userKeyboardCurrent: String {
+        String(localized: "core.term.userKeyboardCurrent", bundle: .module)
+    }
     /// Plain-language explanation when the scheme offers no keyboard at all.
-    public static let userKeyboardEmptyHint = "这个输入方案没有可用的键盘。"
+    public static var userKeyboardEmptyHint: String {
+        String(localized: "core.term.userKeyboardEmptyHint", bundle: .module)
+    }
     /// Hint row when the in-keyboard switcher is empty (not tappable; only says where to add).
-    public static let userKeyboardSwitcherEmpty = "尚未添加键盘 · 请在松烟 App 的「我的键盘」中添加"
+    public static var userKeyboardSwitcherEmpty: String {
+        String(localized: "core.term.userKeyboardSwitcherEmpty", bundle: .module)
+    }
 
     /// Read-only explanation when the management transaction is not wired up (plain language).
-    public static let userKeyboardReadOnlyNotice =
-        "这里暂时无法修改。请在「输入方案」中打开方案，再从它的「我的键盘」添加。"
+    public static var userKeyboardReadOnlyNotice: String {
+        String(localized: "core.term.userKeyboardReadOnlyNotice", bundle: .module)
+    }
 
     // MARK: - User keyboard management page (main app)
 
     /// The keyboard is not using any input scheme (status sentence shared by home, onboarding, and the user keyboard page).
-    public static let userKeyboardNoSource = "键盘还没有使用任何输入方案。"
+    public static var userKeyboardNoSource: String {
+        String(localized: "core.term.userKeyboardNoSource", bundle: .module)
+    }
 
     /// How to make the keyboard start using an input scheme. Schemes with 我的键盘 switch there;
     /// those without (custom pinyin) have their own "start using" button.
-    public static let userKeyboardHowToStart =
-        "请在「\(inputScheme)」中打开要用的方案，在它的「\(userKeyboard)」里轻点「\(startUsing)」；"
-        + "没有「\(userKeyboard)」的方案，直接轻点「\(startUsing)」。"
+    public static var userKeyboardHowToStart: String {
+        String(
+            format: String(localized: "core.term.userKeyboardHowToStart", bundle: .module),
+            inputScheme, userKeyboard, startUsing)
+    }
 
     /// Full explanation for the user keyboard page's "not using any input scheme" state.
     public static var userKeyboardNeedsSourceHint: String { userKeyboardNoSource + userKeyboardHowToStart }
 
     /// Management page footnote: what the toggles and "Use" do, and how they relate to the in-keyboard switch list.
-    public static let userKeyboardFootnote =
-        "勾选后轻点「保存」加入键盘，长按\(languageKey)可切换；轻点「\(startUsing)」立即换用。"
+    public static var userKeyboardFootnote: String {
+        String(
+            format: String(localized: "core.term.userKeyboardFootnote", bundle: .module),
+            languageKey, startUsing)
+    }
 
     /// Saving in progress.
-    public static let userKeyboardSaving = "正在保存键盘…"
+    public static var userKeyboardSaving: String {
+        String(localized: "core.term.userKeyboardSaving", bundle: .module)
+    }
 
     /// Explanation when saving is blocked because no keyboard is turned on in the draft.
-    public static let userKeyboardSaveNeedsOne = "至少打开一个键盘才能保存。"
+    public static var userKeyboardSaveNeedsOne: String {
+        String(localized: "core.term.userKeyboardSaveNeedsOne", bundle: .module)
+    }
 
     /// Accessibility values of the toggle.
-    public static let userKeyboardAdded = "已添加"
-    public static let userKeyboardNotAdded = "未添加"
+    public static var userKeyboardAdded: String { String(localized: "core.term.userKeyboardAdded", bundle: .module) }
+    public static var userKeyboardNotAdded: String {
+        String(localized: "core.term.userKeyboardNotAdded", bundle: .module)
+    }
     /// The management page toggles edit a draft; before saving they must not be read as "added".
-    public static let userKeyboardSelected = "已选择"
-    public static let userKeyboardNotSelected = "未选择"
-    public static let userKeyboardDraftHint = "保存后生效"
+    public static var userKeyboardSelected: String {
+        String(localized: "core.term.userKeyboardSelected", bundle: .module)
+    }
+    public static var userKeyboardNotSelected: String {
+        String(localized: "core.term.userKeyboardNotSelected", bundle: .module)
+    }
+    public static var userKeyboardDraftHint: String {
+        String(localized: "core.term.userKeyboardDraftHint", bundle: .module)
+    }
 
     /// Accessibility label of the toggle: reads both input method and layout (group titles are not read per item).
     public static func userKeyboardToggleLabel(inputMethod: String, layout: KeyboardLayoutKind) -> String {
@@ -217,16 +286,20 @@ public enum UserTerminology: Sendable {
 
     /// Message after "Use" switched the keyboard.
     public static func userKeyboardNowUsing(_ title: String) -> String {
-        "已换用「\(title)」。"
+        String(format: String(localized: "core.term.userKeyboardNowUsing", bundle: .module), title)
     }
 
     /// Message for a successful save.
     public static func userKeyboardSaved(count: Int) -> String {
-        "已保存，共 \(max(0, count)) 个键盘。"
+        String(
+            format: String(localized: "core.term.userKeyboardSaved", bundle: .module),
+            String(max(0, count)))
     }
 
     /// Sentence appended after a failed or rejected write: the list is unchanged.
-    public static let userKeyboardListUnchanged = "当前键盘列表没有改变。"
+    public static var userKeyboardListUnchanged: String {
+        String(localized: "core.term.userKeyboardListUnchanged", bundle: .module)
+    }
 
     /// Plain message for a failed user keyboard operation.
     ///
@@ -246,33 +319,49 @@ public enum UserTerminology: Sendable {
     // MARK: - Trial typing (main app)
 
     /// General explanation on the trial page: what is typed and how to change keyboards.
-    public static let tryUsesCurrentScheme =
-        "长按中英键切换键盘。"
+    public static var tryUsesCurrentScheme: String {
+        String(localized: "core.term.tryUsesCurrentScheme", bundle: .module)
+    }
 
     /// Source detail only knows the published selection. `howToUse` is an imperative phrase
     /// without a trailing period (see `tryHowToUseViaUserKeyboard` etc.).
     public static func trySourceContext(name: String, inUse: Bool, howToUse: String) -> String {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        let label = trimmed.isEmpty ? "这个\(inputScheme)" : "「\(trimmed)」"
+        let label =
+            trimmed.isEmpty
+            ? String(format: String(localized: "core.term.thisInputScheme", bundle: .module), inputScheme)
+            : "「\(trimmed)」"
         return inUse
-            ? "键盘正在使用\(label)。"
-            : "键盘没有在使用\(label)。要试打\(label)，\(howToUse)。"
+            ? String(
+                format: String(localized: "core.term.trySourceInUse", bundle: .module), label)
+            : String(
+                format: String(localized: "core.term.trySourceNotInUse", bundle: .module),
+                label, howToUse)
     }
 
     /// Switch to it via the source's own "user keyboard".
-    public static let tryHowToUseViaUserKeyboard =
-        "请先回到上一页，在「\(userKeyboard)」里轻点要用的键盘下方的「\(startUsing)」"
+    public static var tryHowToUseViaUserKeyboard: String {
+        String(
+            format: String(localized: "core.term.tryHowToUseViaUserKeyboard", bundle: .module),
+            userKeyboard, startUsing)
+    }
 
     /// Switch to it via "start using".
-    public static let tryHowToUseViaStartUsing = "请先回到上一页点「\(startUsing)」"
+    public static var tryHowToUseViaStartUsing: String {
+        String(format: String(localized: "core.term.tryHowToUseViaStartUsing", bundle: .module), startUsing)
+    }
 
     /// Accessibility label/hint of the tools entry.
-    public static let keyboardUtilitiesOpenLabel = "打开键盘设置"
+    public static var keyboardUtilitiesOpenLabel: String {
+        String(localized: "core.term.keyboardUtilitiesOpenLabel", bundle: .module)
+    }
 
     /// Tools entry in the "ABC/Chinese" long-press menu (separate from the candidate bar).
-    public static let keyboardMoreTools = "键盘设置…"
+    public static var keyboardMoreTools: String {
+        String(localized: "core.term.keyboardMoreTools", bundle: .module)
+    }
     /// Entry from the keyboard's own settings to the app that owns the rest of the configuration.
-    public static let openHostApp = "打开「松烟」App"
+    public static var openHostApp: String { String(localized: "core.term.openHostApp", bundle: .module) }
 
     // MARK: - Copy gate
 

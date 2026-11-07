@@ -46,7 +46,7 @@ struct ShuangpinHintManagementView: View {
             }
             messageSection
         }
-        .navigationTitle("双拼提示")
+        .navigationTitle(String(localized: "双拼提示"))
         .navigationBarTitleDisplayMode(.inline)
         .onAppear { manager.reload() }
         .sheet(item: $editing) { preset in
@@ -58,24 +58,24 @@ struct ShuangpinHintManagementView: View {
             case .success(let url):
                 Task { await manager.importPreset(fileAt: url) }
             case .failure:
-                linkError = "无法读取所选文件，请重新选择。"
+                linkError = String(localized: "无法读取所选文件，请重新选择。")
             }
         }
         .fileExporter(
             isPresented: $exporting, document: exportDocument, contentType: .json,
             defaultFilename: exportName
         ) { result in
-            if case .failure = result { linkError = "导出失败，请重试。" }
+            if case .failure = result { linkError = String(localized: "导出失败，请重试。") }
         }
-        .confirmationDialog("恢复默认双拼提示？", isPresented: $confirmsReset, titleVisibility: .visible) {
-            Button("恢复默认设置", role: .destructive) {
+        .confirmationDialog(String(localized: "恢复默认双拼提示？"), isPresented: $confirmsReset, titleVisibility: .visible) {
+            Button(String(localized: "恢复默认设置"), role: .destructive) {
                 Task { await manager.resetToDefault() }
             }
         } message: {
             Text("自定义提示将全部删除，双拼提示会关闭。你可以先导出当前文件。")
         }
         .confirmationDialog(removalTitle, isPresented: removalBinding, titleVisibility: .visible) {
-            Button("删除", role: .destructive) {
+            Button(String(localized: "删除"), role: .destructive) {
                 guard let preset = pendingRemoval else { return }
                 pendingRemoval = nil
                 Task { await manager.removePreset(id: preset.id) }
@@ -87,7 +87,7 @@ struct ShuangpinHintManagementView: View {
 
     private var switchSection: some View {
         Section {
-            Toggle("在字母键上显示双拼提示", isOn: $enabledDraft)
+            Toggle(String(localized: "在字母键上显示双拼提示"), isOn: $enabledDraft)
                 .disabled(!manager.canToggleHints)
                 .accessibilityIdentifier("shuangpinHints.enabled")
                 .onChange(of: enabledDraft) { _, value in
@@ -99,7 +99,7 @@ struct ShuangpinHintManagementView: View {
                 .onChange(of: manager.isEnabled) { _, value in enabledDraft = value }
                 .onAppear { enabledDraft = manager.isEnabled }
             if let preset = manager.snapshot?.activePreset {
-                Label("当前提示：\(preset.name)", systemImage: "textformat")
+                Label(String(localized: "当前提示：\(preset.name)"), systemImage: "textformat")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
@@ -114,9 +114,9 @@ struct ShuangpinHintManagementView: View {
     private var storageLine: some View {
         Group {
             if manager.isLoading {
-                Label("正在检查…", systemImage: "clock")
+                Label(String(localized: "正在检查…"), systemImage: "clock")
             } else if let location = manager.location, !location.isShared {
-                Label("键盘暂时读不到这些设置，提示不会显示。", systemImage: "exclamationmark.triangle")
+                Label(String(localized: "键盘暂时读不到这些设置，提示不会显示。"), systemImage: "exclamationmark.triangle")
                     .font(.footnote)
                     .foregroundStyle(.orange)
             }
@@ -146,8 +146,8 @@ struct ShuangpinHintManagementView: View {
                     Text(preset.name).foregroundStyle(.primary)
                     Text(
                         manager.snapshot?.isBuiltin(preset) == true
-                            ? "内置 · \(preset.letterCount) 个字母有提示"
-                            : "\(preset.letterCount) 个字母有提示"
+                            ? String(localized: "内置 · \(preset.letterCount) 个字母有提示")
+                            : String(localized: "\(preset.letterCount) 个字母有提示")
                     )
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -164,32 +164,33 @@ struct ShuangpinHintManagementView: View {
                 exportDocument = ShuangpinHintFileDocument(data: manager.exportData(for: preset.id) ?? Data())
                 exporting = true
             } label: {
-                Label("导出", systemImage: "square.and.arrow.up")
+                Label(String(localized: "导出"), systemImage: "square.and.arrow.up")
             }
             Button {
-                editing = preset.copy(name: preset.name + " 副本")
+                editing = preset.copy(name: String(localized: "\(preset.name) 副本"))
             } label: {
-                Label("复制", systemImage: "plus.square.on.square")
+                Label(String(localized: "复制"), systemImage: "plus.square.on.square")
             }
             Button {
                 editing =
                     manager.snapshot?.isBuiltin(preset) == true
-                    ? preset.copy(name: preset.name + " 副本") : preset
+                    ? preset.copy(name: String(localized: "\(preset.name) 副本")) : preset
             } label: {
-                Label("编辑", systemImage: "pencil")
+                Label(String(localized: "编辑"), systemImage: "pencil")
             }
             if manager.snapshot?.isBuiltin(preset) != true {
                 Button(role: .destructive) {
                     pendingRemoval = preset
                 } label: {
-                    Label("删除", systemImage: "trash")
+                    Label(String(localized: "删除"), systemImage: "trash")
                 }
             }
         }
     }
 
     private var removalTitle: String {
-        pendingRemoval.map { "删除提示预设「\($0.name)」？" } ?? "删除提示预设？"
+        pendingRemoval.map { String(localized: "删除提示预设「\($0.name)」？") }
+            ?? String(localized: "删除提示预设？")
     }
 
     private var removalBinding: Binding<Bool> {
@@ -203,28 +204,28 @@ struct ShuangpinHintManagementView: View {
             Button {
                 editing = ShuangpinHintPreset(
                     id: UUID().uuidString.lowercased(),
-                    name: "我的提示", hints: [:])
+                    name: String(localized: "我的提示"), hints: [:])
             } label: {
-                Label("新建提示预设", systemImage: "plus")
+                Label(String(localized: "新建提示预设"), systemImage: "plus")
             }
             Button {
                 linkAddress = ""
                 linkError = nil
                 enteringLink = true
             } label: {
-                Label("从链接导入", systemImage: "link")
+                Label(String(localized: "从链接导入"), systemImage: "link")
             }
             Button {
                 importingFile = true
             } label: {
-                Label("从文件导入", systemImage: "square.and.arrow.down")
+                Label(String(localized: "从文件导入"), systemImage: "square.and.arrow.down")
             }
             Button {
                 exportName = "hints"
                 exportDocument = ShuangpinHintFileDocument(data: manager.exportAllData() ?? Data())
                 exporting = true
             } label: {
-                Label("导出全部设置", systemImage: "square.and.arrow.up")
+                Label(String(localized: "导出全部设置"), systemImage: "square.and.arrow.up")
             }
         }
     }
@@ -238,18 +239,18 @@ struct ShuangpinHintManagementView: View {
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                     if let linkError { Text(linkError).foregroundStyle(.red).font(.footnote) }
-                    if importingLink { ProgressView("正在下载…") }
+                    if importingLink { ProgressView(String(localized: "正在下载…")) }
                 } footer: {
                     Text("请输入提示文件的链接。")
                 }
                 .disabled(importingLink)
             }
             .interactiveDismissDisabled(importingLink)
-            .navigationTitle("从链接导入")
+            .navigationTitle(String(localized: "从链接导入"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") {
+                    Button(String(localized: "取消")) {
                         linkRequest = UUID()
                         linkTask?.cancel()
                         importingLink = false
@@ -257,7 +258,7 @@ struct ShuangpinHintManagementView: View {
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("导入") { importLink() }
+                    Button(String(localized: "导入")) { importLink() }
                         .disabled(importingLink || linkAddress.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                         .accessibilityIdentifier("shuangpinHints.importLink")
                 }
@@ -286,12 +287,12 @@ struct ShuangpinHintManagementView: View {
         Section {
             if let error = manager.lastError {
                 Text(error).foregroundStyle(.red).font(.footnote)
-                Button("重试") { manager.reload() }
+                Button(String(localized: "重试")) { manager.reload() }
                 if manager.canRecover {
                     if let file = manager.recoveryFileURL {
-                        ShareLink("导出当前文件", item: file)
+                        ShareLink(String(localized: "导出当前文件"), item: file)
                     }
-                    Button("恢复默认设置", role: .destructive) { confirmsReset = true }
+                    Button(String(localized: "恢复默认设置"), role: .destructive) { confirmsReset = true }
                         .disabled(manager.isBusy)
                         .font(.footnote)
                 }
@@ -319,18 +320,18 @@ struct ShuangpinHintEditorView: View {
 
     var body: some View {
         Form {
-            Section("名称") {
-                TextField("预设名称", text: $draft.name)
+            Section(String(localized: "名称")) {
+                TextField(String(localized: "预设名称"), text: $draft.name)
                     .accessibilityIdentifier("shuangpinHints.editor.name")
             }
             ForEach(Array(ShuangpinHintPreset.letterRows.enumerated()), id: \.offset) { index, row in
-                Section("第 \(index + 1) 行") {
+                Section(String(localized: "第 \(index + 1) 行")) {
                     ForEach(row.map(String.init), id: \.self) { letter in
                         HStack {
                             Text(letter)
                                 .font(.body.monospaced())
                                 .frame(width: 24, alignment: .leading)
-                            TextField("提示（可留空）", text: binding(for: letter))
+                            TextField(String(localized: "提示（可留空）"), text: binding(for: letter))
                                 .keyboardType(.asciiCapable)
                                 .accessibilityIdentifier("shuangpinHints.editor.key.\(letter)")
                                 .autocorrectionDisabled()
@@ -345,14 +346,14 @@ struct ShuangpinHintEditorView: View {
         }
         .disabled(saving)
         .interactiveDismissDisabled(saving)
-        .navigationTitle(draft.name.isEmpty ? "提示预设" : draft.name)
+        .navigationTitle(draft.name.isEmpty ? String(localized: "提示预设") : draft.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button("取消") { dismiss() }.disabled(saving)
+                Button(String(localized: "取消")) { dismiss() }.disabled(saving)
             }
             ToolbarItem(placement: .confirmationAction) {
-                Button("保存") { save() }.disabled(saving)
+                Button(String(localized: "保存")) { save() }.disabled(saving)
                     .accessibilityIdentifier("shuangpinHints.savePreset")
             }
         }

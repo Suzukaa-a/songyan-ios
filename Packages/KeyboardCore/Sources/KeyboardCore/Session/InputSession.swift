@@ -30,6 +30,14 @@ public final class InputSession {
     public private(set) var mode: InputMode = .chinese
     public private(set) var snapshot: EngineSnapshot = EngineSnapshot()
     public private(set) var options: [EngineOptionState] = []
+    /// The running input method's display language and keyboard family. Computed only when the
+    /// source scheme, its alphabet or the declared script switch changes (see `updateInputLanguage`),
+    /// so the key path reads one cached value and never asks the engine.
+    public private(set) var inputLanguage = InputLanguageProfile(language: .simplifiedChinese, family: .generic)
+    /// Last inputs the cached profile was resolved from; equal inputs skip the pure resolver.
+    private var languageInputs: (source: String, alphabet: String, conversion: String?)?
+    /// A scheme's alphabet is fixed for an engine generation, so it is read once per source.
+    private var alphabetBySchema: [String: String] = [:]
     /// Real engine-state version, incremented on every `apply` (real engine action/refresh).
     /// The host uses it as part of the candidate-set identity so that a set with the same raw
     /// code is invalidated when options/reconversion/learning/session change. Read-only
@@ -66,7 +74,41 @@ public final class InputSession {
             options = []
             onError?(error)
         }
+        updateInputLanguage()
         onUpdate?()
+    }
+
+    /// Recomputes the cached input language from the running source scheme, its alphabet and the
+    /// one active declared script config. Option reloads also run on every configuration prepare,
+    /// so unchanged inputs must not reach the resolver again.
+    private func updateInputLanguage() {
+        let source = resourceSet?.sourceSchemaID(selectedSchemaID) ?? selectedSchemaID
+        let inputs = (source: source, alphabet: alphabet(ofSource: source), conversion: activeDeclaredConfig())
+        if let languageInputs, languageInputs == inputs { return }
+        languageInputs = inputs
+        inputLanguage = InputLanguageResolver.resolve(
+            schemaID: inputs.source, alphabet: inputs.alphabet, declaredConversion: inputs.conversion)
+    }
+
+    private func alphabet(ofSource schemaID: String) -> String {
+        if let cached = alphabetBySchema[schemaID] { return cached }
+        // A resource descriptor may carry an empty alphabet for an imported scheme (the import
+        // metadata leaves it unset) while the backend's cached schema list already has the real
+        // one. Empty means unknown, not "accepts nothing", so it must not shadow that cache;
+        // neither read queries the engine.
+        let declared = resourceSet?.schemas.first { $0.id == schemaID }?.alphabet ?? ""
+        let alphabet =
+            declared.isEmpty
+            ? (engine.availableSchemas.first { $0.id == schemaID }?.alphabet ?? "")
+            : declared
+        // The backend lists no schemas until the engine is up; caching that empty answer would pin
+        // an unknown alphabet for the whole session.
+        if !alphabet.isEmpty { alphabetBySchema[schemaID] = alphabet }
+        return alphabet
+    }
+
+    private func activeDeclaredConfig() -> String? {
+        ScriptConversion.activeDeclaredConfig(in: options)
     }
 
     public func setOption(_ name: String, value: Bool) throws {
@@ -75,6 +117,7 @@ public final class InputSession {
         do {
             let updated = try engine.setOption(name, value: value)
             options = try engine.optionStates()
+            updateInputLanguage()
             apply(mode == .english ? EngineSnapshot() : updated)
         } catch {
             reloadOptions()
@@ -149,6 +192,7 @@ public final class InputSession {
         // engine's serial queue, so snapshots produced on a failed-switch fallback path still use
         // the qualification in effect at the time. DemoEngine's setter is a no-op.
         engine.spellingDemand = { @Sendable [weak self] in self?.spellingDemandEligible.withLock { $0 } ?? false }
+        updateInputLanguage()
     }
 
     /// Kind-level hint that the layout is a compact spelling layout (14-key merged / 9-key digits).
@@ -172,7 +216,9 @@ public final class InputSession {
         defer { if !succeeded { compactSpellingLayout = previous } }
         if let resourceSet, resourceSet.usesIndependentSelection {
             guard let pair = resourceSet.combination(layout: newLayout, preferredSchemaID: selectedSchemaID) else {
-                onError?(EngineBackendError.unsupportedSchema("当前输入方案没有适配此键盘布局"))
+                onError?(
+                    EngineBackendError.unsupportedSchema(
+                        String(localized: "core.engine.layoutMismatch", bundle: .module)))
                 return
             }
             let target = pair.engineSchemaID
@@ -197,7 +243,9 @@ public final class InputSession {
             guard let mapped = resourceSet.schemaID(for: newLayout) else {
                 onError?(
                     EngineBackendError.unsupportedSchema(
-                        "键盘布局 \(newLayout.rawValue) 在此输入方案中不可用"))
+                        String(
+                            format: String(localized: "core.engine.layoutUnavailable", bundle: .module),
+                            newLayout.rawValue)))
                 return
             }
             schemaID = mapped
@@ -228,7 +276,9 @@ public final class InputSession {
         if let resourceSet {
             let pairs = resourceSet.availableCombinations.filter { $0.schemaID == schemaID }
             guard let pair = pairs.first(where: { $0.layout == layout }) ?? pairs.first else {
-                onError?(EngineBackendError.unsupportedSchema("当前输入方案没有可用的键盘布局"))
+                onError?(
+                    EngineBackendError.unsupportedSchema(
+                        String(localized: "core.engine.noLayout", bundle: .module)))
                 return
             }
             select(layout: pair.layout, boundSchemaID: schemaID)
@@ -308,6 +358,7 @@ public final class InputSession {
         if inputUnavailableReason != nil {
             selectedSchemaID = resourceSet?.sourceSchemaID(state.schemaID) ?? state.schemaID
             options = []
+            updateInputLanguage()
         }
         apply(state)
         onError?(error)
@@ -473,14 +524,21 @@ public final class InputSession {
             }
             if partialProgress { return true }
             guard !snapshot.isComposing else {
-                onError?(EngineBackendError.operationFailed("拼音组合未完成"))
+                onError?(
+                    EngineBackendError.operationFailed(
+                        String(localized: "core.engine.compositionIncomplete", bundle: .module)))
                 return false
             }
             // An empty engine composition does not prove that the host accepted
             // its commit. Dependent literal/cursor operations must stop on refusal.
             return delivered
         } catch {
-            onError?(EngineBackendError.operationFailed("未能确认当前输入，已保留拼音组合，请重试选词。\(error)"))
+            onError?(
+                EngineBackendError.operationFailed(
+                    String(
+                        format: String(
+                            localized: "core.engine.commitFailedKeepComposition", bundle: .module),
+                        String(describing: error))))
             return false
         }
     }
@@ -753,12 +811,19 @@ public final class InputSession {
             updated.committed = ""
             apply(updated)
             guard !snapshot.isComposing, !snapshot.isPrediction else {
-                onError?(EngineBackendError.operationFailed("未能取消当前输入，拼音组合仍保留，请重试。"))
+                onError?(
+                    EngineBackendError.operationFailed(
+                        String(
+                            localized: "core.engine.cancelFailedKeepComposition", bundle: .module)))
                 return false
             }
             return true
         } catch {
-            onError?(EngineBackendError.operationFailed("取消输入失败，已保留拼音组合：\(error)"))
+            onError?(
+                EngineBackendError.operationFailed(
+                    String(
+                        format: String(localized: "core.engine.cancelFailed", bundle: .module),
+                        String(describing: error))))
             return false
         }
     }
@@ -799,7 +864,9 @@ public final class InputSession {
             || (numericTransportLayout
                 && CompositionDisplayPolicy.isNumericTransport(rawInput: snapshot.rawInput))
         if !newSnapshot.schemaID.isEmpty {
+            let previousSchemaID = selectedSchemaID
             selectedSchemaID = resourceSet?.sourceSchemaID(newSnapshot.schemaID) ?? newSnapshot.schemaID
+            if selectedSchemaID != previousSchemaID { updateInputLanguage() }
         }
         let delivered = !committed.isEmpty && dispatchCommit(committed)
         onUpdate?()

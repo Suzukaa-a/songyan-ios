@@ -165,7 +165,8 @@ public struct LayoutSplitConfiguration: Codable, Equatable, Sendable {
     /// keep a key in each half; `allowsHalves` is false for pages, which only follow the layout's split.
     public func validate(rowKeyCounts: [Int], allowsHalves: Bool = false) throws {
         guard gapFraction.isFinite, (0...0.85).contains(gapFraction) else {
-            throw LayoutError.invalid("拆分间距应在 0% 到 85% 之间，请调整后保存。")
+            throw LayoutError.invalid(
+                String(localized: "layout.error.splitGap", bundle: .module))
         }
         if halves != nil {
             guard allowsHalves else { throw LayoutError.invalid(LayoutSplitMessage.halvesOnlyOnLayout) }
@@ -175,11 +176,13 @@ public struct LayoutSplitConfiguration: Codable, Equatable, Sendable {
             return
         }
         guard rowBreaks.count <= rowKeyCounts.count else {
-            throw LayoutError.invalid("拆分位置比按键行还多，请重新设置拆分位置。")
+            throw LayoutError.invalid(
+                String(localized: "layout.error.splitBreaksTooMany", bundle: .module))
         }
         for (row, count) in rowBreaks.enumerated() {
             guard rowKeyCounts[row] <= 1 || (1..<rowKeyCounts[row]).contains(count) else {
-                throw LayoutError.invalid("拆分位置应在两个按键之间，请调整后保存。")
+                throw LayoutError.invalid(
+                    String(localized: "layout.error.splitBreakPosition", bundle: .module))
             }
         }
     }
@@ -193,8 +196,12 @@ public struct LayoutSplitConfiguration: Codable, Equatable, Sendable {
 
 /// Messages of the split arrangement checks.
 public enum LayoutSplitMessage {
-    public static let halvesShape = "拆分时的键盘要和键盘有同样的行数，每一边至少要有一个键。"
-    public static let halvesOnlyOnLayout = "只有键盘布局可以单独设置拆分时的按键。"
+    public static var halvesShape: String {
+        String(localized: "layout.error.halvesShape", bundle: .module)
+    }
+    public static var halvesOnlyOnLayout: String {
+        String(localized: "layout.error.halvesOnlyOnLayout", bundle: .module)
+    }
 }
 
 /// A split that is showing at the current width. Only `LayoutSplitConfiguration.resolved(forWidth:)`

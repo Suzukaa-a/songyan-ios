@@ -36,7 +36,7 @@ public enum GrammarRuntimeReceiptStore {
         let modelPath: String?
         if let loadedLanguage {
             guard let path = GrammarModelPath.path(for: loadedLanguage) else {
-                throw KeyboardRecipeStore.StoreError(message: "语言模型文件路径不支持")
+                throw KeyboardRecipeStore.StoreError(message: String(localized: "语言模型文件路径不支持"))
             }
             modelPath = path
         } else {

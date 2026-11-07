@@ -170,7 +170,7 @@ def production_source():
         local_model[local_model.index(STORAGE_MARK):],
         section(editor, SAVE_PATH_MARK, VIEW_MARK),
         # SwiftPM synthesises Bundle.module for the package; the probe supplies it.
-        "import Foundation\nextension Bundle { static var module: Bundle { .main } }\n",
+        "",
     ]
     return ("import SwiftUI\nimport Combine\n"
             + "\n".join(pieces)

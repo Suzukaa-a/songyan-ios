@@ -102,7 +102,10 @@ public struct AppearanceStore: Sendable {
                 let document = try AppearanceDocument.decode(try Data(contentsOf: file))
                 let stem = String(file.lastPathComponent.dropLast(AppearanceDocument.fileExtension.count))
                 guard stem == document.id else {
-                    throw AppearanceError("外观项目文件名与标识不一致：\(file.lastPathComponent)")
+                    throw AppearanceError(
+                        String(
+                            format: String(localized: "appearance.error.fileNameMismatch", bundle: .module),
+                            file.lastPathComponent))
                 }
                 documents.append(document)
             } catch {
@@ -128,21 +131,24 @@ public struct AppearanceStore: Sendable {
         guard fileName.hasSuffix(AppearanceDocument.fileExtension),
             fileName.count > AppearanceDocument.fileExtension.count,
             !fileName.contains("/"), !fileName.contains("\\"), !fileName.contains("\0")
-        else { throw AppearanceError("外观文件名无效，请重新选择文件。") }
+        else { throw AppearanceError(String(localized: "appearance.error.invalidFileName", bundle: .module)) }
         let file = directory.appendingPathComponent(fileName)
         let values = try file.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey])
         guard values.isRegularFile == true, values.isSymbolicLink != true else {
-            throw AppearanceError("无法读取外观文件，请选择普通文件。")
+            throw AppearanceError(String(localized: "appearance.error.unreadableFile", bundle: .module))
         }
         return file
     }
 
     public func save(_ document: AppearanceDocument, replacing: Bool = false) throws {
-        guard !document.isSystemDefault else { throw AppearanceError("「系统默认」为只读外观，请先复制后再编辑。") }
+        guard !document.isSystemDefault else {
+            throw AppearanceError(
+                String(localized: "appearance.error.systemDefaultReadOnly", bundle: .module))
+        }
         let data = try document.encoded()
         let file = directory.appendingPathComponent(document.id + AppearanceDocument.fileExtension)
         if !replacing && FileManager.default.fileExists(atPath: file.path) {
-            throw AppearanceError("已存在相同标识的外观项目，请替换或另存为副本。")
+            throw AppearanceError(String(localized: "appearance.error.duplicateID", bundle: .module))
         }
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         try data.write(to: file, options: .atomic)
@@ -151,12 +157,17 @@ public struct AppearanceStore: Sendable {
     public func remove(_ id: String) throws {
         let allowed = CharacterSet(charactersIn: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_")
         guard !id.isEmpty, id.unicodeScalars.allSatisfy(allowed.contains) else {
-            throw AppearanceError("外观项目标识无效")
+            throw AppearanceError(String(localized: "appearance.error.invalidID", bundle: .module))
         }
-        guard id != AppearanceDocument.systemDefaultID else { throw AppearanceError("「系统默认」无法删除。") }
+        guard id != AppearanceDocument.systemDefaultID else {
+            throw AppearanceError(
+                String(localized: "appearance.error.cannotDeleteSystemDefault", bundle: .module))
+        }
         let file = directory.appendingPathComponent(id + AppearanceDocument.fileExtension)
         guard FileManager.default.fileExists(atPath: file.path) else {
-            throw AppearanceError("未找到外观项目：\(id)")
+            throw AppearanceError(
+                String(
+                    format: String(localized: "appearance.error.notFound", bundle: .module), id))
         }
         // Only the project file is deleted; the applied snapshot keeps its content until the next apply.
         try FileManager.default.removeItem(at: file)
@@ -193,7 +204,9 @@ public struct AppearanceStore: Sendable {
 
     private func decodeSnapshot(_ file: URL) throws -> AppearanceSnapshot {
         let size = try file.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
-        guard size <= 512 * 1024 else { throw AppearanceError("外观快照过大") }
+        guard size <= 512 * 1024 else {
+            throw AppearanceError(String(localized: "appearance.error.snapshotTooLarge", bundle: .module))
+        }
         return try decodeSnapshot(data: Data(contentsOf: file))
     }
 
@@ -201,15 +214,22 @@ public struct AppearanceStore: Sendable {
         let value = try JSONDecoder().decode(AppearanceSnapshot.self, from: data)
         guard let object = try JSONSerialization.jsonObject(with: data) as? [String: Any],
             let document = object["document"]
-        else { throw AppearanceError("外观快照格式无效") }
+        else { throw AppearanceError(String(localized: "appearance.error.snapshotMalformed", bundle: .module)) }
         // Strict decoding (unknown fields, wrong versions, invalid values, mixed identities are rejected) before any use.
         let decoded = try AppearanceDocument.decode(JSONSerialization.data(withJSONObject: document))
-        guard decoded == value.document.normalized() else { throw AppearanceError("外观快照内容不一致") }
+        guard decoded == value.document.normalized() else {
+            throw AppearanceError(
+                String(localized: "appearance.error.snapshotContentMismatch", bundle: .module))
+        }
         guard value.selectedID == value.document.id else {
-            throw AppearanceError("外观快照不一致：当前所选与内容不是同一个外观项目")
+            throw AppearanceError(
+                String(localized: "appearance.error.snapshotSelectionMismatch", bundle: .module))
         }
         guard value.document.identityIsConsistent else {
-            throw AppearanceError("外观快照不一致：皮肤与候选栏不匹配（\(value.document.identityDescription)）")
+            throw AppearanceError(
+                String(
+                    format: String(localized: "appearance.error.snapshotIdentityMismatch", bundle: .module),
+                    value.document.identityDescription))
         }
         return value
     }

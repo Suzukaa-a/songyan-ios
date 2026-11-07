@@ -112,6 +112,7 @@ extension KeyboardPanelView {
             shiftState: controller.shiftState,
             isComposing: readsComposition && controller.snapshot.isComposing,
             usesASCIIPunctuation: effectiveUsesASCIIPunctuation,
+            inputLanguage: controller.inputLanguage,
             symbolMarks: effectiveSymbolMarks,
             returnKeyTitle: readsComposition ? controller.returnKeyTitle : "",
             isReturnKeyEnabled: readsComposition && controller.isReturnKeyEnabled,

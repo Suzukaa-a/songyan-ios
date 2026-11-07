@@ -1,5 +1,6 @@
 import Foundation
 import KeyboardCore
+import LayoutKit
 
 /// Sole adapter from the host app's "user keyboards" page to the canonical publication transaction.
 ///
@@ -20,6 +21,25 @@ struct UserKeyboardPublicationView: Sendable {
     let activation: KeyboardRecipeStore.Activation?
     let sourceKey: String?
     let isCurrent: Bool
+}
+
+/// The schema facts of one source, read from that source's own snapshot: its current activation
+/// (the running source) or its installed package resources (a source that is not applied). Never
+/// scans other sources: two installs may use the same schema ID with different alphabets.
+@MainActor
+enum UserKeyboardSourceFacts {
+    static func schemas(for source: UserKeyboardSource) async -> [KeyboardSchemaDescriptor] {
+        switch source {
+        case .active:
+            guard let activation = try? await AppliedSelectionLoader.loadActivation() else { return [] }
+            return activation.schemas ?? []
+        case .package(let packageID):
+            guard
+                let resources = try? await SchemeImportCenter.shared.keyboardResources(packageID: packageID)
+            else { return [] }
+            return resources.schemas
+        }
+    }
 }
 
 @MainActor
@@ -55,7 +75,7 @@ final class DictionaryImportCenterUserKeyboards: UserKeyboardManaging {
             schemaID: candidate.inputMethodID,
             layout: candidate.layout)
         _ = try await context.transaction.addKeyboard(keyboard)
-        return "已添加 \(candidate.keyboard().title)。"
+        return String(localized: "已添加 \(displayTitle(candidate.keyboard(), schemas: context.schemas))。")
     }
 
     func removeKeyboard(_ keyboard: UserKeyboard) async throws -> String {
@@ -64,7 +84,7 @@ final class DictionaryImportCenterUserKeyboards: UserKeyboardManaging {
             schemaID: keyboard.inputMethodID,
             layout: keyboard.layout)
         _ = try await context.transaction.removeKeyboard(published)
-        return "已移除 \(keyboard.title)。"
+        return String(localized: "已移除 \(displayTitle(keyboard, schemas: context.schemas))。")
     }
 
     func replaceKeyboards(_ keyboards: [UserKeyboard]) async throws -> String {
@@ -87,7 +107,10 @@ final class DictionaryImportCenterUserKeyboards: UserKeyboardManaging {
             selecting: selecting.map { PublishedKeyboard(schemaID: $0.inputMethodID, layout: $0.layout) },
             viewedActivation: viewed.activation, viewedRoster: viewed.roster,
             viewedSourceKey: viewed.sourceKey)
-        if let selecting { return UserTerminology.userKeyboardNowUsing(selecting.title) }
+        if let selecting {
+            return UserTerminology.userKeyboardNowUsing(
+                displayTitle(selecting, schemas: context.schemas))
+        }
         return UserTerminology.userKeyboardSaved(count: published.count)
     }
 
@@ -119,9 +142,10 @@ final class DictionaryImportCenterUserKeyboards: UserKeyboardManaging {
             // source would silently switch the keyboard to that input scheme.
             guard activation.kind != .userDictionary else {
                 throw UserKeyboardPublicationError.unavailable(
-                    "自定义拼音没有可添加的键盘。要改用其他方案，"
-                        + "请在「\(UserTerminology.inputScheme)」中打开该方案，"
-                        + "再到它的「\(UserTerminology.userKeyboard)」里轻点「\(UserTerminology.startUsing)」。")
+                    String(
+                        localized:
+                            "自定义拼音没有可添加的键盘。要改用其他方案，请在「\(UserTerminology.inputScheme)」中打开该方案，再到它的「\(UserTerminology.userKeyboard)」里轻点「\(UserTerminology.startUsing)」。"
+                    ))
             }
             guard let packageID = activation.packageID else { throw UserKeyboardPublicationError.sourceNotInstalled }
             return (
@@ -135,6 +159,19 @@ final class DictionaryImportCenterUserKeyboards: UserKeyboardManaging {
                 resources.selectedSchemaID
             )
         }
+    }
+
+    /// Resolve the paired physical board before falling back to its transport kind.
+    private func displayTitle(
+        _ keyboard: UserKeyboard, schemas: [KeyboardSchemaDescriptor]
+    ) -> String {
+        let registry = LayoutManager.shared.registry
+        let layoutID = HostLayoutAvailability.effectiveMainLayoutID(
+            schemaID: keyboard.inputMethodID, layout: keyboard.layout, descriptors: schemas,
+            in: registry)
+        guard let layout = registry.resolvedLayout(id: layoutID) else { return keyboard.title }
+        return keyboard.title(
+            physicalLayoutName: UserTerminology.builtinLayoutName(physicalLayoutID: layout.id))
     }
 }
 

@@ -10,8 +10,8 @@ public enum RimeConfigTemplates {
     /// A new `xxx.custom.yaml`: valid YAML that patches nothing, with two comment lines and a commented example.
     public static func customPatch() -> String {
         [
-            "# " + oneLine("在 patch 下写要改的项，改完回到松烟轻点「应用更改」。"),
-            "# " + oneLine("例：每页显示 7 个候选"),
+            "# " + oneLine(PackageText.string("template.customPatchHint")),
+            "# " + oneLine(PackageText.string("template.customPatchExample")),
             "# patch:",
             "#   menu/page_size: 7",
             "patch: {}",
@@ -21,7 +21,7 @@ public enum RimeConfigTemplates {
     /// A new script: a comment on how to name it from a configuration file, the line that does it, and a
     /// filter that passes every candidate through.
     public static func script(name: String) -> String {
-        let hint = "在配置文件里写上 lua_filter@*\(name) 就会用到它（也可以是 lua_translator、lua_processor、lua_segmentor）。"
+        let hint = PackageText.format("template.scriptHint", name)
         return [
             "-- " + oneLine(hint),
             "-- engine/filters/+: [lua_filter@*\(name)]",
@@ -57,9 +57,9 @@ public enum GrammarParameterExample {
 
         var text: String {
             switch self {
-            case .newPatch: return "语法模型参数示例（去掉行首的 # 后生效）："
-            case .underPatch: return "语法模型参数示例（去掉行首的 # 后生效，这些行要放在上面的 patch: 下面）："
-            case .emptyPatch: return "语法模型参数示例（先把上面的 patch: {} 改成 patch:，再去掉行首的 # 后生效）："
+            case .newPatch: return PackageText.string("template.grammarHeadingNew")
+            case .underPatch: return PackageText.string("template.grammarHeadingUnder")
+            case .emptyPatch: return PackageText.string("template.grammarHeadingEmpty")
             }
         }
     }

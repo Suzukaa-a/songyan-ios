@@ -1,0 +1,160 @@
+{
+  "sourceLanguage": "zh-Hans",
+  "strings": {
+    "skin.name.systemDefault": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系统默认"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "システムの既定"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系統預設"
+          }
+        }
+      }
+    },
+    "skin.name.copySuffix": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ 副本"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ のコピー"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ 副本"
+          }
+        }
+      }
+    },
+    "skin.error.fileTooLarge": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "皮肤文件超过 128KB，请删掉一些内容后再试。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スキンファイルが 128KB を超えています。内容を減らしてからもう一度お試しください。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "皮膚檔案超過 128KB，請刪掉一些內容後再試。"
+          }
+        }
+      }
+    },
+    "skin.error.notAnObject": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "皮肤文件的内容无法读取，请检查文件后再试。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スキンファイルの内容を読み取れません。ファイルを確認してからもう一度お試しください。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "皮膚檔案的內容無法讀取，請檢查檔案後再試。"
+          }
+        }
+      }
+    },
+    "skin.error.unknownField": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "皮肤文件里有不支持的字段「%1$@」（%2$@），请检查文件。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スキンファイルに未対応の項目「%1$@」があります（%2$@）。ファイルを確認してください。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "皮膚檔案裡有不支援的欄位「%1$@」（%2$@），請檢查檔案。"
+          }
+        }
+      }
+    },
+    "skin.error.unsupportedVersion": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只支持版本 %1$@ 的皮肤文件，请检查文件。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "対応しているスキンファイルのバージョンは %1$@ だけです。ファイルを確認してください。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只支援版本 %1$@ 的皮膚檔案，請檢查檔案。"
+          }
+        }
+      }
+    },
+    "skin.error.invalidValue": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "皮肤文件里有一项值无效（%1$@），请检查文件。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スキンファイルの値が正しくありません（%1$@）。ファイルを確認してください。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "皮膚檔案裡有一項值無效（%1$@），請檢查檔案。"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

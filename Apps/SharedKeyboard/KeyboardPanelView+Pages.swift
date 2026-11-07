@@ -184,10 +184,13 @@ extension KeyboardPanelView {
     /// registry default scans every layout while `definitionFacts` asks per key read.
     var preferredDefinitionID: String? {
         pageMemo.preferredDefinitionID(for: compositionMemoKey) {
-            if let id = selectedComposition?.mainLayoutID { return id }
             guard let builtin = LayoutInput.Builtin(rawValue: controller.layout.rawValue) else { return nil }
             let key = KeyboardCompositionKey(inputMethodID: controller.selectedSchemaID, layout: builtin)
-            return layoutRegistry?.defaultMainLayoutID(for: key) ?? BuiltinLayouts.preset(for: builtin).id
+            guard let registry = layoutRegistry else { return BuiltinLayouts.preset(for: builtin).id }
+            // The same public entry the host uses: a saved pairing whose physical definition may not
+            // be used by this family falls back at runtime, and an unsaved keyboard still resolves
+            // the registered family layout. The stored pairing itself is never rewritten here.
+            return registry.usableMainLayoutID(for: key, availability: layoutAvailability)
         }
     }
 
@@ -218,7 +221,7 @@ extension KeyboardPanelView {
     func showAuthoredPageNeedsGlobeHint() {
         let token = UUID()
         layoutHintToken = token
-        layoutHintName = "这一页缺少地球键，先显示默认页面"
+        layoutHintName = String(localized: "这一页缺少地球键，先显示默认页面")
         Task { @MainActor in
             try? await Task.sleep(nanoseconds: 2_500_000_000)
             if layoutHintToken == token { layoutHintName = nil }
@@ -258,7 +261,13 @@ extension KeyboardPanelView {
         if target == .numeric, availableEverydayMarkRows != nil {
             moreSymbolsKey
         } else {
-            MarkPageSwitchKey(target: target) {
+            MarkPageSwitchKey(
+                target: target,
+                title: target == .symbols ? controlPolicy.symbolPageTitle : KeyLabelPolicy.numericPageTitle,
+                accessibilityText: controlPolicy.pageSwitchAccessibilityLabel(
+                    for: target == .symbols ? .symbols : .numeric,
+                    isBundledPhonePad: controlPolicy.isBundledPhonePad)
+            ) {
                 emitKeyFeedback()
                 page = target
                 showsAllCandidates = false
@@ -268,7 +277,11 @@ extension KeyboardPanelView {
 
     /// Both symbol pages keep the switch in the same slot so repeated taps cycle within symbols.
     var moreSymbolsKey: some View {
-        MarkPageSwitchKey(target: .symbols, title: "#+=", accessibilityText: "打开更多符号") {
+        MarkPageSwitchKey(
+            target: .symbols,
+            title: "#+=",
+            accessibilityText: String(localized: "打开更多符号")
+        ) {
             emitKeyFeedback()
             showsEverydayMarksPage.toggle()
         }
@@ -368,12 +381,14 @@ extension KeyboardPanelView {
         KeyboardPageAuthoredState(
             page: page, kind: definition.kind, isEnglishMode: controller.isEnglishMode,
             shiftState: controller.shiftState, returnTitle: controller.returnKeyTitle,
+            returnAccessibilityLabel: controller.returnKeyAccessibilityLabel,
             isReturnEnabled: controller.isReturnKeyEnabled, symbolLocked: symbolPageLocked,
             isComposing: controller.snapshot.isComposing, hasGlobe: systemKeyboardSwitch != nil,
             jumpLayouts: jumpLayouts,
             isPhoneStyled: !(definition.chrome?.trailing.isEmpty ?? true),
             usesASCIIPunctuation: effectiveUsesASCIIPunctuation,
-            usesCategorySymbolPage: definition.symbolPresentation == .categorized)
+            usesCategorySymbolPage: definition.symbolPresentation == .categorized,
+            script: controller.inputLanguageScript)
     }
 
     func authoredPageActions() -> KeyboardPageAuthoredActions {
@@ -451,6 +466,11 @@ extension KeyboardPanelView {
             }
         case .globe:
             controller.handle(.switchKeyboard)
+        case .kana, .kanaModifier, .cursorLeft:
+            // An authored or edited page can store a kana gesture (the kana board's own keys are
+            // drawn by its surface select). It still means that gesture; the kana handler spells
+            // the row or moves the composition caret instead of the action becoming an engine key.
+            performKana12LayoutAction(action)
         case .code:
             break
         }
@@ -585,6 +605,8 @@ extension KeyboardPanelView {
             performAuthoredPageAction(action, isAlternate: isAlternate)
         case .modeSwitch:
             recordCategoryAction(.cycleLayout)
+        case .kana, .kanaModifier, .cursorLeft:
+            performAuthoredPageAction(action, isAlternate: isAlternate)
         case .literal:
             if let value = action.literalValue(usesASCIIPunctuation: effectiveUsesASCIIPunctuation) {
                 recordCategoryAction(.literal(value))

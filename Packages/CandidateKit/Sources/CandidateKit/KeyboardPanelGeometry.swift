@@ -1,4 +1,5 @@
 import Foundation
+import LayoutKit
 
 /// The height budget derives from the **selected physical definition, size class and candidate bar config**, never
 /// from transient language/page/candidate state.
@@ -55,7 +56,9 @@ public struct KeyboardPanelGeometry: Equatable, Sendable {
         visibleMainRows = max(3, min(max(1, selectedMainRows), max(3, maximumVisibleRows)))
     }
 
-    public var mainAreaHeight: Double { Double(visibleMainRows) * (keyHeight + 4) - 4 }
+    public var mainAreaHeight: Double {
+        Double(visibleMainRows) * (keyHeight + Self.rowSpacing) - Self.rowSpacing
+    }
 
     /// Top/bottom padding (`.padding(.vertical, 4)` in `panelBody`).
     public static let verticalPadding: Double = 4
@@ -106,6 +109,40 @@ public extension KeyboardPanelGeometry {
     /// pages in height; it is also the row count used when the host looks only at "candidate budget + key height".
     static let standardMainRowCount: Int = 3
 
+    /// Gap between two key rows, and between the main area and the control row.
+    static let rowSpacing: Double = 4
+
+    /// The key area's height ceiling: every letter row plus the control row and the gaps between
+    /// them (the candidate band and the outer padding are budgeted separately). A board with more
+    /// letter rows shares the same area as the standard three-row board and shortens its rows
+    /// instead of growing the keyboard past the height decision.
+    static let maximumKeyAreaHeight: Double = 256
+
+    /// Key height that spreads the standard three-row board's key area over `physicalMainRows`
+    /// letter rows plus the control row. The area is `(rows + 1) * keyHeight + rows * rowSpacing`
+    /// and stays the standard board's own area (capped at `maximumKeyAreaHeight`), so a four-row
+    /// board keeps the same shell height as a three-row one and only its rows get shorter: the
+    /// three portrait presets stay distinct (37.6 / 42.4 / 47.2) instead of meeting at the ceiling.
+    static func physicalKeyHeight(standardKeyHeight: Double, physicalMainRows: Int) -> Double {
+        let rows = max(standardMainRowCount, physicalMainRows)
+        let standardArea =
+            Double(standardMainRowCount + 1) * standardKeyHeight
+            + Double(standardMainRowCount) * rowSpacing
+        let area = min(standardArea, maximumKeyAreaHeight)
+        return max(1, (area - Double(rows) * rowSpacing) / Double(rows + 1))
+    }
+
+    /// Letter rows a physical board draws above its control row. Only the bundled, registered
+    /// physical boards take their own row count; a user layout or a copy keeps the standard
+    /// three-row budget so a longer DIY layout keeps scrolling instead of enlarging the shell.
+    static func physicalMainRowBudget(forDefinitionID id: String?) -> Int {
+        guard let id, let board = BuiltinLayouts.all.first(where: { $0.id == id }) else {
+            return standardMainRowCount
+        }
+        // Every bundled board ends with its control row, which the key area budgets separately.
+        return max(standardMainRowCount, board.rows.count - 1)
+    }
+
     /// The **single** height derivation entry shared by `KeyboardPanelView` (panel) and `KeyboardPanelHost` (host):
     /// the same `KeyboardPanelGeometry` + the same `layoutPlan`.
     ///
@@ -131,7 +168,8 @@ public extension KeyboardPanelGeometry {
     }
 
     /// Panel height when only "candidate budget + key height" are needed (host and panel share this entry).
-    /// Always equals the version taking a concrete `selectedMainRows`: `visibleMainRows` is always clamped to three rows.
+    /// Always equals the version taking a concrete `selectedMainRows`: without a physical row budget
+    /// `visibleMainRows` is clamped to the standard three rows.
     static func panelHeight(
         candidateHeight: Double, keyHeight: Double,
         showsHeader: Bool, candidateSize: Double = 17
@@ -157,12 +195,15 @@ public extension KeyboardPanelGeometry {
         maximumVisibleRows: Int = 3,
         readingRowReserved: Bool = false,
         candidateAreaReserved: Bool = true,
-        candidateSize: Double = 17
+        candidateSize: Double = 17,
+        physicalMainRows: Int = standardMainRowCount
     ) -> Double {
-        panelHeight(
-            candidateHeight: candidateHeight, keyHeight: keyHeight,
-            selectedMainRows: standardMainRowCount, showsHeader: candidateAreaReserved,
-            maximumVisibleRows: maximumVisibleRows,
+        let rows = max(standardMainRowCount, physicalMainRows)
+        return panelHeight(
+            candidateHeight: candidateHeight,
+            keyHeight: physicalKeyHeight(standardKeyHeight: keyHeight, physicalMainRows: rows),
+            selectedMainRows: rows, showsHeader: candidateAreaReserved,
+            maximumVisibleRows: max(maximumVisibleRows, rows),
             readingRowReserved: readingRowReserved,
             candidateSize: candidateSize)
     }
@@ -171,17 +212,21 @@ public extension KeyboardPanelGeometry {
     /// Explicit configuration changes submit a new native budget while temporary pages
     /// and composition/candidate changes keep fitting the current definition.
     /// A candidate area also receives `candidateAreaBonus`; key rows never exceed the standard height.
+    /// `physicalMainRows` is the definition's letter-row count: the standard key area is spread over
+    /// those rows plus the control row, so a four-row board keeps the three-row shell height.
     static func presentationShellHeight(
         candidateHeight: Double, keyHeight: Double,
         candidateSize: Double = 17, readingRow: Bool,
         candidateArea: Bool = true,
-        compactReadingRow: Bool = false
+        compactReadingRow: Bool = false,
+        physicalMainRows: Int = standardMainRowCount
     ) -> Double {
         let reading = readingRow && candidateArea
         return fixedPanelHeight(
             candidateHeight: candidateHeight, keyHeight: keyHeight,
             readingRowReserved: reading, candidateAreaReserved: candidateArea,
-            candidateSize: candidateSize)
+            candidateSize: candidateSize,
+            physicalMainRows: physicalMainRows)
             - CandidateReadingRowPolicy.height(reserved: reading)
             + CandidateReadingRowPolicy.height(reserved: reading, compact: compactReadingRow)
             + (candidateArea ? candidateAreaBonus - (reading ? readingLayoutBonusCut : 0) : 0)
@@ -234,13 +279,15 @@ public extension KeyboardPanelGeometry {
     static func fit(
         shellHeight: Double, candidateHeight: Double, standardKeyHeight: Double,
         readingRowReserved: Bool, candidateAreaReserved: Bool,
-        candidateSize: Double = 17, compactReadingRow: Bool = false
+        candidateSize: Double = 17, compactReadingRow: Bool = false,
+        drawnMainRows: Int = standardMainRowCount
     ) -> KeyboardPanelFit {
         func layout(_ height: Double) -> KeyboardPanelFit {
             untrimmedFit(
                 shellHeight: height, candidateHeight: candidateHeight, standardKeyHeight: standardKeyHeight,
                 readingRowReserved: readingRowReserved, candidateAreaReserved: candidateAreaReserved,
-                candidateSize: candidateSize, compactReadingRow: compactReadingRow)
+                candidateSize: candidateSize, compactReadingRow: compactReadingRow,
+                drawnMainRows: drawnMainRows)
         }
         let cut = hostGapWorkaroundCut
         guard candidateAreaReserved, cut > 0 else { return layout(shellHeight) }
@@ -263,7 +310,8 @@ public extension KeyboardPanelGeometry {
     private static func untrimmedFit(
         shellHeight: Double, candidateHeight: Double, standardKeyHeight: Double,
         readingRowReserved: Bool, candidateAreaReserved: Bool,
-        candidateSize: Double, compactReadingRow: Bool
+        candidateSize: Double, compactReadingRow: Bool,
+        drawnMainRows: Int
     ) -> KeyboardPanelFit {
         let header =
             candidateAreaReserved
@@ -272,12 +320,15 @@ public extension KeyboardPanelGeometry {
             candidateAreaReserved
             ? CandidateReadingRowPolicy.height(reserved: readingRowReserved, compact: compactReadingRow) : 0
         let top = candidateAreaReserved ? candidateTopPadding : verticalPadding
-        let rows = Double(standardMainRowCount + 1)
-        let fixedWithoutReading = top + header + Double(standardMainRowCount - 1) * 4 + controlSpacing + verticalPadding
-        let shortfall = max(0, standardKeyHeight * rows - (shellHeight - fixedWithoutReading - fullReading))
+        let rows = Double(drawnMainRows + 1)
+        let fixedWithoutReading =
+            top + header + Double(drawnMainRows - 1) * rowSpacing + controlSpacing + verticalPadding
+        let fullKeyHeight = physicalKeyHeight(
+            standardKeyHeight: standardKeyHeight, physicalMainRows: drawnMainRows)
+        let shortfall = max(0, fullKeyHeight * rows - (shellHeight - fixedWithoutReading - fullReading))
         let reading = fullReading - min(shortfall, max(0, fullReading - CandidateReadingRowPolicy.minimumHeight))
         let available = shellHeight - fixedWithoutReading - reading
-        let key = max(1, min(standardKeyHeight, available / rows))
+        let key = max(1, min(fullKeyHeight, available / rows))
         let slack = max(0, available - key * rows)
         // A reading row takes its share of the spare height as touch budget; the
         // candidate row takes the rest.
@@ -297,12 +348,15 @@ public extension KeyboardPanelGeometry {
         candidateHeight: Double, keyHeight: Double,
         selectedMainRows: Int = standardMainRowCount,
         maximumVisibleRows: Int = 3,
-        candidateSize: Double = 17
+        candidateSize: Double = 17,
+        physicalMainRows: Int? = nil
     ) -> Double {
-        panelHeight(
-            candidateHeight: candidateHeight, keyHeight: keyHeight,
-            selectedMainRows: selectedMainRows, showsHeader: false,
-            maximumVisibleRows: maximumVisibleRows, candidateSize: candidateSize)
+        let rows = max(standardMainRowCount, physicalMainRows ?? selectedMainRows)
+        return panelHeight(
+            candidateHeight: candidateHeight,
+            keyHeight: physicalKeyHeight(standardKeyHeight: keyHeight, physicalMainRows: rows),
+            selectedMainRows: rows, showsHeader: false,
+            maximumVisibleRows: max(maximumVisibleRows, rows), candidateSize: candidateSize)
     }
 }
 
@@ -338,10 +392,14 @@ public struct KeyboardPanelPresentationBudget: Equatable, Sendable {
     public let candidateArea: Bool
     public let compact: Bool
     public let heightPreset: KeyboardHeightPreset
+    /// Letter rows the selected physical board draws above its control row; every other page
+    /// re-fits inside the shell this budgets. The standard boards and user layouts keep three.
+    public let physicalMainRows: Int
 
     public init(
         candidateHeight: Double, candidateSize: Double, readingRow: Bool,
-        candidateArea: Bool, compact: Bool, heightPreset: KeyboardHeightPreset = .standard
+        candidateArea: Bool, compact: Bool, heightPreset: KeyboardHeightPreset = .standard,
+        physicalMainRows: Int = KeyboardPanelGeometry.standardMainRowCount
     ) {
         self.candidateHeight = candidateHeight
         self.candidateSize = candidateSize
@@ -349,6 +407,7 @@ public struct KeyboardPanelPresentationBudget: Equatable, Sendable {
         self.candidateArea = candidateArea
         self.compact = compact
         self.heightPreset = heightPreset
+        self.physicalMainRows = physicalMainRows
     }
 
     public var keyHeight: Double { heightPreset.keyHeight(compact: compact) }
@@ -359,13 +418,15 @@ public struct KeyboardPanelPresentationBudget: Equatable, Sendable {
             candidateSize: candidateSize,
             readingRow: readingRow,
             candidateArea: candidateArea,
-            compactReadingRow: compact)
+            compactReadingRow: compact,
+            physicalMainRows: physicalMainRows)
     }
 
     public func withCompact(_ compact: Bool) -> Self {
         Self(
             candidateHeight: candidateHeight, candidateSize: candidateSize,
-            readingRow: readingRow, candidateArea: candidateArea, compact: compact, heightPreset: heightPreset)
+            readingRow: readingRow, candidateArea: candidateArea, compact: compact,
+            heightPreset: heightPreset, physicalMainRows: physicalMainRows)
     }
 }
 

@@ -39,7 +39,7 @@ public enum RimeSourceDependencies {
             if missing.isEmpty { return sources }
             let optional = Set(closure.optional)
             if inventories == nil {
-                progress("正在查询官方依赖列表…")
+                progress(PackageText.string("dependencies.progress.querying"))
                 var found: [String: Set<String>] = [:]
                 for order in try await RimeSourceOrder.expand(":preset", transport: transport) {
                     struct Tree: Decodable {
@@ -55,7 +55,8 @@ public enum RimeSourceDependencies {
                     let tree = try JSONDecoder().decode(
                         Tree.self, from: await transport.read(url, maximumBytes: 8 * 1024 * 1024))
                     guard !tree.truncated else {
-                        throw RecipeInstallError.invalidResource("官方源文件索引被截断：\(order.repository)")
+                        throw RecipeInstallError.invalidResource(
+                            PackageText.format("dependencies.error.indexTruncated", order.repository))
                     }
                     found[order.repository] = Set(tree.tree.filter { $0.type == "blob" }.map(\.path))
                 }
@@ -68,7 +69,8 @@ public enum RimeSourceDependencies {
                 guard matches.count == 1, let provider = matches.first, !acquired.contains(provider) else {
                     // A reverse lookup or preset vocabulary nobody provides is left out, as librime leaves it.
                     if optional.contains(path) { continue }
-                    throw RecipeInstallError.invalidResource("依赖项 \(path) 没有唯一可用的官方来源；请在来源列表中明确添加提供该文件的仓库。")
+                    throw RecipeInstallError.invalidResource(
+                        PackageText.format("dependencies.error.noUniqueProvider", path))
                 }
                 providers.insert(provider)
             }
@@ -80,7 +82,7 @@ public enum RimeSourceDependencies {
                 let modelBytes = (dependencies + explicit).reduce(0) {
                     $0 + $1.models.values.reduce(0) { $0 + $1.size }
                 }
-                progress("正在下载官方依赖：\(repository)")
+                progress(PackageText.format("dependencies.progress.downloading", repository))
                 var dependency = try await AcquiredRimeSource.fetch(
                     RimeSourceOrder(repository),
                     sourceBudget: RecipeResourceBudget.sourceTotal - sourceBytes,
@@ -90,6 +92,6 @@ public enum RimeSourceDependencies {
                 dependencies.append(dependency)
             }
         }
-        throw RecipeInstallError.invalidResource("输入方案依赖层级过多（超过 16 层）；请检查是否存在循环依赖")
+        throw RecipeInstallError.invalidResource(PackageText.string("dependencies.error.tooDeep"))
     }
 }

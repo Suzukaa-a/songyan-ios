@@ -17,7 +17,11 @@ enum AppearancePreviewLoader {
                 layout: (activation?.selectedLayout ?? .qwerty26).builtinLayout)
             // An older catalog can lack a bundled preset the composition still selects.
             let layouts = registry.usableLayouts { _ in true }
-            let selected = registry.composition(for: key).mainLayoutID
+            // The same pairing rule the keyboard and 我的键盘 use: an unsaved traditional keyboard
+            // previews its own board instead of the 26-key default.
+            let selected = HostLayoutAvailability.effectiveMainLayoutID(
+                schemaID: key.inputMethodID, layout: KeyboardLayoutKind(key.layout),
+                descriptors: activation?.schemas ?? [], in: registry)
             return (layouts, layouts.contains { $0.id == selected } ? selected : layouts.first?.id ?? selected)
         }
     }
@@ -52,7 +56,7 @@ struct SkinManagementView: View {
             Section {
                 // Light/dark is part of the applied appearance: applied immediately on selection, no need to open detail and tap Apply.
                 Picker(
-                    "深浅色",
+                    String(localized: "深浅色"),
                     selection: Binding(
                         get: { manager.editingAppearance },
                         set: { mode in
@@ -71,12 +75,12 @@ struct SkinManagementView: View {
                     Text(degraded).font(.footnote).foregroundStyle(.orange)
                 }
                 if manager.error != nil {
-                    Button("重试") { manager.reload() }
+                    Button(String(localized: "重试")) { manager.reload() }
                 }
-                if manager.isMutating { ProgressView("正在保存外观…") }
+                if manager.isMutating { ProgressView(String(localized: "正在保存外观…")) }
             }
             if !manager.unreadable.isEmpty {
-                Section("无法读取的外观") {
+                Section(String(localized: "无法读取的外观")) {
                     ForEach(manager.unreadable) { item in
                         NavigationLink {
                             UnreadableAppearanceView(item: item)
@@ -87,7 +91,7 @@ struct SkinManagementView: View {
                     }
                 }
             }
-            Section("外观") {
+            Section(String(localized: "外观")) {
                 ForEach(manager.projects) { project in
                     NavigationLink {
                         AppearanceDetailView(document: project)
@@ -104,7 +108,7 @@ struct SkinManagementView: View {
                             )
                             .accessibilityHidden(true)
                             VStack(alignment: .leading, spacing: 3) {
-                                Text(project.name)
+                                Text(project.displayName)
                                     .font(.body.weight(.medium))
                                 Text(manager.candidateSummary(for: project))
                                     .font(.caption).foregroundStyle(.secondary)
@@ -127,7 +131,7 @@ struct SkinManagementView: View {
             Button {
                 importing = true
             } label: {
-                Label("导入外观文件", systemImage: "square.and.arrow.down")
+                Label(String(localized: "导入外观文件"), systemImage: "square.and.arrow.down")
             }
             if let importError { Text(importError).foregroundStyle(.red) }
         }.navigationTitle(UserTerminology.keyboardAppearance)
@@ -147,7 +151,9 @@ struct SkinManagementView: View {
                 SkinEditorView(document: $0) { savedDestination = $0 }
             }
             .navigationDestination(isPresented: $showsSaved) {
-                if let savedDestination { AppearanceDetailView(document: savedDestination, notice: "已保存") }
+                if let savedDestination {
+                    AppearanceDetailView(document: savedDestination, notice: String(localized: "已保存"))
+                }
             }
             .onChange(of: showsSaved) { if !showsSaved { savedDestination = nil } }
     }
@@ -168,49 +174,64 @@ private struct UnreadableAppearanceView: View {
     var body: some View {
         Form {
             Section {
-                Label("这个外观文件无法读取。", systemImage: "exclamationmark.triangle")
-                    .foregroundStyle(.orange)
+                Label(
+                    String(localized: "这个外观文件无法读取。"), systemImage: "exclamationmark.triangle"
+                )
+                .foregroundStyle(.orange)
                 Text(item.fileName).font(.footnote.monospaced()).textSelection(.enabled)
-                DisclosureGroup("详细信息") { Text(item.reason).font(.footnote).textSelection(.enabled) }
-            }
-            Section("恢复") {
-                if let recovery = manager.recoveryDocument(for: item) {
-                    Button(recovery.isBuiltin ? "恢复内置外观" : "从正在使用的外观恢复") { confirmingRestore = true }
+                DisclosureGroup(String(localized: "详细信息")) {
+                    Text(item.reason).font(.footnote).textSelection(.enabled)
                 }
-                Button("从文件恢复") { importing = true }
+            }
+            Section(String(localized: "恢复")) {
+                if let recovery = manager.recoveryDocument(for: item) {
+                    Button(
+                        recovery.isBuiltin
+                            ? String(localized: "恢复内置外观") : String(localized: "从正在使用的外观恢复")
+                    ) { confirmingRestore = true }
+                }
+                Button(String(localized: "从文件恢复")) { importing = true }
             }
             Section {
-                Button("导出原文件", systemImage: "square.and.arrow.up") {
+                Button(String(localized: "导出原文件"), systemImage: "square.and.arrow.up") {
                     readingExport = true
                     Task {
                         defer { readingExport = false }
                         do {
                             exportDocument = SkinFileDocument(data: try await manager.exportUnreadable(item))
                             exporting = true
-                        } catch { self.error = "文件没有导出，请重试。" }
+                        } catch { self.error = String(localized: "文件没有导出，请重试。") }
                     }
                 }
-                Button("删除文件", systemImage: "trash", role: .destructive) { confirmingDelete = true }
+                Button(
+                    String(localized: "删除文件"), systemImage: "trash", role: .destructive
+                ) { confirmingDelete = true }
             }
-            if manager.isMutating || readingExport { ProgressView("正在处理…") }
+            if manager.isMutating || readingExport { ProgressView(String(localized: "正在处理…")) }
             if let error = error ?? manager.error { Text(error).foregroundStyle(.red) }
         }
         .disabled(manager.isMutating || readingExport)
-        .navigationTitle("恢复外观")
+        .navigationTitle(String(localized: "恢复外观"))
         .navigationBarTitleDisplayMode(.inline)
-        .confirmationDialog("恢复这个外观？", isPresented: $confirmingRestore, titleVisibility: .visible) {
-            Button("恢复外观", role: .destructive) {
+        .confirmationDialog(
+            String(localized: "恢复这个外观？"), isPresented: $confirmingRestore,
+            titleVisibility: .visible
+        ) {
+            Button(String(localized: "恢复外观"), role: .destructive) {
                 Task { if await manager.restoreUnreadable(item) { dismiss() } }
             }
-            Button("取消", role: .cancel) {}
+            Button(String(localized: "取消"), role: .cancel) {}
         } message: {
             Text("原文件会替换为保存的外观。")
         }
-        .confirmationDialog("删除这个外观文件？", isPresented: $confirmingDelete, titleVisibility: .visible) {
-            Button("删除文件", role: .destructive) {
+        .confirmationDialog(
+            String(localized: "删除这个外观文件？"), isPresented: $confirmingDelete,
+            titleVisibility: .visible
+        ) {
+            Button(String(localized: "删除文件"), role: .destructive) {
                 Task { if await manager.removeUnreadable(item) { dismiss() } }
             }
-            Button("取消", role: .cancel) {}
+            Button(String(localized: "取消"), role: .cancel) {}
         } message: {
             Text("删除后无法恢复。你可以先导出原文件。")
         }
@@ -218,13 +239,13 @@ private struct UnreadableAppearanceView: View {
             switch result {
             case .success(let url):
                 Task { if await manager.restoreUnreadable(item, from: url) { dismiss() } }
-            case .failure: error = "文件没有打开，请重新选择。"
+            case .failure: error = String(localized: "文件没有打开，请重新选择。")
             }
         }
         .fileExporter(
             isPresented: $exporting, document: exportDocument, contentType: .json, defaultFilename: item.fileName
         ) { result in
-            if case .failure = result { error = "文件没有导出，请重试。" }
+            if case .failure = result { error = String(localized: "文件没有导出，请重试。") }
         }
     }
 }
@@ -259,17 +280,19 @@ struct AppearanceDetailView: View {
     @Environment(\.colorScheme) private var colorScheme
     var body: some View {
         Form {
-            Section("预览") {
-                if layouts.isEmpty { ProgressView("正在读取布局…") }
-                Picker("键盘布局", selection: $layoutID) { ForEach(layouts) { Text($0.name).tag($0.id) } }
-                Toggle("深色预览", isOn: $dark)
+            Section(String(localized: "预览")) {
+                if layouts.isEmpty { ProgressView(String(localized: "正在读取布局…")) }
+                Picker(String(localized: "键盘布局"), selection: $layoutID) {
+                    ForEach(layouts) { Text($0.name).tag($0.id) }
+                }
+                Toggle(String(localized: "深色预览"), isOn: $dark)
                 if let layout = layouts.first(where: { $0.id == layoutID }) {
                     KeyboardPreviewView(
                         layout: layout, skin: document.skin, candidateBar: document.candidateBar, previewDark: dark)
                 }
             }
-            Section("候选栏") {
-                Toggle("展开预览", isOn: $showsExpandedCandidates)
+            Section(String(localized: "候选栏")) {
+                Toggle(String(localized: "展开预览"), isOn: $showsExpandedCandidates)
                 CandidateBarPreviewView(
                     bar: document.candidateBar, skin: document.skin,
                     expanded: showsExpandedCandidates, dark: dark)
@@ -279,34 +302,39 @@ struct AppearanceDetailView: View {
                     Label(status, systemImage: "checkmark.circle").foregroundStyle(.secondary)
                 }
                 if !document.isBuiltin {
-                    Button("编辑外观", systemImage: "pencil") { draft = document }
+                    Button(String(localized: "编辑外观"), systemImage: "pencil") { draft = document }
                 }
                 if !document.isBuiltin {
-                    Button("复制并编辑", systemImage: "plus.square.on.square") { draft = document.copy() }
+                    Button(String(localized: "复制并编辑"), systemImage: "plus.square.on.square") { draft = document.copy() }
                 }
-                Button("导出文件", systemImage: "square.and.arrow.up") {
+                Button(String(localized: "导出文件"), systemImage: "square.and.arrow.up") {
                     do {
                         exportDocument = SkinFileDocument(data: try document.encoded())
                         exporting = true
                     } catch { self.error = error.localizedDescription }
                 }
                 if !document.isBuiltin {
-                    Button("删除外观", systemImage: "trash", role: .destructive) { confirmingDelete = true }
+                    Button(
+                        String(localized: "删除外观"), systemImage: "trash", role: .destructive
+                    ) { confirmingDelete = true }
                 }
             }
             if manager.isMutating || manager.message != nil || manager.error != nil || error != nil {
                 Section {
-                    if manager.isMutating { ProgressView("正在保存外观…") }
+                    if manager.isMutating { ProgressView(String(localized: "正在保存外观…")) }
                     if let message = manager.message { Text(message).font(.footnote) }
                     if let error = error ?? manager.error { Text(error).foregroundStyle(.red) }
                 }
             }
         }
-        .confirmationDialog("删除外观「\(document.name)」？", isPresented: $confirmingDelete, titleVisibility: .visible) {
-            Button("删除外观", role: .destructive) {
+        .confirmationDialog(
+            String(localized: "删除外观「\(document.displayName)」？"), isPresented: $confirmingDelete,
+            titleVisibility: .visible
+        ) {
+            Button(String(localized: "删除外观"), role: .destructive) {
                 Task { if await manager.remove(document.id) { dismiss() } }
             }
-            Button("取消", role: .cancel) {}
+            Button(String(localized: "取消"), role: .cancel) {}
         } message: {
             Text(
                 manager.applicationStatus(for: document) != nil
@@ -322,13 +350,13 @@ struct AppearanceDetailView: View {
                 guard !Task.isCancelled else { return }
                 layouts = preview.layouts
                 layoutID = preview.selectedID
-            } catch { self.error = "无法读取预览布局，请重新打开外观。" }
+            } catch { self.error = String(localized: "无法读取预览布局，请重新打开外观。") }
         }
         .safeAreaInset(edge: .bottom) {
             Button {
                 Task { await manager.apply(document) }
             } label: {
-                Label("应用", systemImage: "checkmark")
+                Label(String(localized: "应用"), systemImage: "checkmark")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
@@ -339,11 +367,11 @@ struct AppearanceDetailView: View {
             .padding(.vertical, 8)
             .background(.regularMaterial)
         }
-        .navigationTitle(document.name)
+        .navigationTitle(document.displayName)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button(document.isBuiltin ? "复制并编辑" : "编辑") {
+                Button(document.isBuiltin ? String(localized: "复制并编辑") : String(localized: "编辑")) {
                     draft = document.isBuiltin ? document.copy() : document
                 }
                 .disabled(manager.isLoading || manager.isMutating)
@@ -357,7 +385,7 @@ struct AppearanceDetailView: View {
                 } else if savedInPlace {
                     // Shown after the sheet is gone, so the confirmation is not hidden behind it.
                     savedInPlace = false
-                    toast = "已保存"
+                    toast = String(localized: "已保存")
                 }
             }
         ) {
@@ -367,7 +395,9 @@ struct AppearanceDetailView: View {
             }
         }
         .navigationDestination(isPresented: $showsSaved) {
-            if let savedDestination { AppearanceDetailView(document: savedDestination, notice: "已保存") }
+            if let savedDestination {
+                AppearanceDetailView(document: savedDestination, notice: String(localized: "已保存"))
+            }
         }
         .savedToast($toast)
         .onChange(of: showsSaved) { if !showsSaved { savedDestination = nil } }

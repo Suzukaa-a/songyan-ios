@@ -33,17 +33,37 @@ public enum RimeSnapshotImportSummary {
             entriesByDictionary[snapshot.dictionary, default: 0] += snapshot.entryCount
         }
         let total = collected.snapshots.reduce(0) { $0 + $1.entryCount }
-        var lines = ["\(collected.snapshots.count) 份词库，共 \(total) 条，会并入「\(sourceName)」："]
+        var lines = [
+            String(
+                format: String(localized: "core.import.confirmationTitle", bundle: .module),
+                String(collected.snapshots.count), String(total), sourceName)
+        ]
         let names = entriesByDictionary.keys.sorted()
-        lines += names.prefix(listedDictionaries).map { "· \($0)：\(entriesByDictionary[$0] ?? 0) 条" }
-        if names.count > listedDictionaries { lines.append("· 等共 \(names.count) 种词库") }
-        lines.append("用不到的词库会跳过。开始合并前会先自动保存当前的学习数据；合并后无法撤回。")
+        lines += names.prefix(listedDictionaries).map {
+            String(
+                format: String(localized: "core.import.entry", bundle: .module),
+                $0, String(entriesByDictionary[$0] ?? 0))
+        }
+        if names.count > listedDictionaries {
+            lines.append(
+                String(
+                    format: String(localized: "core.import.moreDictionaries", bundle: .module),
+                    String(names.count)))
+        }
+        lines.append(String(localized: "core.import.footer", bundle: .module))
         if !collected.skipped.isEmpty {
             lines.append("")
-            lines.append("这些文件不会并入：")
-            lines += collected.skipped.prefix(listedSkippedFiles).map { "· \($0.fileName)：\(reasonText($0.reason))" }
+            lines.append(String(localized: "core.import.skippedTitle", bundle: .module))
+            lines += collected.skipped.prefix(listedSkippedFiles).map {
+                String(
+                    format: String(localized: "core.import.skippedEntry", bundle: .module),
+                    $0.fileName, reasonText($0.reason))
+            }
             if collected.skipped.count > listedSkippedFiles {
-                lines.append("· 另有 \(collected.skipped.count - listedSkippedFiles) 个文件")
+                lines.append(
+                    String(
+                        format: String(localized: "core.import.moreSkipped", bundle: .module),
+                        String(collected.skipped.count - listedSkippedFiles)))
             }
         }
         return lines.joined(separator: "\n")
@@ -51,16 +71,18 @@ public enum RimeSnapshotImportSummary {
 
     /// Shown when the pick holds nothing to merge.
     public static func nothingToImport(_ collected: CollectedSnapshots) -> String {
-        collected.skipped.isEmpty ? "所选的位置里没有 Rime 词库文件。" : "所选文件里没有能并入的词库，没有做任何修改。"
+        collected.skipped.isEmpty
+            ? String(localized: "core.import.nothingAtLocation", bundle: .module)
+            : String(localized: "core.import.nothingInFiles", bundle: .module)
     }
 
-    public static let tooLarge = "所选的文件太多或太大，请分几次导入。没有做任何修改。"
+    public static var tooLarge: String { String(localized: "core.import.tooLarge", bundle: .module) }
 
     public static func reasonText(_ reason: SnapshotSkipReason) -> String {
         switch reason {
-        case .notASnapshot: return "不是 Rime 词库文件，或者已经损坏"
-        case .tooLarge: return "文件太大"
-        case .empty: return "里面没有词"
+        case .notASnapshot: return String(localized: "core.import.reasonNotASnapshot", bundle: .module)
+        case .tooLarge: return String(localized: "core.import.reasonTooLarge", bundle: .module)
+        case .empty: return String(localized: "core.import.reasonEmpty", bundle: .module)
         }
     }
 }

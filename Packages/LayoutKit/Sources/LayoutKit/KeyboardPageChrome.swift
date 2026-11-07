@@ -69,8 +69,8 @@ public struct KeyboardPageChrome: Codable, Equatable, Sendable {
     func validate() throws {
         for key in allKeys { try KeyboardPageDefinition.validateKey(key) }
         for (width, detail) in [
-            (leadingWidth, "请把左侧栏宽度设为大于 0 的数字。"),
-            (trailingWidth, "请把右侧栏宽度设为大于 0 的数字。"),
+            (leadingWidth, String(localized: "page.error.leadingWidth", bundle: .module)),
+            (trailingWidth, String(localized: "page.error.trailingWidth", bundle: .module)),
         ] {
             guard let width else { continue }
             guard width.isFinite, width > 0 else { throw LayoutError.invalid(detail) }

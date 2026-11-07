@@ -92,13 +92,18 @@ public struct KeyboardPanelHost: View {
                 candidateSize: candidateSize,
                 readingRow: shell.readingRow,
                 candidateArea: shell.candidateArea,
-                compactReadingRow: compactReadingRow))
+                compactReadingRow: compactReadingRow,
+                physicalMainRows: shell.mainRows))
     }
     private let presentationBudget: KeyboardPanelPresentationBudget?
     /// Adopted on every host (re)binding; the in-panel restore turns it off in place.
     @State private var oneHandMode = KeyboardOneHandPreferences.current
     /// The selected definition's own page facts (ABC/123 grants excluded).
     @State private var definitionShell = KeyboardPresentationShell(readingRow: false, candidateArea: true)
+    /// Letter rows the current page draws: the definition's budget on its letters page, three on
+    /// the shared ABC/123 pages. The host re-fits the page inside the unchanged shell with this
+    /// count instead of stretching the candidate band by the spare row.
+    @State private var drawnMainRows = KeyboardPanelGeometry.standardMainRowCount
     /// Fit the current native height while UIKit applies a new configuration budget.
     /// The next geometry receipt adopts the requested height within the same presentation.
     private let presentedHeight: CGFloat?
@@ -116,7 +121,8 @@ public struct KeyboardPanelHost: View {
             readingRowReserved: readingRowGranted,
             candidateAreaReserved: candidateAreaGranted,
             candidateSize: candidateSize,
-            compactReadingRow: compactReadingRow)
+            compactReadingRow: compactReadingRow,
+            drawnMainRows: drawnMainRows)
     }
     /// Key rows never exceed the standard key height; the rest of the shared shell
     /// goes to the candidate area (or stays blank above a page without one).
@@ -217,6 +223,7 @@ public struct KeyboardPanelHost: View {
             _readingRowGranted = State(initialValue: initialPresentation.readingRowReserved)
             _candidateAreaGranted = State(initialValue: initialPresentation.candidateAreaReserved)
             _definitionShell = State(initialValue: initialPresentation.presentationShell)
+            _drawnMainRows = State(initialValue: initialPresentation.physicalMainRows)
             _initialGeometryBudget = State(
                 initialValue: (
                     initialPresentation.candidateHeight,
@@ -348,6 +355,18 @@ public struct KeyboardPanelHost: View {
         .padding(.horizontal, 4)
     }
 
+    private var retryTitle: String {
+        if session.controller?.session.inputUnavailableReason != nil {
+            return String(localized: "放弃组合并重试")
+        }
+        return String(localized: "重试")
+    }
+
+    private var restoreBuiltinTitle: String {
+        if onRestoreBuiltin == nil { return String(localized: "恢复已配置方案") }
+        return String(localized: "临时使用\(ProductionInputAvailability.fallbackInputMethodName)")
+    }
+
     /// Real startup failure: explicit message plus retry.
     private var failureSurface: some View {
         VStack(spacing: 10) {
@@ -356,28 +375,25 @@ public struct KeyboardPanelHost: View {
             Text("键盘暂时无法使用").font(.headline)
             Text(
                 session.controller?.session.inputUnavailableReason != nil
-                    ? "当前输入状态无法确认。重试将放弃尚未上屏的输入，已上屏文字保留。"
-                    : "请重试后继续输入。"
+                    ? String(localized: "当前输入状态无法确认。重试将放弃尚未上屏的输入，已上屏文字保留。")
+                    : String(localized: "请重试后继续输入。")
             )
             .font(.footnote)
             .foregroundStyle(.secondary)
             HStack {
-                Button(session.controller?.session.inputUnavailableReason != nil ? "放弃组合并重试" : "重试") {
+                Button(retryTitle) {
                     session.retry()
                 }
                 .buttonStyle(.borderedProminent)
                 if session.resourceSet != nil {
-                    Button(
-                        onRestoreBuiltin == nil
-                            ? "恢复已配置方案" : "临时使用\(ProductionInputAvailability.fallbackInputMethodName)"
-                    ) {
+                    Button(restoreBuiltinTitle) {
                         if let onRestoreBuiltin { onRestoreBuiltin() } else { session.restoreConfiguredRoute() }
                     }
                     .buttonStyle(.bordered)
                 }
             }
             .frame(minHeight: 44)
-            Button("错误详情") { showsErrorDetails = true }
+            Button(String(localized: "错误详情")) { showsErrorDetails = true }
                 .frame(minHeight: 44)
         }
         .padding()
@@ -429,7 +445,7 @@ public struct KeyboardPanelHost: View {
                 },
                 additionalTools: AnyView(
                     Group {
-                        KeyboardToolsSection(title: "输入") {
+                        KeyboardToolsSection(title: String(localized: "输入")) {
                             InlineCompositionToggle(session: session)
                             if oneHandAvailable {
                                 KeyboardToolsSeparator()
@@ -508,7 +524,7 @@ public struct KeyboardPanelHost: View {
                         Image(systemName: "arrow.clockwise")
                             .frame(width: 44, height: 44)
                     }
-                    .accessibilityLabel("重新读取我的键盘")
+                    .accessibilityLabel(String(localized: "重新读取我的键盘"))
                     .disabled(isRetryingPublishedKeyboards)
                 }
                 Button {
@@ -518,7 +534,7 @@ public struct KeyboardPanelHost: View {
                     Image(systemName: "xmark")
                         .frame(width: 44, height: 44)
                 }
-                .accessibilityLabel("关闭提示")
+                .accessibilityLabel(String(localized: "关闭提示"))
             }
             .padding(8)
             .background(
@@ -540,11 +556,11 @@ public struct KeyboardPanelHost: View {
     /// Under the fixed budget it does not affect panel height, only the bar's contents.
     private func resolvedStatusMessage(_ controller: KeyboardController) -> String? {
         let operationFailed = session.transitionError != nil || controller.inputError != nil
-        return (operationFailed ? "操作未完成" : nil)
-            ?? (session.publishedKeyboardError == nil ? nil : "我的键盘读取失败 · 可重试")
+        return (operationFailed ? String(localized: "操作未完成") : nil)
+            ?? (session.publishedKeyboardError == nil ? nil : String(localized: "我的键盘读取失败 · 可重试"))
             ?? statusMessage
-            ?? (appearanceReadError == nil ? nil : "外观读取失败 · 暂用有效外观")
-            ?? (layoutReadError == nil ? nil : "布局读取失败 · 暂用内置")
+            ?? (appearanceReadError == nil ? nil : String(localized: "外观读取失败 · 暂用有效外观"))
+            ?? (layoutReadError == nil ? nil : String(localized: "布局读取失败 · 暂用内置"))
     }
 
     /// Engine-boot surface.
@@ -556,8 +572,17 @@ public struct KeyboardPanelHost: View {
     /// boot is never interrupted by a misleading retry action.
     private var startingSurface: some View {
         ProgressView()
-            .accessibilityLabel("键盘正在启动")
+            .accessibilityLabel(String(localized: "键盘正在启动"))
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func errorSurfaceTitle(layoutError: Bool, inputError: Bool) -> String {
+        if inputError { return String(localized: "输入操作未完成") }
+        if layoutError {
+            if appearanceReadError == nil { return String(localized: "无法读取布局 · 暂用内置") }
+            return String(localized: "无法读取外观 · 暂用有效外观")
+        }
+        return String(localized: "键盘未能启动")
     }
 
     private func errorDetails(_ message: String, layoutError: Bool, inputError: Bool = false) -> some View {
@@ -570,7 +595,7 @@ public struct KeyboardPanelHost: View {
                     )
                     .frame(width: 44, height: 44)
                 }
-                Button("返回键盘") {
+                Button(String(localized: "返回键盘")) {
                     showsLayoutErrorDetails = false
                     showsErrorDetails = false
                     showsTransitionDetails = false
@@ -578,7 +603,7 @@ public struct KeyboardPanelHost: View {
                 .frame(minWidth: 72, minHeight: 44)
                 Spacer()
                 if !inputError {
-                    Button("重试") {
+                    Button(String(localized: "重试")) {
                         if layoutError {
                             reloadStoredLayouts()
                             reloadAppearance()
@@ -590,11 +615,7 @@ public struct KeyboardPanelHost: View {
                     .frame(minWidth: 44, minHeight: 44)
                 }
             }
-            Text(
-                inputError
-                    ? "输入操作未完成"
-                    : layoutError ? (appearanceReadError == nil ? "无法读取布局 · 暂用内置" : "无法读取外观 · 暂用有效外观") : "键盘未能启动"
-            ).font(.headline)
+            Text(errorSurfaceTitle(layoutError: layoutError, inputError: inputError)).font(.headline)
             ScrollView {
                 Text(message)
                     .font(.callout)
@@ -620,17 +641,28 @@ public struct KeyboardPanelHost: View {
         if candidateAreaGranted != report.candidateAreaRequired {
             candidateAreaGranted = report.candidateAreaRequired
         }
+        // The physical row count belongs to the definition; the drawn count changes per page and
+        // only re-fits the current page inside the unchanged shell.
+        var physicalRowsChanged = false
+        if definitionShell.mainRows != report.physicalMainRowCount {
+            definitionShell.mainRows = report.physicalMainRowCount
+            physicalRowsChanged = true
+        }
+        if drawnMainRows != report.drawnMainRowCount { drawnMainRows = report.drawnMainRowCount }
         // Only the Chinese letters page describes the definition; ABC/123 grants are
         // page state and must not become the next cold start's hint.
         if !report.pageOverride {
             let shell = KeyboardPresentationShell(
                 readingRow: reservesRow,
-                candidateArea: report.candidateAreaRequired)
+                candidateArea: report.candidateAreaRequired,
+                mainRows: definitionShell.mainRows)
             if definitionShell != shell { definitionShell = shell }
             KeyboardInitialPresentation.recordReadingRow(
                 eligible: report.eligible,
                 candidateAreaRequired: report.candidateAreaRequired,
                 layout: session.layout)
+            reportPresentationBudget()
+        } else if physicalRowsChanged {
             reportPresentationBudget()
         }
         KeyboardLifecycleDiagnostics.emit(
@@ -640,6 +672,8 @@ public struct KeyboardPanelHost: View {
                 "eligible": report.eligible ? "1" : "0",
                 "granted": readingRowGranted ? "1" : "0",
                 "candidateArea": candidateAreaGranted ? "1" : "0",
+                "physicalRows": "\(definitionShell.mainRows)",
+                "drawnRows": "\(drawnMainRows)",
                 "registry": report.resolvedFromRegistry ? "1" : "0",
                 "configured": String(format: "%.1f", candidateHeight),
                 "effective": String(
@@ -655,8 +689,12 @@ public struct KeyboardPanelHost: View {
     private func adoptBudgetedShell() {
         guard let presentationBudget else { return }
         let shell = KeyboardPresentationShell(
-            readingRow: presentationBudget.readingRow, candidateArea: presentationBudget.candidateArea)
+            readingRow: presentationBudget.readingRow, candidateArea: presentationBudget.candidateArea,
+            mainRows: presentationBudget.physicalMainRows)
         if definitionShell != shell { definitionShell = shell }
+        if drawnMainRows != presentationBudget.physicalMainRows {
+            drawnMainRows = presentationBudget.physicalMainRows
+        }
     }
 
     private func reportPresentationBudget() {
@@ -668,7 +706,8 @@ public struct KeyboardPanelHost: View {
             KeyboardPanelPresentationBudget(
                 candidateHeight: height, candidateSize: size,
                 readingRow: definitionShell.readingRow, candidateArea: definitionShell.candidateArea,
-                compact: compactReadingRow, heightPreset: storedHeightPreset))
+                compact: compactReadingRow, heightPreset: storedHeightPreset,
+                physicalMainRows: definitionShell.mainRows))
     }
 
     private func reloadShuangpinHints() {
@@ -816,11 +855,11 @@ struct InlineCompositionToggle: View {
     var body: some View {
         KeyboardToolsRow(
             icon: "character.cursor.ibeam",
-            title: "在输入框中显示拼写",
+            title: String(localized: "在输入框中显示拼写"),
             mark: .toggle(enabled),
-            accessibilityLabel: "在输入框中显示拼写",
-            accessibilityValue: enabled ? "开启" : "关闭",
-            accessibilityHint: "开启后，正在输入的字母显示在输入框内"
+            accessibilityLabel: String(localized: "在输入框中显示拼写"),
+            accessibilityValue: enabled ? String(localized: "开启") : String(localized: "关闭"),
+            accessibilityHint: String(localized: "开启后，正在输入的字母显示在输入框内")
         ) {
             enabled.toggle()
             KeyboardCompositionPreferences.inlineEnabled = enabled
@@ -837,7 +876,7 @@ struct OneHandModeRow: View {
     let onSelect: (KeyboardOneHandMode) -> Void
 
     private static let choices: [(KeyboardOneHandMode, String)] = [
-        (.off, "关闭"), (.left, "左手"), (.right, "右手"),
+        (.off, String(localized: "关闭")), (.left, String(localized: "左手")), (.right, String(localized: "右手")),
     ]
 
     var body: some View {
@@ -868,7 +907,7 @@ struct OneHandModeRow: View {
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(KeyboardToolsKeyButtonStyle(role: mode == choice ? "accent" : "control"))
-                    .accessibilityLabel("单手模式：\(title)")
+                    .accessibilityLabel(String(localized: "单手模式：\(title)"))
                     .accessibilityAddTraits(mode == choice ? .isSelected : [])
                 }
             }
@@ -908,8 +947,8 @@ final class OneHandGutterControl: UIControl {
     init(action: @escaping () -> Void) {
         self.action = action
         super.init(frame: .zero)
-        accessibilityLabel = "恢复全宽键盘"
-        accessibilityHint = "关闭单手模式"
+        accessibilityLabel = String(localized: "恢复全宽键盘")
+        accessibilityHint = String(localized: "关闭单手模式")
         accessibilityTraits = .button
         isAccessibilityElement = true
         accessibilityIdentifier = "keyboard.oneHand.restore"

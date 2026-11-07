@@ -43,7 +43,7 @@ public enum CompactSchemaAdapter {
             var translator = root[producer.namespace] as? [String: Any],
             let dictionary = translator["dictionary"] as? String, !dictionary.isEmpty
         else {
-            throw RecipeInstallError.invalidResource("输入方案不是可自动适配的拼音或双拼配置")
+            throw RecipeInstallError.invalidResource(PackageText.string("adapter.error.notPinyinOrShuangpin"))
         }
         let alphabet = speller["alphabet"] as? String ?? "abcdefghijklmnopqrstuvwxyz"
         // ONE shared physical-alphabet contract, consumed by BOTH `adaptability`
@@ -54,7 +54,7 @@ public enum CompactSchemaAdapter {
         let foldMap = compactFold.map
         let nineKey = compactFold.isPhoneDigits
         guard let fold = Self.physicalFold(sourceAlphabet: alphabet, fold: compactFold) else {
-            throw RecipeInstallError.invalidResource("输入方案的字母表无法适配紧凑键盘布局")
+            throw RecipeInstallError.invalidResource(PackageText.string("adapter.error.alphabetUnfit"))
         }
         let presentLetters = Self.foldableLetters.filter { alphabet.contains($0) }
         // Merge over the source's OWN letters only.
@@ -62,7 +62,8 @@ public enum CompactSchemaAdapter {
         let mergeTarget = String(presentLetters.map { foldMap[$0] ?? $0 })
         let target = identifier(sourceID: sourceID, fold: compactFold)
         schema["schema_id"] = target
-        schema["name"] = "\(schema["name"] as? String ?? sourceID) · \(compactFold.id)键适配"
+        schema["name"] = PackageText.format(
+            "adapter.name.compact", schema["name"] as? String ?? sourceID, compactFold.id)
         root["schema"] = schema
         // Dictionary default user_dict is the dictionary name, NOT the new schema ID.
         if translator["user_dict"] == nil { translator["user_dict"] = dictionary }
@@ -141,7 +142,8 @@ public enum CompactSchemaAdapter {
         {
             for (name, pattern) in patterns {
                 guard let regex = try? NSRegularExpression(pattern: pattern) else {
-                    throw RecipeInstallError.invalidResource("无法检查识别规则：\(name)")
+                    throw RecipeInstallError.invalidResource(
+                        PackageText.format("adapter.error.cannotCheckRecognizer", name))
                 }
                 if samples.contains(where: {
                     regex.firstMatch(in: $0, range: NSRange($0.startIndex..., in: $0)) != nil

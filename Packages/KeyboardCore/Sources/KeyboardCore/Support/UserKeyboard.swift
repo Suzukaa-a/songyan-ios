@@ -42,6 +42,22 @@ public struct UserKeyboard: Equatable, Sendable, Identifiable {
         return "\(name) · \(layout.userTitle)"
     }
 
+    /// A transport kind can represent a differently named physical keyboard.
+    public func title(physicalLayoutName: String?) -> String {
+        Self.physicalBoardTitle(inputMethodName: inputMethodName, physicalLayoutName: physicalLayoutName)
+            ?? title
+    }
+
+    public static func physicalBoardTitle(
+        inputMethodName: String?, physicalLayoutName: String?
+    ) -> String? {
+        let board = (physicalLayoutName ?? "").trimmingCharacters(in: .whitespaces)
+        guard !board.isEmpty else { return nil }
+        let method = (inputMethodName ?? "").trimmingCharacters(in: .whitespaces)
+        guard !method.isEmpty else { return board }
+        return "\(method) · \(board)"
+    }
+
     /// Whether this keyboard is the currently running combination.
     public func isCurrent(schemaID: String, layout: KeyboardLayoutKind) -> Bool {
         inputMethodID == schemaID && self.layout == layout
@@ -76,6 +92,22 @@ public enum UserKeyboardRoster {
                 inputMethodID: BuiltinTemplateSchemas.quanpin,
                 inputMethodName: ProductionInputAvailability.fallbackInputMethodName, layout: $0)
         }
+    }
+
+    /// The matched published keyboard's input-method name, for a surface that resolved the real
+    /// physical board and must put that board's name first. nil when no item matches or its name is
+    /// blank; the shape-qualified `title` is never returned here.
+    public static func currentInputMethodName(
+        schemaID: String, layout: KeyboardLayoutKind,
+        in keyboards: [UserKeyboard]
+    ) -> String? {
+        guard
+            let keyboard = keyboards.first(where: {
+                $0.isCurrent(schemaID: schemaID, layout: layout)
+            })
+        else { return nil }
+        let name = keyboard.inputMethodName.trimmingCharacters(in: .whitespaces)
+        return name.isEmpty ? nil : name
     }
 
     /// The current published pair's display name, never an unrelated keyboard's name.

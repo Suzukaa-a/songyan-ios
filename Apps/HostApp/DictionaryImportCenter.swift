@@ -34,7 +34,7 @@ final class DictionaryImportCenter: ObservableObject {
             if let data = bytes[url] { return data }
             let data = try await RecipePackageManager.fetchHTTP(url)
             guard bytes.values.reduce(0, { $0 + $1.count }) + data.count <= 64 * 1024 * 1024 else {
-                throw DictionaryImportError.invalid("源码合计超过64 MiB")
+                throw DictionaryImportError.invalid(String(localized: "源码合计超过64 MiB"))
             }
             bytes[url] = data
             return data
@@ -74,19 +74,19 @@ final class DictionaryImportCenter: ObservableObject {
     func report(_ error: Error) {
         switch error {
         case RecipeInstallError.http:
-            self.error = "下载失败，请检查链接后重试。"
+            self.error = String(localized: "下载失败，请检查链接后重试。")
         case RecipeInstallError.busy:
-            self.error = "另一个安装正在进行，请稍后重试。"
+            self.error = String(localized: "另一个安装正在进行，请稍后重试。")
         case RecipeInstallError.deployment:
             HostLog.append("dictionary deployment failed: \(error.localizedDescription)")
-            self.error = "无法安装此词库，请检查文件后重试。"
+            self.error = String(localized: "无法安装此词库，请检查文件后重试。")
         case let dictionaryError as DictionaryImportError:
             // These are intentionally authored, actionable validation reasons (format,
             // content, or a dependency the user must provide), not raw engine diagnostics.
             self.error = dictionaryError.localizedDescription
         default:
             HostLog.append("dictionary operation failed: \(error.localizedDescription)")
-            self.error = "词库操作未完成，请检查来源后重试。"
+            self.error = String(localized: "词库操作未完成，请检查来源后重试。")
         }
     }
 
@@ -103,7 +103,7 @@ final class DictionaryImportCenter: ObservableObject {
         busy = true
         error = nil
         prepared = nil
-        message = "正在读取词库…"
+        message = String(localized: "正在读取词库…")
         Task {
             defer { busy = false }
             do {
@@ -119,7 +119,7 @@ final class DictionaryImportCenter: ObservableObject {
                 inspections.removeAll { $0.path == path }
                 inspections.append(info)
                 updateMissing()
-                message = missing.isEmpty ? "文件已读取。" : "还缺少以下文件。"
+                message = missing.isEmpty ? String(localized: "文件已读取。") : String(localized: "还缺少以下文件。")
             } catch {
                 report(error)
                 message = nil
@@ -136,12 +136,12 @@ final class DictionaryImportCenter: ObservableObject {
         guard !busy, let root else { return }
         busy = true
         error = nil
-        message = "正在检查…"
+        message = String(localized: "正在检查…")
         Task {
             defer { busy = false }
             do {
                 guard let builtin = RimePaths.builtinPackage() else {
-                    throw DictionaryImportError.invalid("找不到内置输入方案，请重新安装 App。")
+                    throw DictionaryImportError.invalid(String(localized: "找不到内置输入方案，请重新安装 App。"))
                 }
                 prepared = try await manager.prepareDictionaryImport(
                     root: root.file,
@@ -150,10 +150,10 @@ final class DictionaryImportCenter: ObservableObject {
                 self.root = nil
                 dependencies.removeAll()
                 await downloads.clear()
-                message = "准备就绪，可以安装。"
+                message = String(localized: "准备就绪，可以安装。")
             } catch DictionaryImportError.missingDependencies(let paths) {
                 missing = paths
-                error = "请先添加所需文件。"
+                error = String(localized: "请先添加所需文件。")
             } catch { report(error) }
         }
     }
@@ -162,7 +162,7 @@ final class DictionaryImportCenter: ObservableObject {
         guard !busy, let prepared, let name = inspections.first?.name else { return }
         busy = true
         error = nil
-        message = "正在安装…"
+        message = String(localized: "正在安装…")
         let summary = Summary(name: name, entryCount: prepared.entryCount, files: prepared.sources.count)
         Task {
             defer { busy = false }
@@ -188,10 +188,10 @@ final class DictionaryImportCenter: ObservableObject {
                 missing = []
                 dependencies.removeAll()
                 await downloads.clear()
-                message = "安装完成，可在「自定义拼音」中点「\(UserTerminology.startUsing)」。"
+                message = String(localized: "安装完成，可在「自定义拼音」中点「\(UserTerminology.startUsing)」。")
             } catch {
                 report(error)
-                message = "安装未完成，请重试。"
+                message = String(localized: "安装未完成，请重试。")
             }
         }
     }
@@ -286,14 +286,14 @@ final class DictionaryImportCenter: ObservableObject {
         guard !busy else { return }
         busy = true
         error = nil
-        message = "正在切换…"
+        message = String(localized: "正在切换…")
         Task {
             defer { busy = false }
             do {
                 guard let active = try await manager.activeInstallation() else {
-                    throw DictionaryImportError.invalid("请先安装词库")
+                    throw DictionaryImportError.invalid(String(localized: "请先安装词库"))
                 }
-                let name = installedSummary?.name ?? "导入词库"
+                let name = installedSummary?.name ?? String(localized: "导入词库")
                 try await EngineOpQueue.async {
                     try KeyboardRecipeStore.publish(
                         resources: active.resourceURL,
@@ -301,10 +301,10 @@ final class DictionaryImportCenter: ObservableObject {
                         revision: active.installation.revision, kind: .userDictionary, dictionaryName: name)
                 }
                 selectionRevision = UUID()
-                message = "\(UserTerminology.statusInUse)「\(name)」，下次打开键盘时生效。"
+                message = String(localized: "\(UserTerminology.statusInUse)「\(name)」，下次打开键盘时生效。")
             } catch {
                 report(error)
-                message = "无法确认结果，请重新读取后重试。"
+                message = String(localized: "无法确认结果，请重新读取后重试。")
                 selectionRevision = UUID()
             }
         }

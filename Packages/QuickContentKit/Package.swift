@@ -11,10 +11,13 @@
 //     never reaches Rime and never calls the engine.
 //   - The default data is a small, original set of common Unicode symbols (names and
 //     pinyin aliases written for this repo); no third-party symbol library is bundled.
+//   - User-facing errors use Resources/Localizable.xcstrings (Simplified Chinese source;
+//     Traditional Chinese, Japanese and English translated).
 import PackageDescription
 
 let package = Package(
     name: "QuickContentKit",
+    defaultLocalization: "zh-Hans",
     platforms: [
         .iOS(.v17),
         .macOS(.v13),

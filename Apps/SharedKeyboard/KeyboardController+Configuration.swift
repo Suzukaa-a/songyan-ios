@@ -83,7 +83,7 @@ extension KeyboardController {
         session.reloadOptions()
         if let message = (session.engine as? RimeBackend)?.lastErrorText {
             Self.diagnosticLogger.error("option reload failed: \(message, privacy: .private)")
-            optionError = "无法读取当前方案的选项，请重试。"
+            optionError = String(localized: "无法读取当前方案的选项，请重试。")
         }
     }
 
@@ -93,10 +93,10 @@ extension KeyboardController {
             try session.setOption(name, value: value)
             optionError =
                 (session.engine as? RimeBackend)?.optionPersistenceError == nil
-                ? nil : "选项已在本次会话生效，但未能保存，请重试。"
+                ? nil : String(localized: "选项已在本次会话生效，但未能保存，请重试。")
         } catch {
             Self.diagnosticLogger.error("option save failed: \(String(describing: error), privacy: .private)")
-            optionError = "未能保存选项，请重试。"
+            optionError = String(localized: "未能保存选项，请重试。")
         }
     }
 }

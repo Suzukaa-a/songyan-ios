@@ -49,14 +49,17 @@ public enum RecipeInstallError: Error, LocalizedError {
 
     public var errorDescription: String? {
         switch self {
-        case .invalidManifest(let value): return "安装信息无效：\(value)"
-        case .invalidResource(let value): return "方案文件检查失败：\(value)"
-        case .missingSchemaFiles(let values): return "缺少启用或依赖的输入方案文件：\(values.joined(separator: "、"))"
-        case .http(let code): return "下载失败（HTTP \(code)）"
-        case .busy: return "正在安装，请稍后再试。"
-        case .missingComponents(let values): return "缺少所需功能组件：\(values.joined(separator: "、"))"
-        case .missingGrammarModels(let values): return "缺少语法模型：\(values.joined(separator: "、"))"
-        case .deployment(let value): return "安装配置失败：\(value)"
+        case .invalidManifest(let value): return PackageText.format("recipe.error.information", value)
+        case .invalidResource(let value): return PackageText.format("recipe.error.fileCheck", value)
+        case .missingSchemaFiles(let values):
+            return PackageText.format("recipe.error.schemaFilesMissed", values.joined(separator: "、"))
+        case .http(let code): return PackageText.format("recipe.error.httpFailure", code)
+        case .busy: return PackageText.string("recipe.error.busy")
+        case .missingComponents(let values):
+            return PackageText.format("recipe.error.componentsMissed", values.joined(separator: "、"))
+        case .missingGrammarModels(let values):
+            return PackageText.format("recipe.error.grammarModelsMissed", values.joined(separator: "、"))
+        case .deployment(let value): return PackageText.format("recipe.error.installFailed", value)
         }
     }
 
@@ -64,12 +67,13 @@ public enum RecipeInstallError: Error, LocalizedError {
     /// lives in `errorDescription`, for diagnostic logs or developer options only.
     public var userFacingDescription: String {
         switch self {
-        case .invalidManifest, .invalidResource, .missingSchemaFiles: return "文件不完整或格式不正确。"
-        case .http: return "下载失败，请检查网络后重试。"
-        case .busy: return "正在安装，请稍后再试。"
-        case .missingComponents: return "此输入方案需要「松烟」暂不支持的功能。"
-        case .missingGrammarModels: return "这个方案还需要语法模型文件。请在「语法模型」里添加后重试。"
-        case .deployment: return "无法完成安装，请重试。"
+        case .invalidManifest, .invalidResource, .missingSchemaFiles:
+            return PackageText.string("recipe.error.filesIncomplete")
+        case .http: return PackageText.string("recipe.error.downloadFailed")
+        case .busy: return PackageText.string("recipe.error.busy")
+        case .missingComponents: return PackageText.string("recipe.error.missingComponents")
+        case .missingGrammarModels: return PackageText.string("recipe.error.missingGrammarModels")
+        case .deployment: return PackageText.string("recipe.error.deploymentFailed")
         }
     }
 }
@@ -107,7 +111,8 @@ public struct RecipeDeployment: Sendable {
         {
             return surviving
         }
-        throw RecipeInstallError.deployment("所声明的输入方式未实际启用：\(manifest.schemaID)")
+        throw RecipeInstallError.deployment(
+            PackageText.format("recipe.error.declaredSchemaNotEnabled", manifest.schemaID))
     }
 }
 

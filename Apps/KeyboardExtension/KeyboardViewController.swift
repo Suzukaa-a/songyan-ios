@@ -51,6 +51,9 @@ class KeyboardViewController: UIInputViewController {
         session.enablesOfflineBundledInput = true
         session.recordsRuntimeGrammarReceipts = true
         session.optionPreferencesDirectory = RimePaths.optionPreferencesDirectory()
+        // Without Full Access the App Group is readable but not writable: persist a switch choice in
+        // this container instead, so the engine restore reads the same choice back.
+        session.optionFallbackDirectory = RimePaths.privateOptionPreferencesDirectory()
         return session
     }()
     /// The controller presenting the keyboard: the one the process session is bound to.
@@ -187,6 +190,7 @@ class KeyboardViewController: UIInputViewController {
     /// later read of the same UUID cannot revive an interrupted operation.
 
     #if DEBUG
+        var translationProbeTask: Task<Void, Never>?
         var timingProbeLink: CADisplayLink?
         var timingProbeStartedAt: CFTimeInterval = 0
         var timingProbeLastEmitAt: CFTimeInterval = 0
@@ -316,6 +320,9 @@ class KeyboardViewController: UIInputViewController {
         }
         Self.liveControllers.add(self)
         installPanelHost()
+        #if DEBUG
+            startTranslationProbeIfEnabled()
+        #endif
     }
 
     /// Builds the SwiftUI panel. Also called by `viewWillAppear` when UIKit shows a

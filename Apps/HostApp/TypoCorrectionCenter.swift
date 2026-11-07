@@ -77,7 +77,7 @@ final class TypoCorrectionCenter: ObservableObject {
             }
         } catch {
             HostLog.append("typo correction status read failed: \(error.localizedDescription)")
-            state = .unavailable("暂时无法读取当前输入方式的设置。")
+            state = .unavailable(String(localized: "暂时无法读取当前输入方式的设置。"))
         }
     }
 
@@ -94,11 +94,11 @@ final class TypoCorrectionCenter: ObservableObject {
         case .userDictionary:
             return PublishedContext(
                 packageID: nil, revision: activation.revision, keyboard: nil, schemaID: "",
-                state: .unavailable("当前输入方案不支持错键纠正。"), target: nil)
+                state: .unavailable(String(localized: "当前输入方案不支持错键纠正。")), target: nil)
         }
         guard let schemaID = activation.selectedSchemaID ?? activation.requiredSchemaIDs.first else { return nil }
         let keyboard = activation.selectedLayout.map { PublishedKeyboard(schemaID: schemaID, layout: $0) }
-        let unavailable = State.unavailable("当前输入方式不支持错键纠正。")
+        let unavailable = State.unavailable(String(localized: "当前输入方式不支持错键纠正。"))
         guard
             let compiled = try? Data(
                 contentsOf: InstalledPackageLayout.compiledSchemaURL(build: snapshot.build, id: schemaID)),
@@ -177,7 +177,7 @@ final class TypoCorrectionCenter: ObservableObject {
             guard let context = try await Self.readPublished(),
                 let packageID = context.packageID, context.target != nil
             else {
-                throw RecipeInstallError.invalidResource("当前输入方式不支持错键纠正")
+                throw RecipeInstallError.invalidResource(String(localized: "当前输入方式不支持错键纠正"))
             }
             let imports = SchemeImportCenter.shared
             let outcome = try await imports.applyTypoCorrection(enabled: enabled, packageID: packageID)
@@ -187,7 +187,7 @@ final class TypoCorrectionCenter: ObservableObject {
                 if outcome.previousRevision == context.revision, let keyboard = context.keyboard {
                     _ = try await imports.performAddKeyboard(packageID: packageID, keyboard: keyboard)
                 } else {
-                    notice = "将在使用新版本后生效。"
+                    notice = String(localized: "将在使用新版本后生效。")
                 }
             }
             HostLog.append(
@@ -195,7 +195,7 @@ final class TypoCorrectionCenter: ObservableObject {
             )
         } catch {
             HostLog.append("typo correction apply failed (automatic=\(automatic)): \(error.localizedDescription)")
-            failure = enabled ? "未能开启，请重试。" : "未能关闭，请重试。"
+            failure = enabled ? String(localized: "未能开启，请重试。") : String(localized: "未能关闭，请重试。")
         }
         await refresh()
     }
@@ -215,7 +215,7 @@ extension SchemeImportCenter {
     /// leaves the previous installation and publication untouched.
     func applyTypoCorrection(enabled: Bool, packageID: String) async throws -> TypoCorrectionOutcome {
         let result = try await applyManagedPatch(
-            packageID: packageID, message: enabled ? "正在开启错键纠正…" : "正在关闭错键纠正…",
+            packageID: packageID, message: enabled ? String(localized: "正在开启错键纠正…") : String(localized: "正在关闭错键纠正…"),
             plan: { context in
                 let changes = TypoCorrectionPlanning.changes(
                     desired: enabled, build: context.build,
@@ -269,11 +269,12 @@ enum TypoCorrectionPlanning {
     ) throws {
         for target in changes {
             guard enabledSchemaIDs.contains(target.schemaID) else {
-                throw RecipeInstallError.deployment("错键纠正设置失败，输入方式「\(target.schemaID)」尚未启用")
+                throw RecipeInstallError.deployment(String(localized: "错键纠正设置失败，输入方式「\(target.schemaID)」尚未启用"))
             }
             let value = engine.schemaValue(target.schemaID, key: target.configKey)
             guard (value == "true") == desired else {
-                throw RecipeInstallError.deployment("错键纠正设置未生效，输入方式「\(target.schemaID)」当前配置为 \(value ?? "nil")")
+                throw RecipeInstallError.deployment(
+                    String(localized: "错键纠正设置未生效，输入方式「\(target.schemaID)」当前配置为 \(value ?? "nil")"))
             }
         }
         let names = (try? FileManager.default.contentsOfDirectory(atPath: build.path)) ?? []
@@ -281,7 +282,7 @@ enum TypoCorrectionPlanning {
             let id = String(name.dropLast(InstalledPackageLayout.schemaFileSuffix.count))
             guard CompactSchemaAdapter.isGeneratedCompanionID(id) else { continue }
             if engine.schemaValue(id, key: "translator/" + TypoCorrection.configLeaf) == "true" {
-                throw RecipeInstallError.deployment("错键纠正不适用于紧凑键盘：\(id)")
+                throw RecipeInstallError.deployment(String(localized: "错键纠正不适用于紧凑键盘：\(id)"))
             }
         }
     }

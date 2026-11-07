@@ -10,7 +10,7 @@ struct KeyboardRowsEditor: View {
     private let rowKeyLimit = LayoutResourceBudget.keysPerRegion
 
     var body: some View {
-        Section("行与按键") {
+        Section(String(localized: "行与按键")) {
             ForEach(rows.indices, id: \.self) { row in
                 VStack(alignment: .leading, spacing: 10) {
                     HStack {
@@ -21,19 +21,19 @@ struct KeyboardRowsEditor: View {
                         } label: {
                             Image(systemName: "arrow.up")
                         }
-                        .disabled(row == 0).accessibilityLabel("上移这一行")
+                        .disabled(row == 0).accessibilityLabel(Text("上移这一行"))
                         Button {
                             moveRow(row, by: 1)
                         } label: {
                             Image(systemName: "arrow.down")
                         }
-                        .disabled(row == rows.count - 1).accessibilityLabel("下移这一行")
+                        .disabled(row == rows.count - 1).accessibilityLabel(Text("下移这一行"))
                         Button(role: .destructive) {
                             pendingRowRemoval = row
                         } label: {
                             Image(systemName: "trash")
                         }
-                        .disabled(rows.count == 1).accessibilityLabel("删除这一行")
+                        .disabled(rows.count == 1).accessibilityLabel(Text("删除这一行"))
                     }
                     ScrollView(.horizontal) {
                         HStack(spacing: 6) {
@@ -49,13 +49,13 @@ struct KeyboardRowsEditor: View {
                                 Image(systemName: "plus")
                             }
                             .disabled(rows[row].keys.count >= rowKeyLimit)
-                            .accessibilityLabel("添加按键")
+                            .accessibilityLabel(Text("添加按键"))
                         }
                     }
                 }
                 .padding(.vertical, 6)
             }
-            Button("添加一行", systemImage: "plus") {
+            Button(String(localized: "添加一行"), systemImage: "plus") {
                 rows.append(LayoutRow(keys: [newKey]))
                 selected = .row(rows.count - 1, key: 0)
             }
@@ -63,11 +63,11 @@ struct KeyboardRowsEditor: View {
         }
         .buttonStyle(.borderless)
         .confirmationDialog(
-            pendingRowRemoval.map { "删除第 \($0 + 1) 行？" } ?? "",
+            pendingRowRemoval.map { String(localized: "删除第 \($0 + 1) 行？") } ?? "",
             isPresented: Binding(get: { pendingRowRemoval != nil }, set: { if !$0 { pendingRowRemoval = nil } }),
             titleVisibility: .visible
         ) {
-            Button("删除这一行", role: .destructive) {
+            Button(String(localized: "删除这一行"), role: .destructive) {
                 guard let row = pendingRowRemoval, rows.indices.contains(row), rows.count > 1 else { return }
                 pendingRowRemoval = nil
                 rows.remove(at: row)
@@ -105,32 +105,33 @@ struct SelectedRowKeyActions: View {
         if case .row(let row, let index) = selected,
             rows.indices.contains(row), rows[row].keys.indices.contains(index)
         {
-            Section("移动选中按键") {
+            Section(String(localized: "移动选中按键")) {
                 HStack {
-                    Button("左移") { moveKey(row, index, by: -1) }.disabled(index == 0)
+                    Button(String(localized: "左移")) { moveKey(row, index, by: -1) }.disabled(index == 0)
                     Spacer()
-                    Button("右移") { moveKey(row, index, by: 1) }.disabled(index == rows[row].keys.count - 1)
+                    Button(String(localized: "右移")) { moveKey(row, index, by: 1) }.disabled(
+                        index == rows[row].keys.count - 1)
                 }
                 HStack {
-                    Button("移到上一行") { transferKey(row, index, to: row - 1) }
+                    Button(String(localized: "移到上一行")) { transferKey(row, index, to: row - 1) }
                         .disabled(
                             row == 0 || rows[row].keys.count == 1
                                 || (row > 0 && rows[row - 1].keys.count >= rowKeyLimit))
                     Spacer()
-                    Button("移到下一行") { transferKey(row, index, to: row + 1) }
+                    Button(String(localized: "移到下一行")) { transferKey(row, index, to: row + 1) }
                         .disabled(
                             row == rows.count - 1 || rows[row].keys.count == 1
                                 || (row < rows.count - 1 && rows[row + 1].keys.count >= rowKeyLimit)
                         )
                 }
-                Button("复制按键") {
+                Button(String(localized: "复制按键")) {
                     var keys = rows[row].keys
                     keys.insert(keys[index], at: index + 1)
                     rows[row] = LayoutRow(keys: keys)
                     selected = .row(row, key: index + 1)
                 }
                 .disabled(rows[row].keys.count >= rowKeyLimit)
-                Button("删除按键", role: .destructive) {
+                Button(String(localized: "删除按键"), role: .destructive) {
                     var keys = rows[row].keys
                     keys.remove(at: index)
                     rows[row] = LayoutRow(keys: keys)
@@ -180,7 +181,7 @@ struct KeyboardSplitEditor: View {
     var rowTitles: [String] = []
     @Binding var split: LayoutSplitConfiguration?
     var allowsInheritance = false
-    var inheritanceTitle = "和主键盘一样拆分"
+    var inheritanceTitle = String(localized: "和主键盘一样拆分")
     /// A main layout only chooses when it splits; the gap and the cuts live in its split view.
     var activationOnly = false
     /// The cuts the keyboard draws before any is saved (the bundled 26/18-key hand cuts).
@@ -197,7 +198,7 @@ struct KeyboardSplitEditor: View {
         if activationOnly {
             Section {
                 Picker(
-                    "拆分时机",
+                    String(localized: "拆分时机"),
                     selection: Binding(
                         get: { configuration.activation },
                         set: { activation in update { $0.activation = activation } })
@@ -217,7 +218,7 @@ struct KeyboardSplitEditor: View {
     }
 
     private var fullSection: some View {
-        Section("拆分") {
+        Section(String(localized: "拆分")) {
             if allowsInheritance {
                 Toggle(
                     inheritanceTitle,
@@ -227,13 +228,13 @@ struct KeyboardSplitEditor: View {
             }
             if !allowsInheritance || split != nil {
                 Toggle(
-                    "拆分键盘",
+                    String(localized: "拆分键盘"),
                     isOn: Binding(
                         get: { configuration.activation != .off },
                         set: { enabled in update { $0.activation = enabled ? .automatic : .off } }))
                 if configuration.activation != .off {
                     Picker(
-                        "拆分时机",
+                        String(localized: "拆分时机"),
                         selection: Binding(
                             get: { configuration.activation },
                             set: { activation in update { $0.activation = activation } })
@@ -242,7 +243,7 @@ struct KeyboardSplitEditor: View {
                         Text("始终").tag(LayoutSplitConfiguration.Activation.always)
                     }
                     Toggle(
-                        "自动间距",
+                        String(localized: "自动间距"),
                         isOn: Binding(
                             get: { configuration.automaticGap },
                             set: { automatic in update { $0.automaticGap = automatic } }))
@@ -255,7 +256,7 @@ struct KeyboardSplitEditor: View {
                     }
                     ForEach(rows.indices, id: \.self) { row in
                         Stepper(
-                            "\(rowTitle(row))：左侧 \(breaks[row]) 个键",
+                            String(localized: "\(rowTitle(row))：左侧 \(breaks[row]) 个键"),
                             value: Binding(
                                 get: { breaks[row] },
                                 set: { value in
@@ -273,7 +274,7 @@ struct KeyboardSplitEditor: View {
     }
 
     private func rowTitle(_ row: Int) -> String {
-        rowTitles.indices.contains(row) ? rowTitles[row] : "第 \(row + 1) 行"
+        rowTitles.indices.contains(row) ? rowTitles[row] : String(localized: "第 \(row + 1) 行")
     }
 
     private func update(_ change: (inout LayoutSplitConfiguration) -> Void) {
@@ -298,32 +299,38 @@ struct KeyboardChromeKeysEditor: View {
     var allowsLeading = true
 
     var body: some View {
-        Section("底行按键") {
+        Section(String(localized: "底行按键")) {
             ScrollView(.horizontal) {
                 HStack(spacing: 6) {
                     chips(region: .bottom)
-                    addButton(.bottom, label: "添加底行按键")
+                    addButton(.bottom, label: String(localized: "添加底行按键"))
                 }
             }
         }
-        Section("右侧栏") {
+        Section(String(localized: "右侧栏")) {
             chips(region: .trailing)
-            addButton(.trailing, label: "添加按键")
+            addButton(.trailing, label: String(localized: "添加按键"))
         }
         if allowsLeading {
-            Section("左侧栏") {
+            Section(String(localized: "左侧栏")) {
                 chips(region: .leading)
-                addButton(.leading, label: "添加按键")
+                addButton(.leading, label: String(localized: "添加按键"))
             }
         }
         if !chrome.trailing.isEmpty || (allowsLeading && !chrome.leading.isEmpty) {
             Section {
                 if !chrome.trailing.isEmpty {
-                    Toggle("右侧栏延伸到底行", isOn: $chrome.trailingSpansBottom)
-                    OptionalWidthField(title: "右侧栏宽度", placeholder: "跟随键盘", value: $chrome.trailingWidth)
+                    Toggle(String(localized: "右侧栏延伸到底行"), isOn: $chrome.trailingSpansBottom)
+                    OptionalWidthField(
+                        title: String(localized: "右侧栏宽度"),
+                        placeholder: String(localized: "跟随键盘"),
+                        value: $chrome.trailingWidth)
                 }
                 if allowsLeading && !chrome.leading.isEmpty {
-                    OptionalWidthField(title: "左侧栏宽度", placeholder: "跟随键盘", value: $chrome.leadingWidth)
+                    OptionalWidthField(
+                        title: String(localized: "左侧栏宽度"),
+                        placeholder: String(localized: "跟随键盘"),
+                        value: $chrome.leadingWidth)
                 }
             } header: {
                 Text("栏宽")
@@ -353,7 +360,7 @@ struct KeyboardChromeKeysEditor: View {
             }
             .buttonStyle(.borderless)
             .disabled(full)
-            .accessibilityLabel(label)
+            .accessibilityLabel(Text(label))
         } else {
             Button(label, systemImage: "plus") { append(region) }
                 .buttonStyle(.borderless)
@@ -416,7 +423,7 @@ extension EnvironmentValues {
 /// numbers in the user's locale, so a comma decimal separator works where the keypad offers one.
 struct OptionalWidthField: View {
     let title: String
-    var placeholder = "自动"
+    var placeholder = String(localized: "自动")
     @Binding var value: Double?
     @Environment(\.widthFieldValidity) private var validity: WidthFieldValidity
     @Environment(\.locale) private var locale
@@ -517,9 +524,9 @@ struct SplitArrangementEditor: View {
             Text("左边、间距、右边。在这里改的键只在键盘拆分时使用。")
         }
         keyActions(rows: rows, cuts: cuts)
-        Section("两边的间距") {
+        Section(String(localized: "两边的间距")) {
             Toggle(
-                "自动间距",
+                String(localized: "自动间距"),
                 isOn: Binding(
                     get: { configuration.automaticGap },
                     set: { automatic in
@@ -529,7 +536,8 @@ struct SplitArrangementEditor: View {
                     }))
             if !configuration.automaticGap {
                 VStack(alignment: .leading) {
-                    Text("间距：\(Int((configuration.gapFraction * 100).rounded()))%")
+                    LabeledContent(
+                        String(localized: "间距"), value: "\(Int((configuration.gapFraction * 100).rounded()))%")
                     Slider(
                         value: Binding(
                             get: { configuration.gapFraction },
@@ -541,14 +549,14 @@ struct SplitArrangementEditor: View {
                 }
             }
         }
-        Section("每行在哪里分开") {
+        Section(String(localized: "每行在哪里分开")) {
             ForEach(rows.indices, id: \.self) { row in
                 HStack {
                     Text("第 \(row + 1) 行：左边 \(cuts[row]) 个键")
                     Spacer()
-                    Button("左边少一个键") { moveCut(row, by: -1) }
+                    Button(String(localized: "左边少一个键")) { moveCut(row, by: -1) }
                         .disabled(layout.movingSplitCut(row: row, by: -1, defaultBreaks: defaultBreaks) == nil)
-                    Button("左边多一个键") { moveCut(row, by: 1) }
+                    Button(String(localized: "左边多一个键")) { moveCut(row, by: 1) }
                         .disabled(layout.movingSplitCut(row: row, by: 1, defaultBreaks: defaultBreaks) == nil)
                 }
                 .buttonStyle(.borderless).font(.footnote)
@@ -556,7 +564,7 @@ struct SplitArrangementEditor: View {
         }
         if layout.hasExplicitSplit {
             Section {
-                Button("恢复为自动拆分") {
+                Button(String(localized: "恢复为自动拆分")) {
                     layout = layout.restoringAutomaticSplit()
                     selected = SplitKeyAddress(row: 0, key: 0)
                 }
@@ -570,26 +578,30 @@ struct SplitArrangementEditor: View {
     private func keyActions(rows: [LayoutRow], cuts: [Int]) -> some View {
         if rows.indices.contains(selected.row), rows[selected.row].keys.indices.contains(selected.key) {
             let key = rows[selected.row].keys[selected.key]
-            Section("移动选中按键") {
+            Section(String(localized: "移动选中按键")) {
                 HStack {
-                    Button("左移") { apply(layout.movingSplitKey(at: selected, by: -1, defaultBreaks: defaultBreaks)) }
-                        .disabled(selected.key == 0)
+                    Button(String(localized: "左移")) {
+                        apply(layout.movingSplitKey(at: selected, by: -1, defaultBreaks: defaultBreaks))
+                    }
+                    .disabled(selected.key == 0)
                     Spacer()
-                    Button("右移") { apply(layout.movingSplitKey(at: selected, by: 1, defaultBreaks: defaultBreaks)) }
-                        .disabled(selected.key == rows[selected.row].keys.count - 1)
+                    Button(String(localized: "右移")) {
+                        apply(layout.movingSplitKey(at: selected, by: 1, defaultBreaks: defaultBreaks))
+                    }
+                    .disabled(selected.key == rows[selected.row].keys.count - 1)
                 }
-                Button("在后面添加按键") {
+                Button(String(localized: "在后面添加按键")) {
                     apply(
                         layout.addingSplitKey(
                             after: selected, key: LayoutKey(label: "新键", action: .init(.literal, value: "。")),
                             defaultBreaks: defaultBreaks))
                 }
                 .disabled(rows[selected.row].keys.count >= LayoutResourceBudget.keysPerRegion)
-                Button("复制按键") {
+                Button(String(localized: "复制按键")) {
                     apply(layout.addingSplitKey(after: selected, key: key, defaultBreaks: defaultBreaks))
                 }
                 .disabled(rows[selected.row].keys.count >= LayoutResourceBudget.keysPerRegion)
-                Button("删除按键", role: .destructive) {
+                Button(String(localized: "删除按键"), role: .destructive) {
                     apply(layout.removingSplitKey(at: selected, defaultBreaks: defaultBreaks))
                 }
                 .disabled(layout.removingSplitKey(at: selected, defaultBreaks: defaultBreaks) == nil)

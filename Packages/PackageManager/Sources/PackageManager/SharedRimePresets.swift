@@ -1,18 +1,22 @@
 import Foundation
 
 /// Frontend-owned configuration, distinct from package source and private dictionaries.
-/// Missing files only: Rime retains ownership of include/custom/patch merge semantics.
+/// Missing prelude files are supplied from the frontend copy, and the kagiroi scheme
+/// gets the install-time patch it needs beside the package; Rime retains ownership of
+/// include/custom/patch merge semantics.
 enum SharedRimePresets {
     static let revision = "082425ea0684bca36474415d4a0e8db9b016487e"
     static let configurationNames = ["default.yaml", "key_bindings.yaml", "punctuation.yaml", "symbols.yaml"]
 
-    static func supplement(_ files: inout [String: Data], openCCDirectory: URL? = nil) throws {
+    static func supplement(
+        _ files: inout [String: Data], openCCDirectory: URL? = nil, enabledSchemaIDs: [String]? = nil
+    ) throws {
         // Use the frontend's real OpenCC distribution, including binary dictionaries.
         // These bytes belong only to the effective workspace, never recipe source candidates.
         if let directory = openCCDirectory {
             let info = try directory.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
             guard info.isDirectory == true, info.isSymbolicLink != true else {
-                throw RecipeInstallError.invalidResource("共享 OpenCC 目录无效")
+                throw RecipeInstallError.invalidResource(PackageText.string("presets.error.invalidOpenCCDirectory"))
             }
             for url in try FileManager.default.contentsOfDirectory(
                 at: directory, includingPropertiesForKeys: [.isRegularFileKey, .isSymbolicLinkKey, .fileSizeKey])
@@ -29,7 +33,9 @@ enum SharedRimePresets {
                 files[path] = try Data(contentsOf: url)
             }
         }
-        let schemas = InstalledPackageLayout.topLevelSchemaFiles(in: files.keys)
+        let schemas =
+            enabledSchemaIDs
+            ?? InstalledPackageLayout.topLevelSchemaFiles(in: files.keys)
             .map { String($0.dropLast(12)) }.sorted()
         for name in configurationNames where files[name] == nil {
             var data = try bundled(name)
@@ -52,11 +58,13 @@ enum SharedRimePresets {
             let path = "frontend-rime-prelude/" + name
             if files[path] == nil { files[path] = try bundled(name) }
         }
+        // Scheme-specific patches travel beside the source, never inside it.
+        JapaneseSchemePresets.supplement(&files)
     }
 
     static func bundled(_ name: String) throws -> Data {
         guard let root = Bundle.module.url(forResource: "RimePrelude", withExtension: nil) else {
-            throw RecipeInstallError.invalidResource("缺少内置 rime-prelude 基础配置")
+            throw RecipeInstallError.invalidResource(PackageText.string("presets.error.missingPrelude"))
         }
         return try Data(contentsOf: root.appendingPathComponent(name))
     }

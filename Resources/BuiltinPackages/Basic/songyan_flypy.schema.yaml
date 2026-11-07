@@ -35,7 +35,19 @@ engine:
   translators:
     - script_translator
   filters:
+    # Script conversions run before uniquifier so identical converted candidates collapse.
+    - simplifier@zht
+    - simplifier@zh_tw
+    - simplifier@zh_hk
     - uniquifier
+
+# One radio group: the first member is the default and keeps the `simplification` name the saved
+# switch preferences are keyed by. The other members each own one simplifier above; they are named
+# `simplifier@<namespace>` so no conversion is ever attached to the simplified default.
+switches:
+  - options: [simplification, zht, zh_tw, zh_hk]
+    states: [简体, 繁體, 臺灣, 香港]
+    reset: 0
 
 speller:
   alphabet: zyxwvutsrqponmlkjihgfedcba
@@ -80,6 +92,18 @@ translator:
   enable_completion: false
   max_phrase_length: 8
   initial_quality: 1.0
+
+zht:
+  option_name: zht
+  opencc_config: s2t.json
+
+zh_tw:
+  option_name: zh_tw
+  opencc_config: s2twp.json
+
+zh_hk:
+  option_name: zh_hk
+  opencc_config: s2hk.json
 
 # Explicitly declares this scheme a trusted canonical-pinyin canonical source (the generator grants 9-key canonical only on this basis;
 # the token-shape check is merely a necessary filter and cannot replace this declaration).

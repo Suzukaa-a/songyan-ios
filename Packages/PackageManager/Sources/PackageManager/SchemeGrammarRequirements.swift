@@ -161,7 +161,7 @@ public enum SchemeGrammarRequirements {
                     String($0.dropLast(12))
                 }
             }
-        } catch { diagnostics.append("启用哪些输入方式要到安装时才能确定。") }
+        } catch { diagnostics.append(PackageText.string("grammar.error.enabledSchemasDeferred")) }
         var visited = Set<String>()
         func visit(_ id: String) {
             guard visited.insert(id).inserted, visited.count <= 256 else { return }
@@ -178,7 +178,7 @@ public enum SchemeGrammarRequirements {
                 if let schema = config["schema"] as? [String: Any] {
                     for dependency in try evaluate(schema)["dependencies"] as? [String] ?? [] { visit(dependency) }
                 }
-            } catch { diagnostics.append("\(id) 需要哪些模型要到安装时才能确定。") }
+            } catch { diagnostics.append(PackageText.format("grammar.error.modelsDeferred", id)) }
         }
         for entry in entries.sorted() { visit(entry) }
         return Discovery(paths: paths.sorted(), diagnostics: diagnostics)

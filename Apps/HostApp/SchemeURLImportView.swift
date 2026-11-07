@@ -1,3 +1,4 @@
+import PackageManager
 import SwiftUI
 
 /// Import from URL: takes a direct link to a scheme ZIP, downloads it, then hands it to
@@ -32,12 +33,16 @@ struct SchemeURLImportView: View {
             if let source {
                 Section {
                     Text(source.detail).foregroundStyle(.secondary)
-                    Link("查看项目主页", destination: source.homepage)
+                    Text(source.licenseSummary).font(.caption)
+                    Text(source.downloadSizeHint).font(.caption).foregroundStyle(.secondary)
+                    Link(
+                        Bundle.main.localizedString(forKey: "catalog.homepage", value: nil, table: nil),
+                        destination: source.homepage)
                 }
             }
             Section {
                 if source == nil {
-                    TextField("ZIP 链接或 GitHub 仓库地址", text: $address)
+                    TextField(String(localized: "ZIP 链接或 GitHub 仓库地址"), text: $address)
                         .keyboardType(.URL)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
@@ -57,10 +62,10 @@ struct SchemeURLImportView: View {
                         .font(.footnote)
                         .foregroundStyle(.red)
                         .textSelection(.enabled)
-                    Button("重试") { submit() }
+                    Button(String(localized: "重试")) { submit() }
                 }
                 if !service.isDownloading && service.lastError == nil {
-                    Button("下载") { submit() }
+                    Button(String(localized: "下载")) { submit() }
                         .disabled(address.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || center.busy)
                 }
             } header: {
@@ -69,7 +74,7 @@ struct SchemeURLImportView: View {
                 if source == nil { Text("支持 ZIP 下载链接或 GitHub 仓库地址。") }
             }
         }
-        .navigationTitle(source?.name ?? "从链接导入")
+        .navigationTitle(source?.name ?? String(localized: "从链接导入"))
         .navigationBarTitleDisplayMode(.inline)
         // Navigating back cancels the download (onDisappear), so there is no separate duplicate cancel button.
         .onAppear { addressFocused = address.isEmpty }
@@ -115,7 +120,7 @@ struct SchemeURLImportView: View {
             guard let result = try? await service.download(address: address) else { return }
             // The source URL goes into the import record for the detail page and re-download.
             center.accept(
-                [result.localFileURL], sourceURL: result.requestedURL,
+                result.localFileURLs, sourceURL: result.requestedURL, recommendation: result.recommendation,
                 onFinished: { withExtendedLifetime(result) {} })
             dismiss()
         }

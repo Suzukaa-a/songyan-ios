@@ -184,11 +184,14 @@ python3 "${PROJECT_ROOT}/Tools/BuildRimeIOS/scripts/build-learning-support.py" \
   --sdk "${MACOS_SDK}" --target arm64-apple-macos13.0 \
   --kit-include-dir "${MAC_PREFIX}/include" \
   --output-dir "${RUN_DIR}/learning-support"
+python3 "${IOS_TOOLS_DIR}/scripts/build-harness-resources.py" "${RUN_DIR}"
 swiftc -O -Xcc -fmodule-map-file="${RUN_DIR}/RimeKitModule/module.modulemap" \
   -Xcc -DRB_AMBIGUITY_SELFTEST \
   -Xcc -fmodule-map-file="${RUN_DIR}/learning-support/module/module.modulemap" \
   -I "${RUN_DIR}/RimeKitModule" -I "${MAC_PREFIX}/include" -I "${RUN_DIR}/learning-support/module" \
   "${IOS_TOOLS_DIR}/harness-mac/ambiguity-main.swift" \
+  "${RUN_DIR}/HarnessResources.swift" \
+  "${PKG}/RimeBridge/Sources/RimeBridge/RimeText.swift" \
   "${PKG}/RimeBridge/Sources/RimeBridge/RimeModels.swift" \
   "${PKG}/RimeBridge/Sources/RimeBridge/RimeKey.swift" \
   "${PKG}/RimeBridge/Sources/RimeBridge/RimeEngine.swift" \

@@ -38,7 +38,11 @@ public struct KeyboardResourceSet: Equatable, Sendable {
             // empty name or `name == id` stays empty so the upper layer falls back to the
             // layout name and never shows an arbitrary schema/source ID as display copy.
             let sourceName = schemas.first { $0.id == source }?.humanReadableName ?? ""
+            let family = family(ofSource: source)
             for layout in KeyboardLayoutKind.allCases {
+                // A folded shape only runs schemes that keep today's behaviour; an author declaration,
+                // generated adapter or published entry never overrides the family rule.
+                guard InputLayoutPolicy.allows(kind: layout, family: family) else { continue }
                 // When non-nil, only combinations explicitly added in the manifest are visible,
                 // and only structurally runnable ones appear (a compact layout must have a
                 // generated adapter or an author binding; never fall back to the source's 26-key).
@@ -63,7 +67,10 @@ public struct KeyboardResourceSet: Equatable, Sendable {
                     result.append(
                         .init(
                             schemaID: source, engineSchemaID: adapter.schemaID, layout: layout,
-                            name: adapter.schemaName ?? sourceName + " · " + layout.shortTitle + "配套"))
+                            name: adapter.schemaName
+                                ?? String(
+                                    format: String(localized: "core.adapter.displayName", bundle: .module),
+                                    sourceName, layout.userTitle)))
                 case .bound:
                     result.append(.init(schemaID: source, engineSchemaID: source, layout: layout, name: sourceName))
                 case .plain:
@@ -115,7 +122,16 @@ public struct KeyboardResourceSet: Equatable, Sendable {
 
     /// The engine schema that runs `source` on `layout` in this resource set; see the static form.
     public func engineSchemaID(source: String, layout: KeyboardLayoutKind) -> String? {
-        Self.engineSchemaID(source: source, layout: layout, adapters: encodingAdapters, bindings: layoutEntries)
+        guard InputLayoutPolicy.allows(kind: layout, family: family(ofSource: sourceSchemaID(source))) else {
+            return nil
+        }
+        return Self.engineSchemaID(
+            source: source, layout: layout, adapters: encodingAdapters, bindings: layoutEntries)
+    }
+
+    /// Family of an enabled source (descriptor alphabet when known, the ID only otherwise).
+    func family(ofSource source: String) -> InputSchemeFamily {
+        familyBySource[source] ?? InputLayoutPolicy.family(schemaID: source)
     }
 
     /// Whether a published keyboard is actually runnable in this snapshot: the structured
@@ -243,6 +259,9 @@ public struct KeyboardResourceSet: Equatable, Sendable {
     public let publishedKeyboards: [PublishedKeyboard]?
     /// Declared auxiliary routes; dispatch must use the generation-validated route accessor below.
     public let englishCandidateRoutes: [EnglishCandidateRoute]
+    /// Scheme family per enabled source, resolved once when the snapshot is built (the descriptor
+    /// alphabet when known, the ID only otherwise). Never resolved on the key path.
+    private let familyBySource: [String: InputSchemeFamily]
     public var usesIndependentSelection: Bool {
         selectedSchemaID != nil || !schemas.isEmpty || !encodingAdapters.isEmpty
     }
@@ -301,6 +320,17 @@ public struct KeyboardResourceSet: Equatable, Sendable {
         var seenRoutes = Set<EnglishCandidateRoute>()
         self.englishCandidateRoutes = englishCandidateRoutes.filter { seenRoutes.insert($0).inserted }
         self.encodingAdapters = encodingAdapters
+        var families: [String: InputSchemeFamily] = [:]
+        for schema in schemas {
+            families[schema.id] = InputLayoutPolicy.family(schemaID: schema.id, alphabet: schema.alphabet)
+        }
+        for source in layoutEntries.map(\.schemaID) where families[source] == nil {
+            families[source] = InputLayoutPolicy.family(schemaID: source)
+        }
+        for keyboard in publishedKeyboards ?? [] where families[keyboard.schemaID] == nil {
+            families[keyboard.schemaID] = InputLayoutPolicy.family(schemaID: keyboard.schemaID)
+        }
+        self.familyBySource = families
     }
 
     /// Independent selection of a resource shows all physical layouts and checks the specific encoding compatibility reason before selection.
@@ -468,9 +498,9 @@ public struct KeyboardResourceSet: Equatable, Sendable {
         let allowed = schemas.isEmpty ? engineSchemas : schemas
         let sourceID = sourceSchemaID(schemaID)
         guard !allowed.contains(where: { $0.id == sourceID }) else { return nil }
-        return "输入方案 \(schemaID) 未启用（已启用："
-            + allowed.map(\.id).joined(separator: "、")
-            + "）。如需使用，请先在「松烟」App 中启用这个输入方案。"
+        return String(
+            format: String(localized: "core.status.schemeNotEnabled", bundle: .module),
+            schemaID, allowed.map(\.id).joined(separator: "、"))
     }
 }
 

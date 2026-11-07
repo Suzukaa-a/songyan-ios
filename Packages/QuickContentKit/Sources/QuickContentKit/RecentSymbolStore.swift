@@ -87,7 +87,7 @@ public struct RecentSymbolStore: Sendable {
             // Validate before touching either copy: a successful save must be readable.
             let data = try JSONEncoder().encode(texts)
             guard texts.count <= 100, data.count <= Self.maximumBytes else {
-                throw SymbolCatalogError("最近使用记录超过大小限制")
+                throw SymbolCatalogError(QuickContentText.string("symbol.error.recentTooLarge"))
             }
             try fm.createDirectory(at: directory, withIntermediateDirectories: true)
             // Never replace the last good copy with a corrupt active file. Atomic
@@ -109,9 +109,11 @@ public struct RecentSymbolStore: Sendable {
     private func readValidatedData(_ file: URL) throws -> Data {
         let data = try QuickContentFileReader.read(
             file, maximumBytes: Self.maximumBytes,
-            sizeError: "最近使用记录超过大小限制")
+            sizeError: QuickContentText.string("symbol.error.recentTooLarge"))
         let texts = try JSONDecoder().decode([String].self, from: data)
-        guard texts.count <= 100 else { throw SymbolCatalogError("最近使用记录超过数量限制") }
+        guard texts.count <= 100 else {
+            throw SymbolCatalogError(QuickContentText.string("symbol.error.recentTooMany"))
+        }
         return data
     }
 

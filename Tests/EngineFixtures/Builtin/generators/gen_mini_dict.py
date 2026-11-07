@@ -120,6 +120,11 @@ words = [
     ("上车","shang che",400),
     ("早上","zao shang",650),
     ("早上好","zao shang hao",600),
+    # Four script states: with 繁體/臺灣/香港 selected the schema's simplifier converts these
+    # dictionary words, so the simplified source forms must be real entries (original, hand-written).
+    ("发展","fa zhan",800),
+    ("软件","ruan jian",700),
+    ("头发","tou fa",600),
 ]
 
 def valid_syllable(s):

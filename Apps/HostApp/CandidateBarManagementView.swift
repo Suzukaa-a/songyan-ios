@@ -18,7 +18,7 @@ struct CandidateAreaEditorSections: View {
 
     var body: some View {
         Section {
-            Picker("显示规则", selection: barBinding(\.compositionRow.visible)) {
+            Picker(String(localized: "显示规则"), selection: barBinding(\.compositionRow.visible)) {
                 Text("仅输入时显示（推荐）").tag(CandidateBarDefinition.CompositionRow.Visibility.composingOnly)
                 Text("始终显示").tag(CandidateBarDefinition.CompositionRow.Visibility.composingWithIdleRaw)
                 Text("不显示").tag(CandidateBarDefinition.CompositionRow.Visibility.hidden)
@@ -27,39 +27,40 @@ struct CandidateAreaEditorSections: View {
             Text("拼写行")
         }
 
-        Section("单行") {
-            slider("行高", value: barBinding(\.collapsed.height), range: 36...56)
-            slider("候选项内边距", value: barBinding(\.collapsed.cellPaddingX), range: 4...24)
-            slider("候选项间距", value: barBinding(\.collapsed.cellSpacing), range: 0...16)
-            Toggle("候选较少时平分宽度", isOn: fillsWidth)
+        Section(String(localized: "单行")) {
+            slider(String(localized: "行高"), value: barBinding(\.collapsed.height), range: 36...56)
+            slider(String(localized: "候选项内边距"), value: barBinding(\.collapsed.cellPaddingX), range: 4...24)
+            slider(String(localized: "候选项间距"), value: barBinding(\.collapsed.cellSpacing), range: 0...16)
+            Toggle(String(localized: "候选较少时平分宽度"), isOn: fillsWidth)
         }
 
-        Section("展开") {
-            Picker("模式", selection: barBinding(\.expanded.mode)) {
+        Section(String(localized: "展开")) {
+            Picker(String(localized: "模式"), selection: barBinding(\.expanded.mode)) {
                 Text("自适应（推荐）").tag(CandidateBarDefinition.Expanded.Mode.adaptive)
                 Text("单列").tag(CandidateBarDefinition.Expanded.Mode.list)
                 Text("网格").tag(CandidateBarDefinition.Expanded.Mode.grid)
             }
             if bar.expanded.mode == .grid {
-                Stepper("列数：\(bar.expanded.columns)", value: barBinding(\.expanded.columns), in: 1...4)
+                Stepper(
+                    String(localized: "列数：\(bar.expanded.columns)"), value: barBinding(\.expanded.columns), in: 1...4)
             }
-            slider("行间距", value: barBinding(\.expanded.rowSpacing), range: 0...16)
-            slider("列间距", value: barBinding(\.expanded.columnSpacing), range: 0...16)
+            slider(String(localized: "行间距"), value: barBinding(\.expanded.rowSpacing), range: 0...16)
+            slider(String(localized: "列间距"), value: barBinding(\.expanded.columnSpacing), range: 0...16)
             slider(
-                "长词单独成行（字数）",
+                String(localized: "长词单独成行（字数）"),
                 value: Binding(
                     get: { Double(bar.expanded.fullRowTextLength) },
                     set: { value in setBar { $0.expanded.fullRowTextLength = Int(value.rounded()) } }),
                 range: 1...40)
         }
 
-        Section("翻页与展开") {
-            Picker("翻页按钮位置", selection: barBinding(\.controls.pagePosition)) {
+        Section(String(localized: "翻页与展开")) {
+            Picker(String(localized: "翻页按钮位置"), selection: barBinding(\.controls.pagePosition)) {
                 Text("两端（默认）").tag(CandidateBarDefinition.Controls.PagePosition.both)
                 Text("右侧").tag(CandidateBarDefinition.Controls.PagePosition.trailing)
                 Text("左侧").tag(CandidateBarDefinition.Controls.PagePosition.leading)
             }
-            Toggle("显示展开与收起按钮", isOn: barBinding(\.controls.showsExpand))
+            Toggle(String(localized: "显示展开与收起按钮"), isOn: barBinding(\.controls.showsExpand))
         }
     }
 

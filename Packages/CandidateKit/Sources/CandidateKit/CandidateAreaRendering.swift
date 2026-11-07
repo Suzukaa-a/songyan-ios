@@ -1,3 +1,4 @@
+import Foundation
 import KeyboardCore
 import SwiftUI
 import os
@@ -155,13 +156,7 @@ extension EnvironmentValues {
 
 extension CandidateSkinToken {
     func font(_ size: Double) -> Font {
-        let weight: Font.Weight = fontWeight == "semibold" ? .semibold : fontWeight == "regular" ? .regular : .medium
-        switch fontFamily {
-        case "rounded": return .system(size: size, weight: weight, design: .rounded)
-        case "serif": return .system(size: size, weight: weight, design: .serif)
-        case "monospaced": return .system(size: size, weight: weight, design: .monospaced)
-        default: return .system(size: size, weight: weight)
-        }
+        CandidateTextFont.swiftUI(size: size, family: fontFamily, weight: fontWeight)
     }
 }
 
@@ -177,11 +172,14 @@ private struct CandidateLoadingActions: ViewModifier {
         // arrives, dropping its momentum and scroll position.
         content.accessibilityActions {
             if context.hasMoreEntries {
-                Button(
-                    context.visibleEntries == nil && context.browser.needsEarlier
-                        ? "加载更早候选" : "加载更多候选"
-                ) {
+                Button {
                     context.actions.perform(.loadMore)
+                } label: {
+                    if context.visibleEntries == nil && context.browser.needsEarlier {
+                        Text("candidate.control.loadEarlier", bundle: .module)
+                    } else {
+                        Text("candidate.control.loadMore", bundle: .module)
+                    }
                 }
             }
         }
@@ -311,11 +309,13 @@ private struct DefaultCollapsedCandidateBar: View {
                 let retrying = context.browser.hasIncompleteEarlierPage
                 pageButton(
                     retrying ? "arrow.clockwise" : "chevron.left",
-                    label: retrying ? "重试加载更早候选" : "加载更早候选",
+                    label: retrying
+                        ? String(localized: "candidate.control.retryLoadEarlier", bundle: .module)
+                        : String(localized: "candidate.control.loadEarlier", bundle: .module),
                     disabled: false, action: .loadMore)
             }
             if context.isExpanded {
-                Text("候选")
+                Text("candidate.header.title", bundle: .module)
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(skin.secondaryColor)
                     .padding(.leading, 10)
@@ -324,14 +324,16 @@ private struct DefaultCollapsedCandidateBar: View {
                 if let backspaceControl {
                     backspaceControl.frame(width: 44, height: effectiveHeaderHeight)
                 } else {
-                    pageButton("delete.left", label: "退格", disabled: false, action: .backspace)
+                    pageButton(
+                        "delete.left", label: String(localized: "candidate.control.backspace", bundle: .module),
+                        disabled: false, action: .backspace)
                 }
             } else {
                 // Read-only entry for earlier pages (not engine paging): shown when unloaded pages exist before the real current
                 // page; reads them by offset without changing the engine page/highlight/marked text. If the frontier is stopped on an
                 // "incompletely read" earlier page, a retry icon and label tell the user they can retry read-only.
                 if entries.isEmpty && context.visibleEntries == nil {
-                    Text("继续输入，或按回车确认")
+                    Text("candidate.header.composingHint", bundle: .module)
                         .font(.caption)
                         .foregroundStyle(skin.secondaryColor)
                         .frame(maxWidth: .infinity, minHeight: effectiveHeaderHeight, alignment: .leading)
@@ -345,13 +347,16 @@ private struct DefaultCollapsedCandidateBar: View {
             // Scrolling loads naturally. A retry is shown only after an actual failed read.
             if context.visibleEntries == nil && context.browser.hasIncompletePage && !context.browser.needsEarlier {
                 pageButton(
-                    "arrow.clockwise", label: "重试加载候选",
+                    "arrow.clockwise",
+                    label: String(localized: "candidate.control.retryLoad", bundle: .module),
                     disabled: false, action: .loadMore)
             }
             if bar.controls.showsExpand, !entries.isEmpty {
                 pageButton(
                     context.isExpanded ? "chevron.down" : "chevron.up",
-                    label: context.isExpanded ? "收起候选" : "展开候选",
+                    label: context.isExpanded
+                        ? String(localized: "candidate.control.collapse", bundle: .module)
+                        : String(localized: "candidate.control.expand", bundle: .module),
                     disabled: false, action: context.isExpanded ? .collapse : .expand)
             }
         }
@@ -415,7 +420,7 @@ private struct DefaultCollapsedCandidateBar: View {
         }
         .contentShape(Rectangle())
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("候选")
+        .accessibilityLabel(Text("candidate.header.title", bundle: .module))
         .modifier(CandidateLoadingActions(context: context))
     }
 
@@ -520,10 +525,20 @@ struct CollapsedCandidateRow: View {
                             .foregroundStyle(skin.secondaryColor)
                             .lineLimit(1)
                     }
-                    Text(entry.text)
-                        .font(skin.font(context.typography.candidateSize))
-                        .lineLimit(1)
-                        .truncationMode(.tail)
+                    // Simplified Chinese is the system's default glyph form, so it keeps the plain
+                    // SwiftUI text; only Traditional and Japanese need the language-tagged label.
+                    if context.inputLanguage == .simplifiedChinese {
+                        Text(entry.text)
+                            .font(skin.font(context.typography.candidateSize))
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                    } else {
+                        CandidateLanguageText(
+                            text: entry.text, language: context.inputLanguage,
+                            fontSize: context.typography.candidateSize,
+                            fontFamily: skin.fontFamily, fontWeight: skin.fontWeight,
+                            color: skin.candidateColor, lineLimit: 1, truncation: .tail)
+                    }
                 }
                 // Reserve the same baseline for every candidate, including the underline.
                 Group {
@@ -623,7 +638,7 @@ extension View {
         let inputLabels = label == entry.text ? [entry.text] : [entry.text, label]
         return accessibilityLabel(label)
             .accessibilityValue(candidateAccessibilityValue(entry))
-            .accessibilityHint("上屏此候选")
+            .accessibilityHint(Text("candidate.accessibility.commitHint", bundle: .module))
             .accessibilityInputLabels(inputLabels.map { Text(verbatim: $0) })
             .accessibilityAddTraits(highlighted ? .isSelected : [])
     }
@@ -677,7 +692,11 @@ private struct DefaultExpandedCandidates: View {
                         identity: context.scrollIdentity,
                         proxy: proxy, anchor: .top))
             }
-            .accessibilityLabel(context.hasMoreEntries ? "候选列表，滚动可加载更多" : "候选列表")
+            .accessibilityLabel(
+                context.hasMoreEntries
+                    ? Text("candidate.accessibility.listMore", bundle: .module)
+                    : Text("candidate.accessibility.list", bundle: .module)
+            )
             .accessibilityElement(children: .contain)
             .modifier(CandidateLoadingActions(context: context))
             // Expanded candidates must not fade the bottom with a gradient `mask` or translucent overlay (that would
@@ -866,11 +885,24 @@ struct ExpandedCandidateRows: View {
                             .foregroundStyle(skin.secondaryColor)
                             .lineLimit(1)
                     }
-                    Text(entry.text)
-                        .font(skin.font(context.typography.candidateSize))
-                        .lineLimit(nil)
-                        .truncationMode(.tail)
-                        .fixedSize(horizontal: false, vertical: true)
+                    if context.inputLanguage == .simplifiedChinese {
+                        Text(entry.text)
+                            .font(skin.font(context.typography.candidateSize))
+                            .lineLimit(nil)
+                            .truncationMode(.tail)
+                            .fixedSize(horizontal: false, vertical: true)
+                    } else {
+                        CandidateLanguageText(
+                            text: entry.text, language: context.inputLanguage,
+                            fontSize: context.typography.candidateSize,
+                            fontFamily: skin.fontFamily, fontWeight: skin.fontWeight,
+                            color: skin.candidateColor, lineLimit: nil, truncation: .tail
+                        )
+                        .modifier(
+                            CandidateLanguageTextBaseline(
+                                fontSize: context.typography.candidateSize,
+                                fontFamily: skin.fontFamily, fontWeight: skin.fontWeight))
+                    }
                 }
                 if !entry.comment.isEmpty {
                     Text(entry.comment)
@@ -911,7 +943,9 @@ struct ExpandedCandidateRows: View {
 private func candidateAccessibilityValue(_ entry: BrowserCandidate) -> String {
     var parts: [String] = []
     if let key = entry.selectKey?.trimmingCharacters(in: .whitespacesAndNewlines), !key.isEmpty {
-        parts.append("选词键 \(key)")
+        parts.append(
+            String(
+                format: String(localized: "candidate.accessibility.selectKey", bundle: .module), key))
     }
     if !entry.comment.isEmpty { parts.append(entry.comment) }
     return parts.joined(separator: "，")

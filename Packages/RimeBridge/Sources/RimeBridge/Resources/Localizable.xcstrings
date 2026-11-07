@@ -1,0 +1,446 @@
+{
+  "sourceLanguage": "zh-Hans",
+  "strings": {
+    "engine.diagnostic.candidateRequestInvalid": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "候補を読み取れません。キーボードを開き直してください（開始位置 %1$@、件数 %2$@）。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法读取候选，请重新打开键盘再试（起始 %1$@，数量 %2$@）。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無法讀取候選，請重新開啟鍵盤再試（起始 %1$@，數量 %2$@）。"
+          }
+        }
+      }
+    },
+    "engine.error.companionSchemaMissing": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力パックに付属ファイルがありません。この入力パックを入れ直してください：%1$@.schema.yaml"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入方案缺少配套文件，请重新导入这个输入方案：%1$@.schema.yaml"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "輸入方案缺少配套檔案，請重新匯入這個輸入方案：%1$@.schema.yaml"
+          }
+        }
+      }
+    },
+    "engine.error.engineComponentUnavailable": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力エンジンに必要な部品がありません。キーボードを開き直してください：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入引擎缺少要用的组件，请重新打开键盘再试：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "輸入引擎缺少要用的元件，請重新開啟鍵盤再試：%1$@"
+          }
+        }
+      }
+    },
+    "engine.error.grammarDiagnosticsUnavailable": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文法モデルの診断情報を取得できません。しばらくしてからもう一度お試しください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法获取语法模型的诊断信息，请稍后再试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無法獲取語法模型的診斷資訊，請稍後再試。"
+          }
+        }
+      }
+    },
+    "engine.error.grammarEngineUnsupported": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%1$@」という入力方式は文法モデル「%2$@」を必要としますが、現在の入力エンジンは文法モデルに対応していません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%1$@」这个输入方式需要语法模型「%2$@」，但当前输入引擎不支持语法模型。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%1$@」這個輸入方式需要語法模型「%2$@」，但當前輸入引擎不支援語法模型。"
+          }
+        }
+      }
+    },
+    "engine.error.grammarFileMissing": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文法モデルのファイルが見つかりません。文法モデルを入れ直してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "找不到语法模型文件，请重新导入语法模型。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "找不到語法模型檔案，請重新匯入語法模型。"
+          }
+        }
+      }
+    },
+    "engine.error.grammarLoadFailed": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%1$@」の文法モデルを読み込めませんでした。キーボードを開き直してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%1$@」语法模型没能加载，请重新打开键盘再试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%1$@」語法模型沒能載入，請重新開啟鍵盤再試。"
+          }
+        }
+      }
+    },
+    "engine.error.grammarPathUnsupported": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文法モデルのファイル「%1$@.gram」が見つからないか、この保存先に対応していません。文法モデルを入れ直してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "找不到语法模型文件「%1$@.gram」，或这个路径不支持，请重新导入语法模型。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "找不到語法模型檔案「%1$@.gram」，或這個路徑不支援，請重新匯入語法模型。"
+          }
+        }
+      }
+    },
+    "engine.error.grammarTargetNotCurrent": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文法モデルは使用中の入力方式でのみ確認できます。もう一度選択してからお試しください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "语法模型只能为正在使用的输入方式确认，请重新选择后再试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "語法模型只能為正在使用的輸入方式確認，請重新選擇後再試。"
+          }
+        }
+      }
+    },
+    "engine.error.initializationFailed": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力エンジンを起動できませんでした。キーボードを開き直してください：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入引擎没能启动，请重新打开键盘再试：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "輸入引擎沒能啟動，請重新開啟鍵盤再試：%1$@"
+          }
+        }
+      }
+    },
+    "engine.error.noSession": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力が一時停止しました。キーボードを開き直してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入已经暂停，请重新打开键盘再试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "輸入已經暫停，請重新開啟鍵盤再試。"
+          }
+        }
+      }
+    },
+    "engine.error.notStarted": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力エンジンの準備ができていません。しばらくしてからもう一度お試しください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入引擎还没准备好，请稍后再试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "輸入引擎還沒準備好，請稍後再試。"
+          }
+        }
+      }
+    },
+    "engine.error.schemaActivationFailed": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%1$@」という入力方式を有効にできません。もう一度選択してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法启用「%1$@」这个输入方式，请重新选择。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無法啟用「%1$@」這個輸入方式，請重新選擇。"
+          }
+        }
+      }
+    },
+    "engine.error.schemaDependencyInvalid": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力パックの依存関係が正しくありません。この入力パックを入れ直してください：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入方案的配套关系有误，请重新导入这个输入方案：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "輸入方案的配套關係有誤，請重新匯入這個輸入方案：%1$@"
+          }
+        }
+      }
+    },
+    "engine.error.schemaDependencyTooMany": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力パックの依存関係が 256 件を超えています。この入力パックを入れ直してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入方案的配套依赖超过 256 项，请重新导入这个输入方案。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "輸入方案的配套依賴超過 256 項，請重新匯入這個輸入方案。"
+          }
+        }
+      }
+    },
+    "engine.error.schemaNotPrepared": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力パックまたは付属の依存関係を準備できませんでした。この入力パックを入れ直してください：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入方案或配套依赖没能准备好，请重新导入这个输入方案：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "輸入方案或配套依賴沒能準備好，請重新匯入這個輸入方案：%1$@"
+          }
+        }
+      }
+    },
+    "engine.error.schemaSelectionFailed": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%1$@」という入力方式に切り替えられません。もう一度選択してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法切换到「%1$@」这个输入方式，请重新选择。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無法切換到「%1$@」這個輸入方式，請重新選擇。"
+          }
+        }
+      }
+    },
+    "engine.error.snapshotUnavailable": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "エンジンの状態を読み取れませんでした。入力は一時停止しています。今の変換をあきらめて、もう一度お試しください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "引擎状态读取失败，输入已暂停；请放弃当前组合并重试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "引擎狀態讀取失敗，輸入已暫停；請放棄當前組合並重試。"
+          }
+        }
+      }
+    },
+    "engine.error.stopped": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力が停止しました。キーボードを開き直してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入已经停止，请重新打开键盘再试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "輸入已經停止，請重新開啟鍵盤再試。"
+          }
+        }
+      }
+    },
+    "engine.error.syncFailed": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "辞書の同期に失敗しました。しばらくしてからもう一度お試しください：%1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "词库同步失败，请稍后再试：%1$@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "詞庫同步失敗，請稍後再試：%1$@"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

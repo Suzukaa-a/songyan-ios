@@ -164,7 +164,7 @@ extension KeyboardController {
                 option: option, revision: session.compositionRevision,
                 input: snapshot.rawInput)
         else {
-            ambiguityPicker.fail("组合已过期，请重新输入")
+            ambiguityPicker.fail(String(localized: "组合已过期，请重新输入"))
             return
         }
         let originalInput = report.revisionInput
@@ -228,7 +228,7 @@ extension KeyboardController {
         let restored = undoAmbiguityLock()
         if !restored {
             // Never append the new key after an alias/canonical code, which would produce a mixed code.
-            inputError = ambiguityPicker.message ?? "撤销组合失败，已取消本次输入"
+            inputError = ambiguityPicker.message ?? String(localized: "撤销组合失败，已取消本次输入")
             onInputError?(inputError ?? "")
         }
         return restored
@@ -237,11 +237,11 @@ extension KeyboardController {
     private static func ambiguityFailureMessage(_ outcome: AmbiguityApplyOutcome) -> String {
         switch outcome {
         case .applied: return ""
-        case .stale: return "组合已过期，请重新输入"
-        case .unsupported: return "当前输入方案不支持组合锁定"
-        case .invalid: return "组合不合法，已取消"
-        case .failed: return "组合锁定未完成，请检查输入后重试"
-        case .failedRollbackUnverified: return "组合锁定失败且未能确认还原，请重新输入"
+        case .stale: return String(localized: "组合已过期，请重新输入")
+        case .unsupported: return String(localized: "当前输入方案不支持组合锁定")
+        case .invalid: return String(localized: "组合不合法，已取消")
+        case .failed: return String(localized: "组合锁定未完成，请检查输入后重试")
+        case .failedRollbackUnverified: return String(localized: "组合锁定失败且未能确认还原，请重新输入")
         }
     }
 

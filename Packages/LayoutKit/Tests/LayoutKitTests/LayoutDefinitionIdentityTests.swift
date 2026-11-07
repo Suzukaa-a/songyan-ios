@@ -9,6 +9,15 @@ import XCTest
 /// `kind` / `schemaID` would treat "same id, new content" as a no-op and let an old lock/opaque token survive
 /// across physical definitions.
 final class LayoutDefinitionIdentityTests: XCTestCase {
+    func testLocalizedBuiltinNoteDisplayKeepsAuthoredAndCopiedNotes() {
+        let base = BuiltinLayouts.merged14
+        let edited = LayoutDefinition(
+            id: base.id, name: base.name, input: base.input, rows: base.rows, note: "Author note")
+        let copy = LayoutDefinition(id: "my-copy", name: base.name, input: base.input, rows: base.rows, note: base.note)
+        XCTAssertEqual(edited.displayNote, "Author note")
+        XCTAssertEqual(copy.displayNote, base.note)
+        XCTAssertFalse(base.displayNote?.hasPrefix("layout.note.") ?? true)
+    }
 
     private func code(_ v: String) -> LayoutKey {
         LayoutKey(label: v, secondaryLabel: v, action: .init(.code, value: v))

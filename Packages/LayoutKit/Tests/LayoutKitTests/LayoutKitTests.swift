@@ -65,7 +65,8 @@ final class LayoutKitTests: XCTestCase {
         XCTAssertEqual(registry.defaultMainLayoutID(for: key), "luna-a", "the smallest ID, not catalog order")
         XCTAssertEqual(registry.defaultMainLayoutID(for: .init(inputMethodID: "other", layout: .qwerty26)), "qwerty26")
         XCTAssertEqual(
-            Set(registry.mainLayoutCandidates(for: key).map(\.id)), ["qwerty26", "mine", "luna-a", "luna-b"])
+            Set(registry.mainLayoutCandidates(for: key).map(\.id)),
+            ["qwerty26", "zhuyin41", "cangjie26", "romaji26", "kana12", "mine", "luna-a", "luna-b"])
     }
 
     func testRejectInvalidActionsIncludingAlternates() throws {
@@ -126,7 +127,15 @@ final class LayoutKitTests: XCTestCase {
                 XCTAssertEqual(
                     example.rows.flatMap(\.keys).map(\.longPress), builtin.rows.flatMap(\.keys).map(\.longPress))
             }
-            XCTAssertTrue(example.rows.flatMap(\.keys).contains { !($0.longPress ?? []).isEmpty })
+            // The letter and merged pads carry real long-press alternates (digits, partner letters,
+            // punctuation). The zhuyin and cangjie boards type one symbol per cap and declare none,
+            // so the requirement stays with the shapes that have menus; every layout still keeps the
+            // example's alternates equal to the bundled definition above.
+            if ["qwerty26", "merged14", "merged18", "phone9"].contains(builtin.id) {
+                XCTAssertTrue(
+                    example.rows.flatMap(\.keys).contains { !($0.longPress ?? []).isEmpty },
+                    "\(builtin.id) 的示例必须带真实长按项")
+            }
         }
         let areas = try XCTUnwrap(BuiltinLayouts.phone9.auxiliaryAreas)
         XCTAssertFalse(areas.contains { $0.role == .punctuation })
@@ -195,5 +204,138 @@ final class LayoutKitTests: XCTestCase {
         try Data("{}".utf8).write(to: source)
         XCTAssertThrowsError(try store.importLayout(from: source))
         XCTAssertEqual(try store.load(), imported)
+    }
+}
+
+/// The injected availability rules (the host passes the shared input-language policy): they filter
+/// candidates, choose a family-preferred default, and let a saved pairing fall back at runtime without
+/// deleting the user's layout or rewriting the stored pairing.
+final class LayoutAvailabilityTests: XCTestCase {
+    private func definition(
+        _ id: String, schemaID: String? = nil, builtin: LayoutInput.Builtin? = .qwerty26
+    ) -> LayoutDefinition {
+        LayoutDefinition(
+            id: id, name: id, input: .init(schemaID: schemaID, builtinLayout: builtin),
+            rows: BuiltinLayouts.qwerty26.rows)
+    }
+
+    private func registryWith(_ extra: [LayoutDefinition]) throws -> LayoutRegistry {
+        var registry = try LayoutRegistry()
+        for layout in extra { try registry.install(layout.encoded()) }
+        return registry
+    }
+
+    private func availability(
+        allowing allowed: Set<String>, preferred: String? = nil
+    ) -> LayoutAvailability {
+        LayoutAvailability(
+            allows: { definition, _ in allowed.contains(definition.id) },
+            preferredMainLayoutID: { _ in preferred })
+    }
+
+    func testUnrestrictedAvailabilityKeepsEveryCandidate() throws {
+        // zhuyin41, cangjie26, romaji26 and kana12 ship as bundled layouts: a catalog without a
+        // stored copy still offers them, so the candidate list is every 26-key-shape layout it can
+        // resolve.
+        let registry = try registryWith([definition("mine")])
+        let key = KeyboardCompositionKey(inputMethodID: "bopomofo", layout: .qwerty26)
+        XCTAssertEqual(
+            Set(registry.mainLayoutCandidates(for: key).map(\.id)),
+            ["qwerty26", "zhuyin41", "cangjie26", "romaji26", "kana12", "mine"])
+        XCTAssertEqual(registry.defaultMainLayoutID(for: key), "qwerty26")
+        XCTAssertEqual(registry.usableMainLayoutID(for: key), "qwerty26")
+    }
+
+    func testInjectedAvailabilityFiltersCandidatesAndDefault() throws {
+        let registry = try registryWith([definition("bound-board", schemaID: "bopomofo"), definition("mine")])
+        let key = KeyboardCompositionKey(inputMethodID: "bopomofo", layout: .qwerty26)
+        // The definition is an explicit main-layout binding for this input method: it wins the default.
+        XCTAssertEqual(registry.defaultMainLayoutID(for: key), "bound-board")
+        // A family that does not own the bound layout may not use it, so both the candidate list
+        // and the default fall back to the existing shape preset.
+        let otherFamily = availability(allowing: ["qwerty26", "mine"])
+        XCTAssertEqual(
+            Set(registry.mainLayoutCandidates(for: key, availability: otherFamily).map(\.id)), ["qwerty26", "mine"])
+        XCTAssertEqual(registry.defaultMainLayoutID(for: key, availability: otherFamily), "qwerty26")
+        // The owning family keeps it; the preference only applies to an unbound definition.
+        let owningFamily = availability(allowing: ["qwerty26", "bound-board", "mine"], preferred: "bound-board")
+        XCTAssertEqual(registry.defaultMainLayoutID(for: key, availability: owningFamily), "bound-board")
+        let unbound = try registryWith([definition("bound-board"), definition("mine")])
+        XCTAssertEqual(unbound.defaultMainLayoutID(for: key), "qwerty26")
+        XCTAssertEqual(
+            unbound.defaultMainLayoutID(for: key, availability: owningFamily), "bound-board",
+            "the family-preferred layout is used when its definition has no explicit schema binding")
+    }
+
+    func testSavedPairingFallsBackAtRuntimeWithoutDeletingUserData() throws {
+        var registry = try LayoutRegistry()
+        let key = KeyboardCompositionKey(inputMethodID: "bopomofo", layout: .qwerty26)
+        try registry.setComposition(KeyboardComposition(mainLayoutID: "zhuyin41"), for: key.rawValue)
+        // A family that no longer owns the saved layout runs the shape preset instead.
+        let otherFamily = availability(allowing: ["qwerty26"])
+        XCTAssertEqual(registry.usableMainLayoutID(for: key, availability: otherFamily), "qwerty26")
+        XCTAssertEqual(
+            registry.composition(for: key).mainLayoutID, "zhuyin41",
+            "a fallback never rewrites or deletes the saved pairing, layout or source data")
+        XCTAssertEqual(
+            registry.usableMainLayoutID(
+                for: key, availability: availability(allowing: ["qwerty26", "zhuyin41"], preferred: "zhuyin41")),
+            "zhuyin41")
+    }
+
+    func testExplicitSchemaBindingWinsOverFamilyPreference() throws {
+        let key = KeyboardCompositionKey(inputMethodID: "bopomofo", layout: .qwerty26)
+        let bound = try registryWith([definition("zz-explicit", schemaID: "bopomofo")])
+        XCTAssertEqual(
+            bound.defaultMainLayoutID(
+                for: key,
+                availability: availability(allowing: ["qwerty26", "zz-explicit", "zhuyin41"], preferred: "zhuyin41")),
+            "zz-explicit",
+            "an explicit schema binding is not overridden by the family preference")
+        // A preferred ID bound to another input method never applies to this keyboard.
+        let foreign = try registryWith([definition("zz-foreign", schemaID: "cangjie5")])
+        XCTAssertEqual(
+            foreign.defaultMainLayoutID(
+                for: key, availability: availability(allowing: ["zz-foreign"], preferred: "zz-foreign")),
+            "qwerty26")
+    }
+
+    /// The public default path the host and the keyboard consume: with nothing saved, a registered
+    /// family-preferred physical definition must be what the keyboard resolves, never the shape
+    /// preset that `composition(for:)` materialises for an unsaved pairing.
+    func testFamilyPreferredLayoutIsUsedWhenNothingIsSaved() throws {
+        let key = KeyboardCompositionKey(inputMethodID: "kagiroi", layout: .qwerty26)
+        // The Japanese board ships with the app, so the family preference resolves it unasked.
+        let bundled = try registryWith([])
+        let preferred = availability(allowing: ["qwerty26", "romaji26"], preferred: "romaji26")
+        XCTAssertEqual(
+            bundled.usableMainLayoutID(for: key, availability: preferred), "romaji26",
+            "an unsaved keyboard still resolves the registered family layout")
+        // A family-preferred layout this build does not ship falls back to the shape preset.
+        let unshipped = availability(allowing: ["qwerty26", "unshipped26"], preferred: "unshipped26")
+        XCTAssertEqual(
+            try registryWith([]).usableMainLayoutID(for: key, availability: unshipped), "qwerty26")
+    }
+
+    /// A really saved, valid pairing still wins over the family preference.
+    func testSavedValidPairingWinsOverFamilyPreference() throws {
+        var registry = try registryWith([definition("mine")])
+        let key = KeyboardCompositionKey(inputMethodID: "kagiroi", layout: .qwerty26)
+        try registry.setComposition(KeyboardComposition(mainLayoutID: "mine"), for: key.rawValue)
+        let preferred = availability(allowing: ["qwerty26", "romaji26", "mine"], preferred: "romaji26")
+        XCTAssertEqual(registry.usableMainLayoutID(for: key, availability: preferred), "mine")
+    }
+
+    /// A saved pairing whose definition is gone or may not be used falls back to the preferred
+    /// registered definition, and the stored pairing is left untouched.
+    func testUnusableSavedPairingFallsBackToFamilyPreferred() throws {
+        var registry = try registryWith([])
+        let key = KeyboardCompositionKey(inputMethodID: "kagiroi", layout: .qwerty26)
+        try registry.setComposition(KeyboardComposition(mainLayoutID: "zhuyin41"), for: key.rawValue)
+        // This family may not use the saved zhuyin definition: the preferred bundled romaji one is
+        // the fallback, and the stored pairing is not rewritten.
+        let preferred = availability(allowing: ["qwerty26", "romaji26"], preferred: "romaji26")
+        XCTAssertEqual(registry.usableMainLayoutID(for: key, availability: preferred), "romaji26")
+        XCTAssertEqual(registry.composition(for: key).mainLayoutID, "zhuyin41")
     }
 }

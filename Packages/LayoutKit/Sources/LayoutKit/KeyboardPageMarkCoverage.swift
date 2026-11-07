@@ -116,6 +116,8 @@ public enum KeyboardPageMarkCoverage {
         var seen = Set<String>()
         let unique = marks.filter { seen.insert($0).inserted }
         guard !unique.isEmpty else { return nil }
-        return "这个搭配打不出：\(unique.joined(separator: " "))，可以在符号页加上这些键。"
+        return String(
+            format: String(localized: "page.pairingNote", bundle: .module),
+            unique.joined(separator: " "))
     }
 }

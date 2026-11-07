@@ -22,9 +22,12 @@ extension SchemeImportCenter {
         resetRecipePlanningState()
     }
 
-    func accept(_ urls: [URL], sourceURL: URL? = nil, onFinished: (() -> Void)? = nil) {
+    func accept(
+        _ urls: [URL], sourceURL: URL? = nil, recommendation: RecommendedSchemeSource? = nil,
+        onFinished: (() -> Void)? = nil
+    ) {
         guard !busy else {
-            message = "上一项导入还没完成，请稍后再选择文件。"
+            message = String(localized: "上一项导入还没完成，请稍后再选择文件。")
             onFinished?()
             return
         }
@@ -32,7 +35,7 @@ extension SchemeImportCenter {
             onFinished?()
             return
         }
-        let capture = ImportCapture(target: nil, sourceURL: sourceURL)
+        let capture = ImportCapture(target: nil, sourceURL: sourceURL, recommendation: recommendation)
         Task {
             defer { onFinished?() }
             await prepareRecognizedImport(urls, capture: capture)
@@ -44,6 +47,13 @@ extension SchemeImportCenter {
     struct ImportCapture {
         let target: InstalledPackage?
         let sourceURL: URL?
+        let recommendation: RecommendedSchemeSource?
+
+        init(target: InstalledPackage?, sourceURL: URL?, recommendation: RecommendedSchemeSource? = nil) {
+            self.target = target
+            self.sourceURL = sourceURL
+            self.recommendation = recommendation
+        }
     }
 
     /// Recognition phase shared by `accept` and the direct update: reads the chosen files, and for an
@@ -52,7 +62,7 @@ extension SchemeImportCenter {
     @discardableResult
     func prepareRecognizedImport(_ urls: [URL], capture: ImportCapture) async -> Bool {
         guard !busy else {
-            message = "上一项导入还没完成，请稍后再选择文件。"
+            message = String(localized: "上一项导入还没完成，请稍后再选择文件。")
             return false
         }
         let leases = urls.map { ($0, $0.startAccessingSecurityScopedResource()) }
@@ -66,7 +76,10 @@ extension SchemeImportCenter {
         lastInstalledPackageID = nil
         retryState.succeeded()
         resetRecipePlanningState()
-        message = urls.count == 1 ? "正在读取…" : "正在读取 \(urls.count) 个文件…"
+        message =
+            urls.count == 1 || capture.recommendation != nil
+            ? String(localized: "正在读取…")
+            : String(localized: "正在读取 \(urls.count) 个文件…")
         defer {
             busy = false
             for (url, scoped) in leases where scoped { url.stopAccessingSecurityScopedResource() }
@@ -76,6 +89,7 @@ extension SchemeImportCenter {
             // ZIP extraction/directory reads are heavy IO: run on a background serial queue, with the security-scope lease held until the read completes.
             // A synchronous package read would block the MainActor, so await the background result explicitly.
             let picked = urls
+            let recommendation = capture.recommendation
             // Importing a scheme that is already installed replaces it: the same main input method
             // means the same scheme, so newer files become a new version of that package instead of
             // a second copy. Learning data and the recorded download address stay with it.
@@ -94,7 +108,12 @@ extension SchemeImportCenter {
                 DispatchQueue(label: "scheme-import.read", qos: .userInitiated).async {
                     continuation.resume(
                         with: Result {
-                            let imported = try reader.prepareSync(picked)
+                            let imported =
+                                if let recommendation {
+                                    try reader.prepareRecommended(recommendation, archiveURLs: picked)
+                                } else {
+                                    try reader.prepareSync(picked)
+                                }
                             let existing =
                                 explicit
                                 ?? SchemeReimport.replacing(
@@ -112,7 +131,11 @@ extension SchemeImportCenter {
                 }
             }
             prepared = result
-            diagnostics = result.diagnostics + result.schemaIDs.map { "包含输入方式：\($0)" }
+            diagnostics =
+                result.diagnostics
+                + result.schemaIDs.map {
+                    String(localized: "包含输入方式：\($0)")
+                }
             message = nil
         } catch {
             fail(.nothingCommitted, error)
@@ -121,6 +144,24 @@ extension SchemeImportCenter {
             if capture.sourceURL != nil { preparedSourceURL = nil }
         }
         return prepared != nil
+    }
+
+    /// Whether this install already holds a user's built-in data, judged only from what an earlier
+    /// version wrote: a built-in installation/marker, a published selection, Full Access ever seen,
+    /// completed onboarding, or a saved script choice. Used only to decide a first install's locale
+    /// default; an existing user is never re-seeded, including one whose install predates the switch.
+    /// Nonisolated: it reads the option store off the main actor (see the caller's detached read).
+    nonisolated private static func hasExistingBuiltinSettings(_ id: String) -> Bool {
+        if KeyboardPresenceStamp.lastFullAccessSeen() != nil { return true }
+        if UserDefaults.standard.bool(forKey: AppSettings.onboardingCompletedKey) { return true }
+        if KeyboardRecipeStore.readSelection().data != nil { return true }
+        let option = BuiltinScriptDefault.descriptor(
+            resourceID: id, schemaID: BuiltinTemplateSchemas.sourceSchemaIDs[0], state: .simplified)
+        let store = OptionStore(directory: RimePaths.optionPreferencesDirectory())
+        do { return try store.value(for: option) != nil } catch {
+            // A stored choice that cannot be read still belongs to an existing install.
+            return true
+        }
     }
 
     private static var builtinInstall: Task<Void, Never>?
@@ -148,7 +189,7 @@ extension SchemeImportCenter {
         let recorded: String?
         do {
             guard let bundled = RimePaths.builtinPackage() else {
-                throw RecipeInstallError.invalidResource("找不到内置输入方案，请重新安装 App。")
+                throw RecipeInstallError.invalidResource(String(localized: "找不到内置输入方案，请重新安装 App。"))
             }
             (prepared, recorded) = try await Task.detached {
                 (
@@ -162,6 +203,26 @@ extension SchemeImportCenter {
             return
         }
         guard installed == nil || recorded != prepared.manifest.revision, !busy else { return }
+        // Any state read here was written before this bootstrap, so a first install stays
+        // distinguishable from an upgrade even though the install below writes the marker. The
+        // option-store read is disk IO, so it runs detached instead of on the main actor.
+        let priorSettings = await Task.detached { Self.hasExistingBuiltinSettings(id) }.value
+        // Any prior installation or record (even of the same content revision: content is not an
+        // install time) plus prior user data marks an existing install; only a first install is fresh.
+        let hadBuiltinSettings = BuiltinScriptEraRecord.hostIndicatesExistingInstall(
+            installed: installed != nil, recorded: recorded != nil, userSettings: priorSettings)
+        // Record the era before this bootstrap writes anything: the keyboard boot keeps a pre-switch
+        // install's script output and only a genuinely new install gets the locale default. Written
+        // once, so a later fresh-looking launch cannot relabel an upgraded install.
+        if let defaults = KeyboardRecipeStore.sharedDefaults(),
+            defaults.string(forKey: TraditionalDefault.installEraKey) == nil
+        {
+            defaults.set(
+                hadBuiltinSettings
+                    ? BuiltinScriptInstallEra.legacy.rawValue
+                    : BuiltinScriptInstallEra.current.rawValue,
+                forKey: TraditionalDefault.installEraKey)
+        }
         busy = true
         do {
             _ = try await EngineOwnershipCoordinator.shared.withExclusive {
@@ -233,7 +294,7 @@ extension SchemeImportCenter {
         error = nil
         defer { busy = false }
         let sourceURLAtInstall = preparedSourceURL
-        message = "正在安装…"
+        message = String(localized: "正在安装…")
         do {
             let manager = manager(prepared.declaration.id)
             let installed = try await EngineOwnershipCoordinator.shared.withExclusive {
@@ -248,7 +309,7 @@ extension SchemeImportCenter {
                                 engine.clearComposition()
                                 for key in binding.code {
                                     guard let event = RimeKey(character: key) else {
-                                        throw RecipeInstallError.deployment("输入码不是有效按键")
+                                        throw RecipeInstallError.deployment(String(localized: "输入码不是有效按键"))
                                     }
                                     _ = try engine.processKey(event)
                                 }
@@ -257,7 +318,10 @@ extension SchemeImportCenter {
                                     engine.selectCandidate(index)?.commitText == binding.candidate
                                 else {
                                     throw RecipeInstallError.deployment(
-                                        "试打后没有出现预期的候选词：输入方式「\(binding.schemaID)」，键盘布局「\(binding.layout)」，输入码「\(binding.code)」"
+                                        String(
+                                            localized:
+                                                "试打后没有出现预期的候选词：输入方式「\(binding.schemaID)」，键盘布局「\(binding.layout)」，输入码「\(binding.code)」"
+                                        )
                                     )
                                 }
                             }

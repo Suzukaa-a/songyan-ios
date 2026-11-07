@@ -3,6 +3,8 @@ import PackageDescription
 
 let package = Package(
     name: "PackageManager",
+    // User-facing wording lives in Resources/Localizable.xcstrings, one entry per language.
+    defaultLocalization: "zh-Hans",
     platforms: [.iOS(.v17), .macOS(.v13)],
     products: [.library(name: "PackageManager", targets: ["PackageManager"])],
     dependencies: [
@@ -16,7 +18,7 @@ let package = Package(
             dependencies: [
                 .product(name: "ZIPFoundation", package: "ZIPFoundation"), .product(name: "Yams", package: "Yams"),
                 .product(name: "KeyboardCore", package: "KeyboardCore"),
-            ], resources: [.copy("Resources/RimePrelude")]),
+            ], resources: [.copy("Resources/RimePrelude"), .process("Resources/Localizable.xcstrings")]),
         .testTarget(
             name: "PackageManagerTests",
             dependencies: ["PackageManager", .product(name: "KeyboardCore", package: "KeyboardCore")],

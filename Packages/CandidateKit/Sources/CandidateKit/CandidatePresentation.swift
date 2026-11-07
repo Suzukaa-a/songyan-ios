@@ -164,6 +164,9 @@ public struct CandidateAreaContext {
     public let actions: CandidateAreaActionSink
     /// Candidate font size resolved from the skin (SkinKit typography.candidateSize etc.).
     public let typography: CandidateTypography
+    /// Language of the scheme being typed: candidates, readings and badges draw the glyph forms of this
+    /// language ("直", "骨", "海" differ between Japanese, Traditional and Simplified Chinese).
+    public let inputLanguage: InputLanguage
     /// Points by which the collapsed strip's content is shifted **up** from the row center (0 = centered).
     /// Passed when the host shows a reading row above the word row, so the two lines sit closer; only
     /// the drawing position moves, each cell's hit region stays the full row height.
@@ -175,7 +178,7 @@ public struct CandidateAreaContext {
         browser: CandidateBrowser = CandidateBrowser(), isExpanded: Bool = false,
         visibleEntries: [BrowserCandidate]? = nil,
         visibleHasMore: Bool? = nil, visibleFrontier: Int? = nil,
-        contentLift: Double = 0
+        contentLift: Double = 0, inputLanguage: InputLanguage = .simplifiedChinese
     ) {
         self.contentLift = contentLift
         self.state = state
@@ -187,6 +190,7 @@ public struct CandidateAreaContext {
         self.bar = bar
         self.actions = actions
         self.typography = typography
+        self.inputLanguage = inputLanguage
     }
 }
 

@@ -105,6 +105,26 @@ extension InputSession {
         startCodeBatch()
     }
 
+    /// Queues one gesture's engine code keys and starts the same asynchronous batch as every
+    /// other deferred key. Unlike `deferCode`, this defers the very first key of a composition
+    /// too: a kana press is computed from the last landed snapshot and must never occupy the
+    /// main thread with engine work. The keys keep their order behind any batch already
+    /// running; `onPendingCodesChanged` fires once they land, which is how a gesture that
+    /// arrived meanwhile learns that it may now compute its own keys.
+    public func enqueueCodeKeys(_ keys: [String]) {
+        guard !retired, !keys.isEmpty, inputAvailable() else { return }
+        guard codeKeyQueue != nil else {
+            // No asynchronous queue (demo engine / tests): one synchronous batch keeps the
+            // gesture's keys in order and applies the same closing snapshot.
+            processSynchronously(keys)
+            return
+        }
+        pendingCodes.append(contentsOf: keys)
+        pendingCodesRevision &+= 1
+        onPendingCodesChanged?()
+        startCodeBatch()
+    }
+
     private func startCodeBatch() {
         guard !retired, let queue = codeKeyQueue, batch == nil, !pendingCodes.isEmpty else { return }
         let next = CodeBatch(keys: pendingCodes, engine: engine, lookaheadPages: codeBatchLookaheadPages)
@@ -209,4 +229,16 @@ extension InputSession {
         onPendingCodesChanged?()
         return true
     }
+}
+
+/// Engine control keys the front end may queue as code keys beside ordinary text keys.
+/// Each named token is mapped to its own engine key by the backend; these tokens are never
+/// inserted as text, echoed as pending input, or counted as letters.
+public enum EngineCodeKeyToken {
+    /// Delete one code unit. This is the actual U+0008 control key the engine reads as
+    /// BackSpace, so it can travel in the same batch as the text keys that follow it.
+    public static let backspace = "\u{08}"
+    /// Move the composition caret one step left without confirming the composition. Queueing
+    /// it in the same batch keeps a later replacement from overtaking the move.
+    public static let cursorLeft = "Left"
 }

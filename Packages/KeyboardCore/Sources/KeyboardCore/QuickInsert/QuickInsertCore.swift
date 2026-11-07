@@ -21,14 +21,15 @@ public enum QuickInsertDateFormat: String, CaseIterable, Identifiable, Codable, 
 
     public var id: String { rawValue }
 
-    /// Chinese title shown in the tool UI.
+    /// Title shown in the tool UI; read from the package catalog in the interface language.
     public var title: String {
         switch self {
-        case .date: return "日期"
-        case .dateChinese: return "中文日期"
-        case .time: return "时间"
-        case .dateTime: return "日期与时间"
-        case .dateTimeChinese: return "中文日期与时间"
+        case .date: return String(localized: "core.quickInsert.date", bundle: .module)
+        case .dateChinese: return String(localized: "core.quickInsert.dateChinese", bundle: .module)
+        case .time: return String(localized: "core.quickInsert.time", bundle: .module)
+        case .dateTime: return String(localized: "core.quickInsert.dateTime", bundle: .module)
+        case .dateTimeChinese:
+            return String(localized: "core.quickInsert.dateTimeChinese", bundle: .module)
         }
     }
 

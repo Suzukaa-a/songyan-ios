@@ -126,8 +126,12 @@ public struct KeyboardPageFooterGeometry: Equatable, Sendable {
         case .symbolLock:
             return action.type == .symbolLock
         case .utility:
-            // The ABC page's comma.
+            // The ABC page's comma, or the runtime footer's full stop beside the space bar.
             return action.type == .literal
+        case .markLeft:
+            return action.type == .literal && action.value == policy.utilityText
+        case .markRight:
+            return action.type == .literal && action.value == KeyboardControlPolicy.fullStop
         }
     }
 }

@@ -24,6 +24,6 @@ public enum UserNoticeLayering {
     /// the "installed" section; this only adds what the user should do next.
     public static func installationNextStep(installedPackageID: String?) -> String? {
         guard installedPackageID != nil else { return nil }
-        return "接下来选择要使用的键盘。"
+        return String(localized: "core.status.installationNextStep", bundle: .module)
     }
 }

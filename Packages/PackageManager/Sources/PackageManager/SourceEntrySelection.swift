@@ -25,7 +25,7 @@ public extension DeclarativeRecipePlan {
                     && $0.range(of: "^[A-Za-z0-9_-]+$", options: .regularExpression) != nil
             })
         else {
-            throw RecipeInstallError.invalidResource("所选输入方式不在最终安装文件中")
+            throw RecipeInstallError.invalidResource(PackageText.string("scheme.error.selectedNotInstalled"))
         }
         let needsDefault = files["default.yaml"] == nil
         let text =

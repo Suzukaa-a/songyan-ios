@@ -43,7 +43,7 @@ def main():
         'module RimeKit {\n    header "rime_api.h"\n    header "rime_bridge.h"\n    export *\n}\n')
     for header in ["rime_api.h"]:
         subprocess.run(["cp", str(PREFIX / "include" / header), str(module / header)], check=True)
-    for header in ["rime_bridge.h"]:
+    for header in ["rime_bridge.h", "rime_opencc.h"]:
         subprocess.run(["cp", str(BRIDGE / header), str(module / header)], check=True)
 
     subprocess.run(["clang", "-std=c11", "-O2", "-c",
@@ -59,7 +59,7 @@ def main():
                  "-I", str(LIBRIME_SRC / "src"), "-I", str(LIBRIME_SRC / "include"),
                  "-I", str(BOOST), "-I", str(gen_include),
                  "-mmacosx-version-min=13.0"]
-    for name in ["rime_spelling", "rime_display_map"]:
+    for name in ["rime_spelling", "rime_display_map", "rime_opencc"]:
         subprocess.run(["clang++", *cxx_flags, str(BRIDGE / f"{name}.cc"), "-o", str(obj / f"{name}.o")],
                        env=env, check=True)
 
@@ -89,7 +89,10 @@ def main():
                "-Xcc", f"-fmodule-map-file={support / 'module/module.modulemap'}",
                "-I", str(PREFIX / "include"), "-I", str(support / "module"), *staged,
                str(ROOT / "Tests/IOS/fallback-selection-main.swift")]
-    command += [str(obj / x) for x in ["rime_bridge.o", "rime_spelling.o", "rime_display_map.o"]]
+    command += [
+        str(obj / x)
+        for x in ["rime_bridge.o", "rime_spelling.o", "rime_display_map.o", "rime_opencc.o"]
+    ]
     command += [str(support / "RimeLeversSupport.o")]
     for lib in ["rime", "glog", "leveldb", "marisa", "opencc", "yaml-cpp"]:
         command += ["-Xlinker", str(PREFIX / f"lib/lib{lib}.a")]

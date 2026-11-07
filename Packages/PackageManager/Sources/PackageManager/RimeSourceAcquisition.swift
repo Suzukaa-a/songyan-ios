@@ -51,7 +51,7 @@ public struct AcquiredRimeSource: Sendable {
         let commit = try JSONDecoder().decode(
             Commit.self, from: await transport.read(commitURL, maximumBytes: 8 * 1024 * 1024))
         guard commit.sha.range(of: "^[a-f0-9]{40}$", options: .regularExpression) != nil else {
-            throw RecipeInstallError.invalidResource("版本信息获取失败")
+            throw RecipeInstallError.invalidResource(PackageText.string("source.error.versionUnavailable"))
         }
         progress("\(order.repository) @ \(commit.sha.prefix(10))")
         let treeURL = URL(
@@ -59,22 +59,22 @@ public struct AcquiredRimeSource: Sendable {
         let tree = try JSONDecoder().decode(
             Tree.self, from: await transport.read(treeURL, maximumBytes: 8 * 1024 * 1024))
         guard !tree.truncated, tree.tree.count <= 20_000 else {
-            throw RecipeInstallError.invalidResource("文件列表被截断或超过限制")
+            throw RecipeInstallError.invalidResource(PackageText.string("source.error.treeTruncated"))
         }
         if let unsupported = tree.tree.first(where: { $0.type == "commit" || $0.mode == "120000" }) {
-            throw RecipeInstallError.invalidResource("暂不支持子模块或符号链接：\(order.repository)/\(unsupported.path)")
+            throw RecipeInstallError.invalidResource(
+                PackageText.format("source.error.submoduleOrSymlink", order.repository + "/" + unsupported.path))
         }
         let entries = tree.tree.filter { entry in
             guard entry.type == "blob" else { return false }
             let path = entry.path.lowercased()
-            return [".yaml", ".lua", ".txt", ".json", ".gram", ".ocd", ".ocd2"].contains(where: path.hasSuffix)
-                || Prediction.isDatabasePath(entry.path)
+            return SchemeSourceCheck.isRuntimeSourceFile(entry.path)
                 || path == "license" || path == "copying" || path == "build/.gitkeep"
         }
         var sizes: [String: Int] = [:]
         for entry in entries {
             guard SchemeSourceCheck.safe(entry.path), let size = entry.size else {
-                throw RecipeInstallError.invalidResource("文件路径或大小无效：\(entry.path)")
+                throw RecipeInstallError.invalidResource(PackageText.format("source.error.invalidEntry", entry.path))
             }
             // Generated artifacts are never fetched into the original resource pool.
             if entry.path.hasPrefix("build/") && entry.path != "build/.gitkeep" { continue }
@@ -89,7 +89,8 @@ public struct AcquiredRimeSource: Sendable {
             let bytes = try await transport.read(url, maximumBytes: size)
             selected = try DeclarativeRecipe(path: selectedPath, source: bytes)
             if !order.recipe.isEmpty, selected?.declaredName != order.recipe {
-                throw RecipeInstallError.invalidResource("安装规则与所选方案配置不一致：\(selectedPath)")
+                throw RecipeInstallError.invalidResource(
+                    PackageText.format("source.error.recipeMismatch", selectedPath))
             }
             files[selectedPath] = bytes
         }
@@ -103,7 +104,7 @@ public struct AcquiredRimeSource: Sendable {
         guard sizes.filter({ !RecipeResourceBudget.isModel($0.key) }).values.reduce(0, +) <= sourceBudget,
             sizes.filter({ RecipeResourceBudget.isModel($0.key) }).values.reduce(0, +) <= modelBudget
         else {
-            throw RecipeInstallError.invalidResource("方案文件或模型文件累计大小超过限制")
+            throw RecipeInstallError.invalidResource(PackageText.string("source.error.totalTooLarge"))
         }
         for path in sizes.keys.sorted() {
             try Task.checkCancellation()
@@ -117,26 +118,26 @@ public struct AcquiredRimeSource: Sendable {
                 String($0).addingPercentEncoding(withAllowedCharacters: .urlPathAllowed)!
             }.joined(separator: "/")
             let url = URL(string: "https://raw.githubusercontent.com/\(order.repository)/\(commit.sha)/\(escapedPath)")!
-            progress("正在下载 \(order.repository)/\(path)")
+            progress(PackageText.format("source.progress.downloading", order.repository, path))
             if RecipeResourceBudget.isModel(path) {
                 models[path] = try await RecipeFileResource.download(
                     from: url, directory: FileManager.default.temporaryDirectory,
                     maximumBytes: sizes[path]!, transport: transport)
                 guard models[path]!.size == sizes[path] else {
-                    throw RecipeInstallError.invalidResource("模型文件大小不符：\(path)")
+                    throw RecipeInstallError.invalidResource(PackageText.format("source.error.modelSizeMismatch", path))
                 }
                 let handle = try FileHandle(forReadingFrom: models[path]!.url)
                 let head = try handle.read(upToCount: 128) ?? Data()
                 try handle.close()
                 guard !head.starts(with: Data("version https://git-lfs.github.com/spec/".utf8)) else {
-                    throw RecipeInstallError.invalidResource("暂不支持通过 Git LFS 存储的文件：\(path)")
+                    throw RecipeInstallError.invalidResource(PackageText.format("source.error.gitLFS", path))
                 }
             } else {
                 let data = try await transport.read(url, maximumBytes: sizes[path]!)
                 guard data.count == sizes[path],
                     !data.starts(with: Data("version https://git-lfs.github.com/spec/".utf8))
                 else {
-                    throw RecipeInstallError.invalidResource("文件大小不符或暂不支持 Git LFS 文件：\(path)")
+                    throw RecipeInstallError.invalidResource(PackageText.format("source.error.sizeOrGitLFS", path))
                 }
                 files[path] = data
             }
@@ -146,7 +147,8 @@ public struct AcquiredRimeSource: Sendable {
         if let source = files[recipePath] {
             recipe = try DeclarativeRecipe(path: recipePath, source: source)
         } else if !order.recipe.isEmpty {
-            throw RecipeInstallError.invalidResource("未找到安装配置文件：\(order.repository)/\(recipePath)")
+            throw RecipeInstallError.invalidResource(
+                PackageText.format("source.error.recipeMissing", order.repository + "/" + recipePath))
         } else {
             // Match install_files_from_package, including its exclusion of user custom.
             var paths = sizes.keys.filter { path in
@@ -158,7 +160,10 @@ public struct AcquiredRimeSource: Sendable {
                 return path.hasPrefix("opencc/") && path.split(separator: "/").count == 2
                     && [".json", ".ocd", ".txt"].contains(where: path.hasSuffix)
             }.sorted()
-            guard !paths.isEmpty else { throw RecipeInstallError.invalidResource("未找到默认安装配置文件：\(order.repository)") }
+            guard !paths.isEmpty else {
+                throw RecipeInstallError.invalidResource(
+                    PackageText.format("source.error.defaultRecipeMissing", order.repository))
+            }
             // Plum's legacy root-file glob is a seed, not a complete modern
             // source package: dictionaries and @* Lua modules can live in subdirectories.
             // Prefer this repository's actual bytes before looking for external providers.
@@ -171,7 +176,7 @@ public struct AcquiredRimeSource: Sendable {
                 return "  - \(path)::\(url.absoluteString)\n"
             }
             let text =
-                "recipe:\n  description: 源码文件及实际依赖闭包\n"
+                "recipe:\n  description: " + PackageText.string("recipe.description.sourceDependencies") + "\n"
                 + (downloads.isEmpty ? "" : "download_files:\n" + downloads.joined())
                 + "install_files:\n" + paths.sorted().map { "  - " + $0 + "\n" }.joined()
             recipe = try DeclarativeRecipe(path: "keyboard-default.recipe.yaml", source: Data(text.utf8))

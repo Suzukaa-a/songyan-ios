@@ -3,6 +3,9 @@
 # Rule sources and licenses: see songyan_flypy.schema.yaml.
 engine:
   filters:
+  - simplifier@zht
+  - simplifier@zh_tw
+  - simplifier@zh_hk
   - uniquifier
   processors:
   - speller
@@ -49,6 +52,7 @@ keyboard_adapter:
     e: ee
     en: en
     er: er
+    fa: fa
     fan: fj
     fen: ff
     feng: fg
@@ -105,6 +109,7 @@ keyboard_adapter:
     que: qt
     ren: rf
     ri: ri
+    ruan: rr
     se: se
     shan: uj
     shang: uh
@@ -117,6 +122,7 @@ keyboard_adapter:
     shuo: uo
     tian: tm
     tong: ts
+    tou: tz
     wang: wh
     wei: ww
     wo: wo
@@ -136,6 +142,7 @@ keyboard_adapter:
     yun: yy
     zai: zd
     zao: zc
+    zhan: vj
     zhang: vh
     zhe: ve
     zhi: vi
@@ -174,101 +181,105 @@ keyboard_rewrite:
     e: '90022'
     en: '90023'
     er: '90024'
-    fan: '90025'
-    fen: '90026'
-    feng: '90027'
-    fu: '90028'
-    ge: '90029'
-    gong: '90030'
-    gui: '90031'
-    guo: '90032'
-    hai: '90033'
-    hang: '90034'
-    hao: '90035'
-    he: '90036'
-    hen: '90037'
-    hu: '90038'
-    huan: '90039'
-    hui: '90040'
-    huo: '90041'
-    ji: '90042'
-    jia: '90043'
-    jian: '90044'
-    jiang: '90045'
-    jiao: '90046'
-    jiu: '90047'
-    jue: '90048'
-    kai: '90049'
-    kan: '90050'
-    kang: '90051'
-    kong: '90052'
-    kuai: '90053'
-    le: '90054'
-    leng: '90055'
-    li: '90056'
-    liang: '90057'
-    liao: '90058'
-    lie: '90059'
-    lin: '90060'
-    lu: '90061'
-    lv: '90062'
-    lve: '90063'
-    ma: '90064'
-    mang: '90065'
-    men: '90066'
-    ming: '90067'
-    nao: '90068'
-    neng: '90069'
-    ni: '90070'
-    nian: '90071'
-    niao: '90072'
-    nv: '90073'
-    o: '90074'
-    pan: '90075'
-    pin: '90076'
-    ping: '90077'
-    qu: '90078'
-    que: '90079'
-    ren: '90080'
-    ri: '90081'
-    se: '90082'
-    shan: '90083'
-    shang: '90084'
-    sheng: '90085'
-    shi: '90086'
-    shou: '90087'
-    shu: '90088'
-    shuang: '90089'
-    shui: '90090'
-    shuo: '90091'
-    tian: '90092'
-    tong: '90093'
-    wang: '90094'
-    wei: '90095'
-    wo: '90096'
-    xi: '90097'
-    xiang: '90098'
-    xiao: '90099'
-    xie: '90100'
-    xing: '90101'
-    xiong: '90102'
-    xue: '90103'
-    ya: '90104'
-    yan: '90105'
-    yao: '90106'
-    yi: '90107'
-    yin: '90108'
-    yu: '90109'
-    yue: '90110'
-    yun: '90111'
-    zai: '90112'
-    zao: '90113'
-    zhang: '90114'
-    zhe: '90115'
-    zhi: '90116'
-    zhong: '90117'
-    zou: '90118'
-    zuo: '90119'
+    fa: '90025'
+    fan: '90026'
+    fen: '90027'
+    feng: '90028'
+    fu: '90029'
+    ge: '90030'
+    gong: '90031'
+    gui: '90032'
+    guo: '90033'
+    hai: '90034'
+    hang: '90035'
+    hao: '90036'
+    he: '90037'
+    hen: '90038'
+    hu: '90039'
+    huan: '90040'
+    hui: '90041'
+    huo: '90042'
+    ji: '90043'
+    jia: '90044'
+    jian: '90045'
+    jiang: '90046'
+    jiao: '90047'
+    jiu: '90048'
+    jue: '90049'
+    kai: '90050'
+    kan: '90051'
+    kang: '90052'
+    kong: '90053'
+    kuai: '90054'
+    le: '90055'
+    leng: '90056'
+    li: '90057'
+    liang: '90058'
+    liao: '90059'
+    lie: '90060'
+    lin: '90061'
+    lu: '90062'
+    lv: '90063'
+    lve: '90064'
+    ma: '90065'
+    mang: '90066'
+    men: '90067'
+    ming: '90068'
+    nao: '90069'
+    neng: '90070'
+    ni: '90071'
+    nian: '90072'
+    niao: '90073'
+    nv: '90074'
+    o: '90075'
+    pan: '90076'
+    pin: '90077'
+    ping: '90078'
+    qu: '90079'
+    que: '90080'
+    ren: '90081'
+    ri: '90082'
+    ruan: '90083'
+    se: '90084'
+    shan: '90085'
+    shang: '90086'
+    sheng: '90087'
+    shi: '90088'
+    shou: '90089'
+    shu: '90090'
+    shuang: '90091'
+    shui: '90092'
+    shuo: '90093'
+    tian: '90094'
+    tong: '90095'
+    tou: '90096'
+    wang: '90097'
+    wei: '90098'
+    wo: '90099'
+    xi: '90100'
+    xiang: '90101'
+    xiao: '90102'
+    xie: '90103'
+    xing: '90104'
+    xiong: '90105'
+    xue: '90106'
+    ya: '90107'
+    yan: '90108'
+    yao: '90109'
+    yi: '90110'
+    yin: '90111'
+    yu: '90112'
+    yue: '90113'
+    yun: '90114'
+    zai: '90115'
+    zao: '90116'
+    zhan: '90117'
+    zhang: '90118'
+    zhe: '90119'
+    zhi: '90120'
+    zhong: '90121'
+    zou: '90122'
+    zuo: '90123'
   source_schema: songyan_flypy
   translator_namespace: translator
   version: 2
@@ -304,101 +315,105 @@ speller:
   - derive/^e$/90022/
   - derive/^en$/90023/
   - derive/^er$/90024/
-  - derive/^fan$/90025/
-  - derive/^fen$/90026/
-  - derive/^feng$/90027/
-  - derive/^fu$/90028/
-  - derive/^ge$/90029/
-  - derive/^gong$/90030/
-  - derive/^gui$/90031/
-  - derive/^guo$/90032/
-  - derive/^hai$/90033/
-  - derive/^hang$/90034/
-  - derive/^hao$/90035/
-  - derive/^he$/90036/
-  - derive/^hen$/90037/
-  - derive/^hu$/90038/
-  - derive/^huan$/90039/
-  - derive/^hui$/90040/
-  - derive/^huo$/90041/
-  - derive/^ji$/90042/
-  - derive/^jia$/90043/
-  - derive/^jian$/90044/
-  - derive/^jiang$/90045/
-  - derive/^jiao$/90046/
-  - derive/^jiu$/90047/
-  - derive/^jue$/90048/
-  - derive/^kai$/90049/
-  - derive/^kan$/90050/
-  - derive/^kang$/90051/
-  - derive/^kong$/90052/
-  - derive/^kuai$/90053/
-  - derive/^le$/90054/
-  - derive/^leng$/90055/
-  - derive/^li$/90056/
-  - derive/^liang$/90057/
-  - derive/^liao$/90058/
-  - derive/^lie$/90059/
-  - derive/^lin$/90060/
-  - derive/^lu$/90061/
-  - derive/^lv$/90062/
-  - derive/^lve$/90063/
-  - derive/^ma$/90064/
-  - derive/^mang$/90065/
-  - derive/^men$/90066/
-  - derive/^ming$/90067/
-  - derive/^nao$/90068/
-  - derive/^neng$/90069/
-  - derive/^ni$/90070/
-  - derive/^nian$/90071/
-  - derive/^niao$/90072/
-  - derive/^nv$/90073/
-  - derive/^o$/90074/
-  - derive/^pan$/90075/
-  - derive/^pin$/90076/
-  - derive/^ping$/90077/
-  - derive/^qu$/90078/
-  - derive/^que$/90079/
-  - derive/^ren$/90080/
-  - derive/^ri$/90081/
-  - derive/^se$/90082/
-  - derive/^shan$/90083/
-  - derive/^shang$/90084/
-  - derive/^sheng$/90085/
-  - derive/^shi$/90086/
-  - derive/^shou$/90087/
-  - derive/^shu$/90088/
-  - derive/^shuang$/90089/
-  - derive/^shui$/90090/
-  - derive/^shuo$/90091/
-  - derive/^tian$/90092/
-  - derive/^tong$/90093/
-  - derive/^wang$/90094/
-  - derive/^wei$/90095/
-  - derive/^wo$/90096/
-  - derive/^xi$/90097/
-  - derive/^xiang$/90098/
-  - derive/^xiao$/90099/
-  - derive/^xie$/90100/
-  - derive/^xing$/90101/
-  - derive/^xiong$/90102/
-  - derive/^xue$/90103/
-  - derive/^ya$/90104/
-  - derive/^yan$/90105/
-  - derive/^yao$/90106/
-  - derive/^yi$/90107/
-  - derive/^yin$/90108/
-  - derive/^yu$/90109/
-  - derive/^yue$/90110/
-  - derive/^yun$/90111/
-  - derive/^zai$/90112/
-  - derive/^zao$/90113/
-  - derive/^zhang$/90114/
-  - derive/^zhe$/90115/
-  - derive/^zhi$/90116/
-  - derive/^zhong$/90117/
-  - derive/^zou$/90118/
-  - derive/^zuo$/90119/
+  - derive/^fa$/90025/
+  - derive/^fan$/90026/
+  - derive/^fen$/90027/
+  - derive/^feng$/90028/
+  - derive/^fu$/90029/
+  - derive/^ge$/90030/
+  - derive/^gong$/90031/
+  - derive/^gui$/90032/
+  - derive/^guo$/90033/
+  - derive/^hai$/90034/
+  - derive/^hang$/90035/
+  - derive/^hao$/90036/
+  - derive/^he$/90037/
+  - derive/^hen$/90038/
+  - derive/^hu$/90039/
+  - derive/^huan$/90040/
+  - derive/^hui$/90041/
+  - derive/^huo$/90042/
+  - derive/^ji$/90043/
+  - derive/^jia$/90044/
+  - derive/^jian$/90045/
+  - derive/^jiang$/90046/
+  - derive/^jiao$/90047/
+  - derive/^jiu$/90048/
+  - derive/^jue$/90049/
+  - derive/^kai$/90050/
+  - derive/^kan$/90051/
+  - derive/^kang$/90052/
+  - derive/^kong$/90053/
+  - derive/^kuai$/90054/
+  - derive/^le$/90055/
+  - derive/^leng$/90056/
+  - derive/^li$/90057/
+  - derive/^liang$/90058/
+  - derive/^liao$/90059/
+  - derive/^lie$/90060/
+  - derive/^lin$/90061/
+  - derive/^lu$/90062/
+  - derive/^lv$/90063/
+  - derive/^lve$/90064/
+  - derive/^ma$/90065/
+  - derive/^mang$/90066/
+  - derive/^men$/90067/
+  - derive/^ming$/90068/
+  - derive/^nao$/90069/
+  - derive/^neng$/90070/
+  - derive/^ni$/90071/
+  - derive/^nian$/90072/
+  - derive/^niao$/90073/
+  - derive/^nv$/90074/
+  - derive/^o$/90075/
+  - derive/^pan$/90076/
+  - derive/^pin$/90077/
+  - derive/^ping$/90078/
+  - derive/^qu$/90079/
+  - derive/^que$/90080/
+  - derive/^ren$/90081/
+  - derive/^ri$/90082/
+  - derive/^ruan$/90083/
+  - derive/^se$/90084/
+  - derive/^shan$/90085/
+  - derive/^shang$/90086/
+  - derive/^sheng$/90087/
+  - derive/^shi$/90088/
+  - derive/^shou$/90089/
+  - derive/^shu$/90090/
+  - derive/^shuang$/90091/
+  - derive/^shui$/90092/
+  - derive/^shuo$/90093/
+  - derive/^tian$/90094/
+  - derive/^tong$/90095/
+  - derive/^tou$/90096/
+  - derive/^wang$/90097/
+  - derive/^wei$/90098/
+  - derive/^wo$/90099/
+  - derive/^xi$/90100/
+  - derive/^xiang$/90101/
+  - derive/^xiao$/90102/
+  - derive/^xie$/90103/
+  - derive/^xing$/90104/
+  - derive/^xiong$/90105/
+  - derive/^xue$/90106/
+  - derive/^ya$/90107/
+  - derive/^yan$/90108/
+  - derive/^yao$/90109/
+  - derive/^yi$/90110/
+  - derive/^yin$/90111/
+  - derive/^yu$/90112/
+  - derive/^yue$/90113/
+  - derive/^yun$/90114/
+  - derive/^zai$/90115/
+  - derive/^zao$/90116/
+  - derive/^zhan$/90117/
+  - derive/^zhang$/90118/
+  - derive/^zhe$/90119/
+  - derive/^zhi$/90120/
+  - derive/^zhong$/90121/
+  - derive/^zou$/90122/
+  - derive/^zuo$/90123/
   - derive/^([jqxy])u$/$1v/
   - xform/^([aoe])(ng)?$/$1$1$2/
   - xform/iu$/Q/
@@ -454,6 +469,18 @@ speller:
   alphabet: '!#%*+0123456789<>@^_abcdefghijklmnopqrstuvwxyz|~'
   delimiter: ' '''
   initials: '!#%*+0123456789<>@^_abcdefghijklmnopqrstuvwxyz|~'
+switches:
+- options:
+  - simplification
+  - zht
+  - zh_tw
+  - zh_hk
+  reset: 0
+  states:
+  - "\u7B80\u4F53"
+  - "\u7E41\u9AD4"
+  - "\u81FA\u7063"
+  - "\u9999\u6E2F"
 translator:
   db_class: userdb
   dictionary: songyan_basic
@@ -465,3 +492,12 @@ translator:
   - xlit/<~|>#@^+!%*_/abcdegjoqtuz/
   prism: keyboard_3d7821f984693864ae91_14
   user_dict: songyan_shared
+zh_hk:
+  opencc_config: s2hk.json
+  option_name: zh_hk
+zh_tw:
+  opencc_config: s2twp.json
+  option_name: zh_tw
+zht:
+  opencc_config: s2t.json
+  option_name: zht

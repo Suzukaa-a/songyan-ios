@@ -37,62 +37,68 @@ struct SkinEditorView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("预览") {
-                    if layouts.isEmpty { ProgressView("正在读取布局…") }
-                    Picker("布局", selection: $layoutID) { ForEach(layouts) { Text($0.name).tag($0.id) } }
-                    Toggle("编辑深色", isOn: $dark)
+                Section(String(localized: "预览")) {
+                    if layouts.isEmpty { ProgressView(String(localized: "正在读取布局…")) }
+                    Picker(String(localized: "布局"), selection: $layoutID) {
+                        ForEach(layouts) { Text($0.name).tag($0.id) }
+                    }
+                    Toggle(String(localized: "编辑深色"), isOn: $dark)
                     if let layout = layouts.first(where: { $0.id == layoutID }) {
                         KeyboardPreviewView(
                             layout: layout, skin: draft.skin, candidateBar: draft.candidateBar, previewDark: dark)
                     }
                 }
-                Section("候选栏预览") {
+                Section(String(localized: "候选栏预览")) {
                     CandidateBarPreviewView(bar: draft.candidateBar, skin: draft.skin, dark: dark)
                 }
-                Section("名称") {
-                    TextField("外观名称", text: $draft.name)
+                Section(String(localized: "名称")) {
+                    TextField(String(localized: "外观名称"), text: $draft.name)
                     TextField(
-                        "作者（可选）",
+                        String(localized: "作者（可选）"),
                         text: Binding(
                             get: { draft.author ?? "" },
                             set: { draft.author = $0.isEmpty ? nil : $0 }))
                 }
-                Section(dark ? "深色颜色" : "浅色颜色") {
+                Section(dark ? String(localized: "深色颜色") : String(localized: "浅色颜色")) {
                     ForEach(SkinDefinition.colorNames, id: \.self) { name in
                         ColorPicker(colorTitle(name), selection: colorBinding(name), supportsOpacity: false)
                     }
                 }
                 Section {
-                    Picker("字体族", selection: $draft.skin.typography.family) {
+                    Picker(String(localized: "字体族"), selection: $draft.skin.typography.family) {
                         Text("系统").tag("system")
                         Text("圆体").tag("rounded")
                         Text("衬线体").tag("serif")
                         Text("等宽体").tag("monospaced")
                     }
-                    Picker("字重", selection: $draft.skin.typography.weight) {
+                    Picker(String(localized: "字重"), selection: $draft.skin.typography.weight) {
                         Text("常规").tag("regular")
                         Text("中等").tag("medium")
                         Text("半粗").tag("semibold")
                     }
-                    slider("主键字号", value: $draft.skin.typography.keySize, range: 16...28)
-                    slider("副标题字号", value: $draft.skin.typography.secondarySize, range: 10...16)
-                    slider("候选字号", value: $draft.skin.typography.candidateSize, range: 16...30)
+                    slider(String(localized: "主键字号"), value: $draft.skin.typography.keySize, range: 16...28)
+                    slider(
+                        String(localized: "副标题字号"), value: $draft.skin.typography.secondarySize,
+                        range: 10...16)
+                    slider(
+                        String(localized: "候选字号"), value: $draft.skin.typography.candidateSize,
+                        range: 16...30)
                 } header: {
                     Text("字体")
                 }
-                Section("按键") {
-                    slider("圆角", value: $draft.skin.keycap.cornerRadius, range: 0...16)
-                    slider("边框", value: $draft.skin.keycap.borderWidth, range: 0...2)
-                    Picker("阴影", selection: $draft.skin.keycap.shadow) {
+                Section(String(localized: "按键")) {
+                    slider(String(localized: "圆角"), value: $draft.skin.keycap.cornerRadius, range: 0...16)
+                    slider(String(localized: "边框"), value: $draft.skin.keycap.borderWidth, range: 0...2)
+                    Picker(String(localized: "阴影"), selection: $draft.skin.keycap.shadow) {
                         Text("无").tag("none")
                         Text("轻微").tag("subtle")
                     }
-                    slider("横向内缩", value: $draft.skin.spacing.visualInsetX, range: 0...6)
-                    slider("纵向内缩", value: $draft.skin.spacing.visualInsetY, range: 0...6)
+                    slider(String(localized: "横向内缩"), value: $draft.skin.spacing.visualInsetX, range: 0...6)
+                    slider(String(localized: "纵向内缩"), value: $draft.skin.spacing.visualInsetY, range: 0...6)
                 }
-                Section("背景") {
+                Section(String(localized: "背景")) {
                     Toggle(
-                        "双色纵向渐变",
+                        String(localized: "双色纵向渐变"),
                         isOn: Binding(
                             get: { variant.background?.type == "linearGradient" },
                             set: { gradient in
@@ -110,15 +116,17 @@ struct SkinEditorView: View {
                                 variant = v
                             }))
                     if variant.background?.type == "linearGradient" {
-                        ColorPicker("起点", selection: backgroundBinding("from"), supportsOpacity: false)
-                        ColorPicker("终点", selection: backgroundBinding("to"), supportsOpacity: false)
+                        ColorPicker(
+                            String(localized: "起点"), selection: backgroundBinding("from"), supportsOpacity: false)
+                        ColorPicker(String(localized: "终点"), selection: backgroundBinding("to"), supportsOpacity: false)
                     } else {
-                        ColorPicker("纯色", selection: backgroundBinding("color"), supportsOpacity: false)
+                        ColorPicker(
+                            String(localized: "纯色"), selection: backgroundBinding("color"), supportsOpacity: false)
                     }
                 }
                 CandidateAreaEditorSections(document: $draft)
                 Section {
-                    Button("另存为副本") { save(copy: true) }
+                    Button(String(localized: "另存为副本")) { save(copy: true) }
                     Text("保存后轻点「应用」即可生效。")
                         .font(.caption)
                     if let error { Text(error).foregroundStyle(.red) }
@@ -126,23 +134,25 @@ struct SkinEditorView: View {
                 .disabled(saving)
             }
             .disabled(saving)
-            .navigationTitle("编辑外观")
+            .navigationTitle(String(localized: "编辑外观"))
             .toolbarBackground(Color(uiColor: .systemGroupedBackground), for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { if hasChanges { confirmingDiscard = true } else { dismiss() } }
+                    Button(String(localized: "取消")) { if hasChanges { confirmingDiscard = true } else { dismiss() } }
                         .disabled(saving)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("保存") { save(copy: false) }
+                    Button(String(localized: "保存")) { save(copy: false) }
                         .disabled(saving)
                         .accessibilityIdentifier("skinEditor.save")
                 }
             }
-            .confirmationDialog("放弃未保存的更改？", isPresented: $confirmingDiscard, titleVisibility: .visible) {
-                Button("放弃更改", role: .destructive) { dismiss() }
-                Button("继续编辑", role: .cancel) {}
+            .confirmationDialog(
+                String(localized: "放弃未保存的更改？"), isPresented: $confirmingDiscard, titleVisibility: .visible
+            ) {
+                Button(String(localized: "放弃更改"), role: .destructive) { dismiss() }
+                Button(String(localized: "继续编辑"), role: .cancel) {}
             }
         }
         .interactiveDismissDisabled(hasChanges || saving)
@@ -153,7 +163,7 @@ struct SkinEditorView: View {
                 guard !Task.isCancelled else { return }
                 layouts = preview.layouts
                 if layoutID.isEmpty { layoutID = preview.selectedID }
-            } catch { self.error = "无法读取预览布局，请重新打开外观。" }
+            } catch { self.error = String(localized: "无法读取预览布局，请重新打开外观。") }
         }
     }
     /// Display mode belongs to this appearance project: editing only changes the draft, committed together on save/apply.
@@ -167,9 +177,11 @@ struct SkinEditorView: View {
     }
     private func colorTitle(_ name: String) -> String {
         [
-            "panel": "面板背景", "key": "字母键背景", "control": "功能键背景", "accent": "强调色",
-            "text": "主文字", "secondaryText": "次要文字", "accentText": "强调文字",
-            "pressed": "按下状态", "selected": "选中状态", "border": "边框",
+            "panel": String(localized: "面板背景"), "key": String(localized: "字母键背景"),
+            "control": String(localized: "功能键背景"), "accent": String(localized: "强调色"),
+            "text": String(localized: "主文字"), "secondaryText": String(localized: "次要文字"),
+            "accentText": String(localized: "强调文字"), "pressed": String(localized: "按下状态"),
+            "selected": String(localized: "选中状态"), "border": String(localized: "边框"),
         ].first { $0.key == name }?.value ?? name
     }
     private func slider(_ title: String, value: Binding<Double>, range: ClosedRange<Double>) -> some View {

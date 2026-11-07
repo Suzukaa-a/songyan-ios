@@ -16,10 +16,10 @@ enum AppliedSelectionLoader {
         }) ?? false
     }
 
-    static let missingGroupMessage = "暂时无法读取设置，请重新安装 App 后再试。"
+    static let missingGroupMessage = String(localized: "暂时无法读取设置，请重新安装 App 后再试。")
 
     static func readFailureMessage() async -> String {
-        return await sharedContainerUnavailable() ? missingGroupMessage : "无法读取状态，请重试。"
+        return await sharedContainerUnavailable() ? missingGroupMessage : String(localized: "无法读取状态，请重试。")
     }
 
     /// One read; returns a selection snapshot (success) or an error.
@@ -86,7 +86,7 @@ enum AppliedSelectionLoader {
                 var resourceError: String?
                 do { _ = try KeyboardRecipeStore.snapshot(selectedOnly: true) } catch {
                     HostLog.append("published resource validation failed: \(error.localizedDescription)")
-                    resourceError = "无法读取当前输入方案，请在「我的键盘」中重新选择。"
+                    resourceError = String(localized: "无法读取当前输入方案，请在「我的键盘」中重新选择。")
                 }
                 return (snapshot, nil, resourceError)
             }

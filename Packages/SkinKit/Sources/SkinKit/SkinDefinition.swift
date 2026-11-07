@@ -20,8 +20,18 @@ public struct SkinDefinition: Codable, Equatable, Identifiable, Sendable {
         self.id = id
         self.name = name
     }
+    /// Stable identity of the built-in default skin.
+    public static let systemDefaultID = "system-default"
+
+    /// The name to show in the interface. The stored `name` keeps the record's own value (it is
+    /// written into saved files), so changing the system language never rewrites a saved record.
+    public var displayName: String {
+        id == Self.systemDefaultID
+            ? String(localized: "skin.name.systemDefault", bundle: .module) : name
+    }
+
     public static let systemDefault: SkinDefinition = {
-        var skin = SkinDefinition(id: "system-default", name: "系统默认")
+        var skin = SkinDefinition(id: systemDefaultID, name: "系统默认")
         skin.typography.weight = "regular"
         skin.typography.keySize = 22
         skin.typography.secondarySize = 10
@@ -88,13 +98,16 @@ public struct SkinDefinition: Codable, Equatable, Identifiable, Sendable {
     public func copy() -> Self {
         var copy = self
         copy.id = UUID().uuidString.lowercased()
-        copy.name += " 副本"
+        copy.name = String(
+            format: String(localized: "skin.name.copySuffix", bundle: .module), copy.name)
         return copy
     }
     public static func decode(_ data: Data) throws -> Self {
-        guard data.count <= 128 * 1024 else { throw SkinError("$: JSON 超过 128KB") }
+        guard data.count <= 128 * 1024 else {
+            throw SkinError(String(localized: "skin.error.fileTooLarge", bundle: .module))
+        }
         guard let source = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            throw SkinError("$: 需要对象")
+            throw SkinError(String(localized: "skin.error.notAnObject", bundle: .module))
         }
         // Imported skins retain the format's original omitted-field defaults.
         var defaults =
@@ -115,7 +128,12 @@ public struct SkinDefinition: Codable, Equatable, Identifiable, Sendable {
             }
             var result = base
             for (key, value) in input {
-                guard allowed.contains(key) else { throw SkinError("\(path).\(key): 未知字段") }
+                guard allowed.contains(key) else {
+                    throw SkinError(
+                        String(
+                            format: String(localized: "skin.error.unknownField", bundle: .module),
+                            key, "\(path).\(key)"))
+                }
                 if let object = value as? [String: Any] {
                     result[key] = try merge(object, base[key] as? [String: Any] ?? [:], "\(path).\(key)")
                 } else {
@@ -124,14 +142,24 @@ public struct SkinDefinition: Codable, Equatable, Identifiable, Sendable {
             }
             return result
         }
-        guard source["formatVersion"] as? Int == 1 else { throw SkinError("$.formatVersion: 只支持 1") }
+        guard source["formatVersion"] as? Int == 1 else {
+            throw SkinError(
+                String(
+                    format: String(localized: "skin.error.unsupportedVersion", bundle: .module), "1"))
+        }
         let skin = try JSONDecoder().decode(
             Self.self, from: JSONSerialization.data(withJSONObject: merge(source, defaults, "$")))
         try skin.validate()
         return skin.normalized()
     }
     public func validate() throws {
-        func require(_ test: Bool, _ path: String) throws { if !test { throw SkinError("\(path): 值无效") } }
+        func require(_ test: Bool, _ path: String) throws {
+            if !test {
+                throw SkinError(
+                    String(
+                        format: String(localized: "skin.error.invalidValue", bundle: .module), path))
+            }
+        }
         try require(formatVersion == 1, "$.formatVersion")
         try require(
             !id.isEmpty
@@ -182,7 +210,9 @@ public struct SkinDefinition: Codable, Equatable, Identifiable, Sendable {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let data = try encoder.encode(normalized())
-        guard data.count <= 128 * 1024 else { throw SkinError("$: JSON 超过 128KB") }
+        guard data.count <= 128 * 1024 else {
+            throw SkinError(String(localized: "skin.error.fileTooLarge", bundle: .module))
+        }
         return data
     }
     /// Whether the skin authors a background for this mode. Without one the keyboard shows the

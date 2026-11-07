@@ -40,12 +40,12 @@ enum LearningBackupUserError: Error, Equatable {
     var message: String {
         switch self {
         case .noAppliedSource:
-            return "还没有正在使用的输入方案，请先在「我的键盘」中使用一个键盘。"
+            return String(localized: "还没有正在使用的输入方案，请先在「我的键盘」中使用一个键盘。")
         case .containerUnavailable:
             // Reinstalling deletes the keyboard-private learning data, so it must never be offered as a routine recovery step.
-            return "无法访问共享数据。请在系统设置中开启「允许完全访问」，然后重新打开此页。"
+            return String(localized: "无法访问共享数据。请在系统设置中开启「允许完全访问」，然后重新打开此页。")
         case .unreadableFile:
-            return "无法读取所选的备份文件，请重新选择。"
+            return String(localized: "无法读取所选的备份文件，请重新选择。")
         case .nothingToImport(let reason):
             return reason
         }
@@ -226,13 +226,13 @@ final class LearningBackupModel: ObservableObject {
     var safetyBackupDetail: String? {
         guard let safetyBackup else { return nil }
         let date = safetyBackup.createdAt.formatted(date: .abbreviated, time: .shortened)
-        return "备份来源：\(safetyBackup.sourceName) · \(date)"
+        return String(localized: "备份来源：\(safetyBackup.sourceName) · \(date)")
     }
 
     var restoreConfirmationMessage: String? { restoreSummary }
 
-    static let backupConfirmationTitle = "导入并合并学习备份？"
-    static let snapshotConfirmationTitle = "合并这些词库？"
+    static let backupConfirmationTitle = String(localized: "导入并合并学习备份？")
+    static let snapshotConfirmationTitle = String(localized: "合并这些词库？")
 
     /// The dialog title follows what was picked: a Songyan backup or word lists from other Rime input methods.
     @Published private(set) var restoreConfirmationTitle = LearningBackupModel.backupConfirmationTitle
@@ -301,7 +301,7 @@ final class LearningBackupModel: ObservableObject {
                 self.safetyBackupReadFailure = nil
             } catch {
                 guard let self, !Task.isCancelled else { return }
-                self.safetyBackupReadFailure = "暂时无法确认恢复前备份，请稍后重试。"
+                self.safetyBackupReadFailure = String(localized: "暂时无法确认恢复前备份，请稍后重试。")
             }
         }
     }
@@ -387,7 +387,7 @@ final class LearningBackupModel: ObservableObject {
             // A user cancel is not a failure.
             let nsError = error as NSError
             guard !(nsError.domain == NSCocoaErrorDomain && nsError.code == NSUserCancelledError) else { return }
-            notice = "无法打开所选的文件，请重新选择。"
+            notice = String(localized: "无法打开所选的文件，请重新选择。")
         }
     }
 
@@ -478,7 +478,7 @@ final class LearningBackupModel: ObservableObject {
         guard let current = transfer, current.operation == .backup,
             current.status == .succeeded
         else {
-            notice = "还没有可导出的学习备份。"
+            notice = String(localized: "还没有可导出的学习备份。")
             return
         }
         guard beginOperation() else { return }
@@ -494,7 +494,7 @@ final class LearningBackupModel: ObservableObject {
                 let data = try await LearningBackupIO.encode(archive)
                 guard !Task.isCancelled else { return }
                 self.exportDocument = LearningBackupDocument(data: data)
-                self.exportFilename = "松烟-学习备份-\(Self.dateStamp(archive.createdAt)).json"
+                self.exportFilename = String(localized: "松烟-学习备份-\(Self.dateStamp(archive.createdAt)).json")
                 self.exporting = true
             } catch {
                 guard let self, !Task.isCancelled else { return }
@@ -507,7 +507,7 @@ final class LearningBackupModel: ObservableObject {
     /// names the file from the archive's own source/time, and refreshes the summary to the one just read.
     func prepareSafetyBackupExport() {
         guard canExportSafetyBackup else {
-            notice = "还没有恢复前备份。"
+            notice = String(localized: "还没有恢复前备份。")
             return
         }
         guard beginOperation() else { return }
@@ -520,7 +520,7 @@ final class LearningBackupModel: ObservableObject {
                 guard let archive else {
                     // Read succeeded but there is no archive: only this is a true "none".
                     self.safetyBackup = nil
-                    self.notice = "还没有恢复前备份。"
+                    self.notice = String(localized: "还没有恢复前备份。")
                     return
                 }
                 let data = try await LearningBackupIO.encode(archive)
@@ -529,7 +529,7 @@ final class LearningBackupModel: ObservableObject {
                     sourceName: archive.sourceName,
                     createdAt: archive.createdAt)
                 self.exportDocument = LearningBackupDocument(data: data)
-                self.exportFilename = "松烟-恢复前备份-\(Self.dateStamp(archive.createdAt)).json"
+                self.exportFilename = String(localized: "松烟-恢复前备份-\(Self.dateStamp(archive.createdAt)).json")
                 self.exporting = true
             } catch {
                 guard let self, !Task.isCancelled else { return }
@@ -543,7 +543,7 @@ final class LearningBackupModel: ObservableObject {
         let nsError = error as NSError
         guard !(nsError.domain == NSCocoaErrorDomain && nsError.code == NSUserCancelledError) else { return }
         // The underlying localizedDescription is not used: it may include a file path.
-        notice = "导出未完成，请重新选择保存位置后再试。"
+        notice = String(localized: "导出未完成，请重新选择保存位置后再试。")
     }
 
     // MARK: Status polling
@@ -580,33 +580,29 @@ final class LearningBackupModel: ObservableObject {
     // MARK: Fixed user-facing text (contains no path / id / entries)
 
     static func statusText(for state: LearningTransferStore.State?) -> String {
-        guard let state else { return "尚未传输过学习数据。" }
+        guard let state else { return String(localized: "尚未传输过学习数据。") }
         switch state.status {
         case .pending:
-            return "等待键盘响应：请调出「松烟」键盘一次。"
+            return String(localized: "等待键盘响应：请调出「松烟」键盘一次。")
         case .running:
-            return state.operation == .backup ? "正在备份学习数据…" : "正在合并学习数据…"
+            return state.operation == .backup ? String(localized: "正在备份学习数据…") : String(localized: "正在合并学习数据…")
         case .succeeded:
             // An import carries its own result line (what was merged).
             if state.operation == .restore, let message = state.message { return message }
-            return state.operation == .backup ? "备份完成。" : "合并完成。"
+            return state.operation == .backup ? String(localized: "备份完成。") : String(localized: "合并完成。")
         case .failed:
-            return "操作失败：\(state.message ?? "原因未知")"
+            return String(localized: "操作失败：\(state.message ?? String(localized: "原因未知"))")
         case .cancelled:
-            return "已取消。"
+            return String(localized: "已取消。")
         case .interrupted:
             let suffix = state.message.map { "（\($0)）" } ?? ""
-            return "上一次操作被中断，未能确认结果\(suffix)。请重新尝试。"
+            return String(localized: "上一次操作被中断，未能确认结果\(suffix)。请重新尝试。")
         }
     }
 
     static func restoreSummary(for archive: LearningBackupArchive) -> String {
         let date = archive.createdAt.formatted(date: .abbreviated, time: .shortened)
-        return """
-            备份来源：\(archive.sourceName)
-            备份日期：\(date)
-            开始合并前会先自动保存当前的学习数据；合并会保留现有学习，但开始后无法中途撤回。
-            """
+        return String(localized: "备份来源：\(archive.sourceName)\n备份日期：\(date)\n开始合并前会先自动保存当前的学习数据；合并会保留现有学习，但开始后无法中途撤回。")
     }
 
     /// The file name uses the date (local time zone) and contains no internal identifier.
@@ -620,37 +616,37 @@ final class LearningBackupModel: ObservableObject {
     static func userMessage(for error: Error) -> String {
         if let user = error as? LearningBackupUserError { return user.message }
         if let archive = error as? LearningBackupArchiveError {
-            return archive.errorDescription ?? "备份内容无法使用。"
+            return archive.errorDescription ?? String(localized: "备份内容无法使用。")
         }
         if let store = error as? LearningTransferStoreError { return message(for: store) }
-        return "操作未完成，请重试。"
+        return String(localized: "操作未完成，请重试。")
     }
 
     /// Fixed user-facing text for store errors: never exposes slot names / paths / IDs.
     static func message(for error: LearningTransferStoreError) -> String {
         switch error {
         case .requestInProgress(.pending):
-            return "已有请求正在等待键盘响应，请先取消或完成该请求。"
+            return String(localized: "已有请求正在等待键盘响应，请先取消或完成该请求。")
         case .requestInProgress:
-            return "已有请求正在处理中，请等待其完成。"
+            return String(localized: "已有请求正在处理中，请等待其完成。")
         case .notCancellable:
-            return "请求正在处理中，无法取消。"
+            return String(localized: "请求正在处理中，无法取消。")
         case .requestNotFound:
-            return "请求已失效，请重新发起。"
+            return String(localized: "请求已失效，请重新发起。")
         case .staleRequest, .ownerMismatch:
-            return "请求已被新操作取代，请重新发起。"
+            return String(localized: "请求已被新操作取代，请重新发起。")
         case .safetyBackupRequired:
-            return "合并前自动保存当前学习数据失败，操作已中止。"
+            return String(localized: "合并前自动保存当前学习数据失败，操作已中止。")
         case .sourceIdentityMismatch:
-            return "备份与当前输入方案不一致，无法处理。"
+            return String(localized: "备份与当前输入方案不一致，无法处理。")
         case .artifactMissing, .artifactMismatch, .artifactUnavailable:
-            return "未找到可用的备份文件。"
+            return String(localized: "未找到可用的备份文件。")
         case .storeMissing:
-            return "暂无学习数据记录。"
+            return String(localized: "暂无学习数据记录。")
         default:
             // Everything else (directory/slot unavailable, out of bounds, corrupt state or artifacts, invalid text, I/O failure...)
             // gets fixed text: never exposes slot names / paths / IDs.
-            return "读取或写入学习数据时出错，请重试。"
+            return String(localized: "读取或写入学习数据时出错，请重试。")
         }
     }
 }

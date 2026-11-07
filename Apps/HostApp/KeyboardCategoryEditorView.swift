@@ -18,10 +18,10 @@ struct KeyboardCategoryEditorView: View {
     }
 
     var body: some View {
-        Section("分类") {
+        Section(String(localized: "分类")) {
             if let index = selectedIndex {
                 Picker(
-                    "选择分类",
+                    String(localized: "选择分类"),
                     selection: Binding(
                         get: { categories[index].id },
                         set: {
@@ -33,15 +33,15 @@ struct KeyboardCategoryEditorView: View {
                     ForEach(categories) { category in Text(category.name).tag(category.id) }
                 }
                 HStack {
-                    Button("上移分类", systemImage: "arrow.up") { moveCategory(index, by: -1) }
+                    Button(String(localized: "上移分类"), systemImage: "arrow.up") { moveCategory(index, by: -1) }
                         .disabled(index == 0)
                     Spacer()
-                    Button("下移分类", systemImage: "arrow.down") { moveCategory(index, by: 1) }
+                    Button(String(localized: "下移分类"), systemImage: "arrow.down") { moveCategory(index, by: 1) }
                         .disabled(index == categories.count - 1)
                 }
             }
-            Button("添加分类", systemImage: "plus") {
-                let category = KeyboardPageCategory(name: "新分类", keys: [newKey])
+            Button(String(localized: "添加分类"), systemImage: "plus") {
+                let category = KeyboardPageCategory(name: String(localized: "新分类"), keys: [newKey])
                 categories.append(category)
                 selectedID = category.id
                 selectedKey = 0
@@ -56,10 +56,10 @@ struct KeyboardCategoryEditorView: View {
 
     @ViewBuilder
     private func categoryFields(_ index: Int) -> some View {
-        Section("编辑分类") {
-            TextField("名称", text: $categories[index].name)
+        Section(String(localized: "编辑分类")) {
+            TextField(String(localized: "名称"), text: $categories[index].name)
             Picker(
-                "内容",
+                String(localized: "内容"),
                 selection: Binding(
                     get: { categories[index].source ?? .fixed },
                     set: { source in
@@ -73,28 +73,29 @@ struct KeyboardCategoryEditorView: View {
                 Text("最近使用").tag(KeyboardPageCategory.Source.recent)
             }
             Stepper(
-                "每行 \(categories[index].columns) 列",
+                String(localized: "每行 \(categories[index].columns) 列"),
                 value: Binding(
                     get: { categories[index].columns },
                     set: { columns in
                         categories[index].columns = columns
                         adjustSplit(index)
                     }), in: 1...LayoutResourceBudget.categoryColumns)
-            Button("复制分类") {
+            Button(String(localized: "复制分类")) {
                 var copy = categories[index]
                 copy.id = UUID().uuidString.lowercased()
-                copy.name += " 副本"
+                copy.name = String(localized: "\(copy.name) 副本")
                 categories.insert(copy, at: index + 1)
                 selectedID = copy.id
                 selectedKey = 0
             }.disabled(categories.count >= LayoutResourceBudget.pageCategories)
-            Button("删除分类", role: .destructive) { confirmingCategoryRemoval = true }
+            Button(String(localized: "删除分类"), role: .destructive) { confirmingCategoryRemoval = true }
                 .disabled(categories.count == 1)
         }
         .confirmationDialog(
-            "删除「\(categories[index].name)」？", isPresented: $confirmingCategoryRemoval, titleVisibility: .visible
+            String(localized: "删除「\(categories[index].name)」？"), isPresented: $confirmingCategoryRemoval,
+            titleVisibility: .visible
         ) {
-            Button("删除分类", role: .destructive) {
+            Button(String(localized: "删除分类"), role: .destructive) {
                 guard categories.indices.contains(index), categories.count > 1 else { return }
                 categories.remove(at: index)
                 selectedID = categories.first?.id
@@ -110,7 +111,7 @@ struct KeyboardCategoryEditorView: View {
             rows: splitRows(category),
             split: Binding(
                 get: { categories[index].split }, set: { categories[index].split = $0 }),
-            allowsInheritance: true, inheritanceTitle: "和整页一样拆分")
+            allowsInheritance: true, inheritanceTitle: String(localized: "和整页一样拆分"))
         if category.source == .recent {
             recentPreview(category)
                 .task { await loadRecents() }
@@ -122,27 +123,28 @@ struct KeyboardCategoryEditorView: View {
     @ViewBuilder
     private func keyEditor(_ index: Int) -> some View {
         let category = categories[index]
-        Section("点键编辑") {
+        Section(String(localized: "点键编辑")) {
             categoryPreview(category, selectable: true)
         }
-        Section("按键顺序") {
+        Section(String(localized: "按键顺序")) {
             HStack {
-                Button("前移") { moveKey(index, by: -1) }.disabled(selectedKey == 0)
+                Button(String(localized: "前移")) { moveKey(index, by: -1) }.disabled(selectedKey == 0)
                 Spacer()
-                Button("后移") { moveKey(index, by: 1) }.disabled(selectedKey >= category.keys.count - 1)
+                Button(String(localized: "后移")) { moveKey(index, by: 1) }.disabled(
+                    selectedKey >= category.keys.count - 1)
             }
-            Button("添加按键") {
+            Button(String(localized: "添加按键")) {
                 categories[index].keys.append(newKey)
                 selectedKey = categories[index].keys.count - 1
                 adjustSplit(index)
             }.disabled(category.keys.count >= LayoutResourceBudget.categoryKeys)
             if category.keys.indices.contains(selectedKey) {
-                Button("复制按键") {
+                Button(String(localized: "复制按键")) {
                     categories[index].keys.insert(category.keys[selectedKey], at: selectedKey + 1)
                     selectedKey += 1
                     adjustSplit(index)
                 }.disabled(category.keys.count >= LayoutResourceBudget.categoryKeys)
-                Button("删除按键", role: .destructive) {
+                Button(String(localized: "删除按键"), role: .destructive) {
                     categories[index].keys.remove(at: selectedKey)
                     selectedKey = min(selectedKey, categories[index].keys.count - 1)
                     adjustSplit(index)
@@ -188,12 +190,12 @@ struct KeyboardCategoryEditorView: View {
     }
 
     private func recentPreview(_ category: KeyboardPageCategory) -> some View {
-        return Section("最近使用") {
+        return Section(String(localized: "最近使用")) {
             if loadingRecents {
-                ProgressView("正在读取最近使用…")
+                ProgressView(String(localized: "正在读取最近使用…"))
             } else if let recentError {
                 Text(recentError).font(.footnote).foregroundStyle(.secondary)
-                Button("重新读取") { Task { await loadRecents() } }
+                Button(String(localized: "重新读取")) { Task { await loadRecents() } }
             } else if recentKeys.isEmpty {
                 Text("还没有最近使用的符号。")
                     .font(.footnote).foregroundStyle(.secondary)
@@ -214,7 +216,7 @@ struct KeyboardCategoryEditorView: View {
             recentError = nil
         } catch {
             guard !Task.isCancelled else { return }
-            recentError = "最近使用没有读取成功，请重试。"
+            recentError = String(localized: "最近使用没有读取成功，请重试。")
         }
     }
 

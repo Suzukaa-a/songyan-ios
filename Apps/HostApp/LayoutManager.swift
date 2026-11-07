@@ -12,11 +12,11 @@ enum LayoutMessageContext {
     /// directly with the reason.
     var prefix: String {
         switch self {
-        case .layout: return "键盘布局没有保存："
-        case .layoutRemoval: return "键盘布局没有删除："
-        case .pageRemoval: return "页面没有删除："
-        case .pageCopy: return "页面没有复制成功："
-        case .imported: return "键盘布局没有导入："
+        case .layout: return String(localized: "键盘布局没有保存：")
+        case .layoutRemoval: return String(localized: "键盘布局没有删除：")
+        case .pageRemoval: return String(localized: "页面没有删除：")
+        case .pageCopy: return String(localized: "页面没有复制成功：")
+        case .imported: return String(localized: "键盘布局没有导入：")
         case .page, .composition: return ""
         }
     }
@@ -162,12 +162,12 @@ final class LayoutManager: ObservableObject {
             return LayoutLoadOutcome(
                 directoryURL: resolved.url, isShared: resolved.isShared,
                 store: store, registry: current,
-                error: "键盘布局没有重新读取成功，显示的可能不是最新内容。" + friendly(error))
+                error: String(localized: "键盘布局没有重新读取成功，显示的可能不是最新内容。") + friendly(error))
         }
     }
 
     private nonisolated static func loadFailureMessage(_ error: Error) -> String {
-        "键盘布局没有读取成功，现在先显示内置布局。" + friendly(error)
+        String(localized: "键盘布局没有读取成功，现在先显示内置布局。") + friendly(error)
     }
 
     // MARK: - Operations (in memory, then validate + persist in background, replace cache only on success)
@@ -271,7 +271,7 @@ final class LayoutManager: ObservableObject {
     }
 
     private nonisolated static func storageNotReadyMessage(_ context: LayoutMessageContext) -> String {
-        context.prefix + "键盘布局还没读取完，请稍后再试。"
+        context.prefix + String(localized: "键盘布局还没读取完，请稍后再试。")
     }
 
     func remove(_ id: String) async {
@@ -283,7 +283,7 @@ final class LayoutManager: ObservableObject {
     /// Stores a bundled preset an older catalog left out, so it can be edited like the others.
     func addBuiltin(_ layout: LayoutDefinition) async {
         guard let data = try? layout.encoded() else {
-            lastError = "没能添加这个内置布局，请重试。"
+            lastError = String(localized: "没能添加这个内置布局，请重试。")
             return
         }
         await persist { reg in
@@ -295,7 +295,7 @@ final class LayoutManager: ObservableObject {
     /// The MainActor owns the busy flag and scope lifetime; the queue performs all
     /// file inspection, bounded reading, decoding and validation before scope release.
     func readImport(_ url: URL) async throws -> LayoutDefinition {
-        guard !isImporting else { throw LayoutError.invalid("正在导入键盘布局，请稍候。") }
+        guard !isImporting else { throw LayoutError.invalid(String(localized: "正在导入键盘布局，请稍候。")) }
         isImporting = true
         let accessing = url.startAccessingSecurityScopedResource()
         defer {
@@ -395,7 +395,7 @@ final class LayoutManager: ObservableObject {
         if let layoutError = error as? LayoutError {
             reason = layoutError.errorDescription ?? ""
         } else if error is DecodingError {
-            reason = "文件内容不是可识别的键盘布局，请检查后重试。"
+            reason = String(localized: "文件内容不是可识别的键盘布局，请检查后重试。")
         } else {
             reason = error.localizedDescription
         }
