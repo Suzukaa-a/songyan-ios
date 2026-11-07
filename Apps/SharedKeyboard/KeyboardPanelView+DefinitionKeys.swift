@@ -418,7 +418,8 @@ extension KeyboardPanelView {
             // A bundled merged pair shows its first mark in the corner, which its flick types.
             let pairMarks =
                 bundledMergedFace && letterGroup.count > 1 && page == .letters && !controller.isEnglishMode
-                ? AlternateKeyPolicy.mergedPairLiterals(for: String(letterGroup)) : []
+                ? AlternateKeyPolicy.mergedPairLiterals(
+                    for: String(letterGroup), script: controller.inputLanguageScript) : []
             let subtitle =
                 !mergedHints.isEmpty
                 ? nil

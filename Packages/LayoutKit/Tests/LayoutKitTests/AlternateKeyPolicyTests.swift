@@ -43,6 +43,17 @@ final class AlternateKeyPolicyTests: XCTestCase {
     // MARK: Punctuation follows the input script
 
     /// I-D4: Traditional and Japanese name their quotes 「」/『』 first, keeping the Chinese marks behind.
+    func testMergedPairMarksFollowTheScript() {
+        XCTAssertEqual(AlternateKeyPolicy.mergedPairLiterals(for: "cv"), ["“", "”", "\""])
+        XCTAssertEqual(
+            AlternateKeyPolicy.mergedPairLiterals(for: "cv", script: .traditionalChinese),
+            ["「", "『", "“", "\""])
+        XCTAssertEqual(
+            AlternateKeyPolicy.mergedPairLiterals(for: "cv", script: .japanese), ["「", "『"])
+        XCTAssertEqual(AlternateKeyPolicy.mergedPairLiterals(for: "as", script: .japanese), ["、"])
+        XCTAssertEqual(AlternateKeyPolicy.mergedPairLiterals(for: "xy", script: .japanese), [])
+    }
+
     func testTraditionalAndJapaneseQuotesComeFromTheBundledTable() {
         XCTAssertEqual(bundled("c"), ["“", "”", "\""])
         XCTAssertEqual(bundled("c", script: .traditionalChinese), ["「", "『", "“", "\""])

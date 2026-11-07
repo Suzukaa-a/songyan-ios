@@ -148,9 +148,11 @@ public enum AlternateKeyPolicy {
 
     /// The marks of a bundled merged pair key ("df"), empty for any other group. Each pair
     /// borrows one letter's 26-key marks, picked so the most used Chinese marks sit on the home
-    /// row of both merged layouts.
-    public static func mergedPairLiterals(for pair: String) -> [String] {
-        mergedPairMarks[pair.lowercased()].flatMap { defaultLetters[$0] } ?? []
+    /// row of both merged layouts. The borrowed letter's marks follow the input language's script.
+    public static func mergedPairLiterals(
+        for pair: String, script: KeyLabelScript = .simplifiedChinese
+    ) -> [String] {
+        mergedPairMarks[pair.lowercased()].map { defaultLetterLiterals(for: $0, script: script) } ?? []
     }
 
     private static let mergedPairMarks: [String: String] = [
