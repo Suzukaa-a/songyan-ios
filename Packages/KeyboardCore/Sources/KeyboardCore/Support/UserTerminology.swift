@@ -129,7 +129,9 @@ public enum UserTerminology: Sendable {
     public static func installedSchemeSummary(count: Int, inUse: String?) -> String {
         let installed = installedSourceSummary(count: count)
         guard count > 0, let inUse, !inUse.isEmpty else { return installed }
-        return "\(installed)，\(inUsePrefix)「\(inUse)」"
+        return String(
+            format: String(localized: "core.term.installedSchemeSummary", bundle: .module),
+            installed, inUsePrefix, inUse)
     }
 
     /// Installed source count. The installed source count is never called a "scheme count".

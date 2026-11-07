@@ -551,6 +551,28 @@
         }
       }
     },
+    "core.term.installedSchemeSummary": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@，%2$@「%3$@」"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@，%2$@「%3$@」"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@、%2$@「%3$@」"
+          }
+        }
+      }
+    },
     "core.term.layoutUnavailableReason": {
       "localizations": {
         "zh-Hans": {
