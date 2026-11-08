@@ -799,9 +799,12 @@ struct KeyboardAuthoredRenderedPage {
         }
         // Rows are filtered like their source indices, so the two can never disagree.
         var copy = source
-        copy.rows = source.rows.map { LayoutRow(keys: $0.keys.filter(drawn)) }
+        func shown(_ keys: [LayoutKey]) -> [LayoutKey] {
+            (hasGlobe ? keys : keys.withoutGlobe()).filter(drawn)
+        }
+        copy.rows = source.rows.map { LayoutRow(keys: shown($0.keys)) }
         if var chrome = source.chrome {
-            chrome.bottom = chrome.bottom.filter(drawn)
+            chrome.bottom = shown(chrome.bottom)
             chrome.leading = chrome.leading.filter(drawn)
             chrome.trailing = chrome.trailing.filter(drawn)
             copy.chrome = chrome

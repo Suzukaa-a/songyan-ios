@@ -243,7 +243,7 @@ private struct KeyboardMainLayoutPreview: View {
         case .splitHalves:
             if let split, let rows = facts.splitLetters?.rows {
                 KeyboardSplitHalvesPad(
-                    rows: rows, split: split, isVisible: { showsGlobe || $0.action.type != .globe },
+                    rows: rows, split: split, showsGlobe: showsGlobe,
                     key: { key, row, index in keyFace(key, path: nil, id: "split-\(row)-\(index)") })
             }
         case .standardQwerty:
@@ -318,7 +318,8 @@ private struct KeyboardMainLayoutPreview: View {
         let keys = facts.mainRows[index].keys
         let sources = visibleSources(keys)
         return KeyboardDefinitionRow(
-            keys: sources.map { keys[$0] }, inset: inset, spacing: spacing, split: split, rowIndex: index,
+            keys: showsGlobe ? keys : keys.withoutGlobe(), inset: inset, spacing: spacing, split: split,
+            rowIndex: index,
             fixedKeyWidth: fixedKeyWidth, splitGap: splitGap
         ) { key, visible in
             keyFace(key, path: .row(index, key: sources[visible]), id: "row-\(index)-\(visible)")

@@ -212,8 +212,8 @@ extension KeyboardPanelView {
             let reachable = jumpLayouts
             let hasSwitch = systemKeyboardSwitch != nil
             KeyboardSplitHalvesPad(
-                rows: rows, split: split,
-                isVisible: { ($0.action.type != .globe || hasSwitch) && $0.action.isUsableJump(among: reachable) },
+                rows: rows, split: split, showsGlobe: hasSwitch,
+                isVisible: { $0.action.isUsableJump(among: reachable) },
                 key: { key, row, index in splitHalvesKey(key, id: "split-\(row)-\(index)") })
         }
     }

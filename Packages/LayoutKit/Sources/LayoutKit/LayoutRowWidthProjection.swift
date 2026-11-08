@@ -26,3 +26,16 @@ public struct LayoutRowWidthProjection: Equatable, Sendable {
         insetFraction = scaledInset / total
     }
 }
+
+extension Array where Element == LayoutKey {
+    /// A key row as it draws when the system keyboard switch is not shown. The globe's width goes
+    /// to the row's Return key, so the space bar keeps its width and Return does not stay narrow.
+    /// A row without a space key just loses the globe.
+    public func withoutGlobe() -> [LayoutKey] {
+        let freed = filter { $0.action.type == .globe }.reduce(0) { $0 + $1.widthWeight }
+        guard freed > 0 else { return self }
+        let rest = filter { $0.action.type != .globe }
+        guard rest.contains(where: { $0.action.type == .space }) else { return rest }
+        return rest.map { $0.action.type == .enter ? $0.settingWidth($0.widthWeight + freed) : $0 }
+    }
+}

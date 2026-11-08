@@ -163,14 +163,18 @@ struct KeyboardSplitHalvesPad<Key: View>: View {
     @Environment(\.keyboardKeyHeight) private var keyHeight
     let rows: [LayoutSplitRow]
     let split: ActiveLayoutSplit
-    /// Keys that cannot work here (a globe without a system switcher) are left out of their half.
+    /// Keys that cannot work here are left out of their half.
     var isVisible: (LayoutKey) -> Bool = { _ in true }
+    /// Without a system switcher each half drops its globe and hands the width to its Return.
+    var showsGlobe = true
     /// Receives the key, its row and its index in the whole row.
     @ViewBuilder var key: (LayoutKey, Int, Int) -> Key
 
     var body: some View {
         let shown = rows.map {
-            LayoutSplitRow(left: $0.left.filter(isVisible), right: $0.right.filter(isVisible))
+            LayoutSplitRow(
+                left: (showsGlobe ? $0.left : $0.left.withoutGlobe()).filter(isVisible),
+                right: (showsGlobe ? $0.right : $0.right.withoutGlobe()).filter(isVisible))
         }
         GeometryReader { proxy in
             let geometry = SplitHalvesGeometry(width: Double(proxy.size.width), rows: shown, split: split)
@@ -358,9 +362,10 @@ enum LayoutFooterItem: Hashable {
     case layoutSwitch
     case key(Int)
 
-    func width(keys: [LayoutKey]) -> Double {
+    /// `weights` holds one width weight per declared key.
+    func width(weights: [Double]) -> Double {
         guard case .key(let index) = self else { return 44 }
-        return max(44, keys[index].widthWeight * 44)
+        return max(44, weights[index] * 44)
     }
 }
 
@@ -400,8 +405,12 @@ struct KeyboardLayoutUtilityBar<Key: View, Globe: View, ModeSwitch: View>: View 
         if let split {
             let keys = keys
             let boundary = split.breakIndex(row: rowIndex, keyCount: keys.count)
-            let visible = keys.indices.filter {
-                keys[$0].action.type != .space && (keys[$0].action.type != .globe || showsGlobe)
+            let shown = keys.indices.filter { showsGlobe || keys[$0].action.type != .globe }
+            let visible = shown.filter { keys[$0].action.type != .space }
+            // A hidden globe's width goes to Return; declared indices stay stable for the key callbacks.
+            var weights = keys.map(\.widthWeight)
+            if !showsGlobe {
+                for (index, key) in zip(shown, keys.withoutGlobe()) { weights[index] = key.widthWeight }
             }
             let plan = shortcutPlan
             let shortcuts: [LayoutFooterItem] =
@@ -416,8 +425,8 @@ struct KeyboardLayoutUtilityBar<Key: View, Globe: View, ModeSwitch: View>: View 
             let space = spaceIndex.map { keys[$0] } ?? LayoutKey(label: "空格", width: 4, action: .init(.space))
             SplitSpaceKeyboardRow(
                 leftKeys: left, rightKeys: right,
-                leftWidths: left.map { $0.width(keys: keys) },
-                rightWidths: right.map { $0.width(keys: keys) }, split: split,
+                leftWidths: left.map { $0.width(weights: weights) },
+                rightWidths: right.map { $0.width(weights: weights) }, split: split,
                 spaceWidthMultiplier: 3 * space.widthWeight / 4,
                 key: { footerKey($0, keys: keys) },
                 space: { key(space, "controls-space", spaceIndex ?? -1) },
@@ -454,7 +463,8 @@ struct KeyboardLayoutUtilityBar<Key: View, Globe: View, ModeSwitch: View>: View 
             }
             if let row = controlRow {
                 let sources = row.keys.indices.filter { showsGlobe || row.keys[$0].action.type != .globe }
-                KeyboardDefinitionRow(keys: sources.map { row.keys[$0] }, isControls: true) { value, index in
+                let shown = showsGlobe ? row.keys : row.keys.withoutGlobe()
+                KeyboardDefinitionRow(keys: shown, isControls: true) { value, index in
                     key(value, "controls-\(index)", sources[index])
                 }
             } else {
