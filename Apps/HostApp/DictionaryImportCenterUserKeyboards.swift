@@ -7,9 +7,10 @@ import LayoutKit
 /// Stores no roster, infers no capability, never writes `active.json` directly, and does not poll
 /// UI busy/error fields. Each operation reads its source from the current publication record and awaits the real `async throws` transaction.
 enum UserKeyboardSource: Sendable, Equatable {
-    /// Home entry: manage the sources that are already published.
+    /// The scheme the keyboard runs: the published source.
     case active
-    /// Detail entry for a generic install source; the ID comes from the install record, never inferred from the scheme name.
+    /// One install by ID (from the install record, never inferred from the scheme name): the built-in scheme
+    /// while nothing is published, and the scheme a switch publishes.
     case package(String)
 }
 
@@ -23,21 +24,29 @@ struct UserKeyboardPublicationView: Sendable {
     let isCurrent: Bool
 }
 
-/// The schema facts of one source, read from that source's own snapshot: its current activation
+/// The name and schema facts of one source, read from that source's own snapshot: its current activation
 /// (the running source) or its installed package resources (a source that is not applied). Never
 /// scans other sources: two installs may use the same schema ID with different alphabets.
 @MainActor
 enum UserKeyboardSourceFacts {
-    static func schemas(for source: UserKeyboardSource) async -> [KeyboardSchemaDescriptor] {
+    static func facts(for source: UserKeyboardSource) async
+        -> (name: String?, schemas: [KeyboardSchemaDescriptor])
+    {
         switch source {
         case .active:
-            guard let activation = try? await AppliedSelectionLoader.loadActivation() else { return [] }
-            return activation.schemas ?? []
+            guard let activation = try? await AppliedSelectionLoader.loadActivation() else { return (nil, []) }
+            let name = activation.packageID.map {
+                ProductionInputAvailability.packageDisplayName(id: $0, declaredName: activation.displayConfigName)
+            }
+            return (name ?? activation.displayConfigName, activation.schemas ?? [])
         case .package(let packageID):
             guard
                 let resources = try? await SchemeImportCenter.shared.keyboardResources(packageID: packageID)
-            else { return [] }
-            return resources.schemas
+            else { return (nil, []) }
+            return (
+                ProductionInputAvailability.packageDisplayName(id: packageID, declaredName: resources.name),
+                resources.schemas
+            )
         }
     }
 }
@@ -139,7 +148,7 @@ final class DictionaryImportCenterUserKeyboards: UserKeyboardManaging {
                 throw UserKeyboardPublicationError.unavailable(
                     String(
                         localized:
-                            "自定义拼音没有可添加的键盘。要改用其他方案，请在「\(UserTerminology.inputScheme)」中打开该方案，再到它的「\(UserTerminology.userKeyboard)」里轻点「\(UserTerminology.startUsing)」。"
+                            "自定义拼音没有可添加的键盘。要改用其他方案，请在「\(UserTerminology.inputScheme)」中打开该方案，轻点「\(UserTerminology.useThisInputScheme)」。"
                     ))
             }
             guard let packageID = activation.packageID else { throw UserKeyboardPublicationError.sourceNotInstalled }

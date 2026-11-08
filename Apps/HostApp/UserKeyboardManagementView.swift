@@ -2,14 +2,14 @@ import KeyboardCore
 import LayoutKit
 import SwiftUI
 
-/// 我的键盘: the only place to choose what is on the keyboard. The added keyboards come first as a
+/// 我的键盘: the only place to choose what is on the keyboard, for the input scheme in use (named under the
+/// title, with the way to change it). The added keyboards come first as a
 /// short list (each opens its 页面搭配); below, every input method folds into one row whose layouts
 /// are checked into a draft published once by "Save". "Use" publishes the draft plus that pair and
 /// switches to it right away. The pair in use is marked 正在使用.
 struct UserKeyboardManagementView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var center: UserKeyboardCenter
-    private let returnsToSource: Bool
     @State private var selectedIDs: Set<String> = []
     @State private var baselineIDs: Set<String> = []
     @State private var initialized = false
@@ -24,16 +24,26 @@ struct UserKeyboardManagementView: View {
     @State private var groupOrder: [String] = []
     @ObservedObject private var layoutManager = LayoutManager.shared
 
-    init(
-        center: UserKeyboardCenter? = nil, source: UserKeyboardSource = .active,
-        returnsToSource: Bool = false
-    ) {
-        self.returnsToSource = returnsToSource
+    init(center: UserKeyboardCenter? = nil, source: UserKeyboardSource = .active) {
         _center = StateObject(wrappedValue: center ?? .scoped(to: source))
     }
 
     var body: some View {
         List {
+            if case .ready = center.phase, let name = center.sourceName {
+                Section {
+                    NavigationLink {
+                        InputSchemeListView()
+                    } label: {
+                        HStack(spacing: 8) {
+                            Text("这些键盘来自正在使用的输入方案「\(name)」。")
+                                .font(.footnote).foregroundStyle(.secondary)
+                            Spacer(minLength: 4)
+                            Text("更换").font(.footnote)
+                        }
+                    }
+                }
+            }
             statusSection
             if case .ready = center.phase {
                 // Sits at the top, next to the disabled Save button it explains.
@@ -49,16 +59,8 @@ struct UserKeyboardManagementView: View {
                         ForEach(selectedItems) { item in addedRow(item) }
                     }
                 }
-                Section(String(localized: "自定义键盘")) {
-                    NavigationLink(UserTerminology.pageLibrary) {
-                        KeyboardPageManagementView(keyboardNames: keyboardNames)
-                    }
-                    NavigationLink(UserTerminology.keyboardLayout) {
-                        LayoutManagementView(keyboardNames: keyboardNames)
-                    }
-                }
                 if !groups.isEmpty {
-                    Section(UserTerminology.addUserKeyboard) {
+                    Section {
                         ForEach(groups, id: \.id) { group in
                             DisclosureGroup(isExpanded: expansion(for: group.id)) {
                                 ForEach(group.items) { item in
@@ -71,14 +73,20 @@ struct UserKeyboardManagementView: View {
                                 groupLabel(group)
                             }
                         }
-                    }
-                }
-                if groups.isEmpty {
-                    Section { Text(UserTerminology.userKeyboardEmptyHint).foregroundStyle(.secondary) }
-                } else {
-                    Section {
+                    } header: {
+                        Text(UserTerminology.addUserKeyboard)
+                    } footer: {
                         Text(UserTerminology.userKeyboardFootnote)
-                            .font(.footnote).foregroundStyle(.secondary)
+                    }
+                } else {
+                    Section { Text(UserTerminology.userKeyboardEmptyHint).foregroundStyle(.secondary) }
+                }
+                Section(String(localized: "自定义键盘")) {
+                    NavigationLink(UserTerminology.pageLibrary) {
+                        KeyboardPageManagementView(keyboardNames: keyboardNames)
+                    }
+                    NavigationLink(UserTerminology.keyboardLayout) {
+                        LayoutManagementView(keyboardNames: keyboardNames)
                     }
                 }
             }
@@ -155,21 +163,13 @@ struct UserKeyboardManagementView: View {
         case .readOnly(let message):
             Section {
                 Label(message, systemImage: "info.circle").foregroundStyle(.secondary)
-                if returnsToSource {
-                    Button(UserTerminology.inputScheme) { dismiss() }
-                } else {
-                    NavigationLink(UserTerminology.inputScheme) { InputSchemeListView() }
-                }
+                NavigationLink(UserTerminology.inputScheme) { InputSchemeListView() }
             }
         case .needsSource:
             Section {
                 Label(UserTerminology.userKeyboardNeedsSourceHint, systemImage: "info.circle")
                     .foregroundStyle(.secondary)
-                if returnsToSource {
-                    Button(UserTerminology.inputScheme) { dismiss() }
-                } else {
-                    NavigationLink(UserTerminology.inputScheme) { InputSchemeListView() }
-                }
+                NavigationLink(UserTerminology.inputScheme) { InputSchemeListView() }
             }
         case .ready:
             if center.sourceNeedsUpdate {
@@ -192,6 +192,7 @@ struct UserKeyboardManagementView: View {
             if let result = center.resultMessage {
                 Section {
                     Label(result, systemImage: "checkmark.circle").foregroundStyle(.green)
+                        .fixedSize(horizontal: false, vertical: true)
                     NavigationLink(String(localized: "试打当前键盘")) { TryInputView() }
                 }
             }

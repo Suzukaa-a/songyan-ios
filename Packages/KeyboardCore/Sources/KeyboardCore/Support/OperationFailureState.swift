@@ -35,7 +35,7 @@ public enum OperationFailureState: Equatable, Sendable {
         case .installedNotApplied:
             return String(
                 format: String(localized: "core.status.retryOrStartUsing", bundle: .module),
-                UserTerminology.userKeyboard, UserTerminology.startUsing)
+                UserTerminology.useThisInputScheme)
         case .unknown:
             return String(localized: "core.status.reload", bundle: .module)
         }

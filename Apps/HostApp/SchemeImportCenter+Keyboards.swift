@@ -98,7 +98,6 @@ extension SchemeImportCenter {
         lastInstalledPackageID = id
         await refresh()
         diagnostics = []
-        if announce { userNotice = String(localized: "已准备所选键盘。") }
     }
 
     private static var outdatedAdapterRebuild: Task<Void, Never>?
@@ -313,6 +312,23 @@ extension SchemeImportCenter {
                 prepare: true, added: nil, baseline: baseline)
             return list
         }
+    }
+
+    /// Switches the keyboard to this input scheme with the keyboards remembered for it, or with its
+    /// default keyboard when none were ever chosen. Goes through the same transaction as 我的键盘, whose
+    /// page-read baseline makes it refuse when the publication changed meanwhile. Returns the keyboard in use.
+    @discardableResult
+    func useInputScheme(packageID: String) async throws -> PublishedKeyboard {
+        guard !busy else { throw UserKeyboardPublicationError.busy }
+        let viewed = try await SourcePublishedKeyboardProvider(source: .package(packageID)).snapshot()
+        let addable = viewed.roster.isEmpty ? try await addableKeyboards(packageID: packageID) : []
+        guard let target = PublishedKeyboard.switchTarget(remembered: viewed.roster, addable: addable) else {
+            throw UserKeyboardPublicationError.noAddableKeyboards
+        }
+        _ = try await performReplaceKeyboards(
+            packageID: packageID, requested: target.roster, selecting: target.selection,
+            viewedActivation: viewed.activation, viewedRoster: viewed.roster, viewedSourceKey: viewed.sourceKey)
+        return target.selection
     }
 
     private static let keepOneKeyboard = UserKeyboardPublicationError.unavailable(

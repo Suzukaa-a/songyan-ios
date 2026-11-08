@@ -14,6 +14,7 @@ struct RimeSourceInstallView: View {
     @State private var importer = false
     @State private var resourcePath: String?
     @State private var entrySchemaID = ""
+    @StateObject private var switcher = InputSchemeSwitch()
     private var schemaIDs: [String] {
         Set(
             InstalledPackageLayout.topLevelSchemaFiles(in: center.acquiredSources.flatMap { $0.files.keys })
@@ -132,12 +133,19 @@ struct RimeSourceInstallView: View {
             }
             if let id = center.lastInstalledPackageID, center.acquiredSources.isEmpty {
                 Section {
-                    Label(
-                        String(localized: "安装完成 · \(UserTerminology.statusNotApplied)"),
-                        systemImage: "checkmark.circle"
-                    )
-                    NavigationLink(String(localized: "选择键盘并开始使用")) {
-                        UserKeyboardManagementView(source: .package(id), returnsToSource: true)
+                    Label(String(localized: "安装完成"), systemImage: "checkmark.circle")
+                    if switcher.phase == .done(id) {
+                        Text(UserTerminology.statusInUse).foregroundStyle(.green)
+                        NavigationLink(UserTerminology.userKeyboard) {
+                            UserKeyboardManagementView(source: .active)
+                        }
+                    } else {
+                        UseInputSchemeRows(
+                            switcher: switcher, packageID: id, title: String(localized: "开始使用"),
+                            disabled: center.busy)
+                    }
+                    NavigationLink(String(localized: "查看方案详情")) {
+                        SchemePackageDetailView(packageID: id)
                     }
                 }
             }

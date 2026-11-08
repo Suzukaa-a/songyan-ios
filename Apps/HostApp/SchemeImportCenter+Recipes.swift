@@ -321,8 +321,6 @@ extension SchemeImportCenter {
                 providedDownloadFiles = [:]
                 providedOrdinaryResources = [:]
                 diagnostics = []
-                userNotice = UserNoticeLayering.installationNextStep(
-                    installedPackageID: prepared.declaration.id)
                 message = sourceWarning
                 await refresh()
             } catch {

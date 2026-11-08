@@ -114,6 +114,18 @@ public extension PublishedKeyboard {
         return remaining.first
     }
 
+    /// What switching the keyboard to an input scheme publishes: the keyboards remembered for that
+    /// scheme, with the first one in use; when none were ever chosen, one starting keyboard from its
+    /// addable list (the 26-key one when it has it). nil when the scheme offers no keyboard at all.
+    static func switchTarget(
+        remembered: [PublishedKeyboard], addable: [PublishedKeyboard]
+    ) -> (roster: [PublishedKeyboard], selection: PublishedKeyboard)? {
+        let kept = resolve(published: remembered)
+        if let first = kept.first { return (kept, first) }
+        guard let start = addable.first(where: { $0.layout == .qwerty26 }) ?? addable.first else { return nil }
+        return ([start], start)
+    }
+
     /// Adapter generation tasks (deduplicated, ordered): compact-layout combinations only.
     /// 26-key combinations need no generation and are excluded.
     static func generationTasks(for requested: [PublishedKeyboard]) -> [PublishedKeyboard] {

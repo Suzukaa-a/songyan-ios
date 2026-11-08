@@ -346,8 +346,6 @@ extension SchemeImportCenter {
                 sourceWarning = nil
             }
             diagnostics = []
-            userNotice = UserNoticeLayering.installationNextStep(
-                installedPackageID: prepared.declaration.id)
             message = sourceWarning
             await refresh()
             await offerPackageLearning(for: prepared)

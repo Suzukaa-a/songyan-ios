@@ -21,7 +21,7 @@ final class OperationFailureStateTests: XCTestCase {
         XCTAssertTrue(state.stateLine.contains("键盘没有改变"), state.stateLine)
         // Must not be conflated with "nothing happened" (never always claim "unchanged").
         XCTAssertNotEqual(state.stateLine, OperationFailureState.nothingCommitted.stateLine)
-        XCTAssertTrue(state.nextStep?.contains("「使用」") == true, state.nextStep ?? "nil")
+        XCTAssertTrue(state.nextStep?.contains("「使用这个输入方案」") == true, state.nextStep ?? "nil")
     }
 
     func testUnknownDoesNotClaimAnyOutcome() {

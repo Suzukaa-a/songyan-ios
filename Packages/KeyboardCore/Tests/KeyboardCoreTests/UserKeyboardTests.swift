@@ -498,9 +498,10 @@ final class UserKeyboardTests: XCTestCase {
         XCTAssertEqual(UserTerminology.userKeyboardSaveNeedsOne, "至少打开一个键盘才能保存。")
         XCTAssertEqual(UserTerminology.userKeyboardListUnchanged, "当前键盘列表没有改变。")
         XCTAssertTrue(UserTerminology.userKeyboardNeedsSourceHint.hasPrefix(UserTerminology.userKeyboardNoSource))
-        // Switching happens in the scheme's own 我的键盘; a scheme without one has its own "Use".
-        XCTAssertTrue(UserTerminology.userKeyboardHowToStart.contains("「我的键盘」"))
-        XCTAssertTrue(UserTerminology.userKeyboardHowToStart.contains("「使用」"))
+        // Switching happens on the scheme's own page, not in 我的键盘.
+        XCTAssertTrue(UserTerminology.userKeyboardHowToStart.contains("「输入方案」"))
+        XCTAssertTrue(UserTerminology.userKeyboardHowToStart.contains("「使用这个输入方案」"))
+        XCTAssertFalse(UserTerminology.userKeyboardHowToStart.contains("我的键盘"))
         XCTAssertFalse(UserTerminology.userKeyboardHowToStart.contains(UserTerminology.inputMethod))
         // Footnote: "Save", "Use", and how it relates to the in-keyboard long-press list.
         let footnote = UserTerminology.userKeyboardFootnote
@@ -517,12 +518,11 @@ final class UserKeyboardTests: XCTestCase {
             UserTerminology.userKeyboardSaving, UserTerminology.userKeyboardSaveNeedsOne,
             UserTerminology.userKeyboardSaved(count: 1), UserTerminology.userKeyboardListUnchanged,
             UserTerminology.userKeyboardNowUsing("倉頡五代 · 9 键"),
-            UserTerminology.tryUsesCurrentScheme, UserTerminology.tryHowToUseViaUserKeyboard,
-            UserTerminology.tryHowToUseViaStartUsing,
+            UserTerminology.tryUsesCurrentScheme, UserTerminology.tryHowToUseViaStartUsing,
             UserTerminology.trySourceContext(name: "A", inUse: true, howToUse: "x"),
             UserTerminology.trySourceContext(
                 name: "A", inUse: false,
-                howToUse: UserTerminology.tryHowToUseViaUserKeyboard),
+                howToUse: UserTerminology.tryHowToUseViaStartUsing),
         ]
         for text in plain {
             XCTAssertNil(UserTerminology.leaksInternalTerminology(text), text)
@@ -532,17 +532,14 @@ final class UserKeyboardTests: XCTestCase {
         }
     }
 
-    /// Home rows: 输入方案 says what is installed, 我的键盘 says which keyboard is in use.
+    /// Home rows: 输入方案 says which scheme is in use, 我的键盘 says which keyboard is in use.
     func testHomeSummariesSplitSchemesFromKeyboards() {
         XCTAssertEqual(
             UserTerminology.currentKeyboardSummary(inputMethod: "倉頡五代", layout: .phone9), "正在使用：倉頡五代 · 9 键")
         XCTAssertEqual(UserTerminology.currentKeyboardSummary(inputMethod: nil, layout: .qwerty26), "正在使用：26 键")
         XCTAssertNil(UserTerminology.currentKeyboardSummary(inputMethod: "", layout: nil))
         XCTAssertEqual(
-            UserTerminology.installedSchemeSummary(count: 2, inUse: "通用形码包"), "已安装 2 个输入方案，正在使用「通用形码包」")
-        XCTAssertEqual(UserTerminology.installedSchemeSummary(count: 2, inUse: nil), "已安装 2 个输入方案")
-        XCTAssertFalse(
-            UserTerminology.installedSchemeSummary(count: 1, inUse: "A").contains(UserTerminology.inputMethod))
+            UserTerminology.inUseSummary(scheme: "注音·臺灣正體", inputMethod: nil, layout: nil), "正在使用：注音·臺灣正體")
     }
 
     func testTrySourceContextIsTruthfulAboutWhetherSourceIsInUse() {
@@ -551,16 +548,10 @@ final class UserKeyboardTests: XCTestCase {
             "键盘正在使用「通用形码包」。")
         XCTAssertEqual(
             UserTerminology.trySourceContext(
-                name: "通用形码包", inUse: false,
-                howToUse: UserTerminology.tryHowToUseViaUserKeyboard),
-            "键盘没有在使用「通用形码包」。要试打「通用形码包」，"
-                + "请先回到上一页，在「我的键盘」里轻点要用的键盘下方的「使用」。")
-        XCTAssertEqual(
-            UserTerminology.trySourceContext(
                 name: "自定义拼音", inUse: false,
                 howToUse: UserTerminology.tryHowToUseViaStartUsing),
             "键盘没有在使用「自定义拼音」。要试打「自定义拼音」，"
-                + "请先回到上一页点「使用」。")
+                + "请先回到上一页点「使用这个输入方案」。")
         // With no name, use a neutral term, leaving no empty quotes.
         XCTAssertEqual(
             UserTerminology.trySourceContext(name: " ", inUse: true, howToUse: ""),

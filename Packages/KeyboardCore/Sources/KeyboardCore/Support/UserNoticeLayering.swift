@@ -17,13 +17,4 @@ public enum UserNoticeLayering {
         guard let notice, !notice.isEmpty else { return [] }
         return [notice]
     }
-
-    /// Next-step guidance after a successful install/update (not the status fact itself).
-    ///
-    /// The status fact ("installed / update done, not applied" plus "view scheme") is owned by
-    /// the "installed" section; this only adds what the user should do next.
-    public static func installationNextStep(installedPackageID: String?) -> String? {
-        guard installedPackageID != nil else { return nil }
-        return String(localized: "core.status.installationNextStep", bundle: .module)
-    }
 }

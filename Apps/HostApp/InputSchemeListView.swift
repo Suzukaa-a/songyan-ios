@@ -7,8 +7,9 @@ import SwiftUI
 ///
 /// Information architecture (`UserTerminology`):
 /// - one real install source per row (sources with several input methods are not split); the title opens the source detail;
-/// - rows use "input method: ..." and "keyboard layout: ..." to explain what the source contains and which front-end layouts can be configured,
-///   counts are always dynamic, never "N input schemes inside the input scheme";
+/// - rows use "input method: ..." and "keyboard layout: ..." to explain what the source contains and which keyboards it can use
+///   (named like the addable list in 我的键盘), counts are always dynamic, never "N input schemes inside the input scheme";
+/// - each row shows its status once, trailing; switching to a scheme happens on its detail page, not in the row;
 /// - any imported source (ZIP / folder / scheme file / HTTPS link) may contain any number of arbitrarily named
 ///   input methods (shape-code, dialect, bopomofo, etc.); this page is not designed around any particular source;
 /// - expert items such as the grammar model are not on this page: they are under Settings > Advanced;
@@ -37,6 +38,29 @@ struct InputSchemeListView: View {
     private struct SourcePresentation: Equatable {
         var inputMethods: [String] = []
         var layouts: [String] = []
+        /// Installed revision the names were read for, so an unchanged install is not read again.
+        var revision: String?
+    }
+
+    private enum RowStatus {
+        case inUse, newVersion, notInUse, damaged
+
+        var text: String {
+            switch self {
+            case .inUse: return UserTerminology.statusInUse
+            case .newVersion: return String(localized: "有新版本")
+            case .notInUse: return UserTerminology.statusNotApplied
+            case .damaged: return String(localized: "已损坏")
+            }
+        }
+
+        var color: Color {
+            switch self {
+            case .inUse: return .green
+            case .newVersion: return .orange
+            case .notInUse, .damaged: return .secondary
+            }
+        }
     }
 
     private struct InstalledSchemeRow: Identifiable {
@@ -44,21 +68,13 @@ struct InputSchemeListView: View {
         let name: String
         let inputMethodNames: [String]
         let layoutNames: [String]
-        /// Ordinary language status: in use / not applied / in use (older version)...
-        let status: String?
-        let isSelected: Bool
-        /// When an older version is applied and a newer one is installed, the button reads "start using new version".
-        let needsNewVersion: Bool
-        let isBusy: Bool
-        /// Row-level apply when there is a definitely valid input method; nil means choose in the detail.
-        let apply: (() -> Void)?
+        let status: RowStatus
         let destination: AnyView
 
         var subtitle: String {
             var parts: [String] = []
             if let line = UserTerminology.inputMethodLine(inputMethodNames) { parts.append(line) }
             if let line = UserTerminology.keyboardLayoutLine(layoutNames) { parts.append(line) }
-            if let status { parts.append(status) }
             return parts.joined(separator: " · ")
         }
     }
@@ -138,17 +154,10 @@ struct InputSchemeListView: View {
             rows.append(
                 InstalledSchemeRow(
                     id: "damaged-\(package.id)", name: package.name,
-                    inputMethodNames: [], layoutNames: [], status: String(localized: "已损坏"), isSelected: false,
-                    needsNewVersion: false, isBusy: schemeImports.busy, apply: nil,
+                    inputMethodNames: [], layoutNames: [], status: .damaged,
                     destination: AnyView(SchemePackageDetailView(packageID: package.id))))
         }
         return rows
-    }
-
-    private func statusText(needsNewVersion: Bool) -> String {
-        needsNewVersion
-            ? String(localized: "有新版本")
-            : UserTerminology.statusInUse
     }
 
     private func customPinyinRow(selectionReadable: Bool) -> InstalledSchemeRow {
@@ -160,12 +169,7 @@ struct InputSchemeListView: View {
             name: String(localized: "自定义拼音"),
             inputMethodNames: presentations["user-dictionary"]?.inputMethods ?? [],
             layoutNames: presentations["user-dictionary"]?.layouts ?? [],
-            status: applied ? statusText(needsNewVersion: needsNewVersion) : UserTerminology.statusNotApplied,
-            isSelected: applied && !needsNewVersion,
-            needsNewVersion: needsNewVersion,
-            isBusy: imports.busy || center.isBusy,
-            // A dictionary slot has an install-receipt entry, so row-level apply is available; the detail also has explicit apply and dictionary association.
-            apply: { imports.apply() },
+            status: applied ? (needsNewVersion ? .newVersion : .inUse) : .notInUse,
             destination: AnyView(CustomPinyinDetailView()))
     }
 
@@ -187,13 +191,8 @@ struct InputSchemeListView: View {
             id: "package-\(package.id)",
             name: package.name,
             inputMethodNames: package.schemas.map { UserTerminology.inputMethodName($0) },
-            layoutNames: package.supportedLayouts.map { UserTerminology.layoutName($0) },
-            status: selected ? statusText(needsNewVersion: needsNewVersion) : UserTerminology.statusNotApplied,
-            isSelected: selected && !needsNewVersion,
-            needsNewVersion: needsNewVersion,
-            isBusy: schemeImports.busy || center.isBusy,
-            // Row-level apply only with a definitely valid entry; otherwise open the detail to view the source status.
-            apply: nil,
+            layoutNames: presentations["package-\(package.id)"]?.layouts ?? [],
+            status: selected ? (needsNewVersion ? .newVersion : .inUse) : .notInUse,
             destination: AnyView(SchemePackageDetailView(packageID: package.id)))
     }
 
@@ -223,41 +222,29 @@ struct InputSchemeListView: View {
         .padding(.vertical, 2)
     }
 
-    /// The row body opens the detail; the trailing start-using control is a separate tap target (outside the NavigationLink).
+    /// The row opens the detail, where the scheme is switched to; the status is the trailing text.
     private func schemeRow(_ row: InstalledSchemeRow) -> some View {
-        HStack(spacing: 12) {
-            NavigationLink {
-                row.destination
-            } label: {
-                HStack(spacing: 12) {
-                    Image(systemName: "character.book.closed").font(.title2).foregroundStyle(.tint)
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(row.name).font(.body)
+        NavigationLink {
+            row.destination
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "character.book.closed").font(.title2).foregroundStyle(.tint)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(row.name).font(.body)
+                    if !row.subtitle.isEmpty {
                         Text(row.subtitle)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
-                    Spacer(minLength: 4)
                 }
-            }
-            .buttonStyle(.plain)
-            if row.isSelected {
-                Text(UserTerminology.statusInUse)
+                Spacer(minLength: 4)
+                Text(row.status.text)
                     .font(.footnote)
-                    .foregroundStyle(.green)
-                    .accessibilityLabel("\(row.name) \(UserTerminology.statusInUse)")
-            } else if let apply = row.apply {
-                Button(row.needsNewVersion ? UserTerminology.startUsingNewVersion : UserTerminology.startUsing) {
-                    apply()
-                }
-                .buttonStyle(.borderless)
-                .disabled(row.isBusy)
-                .accessibilityLabel("\(UserTerminology.startUsing) \(row.name)")
+                    .foregroundStyle(row.status.color)
             }
-            // No second link here: a List row with two NavigationLinks pushes the detail twice, and
-            // the row itself already opens it.
         }
         .padding(.vertical, 2)
+        .accessibilityElement(children: .combine)
     }
 
     // MARK: - Add input scheme (single entry point: any source can be imported)
@@ -355,13 +342,27 @@ struct InputSchemeListView: View {
         resourceError = result.resourceError
     }
 
-    /// Dictionary-generated custom pinyin needs a disk read to resolve its input methods/keyboard layouts;
-    /// imported sources take them straight from the install manifest, avoiding duplicate reads.
+    /// Custom pinyin and the keyboards of each installed scheme need reads on the read queue; the keyboards are
+    /// named from the same addable list as 我的键盘, and a scheme whose installed revision is unchanged keeps its names.
     private func loadPresentations() async {
         var next: [String: SourcePresentation] = [:]
         if imports.installed != nil, let set = try? await imports.tryResources() {
             next["user-dictionary"] = presentation(for: set)
         }
+        for package in schemeImports.installedPackages {
+            let key = "package-\(package.id)"
+            let revision = package.active.installation.revision
+            if let known = presentations[key], known.revision == revision {
+                next[key] = known
+                continue
+            }
+            guard let keyboards = try? await schemeImports.addableKeyboards(packageID: package.id) else { continue }
+            next[key] = SourcePresentation(
+                layouts: HostLayoutAvailability.keyboardNames(
+                    for: keyboards, descriptors: package.schemas, in: LayoutManager.shared.registry),
+                revision: revision)
+        }
+        guard !Task.isCancelled else { return }
         presentations = next
     }
 

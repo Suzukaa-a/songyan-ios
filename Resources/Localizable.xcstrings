@@ -4071,50 +4071,6 @@
         }
       }
     },
-    "安装完成 · %@": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "安装完成 · %@"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "安裝完成 · %@"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "インストール完了 · %@"
-          }
-        }
-      }
-    },
-    "选择键盘并开始使用": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "选择键盘并开始使用"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "選擇鍵盤並開始使用"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "キーボードを選んで使い始める"
-          }
-        }
-      }
-    },
     "无法读取该方案，你可以删除后重新导入。": {
       "localizations": {
         "zh-Hans": {
@@ -30053,28 +30009,6 @@
         }
       }
     },
-    "轻点键盘下方的「使用」即可开始打字。": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "キーボード下の「使う」をタップすると入力できます。"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "轻点键盘下方的「使用」即可开始打字。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "點一下鍵盤下方的「使用」即可開始打字。"
-          }
-        }
-      }
-    },
     "推荐": {
       "localizations": {
         "ja": {
@@ -30335,50 +30269,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "方案資訊"
-          }
-        }
-      }
-    },
-    "更新后在「我的键盘」中换用新版本。": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "更新後は「マイキーボード」で新しいバージョンに切り替えてください。"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "更新后在「我的键盘」中换用新版本。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "更新後在「我的鍵盤」中換用新版本。"
-          }
-        }
-      }
-    },
-    "安装后在「我的键盘」中选择使用。": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "インストール後は「マイキーボード」で選んで使います。"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "安装后在「我的键盘」中选择使用。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "安裝後在「我的鍵盤」中選擇使用。"
           }
         }
       }
@@ -31809,28 +31699,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "正在新增鍵盤…"
-          }
-        }
-      }
-    },
-    "已准备所选键盘。": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "選択したキーボードを準備しました。"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "已准备所选键盘。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "已準備所選鍵盤。"
           }
         }
       }
@@ -33463,28 +33331,6 @@
         }
       }
     },
-    "自定义拼音没有可添加的键盘。要改用其他方案，请在「%@」中打开该方案，再到它的「%@」里轻点「%@」。": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "カスタムピンインには追加できるキーボードがありません。別のパックに変えるには、「%@」でそのパックを開き、その「%@」で「%@」をタップしてください。"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "自定义拼音没有可添加的键盘。要改用其他方案，请在「%@」中打开该方案，再到它的「%@」里轻点「%@」。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "自訂拼音沒有可新增的鍵盤。要改用其他方案，請在「%@」中開啟該方案，再到它的「%@」裡點一下「%@」。"
-          }
-        }
-      }
-    },
     "%@\n\n内置拼音已默认启用，可以直接试打。下载完整的输入方案，获得更丰富的词库和输入方式。": {
       "localizations": {
         "ja": {
@@ -33877,6 +33723,138 @@
           "stringUnit": {
             "state": "translated",
             "value": "按鍵右上角的小字，滑一下就能輸入。下次開啟鍵盤時生效。"
+          }
+        }
+      }
+    },
+    "这些键盘来自正在使用的输入方案「%@」。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这些键盘来自正在使用的输入方案「%@」。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這些鍵盤來自正在使用的輸入方案「%@」。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "これらのキーボードは、使用中の入力パック「%@」のものです。"
+          }
+        }
+      }
+    },
+    "更换": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更换"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更換"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "変更"
+          }
+        }
+      }
+    },
+    "开始使用": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开始使用"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "開始使用"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使い始める"
+          }
+        }
+      }
+    },
+    "轻点「开始使用」，键盘会换成这个输入方案。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "轻点「开始使用」，键盘会换成这个输入方案。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "點一下「開始使用」，鍵盤會換成這個輸入方案。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「使い始める」をタップすると、キーボードがこの入力パックに切り替わります。"
+          }
+        }
+      }
+    },
+    "更新后轻点「开始使用」，键盘会换用新版本。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更新后轻点「开始使用」，键盘会换用新版本。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更新後點一下「開始使用」，鍵盤會換用新版本。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更新後に「使い始める」をタップすると、キーボードが新しいバージョンに切り替わります。"
+          }
+        }
+      }
+    },
+    "自定义拼音没有可添加的键盘。要改用其他方案，请在「%@」中打开该方案，轻点「%@」。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自定义拼音没有可添加的键盘。要改用其他方案，请在「%@」中打开该方案，轻点「%@」。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自訂拼音沒有可新增的鍵盤。要改用其他方案，請在「%@」中開啟該方案，點一下「%@」。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カスタムピンインには追加できるキーボードがありません。別のパックに変えるには、「%@」でそのパックを開き、「%@」をタップしてください。"
           }
         }
       }

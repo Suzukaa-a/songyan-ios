@@ -551,28 +551,6 @@
         }
       }
     },
-    "core.term.installedSchemeSummary": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$@，%2$@「%3$@」"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$@，%2$@「%3$@」"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$@、%2$@「%3$@」"
-          }
-        }
-      }
-    },
     "core.term.layoutUnavailableReason": {
       "localizations": {
         "zh-Hans": {
@@ -688,19 +666,19 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "这里暂时无法修改。请在「输入方案」中打开方案，再从它的「我的键盘」添加。"
+            "value": "这里暂时无法修改。想换输入方案，请到「输入方案」。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "這裡暫時無法修改。請在「輸入方案」中開啟方案，再從它的「我的鍵盤」新增。"
+            "value": "這裡暫時無法修改。想換輸入方案，請到「輸入方案」。"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "ここでは変更できません。「入力パック」でパックを開き、その「マイキーボード」から追加してください。"
+            "value": "ここでは変更できません。入力パックを変えるには「入力パック」を開いてください。"
           }
         }
       }
@@ -732,19 +710,19 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "请在「%1$@」中打开要用的方案，在它的「%2$@」里轻点「%3$@」；没有「%2$@」的方案，直接轻点「%3$@」。"
+            "value": "请在「%1$@」中打开要用的方案，轻点「%2$@」。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "請在「%1$@」中開啟要用的方案，在它的「%2$@」裡點一下「%3$@」；沒有「%2$@」的方案，直接點一下「%3$@」。"
+            "value": "請在「%1$@」中開啟要用的方案，點一下「%2$@」。"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "「%1$@」で使う入力パックを開き、その「%2$@」で「%3$@」をタップしてください。「%2$@」がない入力パックでは、「%3$@」を直接タップします。"
+            "value": "「%1$@」で使う入力パックを開き、「%2$@」をタップしてください。"
           }
         }
       }
@@ -1053,28 +1031,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "キーボードは%1$@を使用していません。%1$@を試し打ちするには、%2$@。"
-          }
-        }
-      }
-    },
-    "core.term.tryHowToUseViaUserKeyboard": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "请先回到上一页，在「%1$@」里轻点要用的键盘下方的「%2$@」"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "請先回到上一頁，在「%1$@」裡點一下要用的鍵盤下方的「%2$@」"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "前の画面に戻り、「%1$@」で使うキーボードの下の「%2$@」をタップしてください"
           }
         }
       }
@@ -1392,19 +1348,19 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "可重试，或在「%1$@」中轻点「%2$@」。"
+            "value": "可重试，或轻点「%1$@」。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "可重試，或在「%1$@」中點一下「%2$@」。"
+            "value": "可重試，或點一下「%1$@」。"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "もう一度試すか、「%1$@」で「%2$@」をタップしてください。"
+            "value": "もう一度試すか、「%1$@」をタップしてください。"
           }
         }
       }
@@ -1581,28 +1537,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "（次にキーボードを開いたときに反映されます。「フルアクセスを許可」が必要です）"
-          }
-        }
-      }
-    },
-    "core.status.installationNextStep": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "接下来选择要使用的键盘。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "接下來選擇要使用的鍵盤。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "続いて、使用するキーボードを選んでください。"
           }
         }
       }
@@ -3715,6 +3649,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "内蔵小鶴双拼"
+          }
+        }
+      }
+    },
+    "core.term.useThisInputScheme": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用这个输入方案"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用這個輸入方案"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この入力パックを使う"
           }
         }
       }

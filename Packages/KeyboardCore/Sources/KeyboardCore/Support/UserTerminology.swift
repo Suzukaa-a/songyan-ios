@@ -79,11 +79,15 @@ public enum UserTerminology: Sendable {
 
     // MARK: - Actions
 
-    /// Apply action: switch to a keyboard in 我的键盘, or to a scheme without one (custom pinyin).
+    /// Apply action: switch to a keyboard in 我的键盘.
     public static var startUsing: String { String(localized: "core.term.startUsing", bundle: .module) }
     /// Apply action when a newer version is installed.
     public static var startUsingNewVersion: String {
         String(localized: "core.term.startUsingNewVersion", bundle: .module)
+    }
+    /// Apply action on a scheme's own page: the keyboard switches to that scheme.
+    public static var useThisInputScheme: String {
+        String(localized: "core.term.useThisInputScheme", bundle: .module)
     }
     /// Add entry.
     public static var addInputScheme: String { String(localized: "core.term.addInputScheme", bundle: .module) }
@@ -123,15 +127,6 @@ public enum UserTerminology: Sendable {
         let parts = [inputMethod, layout.map(layoutName)].compactMap { $0 }.filter { !$0.isEmpty }
         guard !parts.isEmpty else { return nil }
         return "\(inUsePrefix)：\(parts.joined(separator: " · "))"
-    }
-
-    /// Home 输入方案 row: how many schemes are installed and which one the keyboard uses.
-    public static func installedSchemeSummary(count: Int, inUse: String?) -> String {
-        let installed = installedSourceSummary(count: count)
-        guard count > 0, let inUse, !inUse.isEmpty else { return installed }
-        return String(
-            format: String(localized: "core.term.installedSchemeSummary", bundle: .module),
-            installed, inUsePrefix, inUse)
     }
 
     /// Installed source count. The installed source count is never called a "scheme count".
@@ -260,12 +255,11 @@ public enum UserTerminology: Sendable {
         String(localized: "core.term.userKeyboardNoSource", bundle: .module)
     }
 
-    /// How to make the keyboard start using an input scheme. Schemes with 我的键盘 switch there;
-    /// those without (custom pinyin) have their own "start using" button.
+    /// How to make the keyboard start using an input scheme: open it from the scheme list.
     public static var userKeyboardHowToStart: String {
         String(
             format: String(localized: "core.term.userKeyboardHowToStart", bundle: .module),
-            inputScheme, userKeyboard, startUsing)
+            inputScheme, useThisInputScheme)
     }
 
     /// Full explanation for the user keyboard page's "not using any input scheme" state.
@@ -350,7 +344,7 @@ public enum UserTerminology: Sendable {
     }
 
     /// Source detail only knows the published selection. `howToUse` is an imperative phrase
-    /// without a trailing period (see `tryHowToUseViaUserKeyboard` etc.).
+    /// without a trailing period (see `tryHowToUseViaStartUsing`).
     public static func trySourceContext(name: String, inUse: Bool, howToUse: String) -> String {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         let label =
@@ -365,16 +359,10 @@ public enum UserTerminology: Sendable {
                 label, howToUse)
     }
 
-    /// Switch to it via the source's own "user keyboard".
-    public static var tryHowToUseViaUserKeyboard: String {
-        String(
-            format: String(localized: "core.term.tryHowToUseViaUserKeyboard", bundle: .module),
-            userKeyboard, startUsing)
-    }
-
-    /// Switch to it via "start using".
+    /// Switch to it via the scheme's own "use this input scheme" action.
     public static var tryHowToUseViaStartUsing: String {
-        String(format: String(localized: "core.term.tryHowToUseViaStartUsing", bundle: .module), startUsing)
+        String(
+            format: String(localized: "core.term.tryHowToUseViaStartUsing", bundle: .module), useThisInputScheme)
     }
 
     /// Accessibility label/hint of the tools entry.

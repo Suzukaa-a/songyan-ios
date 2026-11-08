@@ -141,18 +141,6 @@ final class KeyboardCoreLocalizationTests: XCTestCase {
             XCTAssertEqual(descriptor.humanReadableName, descriptor.displayName, adapter.schemaID)
         }
         XCTAssertNil(BuiltinTemplateSchemas.localizedName(for: "rime_ice"))
-        // The Japanese clause separator is 、: a hard-coded Chinese comma used to join the two parts.
-        let summaryEntries = try Self.catalog()
-        let summaryRenderings = Self.languages.compactMap { language -> String? in
-            guard let sentence = summaryEntries["core.term.installedSchemeSummary"]?[language],
-                let installed = summaryEntries["core.term.installedSourceSummary"]?[language],
-                let inUse = summaryEntries["core.term.inUsePrefix"]?[language]
-            else { return nil }
-            return String(format: sentence, String(format: installed, "2"), inUse, "内置全拼")
-        }
-        XCTAssertTrue(
-            summaryRenderings.contains(UserTerminology.installedSchemeSummary(count: 2, inUse: "内置全拼")))
-        XCTAssertFalse(try XCTUnwrap(summaryEntries["core.term.installedSchemeSummary"]?["ja"]).contains("，"))
         // The reason composes two catalog terms, so render it per language from the catalog itself.
         let reasonEntries = try Self.catalog()
         let reasonRenderings = Self.languages.compactMap { language -> String? in

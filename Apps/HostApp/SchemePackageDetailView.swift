@@ -7,8 +7,9 @@ import UniformTypeIdentifiers
 /// Scheme detail: detail page for a generic imported scheme.
 ///
 /// - Status: in use / not applied; when an old app and a new install coexist, each is shown separately.
-/// - Input methods: a read-only list with the layouts each one supports and which one is in use; adding and
-///   switching keyboards happens only in 我的键盘 (the link at the top), so this page offers no second way to choose.
+/// - Use: a scheme that is not in use offers 「使用这个输入方案」, which switches the keyboard to it with the keyboards
+///   remembered for it; one in use links to 我的键盘, the single page that edits the keyboards.
+/// - Input methods: a read-only list with the layouts each one supports and which one is in use.
 /// - Update: a link or Rime source updates in one action from the same source; a local-file install picks an update file.
 /// - Companion configuration: reads the install's workspace to reselect configuration (`installedPackageID`).
 ///
@@ -43,6 +44,7 @@ struct SchemePackageDetailView: View {
     @State private var updateFailure: String?
     /// Cancelled with the attempt so a late outcome is not reported on this page.
     @State private var updateTask: Task<Void, Never>?
+    @StateObject private var switcher = InputSchemeSwitch()
 
     private var item: SchemeImportCenter.InstalledPackage? {
         center.installedPackages.first { $0.id == packageID }
@@ -54,9 +56,6 @@ struct SchemePackageDetailView: View {
                 statusSection(item)
                 PackageLearningOfferSection(center: center, packageID: packageID)
                 Section {
-                    NavigationLink(UserTerminology.userKeyboard) {
-                        UserKeyboardManagementView(source: .package(packageID), returnsToSource: true)
-                    }
                     NavigationLink(String(localized: "试打")) {
                         PackageSourceTryView(
                             packageID: packageID, name: item.name,
@@ -270,11 +269,25 @@ struct SchemePackageDetailView: View {
                 Text("暂时无法读取状态")
                     .foregroundStyle(.orange)
             } else if isCurrentlyInUse {
+                let current = revisionIsCurrent(item)
                 Text(
-                    revisionIsCurrent(item)
+                    current
                         ? UserTerminology.statusInUse : "\(UserTerminology.statusInUse) · " + String(localized: "有新版本"))
+                if !current {
+                    UseInputSchemeRows(
+                        switcher: switcher, packageID: packageID, title: UserTerminology.startUsingNewVersion,
+                        disabled: center.busy || selectionCenter.isBusy)
+                }
+                NavigationLink(UserTerminology.userKeyboard) {
+                    UserKeyboardManagementView(
+                        source: selectionSnapshot.recipeEnabled
+                            ? .active : .package(ProductionInputAvailability.builtinPackageID))
+                }
             } else {
                 Text(UserTerminology.statusNotApplied)
+                UseInputSchemeRows(
+                    switcher: switcher, packageID: packageID, title: UserTerminology.useThisInputScheme,
+                    disabled: center.busy || selectionCenter.isBusy)
             }
             if developerOptions {
                 LabeledRow(
@@ -333,7 +346,11 @@ struct SchemePackageDetailView: View {
                 // Developer mode: show the real name and internal ID for diagnosis.
                 Text(displayName(item, schema))
                     .font(.body)
-                if let line = UserTerminology.keyboardLayoutLine(layouts.map { UserTerminology.layoutName($0) }) {
+                // Named the way the scheme list names them, so a zhuyin scheme reads 注音 41 键, not the 26-key shape.
+                let names = HostLayoutAvailability.keyboardNames(
+                    for: layouts.map { PublishedKeyboard(schemaID: schema.id, layout: $0) },
+                    descriptors: item.schemas, in: LayoutManager.shared.registry)
+                if let line = UserTerminology.keyboardLayoutLine(names) {
                     Text(line)
                         .font(.caption).foregroundStyle(.secondary)
                 }
@@ -531,6 +548,56 @@ struct SchemePackageDetailView: View {
     }
 }
 
+/// One attempt to switch the keyboard to an input scheme: progress, the failure text, and which scheme
+/// it last switched to (the install result card shows that before the shared selection is read again).
+@MainActor
+final class InputSchemeSwitch: ObservableObject {
+    enum Phase: Equatable {
+        case idle, working
+        case done(String)
+        case failed(String)
+    }
+
+    @Published private(set) var phase: Phase = .idle
+
+    var isWorking: Bool { phase == .working }
+
+    func use(packageID: String, center: SchemeImportCenter = .shared) async {
+        guard !isWorking else { return }
+        phase = .working
+        do {
+            try await center.useInputScheme(packageID: packageID)
+            phase = .done(packageID)
+        } catch {
+            HostLog.append("use input scheme failed: \(error.localizedDescription)")
+            phase = .failed(
+                UserTerminology.userKeyboardFailureMessage(
+                    error, fallback: String(localized: "无法确认结果，请重新读取后重试。")))
+        }
+    }
+}
+
+/// The switch button with its progress and failure text, as rows of the section it sits in.
+struct UseInputSchemeRows: View {
+    @ObservedObject var switcher: InputSchemeSwitch
+    let packageID: String
+    let title: String
+    let disabled: Bool
+
+    var body: some View {
+        if switcher.isWorking {
+            ProgressView(String(localized: "正在切换…"))
+        } else {
+            Button(title) { Task { await switcher.use(packageID: packageID) } }
+                .disabled(disabled)
+        }
+        if case .failed(let message) = switcher.phase {
+            Label(message, systemImage: "exclamationmark.triangle")
+                .font(.footnote).foregroundStyle(.orange)
+        }
+    }
+}
+
 /// Plain trial-typing page for a package source (no specific schema): states whether the keyboard is using this scheme.
 private struct PackageSourceTryView: View {
     let packageID: String
@@ -541,6 +608,6 @@ private struct PackageSourceTryView: View {
         SystemKeyboardTestView(
             title: String(localized: "试打"),
             context: SystemKeyboardTestView.sourceContext(
-                name: name, inUse: inUse, howToUse: UserTerminology.tryHowToUseViaUserKeyboard))
+                name: name, inUse: inUse, howToUse: UserTerminology.tryHowToUseViaStartUsing))
     }
 }

@@ -41,6 +41,8 @@ final class UserKeyboardCenter: ObservableObject {
     @Published private(set) var addableKeyboards: [UserKeyboardCandidate] = []
     /// The schema facts of this page's own source (never another source's alphabet).
     @Published private(set) var sourceSchemas: [KeyboardSchemaDescriptor] = []
+    /// Name of the input scheme these keyboards come from; nil until read.
+    @Published private(set) var sourceName: String?
     /// The keyboard currently in progress (add or remove); nil = idle.
     @Published private(set) var busyKeyboardID: String?
     /// User-facing note for the most recent successful action.
@@ -92,7 +94,9 @@ final class UserKeyboardCenter: ObservableObject {
             }
             let addable = try await manager.addableKeyboards()
             updateLists(published: published, addable: addable)
-            sourceSchemas = await UserKeyboardSourceFacts.schemas(for: source)
+            let facts = await UserKeyboardSourceFacts.facts(for: source)
+            sourceSchemas = facts.schemas
+            sourceName = facts.name
             viewedPublication = viewed
             currentKeyboardID = Self.currentKeyboardID(in: viewed)
             sourceIsCurrent = viewed?.isCurrent ?? true

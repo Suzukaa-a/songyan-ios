@@ -4,8 +4,9 @@ import SwiftUI
 
 /// Home: input schemes and my keyboards / keyboard (appearance, try typing) / tools; settings at top right (including "Keyboard & Full Access").
 ///
-/// The first two rows are the app's only two places to act: 输入方案 (what is installed, and which
-/// scheme the keyboard uses) and 我的键盘 (what is on the keyboard, and the keyboard in use).
+/// The first two rows say what the keyboard uses now and where to change it: 输入方案 names the scheme in
+/// use and opens the list where another one is picked; 我的键盘 names the keyboard in use (the board picked
+/// in the keyboard's own menu included) and opens the keyboards of that scheme.
 ///
 /// User model (`UserTerminology`):
 ///  - Input scheme: an installable, applicable data unit (source); one source can hold any number of arbitrarily named schemes.
@@ -34,7 +35,7 @@ struct MainTabView: View {
                         InputSchemeListView()
                     } label: {
                         HomeRow(
-                            title: UserTerminology.inputScheme, subtitle: installationSummary,
+                            title: UserTerminology.inputScheme, subtitle: schemeSummary,
                             systemImage: "character.book.closed")
                     }
                     NavigationLink {
@@ -115,12 +116,13 @@ struct MainTabView: View {
             // Structured: the first frame is read once by .task; refreshTick is incremented on apply/install state changes,
             // cancelling and rerunning the old task; no bare Task is created (the main thread never reads disk).
             .task(id: refreshTick) {
+                // First, so returning to the app updates the rows before the slower converging work below.
+                await refreshInUse()
                 await center.refresh()
                 await imports.refresh()
                 await schemeImports.refresh()
                 // On launch / foreground, converge a previously interrupted deletion (removes leftover trash inside the lease).
                 await schemeImports.recoverInterruptedDeletions()
-                await refreshInUse()
                 // Typo correction is on by default: converge once for the source in use (one automatic attempt per publish revision),
                 // after keyboards saved by an older adapter generator are rebuilt (once per launch).
                 // The built-in scheme is installed first so the adapter rebuild sees its current version.
@@ -165,7 +167,10 @@ struct MainTabView: View {
             return
         }
         if snapshot.recipeEnabled {
-            inUseSchemeName = snapshot.displayConfigName
+            inUseSchemeName =
+                snapshot.packageID.map {
+                    ProductionInputAvailability.packageDisplayName(id: $0, declaredName: snapshot.displayConfigName)
+                } ?? snapshot.displayConfigName
             let method = UserTerminology.inputMethodName(
                 schemaID: snapshot.selectedSchemaID, schemas: snapshot.schemas)
             let board = snapshot.selectedLayout.flatMap { layout -> String? in
@@ -193,10 +198,13 @@ struct MainTabView: View {
 
     private static let keyboardSwitchHint = UserTerminology.tryUsesCurrentScheme
 
-    /// Number of installed sources (same data set as the input scheme page): **not** called the scheme count.
-    private var installationSummary: String {
+    /// The scheme in use; before it is read, the number of installed sources (same data set as the input scheme page).
+    private var schemeSummary: String {
+        if let inUseSchemeName, !inUseSchemeName.isEmpty {
+            return UserTerminology.inUseSummary(scheme: inUseSchemeName, inputMethod: nil, layout: nil)
+        }
         let count = (imports.installed != nil ? 1 : 0) + schemeImports.installedPackages.count
-        return UserTerminology.installedSchemeSummary(count: count, inUse: inUseSchemeName)
+        return UserTerminology.installedSourceSummary(count: count)
     }
 
     /// Appearance summary: the name of the appearance in use (candidate-bar details live on the appearance page; the home page does not pile up technical parameters).

@@ -21,6 +21,7 @@ struct SchemePackageImportView: View {
     var initialSourceURL: URL?
     @State private var initialized = false
     @State private var recognizedNames: [String: String] = [:]
+    @StateObject private var switcher = InputSchemeSwitch()
 
     /// One use of fileImporter: pick a scheme package source, or supply a local file for a declared external resource.
     enum ImporterPurpose: Equatable {
@@ -279,14 +280,21 @@ struct SchemePackageImportView: View {
             Label(notice, systemImage: "checkmark.circle.fill")
                 .foregroundStyle(.green)
             if let packageID = center.lastInstalledPackageID {
-                NavigationLink(String(localized: "选择键盘并开始使用")) {
-                    UserKeyboardManagementView(source: .package(packageID), returnsToSource: true)
+                if switcher.phase == .done(packageID) {
+                    Text(UserTerminology.statusInUse).foregroundStyle(.green)
+                    NavigationLink(UserTerminology.userKeyboard) {
+                        UserKeyboardManagementView(source: .active)
+                    }
+                } else {
+                    UseInputSchemeRows(
+                        switcher: switcher, packageID: packageID, title: String(localized: "开始使用"),
+                        disabled: center.busy)
+                    Text("轻点「开始使用」，键盘会换成这个输入方案。")
+                        .font(.footnote).foregroundStyle(.secondary)
                 }
                 NavigationLink(String(localized: "查看方案详情")) {
                     SchemePackageDetailView(packageID: packageID)
                 }
-                Text("轻点键盘下方的「使用」即可开始打字。")
-                    .font(.footnote).foregroundStyle(.secondary)
             } else {
                 NavigationLink(String(localized: "查看方案")) {
                     SchemeDetailRouter()
@@ -465,9 +473,7 @@ struct SchemePackageImportView: View {
             Button {
                 center.install()
             } label: {
-                Label(
-                    center.preparedUpdatesInstalledPackage ? String(localized: "更新") : String(localized: "安装"),
-                    systemImage: "checkmark.square")
+                Text(center.preparedUpdatesInstalledPackage ? String(localized: "更新") : String(localized: "安装"))
             }
             .disabled(
                 center.busy || showingImporter
@@ -477,7 +483,7 @@ struct SchemePackageImportView: View {
         } header: {
             Text("方案信息")
         } footer: {
-            Text(center.preparedUpdatesInstalledPackage ? "更新后在「我的键盘」中换用新版本。" : "安装后在「我的键盘」中选择使用。")
+            if center.preparedUpdatesInstalledPackage { Text("更新后轻点「开始使用」，键盘会换用新版本。") }
         }
         .task(id: prepared.manifest.revision) {
             let names = await Task.detached(priority: .userInitiated) { prepared.schemaNames }.value
@@ -538,15 +544,13 @@ struct SchemePackageImportView: View {
                         currentStages: stageArguments())
                 }
             } label: {
-                Label(
-                    isInstalledMode ? String(localized: "更新") : String(localized: "安装"), systemImage: "checkmark.square"
-                )
+                Text(isInstalledMode ? String(localized: "更新") : String(localized: "安装"))
             }
             .disabled(center.busy || !planned.isDeployable)
         } header: {
             Text("检查结果")
         } footer: {
-            Text(isInstalledMode ? "更新后在「我的键盘」中换用新版本。" : "安装后在「我的键盘」中选择使用。")
+            if isInstalledMode { Text("更新后轻点「开始使用」，键盘会换用新版本。") }
         }
     }
 

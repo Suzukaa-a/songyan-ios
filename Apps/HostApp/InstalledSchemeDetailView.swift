@@ -63,7 +63,7 @@ struct CustomPinyinDetailView: View {
             }
             // 正在使用 already says it all; the action is only offered when it would change something.
             if !usingInstalledRevision {
-                Button(applied ? UserTerminology.startUsingNewVersion : UserTerminology.startUsing) {
+                Button(applied ? UserTerminology.startUsingNewVersion : UserTerminology.useThisInputScheme) {
                     imports.apply()
                 }
                 .disabled(imports.busy)

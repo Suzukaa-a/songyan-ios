@@ -22,9 +22,6 @@ final class SchemeImportCenter: ObservableObject {
         let sourceSchemas: [String]
         let skippedSchemas: [SkippedEngineSchema]
         let bindings: [KeyboardResourceSet.LayoutEntry]
-        /// Keyboard layouts this source supports (dynamic capability: the truly available input method x 26/14/9 combinations).
-        /// A capability fact only; not bound to source identity and hardcodes no schema ID.
-        let supportedLayouts: [KeyboardLayoutKind]
         /// Source URL recorded by a URL import; nil when none (local-file sources show "not recorded").
         let sourceURL: URL?
     }
@@ -340,11 +337,6 @@ final class SchemeImportCenter: ObservableObject {
                 schemas: item.schemas))
     }
 
-    /// Supported keyboard layouts (union of dynamic capabilities; empty when there are no input methods).
-    nonisolated static func supportedLayouts(resourceSet: KeyboardResourceSet) -> [KeyboardLayoutKind] {
-        InputConfigurationChoices(resourceSet: resourceSet).supportedLayouts
-    }
-
     /// Establish a compact-key input contract against the actual deployed engine. Preferences
     /// alone never grant compatibility. Verification uses a separate user directory, not live learning.
     func validateBinding(_ binding: SchemeInputBinding, packageID: String) async throws {
@@ -534,15 +526,10 @@ final class SchemeImportCenter: ObservableObject {
             else { return nil }
             return .init(layout: layout, schemaID: binding.schemaID)
         }
-        let resources = KeyboardResourceSet(
-            id: id, name: declaration.name, sharedDirectory: active.resourceURL,
-            userDirectory: active.userDataURL, layoutEntries: bindings,
-            prebuiltDirectory: active.userDataURL.appendingPathComponent("build"), schemas: schemas)
         return InstalledPackage(
             id: id, name: ProductionInputAvailability.packageDisplayName(id: id, declaredName: declaration.name),
             active: active, schemas: schemas,
             sourceSchemas: sourceSchemas, skippedSchemas: skippedSchemas, bindings: bindings,
-            supportedLayouts: supportedLayouts(resourceSet: resources),
             sourceURL: recordedSourceURL(packageID: id, storeRoot: storeRoot))
     }
 

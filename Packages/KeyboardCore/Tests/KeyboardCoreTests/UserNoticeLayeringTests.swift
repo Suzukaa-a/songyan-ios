@@ -19,22 +19,8 @@ final class UserNoticeLayeringTests: XCTestCase {
         XCTAssertEqual(UserNoticeLayering.userLines(notice: ""), [])
     }
 
-    /// Install next-step guidance: the facts (installed / not applied) are carried by the "Installed" section; only the next step is given here,
-    /// without repeating "Installed · not applied" and without hardcoding a button name (the entry point varies with source detail / keyboard page).
-    func testInstallationNextStepIsActionableNotDuplicatedFact() {
-        let next = UserNoticeLayering.installationNextStep(installedPackageID: "pkg-a")
-        XCTAssertEqual(next, "接下来选择要使用的键盘。")
-        XCTAssertFalse(
-            next?.contains(UserTerminology.statusNotApplied) == true,
-            "must not repeat the not applied fact (carried by the installed section)")
-        XCTAssertNil(
-            UserNoticeLayering.installationNextStep(installedPackageID: nil),
-            "no new install fact => no notice")
-    }
-
     func testAllNoticeCopyAvoidsInternalTerminology() {
         let samples = [
-            UserNoticeLayering.installationNextStep(installedPackageID: "x") ?? "",
             "已安装并验证，未应用；来源修订与各步骤回执已归档。",
             "已准备所选键盘；其他输入方式、词库与学习数据保持不变。",
             "未能检查未完成的删除，已保留原有内容。",

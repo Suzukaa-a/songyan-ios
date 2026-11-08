@@ -69,6 +69,35 @@ enum HostLayoutAvailability {
     }
 }
 
+extension HostLayoutAvailability {
+    /// The keyboards an input scheme can use, named as 我的键盘 titles its rows: a shipped board by its own name
+    /// (an input method with several boards lists each), any other keyboard by its shape.
+    static func keyboardNames(
+        for keyboards: [PublishedKeyboard], descriptors: [KeyboardSchemaDescriptor], in registry: LayoutRegistry
+    ) -> [String] {
+        var names: [String] = []
+        func add(_ name: String) {
+            if !names.contains(name) { names.append(name) }
+        }
+        for keyboard in keyboards {
+            guard allows(kind: keyboard.layout, schemaID: keyboard.schemaID, descriptors: descriptors) else { continue }
+            let shape = UserTerminology.layoutName(keyboard.layout)
+            let family = family(schemaID: keyboard.schemaID, descriptors: descriptors)
+            let boards =
+                keyboard.layout == .qwerty26
+                ? InputLayoutPolicy.boards(of: family).filter { registry.resolvedLayout(id: $0) != nil } : []
+            if boards.count > 1 {
+                for board in boards { add(UserTerminology.builtinLayoutName(physicalLayoutID: board) ?? shape) }
+            } else {
+                let id = effectiveMainLayoutID(
+                    schemaID: keyboard.schemaID, layout: keyboard.layout, descriptors: descriptors, in: registry)
+                add(UserTerminology.builtinLayoutName(physicalLayoutID: id) ?? shape)
+            }
+        }
+        return names
+    }
+}
+
 /// Names the keyboards a layout or page is paired with. 我的键盘 knows the names of its keyboards;
 /// any other keyboard is named from its input method and shape.
 struct KeyboardNames {
