@@ -109,7 +109,8 @@ final class KeyboardCoreLocalizationTests: XCTestCase {
     /// language; it is named from the catalog like the home screen names it.
     func testTheBuiltinPackageIsListedInTheAppLanguage() throws {
         let name = ProductionInputAvailability.packageDisplayName(
-            id: ProductionInputAvailability.builtinPackageID, declaredName: ProductionInputAvailability.builtinDisplayName)
+            id: ProductionInputAvailability.builtinPackageID,
+            declaredName: ProductionInputAvailability.builtinDisplayName)
         XCTAssertTrue(try Self.renderings("core.status.builtinDisplayName").contains(name))
         XCTAssertEqual(ProductionInputAvailability.packageDisplayName(id: "kagiroi", declaredName: "カギロイ"), "カギロイ")
     }

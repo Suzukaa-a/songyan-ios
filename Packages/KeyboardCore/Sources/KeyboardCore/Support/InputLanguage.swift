@@ -124,6 +124,10 @@ public enum InputLayoutPolicy {
         }
     }
 
+    /// Reserved physical layout IDs in a fixed order, so the boards of a family list the same way
+    /// everywhere.
+    private static let reservedPhysicalLayoutIDs = ["zhuyin41", "cangjie26", "romaji26", "kana12"]
+
     /// The family a reserved physical layout ID belongs to; nil keeps the legacy behaviour.
     public static func family(ofPhysicalLayoutID id: String) -> InputSchemeFamily? {
         switch id {
@@ -132,6 +136,15 @@ public enum InputLayoutPolicy {
         case "romaji26", "kana12": return .japanese
         default: return nil
         }
+    }
+
+    /// The physical boards a family types on, the preferred one first. They share the identity
+    /// shape's slot, so a keyboard picks one of them as its main layout. Empty for the families
+    /// that keep the shipped shapes.
+    public static func boards(of family: InputSchemeFamily) -> [String] {
+        guard let preferred = preferredPhysicalLayoutID(family: family) else { return [] }
+        return [preferred]
+            + reservedPhysicalLayoutIDs.filter { $0 != preferred && self.family(ofPhysicalLayoutID: $0) == family }
     }
 
     /// Whether a layout definition ID may be used by a scheme of this family.
