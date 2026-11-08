@@ -89,6 +89,7 @@ public struct KeyboardPanelView: View {
     @State var quickContentSection = "symbols"
     @State var quickContentCategory: String?
     @State private var idleToolbarEnabled = KeyboardIdleToolbarPreferences.defaultEnabled
+    @State private var idleToolbarLayout = IdleToolbarLayout.default
     @State private var clipboardPasteSlot = QuickPasteSlotLease()
     @State private var clipboardPasteError: String?
     @State private var clipboardPasteRevision = 0
@@ -696,6 +697,42 @@ public struct KeyboardPanelView: View {
         .accessibilityIdentifier("keyboard.toolbar." + title)
     }
 
+    /// The idle toolbar in the user's order, cut to what the real toolbar width holds. The pinned
+    /// tools run from here too, and still stop at the preview: a tool never writes without the
+    /// user's word.
+    private func idleToolbar(width: CGFloat, fixedSlots: Int, trailingInset: CGFloat) -> some View {
+        let pinned = controller.showsTextTools ? tools.pinned : []
+        let pinnedWidths = pinned.map { Double(tools.displayName(for: $0).count) * 13 + 12 }
+        let chosen = IdleToolbarAssembly.slots(
+            layout: idleToolbarLayout, hidden: false, toolsAvailable: controller.showsTextTools,
+            pinnedWidths: pinnedWidths)
+        let slots = IdleToolbarAssembly.fitting(
+            chosen, pinnedWidths: pinnedWidths, width: Double(width), fixedSlots: fixedSlots)
+        return HStack(spacing: 4) {
+            ForEach(Array(slots.enumerated()), id: \.offset) { _, slot in
+                switch slot {
+                case .clipboard:
+                    idleTool(clipboardToolTitle, icon: "list.clipboard") { openQuickContent(section: "clipboard") }
+                case .emoji:
+                    idleTool(String(localized: "颜文字"), icon: "face.smiling") {
+                        openQuickContent(section: "symbols", category: "kaomoji")
+                    }
+                case .settings:
+                    idleTool(String(localized: "键盘设置"), icon: "gearshape") { showsUtilitiesMenu = true }
+                case .pinned(let index):
+                    if pinned.indices.contains(index) { pinnedTool(pinned[index]) }
+                case .tools:
+                    idleTool(KeyboardToolsWording.toolbarButton, icon: "wand.and.stars") {
+                        tools.open(controller: controller)
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 8)
+        .padding(.trailing, trailingInset)
+    }
+
     private var clipboardPasteAllowed: Bool {
         var input = quickPasteIdleInput
         input.isCovered = showsUtilitiesMenu
@@ -825,28 +862,13 @@ public struct KeyboardPanelView: View {
                     .padding(.trailing, showsWideDismiss ? 44 : 0)
                     .overlay(alignment: .trailing) {
                         if idleToolbarEnabled, idle, plan.headerHeight >= 32 {
-                            HStack(spacing: 4) {
-                                idleTool(clipboardToolTitle, icon: "list.clipboard") {
-                                    openQuickContent(section: "clipboard")
-                                }
-                                idleTool(String(localized: "颜文字"), icon: "face.smiling") {
-                                    openQuickContent(section: "symbols", category: "kaomoji")
-                                }
-                                idleTool(String(localized: "键盘设置"), icon: "gearshape") { showsUtilitiesMenu = true }
-                                if controller.showsTextTools {
-                                    // Pinned tools are one tap away, and still stop at the
-                                    // preview: a tool never writes without the user's word.
-                                    ForEach(tools.pinned) { item in
-                                        pinnedTool(item)
-                                    }
-                                    idleTool(KeyboardToolsWording.toolbarButton, icon: "wand.and.stars") {
-                                        tools.open(controller: controller)
-                                    }
-                                }
+                            GeometryReader { proxy in
+                                idleToolbar(
+                                    width: proxy.size.width - 16, fixedSlots: showsWideDismiss ? 1 : 0,
+                                    trailingInset: showsWideDismiss ? 44 : 0
+                                )
+                                .frame(width: proxy.size.width, height: proxy.size.height)
                             }
-                            .frame(maxWidth: .infinity)
-                            .padding(.horizontal, 8)
-                            .padding(.trailing, showsWideDismiss ? 44 : 0)
                         }
                     }
                     .overlay(alignment: .trailing) {
@@ -1094,6 +1116,8 @@ public struct KeyboardPanelView: View {
     /// Presentation, layout and dock-change hooks only; never per key.
     private func refreshContentDock() {
         idleToolbarEnabled = KeyboardIdleToolbarPreferences.read(from: KeyboardIdleToolbarPreferences.defaults)
+        idleToolbarLayout = KeyboardIdleToolbarLayoutPreferences.read(
+            from: KeyboardIdleToolbarLayoutPreferences.defaults)
         let dock = KeyboardContentDockPreferences.dock(for: controller.layout)
         ContentDockCache.docks[controller.layout] = dock
         if contentDock != dock { contentDock = dock }

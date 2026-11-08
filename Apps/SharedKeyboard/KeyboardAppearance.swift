@@ -25,6 +25,25 @@ public enum KeyboardHeightPreferences {
     }
 }
 
+/// Which idle-toolbar buttons show and in what order. Nothing is stored for the default layout.
+/// Read at each presentation like the on/off switch, never per key.
+public enum KeyboardIdleToolbarLayoutPreferences {
+    public static let key = "keyboard.idleToolbarLayout.v1"
+    public static var defaults: UserDefaults { KeyboardRecipeStore.sharedDefaults() ?? .standard }
+
+    public static func read(from defaults: UserDefaults) -> IdleToolbarLayout {
+        IdleToolbarLayout.parse(defaults.string(forKey: key))
+    }
+
+    public static func write(_ layout: IdleToolbarLayout, to defaults: UserDefaults) {
+        if layout.isDefault {
+            defaults.removeObject(forKey: key)
+        } else {
+            defaults.set(layout.toWire(), forKey: key)
+        }
+    }
+}
+
 /// Where the readings of a 14-key / 18-key layout show. Read at each presentation (it decides
 /// whether the shell reserves a reading row), never per key.
 public enum KeyboardReadingPlacementPreferences {

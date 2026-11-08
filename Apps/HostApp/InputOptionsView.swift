@@ -79,6 +79,17 @@ struct InputOptionsView: View {
             Section {
                 Toggle(String(localized: "快捷工具栏"), isOn: $idleToolbarEnabled)
                     .accessibilityIdentifier("inputOptions.idleToolbar")
+                NavigationLink {
+                    IdleToolbarSettingsView()
+                } label: {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("工具栏")
+                        Text("选择要显示的按钮和顺序")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .accessibilityIdentifier("inputOptions.idleToolbarLayout")
             }
             keyboardHeightSection
             readingPlacementSection
