@@ -211,6 +211,12 @@ public struct AppearanceStore: Sendable {
         guard value.document.identityIsConsistent else {
             throw AppearanceError("外观快照不一致：皮肤与候选栏不匹配（\(value.document.identityDescription)）")
         }
+        // Built-ins are read-only, so a snapshot of one only contributes its light/dark mode; resolving
+        // the rest from code lets palette updates reach users who applied the built-in earlier.
+        if var builtin = AppearanceDocument.builtin(id: value.document.id) {
+            builtin.appearance = value.document.appearance
+            return AppearanceSnapshot(document: builtin.normalized())
+        }
         return value
     }
 }

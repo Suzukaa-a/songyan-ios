@@ -246,6 +246,32 @@ final class AppearanceKitTests: XCTestCase {
         XCTAssertNotEqual(read.source, .applied)
     }
 
+    func testAppliedBuiltinFollowsTheCurrentDefinitionAndKeepsItsMode() throws {
+        let directory = temporaryDirectory("builtin-refresh")
+        let host = store(directory), reader = store(directory)
+        for builtin in [AppearanceDocument.systemDefault] + AppearanceDocument.builtinPresets {
+            // A snapshot written by an older build carries that build's palette.
+            var stale = builtin
+            stale.appearance = .dark
+            var light = stale.skin.variants.light ?? .init()
+            light.colors = (light.colors ?? [:]).merging(["key": "#123456"]) { _, new in new }
+            stale.skin.variants.light = light
+            try host.apply(stale.normalized())
+
+            var expected = builtin
+            expected.appearance = .dark
+            let read = reader.read()
+            XCTAssertEqual(read.source, .applied)
+            XCTAssertNil(read.error)
+            XCTAssertEqual(read.snapshot.document, expected.normalized(), builtin.id)
+            XCTAssertEqual(try reader.readSnapshot().document, expected.normalized(), builtin.id)
+        }
+        // User appearances keep exactly what was applied.
+        let user = makeDocument(id: "look-a", name: "A", accent: "#145ACC", candidateSize: 22, collapsedHeight: 44)
+        try host.apply(user)
+        XCTAssertEqual(reader.read().snapshot.document, user)
+    }
+
     func testSaveIsNotApplySystemDefaultReadOnlyAndInvalidRejected() throws {
         let directory = temporaryDirectory("save-apply")
         let host = store(directory)

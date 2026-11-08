@@ -587,7 +587,8 @@ struct AlternateCharacterKey: UIViewRepresentable {
             alpha = isEnabled ? 1 : 0.45
             title.textColor = appearance.text(on: role)
             subtitle.textColor = appearance.text(on: role, secondary: true)
-            alternateHint.textColor = appearance.text(on: role, secondary: true)
+            // Corner hints recede behind the title, matching the Android keyboard.
+            alternateHint.textColor = appearance.text(on: role, secondary: true).withAlphaComponent(0.6)
             let base =
                 titleSize
                 ?? (isControl || phoneSideKey
@@ -610,7 +611,7 @@ struct AlternateCharacterKey: UIViewRepresentable {
                 let hintColour = appearance.text(on: role, secondary: true)
                 label.textColor =
                     swipeChoice.map { $0 == index ? hintColour : hintColour.withAlphaComponent(0.3) }
-                    ?? hintColour
+                    ?? hintColour.withAlphaComponent(0.6)
                 label.textAlignment = .center
                 applyHintLayout(to: label, availableWidth: columnWidth, natural: secondaryFont, shrinks: true)
             }
