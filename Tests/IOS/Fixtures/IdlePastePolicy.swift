@@ -467,12 +467,12 @@ private struct NativeHeightProbe {
         let suite = "IdleToolbarProbe-" + UUID().uuidString
         let preferences = UserDefaults(suiteName: suite)!
         defer { preferences.removePersistentDomain(forName: suite) }
-        precondition(!KeyboardIdleToolbarPreferences.read(from: preferences))
-        preferences.set(true, forKey: KeyboardIdleToolbarPreferences.key)
-        precondition(KeyboardIdleToolbarPreferences.read(from: UserDefaults(suiteName: suite)!))
+        precondition(KeyboardIdleToolbarPreferences.read(from: preferences))
         preferences.set(false, forKey: KeyboardIdleToolbarPreferences.key)
         precondition(!KeyboardIdleToolbarPreferences.read(from: UserDefaults(suiteName: suite)!))
-        print("PASS toolbar defaults off and persists explicit enable/disable")
+        preferences.set(true, forKey: KeyboardIdleToolbarPreferences.key)
+        precondition(KeyboardIdleToolbarPreferences.read(from: UserDefaults(suiteName: suite)!))
+        print("PASS toolbar defaults on and persists explicit disable/enable")
         for height: CGFloat in [160, 201] {
             let panel = NativeHeightProbe(presentedHeight: height)
             precondition(panel.fittedKeyHeight > 0 && panel.fittedKeyHeight < 30)

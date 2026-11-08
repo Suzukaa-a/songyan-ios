@@ -8,7 +8,7 @@ import os
 
 public enum KeyboardIdleToolbarPreferences {
     public static let key = "keyboard.idleToolbarEnabled.v1"
-    public static let defaultEnabled = false
+    public static let defaultEnabled = true
     public static var defaults: UserDefaults { KeyboardRecipeStore.sharedDefaults() ?? .standard }
 
     public static func read(from defaults: UserDefaults) -> Bool {
