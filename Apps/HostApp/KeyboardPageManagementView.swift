@@ -111,7 +111,7 @@ struct KeyboardPageManagementView: View {
                     .frame(minWidth: 44, minHeight: 44)
             }
             .buttonStyle(.borderless)
-            .accessibilityLabel(String(localized: "\(page.name)的更多操作"))
+            .accessibilityLabel(String(localized: "\(page.listName)的更多操作"))
         }
         .padding(.vertical, 2)
         .swipeActions {
@@ -123,7 +123,7 @@ struct KeyboardPageManagementView: View {
 
     private func pageLabel(_ page: KeyboardPageDefinition, usage: String?) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(page.name).font(.headline).foregroundStyle(.primary)
+            Text(page.listName).font(.headline).foregroundStyle(.primary)
             Text(summary(page)).font(.caption).foregroundStyle(.secondary)
             if let usage { Text(usage).font(.caption).foregroundStyle(.secondary) }
             Label(

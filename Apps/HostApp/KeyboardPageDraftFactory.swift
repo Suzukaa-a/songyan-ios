@@ -62,7 +62,7 @@ enum KeyboardPageDraftFactory {
                 // initial-language snapshot) or author-modified (then it keeps them, along with the
                 // author's split). Hand-picking a preset here would discard both.
                 let copy = base.copy(
-                    name: String(localized: "\(page.name) 副本"), numericMarks: numericMarks,
+                    name: String(localized: "\(page.listName) 副本"), numericMarks: numericMarks,
                     numericForm: numericForm ?? .rows)
                 try copy.validate()
                 return copy

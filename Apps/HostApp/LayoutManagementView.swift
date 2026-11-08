@@ -179,7 +179,7 @@ struct LayoutManagementView: View {
             LayoutDetailView(layoutID: layout.id, keyboardNames: keyboardNames)
         } label: {
             VStack(alignment: .leading, spacing: 3) {
-                Text(layout.name).font(.body)
+                Text(layout.listName).font(.body)
                 Text(rowSubtitle(layout, isPaired: isPaired))
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -260,7 +260,7 @@ struct LayoutDetailView: View {
         List {
             if let layout {
                 Section(String(localized: "布局")) {
-                    LabeledRow(label: String(localized: "名称"), value: layout.name)
+                    LabeledRow(label: String(localized: "名称"), value: layout.listName)
                     if developerOptions { LabeledRow(label: "ID", value: layout.id) }
                     LabeledRow(label: String(localized: "输入"), value: inputText(layout))
                     LabeledRow(
@@ -413,5 +413,21 @@ struct LayoutJSONDocument: FileDocument {
 
     func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
         FileWrapper(regularFileWithContents: data)
+    }
+}
+
+extension LayoutDefinition {
+    /// The name layout lists show: a bundled layout is worded in the UI language while its shipped
+    /// name is unchanged; every other layout keeps the name it was saved with.
+    var listName: String {
+        UserTerminology.layoutListName(
+            id: id, name: name, shippedName: BuiltinLayouts.all.first { $0.id == id }?.name)
+    }
+}
+
+extension KeyboardPageDefinition {
+    /// The name page lists show, by the same rule as `LayoutDefinition.listName`.
+    var listName: String {
+        UserTerminology.pageListName(id: id, name: name, shippedName: KeyboardPagePresets.preset(id: id)?.name)
     }
 }

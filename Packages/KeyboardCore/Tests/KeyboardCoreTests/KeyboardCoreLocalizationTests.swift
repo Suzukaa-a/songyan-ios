@@ -80,6 +80,31 @@ final class KeyboardCoreLocalizationTests: XCTestCase {
         }
     }
 
+    /// A bundled layout or page carries the shipped Chinese name in its data; lists word it in the UI
+    /// language while that name is unchanged, and never replace a name the user wrote.
+    func testBundledLayoutsAndPagesAreNamedInTheAppLanguage() throws {
+        let pages: [(id: String, shipped: String, key: String)] = [
+            ("page.symbols.system", "默认符号页", "core.page.symbolsSystem"),
+            ("page.symbols.categorized", "分类符号", "core.page.symbolsCategorized"),
+            ("page.numeric.automatic", "自动 123", "core.page.numericAutomatic"),
+            ("page.numeric.keypad", "数字九宫格", "core.page.numericKeypad"),
+            ("page.english.qwerty", "英文 QWERTY", "core.page.englishQwerty"),
+        ]
+        for page in pages {
+            let name = UserTerminology.pageListName(id: page.id, name: page.shipped, shippedName: page.shipped)
+            XCTAssertTrue(try Self.renderings(page.key).contains(name), page.id)
+            XCTAssertEqual(
+                UserTerminology.pageListName(id: page.id, name: "我的符号", shippedName: page.shipped), "我的符号")
+        }
+        XCTAssertEqual(UserTerminology.pageListName(id: "mine", name: "我的符号", shippedName: nil), "我的符号")
+        XCTAssertEqual(
+            UserTerminology.layoutListName(id: "qwerty26", name: "26 键", shippedName: "26 键"),
+            KeyboardLayoutKind.qwerty26.userTitle)
+        XCTAssertEqual(
+            UserTerminology.layoutListName(id: "qwerty26", name: "我的键盘", shippedName: "26 键"), "我的键盘")
+        XCTAssertEqual(UserTerminology.layoutListName(id: "mine", name: "我的键盘", shippedName: nil), "我的键盘")
+    }
+
     func testProductionValuesComeFromTheCatalog() throws {
         XCTAssertTrue(try Self.renderings("core.term.inputScheme").contains(UserTerminology.inputScheme))
         XCTAssertTrue(try Self.renderings("core.term.startUsing").contains(UserTerminology.startUsing))

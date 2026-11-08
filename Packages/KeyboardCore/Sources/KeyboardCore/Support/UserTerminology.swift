@@ -159,6 +159,30 @@ public enum UserTerminology: Sendable {
         return String(localized: key, bundle: bundle)
     }
 
+    /// The name a layout list shows. A bundled layout's stored name is the shipped data's Chinese,
+    /// so while it is unchanged (keys edited or not) the UI language words it; a renamed board or
+    /// the user's own layout keeps the name it was saved with. [shippedName] is the bundled preset's
+    /// stored name for [id], nil for an id this build does not ship.
+    public static func layoutListName(id: String, name: String, shippedName: String?) -> String {
+        guard let shippedName, name == shippedName else { return name }
+        if let kind = KeyboardLayoutKind(rawValue: id) { return kind.userTitle }
+        return builtinLayoutName(physicalLayoutID: id) ?? name
+    }
+
+    /// The name a page list shows, by the same rule as `layoutListName`: the bundled pages are worded
+    /// in the UI language, every other page keeps its saved name.
+    public static func pageListName(id: String, name: String, shippedName: String?) -> String {
+        guard let shippedName, name == shippedName else { return name }
+        switch id {
+        case "page.symbols.system": return String(localized: "core.page.symbolsSystem", bundle: .module)
+        case "page.symbols.categorized": return String(localized: "core.page.symbolsCategorized", bundle: .module)
+        case "page.numeric.automatic": return String(localized: "core.page.numericAutomatic", bundle: .module)
+        case "page.numeric.keypad": return String(localized: "core.page.numericKeypad", bundle: .module)
+        case "page.english.qwerty": return String(localized: "core.page.englishQwerty", bundle: .module)
+        default: return name
+        }
+    }
+
     private static func builtinLayoutNameKey(_ physicalLayoutID: String) -> String.LocalizationValue? {
         switch physicalLayoutID {
         case "zhuyin41": "layout.name.zhuyin41"

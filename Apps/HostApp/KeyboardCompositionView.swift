@@ -190,7 +190,7 @@ struct KeyboardCompositionView: View {
             if keyboardIsAvailable {
                 Section(UserTerminology.mainLayout) {
                     Picker(UserTerminology.keyboardLayout, selection: $draft.mainLayoutID) {
-                        ForEach(layouts) { layout in Text(layout.name).tag(layout.id) }
+                        ForEach(layouts) { layout in Text(layout.listName).tag(layout.id) }
                     }
                     if let layout = mainLayout {
                         DisclosureGroup(String(localized: "预览")) {
@@ -307,7 +307,7 @@ struct KeyboardCompositionView: View {
                 String(localized: "页面"),
                 selection: Binding(get: { draft.pageID(for: kind) }, set: { draft.setPageID($0, for: kind) })
             ) {
-                ForEach(manager.registry.pages.filter { $0.kind == kind }) { page in Text(page.name).tag(page.id) }
+                ForEach(manager.registry.pages.filter { $0.kind == kind }) { page in Text(page.listName).tag(page.id) }
             }
             if let page = manager.registry.page(id: draft.pageID(for: kind)) {
                 DisclosureGroup(String(localized: "预览")) {
