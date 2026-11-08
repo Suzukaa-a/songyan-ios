@@ -4,7 +4,7 @@ import XCTest
 @testable import LayoutKit
 
 /// The bundled 倉頡 (Cangjie) 26-key keyboard: the familiar QWERTY positions, each cap the radical
-/// that letter stands for and the corner label the letter itself, then the shared control row.
+/// that letter stands for and the corner label the letter itself, then the 26-key stand-in control row.
 final class CangjieLayoutTests: XCTestCase {
     /// The radical each letter stands for and the letter it sits on, row by row (letter order).
     private static let rows: [(letter: String, radical: String)] = [
@@ -118,14 +118,14 @@ final class CangjieLayoutTests: XCTestCase {
         XCTAssertNil(layout.input.schemaID)
     }
 
-    func testTheControlRowCarriesItsOwnLanguageKeys() throws {
-        let controlRow = try XCTUnwrap(try bundled().rows.last)
-        XCTAssertTrue(controlRow.keys.allSatisfy { $0.action.type != .code && $0.action.type != .literal })
-        XCTAssertEqual(
-            controlRow.keys.map(\.action.type),
-            [.globe, .pageSwitch, .languageSwitch, .space, .enter])
-        XCTAssertEqual(controlRow.keys.first { $0.action.type == .space }?.width, 4)
-        XCTAssertTrue(try bundled().hasInputModeSwitchKey)
+    /// The board had its own footer without the punctuation keys either side of the space bar, so
+    /// it looked unlike every other 26-key board. It now uses the 26-key stand-in, and the keyboard
+    /// draws the same footer as on the others.
+    func testTheControlRowIsTheBundledStandInSoTheShellDrawsItsAutomaticFooter() throws {
+        let layout = try bundled()
+        XCTAssertEqual(layout.rows.last, BuiltinLayouts.qwerty26.rows.last)
+        XCTAssertTrue(BuiltinLayouts.matchesControlRowPolicy(layout, as: .qwerty26))
+        XCTAssertTrue(layout.hasInputModeSwitchKey)
     }
 
     func testTheRadicalsTypeTheDocumentedWord() throws {

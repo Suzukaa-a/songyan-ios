@@ -419,11 +419,13 @@ public enum BuiltinLayouts {
     ])
 
     /// The 倉頡 (Cangjie) 26-key board: the letters keep their QWERTY positions, each cap draws the
-    /// radical its letter stands for and the corner label is the letter itself.
+    /// radical its letter stands for and the corner label is the letter itself. The fourth row is
+    /// the 26-key stand-in, so the keyboard draws the same footer as every 26-key board, with the
+    /// punctuation keys either side of the space bar.
     public static let cangjie26 = LayoutDefinition(
         id: "cangjie26", name: "仓颉 26 键",
         input: .init(builtinLayout: .qwerty26),
-        rows: cangjieLetterRows() + [cangjieControlRow])
+        rows: cangjieLetterRows() + [controls])
 
     private static let cangjieKeys: [[(letter: String, radical: String)]] = [
         [
@@ -447,16 +449,6 @@ public enum BuiltinLayouts {
                 })
         }
     }
-
-    /// The same controls as the 41-key board minus Delete: the 26-key shell already draws Shift and
-    /// Delete around its third letter row, so a declared Delete would appear twice.
-    private static let cangjieControlRow = LayoutRow(keys: [
-        LayoutKey(label: "🌐", action: .init(.globe), titleMode: .automatic),
-        LayoutKey(label: "123", action: .pageSwitch(.numeric), titleMode: .automatic),
-        LayoutKey(label: "中/英", action: .languageSwitch(), titleMode: .automatic),
-        LayoutKey(label: "空格", width: 4, action: .init(.space), titleMode: .automatic),
-        LayoutKey(label: "⏎", action: .init(.enter), titleMode: .automatic),
-    ])
 
     // MARK: - Japanese board
 

@@ -36,11 +36,11 @@
       {"label":"一","secondaryLabel":"M","action":{"type":"code","value":"m"}}
     ]},
     {"keys": [
-      {"label":"🌐","titleMode":"automatic","action":{"type":"globe"}},
-      {"label":"123","titleMode":"automatic","action":{"type":"pageSwitch","value":"numeric"}},
-      {"label":"中/英","titleMode":"automatic","action":{"type":"languageSwitch"}},
-      {"label":"空格","width":4,"titleMode":"automatic","action":{"type":"space"}},
-      {"label":"⏎","titleMode":"automatic","action":{"type":"enter"}}
+      {"label":"布局","action":{"type":"modeSwitch","value":"nextLayout"}},
+      {"label":"🌐","action":{"type":"globe"}},
+      {"label":"空格","width":4,"action":{"type":"space"}},
+      {"label":"⌫","action":{"type":"backspace"}},
+      {"label":"⏎","action":{"type":"enter"}}
     ]}
   ]
 }
