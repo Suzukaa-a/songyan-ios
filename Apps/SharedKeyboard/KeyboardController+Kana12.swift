@@ -163,7 +163,7 @@ extension KeyboardController {
         case .enter:
             invalidateKana12Ownership()
             handle(.enter)
-        case .symbols, .language:
+        case .symbols, .numbers, .language:
             invalidateKana12Ownership()
             onKana12Navigation?(intent.action)
         }

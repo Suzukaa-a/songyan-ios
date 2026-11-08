@@ -109,6 +109,7 @@ extension KeyboardPanelView {
             cursorLeft: "←",
             modify: "小゛゜",
             symbols: KeyLabelPolicy.symbolPageTitle(script: script),
+            numbers: KeyLabelPolicy.numericPageTitle,
             language: KeyLabelPolicy.languageTitle(
                 script: script, action: .toggleLanguage,
                 isEnglishMode: controller.isEnglishMode,
@@ -132,6 +133,8 @@ extension KeyboardPanelView {
             .modify: Kana12FunctionKeyAccessibility(label: Kana12Wording.modify),
             .symbols: Kana12FunctionKeyAccessibility(
                 label: KeyLabelPolicy.pageSwitchAccessibilityLabel(target: .symbols, isBundledPhonePad: false)),
+            .numbers: Kana12FunctionKeyAccessibility(
+                label: KeyLabelPolicy.pageSwitchAccessibilityLabel(target: .numeric, isBundledPhonePad: false)),
             .language: Kana12FunctionKeyAccessibility(
                 label: KeyLabelPolicy.languageAccessibilityLabel(
                     script: script, action: .toggleLanguage,
@@ -202,6 +205,9 @@ extension KeyboardPanelView {
                 // Only the page changes: the kana state is deliberately kept, because presses that
                 // are still queued belong to the composition the user is typing.
                 bindings.page.wrappedValue = .symbols
+                bindings.showsAllCandidates.wrappedValue = false
+            case .numbers:
+                bindings.page.wrappedValue = .numeric
                 bindings.showsAllCandidates.wrappedValue = false
             case .language:
                 controller?.toggleInputMode()

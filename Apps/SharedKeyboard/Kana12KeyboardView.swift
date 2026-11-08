@@ -27,6 +27,7 @@ enum Kana12ViewAction: Equatable, Sendable {
     case modify
     case cursorLeft
     case symbols
+    case numbers
     case language
     case backspace
     case space
@@ -127,6 +128,7 @@ enum Kana12FunctionKey: String, Equatable, Sendable {
     case cursorLeft
     case modify
     case symbols
+    case numbers
     case language
     case backspace
     case space
@@ -153,6 +155,8 @@ struct Kana12Labels: Equatable, Sendable {
     let cursorLeft: String
     let modify: String
     let symbols: String
+    /// Fills the rail's fourth slot while the system switch key is not shown.
+    let numbers: String
     let language: String
     let backspace: String
     /// Shown when no composition is live.
@@ -178,6 +182,7 @@ struct Kana12Labels: Equatable, Sendable {
         cursorLeft: String,
         modify: String,
         symbols: String,
+        numbers: String,
         language: String,
         backspace: String,
         space: String,
@@ -192,6 +197,7 @@ struct Kana12Labels: Equatable, Sendable {
         self.cursorLeft = cursorLeft
         self.modify = modify
         self.symbols = symbols
+        self.numbers = numbers
         self.language = language
         self.backspace = backspace
         self.space = space
@@ -209,6 +215,7 @@ struct Kana12Labels: Equatable, Sendable {
         case .cursorLeft: return cursorLeft
         case .modify: return modify
         case .symbols: return symbols
+        case .numbers: return numbers
         case .language: return language
         case .backspace: return backspace
         case .space: return compositing ? convert : space
@@ -229,7 +236,7 @@ struct Kana12Labels: Equatable, Sendable {
 /// The standalone kana12 (Japanese twelve-key) key surface.
 ///
 /// Layout is fixed: a 4x3 centre block (あ か さ / た な は / ま や ら / 小゛゜ わ 、。?!)
-/// between a left rail (cursor left, 記号, あ/A, system switch) and a right rail (delete,
+/// between a left rail (cursor left, 記号, あ/A, system switch or 123) and a right rail (delete,
 /// space, return). The return key spans the lower two rows; the host supplies its existing
 /// system switch so its input-mode menu and accessibility behavior stay shared.
 ///
@@ -303,7 +310,9 @@ struct Kana12KeyboardView: View {
                 if let systemSwitchKey {
                     systemSwitchKey
                 } else {
-                    Color.clear.accessibilityHidden(true)
+                    // The kana board has no digits, so the slot the system switch leaves empty
+                    // opens the numeric page instead of a hole.
+                    functionKey(.numbers, role: "control")
                 }
             }
             .frame(height: metrics.rowHeight)
@@ -433,6 +442,7 @@ struct Kana12KeyboardView: View {
         case .cursorLeft: return .cursorLeft
         case .modify: return .modify
         case .symbols: return .symbols
+        case .numbers: return .numbers
         case .language: return .language
         case .backspace: return .backspace
         case .space: return .space
