@@ -51,6 +51,14 @@ public struct PreparedSchemeImport: Sendable {
                 return (id, name)
             })
     }
+    /// The input methods the package offers: the schema list of its default.yaml when it has one.
+    /// Other schemas are what those depend on (kagiroi ships its kanji and connection schemas).
+    public var offeredSchemaIDs: [String] {
+        let defaults = String(decoding: bytes["default.yaml"] ?? Data(), as: UTF8.self)
+        let listed = SchemeSourceCheck.matches("^\\s*-\\s*schema:\\s*[\"']?([A-Za-z0-9_.-]+)", defaults)
+            .filter(schemaIDs.contains)
+        return listed.isEmpty ? schemaIDs : listed
+    }
     public let resourceBytes: Int
     public let diagnostics: [String]
     private let bytes: [String: Data]

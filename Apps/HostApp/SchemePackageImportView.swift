@@ -394,17 +394,17 @@ struct SchemePackageImportView: View {
                         : (prepared.declaration.name.isEmpty ? UserTerminology.inputScheme : prepared.declaration.name)
                 )
                 .font(.headline)
-                Text("包含 \(prepared.schemaIDs.count) 种输入方式")
+                Text("包含 \(prepared.offeredSchemaIDs.count) 种输入方式")
                     .font(.caption).foregroundStyle(.secondary)
                 if let replaced = center.preparedReplacedPackageName {
                     Text("将更新已安装的「\(replaced)」，原来的设置和输入习惯会保留。")
                         .font(.caption).foregroundStyle(.secondary)
                 }
             }
-            recognizedInputMethods(Array(prepared.schemaIDs.prefix(5)))
-            if prepared.schemaIDs.count > 5 {
-                DisclosureGroup(String(localized: "其余 \(prepared.schemaIDs.count - 5) 种输入方式")) {
-                    recognizedInputMethods(Array(prepared.schemaIDs.dropFirst(5)))
+            recognizedInputMethods(Array(prepared.offeredSchemaIDs.prefix(5)))
+            if prepared.offeredSchemaIDs.count > 5 {
+                DisclosureGroup(String(localized: "其余 \(prepared.offeredSchemaIDs.count - 5) 种输入方式")) {
+                    recognizedInputMethods(Array(prepared.offeredSchemaIDs.dropFirst(5)))
                 }
             }
             if developerOptions {

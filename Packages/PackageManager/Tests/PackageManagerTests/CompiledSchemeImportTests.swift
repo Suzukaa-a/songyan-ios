@@ -230,6 +230,17 @@ final class CompiledSchemeImportTests: XCTestCase {
         }
     }
 
+    /// kagiroi ships its kanji and connection schemas beside the one its default.yaml lists; the
+    /// import preview counted all six as input methods.
+    func testOnlyTheListedSchemasAreOfferedAsInputMethods() throws {
+        var files = Self.compiledPackage
+        files["sample_kanji.schema.yaml"] = Data("schema:\n  schema_id: sample_kanji\n  name: Kanji\n".utf8)
+        let prepared = try RecipePackageManager(rootURL: scratch.appendingPathComponent("offered-store"))
+            .prepareSchemeImport(directory: try write(files, to: "offered-package"))
+        XCTAssertEqual(Set(prepared.schemaIDs), ["sample", "sample_kanji"])
+        XCTAssertEqual(prepared.offeredSchemaIDs, ["sample"])
+    }
+
     func testAComponentModulePathKeepsItsDirectories() throws {
         let schema = Data(
             """
