@@ -62,20 +62,10 @@ struct UserKeyboardManagementView: View {
                         ForEach(groups, id: \.id) { group in
                             DisclosureGroup(isExpanded: expansion(for: group.id)) {
                                 ForEach(group.items) { item in
-                                    let boards = boards(for: item)
-                                    if boards.isEmpty {
-                                        pickRow(item, inputMethod: group.name)
-                                    } else {
-                                        ForEach(boards, id: \.self) { board in
-                                            pickRow(item, inputMethod: group.name, board: board)
-                                        }
-                                        // A user-made main layout is no board: its keyboard keeps a row of its own.
-                                        if selectedIDs.contains(item.id),
-                                            !boards.contains(mainLayout(for: item)?.id ?? "")
-                                        {
-                                            pickRow(item, inputMethod: group.name)
-                                        }
-                                    }
+                                    // A keyboard without a board in a family with several boards is one saved
+                                    // before boards were separate keyboards: a shipped board it types on is
+                                    // shown as that board's row, a user-made main layout keeps a row of its own.
+                                    if !isRepresentedByBoardRow(item) { pickRow(item, inputMethod: group.name) }
                                 }
                             } label: {
                                 groupLabel(group)
@@ -219,9 +209,14 @@ struct UserKeyboardManagementView: View {
         let inputMethodID: String
         let inputMethodName: String
         let layout: KeyboardLayoutKind
+        /// The physical board this keyboard types on; nil = the main layout comes from the pairing.
+        var board: String? = nil
         var keyboard: UserKeyboard {
-            UserKeyboard(inputMethodID: inputMethodID, inputMethodName: inputMethodName, layout: layout)
+            UserKeyboard(
+                inputMethodID: inputMethodID, inputMethodName: inputMethodName, layout: layout, board: board)
         }
+        /// The input method x layout this keyboard shares its pairing with; never parsed from `id`.
+        var combinationID: String { keyboard.combinationID }
     }
 
     private struct Group {
@@ -234,15 +229,29 @@ struct UserKeyboardManagementView: View {
         let published = center.publishedKeyboards.map {
             Item(
                 id: $0.id, inputMethodID: $0.inputMethodID,
-                inputMethodName: displayName($0.inputMethodName), layout: $0.layout)
+                inputMethodName: displayName($0.inputMethodName), layout: $0.layout, board: $0.board)
         }
+        let publishedIDs = Set(published.map(\.id))
         let addable = center.addableKeyboards.map {
             Item(
                 id: $0.id, inputMethodID: $0.inputMethodID,
                 inputMethodName: displayName($0.inputMethodName), layout: $0.layout)
         }
+        var result: [Item] = []
+        for base in published + addable {
+            let boards = base.board == nil ? boards(for: base) : []
+            // The board-less twin of a split family stays only as a keyboard saved before boards were separate.
+            if boards.isEmpty || publishedIDs.contains(base.id) || selectedIDs.contains(base.id) {
+                result.append(base)
+            }
+            result += boards.map { board in
+                Item(
+                    id: base.id + "#" + board, inputMethodID: base.inputMethodID,
+                    inputMethodName: base.inputMethodName, layout: base.layout, board: board)
+            }
+        }
         var seen = Set<String>()
-        return (published + addable).filter { seen.insert($0.id).inserted }
+        return result.filter { seen.insert($0.id).inserted }
     }
 
     private var groups: [Group] {
@@ -316,11 +325,15 @@ struct UserKeyboardManagementView: View {
 
     private var keyboardNames: KeyboardNames {
         let publishedIDs = Set(center.publishedKeyboards.map(\.id))
+        // Boards of one input method share a pairing, so its name lists them all.
+        var known: [String: String] = [:]
+        for item in items {
+            let key = item.keyboard.compositionKey.rawValue
+            let title = boardTitle(item, board: builtinBoardName(mainLayout(for: item)))
+            known[key] = known[key].map { $0 == title ? $0 : $0 + "、" + title } ?? title
+        }
         return KeyboardNames(
-            known: Dictionary(
-                items.map {
-                    ($0.id, boardTitle($0, board: builtinBoardName(mainLayout(for: $0))))
-                }, uniquingKeysWith: { first, _ in first }),
+            known: known,
             active: items.filter { publishedIDs.contains($0.id) || selectedIDs.contains($0.id) }
                 .map { $0.keyboard.compositionKey })
     }
@@ -328,6 +341,32 @@ struct UserKeyboardManagementView: View {
     /// The paired main layout's name when it is not the shape's own preset, shown under the shape.
     private func customMainName(_ item: Item, main: LayoutDefinition) -> String? {
         main.id == BuiltinLayouts.preset(for: item.layout.builtinLayout).id ? nil : main.name
+    }
+
+    /// Whether a keyboard without a board is shown as one of the board rows instead of a row of its own:
+    /// the family has several boards and the pairing's main layout is one of them.
+    private func isRepresentedByBoardRow(_ item: Item) -> Bool {
+        guard item.board == nil else { return false }
+        return representedBoard(item) != nil
+    }
+
+    /// The board a keyboard without a board types on, when it is one of its family's boards.
+    private func representedBoard(_ item: Item) -> String? {
+        guard item.board == nil, let main = mainLayout(for: item), boards(for: item).contains(main.id) else {
+            return nil
+        }
+        return main.id
+    }
+
+    /// The keyboard without a board that stands behind a board row, when it is selected and types on that board.
+    private func legacyItem(behind item: Item) -> Item? {
+        guard let board = item.board,
+            let legacy = items.first(where: {
+                $0.board == nil && $0.combinationID == item.combinationID && selectedIDs.contains($0.id)
+            }),
+            representedBoard(legacy) == board
+        else { return nil }
+        return legacy
     }
 
     /// An added keyboard: the row opens its 页面搭配; the trailing control is 正在使用 or "Use".
@@ -424,10 +463,10 @@ struct UserKeyboardManagementView: View {
     }
 
     /// The physical boards that stand in for this keyboard's shape row. Only the identity shape of
-    /// a family with several boards (Japanese: romaji and kana) is split; every other row keeps
-    /// the shape.
+    /// a family with several boards (Japanese: romaji and kana) is split into one keyboard per board;
+    /// every other row keeps the shape.
     private func boards(for item: Item) -> [String] {
-        guard item.layout == .qwerty26, isAvailable(item) else { return [] }
+        guard item.layout == .qwerty26, isShapeAvailable(item) else { return [] }
         let family = HostLayoutAvailability.family(
             schemaID: item.inputMethodID, descriptors: center.sourceSchemas)
         let boards = InputLayoutPolicy.boards(of: family)
@@ -435,40 +474,24 @@ struct UserKeyboardManagementView: View {
         return boards.filter { layoutManager.registry.resolvedLayout(id: $0) != nil }
     }
 
-    /// Makes `board` the keyboard's main layout. Both boards sit in the same slot, so choosing one
-    /// replaces the other; the pairing's pages are kept.
-    @MainActor
-    private func chooseBoard(_ item: Item, _ board: String) async -> Bool {
-        let key = item.keyboard.compositionKey
-        var composition = layoutManager.registry.composition(for: key)
-        guard composition.mainLayoutID != board else { return true }
-        composition.mainLayoutID = board
-        return await layoutManager.saveComposition(composition, for: key.rawValue)
-    }
-
     /// One layout of an input method: the row checks it into the draft; long-press uses it or opens
-    /// its 页面搭配 without adding it first. With `board`, the row is one physical board of the
-    /// identity shape: checking it also makes it the main layout, and checking it again removes
-    /// the keyboard.
-    private func pickRow(_ item: Item, inputMethod: String, board pickedBoard: String? = nil) -> some View {
-        let main = pickedBoard.flatMap { layoutManager.registry.resolvedLayout(id: $0) } ?? mainLayout(for: item)
-        let selected =
-            selectedIDs.contains(item.id) && (pickedBoard == nil || mainLayout(for: item)?.id == pickedBoard)
+    /// its 页面搭配 without adding it first. A board row is one keyboard of its own, so checking it
+    /// never unchecks another board; the keyboard saved before boards were separate shows as the row of
+    /// the board it types on.
+    private func pickRow(_ item: Item, inputMethod: String) -> some View {
+        let legacy = legacyItem(behind: item)
+        // The keyboard this row really toggles, uses and opens.
+        let target = legacy ?? item
+        let selected = selectedIDs.contains(target.id)
+        let main = mainLayout(for: item)
         let available = isAvailable(item)
         let board = builtinBoardName(main)
         let layoutTitle = board ?? UserTerminology.layoutName(item.layout)
         let name = rowSpokenName(inputMethod: inputMethod, layoutTitle: layoutTitle)
         // A shipped board is named by its own title; only a user-made main needs the caption.
         let customMain = board == nil ? main.flatMap { customMainName(item, main: $0) } : nil
-        let identifier = "userKeyboard.card." + item.id + (pickedBoard.map { "." + $0 } ?? "")
         return Button {
-            guard let pickedBoard, !selected else {
-                binding(for: item.id).wrappedValue.toggle()
-                return
-            }
-            Task { @MainActor in
-                if await chooseBoard(item, pickedBoard) { binding(for: item.id).wrappedValue = true }
-            }
+            binding(for: target.id).wrappedValue.toggle()
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: selected ? "checkmark.circle.fill" : "circle")
@@ -497,22 +520,22 @@ struct UserKeyboardManagementView: View {
         .buttonStyle(.plain)
         .disabled(isBusy || !center.supportsManagement || !available)
         .contextMenu {
-            if center.currentKeyboardID != item.id {
-                Button(UserTerminology.startUsing) { use(item, board: pickedBoard) }
+            if center.currentKeyboardID != target.id {
+                Button(UserTerminology.startUsing) { use(target) }
                     .disabled(isBusy || !center.supportsManagement || !available)
             }
-            Button(UserTerminology.pageComposition) { configuringKeyboard = item.keyboard }
+            Button(UserTerminology.pageComposition) { configuringKeyboard = target.keyboard }
                 .disabled(isBusy || !available)
         }
-        .accessibilityIdentifier(identifier)
+        .accessibilityIdentifier("userKeyboard.card." + item.id)
         .accessibilityLabel(customMain.map { String(localized: "\(name)，\($0)") } ?? name)
         .accessibilityValue(
             selected ? UserTerminology.userKeyboardSelected : UserTerminology.userKeyboardNotSelected
         )
         .accessibilityAddTraits(selected ? [.isSelected] : [])
         .accessibilityHint(UserTerminology.userKeyboardDraftHint)
-        .accessibilityAction(named: UserTerminology.startUsing) { use(item, board: pickedBoard) }
-        .accessibilityAction(named: UserTerminology.pageComposition) { configuringKeyboard = item.keyboard }
+        .accessibilityAction(named: UserTerminology.startUsing) { use(target) }
+        .accessibilityAction(named: UserTerminology.pageComposition) { configuringKeyboard = target.keyboard }
     }
 
     private func expansion(for id: String) -> Binding<Bool> {
@@ -525,9 +548,19 @@ struct UserKeyboardManagementView: View {
 
     /// Whether this published keyboard's shape may be used by its input method. A stale published
     /// entry outside the rule is reported as unavailable, never resolved to a forbidden shape.
-    private func isAvailable(_ item: Item) -> Bool {
+    private func isShapeAvailable(_ item: Item) -> Bool {
         HostLayoutAvailability.allows(
             kind: item.layout, schemaID: item.inputMethodID, descriptors: center.sourceSchemas)
+    }
+
+    /// The shape rule, and for a board keyboard that its input method still allows the board and it exists.
+    private func isAvailable(_ item: Item) -> Bool {
+        guard isShapeAvailable(item) else { return false }
+        guard let board = item.board else { return true }
+        let family = HostLayoutAvailability.family(
+            schemaID: item.inputMethodID, descriptors: center.sourceSchemas)
+        return InputLayoutPolicy.allows(physicalLayoutID: board, family: family)
+            && layoutManager.registry.resolvedLayout(id: board) != nil
     }
 
     /// The paired main layout, or nil when the keyboard itself is unavailable.
@@ -538,7 +571,7 @@ struct UserKeyboardManagementView: View {
             schemaID: item.keyboard.inputMethodID, descriptors: center.sourceSchemas)
         return registry.resolvedLayout(
             id: registry.usableMainLayoutID(
-                for: item.keyboard.compositionKey, availability: availability))
+                for: item.keyboard.compositionKey, board: item.board, availability: availability))
     }
 
     private func binding(for id: String) -> Binding<Bool> {
@@ -586,7 +619,7 @@ struct UserKeyboardManagementView: View {
 
     /// "Use now": publishes the draft with this pair added and switches the keyboard to it.
     @MainActor
-    private func use(_ item: Item, board: String? = nil) {
+    private func use(_ item: Item) {
         guard case .ready = center.phase, initialized, !isBusy, center.supportsManagement,
             isAvailable(item)
         else { return }
@@ -594,7 +627,6 @@ struct UserKeyboardManagementView: View {
         isSaving = true
         Task { @MainActor in
             defer { isSaving = false }
-            if let board, !(await chooseBoard(item, board)) { return }
             if await center.apply(roster, selecting: item.keyboard) { resetDraft() }
         }
     }

@@ -250,6 +250,7 @@ public final class KeyboardPadSession: ObservableObject {
         var resources: KeyboardResourceSet?
         var schemaID: String?
         var layout: KeyboardLayoutKind
+        var board: String?
     }
     private var selectionTarget: SelectionTarget?
     /// The running real engine (production = RimeBackend). `backend` is kept only as the RimeBackend API facade.
@@ -267,7 +268,7 @@ public final class KeyboardPadSession: ObservableObject {
             resources: KeyboardResourceSet, sourceSchemaID: String,
             layout: KeyboardLayoutKind, input: String
         )?
-    private var lastReadySelection: (schemaID: String, layout: KeyboardLayoutKind)?
+    private var lastReadySelection: (schemaID: String, layout: KeyboardLayoutKind, board: String?)?
     /// Test injection: nil = real RimeBackend in production; tests may return a DemoEngine.
     var bootEngineFactory: ((KeyboardResourceSet) throws -> EngineBackend)?
     /// Test injection: pausable gate after the engine is ready and before ready is published (covers the background-start await window).
@@ -336,7 +337,20 @@ public final class KeyboardPadSession: ObservableObject {
             KeyboardRouteKey(
                 resource: resources,
                 sourceSchemaID: resources.sourceSchemaID(controller.selectedSchemaID),
-                layout: controller.layout))
+                layout: controller.layout, board: controller.selectedBoard))
+    }
+
+    /// The board a record's selection names, only while the record still lists that exact keyboard
+    /// (a removed or unrunnable one falls back to no board).
+    private static func listedBoard(
+        _ board: String?, in resources: KeyboardResourceSet, source: String, layout: KeyboardLayoutKind
+    ) -> String? {
+        guard let board,
+            resources.publishedKeyboards?.contains(where: {
+                $0.schemaID == source && $0.layout == layout && $0.board == board
+            }) == true
+        else { return nil }
+        return board
     }
 
     /// The real combination a boot adopts. Single source: `boot()` and external route checks share it,
@@ -346,8 +360,9 @@ public final class KeyboardPadSession: ObservableObject {
         public let layout: KeyboardLayoutKind
         public let engineSchemaID: String
         public let sourceSchemaID: String
+        public let board: String?
         public var routeKey: KeyboardRouteKey {
-            KeyboardRouteKey(resource: onResource, sourceSchemaID: sourceSchemaID, layout: layout)
+            KeyboardRouteKey(resource: onResource, sourceSchemaID: sourceSchemaID, layout: layout, board: board)
         }
     }
 
@@ -383,9 +398,14 @@ public final class KeyboardPadSession: ObservableObject {
         else {
             return nil
         }
+        let source = resolvedSet.sourceSchemaID(boot.schemaID)
+        // The board follows the target the session already holds, else the record's selection.
+        let board = Self.listedBoard(
+            preservedTarget.map(\.board) ?? resolvedSet.preferredBoard, in: resolvedSet, source: source,
+            layout: boot.layout)
         return BootPlan(
             onResource: resolvedSet, layout: boot.layout, engineSchemaID: boot.schemaID,
-            sourceSchemaID: resolvedSet.sourceSchemaID(boot.schemaID))
+            sourceSchemaID: source, board: board)
     }
 
     // MARK: - Layout selection (callers should limit the list to availableLayouts)
@@ -419,7 +439,7 @@ public final class KeyboardPadSession: ObservableObject {
         }
         transitionError = nil
         suspendedComposition = nil
-        selectionTarget = SelectionTarget(resources: resourceSet, schemaID: schemaID, layout: newLayout)
+        selectionTarget = SelectionTarget(resources: resourceSet, schemaID: schemaID, layout: newLayout, board: nil)
         self.layout = newLayout
         Self.persistLayout(newLayout)
         guard startTapped else { return }
@@ -454,10 +474,11 @@ public final class KeyboardPadSession: ObservableObject {
         // switch, but if the running engine already serves the same publication-level identity (same resource
         // id + generation + source schema + layout) there is nothing to apply. Return here, keeping the ready
         // engine with no teardown and no transient `.starting` (spinner after lock-screen / app-switch return).
+        let targetSource = newSet.sourceSchemaID(boot.schemaID)
+        let targetBoard = Self.listedBoard(
+            newSet.preferredBoard, in: newSet, source: targetSource, layout: boot.layout)
         let targetKey = KeyboardRouteKey(
-            resource: newSet,
-            sourceSchemaID: newSet.sourceSchemaID(boot.schemaID),
-            layout: boot.layout)
+            resource: newSet, sourceSchemaID: targetSource, layout: boot.layout, board: targetBoard)
         if routeState.canReuse(targetKey, isReady: phase == .ready && controller != nil) {
             KeyboardLifecycleDiagnostics.emit(
                 "resourceSwitch.reuse",
@@ -467,7 +488,7 @@ public final class KeyboardPadSession: ObservableObject {
                 ])
             selectionTarget = SelectionTarget(
                 resources: newSet, schemaID: newSet.selectedSchemaID,
-                layout: boot.layout)
+                layout: boot.layout, board: targetBoard)
             return
         }
         guard
@@ -495,7 +516,8 @@ public final class KeyboardPadSession: ObservableObject {
                 "generation": String(targetKey.publicationGeneration?.prefix(8) ?? "-"),
             ])
         // An explicit resource switch sets a new target: bind the new source snapshot and the resolved source/layout.
-        selectionTarget = SelectionTarget(resources: newSet, schemaID: newSet.selectedSchemaID, layout: boot.layout)
+        selectionTarget = SelectionTarget(
+            resources: newSet, schemaID: newSet.selectedSchemaID, layout: boot.layout, board: targetBoard)
         restart(resourceSet: newSet, layout: boot.layout)
     }
 
@@ -804,7 +826,8 @@ public final class KeyboardPadSession: ObservableObject {
             return
         }
 
-        let ctrl = KeyboardController(layout: bootLayout, engine: engine, resourceSet: resolvedSet)
+        let ctrl = KeyboardController(
+            layout: bootLayout, board: plan.board, engine: engine, resourceSet: resolvedSet)
         // A boot can span a disappear; the backend was not yet published, so the disappearance could not
         // suspend it directly. Read the real schema at construction and apply the latest visibility before handoff, keeping the same engine.
         if hostIsVisible == false, let backend = engine as? RimeBackend {
@@ -859,11 +882,11 @@ public final class KeyboardPadSession: ObservableObject {
             guard let self else { return }
             self.selectedSchemaID = change.schemaID
             self.successfulChange = change
-            self.lastReadySelection = (change.schemaID, change.layout)
+            self.lastReadySelection = (change.schemaID, change.layout, change.board)
             // A successful selection updates the session target: a same-source same-generation restart reuses this exact schema/layout.
             self.selectionTarget = SelectionTarget(
                 resources: self.runningResources,
-                schemaID: change.schemaID, layout: change.layout)
+                schemaID: change.schemaID, layout: change.layout, board: change.board)
             // The ready engine's real identity changed (within one run): sync the running key so the next appear
             // reuses it instead of restarting because the selection was written back to the shared record.
             self.noteRunningIdentity()
@@ -901,13 +924,14 @@ public final class KeyboardPadSession: ObservableObject {
         // Record this boot's real session target; a same-source same-generation retry keeps it, and only a new source generation follows the new published selection.
         selectionTarget = SelectionTarget(
             resources: resolvedSet,
-            schemaID: ctrl.selectedSchemaID, layout: ctrl.layout)
+            schemaID: ctrl.selectedSchemaID, layout: ctrl.layout, board: ctrl.selectedBoard)
         if let previous = lastReadySelection,
             previous.schemaID != ctrl.selectedSchemaID || previous.layout != ctrl.layout
+                || previous.board != ctrl.selectedBoard
         {
             ctrl.reportSuccessfulSelectionChange()
         }
-        lastReadySelection = (ctrl.selectedSchemaID, ctrl.layout)
+        lastReadySelection = (ctrl.selectedSchemaID, ctrl.layout, ctrl.selectedBoard)
         if ctrl.snapshot.isComposing {
             refreshCompositionPresentation()
         }

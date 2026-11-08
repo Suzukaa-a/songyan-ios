@@ -201,6 +201,7 @@ extension KeyboardController {
             let next = UserKeyboardRoster.cycleTarget(
                 currentSchemaID: selectedSchemaID,
                 currentLayout: layout,
+                currentBoard: selectedBoard,
                 in: userKeyboardChoices)
         else { return }
         _ = selectUserKeyboard(next)
@@ -254,7 +255,9 @@ extension KeyboardController {
         let previousSchema = selectedSchemaID
         if layout != session.layout { layout = session.layout }
         if selectedSchemaID != session.selectedSchemaID { selectedSchemaID = session.selectedSchemaID }
-        if inputUnavailableReason == nil && (prevLayout != layout || previousSchema != selectedSchemaID) {
+        let selectionChanged = prevLayout != layout || previousSchema != selectedSchemaID
+        if selectionChanged, selectedBoard != incomingBoard { selectedBoard = incomingBoard }
+        if inputUnavailableReason == nil && selectionChanged {
             reportSuccessfulSelectionChange()
         }
         if previousSchema != selectedSchemaID {

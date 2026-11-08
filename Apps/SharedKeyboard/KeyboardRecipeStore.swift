@@ -40,6 +40,8 @@ public enum KeyboardRecipeStore {
         public var schemas: [KeyboardSchemaDescriptor]? = nil
         public var selectedSchemaID: String? = nil
         public var selectedLayout: KeyboardLayoutKind? = nil
+        /// The physical board of the selected keyboard (see `PublishedKeyboard.board`); nil = from the pairing.
+        public var selectedBoard: String? = nil
         public var schemaBindings: [KeyboardResourceSet.LayoutEntry]? = nil
         public var hostInstallationGeneration: String? = nil
         /// The "user keyboards" list that has been added (publication unit = input method + layout).
@@ -57,6 +59,11 @@ public enum KeyboardRecipeStore {
         /// Never inferred from enabled dependencies.
         public var englishCandidateRoutes: [EnglishCandidateRoute]? = nil
         public var kind: ResourceKind { resourceKind }
+        /// The published identity of the selected keyboard, board included.
+        public var selectedKeyboard: PublishedKeyboard? {
+            guard let selectedSchemaID, let selectedLayout else { return nil }
+            return PublishedKeyboard(schemaID: selectedSchemaID, layout: selectedLayout, board: selectedBoard)
+        }
         /// Source display name (not the input-method name).
         public var name: String {
             dictionaryName ?? packageID ?? String(localized: "用户方案")
@@ -141,6 +148,7 @@ public enum KeyboardRecipeStore {
                     layoutEntries: activation.schemaBindings ?? templateBindings, prebuiltDirectory: build,
                     schemas: activation.schemas ?? activation.requiredSchemaIDs.map { .init(id: $0, name: $0) },
                     selectedSchemaID: selected, preferredLayout: activation.selectedLayout,
+                    preferredBoard: activation.selectedBoard,
                     sourceRevision: activation.revision, publicationGeneration: activation.generation,
                     publishedKeyboards: activation.enforcesPublishedKeyboards ? activation.keyboards : nil,
                     englishCandidateRoutes: activation.englishCandidateRoutes ?? [])
@@ -161,7 +169,8 @@ public enum KeyboardRecipeStore {
                     sharedDirectory: resources, userDirectory: userDirectory,
                     layoutEntries: activation.schemaBindings ?? [], prebuiltDirectory: build,
                     schemas: activation.schemas ?? [], selectedSchemaID: activation.selectedSchemaID,
-                    preferredLayout: activation.selectedLayout, sourceRevision: activation.revision,
+                    preferredLayout: activation.selectedLayout, preferredBoard: activation.selectedBoard,
+                    sourceRevision: activation.revision,
                     publicationGeneration: activation.generation,
                     publishedKeyboards: activation.enforcesPublishedKeyboards ? activation.keyboards : nil,
                     englishCandidateRoutes: activation.englishCandidateRoutes ?? [])
@@ -245,7 +254,8 @@ public enum KeyboardRecipeStore {
             activation.recipeEnabled, !activation.generation.isEmpty,
             activation.generation == running.publicationGeneration,
             let source = activation.selectedSchemaID, source == running.sourceSchemaID,
-            let layout = activation.selectedLayout, layout == running.layout
+            let layout = activation.selectedLayout, layout == running.layout,
+            activation.selectedBoard == running.board
         else { return false }
         return true
     }

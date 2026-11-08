@@ -125,6 +125,31 @@ checkEqual(
     "我的注音",
     "a user layout is never given a shipped board name")
 
+// Two boards of one input method are two keyboards, each titled by its own board and found by its board.
+let romajiBoard = UserKeyboard(inputMethodID: "kagiroi", inputMethodName: "日本語", layout: .qwerty26, board: "romaji26")
+let kanaBoard = UserKeyboard(inputMethodID: "kagiroi", inputMethodName: "日本語", layout: .qwerty26, board: "kana12")
+let boardless = UserKeyboard(inputMethodID: "kagiroi", inputMethodName: "日本語", layout: .qwerty26)
+guard let romajiName = builtinName("romaji26"), let kanaName = builtinName("kana12") else {
+    fatalError("FAIL: no localized board names")
+}
+check(romajiName != kanaName, "the two Japanese boards have different names")
+checkEqual(
+    kanaBoard.title(physicalLayoutName: kanaName), "日本語 · \(kanaName)", "the kana keyboard is titled by the kana board")
+checkEqual(
+    romajiBoard.title(physicalLayoutName: romajiName), "日本語 · \(romajiName)",
+    "the romaji keyboard is titled by the romaji board")
+let both = [boardless, romajiBoard, kanaBoard]
+checkEqual(
+    UserKeyboardRoster.currentTitle(schemaID: "kagiroi", layout: .qwerty26, board: "kana12", in: both),
+    kanaBoard.title, "the running kana board finds its own entry")
+checkEqual(
+    UserKeyboardRoster.currentTitle(schemaID: "kagiroi", layout: .qwerty26, board: nil, in: both),
+    boardless.title, "no running board finds only the keyboard without one")
+checkEqual(
+    UserKeyboardRoster.currentInputMethodName(
+        schemaID: "kagiroi", layout: .qwerty26, board: "romaji26", in: both), "日本語",
+    "the running board finds its input method name")
+
 // Ids this build does not ship are never renamed.
 for id in ["qwerty26", "merged14", "merged18", "phone9", "mine", ""] {
     check(builtinName(id) == nil, "unknown layout id is not renamed: \(id)")

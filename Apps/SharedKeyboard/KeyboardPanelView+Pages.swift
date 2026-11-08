@@ -186,11 +186,23 @@ extension KeyboardPanelView {
         pageMemo.preferredDefinitionID(for: compositionMemoKey) {
             guard let builtin = LayoutInput.Builtin(rawValue: controller.layout.rawValue) else { return nil }
             let key = KeyboardCompositionKey(inputMethodID: controller.selectedSchemaID, layout: builtin)
-            guard let registry = layoutRegistry else { return BuiltinLayouts.preset(for: builtin).id }
-            // The same public entry the host uses: a saved pairing whose physical definition may not
-            // be used by this family falls back at runtime, and an unsaved keyboard still resolves
-            // the registered family layout. The stored pairing itself is never rewritten here.
-            return registry.usableMainLayoutID(for: key, availability: layoutAvailability)
+            guard let registry = layoutRegistry else {
+                // Without a registry only the bundled boards exist.
+                if let board = controller.selectedBoard,
+                    let definition = BuiltinLayouts.all.first(where: { $0.id == board }),
+                    definition.supportsComposition(inputMethodID: key.inputMethodID, layout: builtin),
+                    layoutAvailability.allows(definition, key)
+                {
+                    return board
+                }
+                return BuiltinLayouts.preset(for: builtin).id
+            }
+            // The same public entry the host uses: the keyboard's own board when it may be used, else a
+            // saved pairing whose physical definition may not be used by this family falls back at
+            // runtime, and an unsaved keyboard still resolves the registered family layout. The stored
+            // pairing itself is never rewritten here.
+            return registry.usableMainLayoutID(
+                for: key, board: controller.selectedBoard, availability: layoutAvailability)
         }
     }
 

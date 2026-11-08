@@ -80,18 +80,13 @@ final class DictionaryImportCenterUserKeyboards: UserKeyboardManaging {
 
     func removeKeyboard(_ keyboard: UserKeyboard) async throws -> String {
         let context = try await currentContext()
-        let published = PublishedKeyboard(
-            schemaID: keyboard.inputMethodID,
-            layout: keyboard.layout)
-        _ = try await context.transaction.removeKeyboard(published)
+        _ = try await context.transaction.removeKeyboard(keyboard.published)
         return String(localized: "已移除 \(displayTitle(keyboard, schemas: context.schemas))。")
     }
 
     func replaceKeyboards(_ keyboards: [UserKeyboard]) async throws -> String {
         let context = try await currentContext()
-        let requested = keyboards.map {
-            PublishedKeyboard(schemaID: $0.inputMethodID, layout: $0.layout)
-        }
+        let requested = keyboards.map(\.published)
         let published = try await context.transaction.replaceKeyboards(requested)
         return UserTerminology.userKeyboardSaved(count: published.count)
     }
@@ -101,10 +96,10 @@ final class DictionaryImportCenterUserKeyboards: UserKeyboardManaging {
         _ keyboards: [UserKeyboard], selecting: UserKeyboard? = nil, viewed: UserKeyboardPublicationView
     ) async throws -> String {
         let context = try await currentContext()
-        let requested = keyboards.map { PublishedKeyboard(schemaID: $0.inputMethodID, layout: $0.layout) }
+        let requested = keyboards.map(\.published)
         let published = try await center.performReplaceKeyboards(
             packageID: context.packageID, requested: requested,
-            selecting: selecting.map { PublishedKeyboard(schemaID: $0.inputMethodID, layout: $0.layout) },
+            selecting: selecting?.published,
             viewedActivation: viewed.activation, viewedRoster: viewed.roster,
             viewedSourceKey: viewed.sourceKey)
         if let selecting {
@@ -167,8 +162,8 @@ final class DictionaryImportCenterUserKeyboards: UserKeyboardManaging {
     ) -> String {
         let registry = LayoutManager.shared.registry
         let layoutID = HostLayoutAvailability.effectiveMainLayoutID(
-            schemaID: keyboard.inputMethodID, layout: keyboard.layout, descriptors: schemas,
-            in: registry)
+            schemaID: keyboard.inputMethodID, layout: keyboard.layout, board: keyboard.board,
+            descriptors: schemas, in: registry)
         guard let layout = registry.resolvedLayout(id: layoutID) else { return keyboard.title }
         return keyboard.title(
             physicalLayoutName: UserTerminology.builtinLayoutName(physicalLayoutID: layout.id))

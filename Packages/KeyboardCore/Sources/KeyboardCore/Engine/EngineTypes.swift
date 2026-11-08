@@ -499,11 +499,14 @@ public struct KeyboardSelectionChange: Equatable, Sendable {
     public let date: Date
     public let schemaID: String
     public let layout: KeyboardLayoutKind
-    public init(schemaID: String, layout: KeyboardLayoutKind) {
+    /// Physical board of the selected keyboard (`PublishedKeyboard.board`); nil = from the pairing.
+    public let board: String?
+    public init(schemaID: String, layout: KeyboardLayoutKind, board: String? = nil) {
         token = UUID()
         date = Date()
         self.schemaID = schemaID
         self.layout = layout
+        self.board = board
     }
 }
 

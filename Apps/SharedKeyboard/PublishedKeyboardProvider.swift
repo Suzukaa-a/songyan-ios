@@ -37,7 +37,7 @@ public struct ActivationPublishedKeyboardProvider: PublishedKeyboardListProvidin
             UserKeyboard(
                 inputMethodID: $0.keyboard.schemaID,
                 inputMethodName: $0.inputMethodName,
-                layout: $0.keyboard.layout)
+                layout: $0.keyboard.layout, board: $0.keyboard.board)
         }
     }
 }

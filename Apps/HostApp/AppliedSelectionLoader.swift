@@ -47,7 +47,8 @@ enum AppliedSelectionLoader {
                         publicationName: activation.name,
                         displayConfigName: activation.displayConfigName,
                         schemas: activation.schemas ?? [],
-                        selectedLayout: activation.selectedLayout),
+                        selectedLayout: activation.selectedLayout,
+                        selectedBoard: activation.selectedBoard),
                     error: nil)
             }
         } catch {
@@ -82,7 +83,8 @@ enum AppliedSelectionLoader {
                         resourceID: activation.resourceID),
                     publicationName: activation.name,
                     schemas: activation.schemas ?? [],
-                    selectedLayout: activation.selectedLayout)
+                    selectedLayout: activation.selectedLayout,
+                    selectedBoard: activation.selectedBoard)
                 var resourceError: String?
                 do { _ = try KeyboardRecipeStore.snapshot(selectedOnly: true) } catch {
                     HostLog.append("published resource validation failed: \(error.localizedDescription)")

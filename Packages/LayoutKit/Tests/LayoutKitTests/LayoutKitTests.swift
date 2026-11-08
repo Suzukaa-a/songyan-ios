@@ -326,6 +326,33 @@ final class LayoutAvailabilityTests: XCTestCase {
         XCTAssertEqual(registry.usableMainLayoutID(for: key, availability: preferred), "mine")
     }
 
+    /// A keyboard that names a board types on it, whatever the shared pairing says; a board that is
+    /// disallowed, unknown or for another shape falls back to the pairing's path untouched.
+    func testBoardKeyboardUsesItsBoardAndFallsBackToThePairing() throws {
+        var registry = try registryWith([definition("mine")])
+        let key = KeyboardCompositionKey(inputMethodID: "kagiroi", layout: .qwerty26)
+        try registry.setComposition(KeyboardComposition(mainLayoutID: "mine"), for: key.rawValue)
+        let japanese = availability(allowing: ["qwerty26", "romaji26", "kana12", "mine"], preferred: "romaji26")
+        XCTAssertEqual(registry.usableMainLayoutID(for: key, board: "kana12", availability: japanese), "kana12")
+        XCTAssertEqual(registry.usableMainLayoutID(for: key, board: "romaji26", availability: japanese), "romaji26")
+        XCTAssertEqual(
+            registry.usableMainLayoutID(for: key, board: nil, availability: japanese), "mine",
+            "no board keeps the pairing's main layout")
+        // The family does not allow the board.
+        XCTAssertEqual(
+            registry.usableMainLayoutID(
+                for: key, board: "kana12", availability: availability(allowing: ["qwerty26", "mine"])),
+            "mine")
+        // The board does not resolve.
+        XCTAssertEqual(registry.usableMainLayoutID(for: key, board: "no-such-board", availability: japanese), "mine")
+        // The board is for another shape (kana12 is a 26-key transport board).
+        let nine = KeyboardCompositionKey(inputMethodID: "kagiroi", layout: .phone9)
+        XCTAssertEqual(
+            registry.usableMainLayoutID(for: nine, board: "kana12", availability: japanese),
+            registry.usableMainLayoutID(for: nine, availability: japanese))
+        XCTAssertEqual(registry.composition(for: key).mainLayoutID, "mine", "nothing is rewritten")
+    }
+
     /// A saved pairing whose definition is gone or may not be used falls back to the preferred
     /// registered definition, and the stored pairing is left untouched.
     func testUnusableSavedPairingFallsBackToFamilyPreferred() throws {

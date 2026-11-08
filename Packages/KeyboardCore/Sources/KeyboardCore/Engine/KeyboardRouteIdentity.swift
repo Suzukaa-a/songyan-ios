@@ -23,11 +23,14 @@ public struct KeyboardRouteKey: Equatable, Sendable {
     public let sourceSchemaID: String?
     /// Physical layout. Paired with the source schema; both are required.
     public let layout: KeyboardLayoutKind
+    /// Physical board of the selected keyboard (`PublishedKeyboard.board`). It never changes the engine,
+    /// but a record naming another board must reach the running controller, so it is part of the identity.
+    public let board: String?
 
     public init(
         resourceID: String?, publicationGeneration: String?, sharedDirectory: URL?,
         userDirectory: URL?, prebuiltDirectory: URL?, sourceSchemaID: String?,
-        layout: KeyboardLayoutKind
+        layout: KeyboardLayoutKind, board: String? = nil
     ) {
         self.resourceID = resourceID
         self.publicationGeneration = publicationGeneration
@@ -36,6 +39,7 @@ public struct KeyboardRouteKey: Equatable, Sendable {
         self.prebuiltDirectory = prebuiltDirectory
         self.sourceSchemaID = sourceSchemaID
         self.layout = layout
+        self.board = board
     }
 
     /// Builds from a resource set and the (source schema, layout) actually enabled.
@@ -44,7 +48,9 @@ public struct KeyboardRouteKey: Equatable, Sendable {
     /// `KeyboardResourceSet.bootSelection`, pass the source schema it resolved, not the
     /// resource set's possibly nil/stale published selection, or one running engine
     /// would map to two keys and restart repeatedly.
-    public init(resource: KeyboardResourceSet, sourceSchemaID: String, layout: KeyboardLayoutKind) {
+    public init(
+        resource: KeyboardResourceSet, sourceSchemaID: String, layout: KeyboardLayoutKind, board: String? = nil
+    ) {
         self.init(
             resourceID: resource.id,
             publicationGeneration: resource.publicationGeneration,
@@ -52,7 +58,7 @@ public struct KeyboardRouteKey: Equatable, Sendable {
             userDirectory: resource.userDirectory.standardizedFileURL,
             prebuiltDirectory: resource.prebuiltDirectory?.standardizedFileURL,
             sourceSchemaID: sourceSchemaID,
-            layout: layout)
+            layout: layout, board: board)
     }
 
     /// Privacy-safe diagnostic: publication identity and layout only, never

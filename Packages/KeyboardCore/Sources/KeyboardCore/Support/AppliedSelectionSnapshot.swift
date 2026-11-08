@@ -39,6 +39,8 @@ public struct AppliedSelectionSnapshot: Equatable, Sendable {
     public let schemas: [KeyboardSchemaDescriptor]
     /// Physical layout of the publication selection; nil = not explicit.
     public let selectedLayout: KeyboardLayoutKind?
+    /// Physical board of the publication selection (`PublishedKeyboard.board`); nil = from the pairing.
+    public let selectedBoard: String?
 
     public init(
         recipeEnabled: Bool, resourceKind: String,
@@ -47,7 +49,8 @@ public struct AppliedSelectionSnapshot: Equatable, Sendable {
         packageID: String? = nil, hasRealPublication: Bool = false,
         publicationName: String? = nil, displayConfigName: String = "",
         schemas: [KeyboardSchemaDescriptor] = [],
-        selectedLayout: KeyboardLayoutKind? = nil
+        selectedLayout: KeyboardLayoutKind? = nil,
+        selectedBoard: String? = nil
     ) {
         self.recipeEnabled = recipeEnabled
         self.resourceKind = resourceKind
@@ -61,6 +64,7 @@ public struct AppliedSelectionSnapshot: Equatable, Sendable {
         self.displayConfigName = displayConfigName
         self.schemas = schemas
         self.selectedLayout = selectedLayout
+        self.selectedBoard = selectedBoard
     }
 
     /// Empty snapshot kept when no usable publication record exists or the read failed (not applied, no input methods).

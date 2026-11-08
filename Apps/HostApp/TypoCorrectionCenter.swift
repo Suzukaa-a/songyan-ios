@@ -97,7 +97,9 @@ final class TypoCorrectionCenter: ObservableObject {
                 state: .unavailable(String(localized: "当前输入方案不支持错键纠正。")), target: nil)
         }
         guard let schemaID = activation.selectedSchemaID ?? activation.requiredSchemaIDs.first else { return nil }
-        let keyboard = activation.selectedLayout.map { PublishedKeyboard(schemaID: schemaID, layout: $0) }
+        let keyboard = activation.selectedLayout.map {
+            PublishedKeyboard(schemaID: schemaID, layout: $0, board: activation.selectedBoard)
+        }
         let unavailable = State.unavailable(String(localized: "当前输入方式不支持错键纠正。"))
         guard
             let compiled = try? Data(

@@ -11,13 +11,30 @@ extension KeyboardController {
     public func revalidateCurrentSchema() { session.revalidateCurrentSchema() }
     /// Layout switch via the controller's direct entry. Re-selecting the current layout/schema is a no-op.
     /// A real switch clears the ambiguity picker; a failed one keeps it and the previous qualification.
-    public func selectLayout(_ layout: KeyboardLayoutKind, boundSchemaID: String? = nil) {
+    ///
+    /// `board` is the physical board of the keyboard being selected (`PublishedKeyboard.board`). A
+    /// layout or schema change that names none lands on no board. The same layout and schema with another
+    /// board is a real switch too (romaji and kana are both the 26-key shape): the composition is settled
+    /// like any switch, and the caller resets to the letters page.
+    public func selectLayout(
+        _ layout: KeyboardLayoutKind, boundSchemaID: String? = nil, board: String? = nil
+    ) {
         guard !retired else { return }
         let needsTransition =
             boundSchemaID.map { layout != session.layout || $0 != session.selectedSchemaID }
             ?? (layout != session.layout)
-        guard needsTransition else { return }
+        let changesBoard = board != selectedBoard
+        guard needsTransition || changesBoard else { return }
+        incomingBoard = board
+        defer { incomingBoard = nil }
         performLayoutSwitch {
+            guard needsTransition else {
+                // Nothing in the session changes: settle the composition, then adopt the board.
+                guard session.prepareForConfigurationChange() else { return false }
+                selectedBoard = board
+                reportSuccessfulSelectionChange()
+                return true
+            }
             if let boundSchemaID {
                 session.select(layout: layout, boundSchemaID: boundSchemaID)
             } else {
@@ -29,7 +46,7 @@ extension KeyboardController {
     }
 
     func reportSuccessfulSelectionChange() {
-        let change = KeyboardSelectionChange(schemaID: selectedSchemaID, layout: layout)
+        let change = KeyboardSelectionChange(schemaID: selectedSchemaID, layout: layout, board: selectedBoard)
         successfulChange = change
         onSelectionChanged?(change)
     }

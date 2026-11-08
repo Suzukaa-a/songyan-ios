@@ -47,11 +47,11 @@ final class UserKeyboardTests: XCTestCase {
         let keyboard = UserKeyboard(
             inputMethodID: "cangjie5", inputMethodName: "倉頡五代",
             layout: .qwerty26)
-        XCTAssertTrue(keyboard.isCurrent(schemaID: "cangjie5", layout: .qwerty26))
+        XCTAssertTrue(keyboard.isCurrent(schemaID: "cangjie5", layout: .qwerty26, board: nil))
         XCTAssertFalse(
-            keyboard.isCurrent(schemaID: "cangjie5", layout: .phone9),
+            keyboard.isCurrent(schemaID: "cangjie5", layout: .phone9, board: nil),
             "the same input method with a different layout is not the current keyboard")
-        XCTAssertFalse(keyboard.isCurrent(schemaID: "wubi86", layout: .qwerty26))
+        XCTAssertFalse(keyboard.isCurrent(schemaID: "wubi86", layout: .qwerty26, board: nil))
     }
 
     func testCurrentTitleUsesOnlyThePublishedSchemaAndLayout() {

@@ -52,7 +52,7 @@ public struct KeyboardResourceSet: Equatable, Sendable {
                         source: source, layout: layout, adapters: encodingAdapters, bindings: layoutEntries)
                 else { continue }
                 if let published = publishedKeyboards {
-                    guard published.contains(PublishedKeyboard(schemaID: source, layout: layout)) else { continue }
+                    guard published.contains(where: { $0.schemaID == source && $0.layout == layout }) else { continue }
                     // A published item represents the source input method; the generated
                     // adapter's internal schema name is not a second user-facing input method
                     // name. Always use the source's human name (may be empty).
@@ -247,6 +247,8 @@ public struct KeyboardResourceSet: Equatable, Sendable {
     public let schemas: [KeyboardSchemaDescriptor]
     public let selectedSchemaID: String?
     public let preferredLayout: KeyboardLayoutKind?
+    /// The physical board the selected keyboard types on (see `PublishedKeyboard.board`); nil = from the pairing.
+    public let preferredBoard: String?
     /// Used for the "same source, same revision" check when the Host overlays a publication selection; nil never passes by default.
     public let sourceRevision: String?
     /// App Group publication generation carried by the authoritative Snapshot.
@@ -270,7 +272,8 @@ public struct KeyboardResourceSet: Equatable, Sendable {
         id: String, name: String, sharedDirectory: URL, userDirectory: URL,
         layoutEntries: [LayoutEntry], prebuiltDirectory: URL? = nil,
         schemas: [KeyboardSchemaDescriptor] = [], selectedSchemaID: String? = nil,
-        preferredLayout: KeyboardLayoutKind? = nil, sourceRevision: String? = nil,
+        preferredLayout: KeyboardLayoutKind? = nil, preferredBoard: String? = nil,
+        sourceRevision: String? = nil,
         publicationGeneration: String? = nil, publishedKeyboards: [PublishedKeyboard]? = nil,
         englishCandidateRoutes: [EnglishCandidateRoute] = []
     ) {
@@ -278,6 +281,7 @@ public struct KeyboardResourceSet: Equatable, Sendable {
             id: id, name: name, sharedDirectory: sharedDirectory, userDirectory: userDirectory,
             layoutEntries: layoutEntries, prebuiltDirectory: prebuiltDirectory, schemas: schemas,
             selectedSchemaID: selectedSchemaID, preferredLayout: preferredLayout,
+            preferredBoard: preferredBoard,
             sourceRevision: sourceRevision, publicationGeneration: publicationGeneration,
             publishedKeyboards: publishedKeyboards,
             englishCandidateRoutes: englishCandidateRoutes,
@@ -292,7 +296,7 @@ public struct KeyboardResourceSet: Equatable, Sendable {
         id: String, name: String, sharedDirectory: URL, userDirectory: URL,
         layoutEntries: [LayoutEntry], prebuiltDirectory: URL?,
         schemas: [KeyboardSchemaDescriptor], selectedSchemaID: String?,
-        preferredLayout: KeyboardLayoutKind?, sourceRevision: String?,
+        preferredLayout: KeyboardLayoutKind?, preferredBoard: String?, sourceRevision: String?,
         publicationGeneration: String?, publishedKeyboards: [PublishedKeyboard]?,
         englishCandidateRoutes: [EnglishCandidateRoute],
         encodingAdapters: [EncodingAdapter]
@@ -311,6 +315,7 @@ public struct KeyboardResourceSet: Equatable, Sendable {
         self.schemas = schemas
         self.selectedSchemaID = selectedSchemaID
         self.preferredLayout = preferredLayout
+        self.preferredBoard = preferredBoard
         self.sourceRevision = sourceRevision
         self.publicationGeneration = publicationGeneration
         self.publishedKeyboards = publishedKeyboards.map {
@@ -377,7 +382,9 @@ public struct KeyboardResourceSet: Equatable, Sendable {
     /// - `layout` must be a combination that really exists under that source; otherwise the
     ///   layout preference is dropped (constraining only the schema) and never inserted as a legitimate selection.
     /// - Derivation reads no disk (keeps this snapshot's already-resolved `encodingAdapters`).
-    public func selecting(schemaID: String, layout: KeyboardLayoutKind? = nil) -> KeyboardResourceSet {
+    public func selecting(
+        schemaID: String, layout: KeyboardLayoutKind? = nil, board: String? = nil
+    ) -> KeyboardResourceSet {
         guard !englishCandidateRoutes.contains(where: { $0.candidateSchemaID == schemaID }) else { return self }
         let enabled: Bool
         if !schemas.isEmpty {
@@ -397,6 +404,7 @@ public struct KeyboardResourceSet: Equatable, Sendable {
             userDirectory: userDirectory, layoutEntries: layoutEntries,
             prebuiltDirectory: prebuiltDirectory, schemas: schemas,
             selectedSchemaID: schemaID, preferredLayout: validLayout,
+            preferredBoard: validLayout == nil ? nil : board,
             sourceRevision: sourceRevision, publicationGeneration: publicationGeneration,
             publishedKeyboards: publishedKeyboards,
             englishCandidateRoutes: englishCandidateRoutes,
@@ -452,6 +460,7 @@ public struct KeyboardResourceSet: Equatable, Sendable {
             id: id, name: name, sharedDirectory: sharedDirectory,
             userDirectory: userDirectory, layoutEntries: layoutEntries, prebuiltDirectory: prebuiltDirectory,
             schemas: schemas, selectedSchemaID: selectedSchemaID, preferredLayout: preferredLayout,
+            preferredBoard: preferredBoard,
             sourceRevision: sourceRevision, publicationGeneration: publicationGeneration,
             publishedKeyboards: runnable,
             englishCandidateRoutes: englishCandidateRoutes,
@@ -472,7 +481,11 @@ public struct KeyboardResourceSet: Equatable, Sendable {
     /// empty manifest returns empty (not added = not offered).
     public func publishedCombinations(_ published: [PublishedKeyboard]) -> [Combination] {
         let byID = Dictionary(availableCombinations.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-        return published.compactMap { byID[$0.id] }
+        // Boards of one combination share it, so it is listed once.
+        var seen = Set<String>()
+        return published.compactMap { keyboard in
+            seen.insert(keyboard.combinationID).inserted ? byID[keyboard.combinationID] : nil
+        }
     }
 
     /// Human projection of the published keyboard manifest: names come from this snapshot's
@@ -530,7 +543,7 @@ public extension KeyboardResourceSet {
             userDirectory: userDirectory,
             layoutEntries: BuiltinTemplateSchemas.layoutEntries,
             prebuiltDirectory: nil, schemas: [], selectedSchemaID: nil, preferredLayout: nil,
-            sourceRevision: nil, publicationGeneration: nil, publishedKeyboards: nil,
+            preferredBoard: nil, sourceRevision: nil, publicationGeneration: nil, publishedKeyboards: nil,
             englishCandidateRoutes: [],
             encodingAdapters: BuiltinTemplateSchemas.adapters
         )

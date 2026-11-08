@@ -86,6 +86,49 @@ checkEqual(
     registry.composition(for: key).mainLayoutID, "cangjie26",
     "the fallback never rewrites the saved pairing")
 
+// A keyboard that names a board types on it; the shared pairing only decides the keyboard without one.
+func effectiveBoard(
+    _ schemaID: String, board: String?, descriptors: [KeyboardSchemaDescriptor], in registry: LayoutRegistry
+) -> String {
+    HostLayoutAvailability.effectiveMainLayoutID(
+        schemaID: schemaID, layout: .qwerty26, board: board, descriptors: descriptors, in: registry)
+}
+checkEqual(
+    effectiveBoard("kagiroi", board: "kana12", descriptors: schemes, in: registry), "kana12",
+    "a Japanese kana keyboard resolves the kana board")
+checkEqual(
+    effectiveBoard("kagiroi", board: "romaji26", descriptors: schemes, in: registry), "romaji26",
+    "a Japanese romaji keyboard resolves the romaji board")
+checkEqual(
+    effectiveBoard("kagiroi", board: nil, descriptors: schemes, in: registry), "romaji26",
+    "a Japanese keyboard saved without a board keeps its pairing default")
+let japaneseKey = KeyboardCompositionKey(inputMethodID: "kagiroi", layout: .qwerty26)
+try registry.setComposition(KeyboardComposition(mainLayoutID: "kana12"), for: japaneseKey.rawValue)
+checkEqual(
+    effectiveBoard("kagiroi", board: "romaji26", descriptors: schemes, in: registry), "romaji26",
+    "a board keyboard ignores the shared pairing's main layout")
+checkEqual(
+    effectiveBoard("kagiroi", board: nil, descriptors: schemes, in: registry), "kana12",
+    "a keyboard without a board still follows the pairing")
+checkEqual(
+    effectiveBoard("bopomofo_tw", board: "kana12", descriptors: schemes, in: registry), "zhuyin41",
+    "a board another family owns falls back to the family's own board")
+checkEqual(
+    effectiveBoard("kagiroi", board: "no-such-board", descriptors: schemes, in: registry), "kana12",
+    "an unknown board falls back to the pairing")
+checkEqual(
+    registry.composition(for: japaneseKey).mainLayoutID, "kana12",
+    "a board keyboard never rewrites the shared pairing")
+let kanaKeyboard = UserKeyboard(
+    inputMethodID: "kagiroi", inputMethodName: "日本語", layout: .qwerty26, board: "kana12")
+let romajiKeyboard = UserKeyboard(
+    inputMethodID: "kagiroi", inputMethodName: "日本語", layout: .qwerty26, board: "romaji26")
+check(kanaKeyboard.id != romajiKeyboard.id, "the two Japanese boards are two keyboards")
+checkEqual(
+    kanaKeyboard.compositionKey.rawValue, japaneseKey.rawValue,
+    "both boards share the one pairing, derived without parsing the id")
+checkEqual(romajiKeyboard.compositionKey.rawValue, japaneseKey.rawValue, "the romaji board shares it too")
+
 // The shape gate stays: only the 26-key shape is offered to the traditional families.
 check(
     HostLayoutAvailability.allows(kind: .qwerty26, schemaID: "bopomofo_tw", descriptors: schemes),

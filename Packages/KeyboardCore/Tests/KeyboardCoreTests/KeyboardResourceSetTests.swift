@@ -423,7 +423,8 @@ final class ResourceSetInputSessionTests: XCTestCase {
             id: "test", name: "测试", sharedDirectory: URL(fileURLWithPath: "/tmp/shared"),
             userDirectory: URL(fileURLWithPath: "/tmp/user"), layoutEntries: [], prebuiltDirectory: nil,
             schemas: [.init(id: BuiltinTemplateSchemas.quanpin, name: "全拼", alphabet: "")],
-            selectedSchemaID: BuiltinTemplateSchemas.quanpin, preferredLayout: nil, sourceRevision: nil,
+            selectedSchemaID: BuiltinTemplateSchemas.quanpin, preferredLayout: nil, preferredBoard: nil,
+            sourceRevision: nil,
             publicationGeneration: nil, publishedKeyboards: nil, englishCandidateRoutes: [], encodingAdapters: [])
         var errors: [Error] = []
         let session = InputSession(engine: engine, layout: .merged14, resourceSet: set)
@@ -480,7 +481,8 @@ final class EngineSchemaResolverTests: XCTestCase {
             id: "pkg", name: "", sharedDirectory: URL(fileURLWithPath: "/tmp/shared"),
             userDirectory: URL(fileURLWithPath: "/tmp/user"), layoutEntries: [binding], prebuiltDirectory: nil,
             schemas: [.init(id: source, name: "源", alphabet: "")], selectedSchemaID: source, preferredLayout: nil,
-            sourceRevision: nil, publicationGeneration: nil, publishedKeyboards: nil, englishCandidateRoutes: [],
+            preferredBoard: nil, sourceRevision: nil, publicationGeneration: nil, publishedKeyboards: nil,
+            englishCandidateRoutes: [],
             encodingAdapters: [adapter])
         for layout in KeyboardLayoutKind.allCases {
             let expected = resolve(layout, adapters: [adapter], bindings: [binding])

@@ -60,12 +60,12 @@ enum HostLayoutAvailability {
     /// pairing resolves it here, so a newly added traditional keyboard is never read as the 26-key
     /// default. A fallback is runtime-only: the saved pairing is never rewritten.
     static func effectiveMainLayoutID(
-        schemaID: String, layout: KeyboardLayoutKind, descriptors: [KeyboardSchemaDescriptor],
-        in registry: LayoutRegistry
+        schemaID: String, layout: KeyboardLayoutKind, board: String? = nil,
+        descriptors: [KeyboardSchemaDescriptor], in registry: LayoutRegistry
     ) -> String {
         registry.usableMainLayoutID(
             for: KeyboardCompositionKey(inputMethodID: schemaID, layout: layout.builtinLayout),
-            availability: policy(schemaID: schemaID, descriptors: descriptors))
+            board: board, availability: policy(schemaID: schemaID, descriptors: descriptors))
     }
 }
 
@@ -124,8 +124,10 @@ struct KeyboardCompositionView: View {
         self.sourceSchemas = sourceSchemas
         let registry = LayoutManager.shared.registry
         var composition = registry.composition(for: keyboard.compositionKey)
-        if HostLayoutAvailability.allows(
-            kind: keyboard.layout, schemaID: keyboard.inputMethodID, descriptors: sourceSchemas)
+        // A board keyboard never edits the pairing's main layout, so its draft keeps it as saved.
+        if keyboard.board == nil,
+            HostLayoutAvailability.allows(
+                kind: keyboard.layout, schemaID: keyboard.inputMethodID, descriptors: sourceSchemas)
         {
             // A saved pairing this family may not use falls back to a legal existing layout at
             // runtime; the stored pairing and the user's layouts are left untouched.
@@ -158,7 +160,7 @@ struct KeyboardCompositionView: View {
         guard keyboardIsAvailable else { return nil }
         return manager.registry.resolvedLayout(
             id: manager.registry.usableMainLayoutID(
-                for: keyboard.compositionKey, availability: availability))
+                for: keyboard.compositionKey, board: keyboard.board, availability: availability))
     }
 
     /// The hand cuts the selected main layout is drawn with, as the keyboard resolves them.
@@ -188,26 +190,30 @@ struct KeyboardCompositionView: View {
                 if let message = manager.lastError { Text(message).foregroundStyle(.orange) }
             }
             if keyboardIsAvailable {
-                Section(UserTerminology.mainLayout) {
-                    Picker(UserTerminology.keyboardLayout, selection: $draft.mainLayoutID) {
-                        ForEach(layouts) { layout in Text(layout.listName).tag(layout.id) }
-                    }
-                    if let layout = mainLayout {
-                        DisclosureGroup(String(localized: "预览")) {
-                            KeyboardPreviewView(layout: layout, skin: AppearanceManager.shared.applied.skin)
+                // A board keyboard types on its own board; the main layout choice belongs to the keyboard
+                // without a board, so this page is pages only for it.
+                if keyboard.board == nil {
+                    Section(UserTerminology.mainLayout) {
+                        Picker(UserTerminology.keyboardLayout, selection: $draft.mainLayoutID) {
+                            ForEach(layouts) { layout in Text(layout.listName).tag(layout.id) }
                         }
-                        if let usage = keyboardNames.usage(
-                            manager.registry.keyboards(usingLayout: layout.id, among: keyboardNames.active))
-                        {
-                            Text(usage).font(.footnote).foregroundStyle(.secondary)
+                        if let layout = mainLayout {
+                            DisclosureGroup(String(localized: "预览")) {
+                                KeyboardPreviewView(layout: layout, skin: AppearanceManager.shared.applied.skin)
+                            }
+                            if let usage = keyboardNames.usage(
+                                manager.registry.keyboards(usingLayout: layout.id, among: keyboardNames.active))
+                            {
+                                Text(usage).font(.footnote).foregroundStyle(.secondary)
+                            }
+                            Button(String(localized: "编辑\(UserTerminology.mainLayout)")) { editingMain = layout }
+                            Button(String(localized: "复制并编辑\(UserTerminology.mainLayout)")) {
+                                editingMain = BuiltinLayouts.persistingHandCuts(in: layout).copy()
+                            }
+                        } else {
+                            Text("没有适合这个键盘的布局，请在下方「\(UserTerminology.keyboardLayout)」中添加。")
+                                .foregroundStyle(.secondary)
                         }
-                        Button(String(localized: "编辑\(UserTerminology.mainLayout)")) { editingMain = layout }
-                        Button(String(localized: "复制并编辑\(UserTerminology.mainLayout)")) {
-                            editingMain = BuiltinLayouts.persistingHandCuts(in: layout).copy()
-                        }
-                    } else {
-                        Text("没有适合这个键盘的布局，请在下方「\(UserTerminology.keyboardLayout)」中添加。")
-                            .foregroundStyle(.secondary)
                     }
                 }
                 ForEach(KeyboardPageKind.allCases, id: \.self) { kind in
@@ -235,7 +241,7 @@ struct KeyboardCompositionView: View {
         .onReceive(manager.$registry) { registry in
             guard !initialized, manager.location != nil else { return }
             var composition = registry.composition(for: keyboard.compositionKey)
-            if keyboardIsAvailable {
+            if keyboardIsAvailable, keyboard.board == nil {
                 composition.mainLayoutID = registry.usableMainLayoutID(
                     for: keyboard.compositionKey, availability: availability)
             }
@@ -261,7 +267,7 @@ struct KeyboardCompositionView: View {
             }
             ToolbarItem(placement: .confirmationAction) {
                 Button(String(localized: "保存搭配")) { save() }.disabled(
-                    saving || !initialized || !keyboardIsAvailable || layouts.isEmpty)
+                    saving || !initialized || !keyboardIsAvailable || (keyboard.board == nil && layouts.isEmpty))
             }
         }
         .sheet(item: $editingPage) { page in
@@ -433,7 +439,7 @@ struct KeyboardCompositionView: View {
         let snapshot = draft
         Task {
             defer { saving = false }
-            if await manager.saveComposition(snapshot, for: keyboard.id) {
+            if await manager.saveComposition(snapshot, for: keyboard.compositionKey.rawValue) {
                 baseline = snapshot
                 dismiss()
             } else {

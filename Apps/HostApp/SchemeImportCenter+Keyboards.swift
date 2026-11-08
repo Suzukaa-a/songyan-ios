@@ -264,9 +264,7 @@ extension SchemeImportCenter {
             guard shared.keyboards.contains(keyboard) else { throw UserKeyboardPublicationError.notAdded }
             let list = PublishedKeyboard.removing(keyboard, from: shared.keyboards)
             if list.isEmpty { throw Self.keepOneKeyboard }
-            let selected = shared.selectedSchemaID.flatMap { schemaID in
-                shared.selectedLayout.map { PublishedKeyboard(schemaID: schemaID, layout: $0) }
-            }
+            let selected = shared.selectedKeyboard
             try await publishRoster(
                 packageID: packageID, roster: list,
                 selection: PublishedKeyboard.selectionAfterRemoval(from: list, current: selected),
@@ -298,9 +296,7 @@ extension SchemeImportCenter {
             let installed = try await activeRecipe(packageID: packageID)
             let selected =
                 Self.sameSource(shared, packageID: packageID)
-                ? shared?.selectedSchemaID.flatMap { schemaID in
-                    shared?.selectedLayout.map { PublishedKeyboard(schemaID: schemaID, layout: $0) }
-                } : nil
+                ? shared?.selectedKeyboard : nil
             if Self.sameSource(shared, packageID: packageID), shared?.recipeEnabled == true,
                 shared?.revision == installed.installation.revision,
                 shared?.hostInstallationGeneration == installed.installation.generation,
@@ -370,7 +366,7 @@ extension SchemeImportCenter {
                     revision: active.installation.revision, kind: .userScheme,
                     dictionaryName: resources.name,
                     packageID: packageID, schemas: resources.schemas,
-                    selectedSchemaID: selection?.schemaID, layout: selection?.layout,
+                    selectedSchemaID: selection?.schemaID, layout: selection?.layout, board: selection?.board,
                     bindings: resources.layoutEntries, publishedKeyboards: roster,
                     preservingSelection: preservingSelection, baseline: baseline)
             }

@@ -96,7 +96,9 @@ final class PredictionCenter: ObservableObject {
                 state: .unavailable(String(localized: "当前输入方案不支持上屏联想。")), eligible: false, databaseBytes: nil)
         }
         guard let schemaID = activation.selectedSchemaID ?? activation.requiredSchemaIDs.first else { return nil }
-        let keyboard = activation.selectedLayout.map { PublishedKeyboard(schemaID: schemaID, layout: $0) }
+        let keyboard = activation.selectedLayout.map {
+            PublishedKeyboard(schemaID: schemaID, layout: $0, board: activation.selectedBoard)
+        }
         let database = snapshot.resources.appendingPathComponent(Prediction.databasePath)
         var bytes: Int?
         if (try? Prediction.validateDatabase(at: database)) != nil,

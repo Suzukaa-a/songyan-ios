@@ -177,6 +177,13 @@ public final class KeyboardController: ObservableObject {
     @Published public internal(set) var inputError: String?
     @Published public internal(set) var inputUnavailableReason: String?
     @Published public internal(set) var selectedSchemaID: String { didSet { definitionInputsRevision &+= 1 } }
+    /// The physical board of the running published keyboard (`PublishedKeyboard.board`); nil = the main
+    /// layout comes from the pairing. Part of the layout inputs, so a change re-resolves the key area.
+    @Published public internal(set) var selectedBoard: String? { didSet { definitionInputsRevision &+= 1 } }
+    /// The board a `selectLayout` in flight switches to. `refresh()` adopts it together with the new
+    /// layout / schema, so the selection change is reported with the board it landed on; any other
+    /// layout or schema change (no board named) drops the board.
+    var incomingBoard: String?
     /// Plain counter (not @Published) bumped on every assignment of `layout` / `selectedSchemaID`.
     /// The key area consults the layout-resolution cache hundreds of times per render; comparing this
     /// integer is much cheaper than reading two @Published values through Combine (the Published
@@ -442,15 +449,16 @@ public final class KeyboardController: ObservableObject {
         if publishedKeyboardError != error { publishedKeyboardError = error }
     }
 
-    /// Switches to a published keyboard (input method + layout together, one transaction).
+    /// Switches to a published keyboard (input method + layout + board together, one transaction).
     /// If it is not in the runnable roster, does nothing and returns false.
     @discardableResult
     public func selectUserKeyboard(_ keyboard: UserKeyboard) -> Bool {
         guard userKeyboardChoices.contains(keyboard) else { return false }
         let previousLayout = layout
         let previousSchema = selectedSchemaID
-        selectLayout(keyboard.layout, boundSchemaID: keyboard.inputMethodID)
-        return layout != previousLayout || selectedSchemaID != previousSchema
+        let previousBoard = selectedBoard
+        selectLayout(keyboard.layout, boundSchemaID: keyboard.inputMethodID, board: keyboard.board)
+        return layout != previousLayout || selectedSchemaID != previousSchema || selectedBoard != previousBoard
     }
 
     /// Callback for engine commit text (host text field / text proxy insertion).
@@ -537,10 +545,11 @@ public final class KeyboardController: ObservableObject {
     ///   - engine: engine backend (production path = RimeBackend).
     ///   - resourceSet: resource-set mapping (nil = built-in mapping).
     public init(
-        layout: KeyboardLayoutKind = .qwerty26, engine: EngineBackend,
+        layout: KeyboardLayoutKind = .qwerty26, board: String? = nil, engine: EngineBackend,
         resourceSet: KeyboardResourceSet? = nil
     ) {
         self.layout = layout
+        self.selectedBoard = board
         self.engineKind = engine.kind
         self.session = InputSession(engine: engine, layout: layout, resourceSet: resourceSet)
         self.selectedSchemaID = self.session.selectedSchemaID

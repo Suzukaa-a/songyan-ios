@@ -197,7 +197,9 @@ final class FuzzyPinyinCenter: ObservableObject {
             return make(nil, "", .unavailable(String(localized: "当前输入方案不支持模糊音。")), nil, packageID: nil)
         }
         guard let schemaID = activation.selectedSchemaID ?? activation.requiredSchemaIDs.first else { return nil }
-        let keyboard = activation.selectedLayout.map { PublishedKeyboard(schemaID: schemaID, layout: $0) }
+        let keyboard = activation.selectedLayout.map {
+            PublishedKeyboard(schemaID: schemaID, layout: $0, board: activation.selectedBoard)
+        }
         let unavailable = State.unavailable(String(localized: "当前输入方式不支持模糊音。"))
         guard
             let compiled = try? Data(

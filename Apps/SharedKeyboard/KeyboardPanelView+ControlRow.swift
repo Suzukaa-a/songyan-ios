@@ -11,11 +11,11 @@ extension KeyboardPanelView {
         KeyboardTitleRule.title(
             published: UserKeyboardRoster.currentTitle(
                 schemaID: controller.selectedSchemaID,
-                layout: controller.layout,
+                layout: controller.layout, board: controller.selectedBoard,
                 in: controller.userKeyboardChoices),
             inputMethodName: UserKeyboardRoster.currentInputMethodName(
                 schemaID: controller.selectedSchemaID,
-                layout: controller.layout,
+                layout: controller.layout, board: controller.selectedBoard,
                 in: controller.userKeyboardChoices),
             isBundled: isBundledDefinition,
             physicalLayoutID: activeDefinition?.id,
@@ -172,7 +172,7 @@ extension KeyboardPanelView {
             let physicalID = LayoutInput.Builtin(rawValue: keyboard.layout.rawValue).flatMap { layout in
                 layoutRegistry?.usableMainLayoutID(
                     for: KeyboardCompositionKey(inputMethodID: keyboard.inputMethodID, layout: layout),
-                    availability: availability)
+                    board: keyboard.board, availability: availability)
             }
             let board = physicalID.flatMap { UserTerminology.builtinLayoutName(physicalLayoutID: $0) }
             return KeyCap(
@@ -193,7 +193,8 @@ extension KeyboardPanelView {
     }
 
     func isCurrent(_ keyboard: UserKeyboard) -> Bool {
-        keyboard.isCurrent(schemaID: controller.selectedSchemaID, layout: controller.layout)
+        keyboard.isCurrent(
+            schemaID: controller.selectedSchemaID, layout: controller.layout, board: controller.selectedBoard)
     }
 
     /// The native footer puts the comma left of the space bar and the full stop right of it only

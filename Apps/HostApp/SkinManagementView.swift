@@ -21,7 +21,7 @@ enum AppearancePreviewLoader {
             // previews its own board instead of the 26-key default.
             let selected = HostLayoutAvailability.effectiveMainLayoutID(
                 schemaID: key.inputMethodID, layout: KeyboardLayoutKind(key.layout),
-                descriptors: activation?.schemas ?? [], in: registry)
+                board: activation?.selectedBoard, descriptors: activation?.schemas ?? [], in: registry)
             return (layouts, layouts.contains { $0.id == selected } ? selected : layouts.first?.id ?? selected)
         }
     }

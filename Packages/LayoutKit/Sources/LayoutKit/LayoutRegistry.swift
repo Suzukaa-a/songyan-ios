@@ -168,6 +168,21 @@ public struct LayoutRegistry: Codable, Equatable, Sendable {
         return defaultMainLayoutID(for: key, availability: availability)
     }
 
+    /// The main layout of a keyboard that types on a physical `board`: that board when it resolves,
+    /// fits the keyboard's shape and the family rules allow it; otherwise exactly the pairing's
+    /// `usableMainLayoutID`. Runtime-only, so a disallowed or missing board never rewrites anything.
+    public func usableMainLayoutID(
+        for key: KeyboardCompositionKey, board: String?, availability: LayoutAvailability = .unrestricted
+    ) -> String {
+        if let board, let definition = resolvedLayout(id: board),
+            definition.supportsComposition(inputMethodID: key.inputMethodID, layout: key.layout),
+            availability.allows(definition, key)
+        {
+            return board
+        }
+        return usableMainLayoutID(for: key, availability: availability)
+    }
+
     public mutating func savePage(_ page: KeyboardPageDefinition) throws {
         var candidate = self
         if let index = candidate.pages.firstIndex(where: { $0.id == page.id }) {

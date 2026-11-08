@@ -111,13 +111,14 @@ extension KeyboardViewController {
         let runtimeIdentity = KeyboardRecipeStore.SelectionRuntimeIdentity.published
         let schemaID = change.schemaID
         let layout = change.layout
+        let board = change.board
         Task { @MainActor [weak self, weak backend] in
             do {
                 // Remembered in the same serial queue step as the save, so the remembered
                 // layout follows the record in save order, even after this presentation ended.
                 let outcome = try await EngineOpQueue.async {
                     let outcome = try KeyboardRecipeStore.saveSelection(
-                        schemaID: schemaID, layout: layout,
+                        schemaID: schemaID, layout: layout, board: board,
                         runtimeIdentity: runtimeIdentity)
                     if outcome == .saved { KeyboardPadSession.persistLayout(layout) }
                     return outcome

@@ -241,9 +241,11 @@ final class UserKeyboardCenter: ObservableObject {
     /// Only a publication of this page's own source has a keyboard in use.
     private static func currentKeyboardID(in viewed: UserKeyboardPublicationView?) -> String? {
         guard let viewed, viewed.isCurrent, let activation = viewed.activation,
-            let schemaID = activation.selectedSchemaID, let layout = activation.selectedLayout
+            let selected = activation.selectedKeyboard
         else { return nil }
-        return UserKeyboard(inputMethodID: schemaID, inputMethodName: "", layout: layout).id
+        return UserKeyboard(
+            inputMethodID: selected.schemaID, inputMethodName: "", layout: selected.layout, board: selected.board
+        ).id
     }
 
     func dismissMessages() {

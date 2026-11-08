@@ -125,7 +125,7 @@ extension KeyboardRecipeStore {
         resources: URL, compiledBuild: URL, revision: String, rootURL: URL? = nil,
         kind: ResourceKind, dictionaryName: String? = nil,
         packageID: String? = nil, schemas: [KeyboardSchemaDescriptor]? = nil,
-        selectedSchemaID: String? = nil, layout: KeyboardLayoutKind? = nil,
+        selectedSchemaID: String? = nil, layout: KeyboardLayoutKind? = nil, board: String? = nil,
         bindings: [KeyboardResourceSet.LayoutEntry]? = nil,
         publishedKeyboards: [PublishedKeyboard]? = nil,
         englishCandidateRoutes: [EnglishCandidateRoute]? = nil,
@@ -177,6 +177,7 @@ extension KeyboardRecipeStore {
         let current = try writeBaseline(rootURL: root)
         var effectiveSchemaID = selectedSchemaID
         var effectiveLayout = layout
+        var effectiveBoard = board
         var effectiveBindings = bindings
         var effectiveKeyboards = publishedKeyboards
         var effectiveEnglishCandidateRoutes = englishCandidateRoutes
@@ -207,6 +208,7 @@ extension KeyboardRecipeStore {
             // a selection saved by the extension during the update.
             effectiveSchemaID = current.selectedSchemaID
             effectiveLayout = current.selectedLayout
+            effectiveBoard = current.selectedBoard
             effectiveBindings = current.schemaBindings ?? bindings
             // The added-keyboard list is part of the same publication; preserve the
             // locked current list when the caller did not supply one.
@@ -230,6 +232,7 @@ extension KeyboardRecipeStore {
                 }
                 guard current.selectedSchemaID == expected.selectedSchemaID,
                     current.selectedLayout == expected.selectedLayout,
+                    current.selectedBoard == expected.selectedBoard,
                     current.schemaBindings == expected.schemaBindings,
                     current.recipeEnabled == expected.recipeEnabled
                 else {
@@ -305,6 +308,7 @@ extension KeyboardRecipeStore {
                 kind: shape, family: InputLayoutPolicy.family(schemaID: id, descriptors: schemas))
         {
             effectiveLayout = .qwerty26
+            effectiveBoard = nil
         }
         if inheritedEnglishCandidateRoutes, let routes = effectiveEnglishCandidateRoutes {
             let owners = Set(effectiveKeyboards ?? [])
@@ -334,7 +338,7 @@ extension KeyboardRecipeStore {
             publishedAt: Date(), resourceKind: kind, dictionaryName: dictionaryName,
             packageID: packageID, schemas: schemas,
             selectedSchemaID: effectiveSchemaID,
-            selectedLayout: effectiveLayout, schemaBindings: effectiveBindings,
+            selectedLayout: effectiveLayout, selectedBoard: effectiveBoard, schemaBindings: effectiveBindings,
             hostInstallationGeneration: compiledBuild.deletingLastPathComponent().deletingLastPathComponent()
                 .lastPathComponent,
             publishedKeyboards: effectiveKeyboards,
@@ -537,6 +541,7 @@ extension KeyboardRecipeStore {
             {
                 updated.selectedSchemaID = result.retained.first?.schemaID
                 updated.selectedLayout = result.retained.first?.layout
+                updated.selectedBoard = result.retained.first?.board
             }
             changed = true
         }
@@ -602,7 +607,7 @@ extension KeyboardRecipeStore {
     /// schema validation and atomic replacement.
     @discardableResult
     public static func saveSelection(
-        schemaID: String, layout: KeyboardLayoutKind,
+        schemaID: String, layout: KeyboardLayoutKind, board: String? = nil,
         runtimeIdentity: SelectionRuntimeIdentity,
         rootURL: URL? = nil
     ) throws -> SelectionSaveOutcome {
@@ -620,11 +625,11 @@ extension KeyboardRecipeStore {
             // running an older one can save as long as its choice is still published.
             break
         }
-        return try saveSelection(schemaID: schemaID, layout: layout, current: &current, root: root)
+        return try saveSelection(schemaID: schemaID, layout: layout, board: board, current: &current, root: root)
     }
 
     private static func saveSelection(
-        schemaID: String, layout: KeyboardLayoutKind,
+        schemaID: String, layout: KeyboardLayoutKind, board: String?,
         current: inout Activation, root: URL
     ) throws -> SelectionSaveOutcome {
         current = try snapshot(for: current, root: root).activation
@@ -633,6 +638,7 @@ extension KeyboardRecipeStore {
         }
         current.selectedSchemaID = schemaID
         current.selectedLayout = layout
+        current.selectedBoard = board
         let data = try canonicalJSONEncoder().encode(current)
         try data.write(to: root.appendingPathComponent("active.json"), options: .atomic)
         return .saved

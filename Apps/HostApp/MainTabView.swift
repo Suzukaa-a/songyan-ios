@@ -171,7 +171,8 @@ struct MainTabView: View {
             let board = snapshot.selectedLayout.flatMap { layout -> String? in
                 guard let schemaID = snapshot.selectedSchemaID else { return nil }
                 let id = HostLayoutAvailability.effectiveMainLayoutID(
-                    schemaID: schemaID, layout: layout, descriptors: snapshot.schemas,
+                    schemaID: schemaID, layout: layout, board: snapshot.selectedBoard,
+                    descriptors: snapshot.schemas,
                     in: LayoutManager.shared.registry)
                 return UserTerminology.builtinLayoutName(physicalLayoutID: id)
             }
