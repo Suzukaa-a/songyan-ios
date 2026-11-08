@@ -244,6 +244,7 @@ struct AppearanceDetailView: View {
     private var document: AppearanceDocument {
         manager.projects.first(where: { $0.id == initialDocument.id }) ?? initialDocument
     }
+    private var isInUse: Bool { manager.applicationStatus(for: document) == UserTerminology.statusInUse }
     @State private var layoutID = ""
     @State private var layouts: [LayoutDefinition] = []
     @State private var dark = false
@@ -294,12 +295,8 @@ struct AppearanceDetailView: View {
                     Button("删除外观", systemImage: "trash", role: .destructive) { confirmingDelete = true }
                 }
             }
-            if manager.isMutating || manager.message != nil || manager.error != nil || error != nil {
-                Section {
-                    if manager.isMutating { ProgressView("正在保存外观…") }
-                    if let message = manager.message { Text(message).font(.footnote) }
-                    if let error = error ?? manager.error { Text(error).foregroundStyle(.red) }
-                }
+            if let error = error ?? manager.error {
+                Section { Text(error).foregroundStyle(.red) }
             }
         }
         .confirmationDialog("删除外观「\(document.name)」？", isPresented: $confirmingDelete, titleVisibility: .visible) {
@@ -324,16 +321,30 @@ struct AppearanceDetailView: View {
                 layoutID = preview.selectedID
             } catch { self.error = "无法读取预览布局，请重新打开外观。" }
         }
+        // Inside the bottom inset, so confirmations rise above the apply button instead of covering it.
+        .savedToast($toast)
         .safeAreaInset(edge: .bottom) {
             Button {
-                Task { await manager.apply(document) }
+                Task {
+                    guard await manager.apply(document) else { return }
+                    toast = manager.message
+                    manager.message = nil
+                }
             } label: {
-                Label("应用", systemImage: "checkmark")
-                    .frame(maxWidth: .infinity)
+                Group {
+                    if manager.isMutating {
+                        ProgressView()
+                    } else if isInUse {
+                        Label(UserTerminology.statusInUse, systemImage: "checkmark")
+                    } else {
+                        Text("应用")
+                    }
+                }
+                .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
-            .disabled(manager.isLoading || manager.isMutating)
+            .disabled(manager.isLoading || manager.isMutating || isInUse)
             .accessibilityIdentifier("appearance.apply")
             .padding(.horizontal)
             .padding(.vertical, 8)
@@ -369,7 +380,6 @@ struct AppearanceDetailView: View {
         .navigationDestination(isPresented: $showsSaved) {
             if let savedDestination { AppearanceDetailView(document: savedDestination, notice: "已保存") }
         }
-        .savedToast($toast)
         .onChange(of: showsSaved) { if !showsSaved { savedDestination = nil } }
         .fileExporter(
             isPresented: $exporting, document: exportDocument, contentType: .json,
