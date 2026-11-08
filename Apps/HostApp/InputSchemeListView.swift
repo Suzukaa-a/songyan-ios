@@ -223,7 +223,7 @@ struct InputSchemeListView: View {
         .padding(.vertical, 2)
     }
 
-    /// The row body opens the detail; the trailing start-using/view-detail control is a separate tap target (outside the NavigationLink).
+    /// The row body opens the detail; the trailing start-using control is a separate tap target (outside the NavigationLink).
     private func schemeRow(_ row: InstalledSchemeRow) -> some View {
         HStack(spacing: 12) {
             NavigationLink {
@@ -253,17 +253,9 @@ struct InputSchemeListView: View {
                 .buttonStyle(.borderless)
                 .disabled(row.isBusy)
                 .accessibilityLabel("\(UserTerminology.startUsing) \(row.name)")
-            } else {
-                NavigationLink {
-                    row.destination
-                } label: {
-                    Text("查看详情")
-                        .font(.footnote)
-                }
-                .buttonStyle(.borderless)
-                .fixedSize()
-                .accessibilityLabel(String(localized: "查看输入方案详情"))
             }
+            // No second link here: a List row with two NavigationLinks pushes the detail twice, and
+            // the row itself already opens it.
         }
         .padding(.vertical, 2)
     }

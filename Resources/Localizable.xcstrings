@@ -2839,28 +2839,6 @@
         }
       }
     },
-    "查看输入方案详情": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "查看输入方案详情"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "檢視輸入方案詳情"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "入力パックの詳細を見る"
-          }
-        }
-      }
-    },
     "从推荐、文件或链接添加": {
       "localizations": {
         "zh-Hans": {
