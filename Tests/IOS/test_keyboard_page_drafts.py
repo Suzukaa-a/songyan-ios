@@ -6,6 +6,8 @@ from swift_probe import ROOT, production_modules, run, scratch_directory
 
 FACTORY = ROOT / "Apps/HostApp/KeyboardPageDraftFactory.swift"
 FIXTURE = ROOT / "Tests/IOS/Fixtures/KeyboardPageDraftProbe.swift"
+# The copy names its draft after the page's list name, declared beside the layout lists.
+LIST_NAMES = ROOT / "Apps/HostApp/LayoutManagementView.swift"
 
 
 def swift_declaration(source, opener):
@@ -32,7 +34,8 @@ def generated_fixture(factory_source):
         if generated.count(marker) != 1:
             raise AssertionError("fixture must carry exactly one " + marker)
         generated = generated.replace(marker, swift_declaration(factory_source, opener))
-    return generated
+    list_names = LIST_NAMES.read_text(encoding="utf-8")
+    return generated + "\n" + swift_declaration(list_names, "extension KeyboardPageDefinition {") + "\n"
 
 
 @unittest.skipUnless(sys.platform == "darwin", "requires macOS Swift")
