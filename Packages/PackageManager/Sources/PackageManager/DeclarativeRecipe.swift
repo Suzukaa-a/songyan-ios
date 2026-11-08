@@ -253,8 +253,13 @@ public struct DeclarativeRecipePlan: Sendable {
                 throw RecipeInstallError.invalidResource(PackageText.format("recipe.error.modelTooLarge", path))
             }
         }
-        for input in [packageFileResources, existingFileResources, providedDownloadFiles] {
+        // An installed compiled-only package keeps its compiled tables as references; a recipe over
+        // it carries them unchanged, since there is no text dictionary to rebuild them from.
+        for (input, installed) in [
+            (packageFileResources, true), (existingFileResources, true), (providedDownloadFiles, false),
+        ] {
             for path in input.keys {
+                if installed, SchemeSourceCheck.isCompiledBuildFile(path) { continue }
                 try RecipePlanSupport.checkPath(path)
                 guard RecipeResourceBudget.isModel(path) else {
                     throw RecipeInstallError.invalidResource(PackageText.format("recipe.error.externalModelOnly", path))
@@ -756,6 +761,22 @@ public extension RecipePackageManager {
                         }
                         files[prefix + "build/.gitkeep"] = Data()
                     }
+                    // A compiled-only package's tables are part of the installed workspace: the next
+                    // generation has no text dictionary to rebuild them from.
+                    if !customOnly, !sourceArchive, prefix.isEmpty {
+                        for compiled in try FileManager.default.contentsOfDirectory(
+                            at: url, includingPropertiesForKeys: [.isRegularFileKey, .isSymbolicLinkKey])
+                        {
+                            let path = "build/" + compiled.lastPathComponent
+                            guard SchemeSourceCheck.isCompiledBuildFile(path) else { continue }
+                            let value = try compiled.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey])
+                            guard value.isRegularFile == true, value.isSymbolicLink != true else {
+                                throw RecipeInstallError.invalidResource(
+                                    PackageText.format("recipe.error.symlinkUnsupported", path))
+                            }
+                            fileResources[path] = try RecipeFileResource.reference(at: compiled)
+                        }
+                    }
                     continue
                 }
                 let path = prefix + url.lastPathComponent
@@ -815,7 +836,8 @@ public extension RecipePackageManager {
         initialUserDataURL: URL? = nil, deploy: @escaping Deploy
     ) async throws -> InstalledRecipe {
         // Composed recipes may supply dependencies in later stages; validate the final tree.
-        try SchemeSourceCheck.dependencies(plan.files)
+        try SchemeSourceCheck.dependencies(
+            plan.files, compiled: Set(plan.fileResources.keys.filter { SchemeSourceCheck.isCompiledBuildFile($0) }))
         let records = Set(plan.files.keys).union(plan.fileResources.keys).sorted().map { path in
             if let file = plan.fileResources[path] {
                 return RecipeManifest.File(path: path, sha256: file.sha256, size: file.size)

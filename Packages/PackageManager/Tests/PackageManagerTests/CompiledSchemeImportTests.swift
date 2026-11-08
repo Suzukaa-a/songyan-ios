@@ -187,6 +187,49 @@ final class CompiledSchemeImportTests: XCTestCase {
         XCTAssertEqual(model.sha256, expectedModel.sha256)
     }
 
+    /// Adding a keyboard plans a recipe over the installed package (its sources and its current
+    /// workspace) and installs the result as a new generation. A compiled-only package has nothing
+    /// to rebuild its tables from, so the plan must accept the compiled files and carry them over.
+    func testARecipeOverACompiledPackageKeepsItsCompiledTables() async throws {
+        let package = try write(Self.compiledPackage, to: "recipe-package")
+        let manager = RecipePackageManager(rootURL: scratch.appendingPathComponent("recipe-store"))
+        let prepared = try manager.prepareSchemeImport(directory: package)
+        let deploy: RecipePackageManager.Deploy = { deployment in
+            let build = deployment.userDataURL.appendingPathComponent("build")
+            try FileManager.default.createDirectory(at: build, withIntermediateDirectories: true)
+            try Data("schema_list:\n  - schema: sample\n".utf8)
+                .write(to: build.appendingPathComponent("default.yaml"))
+            try Data("schema: {schema_id: sample}\n".utf8)
+                .write(to: build.appendingPathComponent("sample.schema.yaml"))
+            return .init(availableComponents: [], validatedSchemaID: "sample", validatedEnabledSchemaIDs: ["sample"])
+        }
+        _ = try await manager.installSchemeImport(prepared, deploy: deploy)
+        let firstActive = try await manager.activeInstallation()
+        let first = try XCTUnwrap(firstActive)
+
+        let sources = try RecipePackageManager.readInstalledRecipeSources(resources: first.resourceURL)
+        let workspace = try RecipePackageManager.readRecipeWorkspaceSnapshot(resources: first.resourceURL)
+        let recipe = try DeclarativeRecipe(
+            path: "keyboard-adapters.recipe.yaml",
+            source: Data("recipe:\n  Rx: keyboard-adapters\n  description: adapters\n".utf8))
+        let plan = try DeclarativeRecipePlan(
+            recipe: recipe, packageReference: "sample", selectedRecipe: "keyboard-adapters",
+            arguments: [], packageFiles: sources.files, existingFiles: workspace.files,
+            sourceRevision: first.installation.revision, expectedGeneration: first.installation.generation,
+            packageFileResources: sources.fileResources, existingFileResources: workspace.fileResources,
+            userCustomBaseline: workspace.userCustomFiles)
+        _ = try await manager.installRecipePlan(plan, packageID: "sample", schemaID: "sample", deploy: deploy)
+
+        let secondActive = try await manager.activeInstallation()
+        let second = try XCTUnwrap(secondActive)
+        XCTAssertNotEqual(second.installation.generation, first.installation.generation)
+        for path in ["build/sample.table.bin", "build/sample.reverse.bin", "build/sample.prism.bin"] {
+            let expected = try XCTUnwrap(prepared.fileResources[path])
+            let installed = try RecipeFileResource.reference(at: second.resourceURL.appendingPathComponent(path))
+            XCTAssertEqual(installed.sha256, expected.sha256, "the new generation lost \(path)")
+        }
+    }
+
     func testAComponentModulePathKeepsItsDirectories() throws {
         let schema = Data(
             """
