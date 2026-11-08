@@ -22,6 +22,11 @@ public enum ProductionInputAvailability: Sendable {
     public static var localizedBuiltinDisplayName: String {
         String(localized: "core.status.builtinDisplayName", bundle: .module)
     }
+    /// The name an installed package is listed under. The built-in package's manifest name is the
+    /// Simplified Chinese source text, so it is shown in the app language instead.
+    public static func packageDisplayName(id: String, declaredName: String) -> String {
+        id == builtinPackageID ? localizedBuiltinDisplayName : declaredName
+    }
     /// The input method the keyboard falls back to when nothing is in use.
     public static var fallbackInputMethodName: String {
         BuiltinTemplateSchemas.localizedName(for: BuiltinTemplateSchemas.quanpin) ?? builtinDisplayName

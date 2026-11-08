@@ -539,7 +539,8 @@ final class SchemeImportCenter: ObservableObject {
             userDirectory: active.userDataURL, layoutEntries: bindings,
             prebuiltDirectory: active.userDataURL.appendingPathComponent("build"), schemas: schemas)
         return InstalledPackage(
-            id: id, name: declaration.name, active: active, schemas: schemas,
+            id: id, name: ProductionInputAvailability.packageDisplayName(id: id, declaredName: declaration.name),
+            active: active, schemas: schemas,
             sourceSchemas: sourceSchemas, skippedSchemas: skippedSchemas, bindings: bindings,
             supportedLayouts: supportedLayouts(resourceSet: resources),
             sourceURL: recordedSourceURL(packageID: id, storeRoot: storeRoot))

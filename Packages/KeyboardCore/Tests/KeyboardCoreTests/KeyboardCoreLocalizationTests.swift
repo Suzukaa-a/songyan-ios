@@ -105,6 +105,15 @@ final class KeyboardCoreLocalizationTests: XCTestCase {
         XCTAssertEqual(UserTerminology.layoutListName(id: "mine", name: "我的键盘", shippedName: nil), "我的键盘")
     }
 
+    /// The installed list showed the built-in package under its manifest name, 内置输入方案, in every
+    /// language; it is named from the catalog like the home screen names it.
+    func testTheBuiltinPackageIsListedInTheAppLanguage() throws {
+        let name = ProductionInputAvailability.packageDisplayName(
+            id: ProductionInputAvailability.builtinPackageID, declaredName: ProductionInputAvailability.builtinDisplayName)
+        XCTAssertTrue(try Self.renderings("core.status.builtinDisplayName").contains(name))
+        XCTAssertEqual(ProductionInputAvailability.packageDisplayName(id: "kagiroi", declaredName: "カギロイ"), "カギロイ")
+    }
+
     func testProductionValuesComeFromTheCatalog() throws {
         XCTAssertTrue(try Self.renderings("core.term.inputScheme").contains(UserTerminology.inputScheme))
         XCTAssertTrue(try Self.renderings("core.term.startUsing").contains(UserTerminology.startUsing))
