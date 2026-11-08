@@ -614,6 +614,9 @@ final class KeyboardControlPolicyTests: XCTestCase {
             XCTAssertGreaterThanOrEqual(metrics.space, 44, "space stays usable at (width)")
             XCTAssertGreaterThan(metrics.markLeft, 0)
             XCTAssertGreaterThan(metrics.markRight, 0)
+            // The full stop was wider than Return; the marks now match and Return takes the rest.
+            XCTAssertEqual(metrics.markRight, metrics.markLeft, accuracy: 0.001)
+            XCTAssertGreaterThan(metrics.enter, metrics.markRight)
         }
         XCTAssertLessThan(policy.metrics(width: 320).space, 44)
         XCTAssertEqual(policy.withSpaceSideMarks(false).slots.contains(.markLeft), false)

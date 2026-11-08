@@ -395,13 +395,15 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
 
         /// The rows that also carry the runtime comma/full stop around the space bar. The marks
         /// take a constant share and the space bar keeps the rest, so the row still fills the width.
+        /// The two marks are the same size and Return takes the rest of the right side, so Return
+        /// is never narrower than a mark.
         private static func sideMarksBudget(
             width: Double, hasGlobe: Bool, includesEnter: Bool
         ) -> Metrics {
             let width = width.isFinite ? max(0, width) : 0
             let count = (hasGlobe ? 1 : 0) + 6
             let minimumContent =
-                (hasGlobe ? 44.0 : 0) + 40 + 40 + 40 + 44 + 64 + (includesEnter ? 56.0 : 0)
+                (hasGlobe ? 44.0 : 0) + 40 + 40 + 40 + 44 + 40 + (includesEnter ? 80.0 : 0)
             let minimumTotal = minimumContent + Double(count - 1) * 4
             let scale = min(1, width / minimumTotal)
             let spacing = 4 * scale
@@ -409,9 +411,9 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
             let page = 40 * scale
             let language = page
             let markLeft = 40 * scale
-            let utility = 64 * scale
+            let utility = markLeft
             let globe = hasGlobe ? 44 * scale : 0
-            let enter = includesEnter ? 56 * scale : 0
+            let enter = includesEnter ? 80 * scale : 0
             let space = max(0, content - page - language - markLeft - utility - globe - enter)
             return Metrics(
                 spacing: spacing, page: page, language: language, globe: globe, space: space,
