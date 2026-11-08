@@ -125,6 +125,9 @@ public struct KeyboardPageFooterGeometry: Equatable, Sendable {
             return action.pageSwitchTarget == .symbols
         case .symbolLock:
             return action.type == .symbolLock
+        case .symbolLibrary:
+            // Authored footers have no symbol-library action, so none is the live default.
+            return false
         case .utility:
             // The ABC page's comma, or the runtime footer's full stop beside the space bar.
             return action.type == .literal

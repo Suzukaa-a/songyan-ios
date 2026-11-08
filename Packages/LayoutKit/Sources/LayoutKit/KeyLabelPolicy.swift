@@ -27,6 +27,18 @@ public enum KeyLabelPolicy {
         }
     }
 
+    /// 更多 on the row-shaped symbol page.
+    public static func symbolLibraryTitle(script: KeyLabelScript) -> String {
+        switch script {
+        case .simplifiedChinese, .traditionalChinese: return "更多"
+        case .japanese: return "その他"
+        }
+    }
+
+    public static func symbolLibraryAccessibilityLabel() -> String {
+        String(localized: "key.page.symbolLibrary", bundle: .module)
+    }
+
     public static func clearInputTitle(script: KeyLabelScript) -> String {
         switch script {
         case .simplifiedChinese: return "重输"

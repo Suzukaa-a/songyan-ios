@@ -3439,6 +3439,28 @@
         }
       }
     },
+    "key.page.symbolLibrary": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开符号库"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "開啟符號庫"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記号ライブラリを開く"
+          }
+        }
+      }
+    },
     "key.page.symbols": {
       "localizations": {
         "zh-Hans": {

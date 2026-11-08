@@ -76,6 +76,10 @@ extension KeyboardPanelView {
             onToggleSymbolLock: {
                 emitKeyFeedback()
                 symbolPageLocked.toggle()
+            },
+            onSymbolLibrary: {
+                emitKeyFeedback()
+                openQuickContent(section: "symbols")
             }
         )
     }
@@ -219,7 +223,7 @@ extension KeyboardPanelView {
             showsCategorySymbolPage: showsCategorySymbolPage,
             numericPageReachesSymbols: page != .letters || numericPageReachesSymbols,
             script: controller.inputLanguageScript,
-            showsSpaceSideMarks: showsSpaceSideMarks)
+            showsSpaceSideMarks: showsSpaceSideMarks, offersSymbolLibrary: pageDefinition == nil)
         // A row too narrow to keep a usable space bar falls back to the single mark; the layout
         // decides, not a key branch of its own.
         guard policy.showsSpaceSideMarks,

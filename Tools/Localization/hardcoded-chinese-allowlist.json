@@ -841,6 +841,16 @@
     },
     {
       "path": "Packages/LayoutKit/Sources/LayoutKit/KeyLabelPolicy.swift",
+      "value": "更多",
+      "reason": "Explicit input-script automatic control faces, chosen by KeyLabelScript rather than app locale."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/KeyLabelPolicy.swift",
+      "value": "その他",
+      "reason": "Explicit input-script automatic control faces, chosen by KeyLabelScript rather than app locale."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/KeyLabelPolicy.swift",
       "value": "重输",
       "reason": "Explicit input-script automatic control faces, chosen by KeyLabelScript rather than app locale."
     },

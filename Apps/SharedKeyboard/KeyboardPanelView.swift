@@ -666,7 +666,7 @@ public struct KeyboardPanelView: View {
     /// Key-type pure UI actions (page switch and other control keys that cannot fail): key haptic (feedback on touch).
     func emitKeyFeedback() { feedback.keyPressed() }
 
-    private func openQuickContent(section: String, category: String? = nil) {
+    func openQuickContent(section: String, category: String? = nil) {
         quickContentSection = section
         quickContentCategory = category
         showsSymbolLibrary = true

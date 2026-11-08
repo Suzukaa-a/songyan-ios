@@ -108,7 +108,8 @@ enum KeyboardPanelRules {
         declaredTrailingReturn: @autoclosure () -> Bool, showsCategorySymbolPage: Bool,
         numericPageReachesSymbols: Bool = true,
         script: KeyLabelScript = .simplifiedChinese,
-        showsSpaceSideMarks: Bool = false
+        showsSpaceSideMarks: Bool = false,
+        offersSymbolLibrary: Bool = false
     ) -> KeyboardControlPolicy {
         let trailingHasReturn = !usesFixedEditingRail && phoneShellVisible && declaredTrailingReturn()
         return KeyboardControlPolicy(
@@ -117,7 +118,7 @@ enum KeyboardPanelRules {
             includesBottomEnter: !phoneShellVisible || (!usesFixedEditingRail && !trailingHasReturn),
             usesCategorySymbolPage: showsCategorySymbolPage, numericPageReachesSymbols: numericPageReachesSymbols,
             usesDigitPadRow: usesFixedEditingRail, script: script,
-            showsSpaceSideMarks: showsSpaceSideMarks)
+            showsSpaceSideMarks: showsSpaceSideMarks, offersSymbolLibrary: offersSymbolLibrary)
     }
 
     /// The known bundled main-shell preset (26 or merged 14/18) whose main rows still provide the

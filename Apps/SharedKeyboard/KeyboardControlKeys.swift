@@ -43,6 +43,8 @@ struct ControlRow<ModeKey: View>: View {
     /// Whether the symbol page stays open after a symbol is typed.
     var symbolPageLocked = false
     var onToggleSymbolLock: () -> Void = {}
+    /// Opens the symbol library from the row symbol page's 更多 key.
+    var onSymbolLibrary: () -> Void = {}
 
     var body: some View {
         StableKeyboardControlRow(
@@ -103,6 +105,12 @@ struct ControlRow<ModeKey: View>: View {
             .accessibilityLabel(String(localized: "锁定符号页"))
             .accessibilityValue(symbolPageLocked ? String(localized: "已开启") : String(localized: "已关闭"))
             .accessibilityHint(symbolLockHint)
+        case .symbolLibrary:
+            AlternateCharacterKey(
+                cap: KeyCap(id: "control-symbol-library", title: policy.symbolLibraryTitle, action: .cycleLayout),
+                alternates: []
+            ) { _ in onSymbolLibrary() }
+            .accessibilityLabel(KeyLabelPolicy.symbolLibraryAccessibilityLabel())
         case .returnToLetters:
             // Semantic page switch, not a language key: the face names the return in the scheme's
             // own language while the Chinese/English input state stays untouched.

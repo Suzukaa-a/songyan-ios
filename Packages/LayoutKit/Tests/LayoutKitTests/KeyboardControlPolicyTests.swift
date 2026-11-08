@@ -737,4 +737,54 @@ final class KeyboardControlPolicyTests: XCTestCase {
         let bare = LayoutKey(label: "ABC", secondaryLabel: "2", action: .init(.code, value: "2"))
         XCTAssertFalse(BuiltinLayouts.t9DigitKeyUsesDeclaredAlternates(bare))
     }
+
+    /// The row-shaped symbol page keeps the letters footer's shape, and 更多 takes the full stop's
+    /// place right of the space bar at the comma's width; Return stays wider. The 123 page keeps 。.
+    func testSymbolPageFooterEndsWithSymbolLibraryKeyAtMarkWidth() {
+        for globe in [false, true] {
+            for marks in [false, true] {
+                let symbols = KeyboardControlPolicy(
+                    page: .symbols, isEnglishMode: false, hasGlobe: globe, isPhoneLayout: false,
+                    usesASCIIPunctuation: false, usesCategorySymbolPage: false,
+                    showsSpaceSideMarks: marks, offersSymbolLibrary: true)
+                let footer = symbols.slots.map { symbols.key(at: $0) }
+                var expected: [KeyboardControlPolicy.Slot] =
+                    globe ? [.globe] : []
+                expected += [.returnToLetters, .language]
+                expected += marks ? [.markLeft] : []
+                expected += [.space, .symbolLibrary, .enter]
+                XCTAssertEqual(footer, expected, "globe \(globe) marks \(marks)")
+                let metrics = symbols.metrics(width: 390)
+                XCTAssertEqual(metrics[.symbolLibrary], metrics[.utility])
+                if marks {
+                    XCTAssertEqual(metrics[.symbolLibrary], metrics[.markLeft], accuracy: 0.001)
+                    XCTAssertGreaterThan(metrics[.enter], metrics[.symbolLibrary])
+                }
+                // 123 keeps its full stop.
+                let numeric = KeyboardControlPolicy(
+                    page: .numeric, isEnglishMode: false, hasGlobe: globe, isPhoneLayout: false,
+                    usesASCIIPunctuation: false, usesCategorySymbolPage: false,
+                    showsSpaceSideMarks: marks, offersSymbolLibrary: true)
+                XCTAssertEqual(numeric.key(at: .utility), .utility)
+                // Not asked for (authored, preview), categorized and phone pages are untouched.
+                let plain = KeyboardControlPolicy(
+                    page: .symbols, isEnglishMode: false, hasGlobe: globe, isPhoneLayout: false,
+                    usesASCIIPunctuation: false, usesCategorySymbolPage: false,
+                    showsSpaceSideMarks: marks)
+                XCTAssertEqual(plain.key(at: .utility), .utility)
+                let category = KeyboardControlPolicy(
+                    page: .symbols, isEnglishMode: false, hasGlobe: globe, isPhoneLayout: false,
+                    usesASCIIPunctuation: false, usesCategorySymbolPage: true, offersSymbolLibrary: true)
+                XCTAssertEqual(category.key(at: .utility), .symbolLock)
+            }
+        }
+    }
+
+    func testSymbolLibraryKeyFollowsInputLanguage() {
+        XCTAssertEqual(KeyLabelPolicy.symbolLibraryTitle(script: .simplifiedChinese), "更多")
+        XCTAssertEqual(KeyLabelPolicy.symbolLibraryTitle(script: .traditionalChinese), "更多")
+        XCTAssertEqual(KeyLabelPolicy.symbolLibraryTitle(script: .japanese), "その他")
+        XCTAssertFalse(KeyLabelPolicy.symbolLibraryAccessibilityLabel().isEmpty)
+        XCTAssertNotEqual(KeyLabelPolicy.symbolLibraryAccessibilityLabel(), "key.page.symbolLibrary")
+    }
 }

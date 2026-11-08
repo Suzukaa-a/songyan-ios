@@ -13,6 +13,9 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
         /// Keys, never positions: the direct 「符号」 key of a letter page whose 123 page cannot
         /// reach the symbol page, and the symbol page's 锁定 toggle (in the utility position).
         case symbolPage, symbolLock
+        /// A key, never a position: 更多 on the row-shaped symbol page, in the utility position. It
+        /// opens the categorized symbol library instead of typing a mark.
+        case symbolLibrary
         /// A semantic key, never a physical slot: the 123 the row-shaped #+= page's left
         /// switch is "return to letters" (preserving the input language), not a language toggle.
         case returnToLetters
@@ -50,6 +53,10 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
     public let usesDigitPadRow: Bool
     /// The scheme's input language for automatic faces; author labels never read it.
     public let script: KeyLabelScript
+    /// The row-shaped symbol page already types every mark, so its utility position opens the
+    /// symbol library (更多) instead of typing one. Only the live panel's built-in footer sets it;
+    /// authored and previewed footers are data and keep their marks.
+    public let offersSymbolLibrary: Bool
     /// The native footer puts a comma left of the space bar and a full stop right of it. Off for
     /// authored pages, previews and narrow rows, which keep the single comma key.
     public private(set) var showsSpaceSideMarks: Bool
@@ -79,7 +86,8 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
         isPhoneLayout: Bool, usesASCIIPunctuation: Bool,
         includesBottomEnter: Bool = true, usesCategorySymbolPage: Bool = true,
         numericPageReachesSymbols: Bool = true, usesDigitPadRow: Bool = false,
-        script: KeyLabelScript = .simplifiedChinese, showsSpaceSideMarks: Bool = false
+        script: KeyLabelScript = .simplifiedChinese, showsSpaceSideMarks: Bool = false,
+        offersSymbolLibrary: Bool = false
     ) {
         self.page = page
         self.isEnglishMode = isEnglishMode
@@ -92,6 +100,7 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
         self.usesDigitPadRow = usesDigitPadRow
         self.script = script
         self.showsSpaceSideMarks = showsSpaceSideMarks
+        self.offersSymbolLibrary = offersSymbolLibrary
     }
 
     /// The same policy with the runtime footer marks switched on or off.
@@ -173,6 +182,7 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
                 default: return slot
                 }
             }
+            if slot == .utility && offersSymbolLibrary && !isPhoneLayout { return .symbolLibrary }
             return slot == .page ? .returnToLetters : slot
         }
     }
@@ -258,6 +268,9 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
     ///
     /// With the split footer the full stop sits on its own key, so this comma holds only the pauses;
     /// the single-mark footer keeps the full sentence-mark list.
+    /// The face of 更多 follows the input language, like the other automatic control titles.
+    public var symbolLibraryTitle: String { KeyLabelPolicy.symbolLibraryTitle(script: script) }
+
     public var utilityAlternates: [String] {
         if usesASCIIPunctuation { return [".", "?", "!", "'", "\""] }
         if showsSpaceSideMarks { return [script == .japanese ? "・" : "、", "：", "；"] }
@@ -449,6 +462,7 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
             case .markLeft: return markLeft
             case .markRight: return markRight
             case .symbolLock: return utility
+            case .symbolLibrary: return utility
             // Semantic slot only; it occupies the physical page position.
             case .returnToLetters: return page
             }
