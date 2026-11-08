@@ -407,11 +407,7 @@ struct KeyboardLayoutUtilityBar<Key: View, Globe: View, ModeSwitch: View>: View 
             let boundary = split.breakIndex(row: rowIndex, keyCount: keys.count)
             let shown = keys.indices.filter { showsGlobe || keys[$0].action.type != .globe }
             let visible = shown.filter { keys[$0].action.type != .space }
-            // A hidden globe's width goes to Return; declared indices stay stable for the key callbacks.
-            var weights = keys.map(\.widthWeight)
-            if !showsGlobe {
-                for (index, key) in zip(shown, keys.withoutGlobe()) { weights[index] = key.widthWeight }
-            }
+            let weights = footerWeights(keys, shown: shown)
             let plan = shortcutPlan
             let shortcuts: [LayoutFooterItem] =
                 (plan.addsNumericShortcut ? [.numericShortcut] : [])
@@ -434,6 +430,15 @@ struct KeyboardLayoutUtilityBar<Key: View, Globe: View, ModeSwitch: View>: View 
         } else {
             singleSpaceBar
         }
+    }
+
+    /// Each declared key's width. A hidden globe's width goes to Return; declared indices stay
+    /// stable for the key callbacks.
+    private func footerWeights(_ keys: [LayoutKey], shown: [Int]) -> [Double] {
+        var weights = keys.map(\.widthWeight)
+        guard !showsGlobe else { return weights }
+        for (index, key) in zip(shown, keys.withoutGlobe()) { weights[index] = key.widthWeight }
+        return weights
     }
 
     @ViewBuilder
