@@ -249,6 +249,8 @@ struct Kana12KeyboardView: View {
     let compositing: Bool
     let labels: Kana12Labels
     let systemSwitchKey: AnyView?
+    /// The panel's language key, so a long press lists the added keyboards like every other board.
+    let languageKey: AnyView?
     let onAction: (Kana12ViewAction) -> Void
 
     @State private var activePress: Kana12Press? = nil
@@ -260,11 +262,13 @@ struct Kana12KeyboardView: View {
         compositing: Bool,
         labels: Kana12Labels,
         systemSwitchKey: AnyView? = nil,
+        languageKey: AnyView? = nil,
         onAction: @escaping (Kana12ViewAction) -> Void
     ) {
         self.compositing = compositing
         self.labels = labels
         self.systemSwitchKey = systemSwitchKey
+        self.languageKey = languageKey
         self.onAction = onAction
     }
 
@@ -305,7 +309,14 @@ struct Kana12KeyboardView: View {
         VStack(spacing: metrics.spacing) {
             functionKey(.cursorLeft, role: "control").frame(height: metrics.rowHeight)
             functionKey(.symbols, role: "control").frame(height: metrics.rowHeight)
-            functionKey(.language, role: "control").frame(height: metrics.rowHeight)
+            Group {
+                if let languageKey {
+                    languageKey
+                } else {
+                    functionKey(.language, role: "control")
+                }
+            }
+            .frame(height: metrics.rowHeight)
             Group {
                 if let systemSwitchKey {
                     systemSwitchKey

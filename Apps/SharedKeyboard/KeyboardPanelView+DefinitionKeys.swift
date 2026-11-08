@@ -596,7 +596,7 @@ extension KeyboardPanelView {
 
     /// The bundled T9 digit keys type their digit on an upward flick, the same
     /// literal their long press offers.
-    private var keyLongPressDelay: TimeInterval {
+    var keyLongPressDelay: TimeInterval {
         KeyboardKeyFeelPreferences.longPressDelay(layout: activeDefinition?.longPressDelay)
     }
 

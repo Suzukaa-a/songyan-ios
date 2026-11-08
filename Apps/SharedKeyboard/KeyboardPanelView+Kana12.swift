@@ -79,6 +79,7 @@ extension KeyboardPanelView {
             compositing: controller.snapshot.isComposing,
             labels: kana12Labels,
             systemSwitchKey: kana12SystemSwitchKey,
+            languageKey: kana12LanguageKey,
             onAction: performKana12ViewAction
         )
         // The surface's fixed height already includes its own 4pt top/bottom inset, so its rows are
@@ -95,6 +96,31 @@ extension KeyboardPanelView {
             NativeInputModeKey(
                 handleEvent: systemKeyboardSwitch,
                 accessibilitySwitch: { controller.handle(.switchKeyboard) }))
+    }
+
+    /// Tap toggles the input language through the kana queue; a long press opens the same
+    /// keyboard list as the language key of the other boards.
+    private var kana12LanguageKey: AnyView {
+        let compositing = controller.snapshot.isComposing
+        let title = kana12Labels.title(for: .language, compositing: compositing)
+        let capID = "kana12-language"
+        return AnyView(
+            AlternateCharacterKey(
+                cap: KeyCap(id: capID, title: title, subtitle: nil, action: .cycleLayout),
+                alternates: userKeyboardAlternates,
+                longPressDelay: keyLongPressDelay,
+                layoutPicker: true,
+                visualRole: "control",
+                onSelect: { cap in
+                    if cap.id == capID {
+                        performKana12ViewAction(.language)
+                    } else {
+                        handleLanguageMenuCap(cap)
+                    }
+                }
+            )
+            .accessibilityLabel(
+                kana12Labels.accessibility(for: .language, compositing: compositing)?.label ?? title))
     }
 
     // MARK: Labels
