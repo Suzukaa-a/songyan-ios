@@ -452,7 +452,8 @@ public enum BuiltinLayouts {
 
     // MARK: - Japanese board
 
-    /// The Japanese romaji board: the QWERTY 26-key letters with ー right of M. The board keeps the
+    /// The Japanese romaji board: the QWERTY 26-key letters with ー right of L, where the system
+    /// Japanese romaji keyboard has it, so the second row is as full as the first. The board keeps the
     /// 26-key encoding kind and is identified by its id, so no new kind and no new engine case come
     /// with it. The fourth row is the 26-key stand-in: while it is unedited the keyboard draws its
     /// own footer, which names the space, Return and language keys for the input language and puts
@@ -466,11 +467,11 @@ public enum BuiltinLayouts {
     /// literal ー would bypass the scheme's own punctuation handling.
     private static let longVowelKey = LayoutKey(label: "ー", action: .init(.code, value: "-"))
 
-    /// The bundled letter rows with ー appended to the third row. Keeping the bundled letter menus
+    /// The bundled letter rows with ー appended to the second row. Keeping the bundled letter menus
     /// lets the input language rename their marks (a Japanese board offers 、 。 「 」 and ー).
     private static func romajiRows() -> [LayoutRow] {
         var rows = alphabetRows()
-        rows[2] = LayoutRow(keys: rows[2].keys + [longVowelKey])
+        rows[1] = LayoutRow(keys: rows[1].keys + [longVowelKey])
         return rows
     }
 

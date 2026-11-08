@@ -4,22 +4,22 @@ import XCTest
 @testable import LayoutKit
 
 /// The bundled Japanese romaji board: the QWERTY 26-key letters with ー, typed by the scheme's
-/// minus code, right of M, followed by the 26-key stand-in control row. The shell replaces that row
+/// minus code, right of L (where the system romaji keyboard has it), followed by the 26-key stand-in control row. The shell replaces that row
 /// with its own automatic footer, so the input language names the space, Return and language keys
 /// and puts 、 and 。 on either side of the space bar.
 final class RomajiLayoutTests: XCTestCase {
     /// The cap of every key of the three letter rows, in drawn order. The long vowel mark sits
-    /// right of M.
+    /// right of L.
     private static let letterCaps = [
         ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"],
-        ["a", "s", "d", "f", "g", "h", "j", "k", "l"],
-        ["z", "x", "c", "v", "b", "n", "m", "ー"],
+        ["a", "s", "d", "f", "g", "h", "j", "k", "l", "ー"],
+        ["z", "x", "c", "v", "b", "n", "m"],
     ]
     /// The engine code of every letter key, in the same order: ー is the scheme's minus.
     private static let letterCodes = [
         ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"],
-        ["a", "s", "d", "f", "g", "h", "j", "k", "l"],
-        ["z", "x", "c", "v", "b", "n", "m", "-"],
+        ["a", "s", "d", "f", "g", "h", "j", "k", "l", "-"],
+        ["z", "x", "c", "v", "b", "n", "m"],
     ]
 
     private var repositoryRoot: URL {
@@ -72,7 +72,7 @@ final class RomajiLayoutTests: XCTestCase {
     func testTheLetterRowsAreQwertyWithTheLongVowelKeyRightOfM() throws {
         let layout = try bundled()
         XCTAssertEqual(layout.rows.count, 4, "three letter rows and one control row")
-        XCTAssertEqual(layout.rows.map { $0.keys.count }, [10, 9, 8, 5])
+        XCTAssertEqual(layout.rows.map { $0.keys.count }, [10, 10, 7, 5])
         XCTAssertEqual(layout.rows.dropLast().map { $0.keys.map(\.label) }, Self.letterCaps)
     }
 
@@ -89,7 +89,7 @@ final class RomajiLayoutTests: XCTestCase {
         }
         // ー must reach the scheme as the minus code, never as an inserted literal: the scheme turns
         // the code into the long vowel mark mid-composition.
-        let longVowel = try XCTUnwrap(rows.last?.keys.last)
+        let longVowel = try XCTUnwrap(rows[1].keys.last)
         XCTAssertEqual(longVowel.label, "ー")
         XCTAssertEqual(longVowel.action, LayoutAction(.code, value: "-"))
         XCTAssertNil(longVowel.longPress, "the long vowel key has no alternate menu of its own")
@@ -124,14 +124,14 @@ final class RomajiLayoutTests: XCTestCase {
             "an unedited stand-in lets the keyboard draw its own footer")
     }
 
-    func testTheThirdRowStillCountsAsTheMainShell() throws {
+    func testTheSecondRowStillCountsAsTheMainShell() throws {
         let layout = try bundled()
         // The extra key is one more key in a main row; Shift and Delete are drawn outside the rows,
         // so the board keeps the shell's editing keys. Only the equal-column rule sees the change:
         // the letter rows draw at their declared weights instead of the preset's columns.
         XCTAssertTrue(BuiltinLayouts.matchesMainShell(layout, as: .qwerty26))
         XCTAssertFalse(BuiltinLayouts.matchesMainShellColumns(layout, as: .qwerty26))
-        XCTAssertEqual(layout.rows[2].keys.count, 8)
+        XCTAssertEqual(layout.rows[1].keys.count, 10)
         XCTAssertEqual(PhoneKeypadMetrics.mainRowCount, 3)
     }
 
