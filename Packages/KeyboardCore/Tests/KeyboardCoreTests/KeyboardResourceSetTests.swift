@@ -98,6 +98,13 @@ final class KeyboardResourceSetTests: XCTestCase {
                 XCTAssertEqual(BuiltinTemplateSchemas.layout(forSchemaID: engine), layout)
             }
         }
+        // Every combination is named, so the keyboard menu never shows a bare layout name.
+        for combination in set.availableCombinations {
+            XCTAssertFalse(combination.name.isEmpty, combination.id)
+            if combination.layout == .qwerty26 {
+                XCTAssertEqual(combination.name, BuiltinTemplateSchemas.localizedName(for: combination.schemaID))
+            }
+        }
         for layout in KeyboardLayoutKind.allCases {
             XCTAssertEqual(set.schemaID(for: layout), BuiltinTemplateSchemas.defaultSchemaID(for: layout))
         }

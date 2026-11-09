@@ -37,7 +37,10 @@ public struct KeyboardResourceSet: Equatable, Sendable {
             // The user-visible name accepts only the human name declared by the resource; an
             // empty name or `name == id` stays empty so the upper layer falls back to the
             // layout name and never shows an arbitrary schema/source ID as display copy.
-            let sourceName = schemas.first { $0.id == source }?.humanReadableName ?? ""
+            // The bundled built-in set carries no descriptors; its schemes still have product names.
+            let sourceName =
+                schemas.first { $0.id == source }?.humanReadableName
+                ?? BuiltinTemplateSchemas.localizedName(for: source) ?? ""
             let family = family(ofSource: source)
             for layout in KeyboardLayoutKind.allCases {
                 // A folded shape only runs schemes that keep today's behaviour; an author declaration,
