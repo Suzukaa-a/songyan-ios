@@ -21,7 +21,6 @@ struct MainTabView: View {
     /// The keyboard in use, for the 我的键盘 row.
     @State private var keyboardLine = String(localized: "正在读取…")
     @StateObject private var center = KeyboardSelectionCenter.shared
-    @StateObject private var tools = KeyboardToolsCenter.shared
     @StateObject private var imports = DictionaryImportCenter.shared
     @StateObject private var schemeImports = SchemeImportCenter.shared
     /// Observes the appearance manager so the home summary refreshes with the appearance in use.
@@ -83,14 +82,6 @@ struct MainTabView: View {
                             subtitle: String(localized: "标点、特殊符号与颜文字"), systemImage: "number")
                     }
                     NavigationLink {
-                        KeyboardToolsSettingsView()
-                    } label: {
-                        HomeRow(
-                            title: KeyboardToolsCopy.text("keyboardTools.title"),
-                            subtitle: KeyboardToolsCopy.text("keyboardTools.home.subtitle"),
-                            systemImage: "wand.and.stars")
-                    }
-                    NavigationLink {
                         LearningBackupView()
                     } label: {
                         HomeRow(
@@ -136,7 +127,6 @@ struct MainTabView: View {
                 // Commit prediction (on by default once a dictionary is imported) converges after typo correction so the two do not contend for the install transaction.
                 PredictionCenter.shared.scheduleReconcile(after: TypoCorrectionCenter.shared.reconcileTask)
             }
-            .navigationDestination(isPresented: $tools.isPresented) { KeyboardToolsSettingsView() }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active { refreshTick &+= 1 }
             }

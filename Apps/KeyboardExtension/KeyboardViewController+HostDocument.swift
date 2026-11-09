@@ -3,7 +3,6 @@ import Combine
 import KeyboardCore
 import LayoutKit
 import OSLog
-import QuickContentKit
 import SwiftUI
 import UIKit
 
@@ -391,8 +390,7 @@ extension KeyboardViewController {
             autocapitalizationType: proxy.autocapitalizationType,
             enablesReturnKeyAutomatically: proxy.enablesReturnKeyAutomatically,
             beforeCursor: ownsDocument ? proxy.documentContextBeforeInput : nil,
-            documentIsEmpty: ownsDocument ? !proxy.hasText : nil,
-            hasSelectedText: ownsDocument && proxy.selectedText?.isEmpty == false)
+            documentIsEmpty: ownsDocument ? !proxy.hasText : nil)
     }
 }
 
@@ -463,53 +461,5 @@ extension KeyboardViewController: KeyboardPadHost {
 
     func switchKeyboard() {
         advanceToNextInputMode()
-    }
-}
-
-// MARK: - Keyboard tools (M-D3)
-
-extension KeyboardViewController {
-    /// Reads the text a tool may process. Only a writable document is offered, and the identity is
-    /// included so a replacement can tell the same field from another one with the same text.
-    func readToolTextSource() -> ToolPanelEditorSnapshot? {
-        guard writableDocument() != nil else { return nil }
-        let proxy = textDocumentProxy
-        return ToolPanelEditorSnapshot(
-            selectedText: proxy.selectedText,
-            textBeforeCursor: proxy.documentContextBeforeInput,
-            documentIdentifier: hostContextIdentifier(),
-            documentIsEmpty: !proxy.hasText)
-    }
-
-    /// Replaces exactly the anchored text, and only while the field still shows it. A selection is
-    /// replaced by `insertText` in one host operation; a paragraph has no range API, so it is
-    /// removed with backwards deletes, the only removal a keyboard proxy offers.
-    func replaceToolAnchor(_ anchor: ToolPanelAnchor, with text: String) -> Bool {
-        guard let document = writableDocument() else { return false }
-        let proxy = textDocumentProxy
-        let snapshot = ToolPanelEditorSnapshot(
-            selectedText: proxy.selectedText,
-            textBeforeCursor: proxy.documentContextBeforeInput,
-            documentIdentifier: document.uuidString,
-            documentIsEmpty: !proxy.hasText)
-        guard anchor.matches(snapshot) else { return false }
-        switch anchor.location {
-        case .selection:
-            writeProxy { textDocumentProxy.insertText(text) }
-        case .paragraphBeforeCursor:
-            writeProxy {
-                for _ in 0..<anchor.text.count { textDocumentProxy.deleteBackward() }
-                textDocumentProxy.insertText(text)
-            }
-        }
-        return true
-    }
-
-    /// Writes the result to the system clipboard. A keyboard without Full Access may not touch the
-    /// pasteboard, so the refusal is reported instead of pretending it worked.
-    func copyToolResult(_ text: String) -> Bool {
-        guard hasFullAccess else { return false }
-        UIPasteboard.general.string = text
-        return true
     }
 }

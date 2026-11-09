@@ -4,7 +4,6 @@ import Foundation
 public enum IdleToolbarItem: String, CaseIterable, Sendable {
     case emoji
     case settings
-    case tools
 }
 
 /// The user's choice for the idle toolbar: every item once, in order, each shown or not. Off items
@@ -24,9 +23,9 @@ public struct IdleToolbarLayout: Equatable, Sendable {
 
     private init(validated entries: [Entry]) { self.entries = entries }
 
-    /// Today's idle toolbar: kaomoji, settings, then the tools.
+    /// Today's idle toolbar: kaomoji, then settings.
     public static let `default` = IdleToolbarLayout(
-        validated: [IdleToolbarItem.emoji, .settings, .tools].map { Entry(item: $0, shown: true) })
+        validated: [IdleToolbarItem.emoji, .settings].map { Entry(item: $0, shown: true) })
 
     public var shown: [IdleToolbarItem] { entries.filter(\.shown).map(\.item) }
     public var isDefault: Bool { self == .default }
@@ -52,7 +51,7 @@ public struct IdleToolbarLayout: Equatable, Sendable {
 
     /// Nothing stored gives the default; unknown or repeated names are skipped and items the value
     /// does not mention are appended on, so an older or damaged value never hides a button for good.
-    /// A removed item (the old clipboard button) is an unknown name and simply drops out.
+    /// A removed item (the old clipboard or tools button) is an unknown name and simply drops out.
     public static func parse(_ wire: String?) -> IdleToolbarLayout {
         guard let wire, !wire.trimmingCharacters(in: .whitespaces).isEmpty else { return .default }
         var seen: [Entry] = []
@@ -72,13 +71,10 @@ public struct IdleToolbarLayout: Equatable, Sendable {
     }
 }
 
-/// One drawn idle-toolbar slot. A pinned tool is the tools item's own shortcut, drawn before the
-/// tools button.
+/// One drawn idle-toolbar slot.
 public enum IdleToolbarSlot: Equatable, Sendable {
     case emoji
     case settings
-    case pinned(Int)
-    case tools
 }
 
 /// How many entries fit a width. The keyboard and the settings page both call this, so the count
@@ -87,7 +83,6 @@ public enum IdleToolbarCapacity {
     /// The smallest slot an icon keeps: a comfortable touch target, so a full toolbar drops entries
     /// instead of cramming them.
     public static let minIconSlot: Double = 44
-    public static let maxPinnedSlot: Double = 96
 
     /// The most chosen entries a toolbar `width` points wide shows, after `fixedSlots` entries that
     /// are always drawn.
@@ -125,19 +120,13 @@ public enum IdleToolbarCapacity {
 
 /// Builds the idle toolbar's slot list from the user's choice and what the field and window offer.
 public enum IdleToolbarAssembly {
-    /// The shown items in the user's order, minus what is unavailable. A choice can only remove
-    /// entries, never add one the field cannot offer. The tools item brings the pinned tools ahead
-    /// of its button and goes away with `toolsAvailable` (a protected field, no readable host).
-    /// `pinnedWidths` are the pinned tools' own minimum widths.
-    public static func slots(
-        layout: IdleToolbarLayout, hidden: Bool, toolsAvailable: Bool, pinnedWidths: [Double] = []
-    ) -> [IdleToolbarSlot] {
+    /// The shown items in the user's order. A choice can only remove entries, never add one.
+    public static func slots(layout: IdleToolbarLayout, hidden: Bool) -> [IdleToolbarSlot] {
         guard !hidden else { return [] }
-        return layout.shown.flatMap { item -> [IdleToolbarSlot] in
+        return layout.shown.map { item -> IdleToolbarSlot in
             switch item {
-            case .emoji: [.emoji]
-            case .settings: [.settings]
-            case .tools: toolsAvailable ? pinnedWidths.indices.map { .pinned($0) } + [.tools] : []
+            case .emoji: .emoji
+            case .settings: .settings
             }
         }
     }
@@ -146,21 +135,13 @@ public enum IdleToolbarAssembly {
     /// always-drawn entries (such as the wide-screen hide button) taking room that is never given
     /// back.
     public static func fitting(
-        _ slots: [IdleToolbarSlot], pinnedWidths: [Double] = [], width: Double, fixedSlots: Int = 0
+        _ slots: [IdleToolbarSlot], width: Double, fixedSlots: Int = 0
     ) -> [IdleToolbarSlot] {
         let fixed = [IdleToolbarCapacity.Slot](
             repeating: .init(minWidth: IdleToolbarCapacity.minIconSlot, droppable: false), count: fixedSlots)
         let drawn =
-            slots.map { slot -> IdleToolbarCapacity.Slot in
-                if case .pinned(let index) = slot, pinnedWidths.indices.contains(index) {
-                    return .init(
-                        minWidth: min(
-                            IdleToolbarCapacity.maxPinnedSlot,
-                            max(IdleToolbarCapacity.minIconSlot, pinnedWidths[index])),
-                        droppable: true)
-                }
-                return .init(minWidth: IdleToolbarCapacity.minIconSlot, droppable: true)
-            } + fixed
+            slots.map { _ in IdleToolbarCapacity.Slot(minWidth: IdleToolbarCapacity.minIconSlot, droppable: true) }
+            + fixed
         let kept = IdleToolbarCapacity.keep(width: width, slots: drawn)
         return slots.indices.filter { kept[$0] }.map { slots[$0] }
     }

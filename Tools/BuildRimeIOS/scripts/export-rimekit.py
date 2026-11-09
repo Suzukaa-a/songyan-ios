@@ -20,7 +20,7 @@ INSTALLED = PACKAGE / "Vendored/RimeKit.xcframework"
 MANIFEST = PACKAGE / "RimeKitArtifact.json"
 SLICES = ("ios-arm64", "ios-arm64-simulator")
 REQUIRED_SYMBOLS = ("_rb_require_lua", "_rb_require_grammar", "_rb_require_t9", "_rb_require_predict",
-                    "_rb_predict_components_registered", "_rb_opencc_convert", "_rb_opencc_free")
+                    "_rb_predict_components_registered")
 FORBIDDEN_PATHS = (str(ROOT).encode(), b"/Users/")
 
 

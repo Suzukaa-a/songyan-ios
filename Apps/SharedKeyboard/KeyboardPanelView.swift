@@ -124,8 +124,6 @@ public struct KeyboardPanelView: View {
     /// Whether a symbol has been entered on the current number/symbol page (used to return to letters after space); reset on every page change.
     @State private var typedOnSymbolPage = false
     @StateObject var quickSymbols = T9QuickSymbolModel()
-    /// Keyboard tools: the catalog, the panel state and one run at a time (M2).
-    @StateObject private var tools = KeyboardToolsModel()
     /// The symbol library behind the 9-key symbol page's themed tabs and recents.
     /// Read only when that page opens; the page inserts through `handleKey` and
     /// only reports uses, so the model's own insert exit is never called.
@@ -279,17 +277,9 @@ public struct KeyboardPanelView: View {
                             .frame(width: contentWidth, height: geometry.size.height)
                             .background(Color.black.opacity(0.001))
                             .clipped()
-                    } else if tools.isOpen {
-                        KeyboardToolsPanel(
-                            controller: controller, model: tools,
-                            onClose: { tools.close() }
-                        )
-                        .frame(width: contentWidth, height: geometry.size.height)
-                        .background(Color.black.opacity(0.001))
-                        .clipped()
                     }
                 }
-                // The covering overlay (tools / symbol library) swaps in immediately: no
+                // The covering overlay (utilities / symbol library) swaps in immediately: no
                 // outgoing menu is retained over the next immediately usable key, and this
                 // is not a transition owner (the key-area cue owns page/language).
                 //
@@ -665,7 +655,7 @@ public struct KeyboardPanelView: View {
     /// Any panel that covers the keys; while one is open the key area takes no touches and is
     /// hidden from VoiceOver, and the idle toolbar treats the panel as covered.
     private var showsCoveringPanel: Bool {
-        showsUtilitiesMenu || showsSymbolLibrary || tools.isOpen
+        showsUtilitiesMenu || showsSymbolLibrary
     }
 
     private func idleTool(_ title: String, icon: String, action: @escaping () -> Void) -> some View {
@@ -684,17 +674,10 @@ public struct KeyboardPanelView: View {
         .accessibilityIdentifier("keyboard.toolbar." + title)
     }
 
-    /// The idle toolbar in the user's order, cut to what the real toolbar width holds. The pinned
-    /// tools run from here too, and still stop at the preview: a tool never writes without the
-    /// user's word.
+    /// The idle toolbar in the user's order, cut to what the real toolbar width holds.
     private func idleToolbar(width: CGFloat, fixedSlots: Int, trailingInset: CGFloat) -> some View {
-        let pinned = controller.showsTextTools ? tools.pinned : []
-        let pinnedWidths = pinned.map { Double(tools.displayName(for: $0).count) * 13 + 12 }
-        let chosen = IdleToolbarAssembly.slots(
-            layout: idleToolbarLayout, hidden: false, toolsAvailable: controller.showsTextTools,
-            pinnedWidths: pinnedWidths)
-        let slots = IdleToolbarAssembly.fitting(
-            chosen, pinnedWidths: pinnedWidths, width: Double(width), fixedSlots: fixedSlots)
+        let chosen = IdleToolbarAssembly.slots(layout: idleToolbarLayout, hidden: false)
+        let slots = IdleToolbarAssembly.fitting(chosen, width: Double(width), fixedSlots: fixedSlots)
         return HStack(spacing: 4) {
             ForEach(Array(slots.enumerated()), id: \.offset) { _, slot in
                 switch slot {
@@ -704,48 +687,12 @@ public struct KeyboardPanelView: View {
                     }
                 case .settings:
                     idleTool(String(localized: "键盘设置"), icon: "gearshape") { showsUtilitiesMenu = true }
-                case .pinned(let index):
-                    if pinned.indices.contains(index) { pinnedTool(pinned[index]) }
-                case .tools:
-                    idleTool(KeyboardToolsWording.toolbarButton, icon: "wand.and.stars") {
-                        tools.open(controller: controller)
-                    }
                 }
             }
         }
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 8)
         .padding(.trailing, trailingInset)
-    }
-
-    /// A pinned tool runs from the toolbar and opens its preview; the panel does the writing.
-    private func pinnedTool(_ item: KeyboardToolsModel.Item) -> some View {
-        Button {
-            emitSelectionFeedback()
-            tools.open(controller: controller, toolID: item.id)
-        } label: {
-            Text(tools.displayName(for: item))
-                .font(.system(size: 13, weight: .medium))
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-                .padding(.horizontal, 6)
-                .frame(maxWidth: .infinity, minHeight: min(44, CGFloat(layoutPlan.headerHeight)))
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .foregroundStyle(Color(uiColor: appearance.text(on: "panel", secondary: true)))
-        .accessibilityLabel(tools.displayName(for: item))
-        .accessibilityHint(KeyboardToolsWording.pinnedHint)
-        .accessibilityIdentifier("keyboard.toolbar.tool." + item.id)
-    }
-
-    /// Reads the catalog for the current input language. The built-in conversion follows that
-    /// language, so a scheme switch re-reads it; every read happens in the model, off the main
-    /// thread.
-    private func refreshToolsCatalog() {
-        let model = tools
-        let language = controller.inputLanguage.language
-        Task { await model.refresh(inputLanguage: language) }
     }
 
     private var idleToolbarInput: IdleToolbarInput {
@@ -997,21 +944,12 @@ public struct KeyboardPanelView: View {
                 symbolPageKeepsCandidates = page != .letters && controller.snapshot.isComposing
             }
             .onChange(of: controller.keyboardType) { syncHostPage() }
-            // The tool catalog is the host's file; re-read it on every new host binding (another
-            // app, unlock, settings changes) and when the input language changes what the built-in
-            // conversion means.
-            .onChange(of: controller.inputLanguage) { refreshToolsCatalog() }
             .onAppear { syncHostPage() }
             .onAppear { refreshContentDock() }
-            .onAppear { refreshToolsCatalog() }
             .onChange(of: hostBindingTick) {
                 refreshContentDock()
                 clearSymbolMarksOverride()
                 refreshKana12Preferences()
-                // The open panel described the previous host's text; closing it is the only safe
-                // answer, and the toolbar can open a fresh one.
-                if tools.isOpen { tools.close() }
-                refreshToolsCatalog()
             }
     }
 

@@ -44,11 +44,9 @@ struct HostApp: App {
                 #endif
             }
             .onOpenURL { url in
-                if url.scheme == HostAppLink.scheme && url.host == "tools" {
-                    KeyboardToolsCenter.shared.open()
-                } else if url.isFileURL && ["json", "songyantool"].contains(url.pathExtension.lowercased()) {
-                    KeyboardToolsCenter.shared.open(importing: url)
-                }
+                // `songyan://` exists only so the keyboard's settings panel can come back here
+                // (an extension cannot open another app any other way). Landing on the home
+                // screen is right: every setting starts from there, so no route is pending.
                 #if DEBUG
                     DebugOrientation.handle(url)
                 #endif

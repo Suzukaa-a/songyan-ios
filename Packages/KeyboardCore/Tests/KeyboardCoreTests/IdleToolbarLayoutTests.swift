@@ -8,7 +8,7 @@ final class IdleToolbarLayoutTests: XCTestCase {
     private typealias Item = IdleToolbarItem
 
     func testDefaultKeepsTodaysSetAndOrder() {
-        XCTAssertEqual(IdleToolbarLayout.default.shown, [.emoji, .settings, .tools])
+        XCTAssertEqual(IdleToolbarLayout.default.shown, [.emoji, .settings])
         XCTAssertTrue(IdleToolbarLayout.default.isDefault)
         XCTAssertEqual(IdleToolbarLayout.parse(nil), .default)
         XCTAssertEqual(IdleToolbarLayout.parse("  "), .default)
@@ -16,23 +16,25 @@ final class IdleToolbarLayoutTests: XCTestCase {
 
     func testWireRoundTripKeepsOrderAndOffItems() {
         let layout = IdleToolbarLayout.default
-            .moving(fromOffsets: IndexSet(integer: 2), toOffset: 0)
+            .moving(fromOffsets: IndexSet(integer: 1), toOffset: 0)
             .withShown(.emoji, false)
-        XCTAssertEqual(layout.toWire(), "tools,-emoji,settings")
+        XCTAssertEqual(layout.toWire(), "settings,-emoji")
         XCTAssertEqual(IdleToolbarLayout.parse(layout.toWire()), layout)
         XCTAssertFalse(layout.isDefault)
     }
 
     func testParseSkipsUnknownAndRepeatedNamesAndRestoresMissingOnes() {
         let layout = IdleToolbarLayout.parse("settings,bogus,-settings,,emoji")
-        XCTAssertEqual(layout.toWire(), "settings,emoji,tools")
+        XCTAssertEqual(layout.toWire(), "settings,emoji")
         XCTAssertEqual(IdleToolbarLayout.parse("nothing,else"), .default)
-        XCTAssertEqual(IdleToolbarLayout.parse("-emoji").toWire(), "-emoji,settings,tools")
+        XCTAssertEqual(IdleToolbarLayout.parse("-emoji").toWire(), "-emoji,settings")
     }
 
-    func testRemovedClipboardItemInStoredValueDropsOut() {
+    func testRemovedItemsInStoredValueDropOut() {
         XCTAssertEqual(IdleToolbarLayout.parse("clipboard,emoji,settings,tools"), .default)
-        XCTAssertEqual(IdleToolbarLayout.parse("-clipboard,tools,-emoji").toWire(), "tools,-emoji,settings")
+        XCTAssertEqual(IdleToolbarLayout.parse("-clipboard,tools,-emoji").toWire(), "-emoji,settings")
+        XCTAssertEqual(IdleToolbarLayout.parse("settings,tools,emoji").toWire(), "settings,emoji")
+        XCTAssertEqual(IdleToolbarLayout.parse("-tools,pinned:x"), .default)
         XCTAssertEqual(IdleToolbarLayout.parse("clipboard"), .default)
     }
 
@@ -41,16 +43,13 @@ final class IdleToolbarLayoutTests: XCTestCase {
         let layout = IdleToolbarLayout.parse(wire)
         XCTAssertTrue(layout.shown.isEmpty)
         XCTAssertEqual(layout.toWire(), wire)
-        XCTAssertTrue(
-            IdleToolbarAssembly.slots(layout: layout, hidden: false, toolsAvailable: true, pinnedWidths: [44]).isEmpty)
+        XCTAssertTrue(IdleToolbarAssembly.slots(layout: layout, hidden: false).isEmpty)
     }
 
     func testMovingAmongAllEntriesIncludingOffOnes() {
         let off = IdleToolbarLayout.default.withShown(.emoji, false)
-        XCTAssertEqual(
-            off.moving(fromOffsets: IndexSet(integer: 1), toOffset: 3).toWire(), "-emoji,tools,settings")
-        XCTAssertEqual(
-            off.moving(fromOffsets: IndexSet(integer: 2), toOffset: 0).toWire(), "tools,-emoji,settings")
+        XCTAssertEqual(off.moving(fromOffsets: IndexSet(integer: 0), toOffset: 2).toWire(), "settings,-emoji")
+        XCTAssertEqual(off.moving(fromOffsets: IndexSet(integer: 1), toOffset: 0).toWire(), "settings,-emoji")
         XCTAssertEqual(off.moving(fromOffsets: IndexSet(integer: 0), toOffset: 1), off)
     }
 
@@ -72,34 +71,17 @@ final class IdleToolbarLayoutTests: XCTestCase {
     }
 
     func testFittingKeepsFrontOfUsersOrder() {
-        let layout = IdleToolbarLayout.default.moving(fromOffsets: IndexSet(integer: 2), toOffset: 0)
-        let chosen = IdleToolbarAssembly.slots(layout: layout, hidden: false, toolsAvailable: true)
-        XCTAssertEqual(chosen, [.tools, .emoji, .settings])
-        XCTAssertEqual(IdleToolbarAssembly.fitting(chosen, width: 100), [.tools, .emoji])
-        XCTAssertEqual(IdleToolbarAssembly.fitting(chosen, width: 100, fixedSlots: 1), [.tools])
+        let layout = IdleToolbarLayout.default.moving(fromOffsets: IndexSet(integer: 1), toOffset: 0)
+        let chosen = IdleToolbarAssembly.slots(layout: layout, hidden: false)
+        XCTAssertEqual(chosen, [.settings, .emoji])
+        XCTAssertEqual(IdleToolbarAssembly.fitting(chosen, width: 60), [.settings])
+        XCTAssertEqual(IdleToolbarAssembly.fitting(chosen, width: 100, fixedSlots: 1), [.settings])
         XCTAssertEqual(IdleToolbarAssembly.fitting(chosen, width: 375), chosen)
     }
 
-    func testAssemblyRespectsUserOrderAndFiltersUnavailableItems() {
-        let layout = IdleToolbarLayout.parse("settings,-emoji,tools")
-        XCTAssertEqual(
-            IdleToolbarAssembly.slots(layout: layout, hidden: false, toolsAvailable: true, pinnedWidths: [50, 60]),
-            [.settings, .pinned(0), .pinned(1), .tools])
-        XCTAssertEqual(
-            IdleToolbarAssembly.slots(layout: layout, hidden: false, toolsAvailable: false, pinnedWidths: [50]),
-            [.settings])
-    }
-
-    func testProtectedFieldGivesNoTools() {
-        XCTAssertEqual(
-            IdleToolbarAssembly.slots(layout: .default, hidden: false, toolsAvailable: false, pinnedWidths: [44]),
-            [.emoji, .settings])
-        XCTAssertTrue(IdleToolbarAssembly.slots(layout: .default, hidden: true, toolsAvailable: true).isEmpty)
-    }
-
-    func testLongPinnedToolNeedsMoreRoom() {
-        let slots: [IdleToolbarSlot] = [.pinned(0), .tools]
-        XCTAssertEqual(IdleToolbarAssembly.fitting(slots, pinnedWidths: [96], width: 130), [.pinned(0)])
-        XCTAssertEqual(IdleToolbarAssembly.fitting(slots, pinnedWidths: [10], width: 130), slots)
+    func testAssemblyRespectsUserOrderAndOffItems() {
+        let layout = IdleToolbarLayout.parse("settings,-emoji")
+        XCTAssertEqual(IdleToolbarAssembly.slots(layout: layout, hidden: false), [.settings])
+        XCTAssertTrue(IdleToolbarAssembly.slots(layout: .default, hidden: true).isEmpty)
     }
 }

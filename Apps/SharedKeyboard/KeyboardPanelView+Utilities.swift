@@ -34,18 +34,6 @@ extension KeyboardPanelView {
                         // The failure is told in this row itself: it sits at the bottom of a
                         // scrolled list, so a row added below it would land out of sight.
                         KeyboardToolsSection(title: String(localized: "松烟 App")) {
-                            // One row with no actions of its own: tool management lives in the app,
-                            // where a list, file import and the file picker can exist (M-D2).
-                            KeyboardToolsRow(
-                                icon: "wand.and.stars",
-                                title: KeyboardToolsWording.manageTools,
-                                showsChevron: true,
-                                accessibilityHint: KeyboardToolsWording.manageToolsHint
-                            ) {
-                                openHostAppLink(HostAppLink.toolsSettingsURL)
-                            }
-                            .accessibilityIdentifier("keyboard.manageTools")
-                            KeyboardToolsSeparator()
                             KeyboardToolsRow(
                                 icon: hostAppUnavailable ? "exclamationmark.circle" : "arrow.up.forward.app",
                                 iconTint: hostAppUnavailable ? appearance.accentForeground : nil,

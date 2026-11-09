@@ -71,7 +71,7 @@ compile_bridge_c -DRB_WITH_GRAMMAR=1
 cat > "${RUN_DIR}/rb_grammar_noop.cc" <<'EOF'
 extern "C" void rb_require_grammar(void) {}
 EOF
-for shim in rime_spelling rime_display_map rime_grammar_diagnostics rime_opencc; do
+for shim in rime_spelling rime_display_map rime_grammar_diagnostics; do
   compile_bridge_cpp "${shim}"
 done
 "${MAC_CXX}" -std=c++17 -O2 -c -isysroot "${MACOS_SDK}" -mmacosx-version-min=13.0 \
@@ -127,7 +127,7 @@ swiftc -O -D SONGYAN_TEST_FAILPOINTS -Xcc -fmodule-map-file="${RUN_DIR}/RimeKitM
   "${IOS_TOOLS_DIR}/harness-mac/bridge-contracts-main.swift" \
   "${STAGE}"/*.swift \
   "${RUN_DIR}/rime_bridge.o" "${RUN_DIR}/rime_spelling.o" "${RUN_DIR}/rime_display_map.o" \
-  "${RUN_DIR}/rime_grammar_diagnostics.o" "${RUN_DIR}/rime_opencc.o" \
+  "${RUN_DIR}/rime_grammar_diagnostics.o" \
   "${RUN_DIR}/rb_grammar_noop.o" \
   "${RUN_DIR}/learning-support/RimeLeversSupport.o" \
   "${MAC_LINK_FLAGS[@]}" \

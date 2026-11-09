@@ -75,7 +75,6 @@ extension IdleToolbarItem {
         switch self {
         case .emoji: String(localized: "颜文字")
         case .settings: String(localized: "键盘设置")
-        case .tools: String(localized: "键盘工具")
         }
     }
 }

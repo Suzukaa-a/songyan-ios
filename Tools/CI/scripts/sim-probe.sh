@@ -1,21 +1,18 @@
 #!/usr/bin/env bash
 # Toggle a Debug-only keyboard probe on the dev simulator and restart the extension.
-# Usage: sim-probe.sh <touch|translate> <on|off>
+# Usage: sim-probe.sh <touch> <on|off>
 #   touch  log every touch's hit routing (point, hit view type, nearby key frames, routed key)
 #          as `debugProbe touch …` lines; read with `make sim-log CATEGORY=DebugProbe`.
-#   translate  run the Debug-only Apple Translation probe once per extension launch: one fixed
-#              synthetic "Hello" en -> ja translation through the iOS 26+ no-UI session (no downloads).
 # Probes are read once at extension launch, so the key path pays nothing when off.
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/lib/common.sh"
 source "${SCRIPT_DIR}/lib/xcode.sh"
 source "${SCRIPT_DIR}/lib/sim.sh"
-[[ $# -eq 2 ]] || { echo "usage: sim-probe.sh <touch|translate> <on|off>" >&2; exit 64; }
+[[ $# -eq 2 ]] || { echo "usage: sim-probe.sh <touch> <on|off>" >&2; exit 64; }
 case "$1" in
   touch) KEY=debug.touchProbe ;;
-  translate) KEY=debug.translationProbe ;;
-  *) echo "unknown probe: $1 (known: touch, translate)" >&2; exit 64 ;;
+  *) echo "unknown probe: $1 (known: touch)" >&2; exit 64 ;;
 esac
 require_xcode >/dev/null
 UDID="$(resolve_sim_udid)"

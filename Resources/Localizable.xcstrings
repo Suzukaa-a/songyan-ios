@@ -23035,50 +23035,6 @@
         }
       }
     },
-    "键盘工具": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "键盘工具"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "鍵盤工具"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "キーボードツール"
-          }
-        }
-      }
-    },
-    "键盘工具在本机处理你指定的文字。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "键盘工具在本机处理你指定的文字。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "鍵盤工具在本機處理你指定的文字。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "キーボードツールは指定したテキストを端末内で処理します。"
-          }
-        }
-      }
-    },
     "%@ · 预编译": {
       "localizations": {
         "ja": {
@@ -31567,28 +31523,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "語法模型 模型"
-          }
-        }
-      }
-    },
-    "键盘工具 工具 翻译 繁简 转换 全角 大写 钉 工具栏 撤销 导入 导出": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "キーボードツール ツール 翻訳 繁簡 変換 全角 大文字 ピン留め ツールバー 取り消す インポート 書き出す"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "键盘工具 工具 翻译 繁简 转换 全角 大写 钉 工具栏 撤销 导入 导出"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "鍵盤工具 工具 翻譯 繁簡 轉換 全形 大寫 釘 工具欄 撤銷 匯入 匯出"
           }
         }
       }

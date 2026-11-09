@@ -16,8 +16,7 @@ extension KeyboardController {
         autocapitalizationType: UITextAutocapitalizationType? = nil,
         enablesReturnKeyAutomatically: Bool? = nil,
         beforeCursor: String? = nil,
-        documentIsEmpty: Bool? = nil,
-        hasSelectedText: Bool = false
+        documentIsEmpty: Bool? = nil
     ) {
         let kindChanged = self.keyboardType != keyboardType
         let capitalization = autocapitalizationType.map(HostKeyboardTypePolicy.AutoCapitalization.init)
@@ -26,7 +25,6 @@ extension KeyboardController {
         let returnEnabledChanged =
             self.enablesReturnKeyAutomatically != enablesReturnKeyAutomatically
             || hostDocumentIsEmpty != documentIsEmpty
-            || hostHasSelectedText != hasSelectedText
         var changed = false
         if kindChanged {
             self.keyboardType = keyboardType
@@ -44,7 +42,6 @@ extension KeyboardController {
         hostContextBeforeInput = beforeCursor
         self.enablesReturnKeyAutomatically = enablesReturnKeyAutomatically
         hostDocumentIsEmpty = documentIsEmpty
-        hostHasSelectedText = hasSelectedText
         if kindChanged { reconcileHostInput() }
         if kindChanged || capitalizationChanged || contextChanged { reconcileAutomaticShift() }
         // The return key reads `isReturnKeyEnabled` while rendering; repaint the panel

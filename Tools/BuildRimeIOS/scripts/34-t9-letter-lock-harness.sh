@@ -53,7 +53,7 @@ cat > "${RUN_DIR}/rb_grammar_noop.cc" <<'EOF'
 void rime_require_module_octagram();
 extern "C" void rb_require_grammar(void) {}
 EOF
-for shim in rime_spelling rime_display_map rime_grammar_diagnostics rime_opencc; do
+for shim in rime_spelling rime_display_map rime_grammar_diagnostics; do
   compile_bridge_cpp "${shim}"
 done
 "${MAC_CXX:-clang++}" -std=c++17 -O2 -c -isysroot "${MACOS_SDK}" -mmacosx-version-min=13.0 \
@@ -100,7 +100,7 @@ swiftc -O -parse-as-library \
   "${PM_DEBUG}/PackageManager.o" "${PM_DEBUG}/KeyboardCore.o" "${PM_DEBUG}/Yams.o" \
   "${PM_DEBUG}/CYaml.o" "${PM_DEBUG}/ZIPFoundation.o" \
   "${RUN_DIR}/rime_bridge.o" "${RUN_DIR}/rime_spelling.o" "${RUN_DIR}/rime_display_map.o" \
-  "${RUN_DIR}/rime_grammar_diagnostics.o" "${RUN_DIR}/rime_opencc.o" \
+  "${RUN_DIR}/rime_grammar_diagnostics.o" \
   "${RUN_DIR}/rb_grammar_noop.o" \
   "${RUN_DIR}/learning-support/RimeLeversSupport.o" \
   "${MAC_LINK_FLAGS[@]}" \

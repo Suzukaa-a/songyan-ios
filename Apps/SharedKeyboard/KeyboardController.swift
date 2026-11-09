@@ -4,7 +4,6 @@ import Foundation
 import KeyboardCore
 import LayoutKit
 import OSLog
-import QuickContentKit
 import UIKit
 import os
 
@@ -407,9 +406,6 @@ public final class KeyboardController: ObservableObject {
     var hostContextBeforeInput: String?
     var enablesReturnKeyAutomatically: Bool?
     var hostDocumentIsEmpty: Bool?
-    /// Whether the host reports a non-empty selection; with no text before the caret it still proves the
-    /// field is readable.
-    var hostHasSelectedText = false
     var automaticShiftArmed = false
     /// Fires only when a host text-field trait actually changes (not on every keystroke),
     /// so appearance consumers can refresh without observing the whole snapshot.
@@ -543,12 +539,6 @@ public final class KeyboardController: ObservableObject {
     public var onMoveCursor: ((Int) -> Void)?
     /// Layout change callback (`KeyboardPadSession` syncs its own layout and persists the selection from it).
     public var onLayoutChanged: ((KeyboardLayoutKind) -> Void)?
-
-    /// Tool panel hooks. The host owns the document text; the controller only carries the three
-    /// operations a tool may perform, so no keyboard view touches a text proxy itself.
-    public var onReadToolTextSource: (() -> ToolPanelEditorSnapshot?)?
-    public var onReplaceToolAnchor: ((ToolPanelAnchor, String) -> Bool)?
-    public var onCopyToolResult: ((String) -> Bool)?
 
     /// - Parameters:
     ///   - layout: initial layout (the caller should normalize it to a layout the resource set offers).

@@ -40,17 +40,12 @@ input schemes and a keyboard extension that runs the engine on device.
   typing preview.
 - Optional typo correction, post-commit prediction (bring your own
   `predict.db`), grammar models, and per-component Lua toggles.
-- Keyboard tools that run on one piece of text: the selection or the paragraph
-  before the caret. Three examples ship (script conversion,
-  full/half width, letter case), and you can import, copy, edit and export your
-  own. The result is shown first; only you replace, insert or copy it.
 - Manual backup and merge of learned user dictionaries.
 - Interface in Simplified Chinese, Traditional Chinese and Japanese.
 - The keyboard extension makes no network requests. The host app goes online
   only when you ask it to: importing or updating a scheme from a URL, or
-  downloading a dictionary or model file. Keyboard tools run on the device on
-  the text you pick and send nothing. Full Access is used to share data with the
-  host app through the App Group.
+  downloading a dictionary or model file. Full Access is used to share data
+  with the host app through the App Group.
 
 ## Requirements
 

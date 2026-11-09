@@ -80,8 +80,7 @@ def write_slice_metadata(destination, prefix, label):
     (destination / "Modules").mkdir()
     for name in PUBLIC_HEADERS:
         shutil.copy2(prefix / "include" / name, destination / "Headers" / name)
-    for name in ("rime_bridge.h", "rime_opencc.h"):
-        shutil.copy2(TOOLS / "src" / name, destination / "Headers" / name)
+    shutil.copy2(TOOLS / "src/rime_bridge.h", destination / "Headers/rime_bridge.h")
     (destination / "Headers/RimeKit.h").write_text(UMBRELLA)
     (destination / "Modules/module.modulemap").write_text(MODULE_MAP)
     with (destination / "Info.plist").open("wb") as stream:
@@ -186,8 +185,7 @@ def build_plugins_and_link(out, env, boost, jobs):
             run([*cxx, "-I", predict_source / "src", predict_source / "src" / (name + ".cc"), "-o", obj], env, log)
             objs.append(obj)
         for name in ("rime_spelling", "rime_display_map", "rime_t9_processor",
-                     "rime_lua_link", "rime_grammar_link", "rime_predict_link",
-                     "rime_opencc"):
+                     "rime_lua_link", "rime_grammar_link", "rime_predict_link"):
             obj = objects / (name + ".o")
             run([*cxx, TOOLS / "src" / (name + ".cc"), "-o", obj], env, log)
             objs.append(obj)

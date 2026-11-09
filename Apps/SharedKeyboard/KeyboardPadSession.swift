@@ -2,7 +2,6 @@ import Combine
 import Foundation
 import KeyboardCore
 import OSLog
-import QuickContentKit
 
 /// Where the session's engine output goes: the keyboard controller that is presenting.
 /// The session holds one host at a time and calls nothing else, so a controller the
@@ -25,13 +24,6 @@ public protocol KeyboardPadHost: AnyObject {
     func refreshHostTraits()
     func moveCursor(by offset: Int)
     func switchKeyboard()
-    /// The text a tool may process right now: the selection, or the paragraph before the cursor,
-    /// with the document identity a replacement must still match. nil when nothing is editable.
-    func readToolTextSource() -> ToolPanelEditorSnapshot?
-    /// Replaces exactly the anchored text and only while the field still holds it.
-    func replaceToolAnchor(_ anchor: ToolPanelAnchor, with text: String) -> Bool
-    /// Copies a tool result; false when this keyboard may not touch the pasteboard.
-    func copyToolResult(_ text: String) -> Bool
 }
 
 /// Interactive keyboard session: starts the real Rime engine in the background, then builds a `KeyboardController`.
@@ -878,11 +870,6 @@ public final class KeyboardPadSession: ObservableObject {
         ctrl.onRequestHostTraitsRefresh = { [weak self] in self?.host?.refreshHostTraits() }
         ctrl.onRequestSwitchKeyboard = { [weak self] in self?.host?.switchKeyboard() }
         ctrl.onMoveCursor = { [weak self] offset in self?.host?.moveCursor(by: offset) }
-        ctrl.onReadToolTextSource = { [weak self] in self?.host?.readToolTextSource() }
-        ctrl.onReplaceToolAnchor = { [weak self] anchor, text in
-            self?.host?.replaceToolAnchor(anchor, with: text) ?? false
-        }
-        ctrl.onCopyToolResult = { [weak self] text in self?.host?.copyToolResult(text) ?? false }
         ctrl.onInputError = { [weak self, weak ctrl] message in
             guard let self else { return }
             self.transitionError = message

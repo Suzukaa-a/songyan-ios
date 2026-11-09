@@ -85,51 +85,6 @@
       "reason": "Persistent configuration directory name; translating it would disconnect existing user files."
     },
     {
-      "path": "Packages/QuickContentKit/Sources/QuickContentKit/BuiltinToolDefinitions.swift",
-      "value": "繁简转换",
-      "reason": "Explicit locale-name map inside portable built-in tool definitions; selection uses the requested locale."
-    },
-    {
-      "path": "Packages/QuickContentKit/Sources/QuickContentKit/BuiltinToolDefinitions.swift",
-      "value": "繁簡轉換",
-      "reason": "Explicit locale-name map inside portable built-in tool definitions; selection uses the requested locale."
-    },
-    {
-      "path": "Packages/QuickContentKit/Sources/QuickContentKit/BuiltinToolDefinitions.swift",
-      "value": "簡繁変換",
-      "reason": "Explicit locale-name map inside portable built-in tool definitions; selection uses the requested locale."
-    },
-    {
-      "path": "Packages/QuickContentKit/Sources/QuickContentKit/BuiltinToolDefinitions.swift",
-      "value": "全角转半角",
-      "reason": "Explicit locale-name map inside portable built-in tool definitions; selection uses the requested locale."
-    },
-    {
-      "path": "Packages/QuickContentKit/Sources/QuickContentKit/BuiltinToolDefinitions.swift",
-      "value": "全形轉半形",
-      "reason": "Explicit locale-name map inside portable built-in tool definitions; selection uses the requested locale."
-    },
-    {
-      "path": "Packages/QuickContentKit/Sources/QuickContentKit/BuiltinToolDefinitions.swift",
-      "value": "全角を半角に",
-      "reason": "Explicit locale-name map inside portable built-in tool definitions; selection uses the requested locale."
-    },
-    {
-      "path": "Packages/QuickContentKit/Sources/QuickContentKit/BuiltinToolDefinitions.swift",
-      "value": "英文大写",
-      "reason": "Explicit locale-name map inside portable built-in tool definitions; selection uses the requested locale."
-    },
-    {
-      "path": "Packages/QuickContentKit/Sources/QuickContentKit/BuiltinToolDefinitions.swift",
-      "value": "英文大寫",
-      "reason": "Explicit locale-name map inside portable built-in tool definitions; selection uses the requested locale."
-    },
-    {
-      "path": "Packages/QuickContentKit/Sources/QuickContentKit/BuiltinToolDefinitions.swift",
-      "value": "英字を大文字に",
-      "reason": "Explicit locale-name map inside portable built-in tool definitions; selection uses the requested locale."
-    },
-    {
       "path": "Packages/KeyboardCore/Sources/KeyboardCore/Support/TraditionalDefault.swift",
       "value": "简体",
       "reason": "Exact canonical YAML switch-label equality tokens; display labels are resolved separately."

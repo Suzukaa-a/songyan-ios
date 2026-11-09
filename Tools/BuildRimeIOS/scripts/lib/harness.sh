@@ -49,7 +49,7 @@ prepare_native_bridge() {
     "Missing ${MAC_PREFIX}/lib/librime.a; build Tools/BuildRime or set NATIVE_ENGINE_ROOT."
   mkdir -p "${RUN_DIR}/RimeKitModule"
   cp "${MAC_PREFIX}/include/rime_api.h" "${RUN_DIR}/RimeKitModule/"
-  cp "${SHIM_SRC_DIR}/rime_bridge.h" "${SHIM_SRC_DIR}/rime_opencc.h" "${RUN_DIR}/RimeKitModule/"
+  cp "${SHIM_SRC_DIR}/rime_bridge.h" "${RUN_DIR}/RimeKitModule/"
   cp "${IOS_TOOLS_DIR}/harness-mac/RimeKit.modulemap" "${RUN_DIR}/RimeKitModule/module.modulemap"
   cp "${IOS_TOOLS_DIR}/harness-mac/RimeKit.h" "${RUN_DIR}/RimeKitModule/"
   MAC_CXX_FLAGS=(

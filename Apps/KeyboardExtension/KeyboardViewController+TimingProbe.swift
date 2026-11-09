@@ -7,11 +7,6 @@ import SwiftUI
 import UIKit
 
 #if DEBUG
-    // Translation is linked only into the Debug extension for the M0.3 technical probe.
-    import Translation
-#endif
-
-#if DEBUG
     extension KeyboardViewController {
         // MARK: Timing probe (Debug builds only, opt-in, hard-capped; records geometry only, never input)
 
@@ -111,58 +106,6 @@ import UIKit
                 p.frame.origin.x, p.frame.origin.y, p.frame.width, p.frame.height,
                 p.bounds.origin.x, p.bounds.origin.y, p.bounds.width, p.bounds.height,
                 p.position.x, p.position.y)
-        }
-
-        // MARK: Translation capability probe
-        //
-        // One fixed synthetic translation ("Hello", en -> ja) when the App Group switch
-        // `debug.translationProbe` is on. Uses the iOS 26+ no-UI
-        // `TranslationSession(installedSource:target:)`, which cannot request model downloads,
-        // so no network or download UI is involved. Never reads host text or user data.
-
-        private static let translationProbeKey = "debug.translationProbe"
-
-        func startTranslationProbeIfEnabled() {
-            guard KeyboardRecipeStore.sharedDefaults()?.bool(forKey: Self.translationProbeKey) == true,
-                translationProbeTask == nil
-            else { return }
-            // Keep the non-Sendable session off the main actor: create and use it inside one
-            // nonisolated async function instead of passing it across isolation boundaries.
-            translationProbeTask = Task { await Self.runTranslationProbe() }
-        }
-
-        private nonisolated static func runTranslationProbe() async {
-            let logger = Logger.debugProbe
-            guard #available(iOS 26.0, *) else {
-                logger.notice(
-                    "translationProbe unavailable os=\(ProcessInfo.processInfo.operatingSystemVersionString, privacy: .public)"
-                )
-                return
-            }
-            let source = Locale.Language(identifier: "en")
-            let target = Locale.Language(identifier: "ja")
-            let availability = LanguageAvailability()
-            let status = await availability.status(from: source, to: target)
-            let supportedCount = await availability.supportedLanguages.count
-            let session = TranslationSession(installedSource: source, target: target)
-            let canRequestDownloads = session.canRequestDownloads
-            let isReady = await session.isReady
-            logger.notice(
-                "translationProbe stage=session pid=\(ProcessInfo.processInfo.processIdentifier, privacy: .public) role=\(DebugProbe.currentRole, privacy: .public) status=\(String(describing: status), privacy: .public) supported=\(supportedCount, privacy: .public) canRequestDownloads=\(canRequestDownloads, privacy: .public) isReady=\(isReady, privacy: .public) source=\(String(describing: session.sourceLanguage), privacy: .public) target=\(String(describing: session.targetLanguage), privacy: .public) sample=Hello en-ja"
-            )
-            let started = ProcessInfo.processInfo.systemUptime
-            do {
-                let response = try await session.translate("Hello")
-                let elapsed = String(format: "%.1f", (ProcessInfo.processInfo.systemUptime - started) * 1000)
-                logger.notice(
-                    "translationProbe stage=result pid=\(ProcessInfo.processInfo.processIdentifier, privacy: .public) outcome=success elapsedMs=\(elapsed, privacy: .public) targetText=\(response.targetText, privacy: .public)"
-                )
-            } catch {
-                let elapsed = String(format: "%.1f", (ProcessInfo.processInfo.systemUptime - started) * 1000)
-                logger.notice(
-                    "translationProbe stage=result pid=\(ProcessInfo.processInfo.processIdentifier, privacy: .public) outcome=error elapsedMs=\(elapsed, privacy: .public) error=\(String(describing: error), privacy: .public)"
-                )
-            }
         }
     }
 #endif
