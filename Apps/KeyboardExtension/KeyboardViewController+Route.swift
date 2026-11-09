@@ -33,6 +33,8 @@ extension KeyboardViewController {
                 refreshResourceRoute()
             } catch {
                 guard isBoundHost else { return }
+                session.announcesNextKeyboard = false
+                session.controller?.awaitsOtherPackage = false
                 Self.diagnosticLogger.error(
                     "recipe selection save failed: \(error.localizedDescription, privacy: .private)")
                 let message = String(localized: "无法确认方案保存结果，请重新读取后重试。")
@@ -47,7 +49,12 @@ extension KeyboardViewController {
     /// Switches to a keyboard of another package, or to the built-in input, from the keyboard menu.
     /// A package switch is saved for the next presentation and then loads through the normal route refresh.
     func selectOtherPackage(_ entry: OtherPackageKeyboard) {
-        guard isBoundHost, !selectionSaveInFlight else { return }
+        guard isBoundHost, !selectionSaveInFlight else {
+            session.controller?.awaitsOtherPackage = false
+            return
+        }
+        // Set before anything restarts the engine: the keyboard that comes up next fades in named.
+        session.announcesNextKeyboard = true
         guard let keyboard = entry.keyboard else {
             if hasFullAccess { selectBuiltin(true) } else { restoreBuiltinTemporarily() }
             return
@@ -81,10 +88,11 @@ extension KeyboardViewController {
                 route.recovery = nil
                 Self.rescuedRoute = nil
                 route.explainRecipeAvailability = true
-                session.announcesNextKeyboard = true
                 refreshResourceRoute()
             } catch {
                 guard isBoundHost else { return }
+                session.announcesNextKeyboard = false
+                session.controller?.awaitsOtherPackage = false
                 Self.diagnosticLogger.error(
                     "package switch failed: \(error.localizedDescription, privacy: .private)")
                 let message = String(localized: "无法切换输入方案，请稍后重试。")

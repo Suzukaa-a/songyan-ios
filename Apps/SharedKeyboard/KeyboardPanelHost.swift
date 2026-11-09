@@ -570,7 +570,8 @@ public struct KeyboardPanelHost: View {
     /// only a real `.failed` phase exposes retry and error details, so an in-flight
     /// boot is never interrupted by a misleading retry action.
     private var startingSurface: some View {
-        ProgressView()
+        // A keyboard picked from the menu is usually up within this; its spinner would only flash.
+        DelayedProgressView(delay: session.announcesNextKeyboard ? .milliseconds(300) : .zero)
             .accessibilityLabel(String(localized: "键盘正在启动"))
             .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -1013,5 +1014,21 @@ final class OneHandGutterControl: UIControl {
         guard isEnabled else { return false }
         performRestore()
         return true
+    }
+}
+
+/// A progress indicator that shows only once [delay] has passed.
+private struct DelayedProgressView: View {
+    let delay: Duration
+    @State private var shown = false
+
+    var body: some View {
+        ProgressView()
+            .opacity(shown || delay == .zero ? 1 : 0)
+            .task {
+                guard delay != .zero else { return }
+                try? await Task.sleep(for: delay)
+                shown = true
+            }
     }
 }

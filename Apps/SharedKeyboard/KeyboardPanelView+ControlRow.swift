@@ -84,25 +84,64 @@ extension KeyboardPanelView {
         )
     }
 
+    /// The running input method as the keyboard menu names it, without its layout: the new keys
+    /// already show the layout.
+    var currentInputMethodName: String {
+        UserKeyboardRoster.currentInputMethodName(
+            schemaID: controller.selectedSchemaID,
+            layout: controller.layout, board: controller.selectedBoard,
+            in: controller.userKeyboardChoices)
+            ?? controller.availableSchemas.first { $0.id == controller.selectedSchemaID }?.name
+            ?? currentKeyboardTitle
+    }
+
     /// Consumes only a token from a real successful switch; reselecting the same item, page switches and view rebuilds produce no new token.
+    /// A new layout of the same input method only fades in: naming the unchanged input method adds nothing.
     func consumeLayoutChange() {
         guard let change = controller.successfulChange, change.token != layoutHintToken else { return }
-        announceSwitch(token: change.token)
+        let named = change.schemaID != (announcedSchemaID ?? change.schemaID)
+        announcedSchemaID = change.schemaID
+        announceSwitch(token: change.token, named: named)
     }
 
     /// A keyboard of another package replaced the last one: this panel is new, so it announces
-    /// the switch once when it appears.
+    /// the switch once when it appears. Its keys start hidden, like the ones they replace.
     func announceSwitchFromOtherPackage() {
+        announcedSchemaID = controller.selectedSchemaID
         guard controller.announcesSwitchOnAppear else { return }
         controller.announcesSwitchOnAppear = false
-        announceSwitch(token: UUID())
+        announceSwitch(token: UUID(), from: 0)
     }
 
-    /// Names the keyboard on the space bar for a moment and fades the new keys in.
-    private func announceSwitch(token: UUID) {
+    /// Another package's keyboard was picked: the keys of the one being left go at once, since
+    /// they would type into it (hidden keys take no touches), and the new keys fade in when ready.
+    /// A switch that does not happen brings them back.
+    func hideKeysForOtherPackage() {
+        var instant = Transaction()
+        instant.disablesAnimations = true
+        withTransaction(instant) { switchFade = 0 }
+        controller.awaitsOtherPackage = true
+        let waiting = controller
+        Task { @MainActor in
+            // The engine starts within this when the switch went through; past it the old
+            // keyboard is still here, so the switch failed or never began.
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            waiting.awaitsOtherPackage = false
+        }
+    }
+
+    /// The other package's keyboard did not come: the old keys fade back.
+    func restoreKeysAfterFailedSwitch() {
+        guard !controller.awaitsOtherPackage, switchFade < 1 else { return }
+        withAnimation(.easeOut(duration: Self.switchFadeDuration)) { switchFade = 1 }
+    }
+
+    /// Fades the new keys in and, for a new input method, names it on the space bar for a moment.
+    private func announceSwitch(token: UUID, named: Bool = true, from start: Double = switchFadeStart) {
         layoutHintToken = token
-        layoutHintName = currentKeyboardTitle
-        fadeInSwitchedKeys()
+        fadeInSwitchedKeys(from: start)
+        guard named else { return }
+        layoutHintName = currentInputMethodName
         Task { @MainActor in
             try? await Task.sleep(nanoseconds: 2_500_000_000)
             if layoutHintToken == token { layoutHintName = nil }
@@ -111,10 +150,10 @@ extension KeyboardPanelView {
 
     /// The new keys fade in from faint, the same as on Android. Opacity only: a transform would move
     /// the caps away from their touch owners, and the keys never fall below UIKit's hit-test alpha.
-    private func fadeInSwitchedKeys() {
+    private func fadeInSwitchedKeys(from start: Double) {
         var instant = Transaction()
         instant.disablesAnimations = true
-        withTransaction(instant) { switchFade = Self.switchFadeStart }
+        withTransaction(instant) { switchFade = start }
         Task { @MainActor in
             withAnimation(.easeOut(duration: Self.switchFadeDuration)) { switchFade = 1 }
         }
@@ -179,7 +218,10 @@ extension KeyboardPanelView {
             var settled = false
             selectionFeedbackAfterEffect {
                 settled = controller.prepareForConfigurationChange()
-                if settled { controller.onSelectOtherPackage?(other) }
+                if settled {
+                    hideKeysForOtherPackage()
+                    controller.onSelectOtherPackage?(other)
+                }
             }
             if settled {
                 page = .letters

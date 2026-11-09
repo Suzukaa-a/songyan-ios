@@ -453,6 +453,8 @@ public final class KeyboardController: ObservableObject {
     /// This keyboard replaced another package's: the panel names it on the space bar when it first
     /// appears, as it does after a switch within one package.
     public var announcesSwitchOnAppear = false
+    /// The panel hid its keys for another package's keyboard; false again brings them back.
+    @Published public var awaitsOtherPackage = false
 
     public func updateOtherPackageKeyboards(_ entries: [OtherPackageKeyboard]) {
         if otherPackageKeyboards != entries { otherPackageKeyboards = entries }

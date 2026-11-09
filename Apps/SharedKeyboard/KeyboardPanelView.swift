@@ -136,6 +136,8 @@ public struct KeyboardPanelView: View {
     /// shows a brief sublabel that fades out; number/symbol page switches and view rebuilds do not trigger it.
     @State var layoutHintToken: UUID?
     @State var layoutHintName: String?
+    /// The input method the last switch landed on: only a switch away from it names the new one.
+    @State var announcedSchemaID: String?
     /// Feedback lifecycle session token (returned by prepare; handed back to end(token:) on disappear).
     @State private var feedbackLifecycleToken = 0
     /// Last settled rail/reading-row choices, shown inert while the next key's
@@ -950,9 +952,10 @@ public struct KeyboardPanelView: View {
             .onChange(of: controller.keyboardType) { syncHostPage() }
             .onAppear { syncHostPage() }
             .onAppear { announceSwitchFromOtherPackage() }
+            .onChange(of: controller.awaitsOtherPackage) { restoreKeysAfterFailedSwitch() }
             // Another package's keyboard list loads after its keys: the notice catches up with it.
             .onChange(of: controller.userKeyboardChoices) {
-                if layoutHintName != nil { layoutHintName = currentKeyboardTitle }
+                if layoutHintName != nil { layoutHintName = currentInputMethodName }
             }
             .onAppear { refreshContentDock() }
             .onChange(of: hostBindingTick) {
