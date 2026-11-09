@@ -29,6 +29,14 @@ extension KeyboardController {
         }
     }
 
+    /// Address and search fields type their own marks (`.`, `@`), so the footer keeps one mark there.
+    var hostFieldKeepsSingleMark: Bool {
+        switch HostKeyboardTypeKind(keyboardType) {
+        case .url, .emailAddress, .webSearch: return true
+        default: return false
+        }
+    }
+
     public func toggleInputMode() {
         hostRestoredMode = nil
         automaticShiftArmed = false

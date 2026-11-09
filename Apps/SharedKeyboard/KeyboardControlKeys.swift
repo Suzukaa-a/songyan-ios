@@ -11,13 +11,13 @@ extension ControlRow {
     private var periodKey: some View {
         AlternateCharacterKey(
             cap: KeyCap(
-                id: "control-mark-right", title: KeyboardControlPolicy.fullStop,
-                action: .literal(KeyboardControlPolicy.fullStop)),
+                id: "control-mark-right", title: policy.fullStopText,
+                action: .literal(policy.fullStopText)),
             alternates: policy.fullStopAlternates.enumerated().map { index, mark in
                 KeyCap(id: "control-mark-right-\(index)", title: mark, action: .literal(mark))
             }
         ) { onKey($0.action) }
-        .accessibilityLabel(String(localized: "\(KeyboardControlPolicy.fullStop)，长按选择标点"))
+        .accessibilityLabel(String(localized: "\(policy.fullStopText)，长按选择标点"))
     }
 }
 

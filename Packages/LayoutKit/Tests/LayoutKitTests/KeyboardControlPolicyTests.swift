@@ -51,7 +51,24 @@ final class KeyboardControlPolicyTests: XCTestCase {
         XCTAssertEqual(policy(.japanese).utilityAlternates, ["・", "：", "；"])
         XCTAssertEqual(policy(.japanese).fullStopAlternates, ["？", "！", "…"])
         XCTAssertEqual(policy(.simplifiedChinese).fullStopAlternates, ["？", "！", "…"])
-        XCTAssertEqual(policy(.simplifiedChinese, ascii: true).utilityAlternates, [".", "?", "!", "'", "\""])
+        XCTAssertEqual(policy(.simplifiedChinese, ascii: true).utilityAlternates, ["'", ";", ":"])
+        XCTAssertEqual(policy(.simplifiedChinese, ascii: true).fullStopAlternates, ["?", "!", "…"])
+    }
+
+    /// 中/英 changes the marks beside the space bar, never the footer's keys or their widths.
+    func testEnglishKeepsTheSplitFooterWithASCIIMarks() {
+        func policy(english: Bool) -> KeyboardControlPolicy {
+            KeyboardControlPolicy(
+                page: .letters, isEnglishMode: english, hasGlobe: true, isPhoneLayout: false,
+                usesASCIIPunctuation: english, script: .simplifiedChinese, showsSpaceSideMarks: true)
+        }
+        let chinese = policy(english: false)
+        let english = policy(english: true)
+        XCTAssertEqual(chinese.slots, english.slots)
+        XCTAssertEqual(chinese.metrics(width: 382), english.metrics(width: 382))
+        XCTAssertEqual(english.utilityText, ",")
+        XCTAssertEqual(english.utility, .punctuation("."))
+        XCTAssertEqual(chinese.utility, .punctuation("。"))
     }
 
     /// Without the globe the keys left of the space bar and the keys right of it take the same

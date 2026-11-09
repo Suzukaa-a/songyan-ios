@@ -250,11 +250,15 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
     }
     public var utility: Utility {
         isBundledPhonePad && page == .numeric && !isDigitPad
-            ? .digit("0") : .punctuation(showsSpaceSideMarks ? Self.fullStop : utilityText)
+            ? .digit("0") : .punctuation(showsSpaceSideMarks ? fullStopText : utilityText)
     }
 
     /// The runtime footer's full stop right of the space bar; the same mark in every script.
     public static let fullStop = "。"
+
+    /// The full stop the split footer draws: ASCII marks keep the footer's shape and change the mark,
+    /// so 中/英 never moves a key.
+    public var fullStopText: String { usesASCIIPunctuation ? "." : Self.fullStop }
 
     /// Only the effective symbol branch decides the width; the input script names the mark:
     /// Japanese types 、 where Chinese types ，.
@@ -272,13 +276,15 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
     public var symbolLibraryTitle: String { KeyLabelPolicy.symbolLibraryTitle(script: script) }
 
     public var utilityAlternates: [String] {
+        if showsSpaceSideMarks {
+            return usesASCIIPunctuation ? ["'", ";", ":"] : [script == .japanese ? "・" : "、", "：", "；"]
+        }
         if usesASCIIPunctuation { return [".", "?", "!", "'", "\""] }
-        if showsSpaceSideMarks { return [script == .japanese ? "・" : "、", "：", "；"] }
         return script == .japanese ? ["。", "？", "！", "・", "…"] : ["。", "？", "！", "、", "…"]
     }
 
     /// The split footer's full stop key holds the sentence-ending marks.
-    public var fullStopAlternates: [String] { ["？", "！", "…"] }
+    public var fullStopAlternates: [String] { usesASCIIPunctuation ? ["?", "!", "…"] : ["？", "！", "…"] }
 
     /// One budget for every builtin page. Fractions apply to *content* width after gaps.
     /// At 382pt content (390pt phone minus panel insets) with globe:

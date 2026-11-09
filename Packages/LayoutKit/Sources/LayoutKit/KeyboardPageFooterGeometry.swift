@@ -134,7 +134,7 @@ public struct KeyboardPageFooterGeometry: Equatable, Sendable {
         case .markLeft:
             return action.type == .literal && action.value == policy.utilityText
         case .markRight:
-            return action.type == .literal && action.value == KeyboardControlPolicy.fullStop
+            return action.type == .literal && action.value == policy.fullStopText
         }
     }
 }

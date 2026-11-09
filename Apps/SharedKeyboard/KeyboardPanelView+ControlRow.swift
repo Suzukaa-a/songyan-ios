@@ -219,12 +219,11 @@ extension KeyboardPanelView {
             schemaID: controller.selectedSchemaID, layout: controller.layout, board: controller.selectedBoard)
     }
 
-    /// The native footer puts the comma left of the space bar and the full stop right of it only
-    /// where the row is the text field's own; ASCII/English fields keep their single mark, and a
-    /// phone shell keeps its grid.
+    /// The native footer puts the comma left of the space bar and the full stop right of it in
+    /// both languages, so 中/英 changes the marks and never moves a key. URL, email and search
+    /// fields keep their single mark, and a phone shell keeps its grid.
     private var showsSpaceSideMarks: Bool {
-        !controller.isEnglishMode && !effectiveUsesASCIIPunctuation
-            && !usesPhoneDefinition && !isBuiltinPhonePad
+        !controller.hostFieldKeepsSingleMark && !usesPhoneDefinition && !isBuiltinPhonePad
     }
 
     var controlPolicy: KeyboardControlPolicy {
