@@ -46,12 +46,6 @@ final class ZhuyinLayoutTests: XCTestCase {
             "the zhuyin keyboard must be a bundled layout, not only an example file")
     }
 
-    private func traditionalPolicy() -> KeyboardControlPolicy {
-        KeyboardControlPolicy(
-            page: .letters, isEnglishMode: false, hasGlobe: true, isPhoneLayout: false,
-            usesASCIIPunctuation: false, script: .traditionalChinese)
-    }
-
     func testTheExampleFileIsTheBundledDefinition() throws {
         XCTAssertEqual(try example(), try bundled())
     }
@@ -71,21 +65,49 @@ final class ZhuyinLayoutTests: XCTestCase {
     func testTheFourLetterRowsHaveElevenTenTenTenKeys() throws {
         let layout = try bundled()
         XCTAssertEqual(layout.rows.count, 5, "four letter rows and one control row")
-        XCTAssertEqual(layout.rows.map { $0.keys.count }, [11, 10, 10, 10, 6])
+        XCTAssertEqual(letterRows(layout).map(\.count), [11, 10, 10, 10])
+    }
+
+    /// The board has no case, so no Shift; Delete closes the fourth row so it lines up with the first.
+    func testDeleteClosesTheFourthRowAndThereIsNoShift() throws {
+        let layout = try bundled()
+        let fourth = layout.rows[3].keys
+        XCTAssertEqual(fourth.count, 11)
+        XCTAssertEqual(fourth.last?.action.type, .backspace)
+        XCTAssertEqual(fourth.last?.titleMode, .automatic)
+        XCTAssertFalse(layout.rows.flatMap(\.keys).contains { $0.action.type == .shift })
+        XCTAssertEqual(
+            layout.rows.flatMap(\.keys).filter { $0.action.type == .backspace }.count, 2,
+            "the fourth row's Delete, and the stand-in footer's one that the keyboard replaces")
+    }
+
+    /// The board had its own footer without the punctuation keys either side of the space bar, so
+    /// it looked unlike every other board. Its last row is now the 26-key stand-in and the keyboard
+    /// draws the shared footer.
+    func testTheControlRowIsTheBundledStandInSoTheShellDrawsItsAutomaticFooter() throws {
+        let layout = try bundled()
+        XCTAssertEqual(layout.rows.last, BuiltinLayouts.qwerty26.rows.last)
+        XCTAssertTrue(BuiltinLayouts.matchesControlRowPolicy(layout, as: .qwerty26))
+        XCTAssertTrue(layout.hasInputModeSwitchKey)
+    }
+
+    /// The code keys of the letter rows, row by row; the fourth row's Delete is not a letter.
+    private func letterRows(_ layout: LayoutDefinition) -> [[LayoutKey]] {
+        layout.rows.dropLast().map { $0.keys.filter { $0.action.type == .code } }
     }
 
     func testEveryCapDrawsItsZhuyinSymbol() throws {
-        let rows = try bundled().rows.dropLast()
+        let rows = letterRows(try bundled())
         XCTAssertEqual(rows.count, Self.keyCaps.count)
         for (row, caps) in zip(rows, Self.keyCaps) {
-            XCTAssertEqual(row.keys.map(\.label), caps)
+            XCTAssertEqual(row.map(\.label), caps)
         }
     }
 
     func testEveryLetterKeySendsTheCodeOfItsPosition() throws {
-        let rows = try bundled().rows.dropLast()
+        let rows = letterRows(try bundled())
         for (row, codes) in zip(rows, Self.letterCodes) {
-            for (key, code) in zip(row.keys, codes) {
+            for (key, code) in zip(row, codes) {
                 XCTAssertEqual(key.action, LayoutAction(.code, value: code), key.label)
                 XCTAssertNil(key.secondaryLabel, "a zhuyin cap shows its symbol only")
                 XCTAssertNil(key.longPress, "a zhuyin cap carries no alternate")
@@ -96,7 +118,7 @@ final class ZhuyinLayoutTests: XCTestCase {
     }
 
     func testTheKeyCodesAreExactlyTheBopomofoAlphabet() throws {
-        let keys = try bundled().rows.dropLast().flatMap(\.keys)
+        let keys = letterRows(try bundled()).flatMap { $0 }
         XCTAssertEqual(keys.count, 41)
         let codes = keys.compactMap { key -> String? in
             guard key.action.type == .code else { return nil }
@@ -111,35 +133,9 @@ final class ZhuyinLayoutTests: XCTestCase {
         }
     }
 
-    func testTheControlRowSendsNoEngineCode() throws {
-        let controlRow = try XCTUnwrap(try bundled().rows.last)
-        XCTAssertTrue(controlRow.keys.allSatisfy { $0.action.type != .code && $0.action.type != .literal })
-        XCTAssertEqual(
-            controlRow.keys.map(\.action.type),
-            [.globe, .pageSwitch, .languageSwitch, .space, .backspace, .enter])
-        XCTAssertEqual(controlRow.keys.first { $0.action.type == .pageSwitch }?.action.pageSwitchTarget, .numeric)
-        XCTAssertEqual(controlRow.keys.first { $0.action.type == .space }?.width, 4)
-    }
-
-    func testTheControlKeysFollowTheInputLanguage() throws {
-        let controlRow = try XCTUnwrap(try bundled().rows.last)
-        for key in controlRow.keys {
-            XCTAssertEqual(key.titleMode, .automatic, key.label)
-        }
-        let space = try XCTUnwrap(controlRow.keys.first { $0.action.type == .space })
-        XCTAssertEqual(space.automaticSpaceTitle(policy: traditionalPolicy(), isComposing: false), "空白")
-        let simplified = KeyboardControlPolicy(
-            page: .letters, isEnglishMode: false, hasGlobe: true, isPhoneLayout: false,
-            usesASCIIPunctuation: true, script: .simplifiedChinese)
-        XCTAssertEqual(space.automaticSpaceTitle(policy: simplified, isComposing: false), "空格")
-        // A legacy space without a title mode keeps its stored label, so the bar must declare one.
-        XCTAssertEqual(
-            LayoutKey(label: "空格", action: LayoutAction(.space)).automaticSpaceTitle(
-                policy: traditionalPolicy(), isComposing: false),
-            "空格")
-        let language = try XCTUnwrap(controlRow.keys.first { $0.action.type == .languageSwitch })
-        XCTAssertEqual(language.action.languageSwitchBehavior, nil, "the key follows the page")
-        XCTAssertNil(language.longPress, "the native keyboard menu stays available")
+    func testTheFourthRowDeleteFollowsTheInputLanguage() throws {
+        let delete = try XCTUnwrap(try bundled().rows[3].keys.last)
+        XCTAssertEqual(delete.titleMode, .automatic, "traditional input reads the native Delete name")
     }
 
     func testTheKeyboardOffersTheSystemSwitchKey() throws {

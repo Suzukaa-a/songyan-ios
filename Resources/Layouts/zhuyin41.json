@@ -50,15 +50,15 @@
       {"label":"ㄩ","action":{"type":"code","value":"m"}},
       {"label":"ㄝ","action":{"type":"code","value":","}},
       {"label":"ㄡ","action":{"type":"code","value":"."}},
-      {"label":"ㄥ","action":{"type":"code","value":"/"}}
+      {"label":"ㄥ","action":{"type":"code","value":"/"}},
+      {"label":"⌫","titleMode":"automatic","action":{"type":"backspace"}}
     ]},
     {"keys": [
-      {"label":"🌐","titleMode":"automatic","action":{"type":"globe"}},
-      {"label":"123","titleMode":"automatic","action":{"type":"pageSwitch","value":"numeric"}},
-      {"label":"中/英","titleMode":"automatic","action":{"type":"languageSwitch"}},
-      {"label":"空格","width":4,"titleMode":"automatic","action":{"type":"space"}},
-      {"label":"⌫","titleMode":"automatic","action":{"type":"backspace"}},
-      {"label":"⏎","titleMode":"automatic","action":{"type":"enter"}}
+      {"label":"布局","action":{"type":"modeSwitch","value":"nextLayout"}},
+      {"label":"🌐","action":{"type":"globe"}},
+      {"label":"空格","width":4,"action":{"type":"space"}},
+      {"label":"⌫","action":{"type":"backspace"}},
+      {"label":"⏎","action":{"type":"enter"}}
     ]}
   ]
 }

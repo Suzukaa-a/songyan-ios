@@ -371,15 +371,17 @@ public enum BuiltinLayouts {
 
     // MARK: - Traditional Chinese boards
 
-    /// The 大千 (Daqian) 41-key board: four letter rows of 11 / 10 / 10 / 10 caps. A cap draws the
-    /// bopomofo symbol and sends the ASCII key that symbol sits on, which is the code the scheme's
-    /// own keymap expects; the codes never appear on a cap. The space bar sends the first tone.
+    /// The 大千 (Daqian) 41-key board: four letter rows of 11 / 10 / 10 / 10 caps, Delete closing
+    /// the fourth so it lines up with the first. A cap draws the bopomofo symbol and sends the ASCII
+    /// key that symbol sits on, which is the code the scheme's own keymap expects; the codes never
+    /// appear on a cap. The fifth row is the 26-key stand-in, so the keyboard draws the same footer
+    /// as every other board, with the punctuation keys either side of the space bar.
     public static let zhuyin41 = LayoutDefinition(
         id: "zhuyin41", name: "注音 41 键",
         // The encoding kind stays the 26-key one: the board is a layout of its own, identified by
         // its id, so no new kind and no new engine case come with it.
         input: .init(builtinLayout: .qwerty26),
-        rows: zhuyinLetterRows() + [zhuyinControlRow])
+        rows: zhuyinLetterRows() + [controls])
 
     private static let zhuyinKeys: [[(cap: String, code: String)]] = [
         [
@@ -400,23 +402,14 @@ public enum BuiltinLayouts {
         ],
     ]
 
+    /// The board has no case, so no Shift; Delete takes the fourth row's free eleventh slot.
     private static func zhuyinLetterRows() -> [LayoutRow] {
-        zhuyinKeys.map { row in
+        let rows = zhuyinKeys.map { row in
             LayoutRow(keys: row.map { LayoutKey(label: $0.cap, action: .init(.code, value: $0.code)) })
         }
+        let delete = LayoutKey(label: "⌫", action: .init(.backspace), titleMode: .automatic)
+        return rows.dropLast() + [LayoutRow(keys: rows[rows.count - 1].keys + [delete])]
     }
-
-    /// The controls a 41-key board draws itself: its four letter rows take the whole width, so no
-    /// shell key surrounds them. Every face is automatic, so traditional input reads 空白 and the
-    /// live Return title. Delete stays here because no shell row slot is left for it.
-    private static let zhuyinControlRow = LayoutRow(keys: [
-        LayoutKey(label: "🌐", action: .init(.globe), titleMode: .automatic),
-        LayoutKey(label: "123", action: .pageSwitch(.numeric), titleMode: .automatic),
-        LayoutKey(label: "中/英", action: .languageSwitch(), titleMode: .automatic),
-        LayoutKey(label: "空格", width: 4, action: .init(.space), titleMode: .automatic),
-        LayoutKey(label: "⌫", action: .init(.backspace), titleMode: .automatic),
-        LayoutKey(label: "⏎", action: .init(.enter), titleMode: .automatic),
-    ])
 
     /// The 倉頡 (Cangjie) 26-key board: the letters keep their QWERTY positions, each cap draws the
     /// radical its letter stands for and the corner label is the letter itself. The fourth row is
@@ -629,7 +622,13 @@ public extension BuiltinLayouts {
     /// replaces it whatever the main keys say. An edited fourth row is the author's and is drawn
     /// as declared.
     static func matchesControlRowPolicy(_ definition: LayoutDefinition, as layout: LayoutInput.Builtin) -> Bool {
-        definition.rows.count == PhoneKeypadMetrics.mainRowCount + 1
+        if definition.rows.count > PhoneKeypadMetrics.mainRowCount + 1 {
+            // A taller board (the 41-key zhuyin pad) draws its own letter rows as declared; the
+            // stand-in last row still asks for the keyboard's footer, as on Android.
+            return definition.input == preset(for: layout).input
+                && definition.rows.last == preset(for: layout).rows.last
+        }
+        return definition.rows.count == PhoneKeypadMetrics.mainRowCount + 1
             && matchesMainShell(definition, as: layout)
             && definition.rows.last == preset(for: layout).rows.last
     }
