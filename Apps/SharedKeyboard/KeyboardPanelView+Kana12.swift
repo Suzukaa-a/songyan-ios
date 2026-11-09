@@ -80,6 +80,7 @@ extension KeyboardPanelView {
             labels: kana12Labels,
             systemSwitchKey: kana12SystemSwitchKey,
             languageKey: kana12LanguageKey,
+            deleteKey: kana12DeleteKey,
             onAction: performKana12ViewAction
         )
         // The surface's fixed height already includes its own 4pt top/bottom inset, so its rows are
@@ -96,6 +97,16 @@ extension KeyboardPanelView {
             NativeInputModeKey(
                 handleEvent: systemKeyboardSwitch,
                 accessibilitySwitch: { controller.handle(.switchKeyboard) }))
+    }
+
+    /// Holding delete repeats like on every other board; each step still goes through the kana
+    /// queue so it stays ordered behind pending kana.
+    private var kana12DeleteKey: AnyView {
+        AnyView(
+            RepeatingDeleteKey { isRepeating in
+                if !isRepeating { emitKeyFeedback() }
+                controller.handleKana12(.backspace)
+            })
     }
 
     /// Tap toggles the input language through the kana queue; a long press opens the same

@@ -251,9 +251,11 @@ struct Kana12KeyboardView: View {
     let systemSwitchKey: AnyView?
     /// The panel's language key, so a long press lists the added keyboards like every other board.
     let languageKey: AnyView?
+    /// The panel's repeating delete, so holding it keeps deleting like every other board.
+    let deleteKey: AnyView?
     let onAction: (Kana12ViewAction) -> Void
 
-    @State private var activePress: Kana12Press? = nil
+    @State private var presses = Kana12Presses()
 
     private static let spacing: CGFloat = 4
     private static let padding: CGFloat = 4
@@ -263,12 +265,14 @@ struct Kana12KeyboardView: View {
         labels: Kana12Labels,
         systemSwitchKey: AnyView? = nil,
         languageKey: AnyView? = nil,
+        deleteKey: AnyView? = nil,
         onAction: @escaping (Kana12ViewAction) -> Void
     ) {
         self.compositing = compositing
         self.labels = labels
         self.systemSwitchKey = systemSwitchKey
         self.languageKey = languageKey
+        self.deleteKey = deleteKey
         self.onAction = onAction
     }
 
@@ -291,7 +295,7 @@ struct Kana12KeyboardView: View {
                 }
         }
         .frame(height: surfaceHeight)
-        .onDisappear { activePress = nil }
+        .onDisappear { presses = Kana12Presses() }
     }
 
     // MARK: Key area
@@ -358,7 +362,14 @@ struct Kana12KeyboardView: View {
 
     private func trailingRail(metrics: Kana12LayoutMetrics) -> some View {
         VStack(spacing: metrics.spacing) {
-            functionKey(.backspace, role: "control").frame(height: metrics.rowHeight)
+            Group {
+                if let deleteKey {
+                    deleteKey
+                } else {
+                    functionKey(.backspace, role: "control")
+                }
+            }
+            .frame(height: metrics.rowHeight)
             functionKey(.space, role: "key").frame(height: metrics.rowHeight)
             functionKey(.enter, role: "accent")
                 .frame(height: metrics.rowHeight * 2 + metrics.spacing)
@@ -373,12 +384,14 @@ struct Kana12KeyboardView: View {
             row: row,
             rowName: labels.rowNames[row.id] ?? row.center,
             flickHint: labels.kanaFlickHint,
-            isPressed: activePress?.rowID == row.id,
+            isPressed: presses.isPressed(row.id),
             onChanged: { translation in
-                updatePress(rowID: row.id, translation: translation, cell: metrics.previewCell)
+                presses.move(rowID: row.id, translation: translation, cell: metrics.previewCell)
             },
             onEnded: { translation in
-                endPress(rowID: row.id, translation: translation, cell: metrics.previewCell, row: row)
+                if let action = presses.end(row, translation: translation, cell: metrics.previewCell) {
+                    onAction(action)
+                }
             },
             onAccessibilityCenter: {
                 onAction(.kana(rowId: row.id, direction: .center))
@@ -405,38 +418,9 @@ struct Kana12KeyboardView: View {
             action: { onAction(Self.viewAction(for: key)) })
     }
 
-    // MARK: Press state
-
-    private func updatePress(rowID: String, translation: CGSize, cell: CGFloat) {
-        if var current = activePress, current.rowID == rowID {
-            current.translation = translation
-            current.isCancelled =
-                current.isCancelled || Kana12FlickRules.isCancelled(translation: translation, cell: cell)
-            activePress = current
-            return
-        }
-        activePress = Kana12Press(
-            rowID: rowID,
-            translation: translation,
-            isCancelled: Kana12FlickRules.isCancelled(translation: translation, cell: cell))
-    }
-
-    private func endPress(rowID: String, translation: CGSize, cell: CGFloat, row: Kana12Row) {
-        // A different row owning the press means another finger took it over: this release
-        // must not also type, or a two-thumb rollover would duplicate one key's action.
-        guard let current = activePress, current.rowID == rowID else { return }
-        activePress = nil
-        let cancelled = current.isCancelled || Kana12FlickRules.isCancelled(translation: translation, cell: cell)
-        guard !cancelled else { return }
-        let direction = Kana12FlickRules.direction(translation: translation)
-        // Past the threshold with no glyph that way types nothing, like a flick with no target.
-        guard row.glyph(for: direction) != nil else { return }
-        onAction(.kana(rowId: row.id, direction: direction))
-    }
-
     @ViewBuilder
     private func flickPreview(metrics: Kana12LayoutMetrics) -> some View {
-        if let press = activePress, !press.isCancelled,
+        if let press = presses.preview, !press.isCancelled,
             let row = Kana12KanaRows.row(id: press.rowID),
             let rect = metrics.rect(forRowID: press.rowID)
         {
@@ -464,15 +448,51 @@ struct Kana12KeyboardView: View {
 
 // MARK: - Press state
 
-private struct Kana12Press: Equatable {
+struct Kana12Press: Equatable {
     let rowID: String
     var translation: CGSize
     var isCancelled: Bool
 }
 
+/// The kana keys under fingers, one entry per key, so a two-thumb rollover types every key it
+/// touches, each on its own release.
+struct Kana12Presses: Equatable {
+    private var byRow: [String: Kana12Press] = [:]
+    /// The newest press owns the flick preview.
+    private var previewRowID: String?
+
+    var preview: Kana12Press? { previewRowID.flatMap { byRow[$0] } }
+
+    func isPressed(_ rowID: String) -> Bool { byRow[rowID] != nil }
+
+    mutating func move(rowID: String, translation: CGSize, cell: CGFloat) {
+        let cancelled = Kana12FlickRules.isCancelled(translation: translation, cell: cell)
+        if var current = byRow[rowID] {
+            current.translation = translation
+            current.isCancelled = current.isCancelled || cancelled
+            byRow[rowID] = current
+            return
+        }
+        byRow[rowID] = Kana12Press(rowID: rowID, translation: translation, isCancelled: cancelled)
+        previewRowID = rowID
+    }
+
+    /// Ends the press on `row` and returns what it types, if anything.
+    mutating func end(_ row: Kana12Row, translation: CGSize, cell: CGFloat) -> Kana12ViewAction? {
+        guard let current = byRow.removeValue(forKey: row.id) else { return nil }
+        if previewRowID == row.id { previewRowID = nil }
+        let cancelled = current.isCancelled || Kana12FlickRules.isCancelled(translation: translation, cell: cell)
+        guard !cancelled else { return nil }
+        let direction = Kana12FlickRules.direction(translation: translation)
+        // Past the threshold with no glyph that way types nothing, like a flick with no target.
+        guard row.glyph(for: direction) != nil else { return nil }
+        return .kana(rowId: row.id, direction: direction)
+    }
+}
+
 /// The flick decision, kept out of the view so the cardinal rule and the cancel rule are
 /// stated once and are easy to retune.
-private enum Kana12FlickRules {
+enum Kana12FlickRules {
     /// How far the finger must travel before a cardinal direction replaces the tap (points).
     static let selectionDistance: CGFloat = 16
     /// A press dragged farther than this is a cancel, not a long flick: it types nothing.
