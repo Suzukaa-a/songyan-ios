@@ -472,6 +472,9 @@ struct CursorSpaceKey: UIViewRepresentable {
             layer.cornerRadius = 6
             setTitleColor(.label, for: .normal)
             titleLabel?.font = .systemFont(ofSize: 15, weight: .medium)
+            // One line: a long keyboard name shrinks, then truncates, instead of wrapping.
+            titleLabel?.numberOfLines = 1
+            titleLabel?.lineBreakMode = .byTruncatingTail
             titleLabel?.adjustsFontSizeToFitWidth = true
             titleLabel?.minimumScaleFactor = 0.6
             layoutLabel.font = .systemFont(ofSize: 10)
@@ -493,7 +496,15 @@ struct CursorSpaceKey: UIViewRepresentable {
                 showsLayoutHint = false
                 return
             }
-            guard token != shownHintToken else { return }
+            guard token != shownHintToken else {
+                // The same switch, its name resolved later (another package's list loads after
+                // its keys): rename without restarting the time.
+                if showsLayoutHint, transientHintName != name {
+                    transientHintName = name
+                    refreshAppearance()
+                }
+                return
+            }
             shownHintToken = token
             transientHintName = name
             transientHintTimer?.invalidate()
@@ -517,9 +528,10 @@ struct CursorSpaceKey: UIViewRepresentable {
             (title: String, hint: String?, appearance: KeyboardAppearance, language: InputLanguage)?
 
         func refreshAppearance() {
-            let title = isDragging ? String(localized: "移动光标") : normalTitle
+            // The switch name takes the caption itself, as on Android, so it reads at a glance.
             let transientHint = showsLayoutHint && !isDragging && !isComposing ? transientHintName : nil
-            let hint = transientHint ?? (isDragging ? nil : authorSubtitle)
+            let title = isDragging ? String(localized: "移动光标") : transientHint ?? normalTitle
+            let hint = isDragging || transientHint != nil ? nil : authorSubtitle
             skinRole = isDragging ? "pressed" : "key"
             if let paintedState, paintedState.title == title, paintedState.hint == hint,
                 paintedState.appearance == appearance, paintedState.language == inputLanguage
@@ -545,6 +557,7 @@ struct CursorSpaceKey: UIViewRepresentable {
             guard string.length > 0 else { return nil }
             let paragraph = NSMutableParagraphStyle()
             paragraph.alignment = .center
+            paragraph.lineBreakMode = .byTruncatingTail
             string.addAttributes(
                 [
                     .font: titleLabel?.font ?? UIFont.systemFont(ofSize: 15, weight: .medium),

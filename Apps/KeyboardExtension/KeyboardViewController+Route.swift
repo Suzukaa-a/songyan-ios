@@ -81,6 +81,7 @@ extension KeyboardViewController {
                 route.recovery = nil
                 Self.rescuedRoute = nil
                 route.explainRecipeAvailability = true
+                session.announcesNextKeyboard = true
                 refreshResourceRoute()
             } catch {
                 guard isBoundHost else { return }

@@ -450,6 +450,9 @@ public final class KeyboardController: ObservableObject {
     @Published public private(set) var otherPackageKeyboards: [OtherPackageKeyboard] = []
     /// Switches to one of `otherPackageKeyboards`; the extension owns the switch because it reloads the engine.
     public var onSelectOtherPackage: ((OtherPackageKeyboard) -> Void)?
+    /// This keyboard replaced another package's: the panel names it on the space bar when it first
+    /// appears, as it does after a switch within one package.
+    public var announcesSwitchOnAppear = false
 
     public func updateOtherPackageKeyboards(_ entries: [OtherPackageKeyboard]) {
         if otherPackageKeyboards != entries { otherPackageKeyboards = entries }

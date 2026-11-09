@@ -949,6 +949,11 @@ public struct KeyboardPanelView: View {
             }
             .onChange(of: controller.keyboardType) { syncHostPage() }
             .onAppear { syncHostPage() }
+            .onAppear { announceSwitchFromOtherPackage() }
+            // Another package's keyboard list loads after its keys: the notice catches up with it.
+            .onChange(of: controller.userKeyboardChoices) {
+                if layoutHintName != nil { layoutHintName = currentKeyboardTitle }
+            }
             .onAppear { refreshContentDock() }
             .onChange(of: hostBindingTick) {
                 refreshContentDock()

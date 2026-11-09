@@ -185,6 +185,9 @@ public final class KeyboardPadSession: ObservableObject {
         didSet { controller?.onSelectOtherPackage = otherPackageSwitch }
     }
     @Published public private(set) var otherPackageKeyboards: [OtherPackageKeyboard] = []
+    /// Set by the extension when the user picked another package's keyboard; the next controller
+    /// announces itself once.
+    public var announcesNextKeyboard = false
 
     private func loadOtherPackageKeyboards(builtinRunning: Bool) async -> [OtherPackageKeyboard] {
         guard otherPackageSwitch != nil else { return [] }
@@ -921,6 +924,8 @@ public final class KeyboardPadSession: ObservableObject {
         // new controller, then re-read the publication record. A failed read keeps the old list and surfaces the error; never clears to "no keyboards".
         ctrl.updatePublishedKeyboards(publishedKeyboards, error: publishedKeyboardError)
         ctrl.onSelectOtherPackage = otherPackageSwitch
+        ctrl.announcesSwitchOnAppear = announcesNextKeyboard
+        announcesNextKeyboard = false
         ctrl.updateOtherPackageKeyboards(otherPackageKeyboards)
         // Bounded, once-per-boot resource/schema diagnostic for Dev validation.
         // No user input content: resource id, startup identity and the schema the

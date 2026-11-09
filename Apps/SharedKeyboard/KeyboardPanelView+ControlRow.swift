@@ -87,10 +87,22 @@ extension KeyboardPanelView {
     /// Consumes only a token from a real successful switch; reselecting the same item, page switches and view rebuilds produce no new token.
     func consumeLayoutChange() {
         guard let change = controller.successfulChange, change.token != layoutHintToken else { return }
-        layoutHintToken = change.token
+        announceSwitch(token: change.token)
+    }
+
+    /// A keyboard of another package replaced the last one: this panel is new, so it announces
+    /// the switch once when it appears.
+    func announceSwitchFromOtherPackage() {
+        guard controller.announcesSwitchOnAppear else { return }
+        controller.announcesSwitchOnAppear = false
+        announceSwitch(token: UUID())
+    }
+
+    /// Names the keyboard on the space bar for a moment and fades the new keys in.
+    private func announceSwitch(token: UUID) {
+        layoutHintToken = token
         layoutHintName = currentKeyboardTitle
         fadeInSwitchedKeys()
-        let token = change.token
         Task { @MainActor in
             try? await Task.sleep(nanoseconds: 2_500_000_000)
             if layoutHintToken == token { layoutHintName = nil }
