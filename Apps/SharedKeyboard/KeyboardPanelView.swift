@@ -74,8 +74,6 @@ public struct KeyboardPanelView: View {
     let additionalTools: AnyView?
     /// Rows injected by the host into the "Insert" card (repeat last input, date/time).
     let insertTools: AnyView?
-    private let asyncInsertionContext: (@MainActor () -> AnyHashable?)?
-    private let pasteLiteral: (@MainActor (String) -> Bool)?
     /// Injected by the extension; nil in the app's own trial area (there the app is already open).
     let openHostApp: ((URL, @escaping @MainActor (Bool) -> Void) -> Void)?
     /// Extension-only real dismissal for the wide-screen header button. Nil in the app trial.
@@ -90,9 +88,6 @@ public struct KeyboardPanelView: View {
     @State var quickContentCategory: String?
     @State private var idleToolbarEnabled = KeyboardIdleToolbarPreferences.defaultEnabled
     @State private var idleToolbarLayout = IdleToolbarLayout.default
-    @State private var clipboardPasteSlot = QuickPasteSlotLease()
-    @State private var clipboardPasteError: String?
-    @State private var clipboardPasteRevision = 0
     /// Set only when the system refused the hop to the app; nothing is claimed on success.
     @State var hostAppUnavailable = false
     @AccessibilityFocusState var utilitiesTitleFocused: Bool
@@ -181,8 +176,6 @@ public struct KeyboardPanelView: View {
         allowsCursorMovement: Bool = false, statusMessage: String? = nil,
         onStatusDetails: (() -> Void)? = nil, additionalTools: AnyView? = nil,
         insertTools: AnyView? = nil,
-        asyncInsertionContext: (@MainActor () -> AnyHashable?)? = nil,
-        pasteLiteral: (@MainActor (String) -> Bool)? = nil,
         openHostApp: ((URL, @escaping @MainActor (Bool) -> Void) -> Void)? = nil,
         dismissKeyboard: (() -> Void)? = nil,
         candidateBar candidateBarDefinition: CandidateBarDefinition = .systemDefault,
@@ -222,8 +215,6 @@ public struct KeyboardPanelView: View {
         self.onStatusDetails = onStatusDetails
         self.additionalTools = additionalTools
         self.insertTools = insertTools
-        self.asyncInsertionContext = asyncInsertionContext
-        self.pasteLiteral = pasteLiteral
         self.openHostApp = openHostApp
         self.dismissKeyboard = dismissKeyboard
         self.candidateBarDefinition = candidateBarDefinition
@@ -277,9 +268,7 @@ public struct KeyboardPanelView: View {
                         // A new controller identity (session reconnect) rebuilds the model wholesale, so no stale onInsert callback survives.
                         SymbolLibraryPanel(
                             controller: controller, initialSection: quickContentSection,
-                            initialCategory: quickContentCategory,
-                            clipboardPaste: AnyView(clipboardPasteControl),
-                            clipboardPasteRevision: clipboardPasteRevision
+                            initialCategory: quickContentCategory
                         ) { showsSymbolLibrary = false }
                         .id(ObjectIdentifier(controller))
                         .frame(width: contentWidth, height: geometry.size.height)
@@ -679,8 +668,6 @@ public struct KeyboardPanelView: View {
         showsUtilitiesMenu || showsSymbolLibrary || tools.isOpen
     }
 
-    private var clipboardToolTitle: String { String(localized: "剪贴板") }
-
     private func idleTool(_ title: String, icon: String, action: @escaping () -> Void) -> some View {
         Button {
             emitSelectionFeedback()
@@ -711,8 +698,6 @@ public struct KeyboardPanelView: View {
         return HStack(spacing: 4) {
             ForEach(Array(slots.enumerated()), id: \.offset) { _, slot in
                 switch slot {
-                case .clipboard:
-                    idleTool(clipboardToolTitle, icon: "list.clipboard") { openQuickContent(section: "clipboard") }
                 case .emoji:
                     idleTool(String(localized: "颜文字"), icon: "face.smiling") {
                         openQuickContent(section: "symbols", category: "kaomoji")
@@ -731,67 +716,6 @@ public struct KeyboardPanelView: View {
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 8)
         .padding(.trailing, trailingInset)
-    }
-
-    private var clipboardPasteAllowed: Bool {
-        var input = quickPasteIdleInput
-        input.isCovered = showsUtilitiesMenu
-        return showsSymbolLibrary && input.allowsPaste
-    }
-
-    private var clipboardPasteControl: some View {
-        clipboardPasteSlot.observe(
-            identity: ObjectIdentifier(controller),
-            changes: controller.objectWillChange.merge(with: quickSymbols.objectWillChange).eraseToAnyPublisher())
-        clipboardPasteSlot.updateEligibility(clipboardPasteAllowed)
-        return VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text("粘贴当前剪贴板")
-                Spacer()
-                QuickPasteView(
-                    inputContext: {
-                        guard let asyncInsertionContext,
-                            clipboardPasteSlot.isCurrent(identity: ObjectIdentifier(controller)), clipboardPasteAllowed
-                        else { return nil }
-                        return clipboardPasteSlot.context(host: asyncInsertionContext())
-                    },
-                    insertLiteral: { [weak controller] text in
-                        guard let controller, clipboardPasteSlot.isCurrent(identity: ObjectIdentifier(controller)),
-                            clipboardPasteAllowed
-                        else { return false }
-                        if let pasteLiteral { return pasteLiteral(text) }
-                        return controller.insertExternalLiteral(text)
-                    }, foreground: appearance.text(on: "panel"),
-                    onError: { error in
-                        guard clipboardPasteSlot.isCurrent(identity: ObjectIdentifier(controller)),
-                            clipboardPasteAllowed
-                        else { return }
-                        clipboardPasteError = error
-                    },
-                    didDispatchUserPaste: { text in
-                        Task { @MainActor in
-                            let note = await SharedQuickContentStorage.recordExplicitPaste(text)
-                            guard clipboardPasteSlot.isCurrent(identity: ObjectIdentifier(controller)),
-                                clipboardPasteAllowed
-                            else { return }
-                            clipboardPasteError = note
-                            clipboardPasteRevision &+= 1
-                        }
-                    }
-                )
-                .id("\(ObjectIdentifier(controller))-\(hostBindingTick)")
-                .frame(width: 44, height: 44)
-            }
-            if let clipboardPasteError { Text(clipboardPasteError).font(.footnote).foregroundStyle(.red) }
-        }
-        // An old failure belongs to that attempt; it must not greet the next opening of the clipboard.
-        .onChange(of: clipboardPasteAllowed) { _, allowed in
-            if !allowed { clipboardPasteError = nil }
-        }
-        .onDisappear {
-            clipboardPasteSlot.updateEligibility(false)
-            clipboardPasteError = nil
-        }
     }
 
     /// A pinned tool runs from the toolbar and opens its preview; the panel does the writing.
@@ -824,8 +748,8 @@ public struct KeyboardPanelView: View {
         Task { await model.refresh(inputLanguage: language) }
     }
 
-    private var quickPasteIdleInput: QuickPasteIdleInput {
-        QuickPasteIdleInput(
+    private var idleToolbarInput: IdleToolbarInput {
+        IdleToolbarInput(
             isComposing: controller.snapshot.isComposing,
             hasPrediction: controller.snapshot.isPrediction,
             hasCandidates: !controller.snapshot.candidates.isEmpty
@@ -845,7 +769,7 @@ public struct KeyboardPanelView: View {
     private func panelSurface(isWide: Bool) -> some View {
         let plan = layoutPlan
         let showsWideDismiss = isWide && dismissKeyboard != nil
-        let idle = quickPasteIdleInput.allowsPaste
+        let idle = idleToolbarInput.allowsToolbar
         return VStack(spacing: 0) {
             // While composing, the full original budget for candidates, readings, status and fallback badge is kept;
             // Optional tools use the blank band only when strictly idle, without splitting candidate width.

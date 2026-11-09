@@ -1,6 +1,6 @@
 import Foundation
 
-/// Vertical budget of the quick-content panel (symbols, phrases, clipboard).
+/// Vertical budget of the quick-content panel (symbols, phrases).
 ///
 /// The panel is drawn inside the keyboard's own height, which on a phone in landscape is a
 /// fraction of the portrait height. Chrome that takes its ideal height regardless of the space
@@ -43,13 +43,13 @@ public struct QuickContentLayout: Equatable, Sendable {
 
     /// - Parameters:
     ///   - height: the panel's own height.
-    ///   - railItemCount: rows in the leading column (the three sections, plus the open
+    ///   - railItemCount: rows in the leading column (the two sections, plus the open
     ///     section's categories when symbols are showing).
     public static func resolve(height: CGFloat, railItemCount: Int) -> Self {
         let height = max(0, height)
         let density: Density = height >= 240 ? .regular : (height >= 176 ? .compact : .minimal)
         let title: CGFloat = density == .regular ? 44 : (density == .compact ? 40 : 36)
-        // Just wide enough for three characters (常用语, 剪贴板, 颜文字) at the category-rail
+        // Just wide enough for three characters (常用语, 颜文字) at the category-rail
         // size the 9-key symbol page uses; every other point goes to the symbol grid.
         let railWidth: CGFloat = 60
         let cellHeight: CGFloat = density == .regular ? 56 : (density == .compact ? 48 : 44)

@@ -358,8 +358,6 @@ struct QuickContentManagementView: View {
     @State private var editingPhrase: PhraseEditSelection?
     @State private var showingImporter = false
     @State private var showingExporter = false
-    @State private var confirmingEnable = false
-    @State private var confirmingClear = false
     @State private var confirmingImport = false
     @State private var importURL: URL?
 
@@ -373,22 +371,13 @@ struct QuickContentManagementView: View {
                 }
             }
             phrasesSection
-            clipboardSection
         }
-        .navigationTitle(String(localized: "常用语与剪贴板"))
+        .navigationTitle(String(localized: "常用语"))
         .navigationBarTitleDisplayMode(.inline)
         .searchable(text: $query, prompt: String(localized: "搜索常用语"))
         .onAppear { model.reload() }
         .sheet(item: $editingPhrase) { selection in
             CommonPhraseEditor(phrase: selection.phrase, isNew: selection.isNew) { await model.savePhrase($0) }
-        }
-        .confirmationDialog(String(localized: "开启剪贴板历史？"), isPresented: $confirmingEnable, titleVisibility: .visible) {
-            Button(String(localized: "开启")) { model.setClipboardEnabled(true) }
-        } message: {
-            Text("只保存你在松烟键盘中轻点「粘贴」输入的文字，最多 20 条，每条不超过 4 KB，仅保存在本机，关闭后全部删除。请避免粘贴密码、验证码等内容。")
-        }
-        .confirmationDialog(String(localized: "清空剪贴板历史？"), isPresented: $confirmingClear, titleVisibility: .visible) {
-            Button(String(localized: "清空历史记录"), role: .destructive) { model.clearClipboard() }
         }
         .confirmationDialog(String(localized: "替换所有常用语？"), isPresented: $confirmingImport, titleVisibility: .visible) {
             Button(String(localized: "导入并替换"), role: .destructive) {
@@ -455,51 +444,6 @@ struct QuickContentManagementView: View {
             Text("常用语")
         } footer: {
             Text("最多保存 100 条。在键盘的「快捷内容」中搜索并轻点输入。")
-        }
-        .disabled(model.isBusy || !model.isAvailable)
-    }
-
-    private var clipboardSection: some View {
-        Section {
-            Toggle(
-                String(localized: "剪贴板历史"),
-                isOn: Binding(
-                    get: { model.content.clipboardEnabled },
-                    set: { enabled in
-                        if enabled { confirmingEnable = true } else { model.setClipboardEnabled(false) }
-                    })
-            )
-            .accessibilityIdentifier("quickContent.clipboardEnabled")
-            .accessibilityValue(
-                model.content.clipboardEnabled
-                    ? String(localized: "已开启") : String(localized: "已关闭"))
-            if model.content.clipboardEnabled {
-                Button(String(localized: "清空历史记录"), role: .destructive) { confirmingClear = true }
-                    .disabled(model.content.clipboard.isEmpty)
-                    .accessibilityIdentifier("quickContent.clearHistory")
-                ForEach(model.content.clipboard, id: \.self) { text in
-                    NavigationLink {
-                        ScrollView {
-                            Text(text)
-                                .textSelection(.enabled)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding()
-                        }
-                        .navigationTitle(String(localized: "剪贴板内容"))
-                        .navigationBarTitleDisplayMode(.inline)
-                    } label: {
-                        Text(text).foregroundStyle(.primary).lineLimit(4)
-                    }
-                    .swipeActions {
-                        Button(String(localized: "删除"), role: .destructive) { model.deleteClipboard(text) }
-                    }
-                }
-                if model.content.clipboard.isEmpty { Text("还没有历史记录").foregroundStyle(.secondary) }
-            }
-        } header: {
-            Text("剪贴板")
-        } footer: {
-            Text("只保存你在松烟键盘中粘贴的文字，仅保存在本机。")
         }
         .disabled(model.isBusy || !model.isAvailable)
     }

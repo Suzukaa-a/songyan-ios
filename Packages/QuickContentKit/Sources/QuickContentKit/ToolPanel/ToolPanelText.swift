@@ -30,7 +30,7 @@ public enum ToolPanelText {
         return String(paragraph)
     }
 
-    /// Keeps the head of `text`. Used for a selection and for the clipboard: when a tool output is
+    /// Keeps the head of `text`. Used for a selection: when a tool output is
     /// inserted, the inserted text is what the user just looked at.
     public static func boundedPrefix(
         _ text: String, limit: Int = maximumCharacters

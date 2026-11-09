@@ -133,28 +133,6 @@
         }
       }
     },
-    "tools.source.clipboard": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "剪贴板"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "剪貼簿"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "クリップボード"
-          }
-        }
-      }
-    },
     "tools.source.unavailable.selection": {
       "localizations": {
         "zh-Hans": {
@@ -195,28 +173,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "カーソル前にテキストがありません"
-          }
-        }
-      }
-    },
-    "tools.source.unavailable.clipboard": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "剪贴板没有文字"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "剪貼簿沒有文字"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "クリップボードにテキストがありません"
           }
         }
       }
@@ -534,19 +490,19 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "没有可处理的文字。可以先选中文字，或改用剪贴板。"
+            "value": "没有可处理的文字。先选中文字再试。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "沒有可處理的文字。可以先選中文字，或改用剪貼簿。"
+            "value": "沒有可處理的文字。先選中文字再試。"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "処理できるテキストがありません。テキストを選択するか、クリップボードを使ってください。"
+            "value": "処理できるテキストがありません。テキストを選択してからお試しください。"
           }
         }
       }
@@ -701,28 +657,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "カーソル前の最大 1000 文字を処理します。"
-          }
-        }
-      }
-    },
-    "tools.result.truncated.clipboard": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "剪贴板内容较多，只处理前 1000 字。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "剪貼簿內容較多，只處理前 1000 字。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "クリップボードの内容が長いため、先頭の 1000 文字だけを処理します。"
           }
         }
       }

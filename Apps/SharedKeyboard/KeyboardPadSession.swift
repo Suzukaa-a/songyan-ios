@@ -14,8 +14,6 @@ public protocol KeyboardPadHost: AnyObject {
     /// Memory-only identity of the writable document; nil while none can be written.
     /// Tools refuse delivery if confirmation changes the target.
     func hostContextIdentifier() -> String?
-    /// Captured only for explicit asynchronous insertions; nil means no live target.
-    func asyncInsertionContext() -> AnyHashable?
     func updateMarked(_ composition: MarkedComposition?)
     /// The running engine's schema or layout changed; the host decides whether it is remembered.
     func keyboardSelectionChanged(_ change: KeyboardSelectionChange)
@@ -241,12 +239,6 @@ public final class KeyboardPadSession: ObservableObject {
 
     /// Current resource set (nil = not specified; Release without one is unconfigured, with no bundled fallback).
     public private(set) var resourceSet: KeyboardResourceSet?
-
-    @discardableResult
-    public func insertExternalLiteral(_ text: String) -> Bool {
-        guard phase == .ready, let controller else { return false }
-        return quickInsert.withoutRecordingCommits { controller.insertExternalLiteral(text) }
-    }
 
     @discardableResult
     private func dispatchCommitToHost(_ text: String) -> Bool {

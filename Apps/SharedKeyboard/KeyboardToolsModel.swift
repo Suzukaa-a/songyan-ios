@@ -41,9 +41,6 @@ final class KeyboardToolsModel: ObservableObject {
     @Published private(set) var runError: String?
     @Published private(set) var notice: String?
     @Published private(set) var isRunning = false
-    /// False until a pasteboard read happened for this panel: before that, "the clipboard has no
-    /// text" is unknown and must not be shown as a fact.
-    @Published private(set) var clipboardWasRead = false
 
     private var catalogGate = LatestWinsReadGate()
     private var runTask: Task<Void, Never>?
@@ -113,7 +110,6 @@ final class KeyboardToolsModel: ObservableObject {
         notice = nil
         selectedToolID = nil
         isRunning = false
-        clipboardWasRead = false
         isOpen = true
         guard let editor = controller.readToolTextSource() else {
             panel = nil
@@ -141,15 +137,12 @@ final class KeyboardToolsModel: ObservableObject {
         runError = nil
         notice = nil
         isRunning = false
-        clipboardWasRead = false
     }
 
-    /// Switches the processed text. The caller reads the pasteboard only for an explicit clipboard
-    /// tap, so the panel never touches it while rendering.
-    func choose(_ source: ToolPanelSource, clipboardText: String? = nil) {
+    /// Switches the processed text.
+    func choose(_ source: ToolPanelSource) {
         guard var panel else { return }
-        if source == .clipboard { clipboardWasRead = true }
-        guard panel.choose(source, clipboardText: clipboardText) else {
+        guard panel.choose(source) else {
             notice =
                 panel.availability(of: source).map(KeyboardToolsWording.sourceUnavailable)
                 ?? KeyboardToolsWording.noInput
@@ -242,8 +235,6 @@ final class KeyboardToolsModel: ObservableObject {
         for block: ToolPanelReplacementBlock, prepared: ToolPanelPreparedText?
     ) -> String? {
         switch block {
-        case .noEditorAnchor:
-            return nil
         case .sourceWasTruncated:
             return prepared.map { KeyboardToolsWording.truncatedNotice($0.source) }
         case .textChanged, .documentChanged, .documentUnavailable:

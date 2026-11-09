@@ -10143,28 +10143,6 @@
         }
       }
     },
-    "常用语与剪贴板": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "常用语与剪贴板"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "常用語與剪貼簿"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "定型文とクリップボード"
-          }
-        }
-      }
-    },
     "符号与颜文字": {
       "localizations": {
         "zh-Hans": {
@@ -17491,28 +17469,6 @@
         }
       }
     },
-    "开启剪贴板历史？": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "开启剪贴板历史？"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "開啟剪貼簿歷史？"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "クリップボードの履歴をオンにしますか？"
-          }
-        }
-      }
-    },
     "开启": {
       "localizations": {
         "zh-Hans": {
@@ -17531,72 +17487,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "オンにする"
-          }
-        }
-      }
-    },
-    "只保存你在松烟键盘中轻点「粘贴」输入的文字，最多 20 条，每条不超过 4 KB，仅保存在本机，关闭后全部删除。请避免粘贴密码、验证码等内容。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "只保存你在松烟键盘中轻点「粘贴」输入的文字，最多 20 条，每条不超过 4 KB，仅保存在本机，关闭后全部删除。请避免粘贴密码、验证码等内容。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "只儲存你在松煙鍵盤中點一下「貼上」輸入的文字，最多 20 條，每條不超過 4 KB，僅儲存在本機，關閉後全部刪除。請避免貼上密碼、驗證碼等內容。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "松煙キーボードで「ペースト」をタップして入力した文字だけを保存します。最大 20 件、1 件あたり 4 KB までで、この端末内にだけ保存され、オフにするとすべて削除されます。パスワードや確認コードなどは貼り付けないでください。"
-          }
-        }
-      }
-    },
-    "清空剪贴板历史？": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "清空剪贴板历史？"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "清空剪貼簿歷史？"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "クリップボードの履歴を消去しますか？"
-          }
-        }
-      }
-    },
-    "清空历史记录": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "清空历史记录"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "清空歷史記錄"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "履歴を消去"
           }
         }
       }
@@ -17817,94 +17707,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "最大 100 件まで保存できます。キーボードの「クイックコンテンツ」で検索してタップすると入力できます。"
-          }
-        }
-      }
-    },
-    "剪贴板历史": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "剪贴板历史"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "剪貼簿歷史"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "クリップボードの履歴"
-          }
-        }
-      }
-    },
-    "还没有历史记录": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "还没有历史记录"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "還沒有歷史記錄"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "履歴はまだありません"
-          }
-        }
-      }
-    },
-    "剪贴板": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "剪贴板"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "剪貼簿"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "クリップボード"
-          }
-        }
-      }
-    },
-    "只保存你在松烟键盘中粘贴的文字，仅保存在本机。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "只保存你在松烟键盘中粘贴的文字，仅保存在本机。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "只儲存你在松煙鍵盤中貼上的文字，僅儲存在本機。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "松煙キーボードで貼り付けた文字だけを保存し、この端末内にだけ残します。"
           }
         }
       }
@@ -18147,28 +17949,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "選択したファイルを読み取れませんでした。もう一度選んでください。"
-          }
-        }
-      }
-    },
-    "剪贴板内容": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "剪贴板内容"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "剪貼簿內容"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "クリップボードの内容"
           }
         }
       }
@@ -23409,28 +23189,6 @@
         }
       }
     },
-    "一次最多粘贴 8 项文字": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "一度に貼り付けられるのは 8 件までです"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "一次最多粘贴 8 项文字"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "一次最多貼上 8 項文字"
-          }
-        }
-      }
-    },
     "临时使用%@": {
       "localizations": {
         "ja": {
@@ -23805,72 +23563,6 @@
         }
       }
     },
-    "删除这条历史记录": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "この履歴を削除"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "删除这条历史记录"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "刪除這條歷史記錄"
-          }
-        }
-      }
-    },
-    "剪贴板中没有可粘贴的文字": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "クリップボードに貼り付ける文字がありません"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "剪贴板中没有可粘贴的文字"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "剪貼簿中沒有可貼上的文字"
-          }
-        }
-      }
-    },
-    "剪贴板历史未开启": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "クリップボード履歴がオフです"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "剪贴板历史未开启"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "剪貼簿歷史未開啟"
-          }
-        }
-      }
-    },
     "单手模式：%@": {
       "localizations": {
         "ja": {
@@ -23893,28 +23585,6 @@
         }
       }
     },
-    "取消粘贴": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ペーストをキャンセル"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "取消粘贴"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "取消貼上"
-          }
-        }
-      }
-    },
     "另有 %lld 份用不到，没有并入。": {
       "localizations": {
         "ja": {
@@ -23933,28 +23603,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "另有 %lld 份用不到，沒有併入。"
-          }
-        }
-      }
-    },
-    "可在松烟 App 的「常用语与剪贴板」中开启。": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "「松煙」アプリの「定型文とクリップボード」でオンにできます。"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "可在松烟 App 的「常用语与剪贴板」中开启。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "可在松煙 App 的「常用語與剪貼簿」中開啟。"
           }
         }
       }
@@ -24021,50 +23669,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "啟用失敗，輸入方案 %@ 尚未編譯"
-          }
-        }
-      }
-    },
-    "图片或富文本请长按输入框，使用系统「粘贴」": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "画像やリッチテキストは、入力欄を長押ししてシステムの「ペースト」を使ってください"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "图片或富文本请长按输入框，使用系统「粘贴」"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "圖片或富文字請長按輸入框，使用系統「貼上」"
-          }
-        }
-      }
-    },
-    "在松烟 App 的「常用语与剪贴板」中添加常用语": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "「松煙」アプリの「定型文とクリップボード」で定型文を追加してください"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "在松烟 App 的「常用语与剪贴板」中添加常用语"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "在松煙 App 的「常用語與剪貼簿」中新增常用語"
           }
         }
       }
@@ -24443,28 +24047,6 @@
         }
       }
     },
-    "已粘贴，但没能保存到剪贴板历史": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "貼り付けましたが、クリップボード履歴に保存できませんでした"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "已粘贴，但没能保存到剪贴板历史"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "已貼上，但沒能儲存到剪貼簿歷史"
-          }
-        }
-      }
-    },
     "已选择": {
       "localizations": {
         "ja": {
@@ -24575,28 +24157,6 @@
         }
       }
     },
-    "常用语与剪贴板暂不可用，请在系统设置中打开「允许完全访问」后重试": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "定型文とクリップボードを一時的に使用できません。システム設定でフルアクセスを許可して、もう一度お試しください"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "常用语与剪贴板暂不可用，请在系统设置中打开「允许完全访问」后重试"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "常用語與剪貼簿暫不可用，請在系統設定中開啟「允許完整取用」後重試"
-          }
-        }
-      }
-    },
     "常用语最多保存 100 条，请先删除一条再保存": {
       "localizations": {
         "ja": {
@@ -24681,28 +24241,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "強"
-          }
-        }
-      }
-    },
-    "当前没有可用的输入框": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "入力できる入力欄がありません"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "当前没有可用的输入框"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "當前沒有可用的輸入框"
           }
         }
       }
@@ -26489,28 +26027,6 @@
         }
       }
     },
-    "最近粘贴": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "最近のペースト"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "最近粘贴"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "最近貼上"
-          }
-        }
-      }
-    },
     "未找到与「%@」匹配的符号": {
       "localizations": {
         "ja": {
@@ -26617,28 +26133,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "未能備份學習資料，未生成完整備份。"
-          }
-        }
-      }
-    },
-    "未能将文字粘贴到当前输入框": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "入力欄に文字を貼り付けられませんでした"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "未能将文字粘贴到当前输入框"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "未能將文字貼上到當前輸入框"
           }
         }
       }
@@ -27127,28 +26621,6 @@
         }
       }
     },
-    "符号、颜文字、常用语与剪贴板": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "記号、顔文字、定型文、クリップボード"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "符号、颜文字、常用语与剪贴板"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "符號、顏文字、常用語與剪貼簿"
-          }
-        }
-      }
-    },
     "符号须为 1 至 12 个不重复字符，不能包含空格或控制字符": {
       "localizations": {
         "ja": {
@@ -27189,94 +26661,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "簡體輸出"
-          }
-        }
-      }
-    },
-    "粘贴": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ペースト"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "粘贴"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "貼上"
-          }
-        }
-      }
-    },
-    "粘贴当前剪贴板": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "現在のクリップボードを貼り付け"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "粘贴当前剪贴板"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "貼上當前剪貼簿"
-          }
-        }
-      }
-    },
-    "粘贴文字超出 64 KB 限制": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "貼り付ける文字が 64 KB の上限を超えています"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "粘贴文字超出 64 KB 限制"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "貼上文字超出 64 KB 限制"
-          }
-        }
-      }
-    },
-    "系统未能提供粘贴文字，请检查权限后重试": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "システムから貼り付け用の文字を取得できませんでした。権限を確認して、もう一度お試しください"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "系统未能提供粘贴文字，请检查权限后重试"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "系統未能提供貼上文字，請檢查許可權後重試"
           }
         }
       }
@@ -27765,28 +27149,6 @@
         }
       }
     },
-    "读取粘贴文字超时，请重试": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "貼り付け用の文字の読み取りがタイムアウトしました。もう一度お試しください"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "读取粘贴文字超时，请重试"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "讀取貼上文字超時，請重試"
-          }
-        }
-      }
-    },
     "读音": {
       "localizations": {
         "ja": {
@@ -27981,28 +27343,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "輸入一個符號後回到字母頁"
-          }
-        }
-      }
-    },
-    "输入位置已改变，请重新粘贴": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "入力位置が変わりました。もう一度貼り付けてください"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "输入位置已改变，请重新粘贴"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "輸入位置已改變，請重新貼上"
           }
         }
       }
@@ -28509,28 +27849,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "返回鍵盤"
-          }
-        }
-      }
-    },
-    "还没有历史记录，轻点上方「粘贴」后会保存。": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "履歴はまだありません。上の「ペースト」をタップすると保存されます。"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "还没有历史记录，轻点上方「粘贴」后会保存。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "還沒有歷史記錄，點一下上方「貼上」後會儲存。"
           }
         }
       }
@@ -32253,28 +31571,6 @@
         }
       }
     },
-    "常用语 剪贴板 历史 快捷短语": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "定型文 クリップボード 履歴 クイックフレーズ"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "常用语 剪贴板 历史 快捷短语"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "常用語 剪貼簿 歷史 快捷短語"
-          }
-        }
-      }
-    },
     "键盘工具 工具 翻译 繁简 转换 全角 大写 钉 工具栏 撤销 导入 导出": {
       "localizations": {
         "ja": {
@@ -34053,6 +33349,94 @@
           "stringUnit": {
             "state": "translated",
             "value": "このキーボードはマイキーボードにありません。更新してからもう一度お試しください。"
+          }
+        }
+      }
+    },
+    "常用语暂不可用，请在系统设置中打开「允许完全访问」后重试": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "常用语暂不可用，请在系统设置中打开「允许完全访问」后重试"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "常用語暫不可用，請在系統設定中開啟「允許完整取用」後重試"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "定型文を一時的に使用できません。システム設定でフルアクセスを許可して、もう一度お試しください"
+          }
+        }
+      }
+    },
+    "在松烟 App 的「常用语」中添加常用语": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在松烟 App 的「常用语」中添加常用语"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在松煙 App 的「常用語」中新增常用語"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「松煙」アプリの「定型文」で定型文を追加してください"
+          }
+        }
+      }
+    },
+    "符号、颜文字与常用语": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "符号、颜文字与常用语"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "符號、顏文字與常用語"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記号、顔文字、定型文"
+          }
+        }
+      }
+    },
+    "常用语 快捷短语": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "常用语 快捷短语"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "常用語 快捷短語"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "定型文 クイックフレーズ"
           }
         }
       }

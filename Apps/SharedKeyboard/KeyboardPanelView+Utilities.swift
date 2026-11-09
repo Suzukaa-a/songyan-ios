@@ -124,7 +124,7 @@ extension KeyboardPanelView {
                 icon: "square.grid.3x3",
                 title: String(localized: "快捷内容"),
                 showsChevron: true,
-                accessibilityHint: String(localized: "符号、颜文字、常用语与剪贴板")
+                accessibilityHint: String(localized: "符号、颜文字与常用语")
             ) {
                 emitSelectionFeedback()
                 showsUtilitiesMenu = false

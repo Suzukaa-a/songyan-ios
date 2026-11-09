@@ -79,9 +79,6 @@ extension ToolPanelAnchor {
 /// Why a replacement is no longer safe. The panel keeps the insert and copy actions; only the
 /// replace action is withdrawn, and this value names the reason for the one-line notice.
 public enum ToolPanelReplacementBlock: Equatable, Sendable {
-    /// The processed text did not come from the field (clipboard content), so there is nothing to
-    /// replace.
-    case noEditorAnchor
     /// Only the head of a long selection was processed; replacing the whole selection would drop
     /// the part that never reached the tool.
     case sourceWasTruncated
@@ -105,16 +102,15 @@ public enum ToolPanelWriteOption: Equatable, Sendable {
     case copy
 }
 
-/// One text a tool may process: bounded, and anchored when it came from the field.
+/// One text a tool may process: bounded, and anchored to where it sits in the field.
 public struct ToolPanelPreparedText: Equatable, Sendable {
     public let source: ToolPanelSource
     public let text: String
     /// The source was longer than `ToolPanelText.maximumCharacters`.
     public let wasTruncated: Bool
-    /// Where this text sits in the field; nil for clipboard content.
-    public let anchor: ToolPanelAnchor?
+    public let anchor: ToolPanelAnchor
 
-    init(source: ToolPanelSource, text: String, wasTruncated: Bool, anchor: ToolPanelAnchor?) {
+    init(source: ToolPanelSource, text: String, wasTruncated: Bool, anchor: ToolPanelAnchor) {
         self.source = source
         self.text = text
         self.wasTruncated = wasTruncated
@@ -129,18 +125,16 @@ public struct ToolPanelPreparedText: Equatable, Sendable {
 /// the boundaries M-D3 draws around a tool's input and its one write.
 public struct ToolPanelModel: Equatable, Sendable {
     public private(set) var editor: ToolPanelEditorSnapshot
-    public private(set) var clipboardText: String?
     public private(set) var source: ToolPanelSource
     public private(set) var prepared: ToolPanelPreparedText?
     /// Set once a replacement was refused; the panel then offers insertion only for this result.
     public private(set) var replacementBlocked: ToolPanelReplacementBlock?
 
-    public init(editor: ToolPanelEditorSnapshot, clipboardText: String? = nil) {
+    public init(editor: ToolPanelEditorSnapshot) {
         self.editor = editor
-        self.clipboardText = clipboardText
-        let source = Self.defaultSource(editor: editor, clipboardText: clipboardText)
+        let source = Self.defaultSource(editor: editor)
         self.source = source
-        self.prepared = Self.prepare(source: source, editor: editor, clipboardText: clipboardText)
+        self.prepared = Self.prepare(source: source, editor: editor)
     }
 
     /// A host that reports text while withholding its content is a protected field. iOS itself does
@@ -162,46 +156,21 @@ public struct ToolPanelModel: Equatable, Sendable {
             guard editor.hasEmptySelection else { return .noTextBeforeCursor }
             return ToolPanelText.paragraphBeforeCursor(editor.textBeforeCursor) == nil
                 ? .noTextBeforeCursor : nil
-        case .clipboard:
-            return ToolPanelText.usableText(clipboardText) == nil ? .clipboardHasNoText : nil
         }
     }
 
     /// Switches the processed text. A source with nothing to process is refused, so the panel never
     /// shows an "original" it cannot explain.
-    ///
-    /// Passing `clipboardText` records a fresh pasteboard read together with the choice; the caller
-    /// reads the pasteboard only on this explicit tap.
     @discardableResult
-    public mutating func choose(_ source: ToolPanelSource, clipboardText: String? = nil) -> Bool {
-        if let clipboardText { self.clipboardText = clipboardText }
+    public mutating func choose(_ source: ToolPanelSource) -> Bool {
         guard
             availability(of: source) == nil,
-            let prepared = Self.prepare(
-                source: source, editor: editor, clipboardText: self.clipboardText)
+            let prepared = Self.prepare(source: source, editor: editor)
         else { return false }
         self.source = source
         self.prepared = prepared
         replacementBlocked = nil
         return true
-    }
-
-    /// Records the clipboard answer after the user asked for it, keeping the current source when it
-    /// still has text and falling back to the clipboard when the field has none.
-    public mutating func updateClipboard(_ text: String?) {
-        clipboardText = text
-        replacementBlocked = nil
-        if source == .clipboard {
-            if let prepared = Self.prepare(
-                source: .clipboard, editor: editor, clipboardText: text)
-            {
-                self.prepared = prepared
-            } else {
-                source = Self.defaultSource(editor: editor, clipboardText: text)
-                prepared = Self.prepare(
-                    source: source, editor: editor, clipboardText: text)
-            }
-        }
     }
 
     /// Re-reads the field before a write and only allows the replacement when the anchor is still
@@ -214,14 +183,13 @@ public struct ToolPanelModel: Equatable, Sendable {
     ) -> ToolPanelReplacementDecision {
         guard let prepared else { return .insertOnly(.documentUnavailable) }
         switch prepared.source {
-        case .clipboard:
-            return .insertOnly(.noEditorAnchor)
         case .selection where prepared.wasTruncated:
             return .insertOnly(.sourceWasTruncated)
         case .selection, .paragraphBeforeCursor:
             break
         }
-        guard let anchor = prepared.anchor, let current else {
+        let anchor = prepared.anchor
+        guard let current else {
             return .insertOnly(.documentUnavailable)
         }
         guard let expected = anchor.documentIdentifier else {
@@ -241,21 +209,18 @@ public struct ToolPanelModel: Equatable, Sendable {
 
     // MARK: - Preparation
 
-    private static func defaultSource(
-        editor: ToolPanelEditorSnapshot, clipboardText: String?
-    ) -> ToolPanelSource {
+    private static func defaultSource(editor: ToolPanelEditorSnapshot) -> ToolPanelSource {
         if ToolPanelText.usableText(editor.selectedText) != nil { return .selection }
         if editor.hasEmptySelection,
             ToolPanelText.paragraphBeforeCursor(editor.textBeforeCursor) != nil
         {
             return .paragraphBeforeCursor
         }
-        if ToolPanelText.usableText(clipboardText) != nil { return .clipboard }
         return .selection
     }
 
     private static func prepare(
-        source: ToolPanelSource, editor: ToolPanelEditorSnapshot, clipboardText: String?
+        source: ToolPanelSource, editor: ToolPanelEditorSnapshot
     ) -> ToolPanelPreparedText? {
         switch source {
         case .selection:
@@ -276,11 +241,6 @@ public struct ToolPanelModel: Equatable, Sendable {
                 anchor: ToolPanelAnchor(
                     location: .paragraphBeforeCursor, text: bounded.text,
                     documentIdentifier: editor.documentIdentifier))
-        case .clipboard:
-            guard let text = ToolPanelText.usableText(clipboardText) else { return nil }
-            let bounded = ToolPanelText.boundedPrefix(text)
-            return ToolPanelPreparedText(
-                source: source, text: bounded.text, wasTruncated: bounded.wasTruncated, anchor: nil)
         }
     }
 }

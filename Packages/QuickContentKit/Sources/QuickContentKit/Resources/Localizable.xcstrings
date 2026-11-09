@@ -174,25 +174,25 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Couldn't open phrases and clipboard. Try again in a moment."
+            "value": "Couldn't open phrases. Try again in a moment."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "定型文とクリップボードを開けませんでした。しばらくしてからもう一度お試しください。"
+            "value": "定型文を開けませんでした。しばらくしてからもう一度お試しください。"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "打不开常用语与剪贴板，请稍后再试。"
+            "value": "打不开常用语，请稍后再试。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "打不開常用語與剪貼簿，請稍後再試。"
+            "value": "打不開常用語，請稍後再試。"
           }
         }
       }

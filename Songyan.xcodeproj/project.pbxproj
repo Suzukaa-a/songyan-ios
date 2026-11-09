@@ -20,8 +20,6 @@
         KF2610160000000000000003 /* KeyFeedback in Resources */ = {isa = PBXBuildFile; fileRef = KF2610160000000000000001; };
         SH2610160000000000000003 /* ShuangpinHintManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = SH2610160000000000000001; };
         SH2610160000000000000004 /* ShuangpinHintManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SH2610160000000000000002; };
-        QP2600000000000000000002 /* QuickPasteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = QP2600000000000000000001; };
-        QP2600000000000000000003 /* QuickPasteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = QP2600000000000000000001; };
         QS2600000000000000000002 /* T9QuickSymbolManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = QS2600000000000000000001; };
         TB2700000000000000000002 /* IdleToolbarSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = TB2700000000000000000001; };
         F10000000000000000000001 = {isa = PBXBuildFile; fileRef = F10000000000000000000101; };
@@ -314,7 +312,6 @@
         SH2610160000000000000001 /* ShuangpinHintManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShuangpinHintManager.swift; sourceTree = "<group>"; };
         SH2610160000000000000002 /* ShuangpinHintManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShuangpinHintManagementView.swift; sourceTree = "<group>"; };
 		A0000000000000000000000072 /* Identity.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/Identity.xcconfig; sourceTree = "<group>"; };
-        QP2600000000000000000001 /* QuickPasteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickPasteView.swift; sourceTree = "<group>"; };
         QS2600000000000000000001 /* T9QuickSymbolManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = T9QuickSymbolManagementView.swift; sourceTree = "<group>"; };
         TB2700000000000000000001 /* IdleToolbarSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdleToolbarSettingsView.swift; sourceTree = "<group>"; };
         F10000000000000000000101 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardCandidateActions.swift; sourceTree = "<group>"; };
@@ -699,7 +696,6 @@
                 FB0000000000000000000002 /* FeedbackInputView.swift */,
 				G20100000000000000000003 /* QuickInsertState.swift */,
 				G20100000000000000000006 /* QuickInsertView.swift */,
-				QP2600000000000000000001 /* QuickPasteView.swift */,
 				G20200000000000000000005 /* SymbolLibraryView.swift */,
 				G20200000000000000000010 /* HostAppLink.swift */,
                 F10000000000000000000101 /* KeyboardCandidateActions.swift */,
@@ -984,7 +980,6 @@
                 FB0000000000000000000001 /* FeedbackInputView.swift in Sources */,
 				G20100000000000000000001 /* QuickInsertState.swift in Sources */,
 				G20100000000000000000004 /* QuickInsertView.swift in Sources */,
-                QP2600000000000000000002 /* QuickPasteView.swift in Sources */,
                 QS2600000000000000000002 /* T9QuickSymbolManagementView.swift in Sources */,
                 TB2700000000000000000002 /* IdleToolbarSettingsView.swift in Sources */,
 				G20200000000000000000001 /* SymbolLibraryView.swift in Sources */,
@@ -1114,7 +1109,6 @@
                 FB0000000000000000000003 /* FeedbackInputView.swift in Sources */,
 				G20100000000000000000002 /* QuickInsertState.swift in Sources */,
 				G20100000000000000000005 /* QuickInsertView.swift in Sources */,
-                QP2600000000000000000003 /* QuickPasteView.swift in Sources */,
 				G20200000000000000000002 /* SymbolLibraryView.swift in Sources */,
 				G20200000000000000000012 /* HostAppLink.swift in Sources */,
                 F10000000000000000000001 /* KeyboardCandidateActions.swift in Sources */,

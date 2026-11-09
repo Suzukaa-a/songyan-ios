@@ -25,17 +25,15 @@ public struct CommonPhrase: Codable, Equatable, Identifiable, Sendable {
 public struct LocalQuickContent: Codable, Equatable, Sendable {
     public var version = 1
     public var phrases: [CommonPhrase] = []
-    public var clipboardEnabled = false
-    public var clipboard: [String] = []
     public init() {}
 }
 
-/// Local-only storage. No pasteboard API, automatic capture, backup copy or clipboard export.
+/// Local-only storage with no backup copy. Files written by older versions may still carry a
+/// clipboard history; it is ignored on decode and dropped on the next save.
 /// A file lock serializes host/extension read-modify-write transactions across processes.
 public struct LocalQuickContentStore: Sendable {
     public static let directoryName = "LocalQuickContent"
     public static let maximumPhrases = 100
-    public static let maximumHistory = 20
     public static let maximumTextBytes = 4096
     public static let maximumFileBytes = 1024 * 1024
     public let directory: URL
@@ -46,47 +44,6 @@ public struct LocalQuickContentStore: Sendable {
         // Missing storage is a disabled, empty state, with no write as a side effect.
         guard FileManager.default.fileExists(atPath: directory.path) else { return LocalQuickContent() }
         return try load()
-    }
-
-    @discardableResult
-    public func setClipboardEnabled(_ enabled: Bool) throws -> LocalQuickContent {
-        try mutate { state in
-            state.clipboardEnabled = enabled
-            if !enabled { state.clipboard = [] }
-        }
-    }
-
-    /// Whether history can hold `text` at all; callers skip text that fails this instead of
-    /// surfacing the store's rejection for a paste that already succeeded.
-    public static func canRecord(_ text: String) -> Bool {
-        (try? validateText(text)) != nil
-    }
-
-    /// The caller must invoke this only after an explicit paste was dispatched successfully.
-    /// Returns false when disabled; oversized text is rejected whole rather than truncated.
-    @discardableResult
-    public func recordExplicitPaste(_ text: String) throws -> Bool {
-        guard FileManager.default.fileExists(atPath: file.path), try load().clipboardEnabled else { return false }
-        return try locked {
-            var state = try load()
-            guard state.clipboardEnabled else { return false }
-            try Self.validateText(text)
-            state.clipboard.removeAll { $0 == text }
-            state.clipboard.insert(text, at: 0)
-            state.clipboard = Array(state.clipboard.prefix(Self.maximumHistory))
-            try save(state)
-            return true
-        }
-    }
-
-    @discardableResult
-    public func clearClipboard() throws -> LocalQuickContent {
-        try mutate { $0.clipboard = [] }
-    }
-
-    @discardableResult
-    public func deleteClipboard(_ text: String) throws -> LocalQuickContent {
-        try mutate { $0.clipboard.removeAll { $0 == text } }
     }
 
     @discardableResult
@@ -105,7 +62,6 @@ public struct LocalQuickContentStore: Sendable {
         try mutate { $0.phrases.removeAll { $0.id == id } }
     }
 
-    /// Phrase transfers intentionally omit clipboard records and its opt-in setting.
     public func exportPhrases() throws -> Data {
         try Self.encode(PhraseArchive(phrases: read().phrases))
     }
@@ -169,7 +125,7 @@ public struct LocalQuickContentStore: Sendable {
         }
         #if os(iOS)
             // Readable after first unlock: the keyboard is used over a locked screen too, and
-            // complete protection would make history unreadable there.
+            // complete protection would make phrases unreadable there.
             try data.write(to: file, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
         #else
             try data.write(to: file, options: .atomic)
@@ -216,14 +172,10 @@ public struct LocalQuickContentStore: Sendable {
     }
 
     private static func validate(_ state: LocalQuickContent) throws {
-        guard state.version == 1, state.clipboard.count <= maximumHistory,
-            Set(state.clipboard).count == state.clipboard.count,
-            state.clipboardEnabled || state.clipboard.isEmpty
-        else {
+        guard state.version == 1 else {
             throw SymbolCatalogError(QuickContentText.string("quickContent.error.storedUnreadable"))
         }
         try validatePhrases(state.phrases)
-        for text in state.clipboard { try validateText(text) }
     }
 
     private static func encode<T: Encodable>(_ value: T) throws -> Data {

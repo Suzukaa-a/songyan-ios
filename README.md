@@ -40,8 +40,8 @@ input schemes and a keyboard extension that runs the engine on device.
   typing preview.
 - Optional typo correction, post-commit prediction (bring your own
   `predict.db`), grammar models, and per-component Lua toggles.
-- Keyboard tools that run on one piece of text: the selection, the paragraph
-  before the caret or the clipboard. Three examples ship (script conversion,
+- Keyboard tools that run on one piece of text: the selection or the paragraph
+  before the caret. Three examples ship (script conversion,
   full/half width, letter case), and you can import, copy, edit and export your
   own. The result is shown first; only you replace, insert or copy it.
 - Manual backup and merge of learned user dictionaries.

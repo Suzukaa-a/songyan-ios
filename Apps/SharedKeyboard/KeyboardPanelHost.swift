@@ -460,11 +460,6 @@ public struct KeyboardPanelHost: View {
                         if let additionalTools { additionalTools }
                     }),
                 insertTools: AnyView(QuickInsertView(state: session.quickInsert)),
-                asyncInsertionContext: {
-                    guard session.controller === controller, session.phase == .ready else { return nil }
-                    return session.host?.asyncInsertionContext()
-                },
-                pasteLiteral: { session.insertExternalLiteral($0) },
                 openHostApp: openHostApp,
                 dismissKeyboard: dismissKeyboard,
                 candidateBar: appearanceSnapshot.document.candidateBar,

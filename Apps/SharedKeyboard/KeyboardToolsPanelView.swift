@@ -65,22 +65,17 @@ struct KeyboardToolsPanel: View {
 
     private func sourceRow(_ source: ToolPanelSource) -> some View {
         let unavailable = model.availability(of: source)
-        // Before the first pasteboard read, "no clipboard text" is not a fact; say nothing yet.
-        let clipboardUnread = source == .clipboard && !model.clipboardWasRead
-        let detail: String? = clipboardUnread ? nil : unavailable.map(KeyboardToolsWording.sourceUnavailable)
         return KeyboardToolsRow(
             icon: sourceIcon(source),
             title: KeyboardToolsWording.sourceName(source),
-            detail: detail,
+            detail: unavailable.map(KeyboardToolsWording.sourceUnavailable),
             mark: .check(model.source == source),
             accessibilityLabel: KeyboardToolsWording.sourceName(source),
             accessibilityHint: nil
         ) {
             choose(source)
         }
-        // The clipboard's content is unknown until it is read, so that row always accepts a tap;
-        // the other sources are disabled while they hold nothing.
-        .disabled(unavailable != nil && source != .clipboard)
+        .disabled(unavailable != nil)
         .accessibilityIdentifier("keyboard.tools.source." + source.rawValue)
     }
 
@@ -113,19 +108,12 @@ struct KeyboardToolsPanel: View {
         switch source {
         case .selection: return "text.cursor"
         case .paragraphBeforeCursor: return "text.alignleft"
-        case .clipboard: return "list.clipboard"
         }
     }
 
     private func choose(_ source: ToolPanelSource) {
         KeyboardFeedbackService.shared.selectionChanged()
-        if source == .clipboard {
-            // Read the pasteboard only for this explicit tap; a keyboard without Full Access
-            // writes it nothing, so the panel reports an empty clipboard instead of guessing.
-            model.choose(.clipboard, clipboardText: UIPasteboard.general.string)
-        } else {
-            model.choose(source)
-        }
+        model.choose(source)
     }
 
     // MARK: - Tools
@@ -203,11 +191,10 @@ struct KeyboardToolsPanel: View {
         }
     }
 
-    /// Replace is offered only while the anchor still points at field text; once a replacement was
-    /// refused, the panel keeps insert and copy (M-D3: "变了只提供「插入」").
+    /// Replace is offered until a replacement was
+    /// refused; then the panel keeps insert and copy (M-D3: "变了只提供「插入」").
     private var showsReplace: Bool {
-        guard model.replacementBlocked == nil, let prepared = model.prepared else { return false }
-        return prepared.anchor != nil
+        model.replacementBlocked == nil && model.prepared != nil
     }
 
     private var actionRow: some View {

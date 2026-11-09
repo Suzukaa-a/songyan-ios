@@ -78,7 +78,7 @@ struct SettingsAndAboutView: View {
             switch self {
             case .inputOptions: return String(localized: "输入选项")
             case .grammarModel: return UserTerminology.grammarModel
-            case .quickContent: return String(localized: "常用语与剪贴板")
+            case .quickContent: return String(localized: "常用语")
             case .keyboardTools: return KeyboardToolsCopy.text("keyboardTools.title")
             case .keyboardAccess: return String(localized: "键盘与完全访问")
             case .advanced: return String(localized: "高级")
@@ -93,7 +93,7 @@ struct SettingsAndAboutView: View {
             switch self {
             case .inputOptions: return String(localized: "输入选项 声音 触感 纠错 联想 九键 拼写 高度 紧凑 宽松 双拼 提示 单手 模糊音 弱 适中 强 符号页 分类符号")
             case .grammarModel: return String(localized: "语法模型 模型")
-            case .quickContent: return String(localized: "常用语 剪贴板 历史 快捷短语")
+            case .quickContent: return String(localized: "常用语 快捷短语")
             case .keyboardTools: return String(localized: "键盘工具 工具 翻译 繁简 转换 全角 大写 钉 工具栏 撤销 导入 导出")
             case .keyboardAccess: return String(localized: "键盘 完全访问 权限 添加 引导")
             case .advanced: return String(localized: "高级 自定义 布局 扩展 诊断 日志")

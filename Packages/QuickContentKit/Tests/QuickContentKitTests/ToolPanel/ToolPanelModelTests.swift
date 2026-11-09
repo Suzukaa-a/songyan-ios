@@ -18,15 +18,15 @@ final class ToolPanelModelTests: XCTestCase {
         let model = ToolPanelModel(editor: editor(selected: "软件", beforeCursor: "前文软件"))
         XCTAssertEqual(model.source, .selection)
         XCTAssertEqual(model.prepared?.text, "软件")
-        XCTAssertEqual(model.prepared?.anchor?.location, .selection)
-        XCTAssertEqual(model.prepared?.anchor?.documentIdentifier, "doc-a")
+        XCTAssertEqual(model.prepared?.anchor.location, .selection)
+        XCTAssertEqual(model.prepared?.anchor.documentIdentifier, "doc-a")
     }
 
     func testWithoutSelectionTheParagraphBeforeTheCursorIsUsed() {
         let model = ToolPanelModel(editor: editor(beforeCursor: "上一段\n软件很好用"))
         XCTAssertEqual(model.source, .paragraphBeforeCursor)
         XCTAssertEqual(model.prepared?.text, "软件很好用")
-        XCTAssertEqual(model.prepared?.anchor?.location, .paragraphBeforeCursor)
+        XCTAssertEqual(model.prepared?.anchor.location, .paragraphBeforeCursor)
     }
 
     func testAnEmptyEditorHasNothingToProcess() {
@@ -35,29 +35,13 @@ final class ToolPanelModelTests: XCTestCase {
         XCTAssertNil(model.prepared)
         XCTAssertEqual(model.availability(of: .selection), .nothingSelected)
         XCTAssertEqual(model.availability(of: .paragraphBeforeCursor), .noTextBeforeCursor)
-        XCTAssertEqual(model.availability(of: .clipboard), .clipboardHasNoText)
-    }
-
-    func testTheClipboardIsTheSourceWhenTheFieldHasNoText() {
-        let model = ToolPanelModel(
-            editor: editor(selected: nil, beforeCursor: nil, isEmpty: true), clipboardText: "剪贴板文字")
-        XCTAssertEqual(model.source, .clipboard)
-        XCTAssertEqual(model.prepared?.text, "剪贴板文字")
-        XCTAssertNil(model.prepared?.anchor)
     }
 
     func testChoosingAnUnavailableSourceKeepsTheCurrentSource() {
         var model = ToolPanelModel(editor: editor(selected: "选", beforeCursor: "前文"))
-        XCTAssertFalse(model.choose(.clipboard))
+        XCTAssertFalse(model.choose(.paragraphBeforeCursor))
         XCTAssertEqual(model.source, .selection)
-        XCTAssertEqual(model.availability(of: .clipboard), .clipboardHasNoText)
-    }
-
-    func testChoosingTheClipboardReplacesTheProcessedText() {
-        var model = ToolPanelModel(editor: editor(selected: "选", beforeCursor: "前文"))
-        XCTAssertTrue(model.choose(.clipboard, clipboardText: "剪贴板"))
-        XCTAssertEqual(model.source, .clipboard)
-        XCTAssertEqual(model.prepared?.text, "剪贴板")
+        XCTAssertEqual(model.availability(of: .paragraphBeforeCursor), .noTextBeforeCursor)
     }
 
     func testAParagraphThatIsTooLongKeepsTheTextNearestTheCursor() {
@@ -100,7 +84,7 @@ final class ToolPanelModelTests: XCTestCase {
 
     func testAParagraphIsNotOfferedWhileTextIsSelected() {
         let model = ToolPanelModel(editor: editor(selected: " ", beforeCursor: "前文\n软件"))
-        XCTAssertNil(model.prepared?.anchor)
+        XCTAssertNil(model.prepared)
         XCTAssertEqual(model.availability(of: .paragraphBeforeCursor), .noTextBeforeCursor)
     }
 
@@ -136,16 +120,6 @@ final class ToolPanelModelTests: XCTestCase {
         let model = ToolPanelModel(editor: editor(selected: "软件"))
         XCTAssertEqual(
             model.replacementDecision(current: nil), .insertOnly(.documentUnavailable))
-    }
-
-    func testTheClipboardTextHasNoEditorAnchor() {
-        let model = ToolPanelModel(
-            editor: editor(selected: nil, beforeCursor: nil, isEmpty: true),
-            clipboardText: "剪贴板")
-        XCTAssertEqual(model.source, .clipboard)
-        XCTAssertEqual(
-            model.replacementDecision(current: editor(selected: nil, beforeCursor: nil, isEmpty: true)),
-            .insertOnly(.noEditorAnchor))
     }
 
     func testAHeadTruncatedSelectionNeverReplaces() {

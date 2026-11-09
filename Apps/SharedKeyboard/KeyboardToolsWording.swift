@@ -20,10 +20,8 @@ enum KeyboardToolsWording {
     static let sourceHeader = String(localized: "tools.source.header", table: table)
     static let sourceSelection = String(localized: "tools.source.selection", table: table)
     static let sourceParagraph = String(localized: "tools.source.paragraph", table: table)
-    static let sourceClipboard = String(localized: "tools.source.clipboard", table: table)
     static let selectionUnavailable = String(localized: "tools.source.unavailable.selection", table: table)
     static let paragraphUnavailable = String(localized: "tools.source.unavailable.paragraph", table: table)
-    static let clipboardUnavailable = String(localized: "tools.source.unavailable.clipboard", table: table)
 
     // MARK: Tools and result
 
@@ -61,7 +59,6 @@ enum KeyboardToolsWording {
         switch source {
         case .selection: return sourceSelection
         case .paragraphBeforeCursor: return sourceParagraph
-        case .clipboard: return sourceClipboard
         }
     }
 
@@ -69,7 +66,6 @@ enum KeyboardToolsWording {
         switch reason {
         case .nothingSelected: return selectionUnavailable
         case .noTextBeforeCursor: return paragraphUnavailable
-        case .clipboardHasNoText: return clipboardUnavailable
         }
     }
 
@@ -79,8 +75,6 @@ enum KeyboardToolsWording {
             return String(localized: "tools.result.truncated.selection", table: table)
         case .paragraphBeforeCursor:
             return String(localized: "tools.result.truncated.paragraph", table: table)
-        case .clipboard:
-            return String(localized: "tools.result.truncated.clipboard", table: table)
         }
     }
 }

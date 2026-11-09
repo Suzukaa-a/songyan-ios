@@ -73,7 +73,6 @@ struct IdleToolbarSettingsView: View {
 extension IdleToolbarItem {
     fileprivate var title: String {
         switch self {
-        case .clipboard: String(localized: "剪贴板")
         case .emoji: String(localized: "颜文字")
         case .settings: String(localized: "键盘设置")
         case .tools: String(localized: "键盘工具")

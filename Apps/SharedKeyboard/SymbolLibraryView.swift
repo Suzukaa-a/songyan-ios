@@ -41,19 +41,13 @@ public struct SymbolLibraryView: View {
     @ObservedObject private var model: SymbolLibraryModel
     @StateObject private var local = LocalQuickContentModel()
     @State private var section = "symbols"
-    @State private var confirmsClearHistory = false
     @State private var insertionError: String?
     private let onClose: () -> Void
-    private let clipboardPaste: AnyView?
-    private let clipboardPasteRevision: Int
     @Environment(\.keyboardAppearance) private var appearance
 
     public init(
-        model: SymbolLibraryModel, initialSection: String = "symbols", clipboardPaste: AnyView? = nil,
-        clipboardPasteRevision: Int = 0, onClose: @escaping () -> Void
+        model: SymbolLibraryModel, initialSection: String = "symbols", onClose: @escaping () -> Void
     ) {
-        self.clipboardPaste = clipboardPaste
-        self.clipboardPasteRevision = clipboardPasteRevision
         _section = State(initialValue: initialSection)
         self.model = model
         self.onClose = onClose
@@ -104,7 +98,6 @@ public struct SymbolLibraryView: View {
         }
         .tint(appearance.accentForeground)
         .onAppear { local.reload() }
-        .onChange(of: clipboardPasteRevision) { _, _ in local.reload() }
         // Symbol names/browse text honour the user's text size. The grid cells and the
         // search keypad keep their own explicit minimum hit sizes below.
         .dynamicTypeSize(.small ... .accessibility3)
@@ -144,9 +137,6 @@ public struct SymbolLibraryView: View {
                 startsNewGroup: false),
             RailItem(
                 kind: .section("phrases"), title: String(localized: "常用语"), isSelected: section == "phrases",
-                startsNewGroup: false),
-            RailItem(
-                kind: .section("clipboard"), title: String(localized: "剪贴板"), isSelected: section == "clipboard",
                 startsNewGroup: false),
         ]
         guard section == "symbols" else { return items }
@@ -192,7 +182,6 @@ public struct SymbolLibraryView: View {
             switch item.kind {
             case .section(let name):
                 section = name
-                if name == "clipboard" { model.endSearch() }
                 if name != "symbols" { local.reload() }
             case .category(let id):
                 model.selectCategory(id)
@@ -237,7 +226,6 @@ public struct SymbolLibraryView: View {
     private var localContent: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 8) {
-                if section == "clipboard", let clipboardPaste { clipboardPaste }
                 if local.isBusy { ProgressView(String(localized: "正在读取…")) }
                 if let insertionError { Text(insertionError).font(.footnote) }
                 if let error = local.error {
@@ -266,51 +254,10 @@ public struct SymbolLibraryView: View {
                         .buttonStyle(SymbolPanelPressStyle())
                         .accessibilityIdentifier("quickContent.phrase.\(phrase.id.uuidString)")
                     }
-                } else if !local.content.clipboardEnabled {
-                    Text("剪贴板历史未开启").font(.headline)
-                    Text("可在松烟 App 的「常用语与剪贴板」中开启。")
-                        .font(.footnote).foregroundStyle(.secondary)
-                } else {
-                    HStack {
-                        Text("最近粘贴").font(.footnote)
-                        Spacer()
-                        Button(String(localized: "清空"), role: .destructive) { confirmsClearHistory = true }
-                            .disabled(local.content.clipboard.isEmpty || local.isBusy)
-                            .accessibilityIdentifier("quickContent.clearHistory")
-                    }
-                    if local.content.clipboard.isEmpty {
-                        Text("还没有历史记录，轻点上方「粘贴」后会保存。")
-                            .font(.footnote).foregroundStyle(.secondary)
-                    }
-                    ForEach(local.content.clipboard, id: \.self) { text in
-                        HStack {
-                            Button {
-                                insertLocalText(text)
-                            } label: {
-                                Text(text).lineLimit(3)
-                                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-                            }
-                            Button {
-                                local.deleteClipboard(text)
-                            } label: {
-                                Image(systemName: "trash").frame(width: 44, height: 44)
-                            }
-                            .disabled(local.isBusy)
-                            .accessibilityLabel(String(localized: "删除这条历史记录"))
-                        }
-                        .buttonStyle(SymbolPanelPressStyle())
-                    }
                 }
             }
             .padding(8)
             .foregroundStyle(Color(uiColor: appearance.text(on: "panel")))
-        }
-        .confirmationDialog(
-            String(localized: "清空剪贴板历史？"),
-            isPresented: $confirmsClearHistory,
-            titleVisibility: .visible
-        ) {
-            Button(String(localized: "清空历史记录"), role: .destructive) { local.clearClipboard() }
         }
     }
 
@@ -335,7 +282,7 @@ public struct SymbolLibraryView: View {
 
     private var phraseEmptyMessage: String {
         if model.isSearching { return String(localized: "没有找到常用语") }
-        return String(localized: "在松烟 App 的「常用语与剪贴板」中添加常用语")
+        return String(localized: "在松烟 App 的「常用语」中添加常用语")
     }
 
     private var searchAccessibilityHint: String {
@@ -360,7 +307,6 @@ public struct SymbolLibraryView: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(KeyboardToolsTextButtonStyle())
-        .disabled(section == "clipboard")
         .accessibilityIdentifier("quickContent.search")
         .accessibilityLabel(model.searchKeyboardVisible ? String(localized: "退出搜索") : String(localized: "搜索"))
         .accessibilityHint(searchAccessibilityHint)
@@ -713,19 +659,14 @@ struct SymbolLibraryPanel: View {
     private let onClose: () -> Void
     private let initialSection: String
     private let initialCategory: String?
-    private let clipboardPaste: AnyView?
-    private let clipboardPasteRevision: Int
     @StateObject private var model: SymbolLibraryModel
 
     init(
         controller: KeyboardController, initialSection: String = "symbols", initialCategory: String? = nil,
-        clipboardPaste: AnyView? = nil, clipboardPasteRevision: Int = 0,
         onClose: @escaping () -> Void
     ) {
         self.initialSection = initialSection
         self.initialCategory = initialCategory
-        self.clipboardPaste = clipboardPaste
-        self.clipboardPasteRevision = clipboardPasteRevision
         self.controller = controller
         self.onClose = onClose
         // onInsert/onInserted hold only a weak reference to the controller; when it is nil (released),
@@ -745,8 +686,7 @@ struct SymbolLibraryPanel: View {
 
     var body: some View {
         SymbolLibraryView(
-            model: model, initialSection: initialSection, clipboardPaste: clipboardPaste,
-            clipboardPasteRevision: clipboardPasteRevision, onClose: onClose
+            model: model, initialSection: initialSection, onClose: onClose
         )
         .onAppear { model.selectCategory(initialCategory) }
     }

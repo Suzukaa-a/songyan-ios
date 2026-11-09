@@ -2,7 +2,6 @@ import Foundation
 
 /// The idle-toolbar entries the user can turn off and reorder; `rawValue` is the stored name.
 public enum IdleToolbarItem: String, CaseIterable, Sendable {
-    case clipboard
     case emoji
     case settings
     case tools
@@ -25,9 +24,9 @@ public struct IdleToolbarLayout: Equatable, Sendable {
 
     private init(validated entries: [Entry]) { self.entries = entries }
 
-    /// Today's idle toolbar: clipboard, kaomoji, settings, then the tools.
+    /// Today's idle toolbar: kaomoji, settings, then the tools.
     public static let `default` = IdleToolbarLayout(
-        validated: [IdleToolbarItem.clipboard, .emoji, .settings, .tools].map { Entry(item: $0, shown: true) })
+        validated: [IdleToolbarItem.emoji, .settings, .tools].map { Entry(item: $0, shown: true) })
 
     public var shown: [IdleToolbarItem] { entries.filter(\.shown).map(\.item) }
     public var isDefault: Bool { self == .default }
@@ -46,13 +45,14 @@ public struct IdleToolbarLayout: Equatable, Sendable {
         return IdleToolbarLayout(validated: moved)
     }
 
-    /// `emoji,-clipboard,...`: names in order, a leading `-` marks an item that is off.
+    /// `emoji,-settings,...`: names in order, a leading `-` marks an item that is off.
     public func toWire() -> String {
         entries.map { ($0.shown ? "" : "-") + $0.item.rawValue }.joined(separator: ",")
     }
 
     /// Nothing stored gives the default; unknown or repeated names are skipped and items the value
     /// does not mention are appended on, so an older or damaged value never hides a button for good.
+    /// A removed item (the old clipboard button) is an unknown name and simply drops out.
     public static func parse(_ wire: String?) -> IdleToolbarLayout {
         guard let wire, !wire.trimmingCharacters(in: .whitespaces).isEmpty else { return .default }
         var seen: [Entry] = []
@@ -75,7 +75,6 @@ public struct IdleToolbarLayout: Equatable, Sendable {
 /// One drawn idle-toolbar slot. A pinned tool is the tools item's own shortcut, drawn before the
 /// tools button.
 public enum IdleToolbarSlot: Equatable, Sendable {
-    case clipboard
     case emoji
     case settings
     case pinned(Int)
@@ -136,7 +135,6 @@ public enum IdleToolbarAssembly {
         guard !hidden else { return [] }
         return layout.shown.flatMap { item -> [IdleToolbarSlot] in
             switch item {
-            case .clipboard: [.clipboard]
             case .emoji: [.emoji]
             case .settings: [.settings]
             case .tools: toolsAvailable ? pinnedWidths.indices.map { .pinned($0) } + [.tools] : []
@@ -165,5 +163,45 @@ public enum IdleToolbarAssembly {
             } + fixed
         let kept = IdleToolbarCapacity.keep(width: width, slots: drawn)
         return slots.indices.filter { kept[$0] }.map { slots[$0] }
+    }
+}
+
+/// What can occupy the candidate band; the idle toolbar shows only when none of it does.
+public struct IdleToolbarInput: Equatable, Sendable {
+    public var isComposing: Bool
+    public var hasPrediction: Bool
+    public var hasCandidates: Bool
+    public var hasEnglishSuggestions: Bool
+    public var hasActiveEnglishInput: Bool
+    public var hasStatus: Bool
+    public var hasCompositionFallback: Bool
+    public var hasReadingContent: Bool
+    public var hasPendingQueries: Bool
+    public var isExpanded: Bool
+    public var isCovered: Bool
+
+    public init(
+        isComposing: Bool = false, hasPrediction: Bool = false, hasCandidates: Bool = false,
+        hasEnglishSuggestions: Bool = false, hasActiveEnglishInput: Bool = false, hasStatus: Bool = false,
+        hasCompositionFallback: Bool = false, hasReadingContent: Bool = false, hasPendingQueries: Bool = false,
+        isExpanded: Bool = false, isCovered: Bool = false
+    ) {
+        self.isComposing = isComposing
+        self.hasPrediction = hasPrediction
+        self.hasCandidates = hasCandidates
+        self.hasEnglishSuggestions = hasEnglishSuggestions
+        self.hasActiveEnglishInput = hasActiveEnglishInput
+        self.hasStatus = hasStatus
+        self.hasCompositionFallback = hasCompositionFallback
+        self.hasReadingContent = hasReadingContent
+        self.hasPendingQueries = hasPendingQueries
+        self.isExpanded = isExpanded
+        self.isCovered = isCovered
+    }
+
+    public var allowsToolbar: Bool {
+        !isComposing && !hasPrediction && !hasCandidates && !hasEnglishSuggestions
+            && !hasActiveEnglishInput && !hasStatus && !hasCompositionFallback
+            && !hasReadingContent && !hasPendingQueries && !isExpanded && !isCovered
     }
 }
