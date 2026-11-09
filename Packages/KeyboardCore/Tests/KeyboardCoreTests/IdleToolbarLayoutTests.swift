@@ -41,8 +41,10 @@ final class IdleToolbarLayoutTests: XCTestCase {
 
     func testMovingAmongAllEntriesIncludingOffOnes() {
         let off = IdleToolbarLayout.default.withShown(.emoji, false)
-        XCTAssertEqual(off.moving(fromOffsets: IndexSet(integer: 1), toOffset: 4).toWire(), "clipboard,settings,tools,-emoji")
-        XCTAssertEqual(off.moving(fromOffsets: IndexSet(integer: 2), toOffset: 0).toWire(), "settings,clipboard,-emoji,tools")
+        XCTAssertEqual(
+            off.moving(fromOffsets: IndexSet(integer: 1), toOffset: 4).toWire(), "clipboard,settings,tools,-emoji")
+        XCTAssertEqual(
+            off.moving(fromOffsets: IndexSet(integer: 2), toOffset: 0).toWire(), "settings,clipboard,-emoji,tools")
         XCTAssertEqual(off.moving(fromOffsets: IndexSet(integer: 0), toOffset: 1), off)
     }
 
