@@ -665,6 +665,7 @@ public struct KeyboardPanelHost: View {
                 eligible: report.eligible,
                 candidateAreaRequired: report.candidateAreaRequired,
                 layout: session.layout)
+            KeyboardInitialPresentation.recordPhysicalMainRows(definitionShell.mainRows, layout: session.layout)
             reportPresentationBudget()
         } else if physicalRowsChanged {
             reportPresentationBudget()

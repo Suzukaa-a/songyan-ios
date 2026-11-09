@@ -263,6 +263,23 @@ public struct KeyboardInitialPresentation {
         defaults.set(hints, forKey: CandidateReadingRowHint.defaultsKey)
     }
 
+    private static let mainRowsKey = "keyboard.presentation.mainRows.v1"
+
+    /// Records the letter rows the panel reported for the keyboard of `layout`. A board the input
+    /// method picks (Zhuyin's four rows) is not named by the saved definition, so without this every
+    /// presentation would start at the standard three rows and cut off the control row.
+    public static func recordPhysicalMainRows(_ rows: Int, layout: KeyboardLayoutKind) {
+        guard KeyboardPanelGeometry.standardMainRowCount...maximumRecordedMainRows ~= rows else { return }
+        let defaults = UserDefaults.standard
+        let selection = readingRowSelection(layoutKind: layout.rawValue)
+        var stored = defaults.dictionary(forKey: mainRowsKey) as? [String: Int] ?? [:]
+        guard stored[selection] != rows else { return }
+        stored[selection] = rows
+        defaults.set(stored, forKey: mainRowsKey)
+    }
+
+    private static let maximumRecordedMainRows = 6
+
     public static func load() -> Self {
         var result = Self()
         result.heightPreset = KeyboardHeightPreferences.current
@@ -275,8 +292,13 @@ public struct KeyboardInitialPresentation {
                 storedValue: storedHint, currentSelection: readingRowSelection)
         result.candidateAreaReserved = CandidateReadingRowHint.resolveCandidateArea(
             storedValue: storedHint, currentSelection: readingRowSelection)
-        result.physicalMainRows = KeyboardPanelGeometry.physicalMainRowBudget(
-            forDefinitionID: defaults.string(forKey: "keyboard.selectedLayoutDefinitionID"))
+        let recordedRows = (defaults.dictionary(forKey: mainRowsKey) as? [String: Int])?[readingRowSelection]
+        result.physicalMainRows =
+            recordedRows.flatMap {
+                KeyboardPanelGeometry.standardMainRowCount...maximumRecordedMainRows ~= $0 ? $0 : nil
+            }
+            ?? KeyboardPanelGeometry.physicalMainRowBudget(
+                forDefinitionID: defaults.string(forKey: "keyboard.selectedLayoutDefinitionID"))
         if let budget = defaults.dictionary(forKey: geometryBudgetKey) as? [String: Double],
             let height = budget["candidateHeight"], (36...56).contains(height),
             let size = budget["candidateSize"], (16...30).contains(size)
