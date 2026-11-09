@@ -10,7 +10,13 @@ public struct LayoutRegistry: Codable, Equatable, Sendable {
 
     public init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
-        layouts = try values.decode([LayoutDefinition].self, forKey: .layouts)
+        layouts = try values.decode([LayoutDefinition].self, forKey: .layouts).map { stored in
+            // Compared as decoded values: a stored copy omits fields left at their defaults.
+            guard let bundled = BuiltinLayouts.all.first(where: { $0.id == stored.id }),
+                stored != bundled, RetiredBuiltinLayouts.isRetired(stored)
+            else { return stored }
+            return bundled
+        }
         // Pages, their order and pairings are absent from catalogs written before pages existed.
         let storedPages = try values.decodeIfPresent([KeyboardPageDefinition].self, forKey: .pages) ?? []
         // Saves omit unchanged built-in pages, and a release may add one; the default pairings
