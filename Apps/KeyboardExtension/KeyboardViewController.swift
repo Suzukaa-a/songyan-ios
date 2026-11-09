@@ -328,6 +328,7 @@ class KeyboardViewController: UIInputViewController {
     /// Builds the SwiftUI panel. Also called by `viewWillAppear` when UIKit shows a
     /// controller again after `retirePanelHost()`.
     private func installPanelHost() {
+        session.otherPackageSwitch = { [weak self] entry in self?.selectOtherPackage(entry) }
         let host = ExtensionKeyboardPanel(
             session: session, route: route, panelHostLifetime: panelHostLifetime,
             selectBuiltin: { [weak self] builtin in

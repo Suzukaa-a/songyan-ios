@@ -164,12 +164,16 @@ public final class KeyboardPadSession: ObservableObject {
         // layout, so the switcher can still change layout.
         if enablesOfflineBundledInput && resourceSet == nil {
             applyPublishedKeyboards(UserKeyboardRoster.builtinFallback, error: nil)
+            let others = await loadOtherPackageKeyboards(builtinRunning: true)
+            if publishedKeyboardsGate.accepts(token) { applyOtherPackageKeyboards(others) }
             return
         }
         do {
             let keyboards = try await publishedKeyboardProvider.publishedKeyboards()
             guard publishedKeyboardsGate.accepts(token) else { return }
             applyPublishedKeyboards(keyboards, error: nil)
+            let others = await loadOtherPackageKeyboards(builtinRunning: runningResources?.prebuiltDirectory == nil)
+            if publishedKeyboardsGate.accepts(token) { applyOtherPackageKeyboards(others) }
         } catch {
             guard publishedKeyboardsGate.accepts(token) else { return }
             // A failed read is not "no keyboards": keep the old list and surface the error.
@@ -183,6 +187,32 @@ public final class KeyboardPadSession: ObservableObject {
         if publishedKeyboards != keyboards { publishedKeyboards = keyboards }
         if publishedKeyboardError != error { publishedKeyboardError = error }
         controller?.updatePublishedKeyboards(keyboards, error: error)
+    }
+
+    /// Switches to a keyboard of another package or to the built-in input. Set by the keyboard
+    /// extension only: the host app switches packages itself, so it never lists them.
+    public var otherPackageSwitch: ((OtherPackageKeyboard) -> Void)? {
+        didSet { controller?.onSelectOtherPackage = otherPackageSwitch }
+    }
+    @Published public private(set) var otherPackageKeyboards: [OtherPackageKeyboard] = []
+
+    private func loadOtherPackageKeyboards(builtinRunning: Bool) async -> [OtherPackageKeyboard] {
+        guard otherPackageSwitch != nil else { return [] }
+        let canWrite = KeyboardRecipeStore.canWriteSharedContainer
+        // A failed read leaves the entries out; the current package's own list still works.
+        return
+            (try? await KeyboardResourceReadQueue.async {
+                guard let activation = try KeyboardRecipeStore.activation() else { return [] }
+                return KeyboardRecipeStore.otherPackageKeyboards(
+                    from: activation, builtinRunning: builtinRunning || !activation.recipeEnabled,
+                    canWrite: canWrite,
+                    record: { KeyboardRecipeStore.generationRecord(generation: $0) })
+            }) ?? []
+    }
+
+    private func applyOtherPackageKeyboards(_ entries: [OtherPackageKeyboard]) {
+        if otherPackageKeyboards != entries { otherPackageKeyboards = entries }
+        controller?.updateOtherPackageKeyboards(entries)
     }
     /// Explicit joint selection (layout + bound schema). When ready, hands it to the controller for a real
     /// switch, with the success callback updating the target; otherwise records the full target and
@@ -911,6 +941,8 @@ public final class KeyboardPadSession: ObservableObject {
         // User keyboards: first inject the session's existing list (possibly from a previous boot) into the
         // new controller, then re-read the publication record. A failed read keeps the old list and surfaces the error; never clears to "no keyboards".
         ctrl.updatePublishedKeyboards(publishedKeyboards, error: publishedKeyboardError)
+        ctrl.onSelectOtherPackage = otherPackageSwitch
+        ctrl.updateOtherPackageKeyboards(otherPackageKeyboards)
         // Bounded, once-per-boot resource/schema diagnostic for Dev validation.
         // No user input content: resource id, startup identity and the schema the
         // engine actually activated (which can differ from the published request).

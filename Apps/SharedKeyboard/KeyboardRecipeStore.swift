@@ -58,6 +58,10 @@ public enum KeyboardRecipeStore {
         /// Explicit auxiliary English candidate routes, each owned by one exact published pair.
         /// Never inferred from enabled dependencies.
         public var englishCandidateRoutes: [EnglishCandidateRoute]? = nil
+        /// Prepared generations kept for packages other than the running one (key = `rosterKey`).
+        /// Each has its own `activation.json`, so the keyboard can switch to it without the host app.
+        /// Only packages that still have at least one added keyboard keep a generation.
+        public var keptGenerations: [String: String]? = nil
         public var kind: ResourceKind { resourceKind }
         /// The published identity of the selected keyboard, board included.
         public var selectedKeyboard: PublishedKeyboard? {

@@ -33968,6 +33968,94 @@
           }
         }
       }
+    },
+    "切换到「%@」的「%@」": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "切换到「%@」的「%@」"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "切換到「%@」的「%@」"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」の「%@」に切り替える"
+          }
+        }
+      }
+    },
+    "无法切换输入方案，请稍后重试。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法切换输入方案，请稍后重试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無法切換輸入方案，請稍後重試。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力方式を切り替えられません。しばらくしてからもう一度お試しください。"
+          }
+        }
+      }
+    },
+    "找不到这个输入方案的已保存版本，请在「松烟」App 中重新使用它": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "找不到这个输入方案的已保存版本，请在「松烟」App 中重新使用它"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "找不到這個輸入方案的已儲存版本，請在「松煙」App 中重新使用它"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この入力方式の保存済みのデータが見つかりません。「松烟」アプリでもう一度使用してください。"
+          }
+        }
+      }
+    },
+    "这个键盘已不在我的键盘中，请刷新后重试": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这个键盘已不在我的键盘中，请刷新后重试"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這個鍵盤已不在我的鍵盤中，請重新整理後重試"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このキーボードはマイキーボードにありません。更新してからもう一度お試しください。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

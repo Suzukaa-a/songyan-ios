@@ -44,6 +44,55 @@ extension KeyboardViewController {
         }
     }
 
+    /// Switches to a keyboard of another package, or to the built-in input, from the keyboard menu.
+    /// A package switch is saved for the next presentation and then loads through the normal route refresh.
+    func selectOtherPackage(_ entry: OtherPackageKeyboard) {
+        guard isBoundHost, !selectionSaveInFlight else { return }
+        guard let keyboard = entry.keyboard else {
+            if hasFullAccess { selectBuiltin(true) } else { restoreBuiltinTemporarily() }
+            return
+        }
+        let target = entry.target
+        let runningGeneration = session.resourceSet?.publicationGeneration
+        selectionSaveInFlight = true
+        selectionSaveTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            defer {
+                selectionSaveInFlight = false
+                selectionSaveTask = nil
+            }
+            do {
+                try await EngineOpQueue.async {
+                    switch target {
+                    case .keptPackage(let key):
+                        try KeyboardRecipeStore.activateKeptPackage(
+                            rosterKey: key, keyboard: keyboard, expectedGeneration: runningGeneration)
+                    case .recordedPackage:
+                        try KeyboardRecipeStore.setEnabled(true, expectedGeneration: nil)
+                        try KeyboardRecipeStore.saveSelection(
+                            schemaID: keyboard.schemaID, layout: keyboard.layout, board: keyboard.board,
+                            runtimeIdentity: .published)
+                    case .builtin:
+                        break
+                    }
+                }
+                guard isBoundHost else { return }
+                route.selectionError = nil
+                route.recovery = nil
+                Self.rescuedRoute = nil
+                route.explainRecipeAvailability = true
+                refreshResourceRoute()
+            } catch {
+                guard isBoundHost else { return }
+                Self.diagnosticLogger.error(
+                    "package switch failed: \(error.localizedDescription, privacy: .private)")
+                let message = String(localized: "无法切换输入方案，请稍后重试。")
+                route.notice = message
+                route.message = message
+            }
+        }
+    }
+
     func retryRoute(_ operation: ExtensionRouteStatus.Recovery) {
         guard isBoundHost else { return }
         switch operation {

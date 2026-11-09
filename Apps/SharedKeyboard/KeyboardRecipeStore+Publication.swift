@@ -333,6 +333,10 @@ extension KeyboardRecipeStore {
                 }
             }
         }
+        Self.backfillGenerationRecord(current, root: root)
+        let keptGenerations = Self.retainedGenerations(
+            current: current, publishedKey: rosterKey(kind: kind, packageID: packageID),
+            newGeneration: generation, rosters: effectiveRoster, root: root)
         let activation = Activation(
             generation: generation, revision: revision, recipeEnabled: true,
             publishedAt: Date(), resourceKind: kind, dictionaryName: dictionaryName,
@@ -343,15 +347,195 @@ extension KeyboardRecipeStore {
                 .lastPathComponent,
             publishedKeyboards: effectiveKeyboards,
             keyboardsBySource: effectiveRoster,
-            englishCandidateRoutes: effectiveEnglishCandidateRoutes)
+            englishCandidateRoutes: effectiveEnglishCandidateRoutes,
+            keptGenerations: keptGenerations.isEmpty ? nil : keptGenerations)
         try validatePublication(activation, build: destination.appendingPathComponent("build"))
         try Task.checkCancellation()
         let encodedActivation = try canonicalJSONEncoder().encode(activation)
+        // The generation's own record goes in first, so a generation that active.json names always has one.
+        try encodedActivation.write(to: version.appendingPathComponent(Self.generationRecordName), options: .atomic)
         // An atomic replacement can commit even if its caller reports an error.
         // From this point leave the generation intact unless a later recovery proves it unreferenced.
         activeWriteAttempted = true
         try encodedActivation.write(to: root.appendingPathComponent("active.json"), options: .atomic)
-        pruneUnreferencedGenerations(root: root, keeping: [generation, current?.generation].compactMap { $0 })
+        pruneUnreferencedGenerations(
+            root: root,
+            keeping: [generation, current?.generation].compactMap { $0 } + keptGenerations.values)
+    }
+
+    // MARK: - Keyboards of other packages (long-press menu)
+
+    /// The items to append after the current package's keyboards. Other user packages need
+    /// `canWrite` (the switch has to be saved); the built-in entry does not, since leaving a package
+    /// temporarily works without saving. `builtinRunning` is whether the built-in input is what runs
+    /// now, whatever the record says. `record` resolves a kept generation's own record.
+    public static func otherPackageKeyboards(
+        from current: Activation?, builtinRunning: Bool, canWrite: Bool,
+        record: (String) -> Activation?
+    ) -> [OtherPackageKeyboard] {
+        guard let current, isValidGeneration(current.generation) else { return [] }
+        var entries: [OtherPackageKeyboard] = []
+        func append(
+            _ keyboards: [PublishedKeyboard], of source: Activation, target: OtherPackageKeyboard.Target
+        ) {
+            let package = source.displayConfigName
+            let descriptors = source.schemas ?? []
+            for display in PublishedKeyboard.displays(keyboards, in: descriptors) {
+                entries.append(
+                    OtherPackageKeyboard(
+                        target: target, keyboard: display.keyboard, packageName: package,
+                        title: title(of: display, in: descriptors)))
+            }
+        }
+        // A keyboard without a saved board runs on its family's own board (Zhuyin's 41 keys), the
+        // way the current package's items are named; the published shape alone would misname it.
+        func title(of display: PublishedKeyboardDisplay, in descriptors: [KeyboardSchemaDescriptor]) -> String {
+            let keyboard = display.keyboard
+            guard keyboard.board == nil,
+                let preferred = InputLayoutPolicy.preferredPhysicalLayoutID(
+                    family: InputLayoutPolicy.family(schemaID: keyboard.schemaID, descriptors: descriptors))
+            else { return display.title }
+            return PublishedKeyboardDisplay(
+                keyboard: PublishedKeyboard(schemaID: keyboard.schemaID, layout: keyboard.layout, board: preferred),
+                inputMethodName: display.inputMethodName
+            ).title
+        }
+        if canWrite {
+            if builtinRunning, !current.recipeEnabled, let roster = current.publishedKeyboards, !roster.isEmpty {
+                append(roster, of: current, target: .recordedPackage)
+            }
+            let currentKey = current.rosterKey
+            for (key, generation) in (current.keptGenerations ?? [:]).sorted(by: { $0.key < $1.key })
+            where key != currentKey {
+                guard let roster = current.keyboardsBySource?[key], !roster.isEmpty,
+                    let source = record(generation), source.rosterKey == key
+                else { continue }
+                append(roster, of: source, target: .keptPackage(rosterKey: key))
+            }
+        }
+        if !builtinRunning, current.recipeEnabled {
+            entries.append(
+                OtherPackageKeyboard(
+                    target: .builtin, keyboard: nil,
+                    packageName: ProductionInputAvailability.localizedBuiltinDisplayName,
+                    title: ProductionInputAvailability.fallbackInputMethodName))
+        }
+        return entries
+    }
+
+    // MARK: - Kept package generations
+
+    static let generationRecordName = "activation.json"
+
+    static func isValidGeneration(_ generation: String) -> Bool {
+        !generation.isEmpty && generation.allSatisfy { $0.isLetter || $0.isNumber || $0 == "-" }
+    }
+
+    static func generationDirectory(root: URL, generation: String) -> URL {
+        root.appendingPathComponent("versions/\(generation)", isDirectory: true)
+    }
+
+    /// Reads a generation's own record. Nil when the generation is missing, its record is missing,
+    /// damaged or oversized, or it names a different generation.
+    public static func generationRecord(generation: String, rootURL: URL? = nil) -> Activation? {
+        guard isValidGeneration(generation), let root = try? rootURL ?? readRoot() else { return nil }
+        let file = generationDirectory(root: root, generation: generation)
+            .appendingPathComponent(generationRecordName)
+        guard case .success(let data) = BoundedFileRead.read(file),
+            let record = try? JSONDecoder().decode(Activation.self, from: data),
+            record.generation == generation
+        else { return nil }
+        return record
+    }
+
+    /// A generation published before records existed gets one from the record that names it, so
+    /// it can be kept after the next publication. Best effort.
+    private static func backfillGenerationRecord(_ current: Activation?, root: URL) {
+        guard let current, isValidGeneration(current.generation) else { return }
+        let directory = generationDirectory(root: root, generation: current.generation)
+        let file = directory.appendingPathComponent(generationRecordName)
+        let fm = FileManager.default
+        guard fm.fileExists(atPath: directory.path), !fm.fileExists(atPath: file.path) else { return }
+        do { try canonicalJSONEncoder().encode(current).write(to: file, options: .atomic) } catch {
+            Logger.keyboardStorage.error(
+                "failed to record generation \(current.generation, privacy: .public): \(error.localizedDescription, privacy: .public)"
+            )
+        }
+    }
+
+    /// The generations to keep for other packages after publishing `newGeneration`: the replaced
+    /// record's own generation plus the ones it already kept, limited to packages that still have
+    /// added keyboards and whose generation directory and record still exist.
+    static func retainedGenerations(
+        current: Activation?, publishedKey: String?, newGeneration: String,
+        rosters: [String: [PublishedKeyboard]]?, root: URL
+    ) -> [String: String] {
+        var candidates = current?.keptGenerations ?? [:]
+        if let current, let key = current.rosterKey, isValidGeneration(current.generation) {
+            candidates[key] = current.generation
+        }
+        if let publishedKey { candidates[publishedKey] = newGeneration }
+        let fm = FileManager.default
+        return candidates.filter { key, generation in
+            guard rosters?[key]?.isEmpty == false, isValidGeneration(generation) else { return false }
+            if generation == newGeneration { return true }
+            return fm.fileExists(
+                atPath: generationDirectory(root: root, generation: generation)
+                    .appendingPathComponent(generationRecordName).path)
+        }
+    }
+
+    /// Switches to the kept generation of another package and selects `keyboard` in it, without the
+    /// host app. Refuses when the record moved on, the target is not kept or not complete, the
+    /// keyboard is not in its remembered list, or the shared container cannot be written. Never
+    /// removes anything: the old generation becomes the kept one of the package being left.
+    public static func activateKeptPackage(
+        rosterKey targetKey: String, keyboard: PublishedKeyboard,
+        expectedGeneration: String?, rootURL: URL? = nil
+    ) throws {
+        guard canWriteSharedContainer else {
+            throw StoreError(message: String(localized: "保存切换需要开启「允许完全访问」；已保留上次的选择"))
+        }
+        let root = try rootURL ?? root()
+        let lock = try ActiveLock(root: root)
+        defer { lock.unlock() }
+        guard let current = try activation(rootURL: root),
+            expectedGeneration == nil || current.generation == expectedGeneration
+        else {
+            throw StoreError(message: String(localized: "输入方案配置版本已更新，请刷新后重试"))
+        }
+        guard targetKey != current.rosterKey,
+            let generation = current.keptGenerations?[targetKey],
+            let target = generationRecord(generation: generation, rootURL: root),
+            target.rosterKey == targetKey,
+            FileManager.default.fileExists(
+                atPath: generationDirectory(root: root, generation: generation)
+                    .appendingPathComponent("resources/build/default.yaml").path)
+        else {
+            throw StoreError(message: String(localized: "找不到这个输入方案的已保存版本，请在「松烟」App 中重新使用它"))
+        }
+        guard let roster = current.keyboardsBySource?[targetKey], roster.contains(keyboard),
+            target.requiredSchemaIDs.contains(keyboard.schemaID)
+        else {
+            throw StoreError(message: String(localized: "这个键盘已不在我的键盘中，请刷新后重试"))
+        }
+        var rosters = current.keyboardsBySource ?? [:]
+        var kept = current.keptGenerations ?? [:]
+        if let currentKey = current.rosterKey {
+            if let list = current.publishedKeyboards { rosters[currentKey] = list }
+            if isValidGeneration(current.generation) { kept[currentKey] = current.generation }
+        }
+        kept.removeValue(forKey: targetKey)
+        var next = target
+        next.recipeEnabled = true
+        next.publishedKeyboards = roster
+        next.selectedSchemaID = keyboard.schemaID
+        next.selectedLayout = keyboard.layout
+        next.selectedBoard = keyboard.board
+        next.keyboardsBySource = rosters.isEmpty ? nil : rosters
+        next.keptGenerations = kept.isEmpty ? nil : kept
+        try canonicalJSONEncoder().encode(next).write(
+            to: root.appendingPathComponent("active.json"), options: .atomic)
     }
 
     // MARK: - Compiled build sharing
@@ -550,6 +734,13 @@ extension KeyboardRecipeStore {
             map.removeValue(forKey: key) != nil
         {
             updated.keyboardsBySource = map.isEmpty ? nil : map
+            changed = true
+        }
+        // A deleted package keeps no prepared generation; the directory is reclaimed by the next publication.
+        if let key = deletingSource.cacheKey, var kept = updated.keptGenerations,
+            kept.removeValue(forKey: key) != nil
+        {
+            updated.keptGenerations = kept.isEmpty ? nil : kept
             changed = true
         }
         guard changed else { return (result, nil) }

@@ -271,6 +271,7 @@ def recipe_store_source():
         "Support/UserTerminology.swift", "Support/RefreshCoordination.swift",
         "Support/BoundedFileRead.swift", "Support/ProductionInputAvailability.swift",
         "Engine/KeyboardRouteIdentity.swift", "Support/InputLanguage.swift",
+        "Support/OtherPackageKeyboard.swift",
     ]:
         declarations.append((CORE / path).read_text())
     declarations.append(section(paths, "extension KeyboardRecipeStore {", "\n// MARK: - DIY"))

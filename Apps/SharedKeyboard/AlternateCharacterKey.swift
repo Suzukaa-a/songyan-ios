@@ -506,6 +506,8 @@ struct AlternateCharacterKey: UIViewRepresentable {
                 let actionName: String
                 if requiresExplicitAlternateSelection {
                     actionName = String(localized: "设为快捷符号：\(alternate.title)")
+                } else if layoutPicker, let package = alternate.otherPackageName {
+                    actionName = String(localized: "切换到「\(package)」的「\(alternate.title)」")
                 } else if layoutPicker {
                     actionName = String(localized: "切换键盘：\(alternate.title)")
                 } else {

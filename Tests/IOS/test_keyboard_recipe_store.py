@@ -22,6 +22,7 @@ case "selection": try selectionChecks(base)
 case "publication": try publicationChecks(base)
 case "prune": try pruneChecks(base)
 case "builtin": try builtinPublicationChecks(base)
+case "kept": try keptPackagesChecks(base)
 default: fatalError("unknown store scenario")
 }
 ''', encoding="utf-8")
@@ -44,6 +45,9 @@ default: fatalError("unknown store scenario")
 
     def test_builtin_scheme_publication(self):
         self.scenario("builtin")
+
+    def test_kept_package_generations_and_entries(self):
+        self.scenario("kept")
 
 
 if __name__ == "__main__":

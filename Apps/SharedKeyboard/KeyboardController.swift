@@ -449,6 +449,16 @@ public final class KeyboardController: ObservableObject {
         if publishedKeyboardError != error { publishedKeyboardError = error }
     }
 
+    /// Keyboards of other packages (and the built-in input) listed after the current package's keyboards.
+    /// Only the keyboard extension fills it.
+    @Published public private(set) var otherPackageKeyboards: [OtherPackageKeyboard] = []
+    /// Switches to one of `otherPackageKeyboards`; the extension owns the switch because it reloads the engine.
+    public var onSelectOtherPackage: ((OtherPackageKeyboard) -> Void)?
+
+    public func updateOtherPackageKeyboards(_ entries: [OtherPackageKeyboard]) {
+        if otherPackageKeyboards != entries { otherPackageKeyboards = entries }
+    }
+
     /// Switches to a published keyboard (input method + layout + board together, one transaction).
     /// If it is not in the runnable roster, does nothing and returns false.
     @discardableResult

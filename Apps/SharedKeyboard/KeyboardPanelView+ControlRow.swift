@@ -146,6 +146,19 @@ extension KeyboardPanelView {
             showsUtilitiesMenu = true
             return
         }
+        if let other = controller.otherPackageKeyboards.first(where: { $0.id == cap.id }) {
+            // Another package reloads the engine: settle the composition first, exactly like a keyboard switch.
+            var settled = false
+            selectionFeedbackAfterEffect {
+                settled = controller.prepareForConfigurationChange()
+                if settled { controller.onSelectOtherPackage?(other) }
+            }
+            if settled {
+                page = .letters
+                showsAllCandidates = false
+            }
+            return
+        }
         guard
             let keyboard = controller.userKeyboardChoices.first(where: {
                 Self.userKeyboardCapID($0) == cap.id
@@ -161,8 +174,8 @@ extension KeyboardPanelView {
         }
     }
 
-    /// The long-press list = those **published** keyboards whose resources are currently runnable (in publish order), with a
-    /// "More tools" item appended; no 26/14/9 layouts and no input-method choice. With an empty list the
+    /// The long-press list = those **published** keyboards whose resources are currently runnable (in publish order), then
+    /// the keyboards of other packages, with a "More tools" item appended; no 26/14/9 layouts and no input-method choice. With an empty list the
     /// "More tools" item is still offered so the tools panel stays reachable (no tappable dead item is built).
     var userKeyboardAlternates: [KeyCap] {
         let descriptors = controller.availableSchemas
@@ -183,6 +196,11 @@ extension KeyboardPanelView {
                 id: Self.userKeyboardCapID(keyboard), title: keyboard.title(physicalLayoutName: board),
                 subtitle: isCurrent(keyboard) ? UserTerminology.userKeyboardCurrent : nil,
                 action: .cycleLayout)
+        }
+        // The other packages' keyboards follow the current package's, quieter in the menu; the entry
+        // list is only filled where the switch can be made (the keyboard extension, Full Access).
+        caps += controller.otherPackageKeyboards.map {
+            KeyCap(id: $0.id, title: $0.title, subtitle: $0.packageName, action: .cycleLayout)
         }
         caps.append(
             KeyCap(
