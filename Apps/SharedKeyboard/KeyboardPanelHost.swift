@@ -283,6 +283,10 @@ public struct KeyboardPanelHost: View {
             // A new host binding is a new presentation: re-read shared preferences.
             .onChange(of: hostBindingTick) {
                 adoptBudgetedShell()
+                // The panel only reports when its report changes. A board whose rows the saved
+                // selection cannot name (one picked by the input method) would otherwise keep the
+                // budget's row count and lose its control row below the shell.
+                applyReadingRowReport()
                 KeyboardKeyFeelPreferences.refresh()
                 oneHandMode = KeyboardOneHandPreferences.current
                 storedHeightPreset = KeyboardHeightPreferences.current
