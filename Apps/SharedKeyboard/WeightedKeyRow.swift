@@ -64,6 +64,10 @@ struct KeyAreaRenderToken: Equatable {
     let isReturnKeyEnabled: Bool
     let schemaAlphabet: String
     let publishedKeyboards: [UserKeyboard]
+    /// The keyboard menu also lists the other packages' keyboards, which change on their own.
+    let otherPackageKeyboards: [OtherPackageKeyboard]
+    /// URL and email fields change the marks beside the space bar.
+    let hostFieldMarks: KeyboardControlPolicy.FieldMarks
     let quickSymbols: String
     let layoutHintName: String?
     let layoutHintToken: UUID?

@@ -118,6 +118,8 @@ extension KeyboardPanelView {
             isReturnKeyEnabled: readsComposition && controller.isReturnKeyEnabled,
             schemaAlphabet: controller.activeSchemaAlphabet,
             publishedKeyboards: controller.publishedKeyboards,
+            otherPackageKeyboards: controller.otherPackageKeyboards,
+            hostFieldMarks: controller.hostFieldMarks,
             quickSymbols: activeDefinition?.t9QuickSymbols ?? quickSymbols.symbols,
             layoutHintName: layoutHintName,
             layoutHintToken: layoutHintToken,
