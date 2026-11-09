@@ -111,7 +111,8 @@ extension KeyboardPanelView {
                 id: "input-mode", title: controlPolicy.languageTitle(for: nil),
                 subtitle: nil, action: .cycleLayout),
             alternates: userKeyboardAlternates,
-            layoutPicker: true
+            layoutPicker: true,
+            languageCurrentSideIsFirst: controlPolicy.languageCurrentSideIsFirst(for: nil)
         ) { cap in
             if cap.id == "input-mode" {
                 // Short press follows the page: letters toggle the real input language; 123 and

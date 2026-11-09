@@ -188,6 +188,10 @@ struct KeyboardPageAuthoredState: Equatable {
         }
     }
 
+    func languageCurrentSideIsFirst(for key: LayoutKey) -> Bool? {
+        KeyboardPageControlFace.languageCurrentSideIsFirst(for: key, policy: controlPolicy)
+    }
+
     private func automaticTitle(for key: LayoutKey) -> String {
         switch key.action.type {
         case .enter: return returnTitle
@@ -230,6 +234,12 @@ struct KeyboardPageAuthoredState: Equatable {
 /// Automatic faces of the page UI controls. Authored pages and main-layout definition keys read
 /// this one table, so a control never carries two names.
 enum KeyboardPageControlFace {
+    /// The emphasised side of an automatic 中/英 face; nil for any other key or a custom label.
+    static func languageCurrentSideIsFirst(for key: LayoutKey, policy: KeyboardControlPolicy) -> Bool? {
+        guard key.action.type == .languageSwitch, key.titleMode == .automatic else { return nil }
+        return policy.languageCurrentSideIsFirst(for: key.action.languageSwitchBehavior)
+    }
+
     /// The native title of a page UI control, or nil for any other action.
     static func title(for key: LayoutKey, policy: KeyboardControlPolicy) -> String? {
         switch key.action.type {

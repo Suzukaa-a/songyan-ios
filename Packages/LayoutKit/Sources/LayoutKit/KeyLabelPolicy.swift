@@ -170,13 +170,20 @@ public enum KeyLabelPolicy {
         case .returnToLetters:
             return script == .japanese ? "戻る" : "返回"
         case .toggleLanguage, .toggleSymbols:
-            // The auto face names the target, not the current state.
-            let showsLatin: Bool = action == .toggleLanguage ? isEnglishMode : usesASCIIPunctuation
-            switch script {
-            case .simplifiedChinese: return showsLatin ? "中文" : "英文"
-            case .traditionalChinese: return showsLatin ? "中文" : "英文"
-            case .japanese: return showsLatin ? "あ" : "A"
-            }
+            // Both sides are always drawn and the current one is emphasised (see
+            // `languageCurrentSideIsFirst`), so the key says where you are without changing its face.
+            return script == .japanese ? "あ/A" : "中/英"
+        }
+    }
+
+    /// Whether the emphasised side of the "中/英" face is the first one; nil for 返回, which has no sides.
+    public static func languageCurrentSideIsFirst(
+        action: KeyboardControlPolicy.LanguageAction, isEnglishMode: Bool, usesASCIIPunctuation: Bool
+    ) -> Bool? {
+        switch action {
+        case .returnToLetters: return nil
+        case .toggleLanguage: return !isEnglishMode
+        case .toggleSymbols: return !usesASCIIPunctuation
         }
     }
 

@@ -81,6 +81,9 @@ struct AlternateCharacterKey: UIViewRepresentable {
     /// Overrides the default AX hint. The default only describes "long-press alternate", which is wrong for a tap-cycling key
     /// (the 9-key idle first key); that key must announce the real cycling order.
     var accessibilityHintOverride: String? = nil
+    /// The language key's "中/英" face: whether the first side is the current one (drawn in the
+    /// text colour, the other side dimmed). nil for every other key.
+    var languageCurrentSideIsFirst: Bool? = nil
     var accessibilityID: String? = nil
     let onSelect: (KeyCap) -> Void
 
@@ -100,7 +103,8 @@ struct AlternateCharacterKey: UIViewRepresentable {
             flickConfigured: flickConfigured, flickOptions: flickOptions, flickDigit: flickDigit,
             flickEligible: flickEligible,
             syllableHintBelow: syllableHintBelow, reservesHintBand: reservesHintBand,
-            accessibilityHintOverride: accessibilityHintOverride, inputLanguage: inputLanguage, onSelect: onSelect)
+            accessibilityHintOverride: accessibilityHintOverride,
+            languageCurrentSideIsFirst: languageCurrentSideIsFirst, inputLanguage: inputLanguage, onSelect: onSelect)
         button.isEnabled = isEnabled
         return button
     }
@@ -120,7 +124,8 @@ struct AlternateCharacterKey: UIViewRepresentable {
             flickConfigured: flickConfigured, flickOptions: flickOptions, flickDigit: flickDigit,
             flickEligible: flickEligible,
             syllableHintBelow: syllableHintBelow, reservesHintBand: reservesHintBand,
-            accessibilityHintOverride: accessibilityHintOverride, inputLanguage: inputLanguage, onSelect: onSelect)
+            accessibilityHintOverride: accessibilityHintOverride,
+            languageCurrentSideIsFirst: languageCurrentSideIsFirst, inputLanguage: inputLanguage, onSelect: onSelect)
         // `isEnabled` repaints the cap in its setter; only write a real change.
         if button.isEnabled != isEnabled { button.isEnabled = isEnabled }
         if !isEnabled { button.cancelPress() }
@@ -189,6 +194,7 @@ struct AlternateCharacterKey: UIViewRepresentable {
         var showsKeyPreview = false
         /// Scheme language of the current keyboard; the cap face asks CoreText for its glyph forms.
         private var inputLanguage: InputLanguage = .simplifiedChinese
+        private var languageCurrentSideIsFirst: Bool?
         private var titleSize: Double?
         private var letterGroup: [String] = []
         private var groupHints: [String?] = []
@@ -284,6 +290,7 @@ struct AlternateCharacterKey: UIViewRepresentable {
             let syllableHintBelow: Bool
             let reservesHintBand: Bool
             let accessibilityHintOverride: String?
+            let languageCurrentSideIsFirst: Bool?
             let inputLanguage: InputLanguage
             let appearance: KeyboardAppearance
         }
@@ -410,6 +417,7 @@ struct AlternateCharacterKey: UIViewRepresentable {
             flickOptions: [KeyCap]? = nil, flickDigit: KeyCap? = nil, flickEligible: Bool? = nil,
             syllableHintBelow: Bool = false, reservesHintBand: Bool = false,
             accessibilityHintOverride: String? = nil,
+            languageCurrentSideIsFirst: Bool? = nil,
             inputLanguage: InputLanguage = .simplifiedChinese,
             onSelect: @escaping (KeyCap) -> Void
         ) {
@@ -431,6 +439,7 @@ struct AlternateCharacterKey: UIViewRepresentable {
                 flickDigit: flick.digit, flickEligible: flick.eligible,
                 syllableHintBelow: syllableHintBelow, reservesHintBand: reservesHintBand,
                 accessibilityHintOverride: accessibilityHintOverride,
+                languageCurrentSideIsFirst: languageCurrentSideIsFirst,
                 inputLanguage: inputLanguage,
                 appearance: appearance)
             guard next != configuration else { return }
@@ -448,6 +457,7 @@ struct AlternateCharacterKey: UIViewRepresentable {
             self.cap = cap
             self.alternates = alternates
             self.inputLanguage = inputLanguage
+            self.languageCurrentSideIsFirst = languageCurrentSideIsFirst
             self.longPressDelay = longPressDelay
             self.layoutPicker = layoutPicker
             self.phoneKey = phoneKey
@@ -669,6 +679,10 @@ struct AlternateCharacterKey: UIViewRepresentable {
         /// glyph forms; Simplified Chinese keeps the plain label.
         private func applyTitleLanguage(font: UIFont) {
             guard let cap else { return }
+            if let firstIsCurrent = languageCurrentSideIsFirst, cap.title.contains("/") {
+                applyLanguageSides(font: font, firstIsCurrent: firstIsCurrent)
+                return
+            }
             // Only CJK faces can take another language's glyph forms; ASCII letters, digits and marks
             // keep the plain-label path, so ordinary typing adds no attributed-string work. Simplified
             // Chinese is the system default form and keeps the plain label too.
@@ -687,6 +701,24 @@ struct AlternateCharacterKey: UIViewRepresentable {
                     .font: font, .foregroundColor: title.textColor ?? UIColor.label,
                     .paragraphStyle: paragraph,
                 ], range: NSRange(location: 0, length: string.length))
+            if title.attributedText != string { title.attributedText = string }
+        }
+
+        /// "中/英": both sides drawn, the current one in the text colour and the slash and the other
+        /// side at 60%, as on Android, so the face never changes and still says which side is on.
+        private func applyLanguageSides(font: UIFont, firstIsCurrent: Bool) {
+            guard let cap, let slash = cap.title.firstIndex(of: "/") else { return }
+            let string = CandidateTextLanguage.attributed(cap.title, language: inputLanguage)
+            guard string.length > 0 else { return }
+            let full = title.textColor ?? UIColor.label
+            let dim = full.withAlphaComponent(full.cgColor.alpha * 0.6)
+            let paragraph = NSMutableParagraphStyle()
+            paragraph.alignment = title.textAlignment
+            let whole = NSRange(location: 0, length: string.length)
+            string.addAttributes([.font: font, .foregroundColor: dim, .paragraphStyle: paragraph], range: whole)
+            let current = firstIsCurrent ? cap.title[..<slash] : cap.title[cap.title.index(after: slash)...]
+            string.addAttribute(
+                .foregroundColor, value: full, range: NSRange(current.startIndex..<current.endIndex, in: cap.title))
             if title.attributedText != string { title.attributedText = string }
         }
 

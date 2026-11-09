@@ -145,6 +145,7 @@ struct KeyboardAuthoredPageKey: View {
             phoneSideKey: phoneSideKeyFace,
             showsKeyPreview: showsKeyPreview,
             visualRole: visualRole,
+            languageCurrentSideIsFirst: state.languageCurrentSideIsFirst(for: key),
             accessibilityID: KeyboardPageAuthoredActionTable.capID(path),
             onSelect: { cap in select(cap) }
         )

@@ -242,6 +242,12 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
             isEnglishMode: isEnglishMode, usesASCIIPunctuation: usesASCIIPunctuation)
     }
 
+    public func languageCurrentSideIsFirst(for behavior: LayoutAction.LanguageSwitchBehavior?) -> Bool? {
+        KeyLabelPolicy.languageCurrentSideIsFirst(
+            action: languageAction(for: behavior),
+            isEnglishMode: isEnglishMode, usesASCIIPunctuation: usesASCIIPunctuation)
+    }
+
     public var languageAccessibilityLabel: String { languageAccessibilityLabel(for: nil) }
     public func languageAccessibilityLabel(for behavior: LayoutAction.LanguageSwitchBehavior?) -> String {
         KeyLabelPolicy.languageAccessibilityLabel(

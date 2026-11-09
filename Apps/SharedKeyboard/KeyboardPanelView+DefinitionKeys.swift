@@ -187,6 +187,8 @@ extension KeyboardPanelView {
                 longPressDelay: keyLongPressDelay,
                 layoutPicker: languageKeepsMenu,
                 visualRole: definitionUIActionRole(key),
+                languageCurrentSideIsFirst: KeyboardPageControlFace.languageCurrentSideIsFirst(
+                    for: key, policy: controlPolicy),
                 onSelect: dispatch
             )
             .accessibilityLabel(definitionUIActionAccessibility(key))

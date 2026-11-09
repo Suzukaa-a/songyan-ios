@@ -155,11 +155,11 @@ final class KeyboardControlPolicyTests: XCTestCase {
                             switch page {
                             case .letters:
                                 XCTAssertEqual(policy.languageAction, .toggleLanguage)
-                                // Auto face names the target language.
-                                XCTAssertEqual(policy.languageTitle, english ? "中文" : "英文")
+                                XCTAssertEqual(policy.languageTitle, "中/英")
+                                XCTAssertEqual(policy.languageCurrentSideIsFirst(for: nil), !english)
                             case .numeric:
                                 XCTAssertEqual(policy.languageAction, .toggleSymbols)
-                                XCTAssertEqual(policy.languageTitle, "英文")
+                                XCTAssertEqual(policy.languageTitle, "中/英")
                                 XCTAssertEqual(policy.pageTarget, .symbols)
                             case .symbols:
                                 XCTAssertEqual(policy.languageAction, .returnToLetters)
@@ -250,21 +250,20 @@ final class KeyboardControlPolicyTests: XCTestCase {
             page: .letters, isEnglishMode: false, hasGlobe: false, isPhoneLayout: true,
             usesASCIIPunctuation: false, includesBottomEnter: false)
         XCTAssertEqual(letters.pageTitle, "123")
-        // The auto face names the target language.
-        XCTAssertEqual(letters.languageTitle, "英文")
+        XCTAssertEqual(letters.languageTitle, "中/英")
         let numeric = KeyboardControlPolicy(
             page: .numeric, isEnglishMode: false, hasGlobe: false, isPhoneLayout: true,
             usesASCIIPunctuation: false, includesBottomEnter: false)
         XCTAssertEqual(numeric.pageTitle, "符")
         XCTAssertEqual(numeric.pageTarget, .symbols)
-        XCTAssertEqual(numeric.languageTitle, "英文")
+        XCTAssertEqual(numeric.languageTitle, "中/英")
         XCTAssertEqual(numeric.languageAction, .toggleSymbols)
         // Generic surfaces use the same page-following matrix.
         let qwertyNumeric = KeyboardControlPolicy(
             page: .numeric, isEnglishMode: false, hasGlobe: false, isPhoneLayout: false,
             usesASCIIPunctuation: false)
         XCTAssertEqual(qwertyNumeric.pageTitle, "符")
-        XCTAssertEqual(qwertyNumeric.languageTitle, "英文")
+        XCTAssertEqual(qwertyNumeric.languageTitle, "中/英")
         XCTAssertEqual(qwertyNumeric.languageAction, .toggleSymbols)
     }
 
@@ -668,7 +667,8 @@ final class KeyboardControlPolicyTests: XCTestCase {
             XCTAssertEqual(policy.pageTitle, "123")
             XCTAssertEqual(policy.key(at: .page), .returnToLetters)
             XCTAssertEqual(policy.languageAction, .toggleSymbols)
-            XCTAssertEqual(policy.languageTitle, english ? "中文" : "英文")
+            XCTAssertEqual(policy.languageTitle, "中/英")
+            XCTAssertEqual(policy.languageCurrentSideIsFirst(for: nil), !english)
             XCTAssertEqual(Array(policy.slots.map(policy.key(at:)).prefix(3)), [.globe, .returnToLetters, .language])
         }
         let grid = KeyboardControlPolicy(

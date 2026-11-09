@@ -26,8 +26,8 @@ final class KeyLabelPolicyTests: XCTestCase {
 
     func testSimplifiedKeepsTodaysKeyNames() {
         XCTAssertEqual(KeyLabelPolicy.spaceTitle(script: .simplifiedChinese, isComposing: false), "空格")
-        XCTAssertEqual(policy(.simplifiedChinese).languageTitle, "英文")
-        XCTAssertEqual(policy(.simplifiedChinese, english: true).languageTitle, "中文")
+        XCTAssertEqual(policy(.simplifiedChinese).languageTitle, "中/英")
+        XCTAssertEqual(policy(.simplifiedChinese, english: true).languageTitle, "中/英")
         XCTAssertEqual(policy(.simplifiedChinese).symbolPageTitle, "符")
     }
 
@@ -75,10 +75,12 @@ final class KeyLabelPolicyTests: XCTestCase {
         XCTAssertEqual(policy(.japanese, english: true).spaceTitle(isComposing: true), "変換")
     }
 
-    func testJapaneseLanguageKeyNamesTheTarget() {
-        XCTAssertEqual(policy(.japanese).languageTitle, "A")
-        XCTAssertEqual(policy(.japanese, english: true).languageTitle, "あ")
-        XCTAssertEqual(policy(.traditionalChinese).languageTitle, "英文")
+    func testLanguageKeyDrawsBothSidesAndMarksTheCurrentOne() {
+        XCTAssertEqual(policy(.japanese).languageTitle, "あ/A")
+        XCTAssertEqual(policy(.japanese, english: true).languageTitle, "あ/A")
+        XCTAssertEqual(policy(.traditionalChinese).languageTitle, "中/英")
+        XCTAssertEqual(policy(.japanese).languageCurrentSideIsFirst(for: nil), true)
+        XCTAssertEqual(policy(.japanese, english: true).languageCurrentSideIsFirst(for: nil), false)
     }
 
     func testSymbolPageKeyIsFuForBothChineseScriptsAndKigoInJapanese() {

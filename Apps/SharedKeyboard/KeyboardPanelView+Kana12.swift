@@ -111,6 +111,7 @@ extension KeyboardPanelView {
                 longPressDelay: keyLongPressDelay,
                 layoutPicker: true,
                 visualRole: "control",
+                languageCurrentSideIsFirst: !controller.isEnglishMode,
                 onSelect: { cap in
                     if cap.id == capID {
                         performKana12ViewAction(.language)

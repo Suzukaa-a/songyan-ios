@@ -106,7 +106,8 @@ struct KeyboardPreviewModeKey: View {
     var body: some View {
         AlternateCharacterKey(
             cap: KeyCap(id: "input-mode", title: policy.languageTitle(for: nil), action: .cycleLayout),
-            alternates: [], layoutPicker: true
+            alternates: [], layoutPicker: true,
+            languageCurrentSideIsFirst: policy.languageCurrentSideIsFirst(for: nil)
         ) { _ in }
         .accessibilityLabel(policy.languageAccessibilityLabel(for: nil))
     }

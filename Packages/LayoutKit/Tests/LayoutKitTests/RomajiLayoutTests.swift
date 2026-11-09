@@ -157,12 +157,14 @@ final class RomajiLayoutTests: XCTestCase {
         XCTAssertEqual(
             KeyLabelPolicy.returnTitle(script: .japanese, isComposing: false, intent: .lineBreak), "改行")
         XCTAssertEqual(
-            policy.languageTitle(for: nil), "A",
-            "the automatic language key names its target: Japanese input shows A")
+            policy.languageTitle(for: nil), "あ/A",
+            "the automatic language key draws both sides, as on Android")
+        XCTAssertEqual(policy.languageCurrentSideIsFirst(for: nil), true)
         let english = KeyboardControlPolicy(
             page: .letters, isEnglishMode: true, hasGlobe: true, isPhoneLayout: false,
             usesASCIIPunctuation: false, script: .japanese, showsSpaceSideMarks: false)
-        XCTAssertEqual(english.languageTitle(for: nil), "あ")
+        XCTAssertEqual(english.languageTitle(for: nil), "あ/A")
+        XCTAssertEqual(english.languageCurrentSideIsFirst(for: nil), false)
     }
 
     func testTheKeyboardOffersTheSystemSwitchKey() throws {
