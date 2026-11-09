@@ -1,6 +1,6 @@
 """The author bar's own footer shortcuts: a declared control entry is never duplicated (including
 an authored .languageSwitch key), and the bundled traditional boards that declare their whole
-6-/5-key footer get no extra 123 / symbol / globe / 中英 key."""
+5-key footer get no extra 123 / symbol / globe / 中英 key."""
 import sys
 import unittest
 

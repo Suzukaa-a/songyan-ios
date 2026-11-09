@@ -32,12 +32,14 @@ for board in [BuiltinLayouts.zhuyin41, BuiltinLayouts.cangjie26] {
         "\(board.id) never gets an extra globe even when the row's globe is hidden")
 }
 
+// Both boards end in the same 5-key control row: Zhuyin's Delete closes its fourth letter row and
+// the cangjie shell draws its own, so the footer matches every other board.
+for board in [BuiltinLayouts.zhuyin41, BuiltinLayouts.cangjie26] {
+    check(board.rows.last?.keys.count == 5, "\(board.id) declares 5 control keys")
+}
 check(
-    BuiltinLayouts.zhuyin41.rows.last?.keys.count == 6,
-    "the 41-key board declares 6 control keys")
-check(
-    BuiltinLayouts.cangjie26.rows.last?.keys.count == 5,
-    "the 26-key board declares 5 control keys (its shell draws Delete)")
+    BuiltinLayouts.zhuyin41.rows.last == BuiltinLayouts.cangjie26.rows.last,
+    "zhuyin41 and cangjie26 share one control row")
 
 // A generic authored row that declares its own 中英 key with .languageSwitch: the bar must not
 // add a second one, and its other shortcuts stay exactly as before.

@@ -49,7 +49,8 @@ final class RetiredBuiltinLayoutsTests: XCTestCase {
 
     func testUnknownAndGarbledRetiredEntriesAreSkipped() throws {
         let good = try String(decoding: BuiltinLayouts.qwerty26.encoded(), as: UTF8.self)
-        let data = Data("""
+        let data = Data(
+            """
             {"qwerty26": [\(good), {"id": 5}, "text", null], "gone": [{"x": 1}]}
             """.utf8)
         let versions = RetiredBuiltinLayouts.decodeVersions(data)
