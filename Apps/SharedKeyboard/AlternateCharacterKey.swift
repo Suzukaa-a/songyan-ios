@@ -315,7 +315,7 @@ struct AlternateCharacterKey: UIViewRepresentable {
             cap: KeyCap, alternates: [KeyCap], flickConfigured: KeyFlick.Direction?,
             flickOptions: [KeyCap]?, flickDigit: KeyCap?, flickEligible: Bool?,
             layoutPicker: Bool, phoneKey: Bool, phoneSideKey: Bool,
-            systemDefault: Bool, syllableHintBelow: Bool
+            syllableHintBelow: Bool
         ) -> Flick {
             if flickEligible != nil || flickConfigured != nil || flickOptions != nil || flickDigit != nil {
                 return Flick(
@@ -332,7 +332,7 @@ struct AlternateCharacterKey: UIViewRepresentable {
             let options = alternates.filter { $0.action.typesText }
             let hints = hintTexts(
                 cap: cap, alternates: alternates, phoneKey: false, phoneSideKey: false,
-                layoutPicker: false, systemDefault: systemDefault, syllableHintBelow: syllableHintBelow)
+                layoutPicker: false, syllableHintBelow: syllableHintBelow)
             // What the key shows besides its title: the corner mark, else the subtitle.
             let corner = nonEmpty(hints.corner) ?? nonEmpty(hints.subtitle)
             guard KeyFlick.target(options: options, label: { $0.title }, hint: corner, digit: nil) != nil
@@ -344,25 +344,13 @@ struct AlternateCharacterKey: UIViewRepresentable {
         /// the same values, so a flick can only type a mark the key really shows.
         private static func hintTexts(
             cap: KeyCap, alternates: [KeyCap], phoneKey: Bool, phoneSideKey: Bool,
-            layoutPicker: Bool, systemDefault: Bool, syllableHintBelow: Bool
+            layoutPicker: Bool, syllableHintBelow: Bool
         ) -> (subtitle: String?, corner: String?) {
-            var subtitle: String? = cap.subtitle == cap.title ? nil : cap.subtitle
-            var corner: String? = alternates.first?.title == cap.subtitle ? nil : alternates.first?.title
-            if phoneKey {
-                subtitle = nil
-                corner = phoneSideKey ? alternates.first?.title : cap.subtitle
-            }
-            if layoutPicker {
-                // Visible menu indicator: a long press on the language key opens the published-keyboard switch list (ending with "More tools").
-                corner = KeyboardToolsAffordance.indicatorGlyph
-                subtitle = nil
-            }
-            if systemDefault, !phoneKey, !layoutPicker, !syllableHintBelow {
-                // Secondary codes/digits live in the corner, not a second centered baseline.
-                corner = subtitle ?? corner
-                subtitle = nil
-            }
-            return (subtitle, corner)
+            KeyHintLayoutPolicy.texts(
+                title: cap.title, subtitle: cap.subtitle, alternate: alternates.first?.title,
+                phoneKey: phoneKey, phoneSideKey: phoneSideKey,
+                menuIndicator: layoutPicker ? KeyboardToolsAffordance.indicatorGlyph : nil,
+                syllableHintBelow: syllableHintBelow)
         }
 
         private static func nonEmpty(_ text: String?) -> String? {
@@ -427,7 +415,7 @@ struct AlternateCharacterKey: UIViewRepresentable {
                 cap: cap, alternates: alternates, flickConfigured: flickConfigured,
                 flickOptions: flickOptions, flickDigit: flickDigit, flickEligible: flickEligible,
                 layoutPicker: layoutPicker, phoneKey: phoneKey, phoneSideKey: phoneSideKey,
-                systemDefault: appearance.isSystemDefault, syllableHintBelow: syllableHintBelow)
+                syllableHintBelow: syllableHintBelow)
             let next = Configuration(
                 cap: cap, alternates: alternates, longPressDelay: longPressDelay,
                 layoutPicker: layoutPicker, phoneKey: phoneKey, phoneSideKey: phoneSideKey,
@@ -480,7 +468,7 @@ struct AlternateCharacterKey: UIViewRepresentable {
             title.text = cap.title
             let hints = Self.hintTexts(
                 cap: cap, alternates: alternates, phoneKey: phoneKey, phoneSideKey: phoneSideKey,
-                layoutPicker: layoutPicker, systemDefault: appearance.isSystemDefault,
+                layoutPicker: layoutPicker,
                 syllableHintBelow: syllableHintBelow)
             subtitle.text = hints.subtitle
             alternateHint.text = hints.corner
@@ -622,7 +610,8 @@ struct AlternateCharacterKey: UIViewRepresentable {
             alpha = isEnabled ? 1 : 0.45
             title.textColor = appearance.text(on: role)
             subtitle.textColor = appearance.text(on: role, secondary: true)
-            alternateHint.textColor = appearance.text(on: role, secondary: true)
+            // Corner hints recede behind the title, matching the Android keyboard.
+            alternateHint.textColor = appearance.text(on: role, secondary: true).withAlphaComponent(0.6)
             let base =
                 titleSize
                 ?? (isControl || phoneSideKey
@@ -645,7 +634,7 @@ struct AlternateCharacterKey: UIViewRepresentable {
                 let hintColour = appearance.text(on: role, secondary: true)
                 label.textColor =
                     swipeChoice.map { $0 == index ? hintColour : hintColour.withAlphaComponent(0.3) }
-                    ?? hintColour
+                    ?? hintColour.withAlphaComponent(0.6)
                 label.textAlignment = .center
                 applyHintLayout(to: label, availableWidth: columnWidth, natural: secondaryFont, shrinks: true)
             }

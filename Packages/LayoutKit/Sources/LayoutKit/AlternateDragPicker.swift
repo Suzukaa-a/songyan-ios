@@ -290,8 +290,8 @@ public enum AlternateDragPicker {
         /// The popup fades with `dropProgress` on the way, so the cancel is seen
         /// coming and can be undone by moving back up.
         public static let cancelDrop: Double = 72
-        /// Downward travel below which the popup shows no cancel feedback at all.
-        public static let cancelFeedbackStart: Double = 16
+        /// Keep ordinary downward drift visually steady before previewing a cancel.
+        public static let cancelFeedbackStart: Double = 44
     }
 
     /// What a completed long press resolves to when the finger lifts. Pure value:

@@ -342,7 +342,7 @@ extension AppearanceDocument {
             dark: [
                 "panel": "#121513", "key": "#454D47", "control": "#383E3A",
                 "accent": "#8FD7AA", "accentText": "#003820", "text": "#E2E5E0",
-                "secondaryText": "#959F96", "selected": "#1C3426", "pressed": "#57635A",
+                "secondaryText": "#B4BEB5", "selected": "#1C3426", "pressed": "#57635A",
                 "border": "#272C28",
             ],
             // A fine stroke keeps the dark keys apart.
@@ -362,7 +362,7 @@ extension AppearanceDocument {
         preset(
             id: "builtin-bamboo", name: "青竹", appearance: .system,
             light: [
-                "panel": "#DDE8E0", "key": "#FBFDFB", "control": "#C3D6C8",
+                "panel": "#DDE8E0", "key": "#FFFFFF", "control": "#C3D6C8",
                 "accent": "#2E7D5B", "accentText": "#FFFFFF", "text": "#1E2A23",
                 "secondaryText": "#4C5E53", "selected": "#BFDCCB", "pressed": "#B3CBBB",
             ],
@@ -393,7 +393,7 @@ extension AppearanceDocument {
             dark: [
                 "panel": "#111827", "key": "#394659", "control": "#2E3748",
                 "accent": "#3472D8", "accentText": "#FFFFFF", "text": "#F3F4F6",
-                "secondaryText": "#8FA3BF", "selected": "#28436B", "pressed": "#495972",
+                "secondaryText": "#A9BAD3", "selected": "#28436B", "pressed": "#495972",
             ]),
         preset(
             id: "builtin-twilight", name: "薄暮", appearance: .system,
@@ -403,9 +403,9 @@ extension AppearanceDocument {
                 "secondaryText": "#635570", "selected": "#DDD4E8", "pressed": "#C5BDD0",
             ],
             dark: [
-                "panel": "#1A1625", "key": "#463959", "control": "#3A314C",
+                "panel": "#1A1625", "key": "#4C3E60", "control": "#3A314C",
                 "accent": "#9B4EE3", "accentText": "#FFFFFF", "text": "#F3EEF9",
-                "secondaryText": "#AFA3BF", "selected": "#4E3A63", "pressed": "#5A4D6D",
+                "secondaryText": "#BDB2CC", "selected": "#4E3A63", "pressed": "#625575",
             ]),
     ]
 
@@ -417,6 +417,11 @@ extension AppearanceDocument {
 
     /// Built-in appearances (system default + presets): read-only, not deletable.
     public var isBuiltin: Bool { isSystemDefault || Self.builtinPresetIDs.contains(id) }
+
+    /// The current definition of a built-in appearance, or nil for user appearances.
+    public static func builtin(id: String) -> AppearanceDocument? {
+        id == systemDefaultID ? systemDefault : builtinPresets.first { $0.id == id }
+    }
 
     private static func preset(
         id: String, name: String, appearance: SkinAppearance,

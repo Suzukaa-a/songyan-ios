@@ -7,6 +7,27 @@ import Foundation
 /// and is truncated only beyond that. The policy never moves the key frame or the touch target.
 public enum KeyHintLayoutPolicy {
 
+    /// Secondary symbols use the corner in every appearance; phonetic hints keep their own baseline.
+    public static func texts(
+        title: String, subtitle: String?, alternate: String?, phoneKey: Bool = false,
+        phoneSideKey: Bool = false, menuIndicator: String? = nil, syllableHintBelow: Bool = false
+    ) -> (subtitle: String?, corner: String?) {
+        var below = subtitle == title ? nil : subtitle
+        var corner = alternate == subtitle ? nil : alternate
+        if phoneKey {
+            below = nil
+            corner = phoneSideKey ? alternate : subtitle
+        }
+        if let menuIndicator {
+            return (nil, menuIndicator)
+        }
+        if !phoneKey, !syllableHintBelow {
+            corner = below ?? corner
+            below = nil
+        }
+        return (below, corner)
+    }
+
     /// A hint never takes more than one line.
     public static let maximumLines = 1
     /// A hint may shrink this far before it is truncated.
