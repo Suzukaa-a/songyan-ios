@@ -60,6 +60,13 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
     /// The native footer puts a comma left of the space bar and a full stop right of it. Off for
     /// authored pages, previews and narrow rows, which keep the single comma key.
     public private(set) var showsSpaceSideMarks: Bool
+    /// Which marks sit beside the space bar: the sentence marks, or the address marks a URL or
+    /// email field types most. The keys stay where they are; only their marks change.
+    public private(set) var fieldMarks: FieldMarks = .sentence
+
+    public enum FieldMarks: Equatable, Sendable {
+        case sentence, url, email
+    }
     /// The bundled phone shell's column widths. When set, the first bottom key sits
     /// under the rail and the rest share the grid's width with a wide space bar
     /// (see `Metrics.init(width:columns:includesUtility:)`) instead of the generic
@@ -101,6 +108,13 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
         self.script = script
         self.showsSpaceSideMarks = showsSpaceSideMarks
         self.offersSymbolLibrary = offersSymbolLibrary
+    }
+
+    /// The same policy with the space bar's marks chosen for the host field.
+    public func withFieldMarks(_ marks: FieldMarks) -> KeyboardControlPolicy {
+        var copy = self
+        copy.fieldMarks = marks
+        return copy
     }
 
     /// The same policy with the runtime footer marks switched on or off.
@@ -264,7 +278,30 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
 
     /// The full stop the split footer draws: ASCII marks keep the footer's shape and change the mark,
     /// so 中/英 never moves a key.
-    public var fullStopText: String { usesASCIIPunctuation ? "." : Self.fullStop }
+    public var fullStopText: String {
+        switch fieldMarks {
+        case .url: return "/"
+        case .email: return "."
+        case .sentence: return usesASCIIPunctuation ? "." : Self.fullStop
+        }
+    }
+
+    /// The mark left of the space bar: the comma, or `:` in a URL and `@` in an email field.
+    public var markLeftText: String {
+        switch fieldMarks {
+        case .url: return ":"
+        case .email: return "@"
+        case .sentence: return utilityText
+        }
+    }
+
+    public var markLeftAlternates: [String] {
+        switch fieldMarks {
+        case .url: return [".", "-", "_", "@"]
+        case .email: return ["_", "-", "+"]
+        case .sentence: return utilityAlternates
+        }
+    }
 
     /// Only the effective symbol branch decides the width; the input script names the mark:
     /// Japanese types 、 where Chinese types ，.
@@ -290,7 +327,13 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
     }
 
     /// The split footer's full stop key holds the sentence-ending marks.
-    public var fullStopAlternates: [String] { usesASCIIPunctuation ? ["?", "!", "…"] : ["？", "！", "…"] }
+    public var fullStopAlternates: [String] {
+        switch fieldMarks {
+        case .url: return [".", "?", "=", "&", "#"]
+        case .email: return ["-", "_"]
+        case .sentence: return usesASCIIPunctuation ? ["?", "!", "…"] : ["？", "！", "…"]
+        }
+    }
 
     /// One budget for every builtin page. Fractions apply to *content* width after gaps.
     /// At 382pt content (390pt phone minus panel insets) with globe:

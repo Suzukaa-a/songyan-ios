@@ -127,13 +127,13 @@ struct ControlRow<ModeKey: View>: View {
             // The runtime footer's comma left of the space bar; long press keeps the sentence marks.
             AlternateCharacterKey(
                 cap: KeyCap(
-                    id: "control-mark-left", title: policy.utilityText,
-                    action: .literal(policy.utilityText)),
-                alternates: policy.utilityAlternates.enumerated().map { index, mark in
+                    id: "control-mark-left", title: policy.markLeftText,
+                    action: .literal(policy.markLeftText)),
+                alternates: policy.markLeftAlternates.enumerated().map { index, mark in
                     KeyCap(id: "control-mark-left-\(index)", title: mark, action: .literal(mark))
                 }
             ) { onKey($0.action) }
-            .accessibilityLabel(String(localized: "\(policy.utilityText)，长按选择标点"))
+            .accessibilityLabel(String(localized: "\(policy.markLeftText)，长按选择标点"))
         case .markRight:
             periodKey
         case .space:

@@ -71,6 +71,29 @@ final class KeyboardControlPolicyTests: XCTestCase {
         XCTAssertEqual(chinese.utility, .punctuation("。"))
     }
 
+    /// A URL field puts `:` and `/` beside the space bar and an email field `@` and `.`; the keys
+    /// and their widths stay the text field's on every page.
+    func testAddressFieldsChangeTheMarksNotTheKeys() {
+        for page in KeyboardControlPolicy.Page.allCases {
+            let text = KeyboardControlPolicy(
+                page: page, isEnglishMode: true, hasGlobe: true, isPhoneLayout: false,
+                usesASCIIPunctuation: true, usesCategorySymbolPage: false, showsSpaceSideMarks: true)
+            let url = text.withFieldMarks(.url)
+            let email = text.withFieldMarks(.email)
+            for field in [url, email] {
+                XCTAssertEqual(field.slots, text.slots, "\(page)")
+                XCTAssertEqual(field.metrics(width: 382), text.metrics(width: 382), "\(page)")
+            }
+            XCTAssertEqual([url.markLeftText, url.fullStopText], [":", "/"])
+            XCTAssertEqual([email.markLeftText, email.fullStopText], ["@", "."])
+        }
+        XCTAssertEqual(
+            KeyboardControlPolicy(
+                page: .letters, isEnglishMode: false, hasGlobe: true, isPhoneLayout: false,
+                usesASCIIPunctuation: false, showsSpaceSideMarks: true
+            ).markLeftText, "，")
+    }
+
     /// Without the globe the keys left of the space bar and the keys right of it take the same
     /// width, so the space bar sits on the keyboard's centre line on every page. With the globe the
     /// space bar keeps the wider budget: 44pt switches, a 44pt comma and a 60pt-based Return.

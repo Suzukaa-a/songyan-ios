@@ -29,11 +29,12 @@ extension KeyboardController {
         }
     }
 
-    /// Address and search fields type their own marks (`.`, `@`), so the footer keeps one mark there.
-    var hostFieldKeepsSingleMark: Bool {
+    /// URL and email fields put the address marks they type most beside the space bar.
+    var hostFieldMarks: KeyboardControlPolicy.FieldMarks {
         switch HostKeyboardTypeKind(keyboardType) {
-        case .url, .emailAddress, .webSearch: return true
-        default: return false
+        case .url: return .url
+        case .emailAddress: return .email
+        default: return .sentence
         }
     }
 

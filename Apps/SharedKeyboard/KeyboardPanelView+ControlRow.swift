@@ -221,10 +221,10 @@ extension KeyboardPanelView {
     }
 
     /// The native footer puts the comma left of the space bar and the full stop right of it in
-    /// both languages, so 中/英 changes the marks and never moves a key. URL, email and search
-    /// fields keep their single mark, and a phone shell keeps its grid.
+    /// both languages and every field, so neither 中/英 nor a URL or email field moves a key;
+    /// they change the marks. A phone shell keeps its grid.
     private var showsSpaceSideMarks: Bool {
-        !controller.hostFieldKeepsSingleMark && !usesPhoneDefinition && !isBuiltinPhonePad
+        !usesPhoneDefinition && !isBuiltinPhonePad
     }
 
     var controlPolicy: KeyboardControlPolicy {
@@ -241,7 +241,8 @@ extension KeyboardPanelView {
             showsCategorySymbolPage: showsCategorySymbolPage,
             numericPageReachesSymbols: page != .letters || numericPageReachesSymbols,
             script: controller.inputLanguageScript,
-            showsSpaceSideMarks: showsSpaceSideMarks, offersSymbolLibrary: pageDefinition == nil)
+            showsSpaceSideMarks: showsSpaceSideMarks, offersSymbolLibrary: pageDefinition == nil
+        ).withFieldMarks(controller.hostFieldMarks)
         // A row too narrow to keep a usable space bar falls back to the single mark; the layout
         // decides, not a key branch of its own.
         guard policy.showsSpaceSideMarks,
