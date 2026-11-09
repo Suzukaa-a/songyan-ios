@@ -146,6 +146,8 @@ public struct KeyboardPanelView: View {
     /// read on the render the next key's controller update already causes.
     @State private var choiceHold = HeldReadingChoices()
     @State var keyAreaGeneration = 0
+    /// The key area's opacity: the keys fade in after a switch of input method or layout.
+    @State var switchFade = 1.0
     /// A symbol page entered with a live composition keeps its candidate row for
     /// the whole visit (see `readingRowReport`).
     @State private var symbolPageKeepsCandidates = false
@@ -817,7 +819,9 @@ public struct KeyboardPanelView: View {
             .padding(.horizontal, splitEdgeInset)
             .id(keyAreaGeneration)
             .background(Color.black.opacity(0.001))
-            // Switch pages in place. A keyframeAnimator/visualEffect around this
+            .opacity(switchFade)
+            // Switch pages in place; a switch of input method or layout only fades the keys in. A
+            // keyframeAnimator/visualEffect around this
             // entire subtree also wrapped UIKit key views; even a 2pt settle
             // introduced a separate presentation surface and displaced the cap
             // while its touch owner stayed put. Only the individual key's release

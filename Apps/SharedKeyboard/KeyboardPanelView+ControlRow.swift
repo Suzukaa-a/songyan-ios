@@ -89,12 +89,27 @@ extension KeyboardPanelView {
         guard let change = controller.successfulChange, change.token != layoutHintToken else { return }
         layoutHintToken = change.token
         layoutHintName = currentKeyboardTitle
+        fadeInSwitchedKeys()
         let token = change.token
         Task { @MainActor in
             try? await Task.sleep(nanoseconds: 2_500_000_000)
             if layoutHintToken == token { layoutHintName = nil }
         }
     }
+
+    /// The new keys fade in from faint, the same as on Android. Opacity only: a transform would move
+    /// the caps away from their touch owners, and the keys never fall below UIKit's hit-test alpha.
+    private func fadeInSwitchedKeys() {
+        var instant = Transaction()
+        instant.disablesAnimations = true
+        withTransaction(instant) { switchFade = Self.switchFadeStart }
+        Task { @MainActor in
+            withAnimation(.easeOut(duration: Self.switchFadeDuration)) { switchFade = 1 }
+        }
+    }
+
+    static let switchFadeStart = 0.15
+    static let switchFadeDuration = 0.18
 
     /// **"More tools" entry** (separate from the candidate bar): opens only the utilities panel (symbol library, quick phrases,
     /// keyboard options/inline options). It is the last item of the "ABC/中文" **long-press** menu rather than a large
