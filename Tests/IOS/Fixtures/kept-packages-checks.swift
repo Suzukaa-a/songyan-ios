@@ -15,9 +15,10 @@ func keptPackagesChecks(_ base: URL) throws {
             fatalError("expected refusal: " + message)
         } catch {}
     }
-    try Data("schema_list:\n  - schema: rime_ice\n  - schema: luna_pinyin\n  - schema: stroke\n  - schema: bopomofo\n".utf8)
+    let schemaIDs = ["rime_ice", "luna_pinyin", "stroke", "bopomofo"]
+    try Data(("schema_list:\n" + schemaIDs.map { "  - schema: \($0)\n" }.joined()).utf8)
         .write(to: build.appendingPathComponent("default.yaml"))
-    for s in ["rime_ice", "luna_pinyin", "stroke", "bopomofo"] {
+    for s in schemaIDs {
         try Data("schema: fixture".utf8).write(to: build.appendingPathComponent("\(s).schema.yaml"))
     }
     let schemas = [
@@ -61,7 +62,8 @@ func keptPackagesChecks(_ base: URL) throws {
     let b3 = try publish("pkg-b", [luna], revision: "b3")
     check(!generationExists(b1.generation), "replaced generation reclaimed")
     check(generationExists(b2.generation), "previous generation kept")
-    check(KeyboardRecipeStore.generationRecord(generation: a1.generation, rootURL: root)?.packageID == "pkg-a",
+    check(
+        KeyboardRecipeStore.generationRecord(generation: a1.generation, rootURL: root)?.packageID == "pkg-a",
         "generation record readable")
 
     // Empty roster keeps nothing for that package.
