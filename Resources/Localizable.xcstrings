@@ -100,13 +100,13 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "霧凇拼音"
+            "value": "雾凇拼音"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "霧凇ピンイン"
+            "value": "雾凇拼音"
           }
         }
       }
@@ -144,13 +144,13 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "永珍拼音"
+            "value": "万象拼音"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "万象ピンイン"
+            "value": "万象拼音"
           }
         }
       }
@@ -358,19 +358,19 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "日语"
+            "value": "カギロイ"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "日語"
+            "value": "カギロイ"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "日本語"
+            "value": "カギロイ"
           }
         }
       }
