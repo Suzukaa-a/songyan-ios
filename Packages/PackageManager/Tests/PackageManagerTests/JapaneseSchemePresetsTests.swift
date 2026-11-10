@@ -206,6 +206,33 @@ final class JapaneseSchemePresetsTests: XCTestCase {
         try assertNoPagingBindings(files)
     }
 
+    // MARK: Build branch
+
+    /// The build branch ships the source schema and preset but no default.yaml, so
+    /// import_preset reaches the frontend prelude's, which links the paging pair again
+    /// under has_menu. Emptying kagiroi's own preset left minus on Page_Up there.
+    func testBuildBranchWithoutItsOwnDefaultReplacesTheSectionWithTheExpandedLinks() throws {
+        let files = try supplemented([
+            "kagiroi.schema.yaml": Data(rawSchema.utf8),
+            "kagiroi.yaml": Data(rawPreset.utf8),
+        ])
+        let patch = try patchEntries(files)
+        XCTAssertEqual(
+            Set(patch.map { $0.key }),
+            Set(["key_binder", "punctuator/half_shape/,", "punctuator/half_shape/."]))
+        let section = try XCTUnwrap(try patchValue(files, "key_binder"))
+        XCTAssertEqual(entries(section).map { $0.key }, ["bindings"])
+        let accepts = items(value(section, "bindings")).compactMap { bindingAccept($0) }
+        XCTAssertFalse(accepts.contains("minus"))
+        XCTAssertFalse(accepts.contains("equal"))
+        // The prelude's editing bindings come first, kagiroi's option shortcuts after.
+        let editing = try XCTUnwrap(accepts.firstIndex(of: "Control+p"), "emacs editing must survive")
+        let options = try XCTUnwrap(accepts.firstIndex(of: "Control+u"), "kagiroi switches must survive")
+        XCTAssertLessThan(editing, options)
+        try assertHalfShapeCommits(files)
+        try assertNoPagingBindings(files)
+    }
+
     // MARK: Prebuilt package
 
     func testCompiledPackageReplacesTheWholeKeyBinderSection() throws {

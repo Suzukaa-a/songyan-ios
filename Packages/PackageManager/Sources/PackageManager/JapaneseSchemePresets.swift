@@ -32,7 +32,7 @@ enum JapaneseSchemePresets {
             halfShapeComma: ["commit": "、"],
             halfShapePeriod: ["commit": "。"],
         ]
-        if let paging = pagingPatch(keyBinder: keyBinder) {
+        if let paging = pagingPatch(keyBinder: keyBinder, files: files) {
             patch.merge(paging) { _, written in written }
         }
         guard let merged = mergedPatch(existing: files[patchPath], adding: patch) else { return }
@@ -48,7 +48,13 @@ enum JapaneseSchemePresets {
     /// preset link appends the frontend prelude's default.yaml (which links the
     /// paging preset again) after custom patches, and a null patch entry is dropped
     /// before it applies, so the section is replaced as a whole.
-    private static func pagingPatch(keyBinder: [String: Any]) -> [String: Any]? {
+    ///
+    /// The build branch is the third shape: the in-place __patch of the source package
+    /// without the package's own default.yaml, so import_preset reaches the frontend
+    /// prelude's default.yaml, which links the paging pair again and keeps minus bound
+    /// whenever a menu is open. Every preset link of both files is expanded instead and
+    /// the section replaced as a whole, as for a prebuilt package.
+    private static func pagingPatch(keyBinder: [String: Any], files: [String: Data]) -> [String: Any]? {
         guard let bindings = keyBinder["bindings"] else { return nil }
         if let flat = normalized(bindings) as? [Any], !flat.isEmpty {
             let list = flat.compactMap { $0 as? [String: Any] }
@@ -61,7 +67,63 @@ enum JapaneseSchemePresets {
             let directive = inPlace["__patch"],
             let path = pagingPresetPath(in: directive)
         else { return nil }
+        if let preset = keyBinder["import_preset"] as? String,
+            let imported = loadMapping(files[preset + ".yaml"]),
+            let importedBinder = imported["key_binder"] as? [String: Any],
+            let importedBindings = importedBinder["bindings"],
+            linkedPaging(importedBindings)
+        {
+            guard let before = expanded(importedBindings, files: files),
+                let own = expanded(bindings, files: files)
+            else { return nil }
+            let list = before + own
+            let kept = list.filter { !isPagingBinding($0) }
+            guard kept.count < list.count else { return nil }
+            return ["key_binder": ["bindings": kept]]
+        }
         return [path + "/__append": [Any]()]
+    }
+
+    /// Whether a bindings node links the paging preset, by name, through __patch.
+    private static func linkedPaging(_ bindings: Any) -> Bool {
+        guard let inPlace = bindings as? [String: Any] else { return false }
+        let links: [Any] = (inPlace["__patch"] as? [Any]) ?? [inPlace["__patch"] as Any]
+        return links.contains { ($0 as? String)?.hasSuffix("/paging_with_minus_equal") == true }
+    }
+
+    /// A bindings node as the flat list librime builds from it: a plain list as it is,
+    /// an in-place __patch as the __append lists of the presets it links, in order. Nil
+    /// when a link does not resolve to such a list, so nothing is guessed.
+    private static func expanded(_ bindings: Any, files: [String: Data]) -> [[String: Any]]? {
+        if let list = bindings as? [Any] { return mappings(list) }
+        guard let inPlace = bindings as? [String: Any], inPlace.count == 1 else { return nil }
+        let links: [Any] = (inPlace["__patch"] as? [Any]) ?? [inPlace["__patch"] as Any]
+        var result: [[String: Any]] = []
+        for link in links {
+            guard let reference = link as? String, let separator = reference.range(of: ":/"),
+                let document = loadMapping(files[String(reference[..<separator.lowerBound]) + ".yaml"])
+            else { return nil }
+            var node: Any = document
+            for key in reference[separator.upperBound...].split(separator: "/") {
+                guard let next = (node as? [String: Any])?[String(key)] else { return nil }
+                node = next
+            }
+            let items = (node as? [String: Any])?["__append"] ?? node
+            guard let list = items as? [Any], let entries = mappings(list) else { return nil }
+            result += entries
+        }
+        return result
+    }
+
+    private static func mappings(_ list: [Any]) -> [[String: Any]]? {
+        let entries = list.compactMap { $0 as? [String: Any] }
+        return entries.count == list.count ? entries : nil
+    }
+
+    private static func loadMapping(_ data: Data?) -> [String: Any]? {
+        guard let data, let document = try? BoundedYAML.load(yaml: String(decoding: data, as: UTF8.self))
+        else { return nil }
+        return normalized(document) as? [String: Any]
     }
 
     private static func pagingPresetPath(in directive: Any?) -> String? {
