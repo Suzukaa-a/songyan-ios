@@ -111,7 +111,36 @@ public struct RecommendedSchemeSource: Identifiable, Equatable, Sendable {
             id: "rime-cantonese", nameKey: "catalog.cantonese.name", detailKey: "catalog.cantonese.detail",
             languageTag: "zh-Hant", archives: [cantonese, luna, stroke, cangjie, loengfan, emoji, essay],
             advertisedSchemaIDs: ["jyut6ping3"]),
+        RecommendedSchemeSource(
+            id: "rime-kagiroi", nameKey: "catalog.kagiroi.name", detailKey: "catalog.kagiroi.detail",
+            languageTag: "ja", archives: [kagiroi], advertisedSchemaIDs: ["kagiroi"]),
     ]
+
+    /// Upstream's own prebuilt package (the `build` branch commit generated from source
+    /// 808a1954). Compiling the source dictionaries on a phone runs out of memory, so the
+    /// catalog takes the compiled tables as upstream ships them, its dictionary set included.
+    private static let kagiroi = RecommendedSchemeArchive(
+        id: "rime-kagiroi",
+        url: URL(
+            string:
+                "https://codeload.github.com/rimeinn/rime-kagiroi/zip/1c4cd914a92ec433e2c90436414d7d05eeded6c9")!,
+        homepage: URL(string: "https://github.com/rimeinn/rime-kagiroi")!,
+        sha256: "4091251313f98b76c49a340f21b94ae0d606993e4134c7c8ba0c5d969c6fa4a2",
+        byteCountHint: 67_182_927,
+        licenses: [
+            RecommendedSchemeLicense(
+                name: "GPL-3.0",
+                url: URL(
+                    string:
+                        "https://github.com/rimeinn/rime-kagiroi/blob/808a195415e6d7bd3a41b1747039d8459bfde207/LICENSE"
+                )!),
+            RecommendedSchemeLicense(
+                name: "Mozc",
+                url: URL(
+                    string:
+                        "https://github.com/google/mozc/blob/006ed69bf545548a8a3596b13f58cb22cf3d8a2f/src/data/dictionary_oss/README.txt"
+                )!),
+        ])
 
     private static let bopomofo = upstreamArchive(
         owner: "rime", repository: "rime-bopomofo", revision: "6085c9a38a4a728047862b33d67eee18aa86f3b9",

@@ -31,10 +31,10 @@ final class RecommendedSchemeOrderTests: XCTestCase {
         let japanese = RecommendedSchemeSource(
             id: "japanese-fixture", nameKey: "fixture.name", detailKey: "fixture.detail",
             languageTag: "ja", archives: existing.archives, advertisedSchemaIDs: ["japanese_fixture"])
-        let sources = RecommendedSchemeSource.catalog + [japanese]
-        let ordered = RecommendedSchemeSource.ordered(preferredLanguages: ["ja-JP"], sources: sources)
+        let others = RecommendedSchemeSource.catalog.filter { $0.languageTag != "ja" }
+        let ordered = RecommendedSchemeSource.ordered(preferredLanguages: ["ja-JP"], sources: others + [japanese])
         XCTAssertEqual(ordered.first?.id, japanese.id)
-        XCTAssertEqual(Array(ordered.dropFirst()), RecommendedSchemeSource.catalog)
+        XCTAssertEqual(Array(ordered.dropFirst()), others)
     }
 
     func testTraditionalEntriesDeclareTheirFullRequiredArchivesAndInputMethods() throws {
@@ -57,6 +57,19 @@ final class RecommendedSchemeOrderTests: XCTestCase {
             XCTAssertEqual(source.byteCountHint, requirement.bytes, id)
             XCTAssertEqual(source.byteCountHint, source.archives.reduce(0) { $0 + $1.byteCountHint })
         }
+    }
+
+    /// Japanese is upstream's prebuilt kagiroi in one archive, first for a Japanese system.
+    func testJapaneseIsUpstreamsPrebuiltKagiroiAndLeadsForJapanese() throws {
+        let source = try XCTUnwrap(RecommendedSchemeSource.catalog.first { $0.id == "rime-kagiroi" })
+        XCTAssertEqual(source.languageTag, "ja")
+        XCTAssertEqual(source.advertisedSchemaIDs, ["kagiroi"])
+        XCTAssertEqual(source.archives.count, 1)
+        XCTAssertEqual(source.byteCountHint, 67_182_927)
+        XCTAssertTrue(source.url.absoluteString.hasSuffix("/1c4cd914a92ec433e2c90436414d7d05eeded6c9"))
+        XCTAssertEqual(source.archives[0].licenses.map(\.name), ["GPL-3.0", "Mozc"])
+        XCTAssertEqual(
+            RecommendedSchemeSource.ordered(preferredLanguages: ["ja-JP"]).first?.id, "rime-kagiroi")
     }
 
     /// Both bopomofo input methods are selectable, and the Taiwan one stays the entry point.
