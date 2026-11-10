@@ -31,11 +31,11 @@ input schemes and a keyboard extension that runs the engine on device.
 - On merged keys, swipe sideways to type either letter; optional double pinyin
   hints on the letter keys.
 - Import RIME schemes and dictionaries from files or URLs; enable, disable or
-  remove them from the host app. Recommended entries for bopomofo, cangjie,
-  quick and cantonese download their pinned upstream archives only after you
-  confirm, listed in your language's order. Japanese input comes from a kagiroi
-  package you import; the install adds the paging and punctuation patches the
-  keyboard expects, and Songyan does not download Japanese data itself.
+  remove them from the host app. Recommended entries for rime-ice, wanxiang,
+  bopomofo, cangjie, quick, cantonese and the Japanese kagiroi download their
+  pinned upstream archives only after you confirm, listed in your language's
+  order. Installing kagiroi adds the paging and punctuation patches the
+  keyboard expects.
 - Customizable appearance, candidate bar and key layouts, with a built-in
   typing preview.
 - Optional typo correction, post-commit prediction (bring your own
