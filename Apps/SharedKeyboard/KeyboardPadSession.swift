@@ -24,6 +24,9 @@ public protocol KeyboardPadHost: AnyObject {
     func refreshHostTraits()
     func moveCursor(by offset: Int)
     func switchKeyboard()
+    /// Called before each key: takes over a text field that replaced the owned one, so the key
+    /// is not lost when it arrives before the host announces the change.
+    func adoptChangedDocument()
 }
 
 /// Interactive keyboard session: starts the real Rime engine in the background, then builds a `KeyboardController`.
@@ -871,6 +874,7 @@ public final class KeyboardPadSession: ObservableObject {
             return host.replaceLiteralSuffix(expected: expected, old: old, new: new)
         }
         ctrl.onRequestHostTraitsRefresh = { [weak self] in self?.host?.refreshHostTraits() }
+        ctrl.onWillHandleKey = { [weak self] in self?.host?.adoptChangedDocument() }
         ctrl.onRequestSwitchKeyboard = { [weak self] in self?.host?.switchKeyboard() }
         ctrl.onMoveCursor = { [weak self] offset in self?.host?.moveCursor(by: offset) }
         ctrl.onInputError = { [weak self, weak ctrl] message in

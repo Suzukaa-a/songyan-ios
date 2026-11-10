@@ -51,6 +51,7 @@ extension KeyboardController {
     /// while an earlier batch is decoding is queued and resolved in press order.
     func handleKana12(_ action: Kana12ViewAction) {
         guard !retired else { return }
+        onWillHandleKey?()
         synchronizeKana12Document()
         kana12.queued.append(
             Kana12QueuedIntent(

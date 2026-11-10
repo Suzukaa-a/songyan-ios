@@ -534,6 +534,10 @@ public final class KeyboardController: ObservableObject {
     /// empty" flag goes stale when the keyboard's own writes fill the field without a
     /// UIKit callback, so a disabled-looking return key asks again before ignoring a tap.
     public var onRequestHostTraitsRefresh: (() -> Void)?
+    /// Runs before a key reaches the engine. A slow host can replace its text field and deliver
+    /// the next key before announcing the new field; the extension takes that field over here, so
+    /// the key types into it instead of being dropped with the old field's composition.
+    public var onWillHandleKey: (() -> Void)?
     /// Globe key callback (the extension should call advanceToNextInputMode; the main app shows a hint).
     public var onRequestSwitchKeyboard: (() -> Void)?
     /// Relative cursor move callback (parameter = relative character offset). Implemented by the host:
@@ -635,6 +639,7 @@ public final class KeyboardController: ObservableObject {
         resetKana12State()
         onKana12Navigation = nil
         onRequestHostTraitsRefresh = nil
+        onWillHandleKey = nil
         onRequestSwitchKeyboard = nil
         onMoveCursor = nil
         onMarkedComposition = nil
@@ -647,6 +652,7 @@ public final class KeyboardController: ObservableObject {
     /// semantics; digit/symbol keys (`.literal`) go through the common direct-insert entry `insertLiteral`.
     public func handle(_ action: KeyAction) {
         guard !retired else { return }
+        onWillHandleKey?()
         // A key from another surface ends kana12's claim on the composition tail.
         invalidateKana12Ownership()
         punctuationCycle.reset()

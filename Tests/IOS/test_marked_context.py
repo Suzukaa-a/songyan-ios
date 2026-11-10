@@ -26,7 +26,7 @@ class MarkedContextProductionTests(unittest.TestCase):
         methods = "\n".join(method(source, name) for name in (
             "observeMarkedEcho", "observeCancelledMarkedEcho", "writeProxy", "updateMarked",
             "commitOverEchoedMarked", "cancelOwnedMarked", "checkDocumentOwnership",
-            "writableDocument", "adoptDocument", "stillOwns", "abandonDocumentOwnership",
+            "writableDocument", "adoptDocument", "adoptChangedDocument", "stillOwns", "abandonDocumentOwnership",
             "forgetLocalDocumentState", "dispatchCommit", "noteHostTextFinalized",
             "textDidChange", "selectionDidChange"))
         mark = section(core, "    /// A display-only replacement", "    /// Conservative visibility")
@@ -270,6 +270,23 @@ changed.identity = UUID()
 precondition(!changed.dispatchCommit("旧提交"))
 precondition(changed.textDocumentProxy.insertCalls == 0 && changed.session.quickInsert.commits.isEmpty)
 print("PASS external moves, selections and document changes still reject stale writes")
+
+// A slow host replaces its field (a clear that recreates the editor) and the next key arrives
+// before any callback. Taking the field over before the key keeps the key; only the old
+// field's composition goes. Without that, the key's own write is refused with the old one.
+let replaced = Subject()
+replaced.updateMarked(MarkedComposition(text: "ni"))
+replaced.identity = UUID()
+replaced.adoptChangedDocument()
+precondition(replaced.activeDocumentID == replaced.identity && replaced.clears == 1)
+precondition(replaced.writableDocument() == replaced.identity, "the key writes into the new field")
+replaced.updateMarked(MarkedComposition(text: "n"))
+precondition(replaced.pendingMarked?.text == "n" || replaced.markedDocument == replaced.identity)
+let unchanged = Subject()
+unchanged.updateMarked(MarkedComposition(text: "ni"))
+unchanged.adoptChangedDocument()
+precondition(unchanged.clears == 0, "the same field keeps its composition")
+print("PASS a key after a replaced field types into the new field")
 '''
         print(run_swift(context, program, prefix="marked-context"), end="")
 

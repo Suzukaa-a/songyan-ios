@@ -55,6 +55,16 @@ extension KeyboardViewController {
         expectedContext = proxyContext
     }
 
+    /// Before a key: when the proxy already shows another field, adopt it now. Only the old
+    /// field's composition is dropped; the key then starts fresh in the new field. Waiting for
+    /// the write instead (`writableDocument`) drops the key along with the old composition.
+    func adoptChangedDocument() {
+        guard !proxyWriteInProgress, !hostDocumentAttachPending, isBoundHost,
+            let owned = activeDocumentID, let current = documentIdentity(), current != owned
+        else { return }
+        adoptDocument(current)
+    }
+
     /// Whether `document` is still the one this controller owns, for use after a
     /// step that may have dropped ownership (a nil identity gap clears it).
     func stillOwns(_ document: UUID) -> Bool {
