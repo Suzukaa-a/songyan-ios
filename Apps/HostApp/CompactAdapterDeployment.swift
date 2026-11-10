@@ -174,7 +174,7 @@ enum CompactAdapterDeployment {
                     sourceDelimiter: sourceDelimiter)
             } catch {
                 throw RecipeInstallError.deployment(
-                    String(localized: "无法为输入方式「\(source)」生成按键显示：\(error)"))
+                    String(localized: "无法为输入方式「\(source)」生成按键显示：\(String(describing: error))"))
             }
 
             // Requested layouts are always compact (needsGeneratedAdapter): letter groups or phone digits.

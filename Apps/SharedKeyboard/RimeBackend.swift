@@ -163,7 +163,7 @@ public final class RimeBackend: EngineBackend, @unchecked Sendable {
         do {
             try fm.createDirectory(at: userDirectory, withIntermediateDirectories: true)
         } catch {
-            throw EngineBackendError.setupFailed(String(localized: "无法创建用户词库存储目录: \(error)"))
+            throw EngineBackendError.setupFailed(String(localized: "无法创建用户词库存储目录: \(String(describing: error))"))
         }
 
         let engine = RimeEngine(
@@ -298,7 +298,7 @@ public final class RimeBackend: EngineBackend, @unchecked Sendable {
             return false
         } catch {
             guard acceptHostResume(token, state: nil) else { return false }
-            let reason = String(localized: "用户词库恢复失败：\(error)")
+            let reason = String(localized: "用户词库恢复失败：\(String(describing: error))")
             inputUnavailableReason = reason
             lastErrorText = reason
             lastState = .empty
@@ -390,7 +390,7 @@ public final class RimeBackend: EngineBackend, @unchecked Sendable {
                     }
                 }
             }
-        } catch { lastErrorText = String(localized: "选项恢复失败：\(error)") }
+        } catch { lastErrorText = String(localized: "选项恢复失败：\(String(describing: error))") }
     }
 
     private func recordRuntimeGrammarReceipt(engine: RimeEngine, schemaID: String) {

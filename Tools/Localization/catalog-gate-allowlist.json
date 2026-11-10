@@ -10,6 +10,21 @@
     },
     {
       "catalog": "Resources/Localizable.xcstrings",
+      "key": "catalog.ice.name",
+      "value": "雾凇拼音"
+    },
+    {
+      "catalog": "Resources/Localizable.xcstrings",
+      "key": "catalog.wanxiang.name",
+      "value": "万象拼音"
+    },
+    {
+      "catalog": "Resources/Localizable.xcstrings",
+      "key": "catalog.kagiroi.name",
+      "value": "カギロイ"
+    },
+    {
+      "catalog": "Resources/Localizable.xcstrings",
       "key": "列数：%lld",
       "value": "列数：%lld"
     },

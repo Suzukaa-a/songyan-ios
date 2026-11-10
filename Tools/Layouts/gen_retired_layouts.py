@@ -6,9 +6,11 @@ definition. A fix to a bundled layout would therefore never reach a device that 
 catalog. LayoutRegistry replaces a stored built-in that equals one of these retired versions with
 the current definition, and keeps one that matches nothing, since that is a user edit.
 
-The bundled ids are the stems of Resources/Layouts/*.json. For each, every version found in
-`git log --all` that differs from the working-tree file is written, deduplicated by normalized
-JSON and sorted, to Resources/Layouts/retired/builtin-layouts.json as {"<id>": [<layout>, ...]}.
+The bundled ids are the stems of Resources/Layouts/*.json. For each, every version already in
+Resources/Layouts/retired/builtin-layouts.json and every version in the history of HEAD that
+differs from the working-tree file is written, deduplicated by normalized JSON and sorted, as
+{"<id>": [<layout>, ...]}. Versions are only ever added: some shipped from history that a clone
+does not have, and a device may still store them.
 A copy goes into the LayoutKit package so the library can load it from its own bundle.
 
 Usage:
@@ -29,6 +31,8 @@ OUTPUTS = [
     ROOT / "Packages/LayoutKit/Sources/LayoutKit/Resources/RetiredBuiltinLayouts.json",
 ]
 
+RETIRED = json.loads(OUTPUTS[0].read_text(encoding="utf-8")) if OUTPUTS[0].exists() else {}
+
 
 def git(*args: str) -> str:
     return subprocess.run(
@@ -43,8 +47,8 @@ def normalized(value: object) -> str:
 def retired_versions(layout_id: str) -> list[object]:
     path = f"Resources/Layouts/{layout_id}.json"
     current = normalized(json.loads((ROOT / path).read_text(encoding="utf-8")))
-    found: set[str] = set()
-    for commit in git("log", "--all", "--format=%H", "--", path).split():
+    found = {normalized(v) for v in RETIRED.get(layout_id, [])}
+    for commit in git("log", "HEAD", "--format=%H", "--", path).split():
         try:
             text = git("show", f"{commit}:{path}")
         except subprocess.CalledProcessError:
@@ -53,8 +57,8 @@ def retired_versions(layout_id: str) -> list[object]:
             version = normalized(json.loads(text))
         except json.JSONDecodeError:
             continue
-        if version != current:
-            found.add(version)
+        found.add(version)
+    found.discard(current)
     return [json.loads(version) for version in sorted(found)]
 
 

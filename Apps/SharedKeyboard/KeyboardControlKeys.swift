@@ -145,7 +145,7 @@ struct ControlRow<ModeKey: View>: View {
                 onTap: { onKey(.space) }, moveCursor: moveCursor)
         case .utility:
             switch policy.utility {
-            case .punctuation(let text) where policy.showsSpaceSideMarks:
+            case .punctuation where policy.showsSpaceSideMarks:
                 periodKey
             case .punctuation(let text):
                 AlternateCharacterKey(

@@ -290,7 +290,7 @@ public enum KeyboardRecipeStore {
         case .failure(.missing):
             return nil
         case .failure(let error):
-            throw StoreError(message: String(localized: "无法读取已保存的输入方案配置：\(error)"))
+            throw StoreError(message: String(localized: "无法读取已保存的输入方案配置：\(String(describing: error))"))
         }
     }
 
