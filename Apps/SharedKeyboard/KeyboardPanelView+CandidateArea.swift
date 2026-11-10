@@ -185,7 +185,7 @@ extension KeyboardPanelView {
             GeometryReader { geometry in
                 HStack(spacing: 0) {
                     inlineReadingSection(rowWidth: geometry.size.width)
-                    Text("暂无候选字词，请按退格修改")
+                    Text("没有匹配的字词")
                         .font(appearance.font(14))
                         .foregroundStyle(Color(uiColor: appearance.text(on: "panel", secondary: true)))
                         .lineLimit(1)

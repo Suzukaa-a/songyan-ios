@@ -25829,24 +25829,24 @@
         }
       }
     },
-    "暂无候选字词，请按退格修改": {
+    "没有匹配的字词": {
       "localizations": {
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "候補がありません。削除キーで修正してください"
+            "value": "一致する候補がありません"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "暂无候选字词，请按退格修改"
+            "value": "没有匹配的字词"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "暫無候選字詞，請按退格修改"
+            "value": "沒有匹配的字詞"
           }
         }
       }
