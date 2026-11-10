@@ -20,6 +20,8 @@ OUT="$(new_run_dir "keyboard-performance-${1:-run}")"
 # shellcheck disable=SC2016  # Xcode expands the inherited build setting.
 SWIFT_FLAGS='$(inherited) -D SONGYAN_PERF'
 if [[ "${CI_SWIFTPM_DISABLE_SANDBOX:-0}" == 1 ]]; then SWIFT_FLAGS+=' -disable-sandbox'; fi
+# A fresh simulator can leave the keyboard extension suspended on the first test, and queries
+# into it then hang; one retry on the warmed simulator still fails a real regression.
 CFFIXED_USER_HOME="${CI_ROOT}/.local/xcode-build-home" \
 xcodebuild test -project "${CI_ROOT}/Songyan.xcodeproj" -scheme KeyboardPerformance \
   -configuration Release -destination "platform=iOS Simulator,id=${UDID}" \
@@ -27,7 +29,8 @@ xcodebuild test -project "${CI_ROOT}/Songyan.xcodeproj" -scheme KeyboardPerforma
   -skipPackageUpdates -onlyUsePackageVersionsFromResolvedFile \
   -packageCachePath "${CI_ROOT}/.local/xcode-package-cache" \
   -clonedSourcePackagesDirPath "${SOURCE_PACKAGES_DIR:-${CI_ROOT}/.local/dev-derived/SourcePackages}" \
-  -enableCodeCoverage NO -parallel-testing-enabled NO -resultBundlePath "${OUT}/KeyboardPerformance.xcresult" \
+  -enableCodeCoverage NO -parallel-testing-enabled NO -retry-tests-on-failure -test-iterations 2 \
+  -resultBundlePath "${OUT}/KeyboardPerformance.xcresult" \
   CODE_SIGN_IDENTITY=- CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=NO DEVELOPMENT_TEAM='' \
   ARCHS=arm64 ONLY_ACTIVE_ARCH=YES \
   "OTHER_SWIFT_FLAGS=${SWIFT_FLAGS}" > "${OUT}/xcodebuild.log" 2>&1 \
