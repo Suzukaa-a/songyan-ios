@@ -221,7 +221,8 @@ final class KeyboardPerformanceTests: XCTestCase {
         var shown = false
         for _ in 0..<3 where !shown {
             point(app, 43, 840).press(forDuration: 1.5)
-            let pickerItem = app.staticTexts["松烟键盘 — 松烟"].firstMatch
+            // The picker adds the host app's name in the system language (松烟, 松煙 or Songyan).
+            let pickerItem = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "松烟键盘 — ")).firstMatch
             XCTAssertTrue(
                 pickerItem.waitForExistence(timeout: 5), "Enable Songyan on the dedicated simulator before testing")
             pickerItem.tap()
