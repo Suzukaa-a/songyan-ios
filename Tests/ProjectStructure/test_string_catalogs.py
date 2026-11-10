@@ -165,6 +165,23 @@ class StringCatalogCoverageTests(unittest.TestCase):
                         self.assertTrue(value.strip(), "the translation is empty")
 
 
+    def test_any_other_language_covers_every_key(self):
+        # A bundle that lists a language serves only that table to a device in that language:
+        # one stray English entry made every other key of the package show as its raw key.
+        for path, catalog in _catalog_pairs():
+            relative = str(path.relative_to(ROOT))
+            entries = catalog["strings"]
+            extra = {
+                locale
+                for entry in entries.values()
+                for locale in (entry.get("localizations") or {})
+                if locale != SOURCE_LOCALE and locale not in TARGET_LOCALES
+            }
+            for locale in sorted(extra):
+                with self.subTest(catalog=relative, locale=locale):
+                    missing = [key for key, entry in entries.items() if _localized_value(entry, locale)[0] is None]
+                    self.assertEqual(missing, [], f"{locale} covers only part of the catalog")
+
 class StringCatalogPlaceholderTests(unittest.TestCase):
     def test_placeholders_match_the_simplified_source(self):
         for path, catalog in _catalog_pairs():
