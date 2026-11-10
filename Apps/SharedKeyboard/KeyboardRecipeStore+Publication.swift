@@ -366,8 +366,8 @@ extension KeyboardRecipeStore {
     // MARK: - Keyboards of other packages (long-press menu)
 
     /// The items to append after the current package's keyboards. Other user packages need
-    /// `canWrite` (the switch has to be saved); the built-in entry does not, since leaving a package
-    /// temporarily works without saving. `builtinRunning` is whether the built-in input is what runs
+    /// `canWrite` (the switch has to be saved). The built-in input is never offered here, so users
+    /// are steered to a real package. `builtinRunning` is whether the built-in input is what runs
     /// now, whatever the record says. `record` resolves a kept generation's own record.
     public static func otherPackageKeyboards(
         from current: Activation?, builtinRunning: Bool, canWrite: Bool,
@@ -412,13 +412,6 @@ extension KeyboardRecipeStore {
                 else { continue }
                 append(roster, of: source, target: .keptPackage(rosterKey: key))
             }
-        }
-        if !builtinRunning, current.recipeEnabled {
-            entries.append(
-                OtherPackageKeyboard(
-                    target: .builtin, keyboard: nil,
-                    packageName: ProductionInputAvailability.localizedBuiltinDisplayName,
-                    title: ProductionInputAvailability.fallbackInputMethodName))
         }
         return entries
     }

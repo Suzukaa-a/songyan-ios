@@ -140,26 +140,25 @@ func keptPackagesChecks(_ base: URL) throws {
     }
     let running = KeyboardRecipeStore.otherPackageKeyboards(
         from: backOnB, builtinRunning: false, canWrite: true, record: records)
-    check(running.count == 2, "one kept keyboard plus the built-in entry")
+    check(running.count == 1, "one kept keyboard, never the built-in entry")
     check(running[0].target == .keptPackage(rosterKey: keyA) && running[0].keyboard == ice, "kept entry target")
     check(
         running[0].packageName == "Name-pkg-a" && running[0].title == "通用全拼 · 26 键",
         "kept entry names: \(running[0].title)")
     check(running[0].id.hasPrefix(OtherPackageKeyboard.capIDPrefix), "cap id prefix")
-    check(running[1].target == .builtin && running[1].keyboard == nil, "built-in entry last")
     check(Set(running.map(\.id)).count == running.count, "entry ids unique")
     let readOnly = KeyboardRecipeStore.otherPackageKeyboards(
         from: backOnB, builtinRunning: false, canWrite: false, record: records)
-    check(readOnly.map(\.target) == [.builtin], "without Full Access only the built-in entry")
+    check(readOnly.isEmpty, "without Full Access nothing is offered")
     let none = KeyboardRecipeStore.otherPackageKeyboards(
         from: backOnB, builtinRunning: false, canWrite: true, record: { _ in nil })
-    check(none.map(\.target) == [.builtin], "a kept package without a record is left out")
+    check(none.isEmpty, "a kept package without a record is left out")
     var emptyRoster = backOnB
     emptyRoster.keyboardsBySource?[keyA] = []
     check(
         KeyboardRecipeStore.otherPackageKeyboards(
             from: emptyRoster, builtinRunning: false, canWrite: true, record: records
-        ).map(\.target) == [.builtin],
+        ).isEmpty,
         "an empty roster is left out")
     var sameSource = backOnB
     sameSource.keptGenerations?[keyB] = b6.generation

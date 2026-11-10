@@ -46,7 +46,7 @@ extension KeyboardViewController {
         }
     }
 
-    /// Switches to a keyboard of another package, or to the built-in input, from the keyboard menu.
+    /// Switches to a keyboard of another package from the keyboard menu.
     /// A package switch is saved for the next presentation and then loads through the normal route refresh.
     func selectOtherPackage(_ entry: OtherPackageKeyboard) {
         guard isBoundHost, !selectionSaveInFlight else {
@@ -55,10 +55,7 @@ extension KeyboardViewController {
         }
         // Set before anything restarts the engine: the keyboard that comes up next fades in named.
         session.announcesNextKeyboard = true
-        guard let keyboard = entry.keyboard else {
-            if hasFullAccess { selectBuiltin(true) } else { restoreBuiltinTemporarily() }
-            return
-        }
+        let keyboard = entry.keyboard
         let target = entry.target
         let runningGeneration = session.resourceSet?.publicationGeneration
         selectionSaveInFlight = true
@@ -79,8 +76,6 @@ extension KeyboardViewController {
                         try KeyboardRecipeStore.saveSelection(
                             schemaID: keyboard.schemaID, layout: keyboard.layout, board: keyboard.board,
                             runtimeIdentity: .published)
-                    case .builtin:
-                        break
                     }
                 }
                 guard isBoundHost else { return }
