@@ -1,9 +1,11 @@
 name: Benchmark
 
-# Match Android's nightly cadence; simulator timings need a consistent runtime and fixture.
+# Runs for every release tag, like Android, and on demand; simulator timings need a consistent
+# runtime and fixture.
 on:
-  schedule:
-    - cron: '0 18 * * *'
+  push:
+    tags:
+      - 'v*'
   workflow_dispatch:
 
 permissions:

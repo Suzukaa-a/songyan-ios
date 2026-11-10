@@ -106,7 +106,7 @@ The fixture uses a dedicated `Songyan-Perf-Isolated` iPhone 17 Pro simulator on 
 
 These intervals describe their named code boundaries; first-frame and touch-to-visible latency need separate frame instrumentation. Results and raw samples are in `.local/ci/keyboard-performance-*/<run>/KeyboardPerformance.xcresult` and `metrics.json`. Compare repeated runs on the same simulator, runtime and build settings before drawing conclusions about a change. `make sim-perf MODE=typing ARG=<label>` runs the same native suite with a result label.
 
-[benchmark.yml](.github/workflows/benchmark.yml) runs the same suite nightly at 18:00 UTC and on manual dispatch, using Xcode 27.1 and a fresh iOS 27.0 iPhone 17 Pro simulator. It publishes medians and maxima in the job summary and retains the raw `.xcresult`, JSON metrics and build logs for seven days.
+[benchmark.yml](.github/workflows/benchmark.yml) runs the same suite for every pushed `v*` release tag and on manual dispatch, using Xcode 27.1 and a fresh iOS 27.0 iPhone 17 Pro simulator. It publishes medians and maxima in the job summary and retains the raw `.xcresult`, JSON metrics and build logs for seven days.
 
 `make sim-perf MODE=cold ARG=<runs>` retains the AXe lifecycle diagnostic: restart the extension, open “试打” and print launch, appearance and `engineReady` events. Stage Release first with `CONFIGURATION=Release make sim-stage`. Its output is a diagnostic timeline, not a performance assertion. Results go under `.local/ci/perf-cold/`.
 

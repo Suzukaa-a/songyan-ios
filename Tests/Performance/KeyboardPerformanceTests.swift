@@ -214,14 +214,20 @@ final class KeyboardPerformanceTests: XCTestCase {
         XCTAssertTrue(field.waitForExistence(timeout: 10))
         field.tap()
         if app.buttons["Continue"].exists { app.buttons["Continue"].tap() }
-        point(app, 43, 840).press(forDuration: 1.5)
-        let pickerItem = app.staticTexts["松烟键盘 — 松烟"].firstMatch
-        XCTAssertTrue(
-            pickerItem.waitForExistence(timeout: 5), "Enable Songyan on the dedicated simulator before testing")
-        pickerItem.tap()
         // Custom keyboard keys belong to the extension process, outside the host app's tree.
         let keyboard = XCUIApplication(bundleIdentifier: "app.songyan.ime.keyboard")
-        XCTAssertTrue(keyboard.keys["n"].waitForExistence(timeout: 15))
+        // On a fresh simulator the first pick can close the menu but leave the system keyboard
+        // up, with the extension launched and suspended; picking again shows it.
+        var shown = false
+        for _ in 0..<3 where !shown {
+            point(app, 43, 840).press(forDuration: 1.5)
+            let pickerItem = app.staticTexts["松烟键盘 — 松烟"].firstMatch
+            XCTAssertTrue(
+                pickerItem.waitForExistence(timeout: 5), "Enable Songyan on the dedicated simulator before testing")
+            pickerItem.tap()
+            shown = keyboard.keys["n"].waitForExistence(timeout: 15)
+        }
+        XCTAssertTrue(shown)
         XCTAssertEqual(app.frame.width, 402)
         XCTAssertEqual(app.frame.height, 874)
         typeGreeting(keyboard)
