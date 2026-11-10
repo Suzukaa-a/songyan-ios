@@ -32,12 +32,13 @@ struct LayoutEditorView: View {
 
     var body: some View {
         Form {
-            Section("布局") {
-                TextField("名称", text: Binding(get: { draft.name }, set: { draft = draft.renamed($0) }))
+            Section(String(localized: "布局")) {
+                TextField(
+                    String(localized: "名称"), text: Binding(get: { draft.name }, set: { draft = draft.renamed($0) }))
             }
-            Section("候选栏") {
+            Section(String(localized: "候选栏")) {
                 Toggle(
-                    "显示候选栏",
+                    String(localized: "显示候选栏"),
                     isOn: Binding(
                         get: { draft.effectiveCandidateArea.candidates },
                         set: { enabled in
@@ -49,7 +50,7 @@ struct LayoutEditorView: View {
                 )
                 .disabled(draft.sendsEngineCode)
                 Toggle(
-                    "拼音提示行",
+                    String(localized: "拼音提示行"),
                     isOn: Binding(
                         get: { draft.effectiveCandidateArea.reading },
                         set: { enabled in
@@ -61,9 +62,9 @@ struct LayoutEditorView: View {
                 .disabled(!draft.effectiveCandidateArea.candidates || PhoneKeypadStructure.matches(draft))
             }
             if !PhoneKeypadStructure.matches(draft) {
-                Section("键盘排列") {
+                Section(String(localized: "键盘排列")) {
                     Picker(
-                        "键盘排列",
+                        String(localized: "键盘排列"),
                         selection: Binding(
                             get: { splitView },
                             set: { showSplit in
@@ -89,30 +90,31 @@ struct LayoutEditorView: View {
                 rows: draft.rows, split: Binding(get: { draft.split }, set: { draft = replacingSplit($0) }),
                 activationOnly: true)
             Section {
-                Button("另存为副本") { save(asCopy: true) }
+                Button(String(localized: "另存为副本")) { save(asCopy: true) }
             }
             .disabled(saving)
         }
         .disabled(saving)
         .environment(\.widthFieldValidity, widthValidity)
         .navigationBarBackButtonHidden(saving)
-        .navigationTitle("编辑键盘布局")
+        .navigationTitle(String(localized: "编辑键盘布局"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button("取消") { if hasChanges { confirmingDiscard = true } else { dismiss() } }
+                Button(String(localized: "取消")) { if hasChanges { confirmingDiscard = true } else { dismiss() } }
                     .disabled(saving)
                     .accessibilityIdentifier("layoutEditor.cancel")
             }
             ToolbarItem(placement: .confirmationAction) {
-                Button("保存布局") { save(asCopy: false) }
+                Button(String(localized: "保存布局")) { save(asCopy: false) }
                     .disabled(saving)
                     .accessibilityIdentifier("layoutEditor.save")
             }
         }
-        .confirmationDialog("放弃未保存的更改？", isPresented: $confirmingDiscard, titleVisibility: .visible) {
-            Button("放弃更改", role: .destructive) { dismiss() }
-            Button("继续编辑", role: .cancel) {}
+        .confirmationDialog(String(localized: "放弃未保存的更改？"), isPresented: $confirmingDiscard, titleVisibility: .visible)
+        {
+            Button(String(localized: "放弃更改"), role: .destructive) { dismiss() }
+            Button(String(localized: "继续编辑"), role: .cancel) {}
         }
         .interactiveDismissDisabled(hasChanges || saving)
         .task {
@@ -124,7 +126,7 @@ struct LayoutEditorView: View {
         .alert(
             UserTerminology.keyboardLayout, isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })
         ) {
-            Button("好", role: .cancel) {}
+            Button(String(localized: "好"), role: .cancel) {}
         } message: {
             Text(error ?? "")
         }
@@ -132,7 +134,7 @@ struct LayoutEditorView: View {
 
     @ViewBuilder
     private var wholeSections: some View {
-        Section("点键编辑") {
+        Section(String(localized: "点键编辑")) {
             KeyboardPreviewView(layout: draft, onSelectKey: { selected = $0 })
         }
         // The selected key's fields sit right under the preview that selects it.
@@ -148,8 +150,10 @@ struct LayoutEditorView: View {
         SelectedRowKeyActions(rows: rowsBinding, selected: $selected)
         if !draft.hasInputModeSwitchKey {
             Section {
-                Button("添加\(UserTerminology.globeKey)", systemImage: "globe") { addInputModeSwitchKey() }
-                    .disabled((draft.rows.last?.keys.count ?? 0) >= LayoutResourceBudget.keysPerRegion)
+                Button(String(localized: "添加\(UserTerminology.globeKey)"), systemImage: "globe") {
+                    addInputModeSwitchKey()
+                }
+                .disabled((draft.rows.last?.keys.count ?? 0) >= LayoutResourceBudget.keysPerRegion)
             }
         }
         KeyboardRowsEditor(rows: rowsBinding, selected: $selected)
@@ -165,7 +169,7 @@ struct LayoutEditorView: View {
     private var nineKeySections: some View {
         Section {
             Picker(
-                "首键",
+                String(localized: "首键"),
                 selection: Binding(
                     get: { BuiltinLayouts.usesPhone9QuickSymbols(draft) ? T9FirstKeyBehavior.quickSymbols : .custom },
                     set: { draft = draft.settingT9FirstKeyBehavior($0) }
@@ -175,7 +179,7 @@ struct LayoutEditorView: View {
                 Text("自定义按键").tag(T9FirstKeyBehavior.custom)
             }
             TextField(
-                "默认快捷符号",
+                String(localized: "默认快捷符号"),
                 text: Binding(
                     get: { draft.t9QuickSymbols ?? inheritedQuickSymbols.symbols },
                     set: { draft = draft.settingT9QuickSymbols($0) }
@@ -188,14 +192,14 @@ struct LayoutEditorView: View {
             .accessibilityIdentifier("t9QuickSymbols.editor")
             let values = BuiltinLayouts.t9QuickSymbolValues(
                 for: draft, inherited: inheritedQuickSymbols.symbols, ascii: false)
-            LabeledContent("侧键", value: values.prefix(3).joined(separator: " "))
+            LabeledContent(String(localized: "侧键"), value: values.prefix(3).joined(separator: " "))
             if BuiltinLayouts.usesPhone9QuickSymbols(draft) {
-                LabeledContent("首键连续点按", value: values.dropFirst(3).joined(separator: " "))
+                LabeledContent(String(localized: "首键连续点按"), value: values.dropFirst(3).joined(separator: " "))
             }
-            Button("恢复默认快捷符号") { draft = draft.settingT9QuickSymbols("") }
+            Button(String(localized: "恢复默认快捷符号")) { draft = draft.settingT9QuickSymbols("") }
                 .accessibilityIdentifier("t9QuickSymbols.restore")
             Toggle(
-                "自定义侧栏",
+                String(localized: "自定义侧栏"),
                 isOn: Binding(
                     get: { draft.auxiliaryAreas != BuiltinLayouts.phone9.auxiliaryAreas },
                     set: { custom in
@@ -260,7 +264,7 @@ struct LayoutEditorView: View {
     private func save(asCopy: Bool) {
         guard !saving else { return }
         guard !widthValidity.isInvalid else {
-            error = "有按键宽度没填对，请改成大于 0 的数字，或者留空。"
+            error = String(localized: "有按键宽度没填对，请改成大于 0 的数字，或者留空。")
             return
         }
         saving = true
@@ -316,7 +320,7 @@ struct LayoutKeyFields: View {
     /// Page function keys can follow the live keyboard state instead of a fixed title.
     var allowsTitleMode = false
     /// Row and footer keys size by relative width; rail keys size by relative height.
-    var widthLabel = "宽度比例"
+    var widthLabel = String(localized: "宽度比例")
     /// Category keys only type text, so their action list leaves out every function key.
     var allowsFunctionActions = true
     /// Only a page's keys may jump to another layout's page, never a main layout's.
@@ -325,10 +329,10 @@ struct LayoutKeyFields: View {
     let update: (LayoutKey) -> Void
 
     var body: some View {
-        Section("所选按键 · \(key.label)") {
-            LabeledContent("按键文字") {
+        Section(String(localized: "所选按键 · \(key.label)")) {
+            LabeledContent(String(localized: "按键文字")) {
                 TextField(
-                    "主标题",
+                    String(localized: "主标题"),
                     text: Binding(
                         get: { key.label }, set: { update(key.editingLabel($0, allowsTitleMode: allowsTitleMode)) })
                 )
@@ -338,7 +342,7 @@ struct LayoutKeyFields: View {
             }
             if allowsTitleMode && key.supportsLiveTitle {
                 Picker(
-                    "标题内容",
+                    String(localized: "标题内容"),
                     selection: Binding(
                         get: { key.displayedTitleMode },
                         set: { update(key.settingTitleMode($0)) })
@@ -347,9 +351,9 @@ struct LayoutKeyFields: View {
                     Text("自定义").tag(LayoutKeyTitleMode.custom)
                 }
             }
-            LabeledContent("副标题") {
+            LabeledContent(String(localized: "副标题")) {
                 TextField(
-                    "可选",
+                    String(localized: "可选"),
                     text: Binding(
                         get: { key.secondaryLabel ?? "" },
                         set: { update(key.settingSecondaryLabel($0.isEmpty ? nil : $0)) })
@@ -374,7 +378,7 @@ struct LayoutKeyFields: View {
             ForEach((key.longPress ?? []).indices, id: \.self) { index in
                 longPressOption(index)
             }
-            Button("添加长按项") {
+            Button(String(localized: "添加长按项")) {
                 let options =
                     (key.longPress ?? []) + [
                         LayoutOption(label: "。", action: LayoutAction(.literal, value: "。"))
@@ -396,13 +400,19 @@ struct LayoutKeyFields: View {
         let hasOptions = !(key.longPress ?? []).isEmpty
         switch key.action.type {
         case .space:
-            return hasOptions ? "长按只弹这些选项，不再移动光标。" : "留空时，长按仍是移动光标。"
+            return hasOptions
+                ? String(localized: "长按只弹这些选项，不再移动光标。")
+                : String(localized: "留空时，长按仍是移动光标。")
         case .globe:
-            return hasOptions ? "长按只弹这些选项，不再打开系统键盘列表。" : "留空时，长按仍是系统键盘列表。"
+            return hasOptions
+                ? String(localized: "长按只弹这些选项，不再打开系统键盘列表。")
+                : String(localized: "留空时，长按仍是系统键盘列表。")
         case .languageSwitch:
-            return hasOptions ? "长按只弹这些选项，不再选择输入方式。" : "留空时，长按仍是选择输入方式。"
+            return hasOptions
+                ? String(localized: "长按只弹这些选项，不再选择输入方式。")
+                : String(localized: "留空时，长按仍是选择输入方式。")
         case .shift, .modeSwitch:
-            return hasOptions ? "长按只弹这些选项。" : nil
+            return hasOptions ? String(localized: "长按只弹这些选项。") : nil
         default:
             return nil
         }
@@ -415,7 +425,7 @@ struct LayoutKeyFields: View {
             let option = options[index]
             VStack(alignment: .leading) {
                 TextField(
-                    "长按项标题",
+                    String(localized: "长按项标题"),
                     text: Binding(
                         get: { option.label },
                         set: { text in
@@ -423,14 +433,17 @@ struct LayoutKeyFields: View {
                         })
                 )
                 .textInputAutocapitalization(.never).autocorrectionDisabled()
-                LayoutActionFields(action: option.action, allowsCode: allowsCode, title: "选中后") { action in
+                LayoutActionFields(
+                    action: option.action, allowsCode: allowsCode,
+                    title: String(localized: "选中后")
+                ) { action in
                     replaceOption(index, with: LayoutOption(label: option.label, action: action))
                 }
                 HStack {
-                    Button("上移") { moveOption(index, by: -1) }.disabled(index == 0)
-                    Button("下移") { moveOption(index, by: 1) }.disabled(index >= options.count - 1)
+                    Button(String(localized: "上移")) { moveOption(index, by: -1) }.disabled(index == 0)
+                    Button(String(localized: "下移")) { moveOption(index, by: 1) }.disabled(index >= options.count - 1)
                     Spacer()
-                    Button("移除", role: .destructive) {
+                    Button(String(localized: "移除"), role: .destructive) {
                         var updated = options
                         updated.remove(at: index)
                         update(key.settingLongPress(updated.isEmpty ? nil : updated))
@@ -459,7 +472,7 @@ private struct LayoutActionFields: View {
     var allowsFunctionActions = true
     var allowsJump = false
     /// What the picker is called: a key does it on tap, a long-press option once chosen.
-    var title = "轻点后"
+    var title = String(localized: "轻点后")
     let update: (LayoutAction) -> Void
 
     private var kinds: [LayoutAction.Kind] {
@@ -470,19 +483,24 @@ private struct LayoutActionFields: View {
 
     private func actionTitle(_ kind: LayoutAction.Kind) -> String {
         switch kind {
-        case .code: return "输入字母"
-        case .literal: return "输入文字"
-        case .space: return "空格"
-        case .enter: return "回车"
-        case .backspace: return "退格"
+        case .code: return String(localized: "输入字母")
+        case .literal: return String(localized: "输入文字")
+        case .space: return String(localized: "空格")
+        case .enter: return String(localized: "回车")
+        case .backspace: return String(localized: "退格")
         case .globe: return UserTerminology.globeKey
-        case .modeSwitch: return "切换键盘布局"
-        case .shift: return "大小写"
-        case .pageSwitch: return "切换页面"
-        case .layoutPageSwitch: return "跳转到…"
+        case .modeSwitch: return String(localized: "切换键盘布局")
+        case .shift: return String(localized: "大小写")
+        case .pageSwitch: return String(localized: "切换页面")
+        case .layoutPageSwitch: return String(localized: "跳转到…")
         case .languageSwitch: return UserTerminology.languageKey
-        case .symbolLock: return "符号锁定"
-        case .clearInput: return "重输"
+        case .symbolLock: return String(localized: "符号锁定")
+        case .clearInput: return String(localized: "重输")
+        // Kana gestures only come from the Japanese twelve-key board; the editor shows a stored
+        // one when an edited copy is opened, it never offers them for an ordinary key.
+        case .kana: return String(localized: "layout.action.kanaRow")
+        case .kanaModifier: return String(localized: "layout.action.kanaModifier")
+        case .cursorLeft: return String(localized: "kana.cursorLeft")
         }
     }
 
@@ -493,6 +511,9 @@ private struct LayoutActionFields: View {
         case .pageSwitch: return .pageSwitch(.numeric)
         case .layoutPageSwitch: return .layoutPageSwitch(LayoutAction.PageJump.all[0])
         case .languageSwitch: return .languageSwitch()
+        // A kana row id is required by validation; the first grid row is the harmless default a
+        // future picker would land on.
+        case .kana: return .kana(LayoutAction.kanaRowIDs[0])
         default: return LayoutAction(kind)
         }
     }
@@ -514,7 +535,7 @@ private struct LayoutActionFields: View {
         }
         if action.type == .languageSwitch {
             Picker(
-                "按键行为",
+                String(localized: "按键行为"),
                 selection: Binding(
                     get: { action.languageSwitchBehavior },
                     set: { update(.languageSwitch($0)) })
@@ -526,7 +547,7 @@ private struct LayoutActionFields: View {
         }
         if action.type == .pageSwitch {
             Picker(
-                "目标页面",
+                String(localized: "目标页面"),
                 selection: Binding(
                     get: { action.pageSwitchTarget ?? .numeric },
                     set: { update(.pageSwitch($0)) })
@@ -538,7 +559,7 @@ private struct LayoutActionFields: View {
         }
         if action.type == .layoutPageSwitch {
             Picker(
-                "跳转到",
+                String(localized: "跳转到"),
                 selection: Binding(
                     get: { action.layoutPageJump ?? LayoutAction.PageJump.all[0] },
                     set: { update(.layoutPageSwitch($0)) })
@@ -552,7 +573,7 @@ private struct LayoutActionFields: View {
         }
         if action.type == .code {
             TextField(
-                "一个英文字符",
+                String(localized: "一个英文字符"),
                 text: Binding(
                     get: { action.value ?? "" }, set: { update(LayoutAction(.code, value: $0)) }),
                 axis: .vertical
@@ -562,9 +583,9 @@ private struct LayoutActionFields: View {
             .accessibilityIdentifier("layoutEditor.key.actionValue")
         }
         if action.type == .literal {
-            LabeledContent(action.asciiValue == nil ? "输入文字" : "中文符号") {
+            LabeledContent(action.asciiValue == nil ? String(localized: "输入文字") : String(localized: "中文符号")) {
                 TextField(
-                    action.asciiValue == nil ? "要输入的文字" : "中文符号时输入",
+                    action.asciiValue == nil ? String(localized: "要输入的文字") : String(localized: "中文符号时输入"),
                     text: Binding(
                         get: { action.value ?? "" },
                         set: { update(LayoutAction(.literal, value: $0, asciiValue: action.asciiValue)) }),
@@ -577,9 +598,9 @@ private struct LayoutActionFields: View {
             }
             // One optional field is both the pair switch and the ASCII-side value: typing fills it,
             // clearing writes nil back to a fixed literal. A pair only ever stores non-empty text.
-            LabeledContent("英文符号") {
+            LabeledContent(String(localized: "英文符号")) {
                 TextField(
-                    "可选",
+                    String(localized: "可选"),
                     text: Binding(
                         get: { action.asciiValue ?? "" },
                         set: { update(action.settingAsciiValue($0.isEmpty ? nil : $0)) }),

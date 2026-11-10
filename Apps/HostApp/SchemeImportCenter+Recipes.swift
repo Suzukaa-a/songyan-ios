@@ -40,7 +40,7 @@ extension SchemeImportCenter {
         plannedRecipe = nil
         plannedDiagnostics =
             userFailures.isEmpty
-            ? (found.isEmpty ? ["此方案没有可调整的选项。"] : [])
+            ? (found.isEmpty ? [String(localized: "此方案没有可调整的选项。")] : [])
             : userFailures
     }
     /// Build a plan for the currently prepared import using its immutable source snapshot.
@@ -61,13 +61,13 @@ extension SchemeImportCenter {
                 stages: Self.retryStages(stages), installed: false))
         guard prepared.sourceFiles[recipePath] != nil else {
             HostLog.append("recipe planning rejected missing imported path: \(recipePath)")
-            error = "所选选项已不可用，请重新选择。"
+            error = String(localized: "所选选项已不可用，请重新选择。")
             return
         }
         busy = true
         error = nil
         plannedDiagnostics = []
-        message = "正在检查…"
+        message = String(localized: "正在检查…")
         let downloads = providedOrdinaryResources.mapValues(\.data)
         let downloadFiles = providedDownloadFiles
         let packageID = prepared.declaration.id
@@ -131,30 +131,30 @@ extension SchemeImportCenter {
     nonisolated private static func recipeDiscoveryNotice(_ error: Error) -> String {
         switch error {
         case RecipeInstallError.invalidManifest:
-            return "部分选项无效，已忽略。"
+            return String(localized: "部分选项无效，已忽略。")
         case RecipeInstallError.invalidResource:
-            return "部分选项暂不支持，已忽略。"
+            return String(localized: "部分选项暂不支持，已忽略。")
         default:
-            return "部分选项无法读取，已忽略。"
+            return String(localized: "部分选项无法读取，已忽略。")
         }
     }
 
     nonisolated private static func recipePlanningNotice(_ error: Error) -> String {
         switch error {
         case RecipeInstallError.http(let code):
-            return "配置检查未完成（HTTP \(code)），请检查网络后重试。"
+            return String(localized: "配置检查未完成（HTTP \(code)），请检查网络后重试。")
         case RecipeInstallError.busy:
-            return "另一项操作正在进行，请稍后再试。"
+            return String(localized: "另一项操作正在进行，请稍后再试。")
         case RecipeInstallError.missingComponents:
-            return "此方案需要松烟暂不支持的功能。"
+            return String(localized: "此方案需要松烟暂不支持的功能。")
         case RecipeInstallError.missingGrammarModels:
-            return "这个方案还需要语法模型文件。请在「语法模型」里添加后重试。"
+            return String(localized: "这个方案还需要语法模型文件。请在「语法模型」里添加后重试。")
         case RecipeInstallError.invalidManifest, RecipeInstallError.invalidResource:
-            return "文件不完整或格式不正确。"
+            return String(localized: "文件不完整或格式不正确。")
         case RecipeInstallError.deployment:
-            return "无法完成安装，请重试。"
+            return String(localized: "无法完成安装，请重试。")
         default:
-            return "无法检查此选项，请重新选择。"
+            return String(localized: "无法检查此选项，请重新选择。")
         }
     }
 
@@ -172,7 +172,8 @@ extension SchemeImportCenter {
     ) async throws -> DeclarativeRecipePlan {
         let task = Task.detached(priority: .userInitiated) { () throws -> DeclarativeRecipePlan in
             guard let source = packageFiles[recipePath] else {
-                throw RecipeInstallError.invalidResource("在可用源码中未找到所选方案配置：\(recipePath)")
+                throw RecipeInstallError.invalidResource(
+                    String(localized: "在可用源码中未找到所选方案配置：\(recipePath)"))
             }
             let recipe = try DeclarativeRecipe(path: recipePath, source: source)
             var plan = try DeclarativeRecipePlan(
@@ -190,7 +191,8 @@ extension SchemeImportCenter {
             for stage in stages {
                 try Task.checkCancellation()
                 guard let stageSource = packageFiles[stage.path] else {
-                    throw RecipeInstallError.invalidResource("在可用源码中未找到所选方案配置：\(stage.path)")
+                    throw RecipeInstallError.invalidResource(
+                        String(localized: "在可用源码中未找到所选方案配置：\(stage.path)"))
                 }
                 let stageRecipe = try DeclarativeRecipe(path: stage.path, source: stageSource)
                 plan = try plan.appending(
@@ -219,12 +221,18 @@ extension SchemeImportCenter {
     /// previous state. A provided model file by itself is never presented as proof of loading.
     private static func planSummary(_ plan: DeclarativeRecipePlan, preparedSchemaIDs: [String]) -> [String] {
         var summary: [String] = []
-        if !plan.changedPaths.isEmpty { summary.append("将更改 \(plan.changedPaths.count) 个文件") }
-        if !plan.replacedManagedBlocks.isEmpty { summary.append("将更新 \(plan.replacedManagedBlocks.count) 项设置") }
-        if !plan.retainedDifferentInvocations.isEmpty {
-            summary.append("将保留 \(plan.retainedDifferentInvocations.count) 项其他设置")
+        if !plan.changedPaths.isEmpty {
+            summary.append(String(localized: "将更改 \(plan.changedPaths.count) 个文件"))
         }
-        if !plan.externalResources.isEmpty { summary.append("还需要 \(plan.externalResources.count) 个附加文件") }
+        if !plan.replacedManagedBlocks.isEmpty {
+            summary.append(String(localized: "将更新 \(plan.replacedManagedBlocks.count) 项设置"))
+        }
+        if !plan.retainedDifferentInvocations.isEmpty {
+            summary.append(String(localized: "将保留 \(plan.retainedDifferentInvocations.count) 项其他设置"))
+        }
+        if !plan.externalResources.isEmpty {
+            summary.append(String(localized: "还需要 \(plan.externalResources.count) 个附加文件"))
+        }
         // Grammar is a real prerequisite. Detect it from the plan's actual output (the patch
         // target may contain ${schema:-…} expansion), and state only what will happen: the
         // deployment validator must load the real model or the install fails and keeps the
@@ -233,13 +241,13 @@ extension SchemeImportCenter {
             plan.files[path].flatMap { String(data: $0, encoding: .utf8) }?.contains("grammar:") == true
         }
         if !grammarOutputs.isEmpty {
-            summary.append("需要先准备语法模型")
+            summary.append(String(localized: "需要先准备语法模型"))
         }
         // plum semantics: a patch-only recipe copies no package sources; without a
         // schema in the plan output the fresh import would have nothing to deploy.
         let installedSchemas = InstalledPackageLayout.topLevelSchemaFiles(in: plan.files.keys)
         if installedSchemas.isEmpty {
-            summary.append("此选项仅更改设置，请先点「安装」安装方案。")
+            summary.append(String(localized: "此选项仅更改设置，请先点「安装」安装方案。"))
         }
         return summary
     }
@@ -249,9 +257,11 @@ extension SchemeImportCenter {
     private static func appendModelNotes(to summary: inout [String], plan: DeclarativeRecipePlan) {
         for (path, file) in plan.fileResources.sorted(by: { $0.key < $1.key }) {
             guard RecipeResourceBudget.isModel(path) else { continue }
-            let kind = Prediction.isDatabasePath(path) ? "联想词库" : "语法模型"
+            let kind =
+                Prediction.isDatabasePath(path)
+                ? String(localized: "联想词库") : String(localized: "语法模型")
             summary.append(
-                "已提供\(kind)（\(HostStorePaths.fileSizeText(file.size))）")
+                String(localized: "已提供\(kind)（\(HostStorePaths.fileSizeText(file.size))）"))
         }
     }
 
@@ -270,7 +280,7 @@ extension SchemeImportCenter {
         busy = true
         error = nil
         let sourceURLAtInstall = preparedSourceURL
-        message = "正在安装…"
+        message = String(localized: "正在安装…")
         Task {
             defer { busy = false }
             do {
@@ -311,8 +321,6 @@ extension SchemeImportCenter {
                 providedDownloadFiles = [:]
                 providedOrdinaryResources = [:]
                 diagnostics = []
-                userNotice = UserNoticeLayering.installationNextStep(
-                    installedPackageID: prepared.declaration.id)
                 message = sourceWarning
                 await refresh()
             } catch {
@@ -425,7 +433,7 @@ extension SchemeImportCenter {
     /// the read starts. Returns nil when the read cannot start.
     func beginWorkspaceRead(packageID: String) -> InstalledPackage? {
         guard !busy else {
-            message = "另一项操作正在进行，请稍后。"
+            message = String(localized: "另一项操作正在进行，请稍后。")
             return nil
         }
         lastInstalledPackageID = nil
@@ -433,12 +441,12 @@ extension SchemeImportCenter {
         plannedRecipe = nil
         recipeDiscoveryErrors = []
         guard let item = installedPackages.first(where: { $0.id == packageID }) else {
-            error = "未找到该输入方案"
+            error = String(localized: "未找到该输入方案")
             return nil
         }
         busy = true
         error = nil
-        message = "正在读取方案…"
+        message = String(localized: "正在读取方案…")
         return item
     }
 
@@ -537,13 +545,13 @@ extension SchemeImportCenter {
                 stages: Self.retryStages(stages), installed: true))
         guard workspace.sources?.files[recipePath] != nil else {
             HostLog.append("recipe planning rejected missing installed path: \(recipePath)")
-            error = "所选选项已不可用，请重新选择。"
+            error = String(localized: "所选选项已不可用，请重新选择。")
             return
         }
         busy = true
         error = nil
         plannedDiagnostics = []
-        message = "正在检查…"
+        message = String(localized: "正在检查…")
         let downloads = providedOrdinaryResources.mapValues(\.data)
         let downloadFiles = providedDownloadFiles
         Task {
@@ -601,7 +609,7 @@ extension SchemeImportCenter {
                 stages: Self.retryStages(currentStages), installed: true))
         busy = true
         error = nil
-        message = "正在更新…"
+        message = String(localized: "正在更新…")
         let step = Task {
             defer { busy = false }
             do {
@@ -614,7 +622,7 @@ extension SchemeImportCenter {
                 if planned.plan.managesGrammar {
                     let prior = try await manager.activeInstallation()
                     guard prior?.installation.generation == workspace.generation else {
-                        throw RecipeInstallError.invalidResource("方案已更改，请重新检查。")
+                        throw RecipeInstallError.invalidResource(String(localized: "方案已更改，请重新检查。"))
                     }
                     let oldBuild = (prior?.userDataURL ?? initialUserDataURL)?.appendingPathComponent("build")
                     grammarAdapters = try await KeyboardResourceReadQueue.async {
@@ -642,7 +650,7 @@ extension SchemeImportCenter {
                 providedDownloadFiles = [:]
                 providedOrdinaryResources = [:]
                 diagnostics = []
-                userNotice = "输入习惯已保留。"
+                userNotice = String(localized: "输入习惯已保留。")
                 await refresh()
             } catch {
                 fail(.nothingCommitted, error)
@@ -700,7 +708,7 @@ extension SchemeImportCenter {
         let packageName = installedPackages.first { $0.id == packageID }?.name
         return try await EngineOwnershipCoordinator.shared.withExclusive {
             guard let active = try await store.activeInstallation() else {
-                throw RecipeInstallError.invalidResource("请先安装输入方案")
+                throw RecipeInstallError.invalidResource(String(localized: "请先安装输入方案"))
             }
             try preflight(active)
             let snapshot = try await Self.readWorkspaceSnapshot(

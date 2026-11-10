@@ -47,11 +47,11 @@ final class UserKeyboardTests: XCTestCase {
         let keyboard = UserKeyboard(
             inputMethodID: "cangjie5", inputMethodName: "倉頡五代",
             layout: .qwerty26)
-        XCTAssertTrue(keyboard.isCurrent(schemaID: "cangjie5", layout: .qwerty26))
+        XCTAssertTrue(keyboard.isCurrent(schemaID: "cangjie5", layout: .qwerty26, board: nil))
         XCTAssertFalse(
-            keyboard.isCurrent(schemaID: "cangjie5", layout: .phone9),
+            keyboard.isCurrent(schemaID: "cangjie5", layout: .phone9, board: nil),
             "the same input method with a different layout is not the current keyboard")
-        XCTAssertFalse(keyboard.isCurrent(schemaID: "wubi86", layout: .qwerty26))
+        XCTAssertFalse(keyboard.isCurrent(schemaID: "wubi86", layout: .qwerty26, board: nil))
     }
 
     func testCurrentTitleUsesOnlyThePublishedSchemaAndLayout() {
@@ -76,6 +76,80 @@ final class UserKeyboardTests: XCTestCase {
             UserKeyboardRoster.currentTitle(
                 schemaID: "missing", layout: .qwerty26,
                 in: keys))
+    }
+
+    // MARK: - Real physical board names (known bundled boards)
+
+    /// The roster helper returns the input method's own name, never the shape-qualified title, so a
+    /// surface that resolved the real board can put the board's name first.
+    func testCurrentInputMethodNameComesFromTheRealPublishedRoster() {
+        let keyboards = [
+            UserKeyboard(
+                inputMethodID: "bopomofo_tw", inputMethodName: "注音（台湾）",
+                layout: .qwerty26)
+        ]
+        XCTAssertEqual(
+            UserKeyboardRoster.currentInputMethodName(
+                schemaID: "bopomofo_tw", layout: .qwerty26, in: keyboards),
+            "注音（台湾）")
+        XCTAssertEqual(
+            UserKeyboardRoster.currentTitle(
+                schemaID: "bopomofo_tw", layout: .qwerty26, in: keyboards),
+            "注音（台湾） · 26 键",
+            "the title keeps naming the transport shape; the helper exists so a caller does not read it as the scheme name"
+        )
+        XCTAssertNil(
+            UserKeyboardRoster.currentInputMethodName(
+                schemaID: "bopomofo_tw", layout: .phone9, in: keyboards))
+        XCTAssertNil(
+            UserKeyboardRoster.currentInputMethodName(
+                schemaID: "missing", layout: .qwerty26, in: keyboards))
+        let unnamed = [UserKeyboard(inputMethodID: "bopomofo_tw", inputMethodName: "  ", layout: .qwerty26)]
+        XCTAssertNil(
+            UserKeyboardRoster.currentInputMethodName(
+                schemaID: "bopomofo_tw", layout: .qwerty26, in: unnamed),
+            "a blank name is no name; the caller shows the board alone")
+    }
+
+    func testPhysicalBoardNamesKeepInputMethodFirstAndAuthorWording() {
+        let zhuyin = UserKeyboard(
+            inputMethodID: "bopomofo_tw", inputMethodName: "注音（台湾）", layout: .qwerty26)
+        XCTAssertEqual(zhuyin.title(physicalLayoutName: "注音 41 键"), "注音（台湾） · 注音 41 键")
+        XCTAssertEqual(
+            zhuyin.title(physicalLayoutName: nil), "注音（台湾） · 26 键",
+            "no resolved board keeps today's published title")
+        XCTAssertEqual(
+            zhuyin.title(physicalLayoutName: "   "), "注音（台湾） · 26 键",
+            "a blank board name is not a real board")
+
+        let unnamed = UserKeyboard(inputMethodID: "bopomofo_tw", inputMethodName: "", layout: .qwerty26)
+        XCTAssertEqual(
+            unnamed.title(physicalLayoutName: "注音 41 键"), "注音 41 键",
+            "without a real input-method name the board stands alone")
+        XCTAssertEqual(unnamed.title(physicalLayoutName: nil), "26 键")
+
+        let generic = UserKeyboard(
+            inputMethodID: "bopomofo_tw", inputMethodName: UserTerminology.inputMethod,
+            layout: .qwerty26)
+        XCTAssertEqual(
+            generic.title(physicalLayoutName: "注音 41 键"), "\(UserTerminology.inputMethod) · 注音 41 键",
+            "an author may name an input method with the same word the interface uses")
+
+        let plain26 = UserKeyboard(
+            inputMethodID: "songyan_quanpin", inputMethodName: "全拼", layout: .qwerty26)
+        XCTAssertEqual(plain26.title(physicalLayoutName: nil), "全拼 · 26 键")
+        let nine = UserKeyboard(inputMethodID: "jyut6ping3", inputMethodName: "粤拼", layout: .phone9)
+        XCTAssertEqual(nine.title(physicalLayoutName: nil), "粤拼 · 9 键")
+
+        XCTAssertNil(UserKeyboard.physicalBoardTitle(inputMethodName: "全拼", physicalLayoutName: nil))
+        XCTAssertNil(UserKeyboard.physicalBoardTitle(inputMethodName: "全拼", physicalLayoutName: "  "))
+        XCTAssertEqual(
+            UserKeyboard.physicalBoardTitle(inputMethodName: "全拼", physicalLayoutName: "注音 41 键"),
+            "全拼 · 注音 41 键")
+        XCTAssertEqual(
+            UserKeyboard.physicalBoardTitle(
+                inputMethodName: UserTerminology.inputMethod, physicalLayoutName: "注音 41 键"),
+            "\(UserTerminology.inputMethod) · 注音 41 键")
     }
 
     // MARK: - Runtime filter (the sole construction entry of the long-press switch list)
@@ -424,9 +498,10 @@ final class UserKeyboardTests: XCTestCase {
         XCTAssertEqual(UserTerminology.userKeyboardSaveNeedsOne, "至少打开一个键盘才能保存。")
         XCTAssertEqual(UserTerminology.userKeyboardListUnchanged, "当前键盘列表没有改变。")
         XCTAssertTrue(UserTerminology.userKeyboardNeedsSourceHint.hasPrefix(UserTerminology.userKeyboardNoSource))
-        // Switching happens in the scheme's own 我的键盘; a scheme without one has its own "Use".
-        XCTAssertTrue(UserTerminology.userKeyboardHowToStart.contains("「我的键盘」"))
-        XCTAssertTrue(UserTerminology.userKeyboardHowToStart.contains("「使用」"))
+        // Switching happens on the scheme's own page, not in 我的键盘.
+        XCTAssertTrue(UserTerminology.userKeyboardHowToStart.contains("「输入方案」"))
+        XCTAssertTrue(UserTerminology.userKeyboardHowToStart.contains("「使用这个输入方案」"))
+        XCTAssertFalse(UserTerminology.userKeyboardHowToStart.contains("我的键盘"))
         XCTAssertFalse(UserTerminology.userKeyboardHowToStart.contains(UserTerminology.inputMethod))
         // Footnote: "Save", "Use", and how it relates to the in-keyboard long-press list.
         let footnote = UserTerminology.userKeyboardFootnote
@@ -443,12 +518,11 @@ final class UserKeyboardTests: XCTestCase {
             UserTerminology.userKeyboardSaving, UserTerminology.userKeyboardSaveNeedsOne,
             UserTerminology.userKeyboardSaved(count: 1), UserTerminology.userKeyboardListUnchanged,
             UserTerminology.userKeyboardNowUsing("倉頡五代 · 9 键"),
-            UserTerminology.tryUsesCurrentScheme, UserTerminology.tryHowToUseViaUserKeyboard,
-            UserTerminology.tryHowToUseViaStartUsing,
+            UserTerminology.tryUsesCurrentScheme, UserTerminology.tryHowToUseViaStartUsing,
             UserTerminology.trySourceContext(name: "A", inUse: true, howToUse: "x"),
             UserTerminology.trySourceContext(
                 name: "A", inUse: false,
-                howToUse: UserTerminology.tryHowToUseViaUserKeyboard),
+                howToUse: UserTerminology.tryHowToUseViaStartUsing),
         ]
         for text in plain {
             XCTAssertNil(UserTerminology.leaksInternalTerminology(text), text)
@@ -458,17 +532,14 @@ final class UserKeyboardTests: XCTestCase {
         }
     }
 
-    /// Home rows: 输入方案 says what is installed, 我的键盘 says which keyboard is in use.
+    /// Home rows: 输入方案 says which scheme is in use, 我的键盘 says which keyboard is in use.
     func testHomeSummariesSplitSchemesFromKeyboards() {
         XCTAssertEqual(
             UserTerminology.currentKeyboardSummary(inputMethod: "倉頡五代", layout: .phone9), "正在使用：倉頡五代 · 9 键")
         XCTAssertEqual(UserTerminology.currentKeyboardSummary(inputMethod: nil, layout: .qwerty26), "正在使用：26 键")
         XCTAssertNil(UserTerminology.currentKeyboardSummary(inputMethod: "", layout: nil))
         XCTAssertEqual(
-            UserTerminology.installedSchemeSummary(count: 2, inUse: "通用形码包"), "已安装 2 个输入方案，正在使用「通用形码包」")
-        XCTAssertEqual(UserTerminology.installedSchemeSummary(count: 2, inUse: nil), "已安装 2 个输入方案")
-        XCTAssertFalse(
-            UserTerminology.installedSchemeSummary(count: 1, inUse: "A").contains(UserTerminology.inputMethod))
+            UserTerminology.inUseSummary(scheme: "注音·臺灣正體", inputMethod: nil, layout: nil), "正在使用：注音·臺灣正體")
     }
 
     func testTrySourceContextIsTruthfulAboutWhetherSourceIsInUse() {
@@ -477,16 +548,10 @@ final class UserKeyboardTests: XCTestCase {
             "键盘正在使用「通用形码包」。")
         XCTAssertEqual(
             UserTerminology.trySourceContext(
-                name: "通用形码包", inUse: false,
-                howToUse: UserTerminology.tryHowToUseViaUserKeyboard),
-            "键盘没有在使用「通用形码包」。要试打「通用形码包」，"
-                + "请先回到上一页，在「我的键盘」里轻点要用的键盘下方的「使用」。")
-        XCTAssertEqual(
-            UserTerminology.trySourceContext(
                 name: "自定义拼音", inUse: false,
                 howToUse: UserTerminology.tryHowToUseViaStartUsing),
             "键盘没有在使用「自定义拼音」。要试打「自定义拼音」，"
-                + "请先回到上一页点「使用」。")
+                + "请先回到上一页点「使用这个输入方案」。")
         // With no name, use a neutral term, leaving no empty quotes.
         XCTAssertEqual(
             UserTerminology.trySourceContext(name: " ", inUse: true, howToUse: ""),

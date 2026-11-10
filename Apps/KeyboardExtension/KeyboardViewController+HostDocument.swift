@@ -430,10 +430,6 @@ extension KeyboardViewController: KeyboardPadHost {
         writableDocument()?.uuidString
     }
 
-    func asyncInsertionContext() -> AnyHashable? {
-        writableDocument().map { AnyHashable($0) }
-    }
-
     func readDocumentContext() -> String? {
         guard writableDocument() != nil, textDocumentProxy.selectedText?.isEmpty != false else { return nil }
         return textDocumentProxy.documentContextBeforeInput

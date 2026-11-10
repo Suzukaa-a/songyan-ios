@@ -2,7 +2,9 @@ import Foundation
 
 /// Independently authored layout data, also available as editable JSON in Resources/Layouts.
 public enum BuiltinLayouts {
-    public static let all: [LayoutDefinition] = [qwerty26, merged14, merged18, phone9]
+    public static let all: [LayoutDefinition] = [
+        qwerty26, merged14, merged18, phone9, zhuyin41, cangjie26, romaji26, kana12,
+    ]
 
     public static let qwerty26 = LayoutDefinition(
         id: "qwerty26", name: "26 键", input: .init(builtinLayout: .qwerty26),
@@ -366,6 +368,162 @@ public enum BuiltinLayouts {
                 })
         }
     }
+
+    // MARK: - Traditional Chinese boards
+
+    /// The 大千 (Daqian) 41-key board: four letter rows of 11 / 10 / 10 / 10 caps, Delete closing
+    /// the fourth so it lines up with the first. A cap draws the bopomofo symbol and sends the ASCII
+    /// key that symbol sits on, which is the code the scheme's own keymap expects; the codes never
+    /// appear on a cap. The fifth row is the 26-key stand-in, so the keyboard draws the same footer
+    /// as every other board, with the punctuation keys either side of the space bar.
+    public static let zhuyin41 = LayoutDefinition(
+        id: "zhuyin41", name: "注音 41 键",
+        // The encoding kind stays the 26-key one: the board is a layout of its own, identified by
+        // its id, so no new kind and no new engine case come with it.
+        input: .init(builtinLayout: .qwerty26),
+        rows: zhuyinLetterRows() + [controls])
+
+    private static let zhuyinKeys: [[(cap: String, code: String)]] = [
+        [
+            ("ㄅ", "1"), ("ㄉ", "2"), ("ˇ", "3"), ("ˋ", "4"), ("ㄓ", "5"), ("ˊ", "6"), ("˙", "7"),
+            ("ㄚ", "8"), ("ㄞ", "9"), ("ㄢ", "0"), ("ㄦ", "-"),
+        ],
+        [
+            ("ㄆ", "q"), ("ㄊ", "w"), ("ㄍ", "e"), ("ㄐ", "r"), ("ㄔ", "t"), ("ㄗ", "y"), ("ㄧ", "u"),
+            ("ㄛ", "i"), ("ㄟ", "o"), ("ㄣ", "p"),
+        ],
+        [
+            ("ㄇ", "a"), ("ㄋ", "s"), ("ㄎ", "d"), ("ㄑ", "f"), ("ㄕ", "g"), ("ㄘ", "h"), ("ㄨ", "j"),
+            ("ㄜ", "k"), ("ㄠ", "l"), ("ㄤ", ";"),
+        ],
+        [
+            ("ㄈ", "z"), ("ㄌ", "x"), ("ㄏ", "c"), ("ㄒ", "v"), ("ㄖ", "b"), ("ㄙ", "n"), ("ㄩ", "m"),
+            ("ㄝ", ","), ("ㄡ", "."), ("ㄥ", "/"),
+        ],
+    ]
+
+    /// The board has no case, so no Shift; Delete takes the fourth row's free eleventh slot.
+    private static func zhuyinLetterRows() -> [LayoutRow] {
+        let rows = zhuyinKeys.map { row in
+            LayoutRow(keys: row.map { LayoutKey(label: $0.cap, action: .init(.code, value: $0.code)) })
+        }
+        let delete = LayoutKey(label: "⌫", action: .init(.backspace), titleMode: .automatic)
+        return rows.dropLast() + [LayoutRow(keys: rows[rows.count - 1].keys + [delete])]
+    }
+
+    /// The 倉頡 (Cangjie) 26-key board: the letters keep their QWERTY positions, each cap draws the
+    /// radical its letter stands for and the corner label is the letter itself. The fourth row is
+    /// the 26-key stand-in, so the keyboard draws the same footer as every 26-key board, with the
+    /// punctuation keys either side of the space bar.
+    public static let cangjie26 = LayoutDefinition(
+        id: "cangjie26", name: "仓颉 26 键",
+        input: .init(builtinLayout: .qwerty26),
+        rows: cangjieLetterRows() + [controls])
+
+    private static let cangjieKeys: [[(letter: String, radical: String)]] = [
+        [
+            ("q", "手"), ("w", "田"), ("e", "水"), ("r", "口"), ("t", "廿"), ("y", "卜"), ("u", "山"),
+            ("i", "戈"), ("o", "人"), ("p", "心"),
+        ],
+        [
+            ("a", "日"), ("s", "尸"), ("d", "木"), ("f", "火"), ("g", "土"), ("h", "竹"), ("j", "十"),
+            ("k", "大"), ("l", "中"),
+        ],
+        [("z", "重"), ("x", "難"), ("c", "金"), ("v", "女"), ("b", "月"), ("n", "弓"), ("m", "一")],
+    ]
+
+    private static func cangjieLetterRows() -> [LayoutRow] {
+        cangjieKeys.map { row in
+            LayoutRow(
+                keys: row.map { key in
+                    LayoutKey(
+                        label: key.radical, secondaryLabel: key.letter.uppercased(),
+                        action: .init(.code, value: key.letter))
+                })
+        }
+    }
+
+    // MARK: - Japanese board
+
+    /// The Japanese romaji board: the QWERTY 26-key letters with ー right of L, where the system
+    /// Japanese romaji keyboard has it, so the second row is as full as the first. The board keeps the
+    /// 26-key encoding kind and is identified by its id, so no new kind and no new engine case come
+    /// with it. The fourth row is the 26-key stand-in: while it is unedited the keyboard draws its
+    /// own footer, which names the space, Return and language keys for the input language and puts
+    /// 、 and 。 on either side of the space bar.
+    public static let romaji26 = LayoutDefinition(
+        id: "romaji26", name: "罗马字 26 键",
+        input: .init(builtinLayout: .qwerty26),
+        rows: romajiRows() + [controls])
+
+    /// ー sends the scheme's minus code, the key the romaji spelling uses for a long vowel; a
+    /// literal ー would bypass the scheme's own punctuation handling.
+    private static let longVowelKey = LayoutKey(label: "ー", action: .init(.code, value: "-"))
+
+    /// The bundled letter rows with ー appended to the second row. Keeping the bundled letter menus
+    /// lets the input language rename their marks (a Japanese board offers 、 。 「 」 and ー).
+    private static func romajiRows() -> [LayoutRow] {
+        var rows = alphabetRows()
+        rows[1] = LayoutRow(keys: rows[1].keys + [longVowelKey])
+        return rows
+    }
+
+    /// The Japanese twelve-key (kana12) board: the 4 x 3 kana grid between a leading rail
+    /// (composition caret left, 記号, あ/A, the system keyboard switch) and a trailing rail
+    /// (delete, space, Return spanning the lower two rows). The grid carries the tap key of each
+    /// row only: flick and repeated-tap targets belong to the kana input model, so a cap names its
+    /// row and the handler spells that row's kana into the engine. Because the fourth row types
+    /// kana it is content, not a control row, so neither the 26-key Shift/Delete chrome nor the
+    /// automatic footer is drawn over the grid; the leading rail's globe is the only keyboard
+    /// switch, which keeps the four rows intact.
+    public static let kana12 = LayoutDefinition(
+        id: "kana12", name: "假名 12 键",
+        input: .init(builtinLayout: .qwerty26),
+        rows: kana12Rows(),
+        auxiliaryAreas: [kana12LeadingRail, kana12TrailingRail])
+
+    /// あ か さ / た な は / ま や ら: the tap glyph of each row with the row id the kana handler
+    /// turns into romaji.
+    private static let kana12Grid: [[(cap: String, rowID: String)]] = [
+        [("あ", "a"), ("か", "ka"), ("さ", "sa")],
+        [("た", "ta"), ("な", "na"), ("は", "ha")],
+        [("ま", "ma"), ("や", "ya"), ("ら", "ra")],
+    ]
+
+    /// 小゛゜ わ 、。?!: the modifier edits the kana just typed, わ taps its row, and 標点 types its
+    /// tap mark (。 ？ ！ … are flick targets of the kana model).
+    private static let kana12BottomRow = LayoutRow(keys: [
+        LayoutKey(label: "小゛゜", action: .kanaModifier),
+        LayoutKey(label: "わ", action: .kana("wa")),
+        LayoutKey(label: "、。?!", action: .init(.literal, value: "、")),
+    ])
+
+    private static func kana12Rows() -> [LayoutRow] {
+        kana12Grid.map { row in
+            LayoutRow(keys: row.map { LayoutKey(label: $0.cap, action: .kana($0.rowID)) })
+        } + [kana12BottomRow]
+    }
+
+    /// Four keys, one per grid row. Every face is automatic, so the board reads 記号 and あ/A for
+    /// Japanese; only the named caret key keeps its stored face because no control draws it.
+    private static let kana12LeadingRail = LayoutAuxiliaryArea(
+        position: .leading, role: .editing,
+        keys: [
+            LayoutKey(label: "←", action: .cursorLeft),
+            LayoutKey(label: "記号", action: .pageSwitch(.symbols), titleMode: .automatic),
+            LayoutKey(label: "あ/A", action: .languageSwitch(), titleMode: .automatic),
+            LayoutKey(label: "🌐", action: .init(.globe), titleMode: .automatic),
+        ])
+
+    /// Delete, space and Return; Return's span is two rows, the existing rail width field, so the
+    /// rail covers the same four rows as the grid without a height metadata of its own.
+    private static let kana12TrailingRail = LayoutAuxiliaryArea(
+        position: .trailing, role: .editing,
+        keys: [
+            LayoutKey(label: "⌫", action: .init(.backspace), titleMode: .automatic),
+            LayoutKey(label: "空格", action: .init(.space), titleMode: .automatic),
+            LayoutKey(label: "⏎", width: 2, action: .init(.enter), titleMode: .automatic),
+        ])
 }
 
 // MARK: - Bundled shell identity
@@ -464,7 +622,13 @@ public extension BuiltinLayouts {
     /// replaces it whatever the main keys say. An edited fourth row is the author's and is drawn
     /// as declared.
     static func matchesControlRowPolicy(_ definition: LayoutDefinition, as layout: LayoutInput.Builtin) -> Bool {
-        definition.rows.count == PhoneKeypadMetrics.mainRowCount + 1
+        if definition.rows.count > PhoneKeypadMetrics.mainRowCount + 1 {
+            // A taller board (the 41-key zhuyin pad) draws its own letter rows as declared; the
+            // stand-in last row still asks for the keyboard's footer, as on Android.
+            return definition.input == preset(for: layout).input
+                && definition.rows.last == preset(for: layout).rows.last
+        }
+        return definition.rows.count == PhoneKeypadMetrics.mainRowCount + 1
             && matchesMainShell(definition, as: layout)
             && definition.rows.last == preset(for: layout).rows.last
     }

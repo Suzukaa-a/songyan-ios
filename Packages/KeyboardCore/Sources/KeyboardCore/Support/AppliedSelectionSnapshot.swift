@@ -39,6 +39,8 @@ public struct AppliedSelectionSnapshot: Equatable, Sendable {
     public let schemas: [KeyboardSchemaDescriptor]
     /// Physical layout of the publication selection; nil = not explicit.
     public let selectedLayout: KeyboardLayoutKind?
+    /// Physical board of the publication selection (`PublishedKeyboard.board`); nil = from the pairing.
+    public let selectedBoard: String?
 
     public init(
         recipeEnabled: Bool, resourceKind: String,
@@ -47,7 +49,8 @@ public struct AppliedSelectionSnapshot: Equatable, Sendable {
         packageID: String? = nil, hasRealPublication: Bool = false,
         publicationName: String? = nil, displayConfigName: String = "",
         schemas: [KeyboardSchemaDescriptor] = [],
-        selectedLayout: KeyboardLayoutKind? = nil
+        selectedLayout: KeyboardLayoutKind? = nil,
+        selectedBoard: String? = nil
     ) {
         self.recipeEnabled = recipeEnabled
         self.resourceKind = resourceKind
@@ -61,20 +64,27 @@ public struct AppliedSelectionSnapshot: Equatable, Sendable {
         self.displayConfigName = displayConfigName
         self.schemas = schemas
         self.selectedLayout = selectedLayout
+        self.selectedBoard = selectedBoard
     }
 
     /// Empty snapshot kept when no usable publication record exists or the read failed (not applied, no input methods).
     public static let none = AppliedSelectionSnapshot(
         recipeEnabled: false, resourceKind: "", selectedSchemaID: nil, requiredSchemaIDs: [])
 
-    /// Shared-container status line (pure value); the wording is user-facing.
+    /// Shared-container status line (pure value); the wording is user-facing and comes from the package catalog.
     /// `requiresFullAccessNote` appends the "next time the keyboard shows; Full Access needed" note.
     public func keyboardStatusLine(requiresFullAccessNote: Bool) -> String {
-        let suffix = requiresFullAccessNote ? "（下次打开键盘时生效，需要开启「允许完全访问」）" : ""
+        let suffix =
+            requiresFullAccessNote
+            ? String(localized: "core.status.fullAccessNote", bundle: .module) : ""
         if recipeEnabled, hasRealPublication, let publicationName {
-            return "可以读写共享数据；已选择「\(publicationName)」\(suffix)"
+            return String(
+                format: String(localized: "core.status.sharedDataWithSelection", bundle: .module),
+                publicationName, suffix)
         }
-        return "可以读写共享数据；\(ProductionInputAvailability.unconfiguredTitle)\(suffix)"
+        return String(
+            format: String(localized: "core.status.sharedDataNoSelection", bundle: .module),
+            ProductionInputAvailability.unconfiguredTitle, suffix)
     }
 
     /// Whether a source kind is in use: must be enabled and the kind must match.

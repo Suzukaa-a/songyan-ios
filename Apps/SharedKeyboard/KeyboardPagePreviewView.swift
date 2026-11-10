@@ -106,7 +106,8 @@ struct KeyboardPreviewModeKey: View {
     var body: some View {
         AlternateCharacterKey(
             cap: KeyCap(id: "input-mode", title: policy.languageTitle(for: nil), action: .cycleLayout),
-            alternates: [], layoutPicker: true
+            alternates: [], layoutPicker: true,
+            languageCurrentSideIsFirst: policy.languageCurrentSideIsFirst(for: nil)
         ) { _ in }
         .accessibilityLabel(policy.languageAccessibilityLabel(for: nil))
     }
@@ -115,7 +116,7 @@ struct KeyboardPreviewModeKey: View {
 /// The panel's control row with inert actions.
 struct KeyboardPreviewControlRow: View {
     let policy: KeyboardControlPolicy
-    var returnTitle = "换行"
+    var returnTitle: String? = nil
     let showsGlobe: Bool
     var columns: KeyboardControlPolicy.PhoneColumns? = nil
     let split: ActiveLayoutSplit?
@@ -123,7 +124,10 @@ struct KeyboardPreviewControlRow: View {
 
     var body: some View {
         ControlRow(
-            policy: policy, returnTitle: returnTitle, layoutName: nil, layoutHintName: nil,
+            policy: policy,
+            returnTitle: returnTitle
+                ?? KeyLabelPolicy.returnTitle(script: policy.script, isComposing: false, intent: .lineBreak),
+            layoutName: nil, layoutHintName: nil,
             layoutHintToken: nil, modeKey: KeyboardPreviewModeKey(policy: policy),
             systemKeyboardSwitch: showsGlobe ? { _, _ in } : nil, moveCursor: nil,
             onPage: { _ in }, onKey: { _ in }, phoneColumns: columns, split: split,
@@ -133,7 +137,11 @@ struct KeyboardPreviewControlRow: View {
 
 extension KeyboardFixedEditingRail {
     /// The idle editing rail of a preview.
-    init(previewMetrics metrics: PhoneKeypadMetrics, returnTitle: String = "换行", isComposing: Bool = false) {
+    init(
+        previewMetrics metrics: PhoneKeypadMetrics,
+        returnTitle: String = KeyLabelPolicy.returnTitle(
+            script: .simplifiedChinese, isComposing: false, intent: .lineBreak), isComposing: Bool = false
+    ) {
         self.init(
             metrics: metrics, returnTitle: returnTitle, isReturnEnabled: true, isComposing: isComposing,
             onDelete: { _ in }, onReset: {}, onReturn: { _ in })
@@ -307,7 +315,9 @@ public struct KeyboardPagePreviewView: View {
     private func state(_ page: KeyboardPageDefinition) -> KeyboardPageAuthoredState {
         KeyboardPageAuthoredState(
             page: panelPage(page.kind), kind: page.kind, isEnglishMode: page.kind == .english,
-            shiftState: .off, returnTitle: "换行", isReturnEnabled: true, symbolLocked: false,
+            shiftState: .off,
+            returnTitle: KeyLabelPolicy.returnTitle(script: .simplifiedChinese, isComposing: false, intent: .lineBreak),
+            isReturnEnabled: true, symbolLocked: false,
             isComposing: false, hasGlobe: showsGlobe,
             isPhoneStyled: !(page.chrome?.trailing.isEmpty ?? true),
             usesASCIIPunctuation: usesASCIIPunctuation,

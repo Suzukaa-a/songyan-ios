@@ -173,6 +173,44 @@ for fname, text in schema_text.items():
     check(f"no enable_sentence key {fname}", not re.search(r"(?m)^\s*enable_sentence\s*:", text),
           "script_translator ignores this key; only table_translator reads it")
 
+# ---------------- four script states ----------------
+# One radio group per source scheme: the first member is the default (no conversion) and keeps the
+# `simplification` name saved switch preferences are keyed by; the others each drive their own
+# simplifier. Companions inherit the block (BuiltinCompanionTests checks the generated copies).
+SCRIPT_STATES = ["simplification", "zht", "zh_tw", "zh_hk"]
+SCRIPT_STATE_LABELS = ["简体", "繁體", "臺灣", "香港"]
+STATE_CONVERSIONS = {"zht": "s2t.json", "zh_tw": "s2twp.json", "zh_hk": "s2hk.json"}
+
+
+def yaml_section(text, name):
+    m = re.search(r"(?ms)^" + re.escape(name) + r":\n(.*?)(?=^\S|\Z)", text)
+    return m.group(1) if m else ""
+
+
+def flow_list(text, key):
+    m = re.search(r"(?m)^[ \t]*-?[ \t]*" + re.escape(key) + r":\s*\[([^\]]*)\]\s*$", text)
+    return [item.strip() for item in m.group(1).split(",")] if m else []
+
+
+for source in (QUANPIN, FLYPY):
+    text = schema_text[source + ".schema.yaml"]
+    check(f"script states: one four-member group {source}",
+          flow_list(text, "options") == SCRIPT_STATES, str(flow_list(text, "options")))
+    check(f"script states: labels in order {source}",
+          flow_list(text, "states") == SCRIPT_STATE_LABELS, str(flow_list(text, "states")))
+    reset = re.search(r"(?m)^[ \t]+reset:\s*(\d+)\s*$", text)
+    check(f"script states: default is the simplified first member {source}",
+          reset is not None and reset.group(1) == "0", reset.group(1) if reset else "missing")
+    filters = re.findall(r"(?m)^[ \t]*-\s*(simplifier@\w+)\s*$", structural_engine(text))
+    check(f"script states: one namespaced simplifier per converting member {source}",
+          filters == ["simplifier@" + name for name in STATE_CONVERSIONS], str(filters))
+    check(f"script states: no bare simplifier would convert the default {source}",
+          "    - simplifier\n" not in structural_engine(text), "")
+    for name, config in STATE_CONVERSIONS.items():
+        section = yaml_section(text, name)
+        check(f"script states: {name} declares its own opencc config {source}",
+              f"option_name: {name}" in section and f"opencc_config: {config}" in section, section.strip()[:60])
+
 # ---------------- dictionary ----------------
 raw_dict = (BASIC / "songyan_basic.dict.yaml").read_text(encoding="utf-8")
 dict_rows = []
@@ -200,9 +238,9 @@ check("no duplicate (text,code)", len(dups) == len(set(dups)), "")
 check("no literal ü in codes", all("ü" not in p for _, _, p in dict_rows), "")
 n_char = sum(1 for c, _, _ in dict_rows if c == "char")
 n_word = sum(1 for c, _, _ in dict_rows if c == "word")
-check("dict stats: 152 single-char reading entries", n_char == 152, str(n_char))
-check("dict stats: 45 word entries", n_word == 45, str(n_word))
-check("dict stats: 197 rows total", len(dict_rows) == 197, str(len(dict_rows)))
+check("dict stats: 157 single-char reading entries", n_char == 157, str(n_char))
+check("dict stats: 48 word entries", n_word == 48, str(n_word))
+check("dict stats: 205 rows total", len(dict_rows) == 205, str(len(dict_rows)))
 
 # every char of every word must be present as a single-char entry
 word_texts = [t for c, t, _p in dict_rows if c == "word"]
@@ -277,8 +315,17 @@ for case in learning:
     missch = [ch for ch in case["word"] if ch not in char_texts_l]
     check(f"learning {case['word']} chars in dict", not missch, str(missch))
 play = json.loads((FIX / "playback_cases.json").read_text(encoding="utf-8"))
-check("playback == 4 layouts x rows", len(play) == 4 * len(rows), f"{len(play)}")
-check("playback stats: 788 cases", len(play) == 788, str(len(play)))
+STATEFUL_CASES = 5
+check("playback == 4 layouts x rows + declared script states",
+      len(play) == 4 * len(rows) + STATEFUL_CASES, f"{len(play)}")
+check("playback stats: 825 cases (788 simplified regression + 32 new dictionary entries + 5 states)",
+      len(play) == 825, str(len(play)))
+plain_cases = [case for case in play if "options" not in case]
+stateful_cases = [case for case in play if "options" in case]
+check("default playback cases keep the old shape",
+      not any("expect_first" in case for case in plain_cases), "")
+check("declared-state playback cases are exactly the expected count",
+      len(stateful_cases) == STATEFUL_CASES, str(len(stateful_cases)))
 play_bad = []
 for case in play:
     code = case["keys"]
@@ -288,6 +335,39 @@ for case in play:
     elif not code or set(code) - speller_alphabet(ENGINE_SCHEMAS[key]):
         play_bad.append((key, code))
 check("playback keys within alphabet", not play_bad, str(play_bad[:3]))
+
+# A declared-state case must state the whole group (no leftover state between cases), name the member
+# whose conversion it exercises, and keep both meanings explicit: expect_first is the candidate shown
+# first, expect_text is the old find-and-commit text.
+enc_by_text = {}
+for (text, py), enc_row in enc_map.items():
+    enc_by_text.setdefault(text, []).append(py)
+state_bad = []
+states_seen = set()
+for case in stateful_cases:
+    options = case["options"]
+    selected = [name for name, on in options.items() if on] if isinstance(options, dict) else []
+    codes = {(case["keys"], case["keys_with_delim"])}
+    expected_codes = {
+        (py.replace(" ", ""), py.replace(" ", "'")) for py in enc_by_text.get(case["text"], [])
+    }
+    if (not isinstance(options, dict)
+            or sorted(options) != sorted(SCRIPT_STATES)
+            or not all(isinstance(on, bool) for on in options.values())
+            or len(selected) != 1
+            or selected[0] not in STATE_CONVERSIONS
+            or not isinstance(case.get("expect_first"), str) or not case["expect_first"]
+            or not isinstance(case.get("expect_text"), str) or not case["expect_text"]
+            or case["expect_first"] == case["text"]
+            or case["expect_text"] == case["text"]
+            or codes != expected_codes):
+        state_bad.append((case.get("keys"), case.get("options"), case.get("expect_first")))
+        continue
+    states_seen.add(selected[0])
+check("declared-state cases carry a complete state, expect_first and dictionary keys",
+      not state_bad, str(state_bad[:3]))
+check("declared-state cases cover every converting member",
+      states_seen == set(STATE_CONVERSIONS), str(sorted(states_seen)))
 
 # ---------------- generators deterministic ----------------
 before = (FIX / "encodings.tsv").read_text(encoding="utf-8")

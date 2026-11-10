@@ -1,0 +1,1014 @@
+{
+  "sourceLanguage": "zh-Hans",
+  "strings": {
+    "quickContent.error.busy": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The content is in use. Try again in a moment."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内容が使用中です。しばらくしてからもう一度お試しください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内容正在使用中，请稍后再试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "內容正在使用中，請稍後再試。"
+          }
+        }
+      }
+    },
+    "quickContent.error.contentTooLarge": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The content is too large to save. Remove some of it and try again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内容が大きすぎて保存できません。いくつか削除してからもう一度お試しください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内容太大，无法保存，请删掉一些后再试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "內容太大，無法儲存，請刪掉一些後再試。"
+          }
+        }
+      }
+    },
+    "quickContent.error.fileTooLarge": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The file is too large. Choose a phrase file you exported from Songyan."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイルが大きすぎます。松煙から書き出した定型文ファイルを選んでください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件太大，请选择松烟导出的常用语文件。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "檔案太大，請選擇松煙匯出的常用語檔案。"
+          }
+        }
+      }
+    },
+    "quickContent.error.notAFile": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "That location isn't a file. Choose again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この場所はファイルではありません。選び直してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这个位置不是文件，请重新选择。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這個位置不是檔案，請重新選擇。"
+          }
+        }
+      }
+    },
+    "quickContent.error.notLocalFile": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose a local file."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ローカルのファイルを選んでください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请选择一个本地文件。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請選擇一個本地檔案。"
+          }
+        }
+      }
+    },
+    "quickContent.error.shortcutTooLong": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The search term is too long. Shorten it and try again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "検索語が長すぎます。短くしてからもう一度お試しください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "搜索词太长，请缩短后再试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "搜尋詞太長，請縮短後再試。"
+          }
+        }
+      }
+    },
+    "quickContent.error.storageUnavailable": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't open phrases. Try again in a moment."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "定型文を開けませんでした。しばらくしてからもう一度お試しください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打不开常用语，请稍后再试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打不開常用語，請稍後再試。"
+          }
+        }
+      }
+    },
+    "quickContent.error.storedTooLarge": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The saved content is too large. Remove some of it and try again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存されている内容が大きすぎます。不要な内容を削除してからもう一度お試しください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存的内容太大，请删掉一些内容后再试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "儲存的內容太大，請刪掉一些內容後再試。"
+          }
+        }
+      }
+    },
+    "quickContent.error.storedUnreadable": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The saved content can't be read. Check the file and try again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存されている内容を読み取れません。ファイルを確認してからもう一度お試しください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "保存的内容读不出来，请检查文件后再试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "儲存的內容讀不出來，請檢查檔案後再試。"
+          }
+        }
+      }
+    },
+    "quickContent.error.textInvalid": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The content is empty or longer than 4 KB. Shorten it and try again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内容が空か、4 KB を超えています。短くしてからもう一度お試しください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内容为空，或超过 4 KB，请缩短后再试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "內容為空，或超過 4 KB，請縮短後再試。"
+          }
+        }
+      }
+    },
+    "quickContent.error.tooManyPhrases": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You can have at most 100 phrases, and none may repeat. Check them and try again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "定型文は 100 件までで、重複はできません。確認してからもう一度お試しください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "常用语最多 100 条，也不能重复，请检查后重试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "常用語最多 100 條，也不能重複，請檢查後重試。"
+          }
+        }
+      }
+    },
+    "quickContent.error.unreadable": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The file is incomplete or damaged. Choose a phrase file you exported from Songyan."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイルが不完全か、形式が正しくありません。松煙から書き出した定型文ファイルを選んでください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件不完整或格式不对，请选择松烟导出的常用语文件。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "檔案不完整或格式不對，請選擇松煙匯出的常用語檔案。"
+          }
+        }
+      }
+    },
+    "quickContent.error.unsupportedFormat": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This file format isn't supported. Choose a Songyan phrase file."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このファイルの形式には対応していません。松煙の定型文ファイルを選んでください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这个文件的格式不受支持，请选择松烟常用语文件。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這個檔案的格式不受支援，請選擇松煙常用語檔案。"
+          }
+        }
+      }
+    },
+    "symbol.error.categoryID": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Category %1$@ has an invalid ID. Check it and import the file again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ 番目の分類の番号が正しくありません。確認してから読み込み直してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "第 %1$@ 个分类的编号不对，请检查后重新导入。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "第 %1$@ 個分類的編號不對，請檢查後重新匯入。"
+          }
+        }
+      }
+    },
+    "symbol.error.categoryName": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Category %1$@ has an invalid name. Check it and import the file again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ 番目の分類の名前が正しくありません。確認してから読み込み直してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "第 %1$@ 个分类的名称不对，请检查后重新导入。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "第 %1$@ 個分類的名稱不對，請檢查後重新匯入。"
+          }
+        }
+      }
+    },
+    "symbol.error.customUnreadable": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't read the custom symbol library, so the built-in one is used for now (%1$@)."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カスタム記号ライブラリを読み込めませんでした。いったん内蔵の記号ライブラリを使います（%1$@）。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自定义符号库读取失败，暂时改用内置符号库（%1$@）。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自訂符號庫讀取失敗，暫時改用內建符號庫（%1$@）。"
+          }
+        }
+      }
+    },
+    "symbol.error.defaultMissing": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The built-in symbol library is missing. Reinstall the app."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内蔵の記号ライブラリが見つかりません。アプリを入れ直してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内置符号库缺失，请重新安装 App。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "內建符號庫缺失，請重新安裝 App。"
+          }
+        }
+      }
+    },
+    "symbol.error.duplicateCategoryID": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The symbol library file repeats the category ID \"%1$@\". Check it and import the file again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記号ライブラリのファイルで分類の番号「%1$@」が重複しています。確認してから読み込み直してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "符号库文件里分类编号「%1$@」重复了，请检查后重新导入。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "符號庫檔案裡分類編號「%1$@」重複了，請檢查後重新匯入。"
+          }
+        }
+      }
+    },
+    "symbol.error.duplicateItemID": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The symbol library file repeats the symbol ID \"%1$@\". Check it and import the file again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記号ライブラリのファイルで記号の番号「%1$@」が重複しています。確認してから読み込み直してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "符号库文件里符号编号「%1$@」重复了，请检查后重新导入。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "符號庫檔案裡符號編號「%1$@」重複了，請檢查後重新匯入。"
+          }
+        }
+      }
+    },
+    "symbol.error.duplicateText": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The symbol library file repeats the symbol \"%1$@\". Check it and import the file again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記号ライブラリのファイルで記号「%1$@」が重複しています。確認してから読み込み直してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "符号库文件里符号「%1$@」重复了，请检查后重新导入。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "符號庫檔案裡符號「%1$@」重複了，請檢查後重新匯入。"
+          }
+        }
+      }
+    },
+    "symbol.error.fileTooLarge": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The symbol library file is too large; it can't exceed 256 KB."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記号ライブラリのファイルが大きすぎます。256 KB 以下にしてください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "符号库文件太大，不能超过 256 KB。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "符號庫檔案太大，不能超過 256 KB。"
+          }
+        }
+      }
+    },
+    "symbol.error.itemAlias": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alias %2$@ of symbol %1$@ is empty. Check it and import the file again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ 番目の記号の %2$@ 番目の検索語が空です。確認してから読み込み直してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "第 %1$@ 个符号的第 %2$@ 个搜索词是空的，请检查后重新导入。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "第 %1$@ 個符號的第 %2$@ 個搜尋詞是空的，請檢查後重新匯入。"
+          }
+        }
+      }
+    },
+    "symbol.error.itemAliases": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Symbol %1$@ has too many search aliases. Check it and import the file again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ 番目の記号の検索語が多すぎます。確認してから読み込み直してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "第 %1$@ 个符号的搜索词太多，请检查后重新导入。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "第 %1$@ 個符號的搜尋詞太多，請檢查後重新匯入。"
+          }
+        }
+      }
+    },
+    "symbol.error.itemCategory": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Symbol %1$@ has no category. Check it and import the file again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ 番目の記号に分類がありません。確認してから読み込み直してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "第 %1$@ 个符号没有分类，请检查后重新导入。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "第 %1$@ 個符號沒有分類，請檢查後重新匯入。"
+          }
+        }
+      }
+    },
+    "symbol.error.itemID": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Symbol %1$@ has an invalid ID. Check it and import the file again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ 番目の記号の番号が正しくありません。確認してから読み込み直してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "第 %1$@ 个符号的编号不对，请检查后重新导入。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "第 %1$@ 個符號的編號不對，請檢查後重新匯入。"
+          }
+        }
+      }
+    },
+    "symbol.error.itemName": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Symbol %1$@ has an invalid name. Check it and import the file again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ 番目の記号の名前が正しくありません。確認してから読み込み直してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "第 %1$@ 个符号的名称不对，请检查后重新导入。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "第 %1$@ 個符號的名稱不對，請檢查後重新匯入。"
+          }
+        }
+      }
+    },
+    "symbol.error.itemText": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Symbol %1$@ has invalid content. Check it and import the file again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ 番目の記号の内容が正しくありません。確認してから読み込み直してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "第 %1$@ 个符号的内容不对，请检查后重新导入。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "第 %1$@ 個符號的內容不對，請檢查後重新匯入。"
+          }
+        }
+      }
+    },
+    "symbol.error.missingItems": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The symbol library file has no symbol list. Check it and import the file again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記号ライブラリのファイルに記号の一覧がありません。確認してから読み込み直してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "符号库文件里缺少符号列表，请检查后重新导入。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "符號庫檔案裡缺少符號列表，請檢查後重新匯入。"
+          }
+        }
+      }
+    },
+    "symbol.error.notAnObject": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This isn't a valid symbol library file."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有効な記号ライブラリのファイルではありません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这不是有效的符号库文件。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這不是有效的符號庫檔案。"
+          }
+        }
+      }
+    },
+    "symbol.error.recentTooLarge": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The recently used list is too large to save."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最近使用した記録が大きすぎて保存できません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最近使用的记录太大，无法保存。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最近使用的記錄太大，無法儲存。"
+          }
+        }
+      }
+    },
+    "symbol.error.recentTooMany": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The recently used list has more entries than the limit allows."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最近使用した記録の件数が上限を超えているため保存できません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最近使用的记录条数超过上限，无法保存。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最近使用的記錄條數超過上限，無法儲存。"
+          }
+        }
+      }
+    },
+    "symbol.error.tooManyItems": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A symbol library can hold at most %1$@ symbols. Remove some and import again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記号ライブラリには %1$@ 個までしか入れられません。いくつか削除してから読み込み直してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "符号库最多 %1$@ 个符号，请删掉一些后再导入。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "符號庫最多 %1$@ 個符號，請刪掉一些後再匯入。"
+          }
+        }
+      }
+    },
+    "symbol.error.unknownCategoryField": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Category %1$@ of the symbol library has an unknown field. Check it and import the file again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記号ライブラリの %1$@ 番目の分類に不明な項目があります。確認してから読み込み直してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "符号库文件的第 %1$@ 个分类里有不认识的字段，请检查后重新导入。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "符號庫檔案的第 %1$@ 個分類裡有不認識的欄位，請檢查後重新匯入。"
+          }
+        }
+      }
+    },
+    "symbol.error.unknownField": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The symbol library file has an unknown field \"%1$@\". Check it and import the file again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記号ライブラリのファイルに不明な項目「%1$@」があります。確認してから読み込み直してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "符号库文件里有不认识的字段「%1$@」，请检查后重新导入。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "符號庫檔案裡有不認識的欄位「%1$@」，請檢查後重新匯入。"
+          }
+        }
+      }
+    },
+    "symbol.error.unknownItemField": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Symbol %1$@ of the symbol library has an unknown field. Check it and import the file again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記号ライブラリの %1$@ 番目の記号に不明な項目があります。確認してから読み込み直してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "符号库文件的第 %1$@ 个符号里有不认识的字段，请检查后重新导入。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "符號庫檔案的第 %1$@ 個符號裡有不認識的欄位，請檢查後重新匯入。"
+          }
+        }
+      }
+    },
+    "symbol.error.unsupportedVersion": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This symbol library file's version isn't supported. Update the app and try again."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記号ライブラリのファイルのバージョンには対応していません。アプリを更新してからお試しください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "符号库文件的版本不受支持，请更新 App 后再试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "符號庫檔案的版本不受支援，請更新 App 後再試。"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

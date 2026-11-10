@@ -84,6 +84,7 @@ say "stage Swift sources"
 STAGE="${RUN_DIR}/swift"
 mkdir -p "${STAGE}"
 PKG="${PROJECT_ROOT}/Packages"
+python3 "${IOS_TOOLS_DIR}/scripts/build-harness-resources.py" "${STAGE}"
 stage() {
   local src="$1" name
   name="$(basename "$src")"
@@ -126,7 +127,8 @@ swiftc -O -D SONGYAN_TEST_FAILPOINTS -Xcc -fmodule-map-file="${RUN_DIR}/RimeKitM
   "${IOS_TOOLS_DIR}/harness-mac/bridge-contracts-main.swift" \
   "${STAGE}"/*.swift \
   "${RUN_DIR}/rime_bridge.o" "${RUN_DIR}/rime_spelling.o" "${RUN_DIR}/rime_display_map.o" \
-  "${RUN_DIR}/rime_grammar_diagnostics.o" "${RUN_DIR}/rb_grammar_noop.o" \
+  "${RUN_DIR}/rime_grammar_diagnostics.o" \
+  "${RUN_DIR}/rb_grammar_noop.o" \
   "${RUN_DIR}/learning-support/RimeLeversSupport.o" \
   "${MAC_LINK_FLAGS[@]}" \
   -target arm64-apple-macos13.0 -o "${RUN_DIR}/harness"

@@ -148,35 +148,37 @@ public enum FuzzyPinyin {
     /// Whether the schema really is full pinyin is not decided here; the host checks the
     /// engine's native projection, not a name or shape guess.
     public static func eligibility(compiled: Data, schemaID: String) -> Eligibility {
-        guard TypoCorrection.validIdentifier(schemaID) else { return .ineligible("输入方式标识无效") }
+        guard TypoCorrection.validIdentifier(schemaID) else {
+            return .ineligible(PackageText.string("schema.error.invalidID"))
+        }
         guard !CompactSchemaAdapter.isGeneratedCompanionID(schemaID) else {
-            return .ineligible("这个输入方式由其他输入方式自动生成，请在原来的输入方式里设置模糊音。")
+            return .ineligible(PackageText.string("fuzzy.error.generatedCompanion"))
         }
         guard compiled.count <= RecipeResourceBudget.sourceFile,
             let text = String(data: compiled, encoding: .utf8),
             let loaded = try? BoundedYAML.load(yaml: text),
             let root = loaded as? [String: Any]
         else {
-            return .ineligible("输入方案配置无法读取")
+            return .ineligible(PackageText.string("fuzzy.error.schemaUnreadable"))
         }
         guard let schema = root["schema"] as? [String: Any], schema["schema_id"] as? String == schemaID else {
-            return .ineligible("这个输入方式的设置文件不完整，请重新导入输入方案。")
+            return .ineligible(PackageText.string("fuzzy.error.settingsIncomplete"))
         }
         guard root["keyboard_rewrite"] == nil, root["keyboard_adapter"] == nil else {
-            return .ineligible("这个输入方式专供 9 键或 14 键键盘使用，暂不支持模糊音。")
+            return .ineligible(PackageText.string("fuzzy.error.compactKeyboard"))
         }
         guard let engine = root["engine"] as? [String: Any],
             let translators = engine["translators"] as? [String],
             let producer = CompactSchemaAdapter.primaryProducer(translators: translators)
         else {
-            return .ineligible("这个输入方式不是拼音输入，暂不支持模糊音。")
+            return .ineligible(PackageText.string("fuzzy.error.notPinyin"))
         }
-        guard producer.klass == .script else { return .ineligible("这个输入方式不是拼音输入，暂不支持模糊音。") }
+        guard producer.klass == .script else { return .ineligible(PackageText.string("fuzzy.error.notPinyin")) }
         guard producer.namespace.range(of: "^[A-Za-z0-9_]+$", options: .regularExpression) != nil,
             let section = root[producer.namespace] as? [String: Any],
             let dictionary = section["dictionary"] as? String, !dictionary.isEmpty
         else {
-            return .ineligible("输入方式没有可用的词典")
+            return .ineligible(PackageText.string("fuzzy.error.noDictionary"))
         }
         let speller = root["speller"] as? [String: Any]
         // An unquoted numeric alphabet loads as a number, not a string; any present-but
@@ -188,7 +190,7 @@ public enum FuzzyPinyin {
         case let value?: alphabet = String(describing: value)
         }
         guard fullAlphabet.isSubset(of: Set(alphabet)) else {
-            return .ineligible("当前输入方式的拼写设置暂不支持模糊音")
+            return .ineligible(PackageText.string("fuzzy.error.spellerUnsupported"))
         }
         return .eligible(Target(schemaID: schemaID, namespace: producer.namespace))
     }
@@ -346,17 +348,17 @@ public enum FuzzyPinyin {
         guard let defaults = try? Data(contentsOf: build.appendingPathComponent("default.yaml")),
             TypoCorrection.enabledSchemaIDs(compiledDefault: defaults).contains(schemaID)
         else {
-            return .refused("这个输入方式还没有启用，请在「我的键盘」中重新选择后再试。")
+            return .refused(PackageText.string("fuzzy.error.notEnabled"))
         }
         guard
             let compiled = try? Data(contentsOf: InstalledPackageLayout.compiledSchemaURL(build: build, id: schemaID)),
             let changed = eligibility(compiled: compiled, schemaID: schemaID).target
         else {
-            return .refused("这个输入方式暂不支持模糊音，请选择其他输入方式。")
+            return .refused(PackageText.string("fuzzy.error.unsupported"))
         }
         let changedCustom = customFiles[schemaID + ".custom.yaml"]
         guard !userOwnsSetting(customYAML: changedCustom, packageReference: packageReference) else {
-            return .refused("模糊音已由你的自定义设置决定，请在自定义设置里修改。")
+            return .refused(PackageText.string("fuzzy.error.userManaged"))
         }
         let changedAppended = managedAlgebra(customYAML: changedCustom, packageReference: packageReference)
         guard changedAppended.flatMap(pairIDs(rules:)) != enabledPairIDs else {
@@ -402,14 +404,16 @@ public enum FuzzyPinyin {
         targets: [Target]
     ) throws -> DeclarativeRecipe {
         let schemas = Set(targets.map(\.schemaID)).sorted()
-        guard !schemas.isEmpty else { throw RecipeInstallError.invalidResource("没有需要调整模糊音的输入方式") }
+        guard !schemas.isEmpty else {
+            throw RecipeInstallError.invalidResource(PackageText.string("fuzzy.error.noTargets"))
+        }
         guard Set(enabledPairIDsBySchema.keys) == Set(schemas) else {
-            throw RecipeInstallError.invalidResource("模糊音设置与输入方式不一致，请重新打开设置")
+            throw RecipeInstallError.invalidResource(PackageText.string("fuzzy.error.mismatch"))
         }
         var appendedBySchema: [String: [String]] = [:]
         for schemaID in schemas {
             guard let appended = rules(pairIDs: enabledPairIDsBySchema[schemaID] ?? []) else {
-                throw RecipeInstallError.invalidResource("无法识别的模糊音设置")
+                throw RecipeInstallError.invalidResource(PackageText.string("fuzzy.error.unrecognized"))
             }
             appendedBySchema[schemaID] = appended
         }
@@ -417,13 +421,14 @@ public enum FuzzyPinyin {
             guard TypoCorrection.validIdentifier(schemaID),
                 !CompactSchemaAdapter.isGeneratedCompanionID(schemaID)
             else {
-                throw RecipeInstallError.invalidResource("输入方式标识无效：\(schemaID)")
+                throw RecipeInstallError.invalidResource(
+                    PackageText.format("schema.error.invalidIDWithDetail", schemaID))
             }
         }
         var lines = [
             "recipe:",
             "  Rx: \(recipeName)",
-            "  description: 模糊音",
+            "  description: " + PackageText.string("recipe.description.fuzzyPinyin"),
             "patch_files:",
         ]
         for schemaID in schemas {

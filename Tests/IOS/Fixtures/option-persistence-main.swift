@@ -172,5 +172,49 @@ final class Disk: @unchecked Sendable {
         try await real.beginRefresh([a, b]).value
         try check(try real.value(for: a) == true && real.value(for: b) == false)
         print("PASS actual atomic store roundtrip keeps same-name schema preferences separate")
+
+        // A keyboard without Full Access can only write its own container. A store that carries that
+        // private fallback must persist a choice even though the shared App Group refuses writes;
+        // RimeBackend wires this one gate to the shared-container flag alone.
+        let blockedShared = URL(fileURLWithPath: CommandLine.arguments[1])
+            .appendingPathComponent(UUID().uuidString)
+        try Data().write(to: blockedShared)
+        let privateFallback = URL(fileURLWithPath: CommandLine.arguments[1])
+            .appendingPathComponent(UUID().uuidString)
+        let dualStore = OptionStore(directory: blockedShared, fallbackDirectory: privateFallback)
+        let wired = OptionPreferenceCache(
+            store: dualStore, persists: dualStore.persists(sharedWritesAllowed: { false }))
+        try await wired.beginSave(true, for: a).value.result.get()
+        try check(
+            try OptionStore(directory: blockedShared, fallbackDirectory: privateFallback)
+                .value(for: a) == true,
+            "a read-only App Group must persist the choice through the private fallback")
+        try check(
+            try OptionStore(directory: blockedShared).value(for: a) == nil,
+            "the read-only shared store never holds the private choice")
+        print("PASS a read-only App Group persists the choice through the private fallback")
+
+        // A store with nowhere to write keeps the deliberate session-only behavior: no file appears.
+        let singleDirectory = URL(fileURLWithPath: CommandLine.arguments[1])
+            .appendingPathComponent(UUID().uuidString)
+        let singleStore = OptionStore(directory: singleDirectory)
+        let sessionOnlyCache = OptionPreferenceCache(
+            store: singleStore, persists: singleStore.persists(sharedWritesAllowed: { false }))
+        let keptSingle = try await sessionOnlyCache.beginSave(true, for: b).value
+        precondition(keptSingle.isCurrent)
+        try await sessionOnlyCache.beginRefresh([b]).value
+        try check(
+            try sessionOnlyCache.value(for: b) == true,
+            "a store with nowhere to write keeps the session choice")
+        try check(try singleStore.value(for: b) == nil, "a session-only choice is never written")
+        print("PASS a store with no writable path stays session-only")
+
+        // The engine's own wiring expression, compiled here so a change to it cannot silently
+        // diverge from what the production initializer accepts.
+        let wiredStore: OptionStore? = dualStore
+        let wiredPreferences = wiredStore.map {
+            OptionPreferenceCache(store: $0, persists: $0.persists(sharedWritesAllowed: { false }))
+        }
+        try check(wiredPreferences != nil, "the engine wiring expression type-checks")
     }
 }

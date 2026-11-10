@@ -191,7 +191,7 @@ public final class SymbolLibraryModel: ObservableObject {
         insertText(entry.text, name: entry.name)
     }
 
-    /// Private phrases and clipboard text never enter the symbol-recents file.
+    /// Private phrases never enter the symbol-recents file.
     public func insertQuickText(_ text: String) -> Bool {
         let inserted = onInsert(text)
         onInserted?(inserted)

@@ -20,9 +20,8 @@
         KF2610160000000000000003 /* KeyFeedback in Resources */ = {isa = PBXBuildFile; fileRef = KF2610160000000000000001; };
         SH2610160000000000000003 /* ShuangpinHintManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = SH2610160000000000000001; };
         SH2610160000000000000004 /* ShuangpinHintManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SH2610160000000000000002; };
-        QP2600000000000000000002 /* QuickPasteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = QP2600000000000000000001; };
-        QP2600000000000000000003 /* QuickPasteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = QP2600000000000000000001; };
         QS2600000000000000000002 /* T9QuickSymbolManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = QS2600000000000000000001; };
+        TB2700000000000000000002 /* IdleToolbarSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = TB2700000000000000000001; };
         F10000000000000000000001 = {isa = PBXBuildFile; fileRef = F10000000000000000000101; };
 		G20100000000000000000001 = {isa = PBXBuildFile; fileRef = G20100000000000000000003; };
 		G20100000000000000000002 = {isa = PBXBuildFile; fileRef = G20100000000000000000003; };
@@ -221,6 +220,8 @@
 		AS1C0NBF000000000000001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AS1C0N0000000000000001 /* Assets.xcassets */; };
 		PRIVH0STBF00000000000001 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = PRIVH0ST0000000000000001 /* PrivacyInfo.xcprivacy */; };
 		PRIVE0XTBF00000000000001 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = PRIVE0XT0000000000000001 /* PrivacyInfo.xcprivacy */; };
+		LC2611050000000000000002 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = LC2611050000000000000001 /* Localizable.xcstrings */; };
+		LC2611050000000000000003 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = LC2611050000000000000001 /* Localizable.xcstrings */; };
 		LT2600000000000000000003 /* KeyboardLearningTransfer.swift in Sources */ = {isa = PBXBuildFile; fileRef = LT2600000000000000000001 /* KeyboardLearningTransfer.swift */; };
 		LT2600000000000000000004 /* KeyboardLearningTransfer.swift in Sources */ = {isa = PBXBuildFile; fileRef = LT2600000000000000000001 /* KeyboardLearningTransfer.swift */; };
 		LT2600000000000000000005 /* LearningBackupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LT2600000000000000000002 /* LearningBackupView.swift */; };
@@ -235,6 +236,15 @@
 		91447F0DFACEDA6EA76F3DA5 /* KeyboardSystemRequirements.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1A992B99E56ED8915138994; };
 		5CBED1F7984DA89294D01903 /* KeyboardSystemRequirements.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1A992B99E56ED8915138994; };
 		C0F000000000000000000002 = {isa = PBXBuildFile; fileRef = C0F000000000000000000003; };
+		KA2611070000000000000011 /* Kana12KeyboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = KA2611070000000000000001 /* Kana12KeyboardView.swift */; };
+		KA2611070000000000000012 /* KeyboardController+Kana12.swift in Sources */ = {isa = PBXBuildFile; fileRef = KA2611070000000000000002 /* KeyboardController+Kana12.swift */; };
+		KA2611070000000000000013 /* KeyboardPanelView+Kana12.swift in Sources */ = {isa = PBXBuildFile; fileRef = KA2611070000000000000003 /* KeyboardPanelView+Kana12.swift */; };
+		KA2611070000000000000021 /* Kana12KeyboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = KA2611070000000000000001 /* Kana12KeyboardView.swift */; };
+		KA2611070000000000000022 /* KeyboardController+Kana12.swift in Sources */ = {isa = PBXBuildFile; fileRef = KA2611070000000000000002 /* KeyboardController+Kana12.swift */; };
+		KA2611070000000000000023 /* KeyboardPanelView+Kana12.swift in Sources */ = {isa = PBXBuildFile; fileRef = KA2611070000000000000003 /* KeyboardPanelView+Kana12.swift */; };
+		35121828CEFFDA148EDF25D6 /* opencc in Resources */ = {isa = PBXBuildFile; fileRef = CC3EFB1CF07BF63385C710C1 /* opencc */; };
+		2BDC99D24EFD4B36E8669CC2 /* HostApp InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 2DFFEF6499DCB78987817CB2 /* HostApp InfoPlist.xcstrings */; };
+		9E0742B3BFBAE4C056120EF7 /* KeyboardExtension InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 0F2FC0A0553F94C13B2A5191 /* KeyboardExtension InfoPlist.xcstrings */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -275,14 +285,17 @@
 		375CAB1BE2039787E0D69687 /* KeyboardPageManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "KeyboardPageManagementView.swift"; sourceTree = "<group>"; };
 		12EC6896AEEF4E587E6AFCF0 /* KeyboardCompositionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "KeyboardCompositionView.swift"; sourceTree = "<group>"; };
 		E5F1E220ADD55F43C194A7DB /* KeyboardPanelView+Pages.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "KeyboardPanelView+Pages.swift"; sourceTree = "<group>"; };
+		KA2611070000000000000001 /* Kana12KeyboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Kana12KeyboardView.swift; sourceTree = "<group>"; };
+		KA2611070000000000000002 /* KeyboardController+Kana12.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "KeyboardController+Kana12.swift"; sourceTree = "<group>"; };
+		KA2611070000000000000003 /* KeyboardPanelView+Kana12.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "KeyboardPanelView+Kana12.swift"; sourceTree = "<group>"; };
         FZ2610160000000000000001 /* FuzzyPinyinCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FuzzyPinyinCenter.swift; sourceTree = "<group>"; };
         FZ2610160000000000000002 /* FuzzyPinyinSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FuzzyPinyinSettingsView.swift; sourceTree = "<group>"; };
         KF2610160000000000000001 /* KeyFeedback */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "Resources/KeyFeedback"; sourceTree = "<group>"; };
         SH2610160000000000000001 /* ShuangpinHintManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShuangpinHintManager.swift; sourceTree = "<group>"; };
         SH2610160000000000000002 /* ShuangpinHintManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShuangpinHintManagementView.swift; sourceTree = "<group>"; };
 		A0000000000000000000000072 /* Identity.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/Identity.xcconfig; sourceTree = "<group>"; };
-        QP2600000000000000000001 /* QuickPasteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickPasteView.swift; sourceTree = "<group>"; };
         QS2600000000000000000001 /* T9QuickSymbolManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = T9QuickSymbolManagementView.swift; sourceTree = "<group>"; };
+        TB2700000000000000000001 /* IdleToolbarSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdleToolbarSettingsView.swift; sourceTree = "<group>"; };
         F10000000000000000000101 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardCandidateActions.swift; sourceTree = "<group>"; };
         AB0000000000000000000003 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppearanceManager.swift; sourceTree = "<group>"; };
         F10000000000000000000102 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CandidateBarPreviewView.swift; sourceTree = "<group>"; };
@@ -403,6 +416,7 @@
 		A0000000000000000000000054 /* InputSchemeListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputSchemeListView.swift; sourceTree = "<group>"; };
 		A0000000000000000000000058 /* EngineResources */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "Resources/EngineResources"; sourceTree = "<group>"; };
 		B1000000000000000000000002 /* Legal */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "Resources/Legal"; sourceTree = "<group>"; };
+		LC2611050000000000000001 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = "Resources/Localizable.xcstrings"; sourceTree = "<group>"; };
 		A0000000000000000000000060 /* LayoutManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutManager.swift; sourceTree = "<group>"; };
 		A0000000000000000000000061 /* LayoutManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutManagementView.swift; sourceTree = "<group>"; };
 		G20000000000000000000000002 /* InputOptionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputOptionsView.swift; sourceTree = "<group>"; };
@@ -419,6 +433,9 @@
 		B1A992B99E56ED8915138994 /* KeyboardSystemRequirements.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "KeyboardSystemRequirements.swift"; sourceTree = "<group>"; };
 		C0F000000000000000000003 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardPerformanceTests.swift; sourceTree = "<group>"; };
 		C0F000000000000000000004 = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KeyboardPerformanceTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		CC3EFB1CF07BF63385C710C1 /* opencc */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "Resources/EngineResources/opencc"; sourceTree = "<group>"; };
+		2DFFEF6499DCB78987817CB2 /* HostApp InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
+		0F2FC0A0553F94C13B2A5191 /* KeyboardExtension InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -458,12 +475,14 @@
 		A0000000000000000000000002 /* mainGroup */ = {
 			isa = PBXGroup;
 			children = (
+				CC3EFB1CF07BF63385C710C1 /* opencc */,
 				A0000000000000000000000072 /* Identity.xcconfig */,
 				A0000000000000000000000004 /* Apps */,
 				A0000000000000000000000024 /* BuiltinPackages */,
                 KF2610160000000000000001 /* KeyFeedback */,
 				A0000000000000000000000058 /* EngineResources */,
 				B1000000000000000000000002 /* Legal */,
+				LC2611050000000000000001 /* Localizable.xcstrings */,
 				C0F000000000000000000005 /* Performance tests */,
 				A0000000000000000000000003 /* Products */,
 			);
@@ -482,6 +501,7 @@
 		A0000000000000000000000005 /* HostApp */ = {
 			isa = PBXGroup;
 			children = (
+				2DFFEF6499DCB78987817CB2 /* HostApp InfoPlist.xcstrings */,
 				A0000000000000000000000026 /* HostApp.swift */,
 				A0000000000000000000000028 /* MainTabView.swift */,
 				A000000000000000000000002A /* OnboardingView.swift */,
@@ -524,6 +544,7 @@
 				A0000000000000000000000061 /* LayoutManagementView.swift */,
 				G20000000000000000000000002 /* InputOptionsView.swift */,
 				QS2600000000000000000001 /* T9QuickSymbolManagementView.swift */,
+				TB2700000000000000000001 /* IdleToolbarSettingsView.swift */,
 				G20300000000000000000002 /* SymbolCatalogManagementView.swift */,
                 SH2610160000000000000001 /* ShuangpinHintManager.swift */,
                 FZ2610160000000000000001 /* FuzzyPinyinCenter.swift */,
@@ -557,6 +578,7 @@
 		A0000000000000000000000006 /* KeyboardExtension */ = {
 			isa = PBXGroup;
 			children = (
+				0F2FC0A0553F94C13B2A5191 /* KeyboardExtension InfoPlist.xcstrings */,
 				A0000000000000000000000032 /* KeyboardViewController.swift */,
 				A5D0358994F742F9A970331C /* KeyboardViewController+HostDocument.swift */,
 				265D31AF51C54918BA753435 /* KeyboardViewController+TimingProbe.swift */,
@@ -589,6 +611,9 @@
 				9305233E190F4B2CA5663EFE /* KeyboardPanelView+Utilities.swift */,
 				CFE75737435B4739898F0BD5 /* KeyboardPanelView+KeyRows.swift */,
 				E5F1E220ADD55F43C194A7DB /* KeyboardPanelView+Pages.swift */,
+				KA2611070000000000000001 /* Kana12KeyboardView.swift */,
+				KA2611070000000000000002 /* KeyboardController+Kana12.swift */,
+				KA2611070000000000000003 /* KeyboardPanelView+Kana12.swift */,
                 8ED57238B2F26995B8E277A6 /* KeyboardPagePreviewView.swift */,
                 D5114CB229011A3DDF49037D /* KeyboardAuthoredPageChrome.swift */,
                 DAC31C39A89A7272F4308B91 /* KeyboardAuthoredPageView.swift */,
@@ -631,7 +656,6 @@
                 FB0000000000000000000002 /* FeedbackInputView.swift */,
 				G20100000000000000000003 /* QuickInsertState.swift */,
 				G20100000000000000000006 /* QuickInsertView.swift */,
-				QP2600000000000000000001 /* QuickPasteView.swift */,
 				G20200000000000000000005 /* SymbolLibraryView.swift */,
 				G20200000000000000000010 /* HostAppLink.swift */,
                 F10000000000000000000101 /* KeyboardCandidateActions.swift */,
@@ -765,6 +789,8 @@
 			knownRegions = (
 				en,
 				Base,
+				zh-Hant,
+				ja,
 				"zh-Hans",
 			);
 			mainGroup = A0000000000000000000000002 /* mainGroup */;
@@ -794,12 +820,14 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2BDC99D24EFD4B36E8669CC2 /* HostApp InfoPlist.xcstrings in Resources */,
 				A0000000000000000000000025 /* BuiltinPackages in Resources */,
                 KF2610160000000000000002 /* KeyFeedback in Resources */,
 				A0000000000000000000000059 /* EngineResources in Resources */,
 				B1000000000000000000000001 /* Legal in Resources */,
 				PRIVH0STBF00000000000001 /* PrivacyInfo.xcprivacy in Resources */,
 				AS1C0NBF000000000000001 /* Assets.xcassets in Resources */,
+				LC2611050000000000000002 /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -807,9 +835,12 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9E0742B3BFBAE4C056120EF7 /* KeyboardExtension InfoPlist.xcstrings in Resources */,
+				35121828CEFFDA148EDF25D6 /* opencc in Resources */,
 				A0000000000000000000000048 /* BuiltinPackages in Resources */,
                 KF2610160000000000000003 /* KeyFeedback in Resources */,
 				PRIVE0XTBF00000000000001 /* PrivacyInfo.xcprivacy in Resources */,
+				LC2611050000000000000003 /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -878,6 +909,9 @@
                 19179132AAFC7BCBC845A7D4 /* KeyboardPageDraftFactory.swift in Sources */,
                 A36B7C93CB4B8A1AD5416E26 /* KeyboardCategoryEditorView.swift in Sources */,
                 FA5E0794B5B5D55B9F2FB996 /* KeyboardPanelView+Pages.swift in Sources */,
+                 KA2611070000000000000011 /* Kana12KeyboardView.swift in Sources */,
+                 KA2611070000000000000012 /* KeyboardController+Kana12.swift in Sources */,
+                 KA2611070000000000000013 /* KeyboardPanelView+Kana12.swift in Sources */,
                 E86B7BD677D90088862894BA /* KeyboardPagePreviewView.swift in Sources */,
                 FF2F2F1EF91DB4F01ED7EC9C /* KeyboardAuthoredPageChrome.swift in Sources */,
                 A0DCAEA0DC9706E19CF7DDCA /* KeyboardAuthoredPageView.swift in Sources */,
@@ -894,8 +928,8 @@
                 FB0000000000000000000001 /* FeedbackInputView.swift in Sources */,
 				G20100000000000000000001 /* QuickInsertState.swift in Sources */,
 				G20100000000000000000004 /* QuickInsertView.swift in Sources */,
-                QP2600000000000000000002 /* QuickPasteView.swift in Sources */,
                 QS2600000000000000000002 /* T9QuickSymbolManagementView.swift in Sources */,
+                TB2700000000000000000002 /* IdleToolbarSettingsView.swift in Sources */,
 				G20200000000000000000001 /* SymbolLibraryView.swift in Sources */,
 				G20200000000000000000011 /* HostAppLink.swift in Sources */,
                 F10000000000000000000004 /* CandidateBarManagementView.swift in Sources */,
@@ -983,6 +1017,9 @@
 				BAA2DE65E7AC490984B04A91 /* KeyboardPanelView+Utilities.swift in Sources */,
 				EFA4B5606CF141C59415308A /* KeyboardPanelView+KeyRows.swift in Sources */,
 				3DA54DDAC3DDE85658093749 /* KeyboardPanelView+Pages.swift in Sources */,
+				KA2611070000000000000021 /* Kana12KeyboardView.swift in Sources */,
+				KA2611070000000000000022 /* KeyboardController+Kana12.swift in Sources */,
+				KA2611070000000000000023 /* KeyboardPanelView+Kana12.swift in Sources */,
                 27D30BD3088608D42A2B2171 /* KeyboardPagePreviewView.swift in Sources */,
                 391B1EDD75FDFFAADA2A9D69 /* KeyboardAuthoredPageChrome.swift in Sources */,
                 BB8D82E84373D9E08762BBD7 /* KeyboardAuthoredPageView.swift in Sources */,
@@ -1014,7 +1051,6 @@
                 FB0000000000000000000003 /* FeedbackInputView.swift in Sources */,
 				G20100000000000000000002 /* QuickInsertState.swift in Sources */,
 				G20100000000000000000005 /* QuickInsertView.swift in Sources */,
-                QP2600000000000000000003 /* QuickPasteView.swift in Sources */,
 				G20200000000000000000002 /* SymbolLibraryView.swift in Sources */,
 				G20200000000000000000012 /* HostAppLink.swift in Sources */,
                 F10000000000000000000001 /* KeyboardCandidateActions.swift in Sources */,

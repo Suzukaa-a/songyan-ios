@@ -48,11 +48,15 @@ final class BilingualLiteralTests: XCTestCase {
             XCTAssertEqual(policy(page).languageAction(for: .symbols), .toggleSymbols, "\(page)")
             XCTAssertEqual(policy(page).languageAction(for: .letters), .returnToLetters, "\(page)")
         }
-        // Target-language auto faces.
-        XCTAssertEqual(policy(.letters).languageTitle, "英文")
-        XCTAssertEqual(policy(.letters, ascii: true).languageTitle, "英文")
-        XCTAssertEqual(policy(.numeric).languageTitle, "英文")
-        XCTAssertEqual(policy(.numeric, ascii: true).languageTitle, "中文")
+        // One face; the emphasised side follows the page's own state.
+        XCTAssertEqual(policy(.letters).languageTitle, "中/英")
+        XCTAssertEqual(policy(.letters, ascii: true).languageTitle, "中/英")
+        XCTAssertEqual(policy(.numeric).languageTitle, "中/英")
+        XCTAssertEqual(policy(.numeric, ascii: true).languageTitle, "中/英")
+        XCTAssertEqual(policy(.letters, ascii: true).languageCurrentSideIsFirst(for: nil), true)
+        XCTAssertEqual(policy(.numeric).languageCurrentSideIsFirst(for: nil), true)
+        XCTAssertEqual(policy(.numeric, ascii: true).languageCurrentSideIsFirst(for: nil), false)
+        XCTAssertNil(policy(.symbols, category: true).languageCurrentSideIsFirst(for: nil))
         XCTAssertEqual(policy(.symbols, category: true).languageTitle, "返回")
         XCTAssertEqual(policy(.numeric).languageTitle(for: .letters), "返回")
         XCTAssertEqual(policy(.symbols, category: true).languageAction(for: .symbols), .toggleSymbols)

@@ -98,17 +98,23 @@ enum SymbolPageTable {
     /// 常用 opens the page. Its first three rows (all the page shows before a
     /// scroll) are the marks typed most in the current punctuation width, in a fixed
     /// order so their positions can be learned.
-    static func phoneCommonSymbols(ascii: Bool) -> [String] {
-        ascii
-            ? [
+    static func phoneCommonSymbols(ascii: Bool, script: KeyLabelScript = .simplifiedChinese) -> [String] {
+        if ascii {
+            return [
                 ",", ".", "?", "!", ":", ";", "'", "\"", "(", ")", "@", "#",
                 "&", "*", "-", "_", "/", "\\", "~", "%", "+", "=", "$", "^",
             ]
-            : [
-                "，", "。", "？", "！", "、", "：", "；", "……", "“", "”", "（", "）",
-                "《", "》", "——", "·", "@", "#", "%", "&", "*", "/", "~", "-",
-            ]
+        }
+        let chinese: [String] = [
+            "，", "。", "？", "！", "、", "：", "；", "……", "“", "”", "（", "）",
+            "《", "》", "——", "·", "@", "#", "%", "&", "*", "/", "~", "-",
+        ]
+        // Japanese typing needs its own marks in the first tab; the page is generated, never data.
+        return script == .japanese ? chinese + japaneseCommonSymbols : chinese
     }
+
+    /// Marks Japanese needs that the Chinese common set has no home for; ー is a letter, not punctuation.
+    static let japaneseCommonSymbols = ["・", "ー", "～"]
 
     /// Full-width marks; 「……」 and 「——」 are the doubled forms Chinese text uses.
     static let phoneChineseSymbols = [
@@ -135,7 +141,8 @@ enum SymbolPageTable {
     /// symbol is already in a built-in tab (the default 标点 set) is not repeated.
     /// `leadingMarks` are the everyday marks the pairing reaches nowhere else; 常用 lists them first.
     static func phoneSymbolCategories(
-        ascii: Bool, recents: [String] = [], library: [LibraryCategory] = [], leadingMarks: [String] = []
+        ascii: Bool, recents: [String] = [], library: [LibraryCategory] = [], leadingMarks: [String] = [],
+        script: KeyLabelScript = .simplifiedChinese
     ) -> [PhoneSymbolCategory] {
         func category(_ id: String, _ title: String, _ symbols: [String]) -> PhoneSymbolCategory {
             var seen = Set<String>()
@@ -144,12 +151,13 @@ enum SymbolPageTable {
                 caps: literals("ps-\(id)", symbols.filter { !$0.isEmpty && seen.insert($0).inserted }))
         }
         let common = category(
-            commonCategoryID, "常用",
-            KeyboardPageMarkCoverage.commonSymbols(phoneCommonSymbols(ascii: ascii), leading: leadingMarks))
+            commonCategoryID, String(localized: "常用"),
+            KeyboardPageMarkCoverage.commonSymbols(
+                phoneCommonSymbols(ascii: ascii, script: script), leading: leadingMarks))
         let widths = [
-            category("chinese", "中文", phoneChineseSymbols),
-            category("english", "英文", phoneEnglishSymbols),
-            category("brackets", "括号", phoneBracketSymbols),
+            category("chinese", String(localized: "中文"), phoneChineseSymbols),
+            category("english", String(localized: "英文"), phoneEnglishSymbols),
+            category("brackets", String(localized: "括号"), phoneBracketSymbols),
         ]
         let covered = Set(([common] + widths).flatMap { $0.caps.map(\.title) })
         let themed = library.compactMap { set -> PhoneSymbolCategory? in
@@ -157,7 +165,7 @@ enum SymbolPageTable {
             guard result.caps.contains(where: { !covered.contains($0.title) }) else { return nil }
             return result
         }
-        let recent = recents.isEmpty ? [] : [category(recentCategoryID, "最近", recents)]
+        let recent = recents.isEmpty ? [] : [category(recentCategoryID, String(localized: "最近"), recents)]
         return [common] + recent + widths + themed
     }
 

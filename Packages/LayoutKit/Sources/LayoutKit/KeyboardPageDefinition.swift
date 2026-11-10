@@ -5,9 +5,9 @@ public enum KeyboardPageKind: String, Codable, CaseIterable, Sendable {
 
     public var title: String {
         switch self {
-        case .numeric: return "123 页"
-        case .symbols: return "符号页"
-        case .english: return "ABC 页"
+        case .numeric: return String(localized: "page.kind.numeric", bundle: .module)
+        case .symbols: return String(localized: "page.kind.symbols", bundle: .module)
+        case .english: return String(localized: "page.kind.english", bundle: .module)
         }
     }
 }
@@ -193,41 +193,50 @@ public struct KeyboardPageDefinition: Codable, Equatable, Identifiable, Sendable
     /// page a second time.
     func validatedUsage() throws -> LayoutResourceBudget.Usage {
         guard numericPresentation == nil || kind == .numeric else {
-            throw LayoutError.invalid("只有 123 页可以选择「自动」或「数字九宫格」，请重新选择页面。")
+            throw LayoutError.invalid(
+                String(localized: "page.error.only123Presentation", bundle: .module))
         }
         guard kind == .symbols || (symbolPresentation == nil && categories == nil) else {
-            throw LayoutError.invalid("分类浏览只适用于符号页，请重新选择页面。")
+            throw LayoutError.invalid(
+                String(localized: "page.error.categoriesOnlySymbols", bundle: .module))
         }
         try Self.validateIdentity(id: id, name: name)
         // Bound the work first: every later check walks keys the budget has already counted.
         let usage = try LayoutResourceBudget.usage(self)
         if numericPresentation == .automatic {
             guard rows.isEmpty, categories == nil, symbolPresentation == nil, chrome == nil else {
-                throw LayoutError.invalid("「自动 123」不能带按键或分类，请复制一份再编辑。")
+                throw LayoutError.invalid(
+                    String(localized: "page.error.autoNumericPlain", bundle: .module))
             }
         } else if symbolPresentation == .categorized {
             if let chrome, !chrome.leading.isEmpty {
-                throw LayoutError.invalid("分类符号页的左侧栏由分类决定，不能再放按键。")
+                throw LayoutError.invalid(
+                    String(localized: "page.error.categorizedLeading", bundle: .module))
             }
             if let categories {
-                guard !categories.isEmpty else { throw LayoutError.invalid("请至少保留一个分类。") }
+                guard !categories.isEmpty else {
+                    throw LayoutError.invalid(String(localized: "page.error.oneCategory", bundle: .module))
+                }
                 guard Set(categories.map(\.id)).count == categories.count else {
-                    throw LayoutError.invalid("有两个分类重复了，请删掉其中一个。")
+                    throw LayoutError.invalid(
+                        String(localized: "page.error.duplicateCategory", bundle: .module))
                 }
                 for category in categories { try category.validate() }
             }
         } else {
             guard categories == nil else {
-                throw LayoutError.invalid("只有分类符号页可以放分类，请删掉分类，或者改用分类符号页。")
+                throw LayoutError.invalid(
+                    String(localized: "page.error.categoriesWrongKind", bundle: .module))
             }
             if chrome == nil {
                 // Native controls are drawn around these rows; authored pages (chrome != nil) may
                 // keep a deliberately empty key area instead.
                 guard numericPresentation == nil else {
-                    throw LayoutError.invalid("这个数字九宫格没有按键，请复制「数字九宫格」页面后再编辑。")
+                    throw LayoutError.invalid(
+                        String(localized: "page.error.emptyPhoneGrid", bundle: .module))
                 }
                 guard !rows.isEmpty, rows.allSatisfy({ !$0.keys.isEmpty }) else {
-                    throw LayoutError.invalid("请至少保留一行，每行至少保留一个按键。")
+                    throw LayoutError.invalid(String(localized: "page.error.noRows", bundle: .module))
                 }
             }
         }
@@ -240,22 +249,24 @@ public struct KeyboardPageDefinition: Codable, Equatable, Identifiable, Sendable
     private static func validateIdentity(id: String, name: String) throws {
         guard !id.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
             !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        else { throw LayoutError.invalid("请填写页面名称。") }
+        else { throw LayoutError.invalid(String(localized: "page.error.pageName", bundle: .module)) }
         guard id.utf8.count <= 256, name.utf8.count <= 256 else {
-            throw LayoutError.invalid("页面名称过长，请缩短后保存。")
+            throw LayoutError.invalid(String(localized: "page.error.pageNameTooLong", bundle: .module))
         }
     }
 
     static func validateKey(_ key: LayoutKey) throws {
         guard !key.label.isEmpty, key.widthWeight.isFinite, key.widthWeight > 0 else {
-            throw LayoutError.invalid("请填写按键标题，并把宽度设为大于 0 的数字。")
+            throw LayoutError.invalid(String(localized: "layout.error.keyTitle", bundle: .module))
         }
         guard key.action.type != .code, (key.longPress ?? []).allSatisfy({ $0.action.type != .code }) else {
-            throw LayoutError.invalid("页面上的按键请选择「输入文字」。")
+            throw LayoutError.invalid(String(localized: "page.error.pageKeyLiteral", bundle: .module))
         }
         try key.action.validate()
         for option in key.longPress ?? [] {
-            guard !option.label.isEmpty else { throw LayoutError.invalid("请填写长按项的标题。") }
+            guard !option.label.isEmpty else {
+                throw LayoutError.invalid(String(localized: "layout.error.optionTitle", bundle: .module))
+            }
             try option.action.validate()
         }
     }
@@ -340,7 +351,10 @@ public struct KeyboardPageDefinition: Codable, Equatable, Identifiable, Sendable
         var copy = materialized(numericForm: numericForm, numericMarks: numericMarks ?? .chinese)
         if resolvesAtRuntime { copy.defaultSymbolMarks = numericMarks }
         copy.id = UUID().uuidString.lowercased()
-        copy.name = name ?? self.name + " 副本"
+        copy.name =
+            name
+            ?? String(
+                format: String(localized: "layout.error.copySuffix", bundle: .module), self.name)
         return copy
     }
 

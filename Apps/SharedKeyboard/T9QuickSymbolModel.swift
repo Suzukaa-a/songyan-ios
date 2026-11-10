@@ -53,7 +53,7 @@ private final class T9QuickSymbolIOWorker: Sendable {
     private func readOnlyOutcome() -> Outcome? {
         guard !canWrite() else { return nil }
         var outcome = Outcome()
-        outcome.errorMessage = "快捷符号未保存，请在系统设置中打开「允许完全访问」后重试"
+        outcome.errorMessage = String(localized: "快捷符号未保存，请在系统设置中打开「允许完全访问」后重试")
         return outcome
     }
 
@@ -64,7 +64,7 @@ private final class T9QuickSymbolIOWorker: Sendable {
             outcome.shared = false
             outcome.applyFileURL = true
             outcome.fileURL = nil
-            outcome.errorMessage = "无法访问共享数据，快捷符号未保存"
+            outcome.errorMessage = String(localized: "无法访问共享数据，快捷符号未保存")
             if applyFallback {
                 outcome.symbols = T9QuickSymbolStore.defaultSymbols
             }
@@ -82,7 +82,7 @@ private final class T9QuickSymbolIOWorker: Sendable {
         } catch {
             var outcome = Outcome()
             outcome.shared = false
-            outcome.errorMessage = "无法读取快捷符号"
+            outcome.errorMessage = String(localized: "无法读取快捷符号")
             return outcome
         }
     }
@@ -94,7 +94,7 @@ private final class T9QuickSymbolIOWorker: Sendable {
             outcome.shared = false
             outcome.applyFileURL = true
             outcome.fileURL = nil
-            outcome.errorMessage = "无法访问共享数据，快捷符号未保存"
+            outcome.errorMessage = String(localized: "无法访问共享数据，快捷符号未保存")
             return outcome
         }
         do {
@@ -111,7 +111,7 @@ private final class T9QuickSymbolIOWorker: Sendable {
         } catch {
             var outcome = Outcome()
             outcome.shared = false
-            outcome.errorMessage = "快捷符号未保存，请重试"
+            outcome.errorMessage = String(localized: "快捷符号未保存，请重试")
             return outcome
         }
     }
@@ -123,7 +123,7 @@ private final class T9QuickSymbolIOWorker: Sendable {
             outcome.shared = false
             outcome.applyFileURL = true
             outcome.fileURL = nil
-            outcome.errorMessage = "无法访问共享数据，快捷符号未保存"
+            outcome.errorMessage = String(localized: "无法访问共享数据，快捷符号未保存")
             return outcome
         }
         do {
@@ -140,12 +140,12 @@ private final class T9QuickSymbolIOWorker: Sendable {
         } catch T9QuickSymbolStore.StoreError.invalidSymbols {
             var outcome = Outcome()
             outcome.shared = false
-            outcome.errorMessage = "符号须为 1 至 12 个不重复字符，不能包含空格或控制字符"
+            outcome.errorMessage = String(localized: "符号须为 1 至 12 个不重复字符，不能包含空格或控制字符")
             return outcome
         } catch {
             var outcome = Outcome()
             outcome.shared = false
-            outcome.errorMessage = "快捷符号未保存，原有数据已保留，请重试"
+            outcome.errorMessage = String(localized: "快捷符号未保存，原有数据已保留，请重试")
             return outcome
         }
     }

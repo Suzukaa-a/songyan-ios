@@ -104,19 +104,29 @@ extension KeyboardController {
             || HostKeyboardTypePolicy.requiresASCIIPunctuation(HostKeyboardTypeKind(keyboardType))
     }
 
-    public var returnKeyTitle: String {
-        if snapshot.isComposing { return "确认" }
+    /// What the host Return key will do, as the label table's language-independent value.
+    public var returnKeyIntent: KeyLabelPolicy.ReturnIntent {
         switch returnKeyType {
-        case .go: return "前往"
-        case .google, .yahoo, .search: return "搜索"
-        case .join: return "加入"
-        case .next: return "下一项"
-        case .route: return "路线"
-        case .send: return "发送"
-        case .done: return "完成"
-        case .emergencyCall: return "紧急呼叫"
-        case .continue: return "继续"
-        default: return "换行"
+        case .go: return .go
+        case .google, .yahoo, .search: return .search
+        case .join: return .join
+        case .next: return .next
+        case .route: return .route
+        case .send: return .send
+        case .done: return .done
+        case .emergencyCall: return .emergencyCall
+        case .continue: return .continueAction
+        default: return .lineBreak
         }
+    }
+
+    public var returnKeyTitle: String {
+        KeyLabelPolicy.returnTitle(
+            script: inputLanguageScript, isComposing: snapshot.isComposing, intent: returnKeyIntent)
+    }
+
+    /// Spoken Return name: composition confirms, otherwise the visible action word.
+    public var returnKeyAccessibilityLabel: String {
+        KeyLabelPolicy.returnAccessibilityLabel(isComposing: snapshot.isComposing, intent: returnKeyIntent)
     }
 }

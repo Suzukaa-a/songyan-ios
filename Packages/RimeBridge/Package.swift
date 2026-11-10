@@ -14,6 +14,8 @@ import PackageDescription
 
 let package = Package(
     name: "RimeBridge",
+    // User-facing wording lives in Resources/Localizable.xcstrings, one entry per language.
+    defaultLocalization: "zh-Hans",
     platforms: [
         .iOS(.v17)
     ],
@@ -36,7 +38,8 @@ let package = Package(
         ),
         .target(
             name: "RimeBridge",
-            dependencies: ["RimeKit", "RimeLeversSupport"]
+            dependencies: ["RimeKit", "RimeLeversSupport"],
+            resources: [.process("Resources/Localizable.xcstrings")]
         ),
         .testTarget(
             name: "RimeBridgeTests",

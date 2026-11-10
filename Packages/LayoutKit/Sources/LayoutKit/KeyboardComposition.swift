@@ -59,3 +59,26 @@ public struct KeyboardComposition: Codable, Equatable, Sendable {
         }
     }
 }
+
+/// Caller-injected physical-layout availability. The host app passes the shared input-language
+/// rules here; LayoutKit itself stays free of KeyboardCore and never owns a second copy of them.
+public struct LayoutAvailability: Sendable {
+    /// Whether a layout definition may be used for this keyboard pairing.
+    public typealias Allows = @Sendable (LayoutDefinition, KeyboardCompositionKey) -> Bool
+    /// A family-preferred main layout ID for this keyboard, when its definition is registered.
+    public typealias PreferredMainLayoutID = @Sendable (KeyboardCompositionKey) -> String?
+
+    public let allows: Allows
+    public let preferredMainLayoutID: PreferredMainLayoutID?
+
+    public init(
+        allows: @escaping Allows,
+        preferredMainLayoutID: PreferredMainLayoutID? = nil
+    ) {
+        self.allows = allows
+        self.preferredMainLayoutID = preferredMainLayoutID
+    }
+
+    /// No restriction: today's behaviour, used by call sites without a policy owner.
+    public static let unrestricted = LayoutAvailability(allows: { _, _ in true })
+}

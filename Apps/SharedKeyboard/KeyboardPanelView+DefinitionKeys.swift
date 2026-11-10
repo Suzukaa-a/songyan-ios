@@ -33,7 +33,8 @@ extension KeyboardPanelView {
         fixedKeyWidth: CGFloat? = nil, splitGap: CGFloat? = nil
     ) -> some View {
         KeyboardDefinitionRow(
-            keys: visibleKeys(row.keys), inset: inset, spacing: spacing, split: split, rowIndex: rowIndex,
+            keys: visibleKeys(systemKeyboardSwitch == nil ? row.keys.withoutGlobe() : row.keys), inset: inset,
+            spacing: spacing, split: split, rowIndex: rowIndex,
             fixedKeyWidth: fixedKeyWidth, splitGap: splitGap, isControls: id == "controls"
         ) { key, index in
             definitionKey(key, id: "\(id)-\(index)")
@@ -186,6 +187,8 @@ extension KeyboardPanelView {
                 longPressDelay: keyLongPressDelay,
                 layoutPicker: languageKeepsMenu,
                 visualRole: definitionUIActionRole(key),
+                languageCurrentSideIsFirst: KeyboardPageControlFace.languageCurrentSideIsFirst(
+                    for: key, policy: controlPolicy),
                 onSelect: dispatch
             )
             .accessibilityLabel(definitionUIActionAccessibility(key))
@@ -245,7 +248,9 @@ extension KeyboardPanelView {
         case .enter:
             ReturnKey(
                 title: customTitle ?? controller.returnKeyTitle,
-                isEnabled: controller.isReturnKeyEnabled, alternates: optionCaps,
+                isEnabled: controller.isReturnKeyEnabled,
+                accessibilityLabel: customTitle ?? controller.returnKeyAccessibilityLabel,
+                alternates: optionCaps,
                 longPressDelay: longPressDelay, capID: primaryID, subtitle: key.secondaryLabel,
                 onSelect: select)
         case .space:
@@ -253,8 +258,8 @@ extension KeyboardPanelView {
                 cap: KeyCap(
                     id: primaryID,
                     title: customTitle
-                        ?? (key.titleMode == .automatic
-                            ? (controller.isEnglishMode ? "space" : "空格") : key.label),
+                        ?? key.automaticSpaceTitle(
+                            policy: controlPolicy, isComposing: controller.snapshot.isComposing),
                     subtitle: key.secondaryLabel, action: .space),
                 alternates: optionCaps, longPressDelay: longPressDelay, onSelect: select)
         case .globe:
@@ -370,6 +375,7 @@ extension KeyboardPanelView {
             ReturnKey(
                 title: customTitle ?? controller.returnKeyTitle,
                 isEnabled: controller.isReturnKeyEnabled,
+                accessibilityLabel: customTitle ?? controller.returnKeyAccessibilityLabel,
                 alternates: (key.longPress ?? []).enumerated().map { index, option in
                     KeyCap(id: "\(id)-option-\(index)", title: option.label, action: keyAction(option.action))
                 }, longPressDelay: keyLongPressDelay,
@@ -380,7 +386,8 @@ extension KeyboardPanelView {
         } else if !isT9FirstKey && key.action.type == .space {
             CursorSpaceKey(
                 title: customTitle
-                    ?? (key.titleMode == .automatic ? (controller.isEnglishMode ? "space" : "空格") : key.label),
+                    ?? key.automaticSpaceTitle(
+                        policy: controlPolicy, isComposing: controller.snapshot.isComposing),
                 layoutName: currentKeyboardTitle,
                 layoutHintName: layoutHintName,
                 layoutHintToken: layoutHintToken,
@@ -414,7 +421,8 @@ extension KeyboardPanelView {
             // A bundled merged pair shows its first mark in the corner, which its flick types.
             let pairMarks =
                 bundledMergedFace && letterGroup.count > 1 && page == .letters && !controller.isEnglishMode
-                ? AlternateKeyPolicy.mergedPairLiterals(for: String(letterGroup)) : []
+                ? AlternateKeyPolicy.mergedPairLiterals(
+                    for: String(letterGroup), script: controller.inputLanguageScript) : []
             let subtitle =
                 !mergedHints.isEmpty
                 ? nil
@@ -467,7 +475,8 @@ extension KeyboardPanelView {
                         // Untouched menu: the bundled policy stays (qwerty menus) or stays
                         // suppressed (merged pad deliberately has none).
                         if knownMainShellPreset.input.builtinLayout == .qwerty26 {
-                            definitionAlternates(for: key, id: id) + controlOptions.map { $0.0 }
+                            definitionAlternates(
+                                for: key, id: id, nativeLetterDefaults: true) + controlOptions.map { $0.0 }
                         } else {
                             []
                         }
@@ -490,14 +499,17 @@ extension KeyboardPanelView {
             // This is a `@ViewBuilder` context, where an `if` is taken as a view branch, so a ternary expression is required.
             // The default hint describes the bundled first key (tap cycles, long press types 1).
             // A primary-only match keeps the author's label, so it must not promise those defaults.
-            let cycleHint: String? =
-                !isT9FirstKey
-                ? nil
-                : !isBuiltinPhoneFace
-                    ? (isComposing ? "轻点分词" : "连续点按轮换符号")
-                    : (isComposing
-                        ? "轻点分词，长按输入 1"
-                        : "连续点按轮换符号，长按输入 1")
+            let cycleHint: String? = {
+                guard isT9FirstKey else { return nil }
+                if !isBuiltinPhoneFace {
+                    return isComposing
+                        ? String(localized: "轻点分词")
+                        : String(localized: "连续点按轮换符号")
+                }
+                return isComposing
+                    ? String(localized: "轻点分词，长按输入 1")
+                    : String(localized: "连续点按轮换符号，长按输入 1")
+            }()
             let digitFlick = t9SwipeDigit(for: key)
             let flickSetting = KeyboardKeyFeelPreferences.flick
             // The idle 9-key first key cycles its symbols on tap and has no flick of its own.
@@ -586,7 +598,7 @@ extension KeyboardPanelView {
 
     /// The bundled T9 digit keys type their digit on an upward flick, the same
     /// literal their long press offers.
-    private var keyLongPressDelay: TimeInterval {
+    var keyLongPressDelay: TimeInterval {
         KeyboardKeyFeelPreferences.longPressDelay(layout: activeDefinition?.longPressDelay)
     }
 
@@ -638,7 +650,12 @@ extension KeyboardPanelView {
     /// fixed ABC list, and a merged-key partner is emitted only when the active
     /// schema's real alphabet proves that code. Non-code custom keys retain their
     /// declared actions, with ASCII-field punctuation filtering.
-    private func definitionAlternates(for key: LayoutKey, id: String) -> [KeyCap] {
+    /// nativeLetterDefaults is true only for an untouched bundled qwerty letter menu; the
+    /// script's marks then replace the bundled Chinese defaults. Any DIY declaration keeps its
+    /// literal list as written.
+    private func definitionAlternates(
+        for key: LayoutKey, id: String, nativeLetterDefaults: Bool = false
+    ) -> [KeyCap] {
         guard key.action.type == .code else {
             // Authored non-code options are user data: keep every declared action/label/pair.
             return (key.longPress ?? []).enumerated().map { index, option in
@@ -653,13 +670,17 @@ extension KeyboardPanelView {
         let declaredLiterals = (key.longPress ?? []).compactMap {
             $0.action.type == .literal ? $0.action.value : nil
         }
+        let literals = AlternateKeyPolicy.letterLongPressLiterals(
+            declared: declaredLiterals, representative: representative,
+            script: controller.inputLanguageScript, isNativeBundledDefault: nativeLetterDefaults)
         var options = AlternateKeyPolicy.options(
             for: .init(
                 keyLabel: representative,
                 mergedGroup: merged,
-                secondaryLiterals: declaredLiterals,
+                secondaryLiterals: literals,
                 page: .letters,
                 language: controller.isEnglishMode ? .english : .chinese,
+                script: controller.inputLanguageScript,
                 isUppercase: controller.shiftState.isActive,
                 usesASCIIPunctuation: controller.usesASCIIPunctuation,
                 schemaAlphabet: controller.activeSchemaAlphabet))
@@ -701,11 +722,18 @@ extension KeyboardPanelView {
         KeyboardLayoutUtilityBar(
             controlRow: definitionControlRow, rowIndex: definitionMainRows.count, split: footerSplit,
             showsGlobe: systemKeyboardSwitch != nil, definitionHasGlobe: definitionHasGlobe,
+            symbolPageTitle: controlPolicy.symbolPageTitle,
+            numericPageAccessibilityLabel: controlPolicy.pageSwitchAccessibilityLabel(
+                for: .numeric, isBundledPhonePad: controlPolicy.isBundledPhonePad),
+            symbolPageAccessibilityLabel: controlPolicy.pageSwitchAccessibilityLabel(
+                for: .symbols, isBundledPhonePad: controlPolicy.isBundledPhonePad),
             onPage: { target in
                 emitKeyFeedback()
                 page = target
                 showsAllCandidates = false
             },
+            supplementShortcuts: KeyboardFooterShortcutPlan.supplements(
+                physicalLayoutID: activeDefinition?.id),
             key: { key, id, _ in definitionKey(key, id: id) },
             globe: {
                 if let systemKeyboardSwitch {
@@ -727,7 +755,8 @@ extension KeyboardPanelView {
             keyLabel = value
             let group = cap.title.lowercased()
             mergedGroup = group.count > 1 && group.allSatisfy(\.isLetter) ? group : nil
-            secondaryLiterals = AlternateKeyPolicy.defaultLetterLiterals(for: value)
+            secondaryLiterals = AlternateKeyPolicy.defaultLetterLiterals(
+                for: value, script: controller.inputLanguageScript)
         case .literal(let value):
             keyLabel = value
             mergedGroup = nil
@@ -748,6 +777,7 @@ extension KeyboardPanelView {
             secondaryLiterals: secondaryLiterals,
             page: policyPage,
             language: controller.isEnglishMode ? .english : .chinese,
+            script: controller.inputLanguageScript,
             isUppercase: controller.shiftState.isActive,
             usesASCIIPunctuation: controller.usesASCIIPunctuation,
             schemaAlphabet: controller.activeSchemaAlphabet,

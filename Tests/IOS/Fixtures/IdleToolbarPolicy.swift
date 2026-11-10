@@ -1,5 +1,4 @@
 import CandidateKit
-import Combine
 import Foundation
 import KeyboardCore
 import LayoutKit
@@ -8,7 +7,7 @@ import UniformTypeIdentifiers
 // The platform/backend seam is reused from the existing complete-controller probe.
 enum KeyboardRecipeStore {
     nonisolated(unsafe) static var canWriteSharedContainer = true
-    static let groupID = "test.idle-paste-policy"
+    static let groupID = "test.idle-toolbar-policy"
     static func sharedContainerURL() -> URL? {
         FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: groupID)
     }
@@ -17,7 +16,7 @@ enum KeyboardRecipeStore {
 enum KeyboardFeedbackPreferences { static var defaults: UserDefaults { .standard } }
 
 private final class IdleEngine: EngineBackend {
-    let kind: EngineBackendKind = .demoSimulator("idle-paste-policy")
+    let kind: EngineBackendKind = .demoSimulator("idle-toolbar-policy")
     var statusSummary: String { "fixture" }
     var state = EngineSnapshot()
     var unavailable: String?
@@ -73,6 +72,7 @@ private final class IdleEngine: EngineBackend {
     let quickSymbols: T9QuickSymbolModel
     var statusMessage: String?
     var showsAllCandidates = false
+    var showsCoveringPanel: Bool { showsUtilitiesMenu || showsSymbolLibrary }
     var showsUtilitiesMenu = false
     var showsSymbolLibrary = false
     var page: KeyboardControlPolicy.Page = .letters
@@ -96,58 +96,7 @@ private final class IdleEngine: EngineBackend {
     /* PRODUCTION_IDLE_GETTER */
     /* PRODUCTION_SYMBOL_ERROR_GETTER */
 
-    var input: QuickPasteIdleInput { quickPasteIdleInput }
-}
-
-private final class CancelFlag: @unchecked Sendable {
-    private let lock = NSLock()
-    private var value = false
-    var isCancelled: Bool {
-        lock.lock()
-        defer { lock.unlock() }
-        return value
-    }
-    func set() {
-        lock.lock()
-        value = true
-        lock.unlock()
-    }
-}
-
-private final class IdlePasteFeed: @unchecked Sendable {
-    let entered = DispatchSemaphore(value: 0)
-    let progress = CancelFlag()
-    private let lock = NSLock()
-    private var continuation: CheckedContinuation<String, Error>?
-
-    func item() -> QuickPasteItem {
-        QuickPasteItem {
-            try await withTaskCancellationHandler {
-                try await withCheckedThrowingContinuation { continuation in
-                    self.lock.lock()
-                    precondition(self.continuation == nil)
-                    self.continuation = continuation
-                    self.lock.unlock()
-                    self.entered.signal()
-                }
-            } onCancel: {
-                self.progress.set()
-                self.lock.lock()
-                let pending = self.continuation
-                self.continuation = nil
-                self.lock.unlock()
-                pending?.resume(throwing: CancellationError())
-            }
-        }
-    }
-    func emit(_ url: URL) {
-        lock.lock()
-        let pending = continuation
-        continuation = nil
-        lock.unlock()
-        precondition(pending != nil)
-        pending?.resume(returning: try! String(contentsOf: url, encoding: .utf8))
-    }
+    var input: IdleToolbarInput { idleToolbarInput }
 }
 
 private struct NativeHeightProbe {
@@ -159,6 +108,7 @@ private struct NativeHeightProbe {
     let compactReadingRow = true
     let heightPreset = KeyboardHeightPreset.standard
     let keyHeight: CGFloat = 38
+    let drawnMainRows = KeyboardPanelGeometry.standardMainRowCount
     var fixedShellHeight: CGFloat {
         CGFloat(
             KeyboardPanelPresentationBudget(
@@ -171,8 +121,8 @@ private struct NativeHeightProbe {
     var fittedKeyHeight: Double { panelFit(shellHeight: presentedHeight!).keyHeight }
 }
 
-@main struct IdlePasteChecks {
-    static let atoms: [(String, WritableKeyPath<QuickPasteIdleInput, Bool>)] = [
+@main struct IdleToolbarChecks {
+    static let atoms: [(String, WritableKeyPath<IdleToolbarInput, Bool>)] = [
         ("composition", \.isComposing), ("prediction", \.hasPrediction),
         ("candidates", \.hasCandidates), ("English suggestions", \.hasEnglishSuggestions),
         ("unfinished English word", \.hasActiveEnglishInput), ("status", \.hasStatus),
@@ -203,94 +153,15 @@ private struct NativeHeightProbe {
         precondition(model.error == nil)
         return model
     }
-    @MainActor static func paste(_ model: QuickPasteModel, file: URL) async {
-        let feed = IdlePasteFeed()
-        model.receiveUserPaste([feed.item()])
-        await wait(feed.entered)
-        feed.emit(file)
-        await eventually("paste callback did not finish") { !model.isLoading }
-    }
-
-    @MainActor static func atomicPolicies(_ file: URL) async {
+    @MainActor static func atomicPolicies() {
         precondition(atoms.count == 11)
         for mask in 0..<(1 << atoms.count) {
-            var input = QuickPasteIdleInput()
+            var input = IdleToolbarInput()
             for (index, atom) in atoms.enumerated() { input[keyPath: atom.1] = mask & (1 << index) != 0 }
-            precondition(input.allowsPaste == (mask == 0), "unexpected idle eligibility for mask \(mask)")
-        }
-        print("PASS I1: all 2048 combinations of 11 independent blockers permit paste only for the all-idle state")
-        for atom in atoms {
-            var input = QuickPasteIdleInput()
-            let lease = QuickPasteSlotLease()
-            lease.updateEligibility(true)
-            var delivered: [String] = []
-            let host: AnyHashable = "unchanged-document-and-selection"
-            let model = QuickPasteModel(
-                inputContext: {
-                    guard input.allowsPaste else { return nil }
-                    return lease.context(host: host)
-                },
-                insertLiteral: {
-                    delivered.append($0)
-                    return true
-                })
-            model.activate()
-            let baseline = lease.context(host: host)!
-            let feed = IdlePasteFeed()
-            model.receiveUserPaste([feed.item()])
-            await wait(feed.entered)
-            input[keyPath: atom.1] = true
-            lease.updateEligibility(input.allowsPaste)
-            precondition(lease.context(host: host) == nil)
-            input[keyPath: atom.1] = false
-            lease.updateEligibility(input.allowsPaste)
-            precondition(input.allowsPaste && lease.context(host: host) != baseline)
-            feed.emit(file)
-            await eventually("ABA provider did not finish: \(atom.0)") { !model.isLoading }
-            precondition(
-                delivered.isEmpty && model.error == QuickPasteFailure.contextChanged.message,
-                "returning to idle must not validate the old request: \(atom.0)")
-            precondition(!feed.progress.isCancelled, "do not substitute deactivate/cancel for the context fence")
-            await paste(model, file: file)
-            precondition(delivered == ["fixed idle payload"] && model.error == nil)
+            precondition(input.allowsToolbar == (mask == 0), "unexpected idle eligibility for mask \(mask)")
         }
         print(
-            "PASS I2: each blocker performs idle-blocked-idle ABA with unchanged host and still-active target; only a new idle request inserts"
-        )
-    }
-
-    @MainActor static func leaseProperties() {
-        let lease = QuickPasteSlotLease()
-        let sourceA = PassthroughSubject<Void, Never>()
-        let sourceB = PassthroughSubject<Void, Never>()
-        let identityA = NSObject(), identityB = NSObject()
-        let host: AnyHashable = "host-A"
-        precondition(lease.context(host: host) == nil && !lease.isCurrent(identity: ObjectIdentifier(identityA)))
-        lease.observe(identity: ObjectIdentifier(identityA), changes: sourceA.eraseToAnyPublisher())
-        lease.updateEligibility(true)
-        precondition(
-            lease.isCurrent(identity: ObjectIdentifier(identityA))
-                && !lease.isCurrent(identity: ObjectIdentifier(identityB)))
-        let initial = lease.context(host: host)!
-        precondition(lease.context(host: nil) == nil && lease.context(host: "host-B") != initial)
-        lease.updateEligibility(true)
-        lease.observe(identity: ObjectIdentifier(identityA), changes: sourceB.eraseToAnyPublisher())
-        precondition(lease.context(host: host) == initial, "same observer identity/redraw must not churn epochs")
-        sourceB.send()
-        precondition(lease.context(host: host) == initial, "same identity must retain its original subscription")
-        sourceA.send()
-        let changed = lease.context(host: host)!
-        precondition(changed != initial, "publisher fencing must be synchronous, with no run-loop yield")
-        lease.observe(identity: ObjectIdentifier(identityB), changes: sourceB.eraseToAnyPublisher())
-        let rebound = lease.context(host: host)!
-        precondition(rebound != changed)
-        sourceA.send()
-        precondition(lease.context(host: host) == rebound, "retired observer must be detached")
-        sourceB.send()
-        precondition(lease.context(host: host) != rebound)
-        print(
-            "PASS I3: host identity, nil focus, synchronous epochs, stable redraws and observer replacement obey production lease semantics"
-        )
+            "PASS I1: all 2048 combinations of 11 independent blockers permit the toolbar only for the all-idle state")
     }
 
     @MainActor static func controllerGetter(_ root: URL) async {
@@ -298,32 +169,32 @@ private struct NativeHeightProbe {
         let engine = IdleEngine()
         let controller = KeyboardController(engine: engine)
         let panel = IdlePanelProbe(controller: controller, quickSymbols: qs)
-        precondition(panel.input == QuickPasteIdleInput())
+        precondition(panel.input == IdleToolbarInput())
         for key in [\IdlePanelProbe.showsAllCandidates, \.showsUtilitiesMenu, \.showsSymbolLibrary] {
             panel[keyPath: key] = true
-            precondition(!panel.input.allowsPaste)
+            precondition(!panel.input.allowsToolbar)
             panel[keyPath: key] = false
-            precondition(panel.input.allowsPaste)
+            precondition(panel.input.allowsToolbar)
         }
         panel.statusMessage = "real host status"
-        precondition(panel.input.hasStatus && !panel.input.allowsPaste)
+        precondition(panel.input.hasStatus && !panel.input.allowsToolbar)
         panel.statusMessage = nil
         engine.state.isPrediction = true
         controller.session.refresh()
-        precondition(panel.input.hasPrediction && !panel.input.isComposing && !panel.input.allowsPaste)
+        precondition(panel.input.hasPrediction && !panel.input.isComposing && !panel.input.allowsToolbar)
         engine.state.isPrediction = false
         engine.state.isComposing = true
         engine.state.rawInput = "ni"
         engine.state.preedit = "ni"
         controller.session.refresh()
-        precondition(panel.input.isComposing && panel.input.hasCompositionFallback && !panel.input.allowsPaste)
+        precondition(panel.input.isComposing && panel.input.hasCompositionFallback && !panel.input.allowsToolbar)
         controller.reportCompositionPresentation(.awaitingHost)
-        precondition(!panel.input.hasCompositionFallback && !panel.input.allowsPaste)
+        precondition(!panel.input.hasCompositionFallback && !panel.input.allowsToolbar)
         engine.state = EngineSnapshot()
         controller.session.refresh()
         engine.failsKey = true
         controller.handle(.code("x"))
-        precondition(controller.inputError != nil && panel.input.hasStatus && !panel.input.allowsPaste)
+        precondition(controller.inputError != nil && panel.input.hasStatus && !panel.input.allowsToolbar)
         engine.failsKey = false
         engine.state.preedit = "refresh clears a previous error"
         controller.session.refresh()
@@ -332,14 +203,14 @@ private struct NativeHeightProbe {
         controller.session.refresh()
         engine.unavailable = "fixture-unavailable"
         controller.session.refresh()
-        precondition(controller.inputUnavailableReason != nil && panel.input.hasStatus && !panel.input.allowsPaste)
+        precondition(controller.inputUnavailableReason != nil && panel.input.hasStatus && !panel.input.allowsToolbar)
         engine.unavailable = nil
         controller.session.refresh()
-        precondition(panel.input.allowsPaste)
+        precondition(panel.input.allowsToolbar)
         let failedSave = await qs.replaceSymbols("")
-        precondition(!failedSave && qs.error != nil && panel.input.hasStatus && !panel.input.allowsPaste)
+        precondition(!failedSave && qs.error != nil && panel.input.hasStatus && !panel.input.allowsToolbar)
         _ = await qs.replaceSymbols("[]")
-        precondition(qs.error == nil && panel.input.allowsPaste)
+        precondition(qs.error == nil && panel.input.allowsToolbar)
         controller.retire()
         let suggestedController = KeyboardController(engine: ProbeEngine())
         suggestedController.onDispatchCommit = { _ in true }
@@ -351,7 +222,7 @@ private struct NativeHeightProbe {
         suggestedController.handle(.code("h"))
         suggestedController.handle(.code("e"))
         await eventually("real English suggestions did not arrive") { !suggestedController.englishSuggestions.isEmpty }
-        precondition(suggestedPanel.input.hasEnglishSuggestions && !suggestedPanel.input.allowsPaste)
+        precondition(suggestedPanel.input.hasEnglishSuggestions && !suggestedPanel.input.allowsToolbar)
         suggestedController.retire()
         print(
             "PASS I4: production root getter maps real snapshot, English suggestions, status, failure, fallback and quick-symbol errors; covers and expansion gate the idle toolbar"
@@ -369,10 +240,12 @@ private struct NativeHeightProbe {
         engine.failsCandidateRead = true
         let controller = KeyboardController(engine: engine)
         let panel = IdlePanelProbe(controller: controller, quickSymbols: qs)
-        precondition(controller.candidateBrowser.needsEarlier && panel.input.hasCandidates && !panel.input.allowsPaste)
+        precondition(
+            controller.candidateBrowser.needsEarlier && panel.input.hasCandidates && !panel.input.allowsToolbar)
         controller.loadMoreCandidates()
         await eventually("candidate retry was not published") { controller.candidateBrowser.hasIncompletePage }
-        precondition(controller.candidateBrowser.needsEarlier && panel.input.hasCandidates && !panel.input.allowsPaste)
+        precondition(
+            controller.candidateBrowser.needsEarlier && panel.input.hasCandidates && !panel.input.allowsToolbar)
         controller.retire()
 
         let readingEngine = IdleEngine()
@@ -388,7 +261,7 @@ private struct NativeHeightProbe {
         readingController.session.refresh()
         precondition(
             readingController.readingQueryPending && readingPanel.input.hasPendingQueries
-                && !readingPanel.input.allowsPaste)
+                && !readingPanel.input.allowsToolbar)
         await wait(readingEngine.readingEntered)
         precondition(readingController.readingQueryPending && readingPanel.input.hasPendingQueries)
         readingGate.signal()
@@ -399,7 +272,7 @@ private struct NativeHeightProbe {
         readingController.selectReading("ni")
         precondition(
             readingController.readingFilter.isFiltering && readingPanel.input.hasReadingContent
-                && !readingPanel.input.allowsPaste)
+                && !readingPanel.input.allowsToolbar)
         readingController.retire()
 
         let ambiguityEngine = IdleEngine()
@@ -417,15 +290,15 @@ private struct NativeHeightProbe {
         ambiguityController.session.refresh()
         precondition(ambiguityController.ambiguityQueryPending && ambiguityPanel.input.hasPendingQueries)
         await wait(ambiguityEngine.ambiguityEntered)
-        precondition(ambiguityController.ambiguityQueryPending && !ambiguityPanel.input.allowsPaste)
+        precondition(ambiguityController.ambiguityQueryPending && !ambiguityPanel.input.allowsToolbar)
         ambiguityGate.signal()
         await eventually("ambiguity picker did not settle") { !ambiguityController.ambiguityQueryPending }
         precondition(
             ambiguityController.ambiguityPicker.showsPicker && ambiguityPanel.input.hasReadingContent
-                && !ambiguityPanel.input.allowsPaste)
+                && !ambiguityPanel.input.allowsToolbar)
         ambiguityController.retire()
         print(
-            "PASS I5: actual controller candidate needs-earlier/retry, blocked reading and ambiguity queries, reading filter and spelling picker all block idle paste"
+            "PASS I5: actual controller candidate needs-earlier/retry, blocked reading and ambiguity queries, reading filter and spelling picker all block the idle toolbar"
         )
     }
 
@@ -439,12 +312,12 @@ private struct NativeHeightProbe {
             controller.englishSuggestionsSupported == false
         }
         let panel = IdlePanelProbe(controller: controller, quickSymbols: qs)
-        precondition(panel.input.allowsPaste)
+        precondition(panel.input.allowsToolbar)
         var published: [Bool] = []
         let subscription = controller.$hasActiveEnglishInput.sink { published.append($0) }
         controller.handle(.code("q"))
         precondition(controller.hasActiveEnglishInput && controller.englishSuggestions.isEmpty)
-        precondition(panel.input.hasActiveEnglishInput && !panel.input.allowsPaste)
+        precondition(panel.input.hasActiveEnglishInput && !panel.input.allowsToolbar)
         controller.handle(.code("x"))
         controller.handle(.code("z"))
         precondition(published == [false, true])
@@ -454,7 +327,7 @@ private struct NativeHeightProbe {
         controller.handle(.backspace)
         precondition(published == [false, true, false] && !controller.hasActiveEnglishInput)
         controller.resetEnglishWord()
-        precondition(published == [false, true, false] && panel.input.allowsPaste)
+        precondition(published == [false, true, false] && panel.input.allowsToolbar)
         _ = subscription
         controller.retire()
         print("PASS unfinished English input hides idle tools and publishes only word boundaries")
@@ -465,12 +338,12 @@ private struct NativeHeightProbe {
         let suite = "IdleToolbarProbe-" + UUID().uuidString
         let preferences = UserDefaults(suiteName: suite)!
         defer { preferences.removePersistentDomain(forName: suite) }
-        precondition(!KeyboardIdleToolbarPreferences.read(from: preferences))
-        preferences.set(true, forKey: KeyboardIdleToolbarPreferences.key)
-        precondition(KeyboardIdleToolbarPreferences.read(from: UserDefaults(suiteName: suite)!))
+        precondition(KeyboardIdleToolbarPreferences.read(from: preferences))
         preferences.set(false, forKey: KeyboardIdleToolbarPreferences.key)
         precondition(!KeyboardIdleToolbarPreferences.read(from: UserDefaults(suiteName: suite)!))
-        print("PASS toolbar defaults off and persists explicit enable/disable")
+        preferences.set(true, forKey: KeyboardIdleToolbarPreferences.key)
+        precondition(KeyboardIdleToolbarPreferences.read(from: UserDefaults(suiteName: suite)!))
+        print("PASS toolbar defaults on and persists explicit disable/enable")
         for height: CGFloat in [160, 201] {
             let panel = NativeHeightProbe(presentedHeight: height)
             precondition(panel.fittedKeyHeight > 0 && panel.fittedKeyHeight < 30)
@@ -479,10 +352,7 @@ private struct NativeHeightProbe {
         let initial = NativeHeightProbe(presentedHeight: nil)
         precondition(initial.resolved == initial.fixedShellHeight)
         print("PASS native short viewport fits the actual height with tall candidates and readings")
-        let file = root.appendingPathComponent("payload.txt")
-        try Data("fixed idle payload".utf8).write(to: file)
-        await atomicPolicies(file)
-        leaseProperties()
+        atomicPolicies()
         await controllerGetter(root)
         await browsingAndReadings(root)
         await englishBoundaries(root)

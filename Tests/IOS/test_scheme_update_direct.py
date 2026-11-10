@@ -30,7 +30,9 @@ class SchemeUpdateDirectTests(unittest.TestCase):
         with scratch_directory("scheme-update-direct") as directory:
             generated = directory / "SchemeUpdateProbe.swift"
             generated.write_text(harness)
-            binary = compile_swift(directory, [generated], library=True)
+            binary = compile_swift(
+                directory, [generated, ROOT / "Packages/PackageManager/Sources/PackageManager/RecommendedSchemes.swift"],
+                library=True)
             print(run([str(binary)]), end="")
 
 SOURCE = r'''
@@ -86,7 +88,12 @@ enum AppliedSelectionLoader {
 final class SchemeURLDownloadService {
     static let shared = SchemeURLDownloadService()
     enum Outcome: Equatable { case success, failure(String), cancelled }
-    struct Result { let localFileURL: URL; let requestedURL: URL }
+    struct Result {
+        let localFileURL: URL
+        let requestedURL: URL
+        var localFileURLs: [URL] { [localFileURL] }
+        var recommendation: RecommendedSchemeSource? { nil }
+    }
     struct CancelHandle { let generation: Int }
 
     var outcome: Outcome = .failure("未设置")
@@ -195,7 +202,11 @@ final class UpdateProbeCenter {
     var lastInstalledPackageID: String?
     var revisionAfterSourceInstall = "revision-2"
 
-    struct ImportCapture { let target: InstalledPackage?; let sourceURL: URL? }
+    struct ImportCapture {
+        let target: InstalledPackage?
+        let sourceURL: URL?
+        var recommendation: RecommendedSchemeSource? = nil
+    }
     struct FakeManifest { let revision: String }
     struct Recognized { let localFileURL: URL; let manifest: FakeManifest }
 

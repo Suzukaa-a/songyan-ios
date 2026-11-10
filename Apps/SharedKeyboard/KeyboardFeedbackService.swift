@@ -21,9 +21,9 @@ public enum KeyboardFeedbackLevel: String, CaseIterable, Sendable {
     /// Shown by both the host options and the keyboard tools panel.
     public var displayName: String {
         switch self {
-        case .soft: return "弱"
-        case .medium: return "适中"
-        case .strong: return "强"
+        case .soft: return String(localized: "弱")
+        case .medium: return String(localized: "适中")
+        case .strong: return String(localized: "强")
         }
     }
 

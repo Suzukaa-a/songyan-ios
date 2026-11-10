@@ -68,7 +68,7 @@ final class KeyboardSelectionCenter: ObservableObject {
                 applicationPhase = .failed(
                     missingGroup
                         ? AppliedSelectionLoader.missingGroupMessage
-                        : "无法确认结果，请重新读取后重试。")
+                        : String(localized: "无法确认结果，请重新读取后重试。"))
                 await refresh()
             }
         }

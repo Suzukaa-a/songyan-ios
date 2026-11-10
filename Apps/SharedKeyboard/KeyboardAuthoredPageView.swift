@@ -89,7 +89,8 @@ struct KeyboardAuthoredPageKey: View {
     @ViewBuilder private var spaceFace: some View {
         if (key.longPress ?? []).isEmpty {
             CursorSpaceKey(
-                title: state.title(for: key), layoutName: actions.spaceLayoutName,
+                title: state.title(for: key), isComposing: state.isComposing,
+                layoutName: actions.spaceLayoutName,
                 layoutHintName: actions.spaceHintName, layoutHintToken: actions.spaceHintToken,
                 subtitle: subtitle,
                 onTap: { actions.primary(path, LayoutAction(.space)) }, moveCursor: actions.moveCursor)
@@ -125,6 +126,7 @@ struct KeyboardAuthoredPageKey: View {
     @ViewBuilder private var enterFace: some View {
         ReturnKey(
             title: state.title(for: key), isEnabled: state.isReturnEnabled,
+            accessibilityLabel: state.returnAccessibility,
             alternates: optionCaps, longPressDelay: 0.35,
             capID: KeyboardPageAuthoredActionTable.capID(path), subtitle: subtitle
         ) { cap in
@@ -143,6 +145,7 @@ struct KeyboardAuthoredPageKey: View {
             phoneSideKey: phoneSideKeyFace,
             showsKeyPreview: showsKeyPreview,
             visualRole: visualRole,
+            languageCurrentSideIsFirst: state.languageCurrentSideIsFirst(for: key),
             accessibilityID: KeyboardPageAuthoredActionTable.capID(path),
             onSelect: { cap in select(cap) }
         )
@@ -215,9 +218,15 @@ struct KeyboardAuthoredPageKey: View {
     private var accessibilityHint: String {
         guard key.titleMode == .automatic else { return "" }
         switch key.action.type {
-        case .clearInput: return state.isComposing ? "清空当前输入" : "当前没有待确认的输入"
-        case .symbolLock: return state.symbolLocked ? "输入符号后留在符号页" : "输入一个符号后回到字母页"
-        case .shift: return state.isEnglishMode ? "轻点切换一次大写，连续点按两次锁定大写" : "切换到英文输入后可用。"
+        case .clearInput:
+            if state.isComposing { return String(localized: "清空当前输入") }
+            return String(localized: "当前没有待确认的输入")
+        case .symbolLock:
+            if state.symbolLocked { return String(localized: "输入符号后留在符号页") }
+            return String(localized: "输入一个符号后回到字母页")
+        case .shift:
+            if state.isEnglishMode { return String(localized: "轻点切换一次大写，连续点按两次锁定大写") }
+            return String(localized: "切换到英文输入后可用。")
         default: return ""
         }
     }
@@ -264,7 +273,10 @@ struct KeyboardAuthoredPageKey: View {
         case .globe: return .switchKeyboard
         case .modeSwitch: return .cycleLayout
         case .code: return .code(action.value ?? "")
-        case .shift, .pageSwitch, .languageSwitch, .symbolLock, .clearInput, .layoutPageSwitch:
+        case .shift, .pageSwitch, .languageSwitch, .symbolLock, .clearInput, .layoutPageSwitch,
+            .kana, .kanaModifier, .cursorLeft:
+            // A page-level action has no engine face; the tap is routed through the action table
+            // (the kana gestures reach the kana handler there), so the face only picks the tone.
             return .cycleLayout
         }
     }
@@ -788,9 +800,12 @@ struct KeyboardAuthoredRenderedPage {
         }
         // Rows are filtered like their source indices, so the two can never disagree.
         var copy = source
-        copy.rows = source.rows.map { LayoutRow(keys: $0.keys.filter(drawn)) }
+        func shown(_ keys: [LayoutKey]) -> [LayoutKey] {
+            (hasGlobe ? keys : keys.withoutGlobe()).filter(drawn)
+        }
+        copy.rows = source.rows.map { LayoutRow(keys: shown($0.keys)) }
         if var chrome = source.chrome {
-            chrome.bottom = chrome.bottom.filter(drawn)
+            chrome.bottom = shown(chrome.bottom)
             chrome.leading = chrome.leading.filter(drawn)
             chrome.trailing = chrome.trailing.filter(drawn)
             copy.chrome = chrome
@@ -848,7 +863,7 @@ struct KeyboardAuthoredCategoryRail: View {
                                 .contentShape(Rectangle())
                         }
                         .buttonStyle(KeyboardPressStyle())
-                        .accessibilityLabel("\(category.title)符号")
+                        .accessibilityLabel(String(localized: "\(category.title)符号"))
                         .accessibilityAddTraits(selected ? .isSelected : [])
                         .id(category.id)
                     }

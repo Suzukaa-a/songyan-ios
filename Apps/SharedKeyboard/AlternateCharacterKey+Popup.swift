@@ -119,7 +119,7 @@ extension AlternateCharacterKey.CharacterButton {
         // Content width: measured from the longest entry's text + checkmark/insets, clamped within the available screen bounds;
         // not a fixed full width, and layout names are not force-truncated.
         let textWidth = alternates.reduce(CGFloat(0)) { longest, alternate in
-            max(longest, (alternate.title as NSString).size(withAttributes: [.font: font]).width)
+            max(longest, (alternate.menuText as NSString).size(withAttributes: [.font: font]).width)
         }
         let cellWidth: CGFloat
         let columns: Int
@@ -209,15 +209,27 @@ extension AlternateCharacterKey.CharacterButton {
                 let style = NSMutableParagraphStyle()
                 style.firstLineHeadIndent = 12
                 style.headIndent = 12
-                style.tailIndent = alternate.subtitle != nil ? -34 : -12
+                style.tailIndent = alternate.marksCurrent ? -34 : -12
                 style.lineBreakMode = .byTruncatingTail
-                label.attributedText = NSAttributedString(
+                let text = NSMutableAttributedString(
                     string: alternate.title,
                     attributes: [.paragraphStyle: style])
+                if let package = alternate.menuPackageName {
+                    // The package name trails the keyboard name, quieter, so two packages' same-named
+                    // keyboards can be told apart.
+                    text.append(
+                        NSAttributedString(
+                            string: "  " + package,
+                            attributes: [
+                                .paragraphStyle: style, .foregroundColor: UIColor.secondaryLabel,
+                                .font: font.withSize(max(11, font.pointSize - 3)),
+                            ]))
+                }
+                label.attributedText = text
             } else {
                 label.text = alternate.title
             }
-            if layoutPicker, alternate.subtitle != nil {
+            if layoutPicker, alternate.marksCurrent {
                 // A real checkmark glyph on the trailing edge, not " ✓" glued to the name.
                 let check = UIImageView(
                     image: UIImage(
@@ -391,7 +403,7 @@ extension AlternateCharacterKey.CharacterButton {
         guard layoutPicker, !alternates.isEmpty else { return nil }
         return alternates.firstIndex {
             $0.id.hasPrefix("user-keyboard:")
-                && $0.subtitle == UserTerminology.userKeyboardCurrent
+                && $0.marksCurrent
         }
     }
 
@@ -475,4 +487,24 @@ extension AlternateCharacterKey.CharacterButton {
             view.layer.borderColor = appearance.text(on: role).cgColor
         }
     }
+}
+
+extension KeyCap {
+    /// The package name of a keyboard-menu item that belongs to another package (carried in `subtitle`).
+    var otherPackageName: String? {
+        id.hasPrefix(OtherPackageKeyboard.capIDPrefix) ? subtitle : nil
+    }
+
+    /// The keyboard menu's checkmark: a subtitle on the current package's own items marks the running keyboard.
+    var marksCurrent: Bool {
+        subtitle != nil && !id.hasPrefix(OtherPackageKeyboard.capIDPrefix)
+    }
+
+    /// The package name the menu draws: left out when the keyboard's name already carries it.
+    var menuPackageName: String? {
+        otherPackageName.flatMap { title.contains($0) ? nil : $0 }
+    }
+
+    /// The text the keyboard menu draws for the item, used to size the menu.
+    var menuText: String { menuPackageName.map { title + "  " + $0 } ?? title }
 }

@@ -76,7 +76,10 @@ def main():
     for name in SLICES:
         check_archive(archive_path(source, name))
     if INSTALLED.exists():
-        shutil.rmtree(INSTALLED)
+        subprocess.run(
+            ["xcrun", "swift", "-e",
+             "import Foundation; try FileManager.default.trashItem(at: URL(fileURLWithPath: CommandLine.arguments[1]), resultingItemURL: nil)",
+             str(INSTALLED)], check=True)
     shutil.copytree(source, INSTALLED)
     MANIFEST.write_text(json.dumps(manifest_for(INSTALLED), indent=2) + "\n")
     print("PASS exported to " + str(INSTALLED))

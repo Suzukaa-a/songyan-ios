@@ -33,7 +33,7 @@ struct CustomPinyinDetailView: View {
             dictionarySection
             inputMethodSection
         }
-        .navigationTitle("自定义拼音")
+        .navigationTitle(String(localized: "自定义拼音"))
         .navigationBarTitleDisplayMode(.inline)
         // Structured: selection reads are driven by refresh.key (once on first frame; the old task is cancelled and rerun on change).
         // `.onChange` only bumps the key and never creates a read Task (structured / latest-wins).
@@ -51,19 +51,19 @@ struct CustomPinyinDetailView: View {
     }
 
     private var statusSection: some View {
-        Section("状态") {
+        Section(String(localized: "状态")) {
             if applied && !usingInstalledRevision {
-                let inUse = selectedDictionaryName.map { "「\($0)」" } ?? "旧版本"
-                Text("\(UserTerminology.statusInUse)\(inUse) · 有新版本")
+                let inUse = selectedDictionaryName.map { "「\($0)」" } ?? String(localized: "旧版本")
+                Text("\(UserTerminology.statusInUse)\(inUse) · ") + Text("有新版本")
             } else {
                 Text(applied ? UserTerminology.statusInUse : UserTerminology.statusNotApplied)
             }
             if let summary = imports.installedSummary {
-                LabeledRow(label: "条目数", value: "\(summary.entryCount) 条")
+                LabeledRow(label: String(localized: "条目数"), value: String(localized: "\(summary.entryCount) 条"))
             }
             // 正在使用 already says it all; the action is only offered when it would change something.
             if !usingInstalledRevision {
-                Button(applied ? UserTerminology.startUsingNewVersion : UserTerminology.startUsing) {
+                Button(applied ? UserTerminology.startUsingNewVersion : UserTerminology.useThisInputScheme) {
                     imports.apply()
                 }
                 .disabled(imports.busy)
@@ -73,27 +73,28 @@ struct CustomPinyinDetailView: View {
 
     /// Dictionary in use: in-use / installed shown as separate rows or merged into one.
     private var dictionarySection: some View {
-        Section("使用的词库") {
+        Section(String(localized: "使用的词库")) {
             if let summary = imports.installedSummary {
                 if usingInstalledRevision {
                     LabeledRow(label: UserTerminology.statusInUse, value: summary.name)
                 } else if applied, let name = selectedDictionaryName {
                     LabeledRow(label: UserTerminology.statusInUse, value: name)
-                    LabeledRow(label: "已安装", value: "\(summary.name) · \(UserTerminology.statusNotApplied)")
+                    LabeledRow(
+                        label: String(localized: "已安装"), value: "\(summary.name) · \(UserTerminology.statusNotApplied)")
                 } else {
-                    LabeledRow(label: "已安装", value: summary.name)
+                    LabeledRow(label: String(localized: "已安装"), value: summary.name)
                 }
                 if summary.entryCount > 0 {
-                    LabeledRow(label: "条目数", value: "\(summary.entryCount) 条")
+                    LabeledRow(label: String(localized: "条目数"), value: String(localized: "\(summary.entryCount) 条"))
                 }
             } else {
-                Text(imports.installed == nil ? "未安装词库" : "正在读取…")
+                Text(imports.installed == nil ? String(localized: "未安装词库") : String(localized: "正在读取…"))
                     .font(.footnote).foregroundStyle(.secondary)
                 if imports.installed == nil {
-                    Button("重新读取") { Task { await imports.refresh() } }
+                    Button(String(localized: "重新读取")) { Task { await imports.refresh() } }
                 }
             }
-            NavigationLink("管理词库") { DictionaryImportView() }
+            NavigationLink(String(localized: "管理词库")) { DictionaryImportView() }
         }
     }
 
@@ -121,12 +122,12 @@ struct CustomPinyinDetailView: View {
                     .padding(.vertical, 2)
                 }
             } else {
-                Text(choicesReadError ?? "正在读取…")
+                Text(choicesReadError ?? String(localized: "正在读取…"))
                     .font(.footnote).foregroundStyle(.secondary)
             }
-            NavigationLink("试打") {
+            NavigationLink(String(localized: "试打")) {
                 InstalledSourceTryView(
-                    name: "自定义拼音", inUse: applied,
+                    name: String(localized: "自定义拼音"), inUse: applied,
                     howToUse: UserTerminology.tryHowToUseViaStartUsing)
             }
         } header: {
@@ -173,7 +174,7 @@ struct CustomPinyinDetailView: View {
         } catch {
             choices = nil
             HostLog.append("dictionary choices read failed: \(error.localizedDescription)")
-            choicesReadError = "无法读取可用的输入方式与键盘布局，请重试。"
+            choicesReadError = String(localized: "无法读取可用的输入方式与键盘布局，请重试。")
         }
     }
 }
@@ -186,7 +187,7 @@ private struct InstalledSourceTryView: View {
 
     var body: some View {
         SystemKeyboardTestView(
-            title: "试打",
+            title: String(localized: "试打"),
             context: SystemKeyboardTestView.sourceContext(name: name, inUse: inUse, howToUse: howToUse))
     }
 }

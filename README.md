@@ -21,15 +21,27 @@ input schemes and a keyboard extension that runs the engine on device.
 - Two built-in input schemes, full pinyin and Xiaohe (flypy) double pinyin,
   on four layouts: 26, 14, 18 and 9 keys. The 14-, 18- and 9-key variants of
   each scheme are generated from it.
+- Boards for imported schemes: Dachen zhuyin (41 keys), cangjie (26 keys, also
+  used for quick), Japanese romaji (26 keys) and a twelve-key kana pad. A
+  scheme's own key map decides which boards it is offered on.
+- Traditional output: the built-in schemes type Simplified, Traditional, Taiwan
+  or Hong Kong text, seeded from the system language on first install and
+  switchable per input method. Key names, candidate glyph forms and punctuation
+  follow the choice.
 - On merged keys, swipe sideways to type either letter; optional double pinyin
   hints on the letter keys.
 - Import RIME schemes and dictionaries from files or URLs; enable, disable or
-  remove them from the host app.
+  remove them from the host app. Recommended entries for bopomofo, cangjie,
+  quick and cantonese download their pinned upstream archives only after you
+  confirm, listed in your language's order. Japanese input comes from a kagiroi
+  package you import; the install adds the paging and punctuation patches the
+  keyboard expects, and Songyan does not download Japanese data itself.
 - Customizable appearance, candidate bar and key layouts, with a built-in
   typing preview.
 - Optional typo correction, post-commit prediction (bring your own
   `predict.db`), grammar models, and per-component Lua toggles.
 - Manual backup and merge of learned user dictionaries.
+- Interface in Simplified Chinese, Traditional Chinese and Japanese.
 - The keyboard extension makes no network requests. The host app goes online
   only when you ask it to: importing or updating a scheme from a URL, or
   downloading a dictionary or model file. Full Access is used to share data

@@ -8,7 +8,7 @@ import SwiftUI
 /// private-container fallback that could imply settings reached the extension.
 private struct LocalQuickContentAccessError: LocalizedError {
     var errorDescription: String? {
-        "常用语与剪贴板暂不可用，请在系统设置中打开「允许完全访问」后重试"
+        String(localized: "常用语暂不可用，请在系统设置中打开「允许完全访问」后重试")
     }
 }
 
@@ -43,7 +43,7 @@ enum SharedQuickContentStorage {
             try FileManager.default.removeItem(at: probe)
         } catch {
             if isPermissionDenied(error) { throw LocalQuickContentAccessError() }
-            throw SymbolCatalogError("暂时无法保存，请稍后重试")
+            throw SymbolCatalogError(String(localized: "暂时无法保存，请稍后重试"))
         }
         return LocalQuickContentStore(directory: directory)
     }
@@ -60,31 +60,6 @@ enum SharedQuickContentStorage {
         if let underlying = error.userInfo[NSUnderlyingErrorKey] as? Error { return isPermissionDenied(underlying) }
         return false
     }
-
-    static func recordExplicitPaste(_ text: String) async -> String? {
-        // Text history cannot hold (blank or over 4 KB) is simply not recorded: the paste
-        // itself succeeded, so there is nothing for the user to fix.
-        // Without Full Access the shared history is read-only; the paste stands unrecorded.
-        guard LocalQuickContentStore.canRecord(text), KeyboardRecipeStore.canWriteSharedContainer else { return nil }
-        return await SymbolLibraryWriteQueue.async {
-            do {
-                guard let container = KeyboardRecipeStore.sharedContainerURL() else { return nil }
-                let directory = container.appendingPathComponent(
-                    LocalQuickContentStore.directoryName, isDirectory: true)
-                // Missing or inaccessible settings never imply opt-in and never create a private fallback.
-                guard FileManager.default.fileExists(atPath: directory.appendingPathComponent("content.json").path)
-                else { return nil }
-                let store = LocalQuickContentStore(directory: directory)
-                // An unreadable setting cannot prove consent. Show storage problems in management,
-                // rather than warning about an optional history feature the user may never have enabled.
-                guard let state = try? store.read(), state.clipboardEnabled else { return nil }
-                _ = try store.recordExplicitPaste(text)
-                return nil
-            } catch {
-                return "已粘贴，但没能保存到剪贴板历史"
-            }
-        }
-    }
 }
 
 @MainActor
@@ -97,9 +72,6 @@ final class LocalQuickContentModel: ObservableObject {
     private var operation: Task<Void, Never>?
 
     func reload() { perform(clearOnFailure: true, readOnly: true) { try $0.read() } }
-    func setClipboardEnabled(_ value: Bool) { perform { try $0.setClipboardEnabled(value) } }
-    func clearClipboard() { perform { try $0.clearClipboard() } }
-    func deleteClipboard(_ text: String) { perform { try $0.deleteClipboard(text) } }
     /// Saves one phrase and reports the real outcome, so the editor can keep the draft unless the
     /// phrase actually reached disk. Returns a user-facing message when nothing was written, `nil` on
     /// success. Deliberately not routed through `perform`: its busy guard drops a save silently.
@@ -109,7 +81,7 @@ final class LocalQuickContentModel: ObservableObject {
         if !content.phrases.contains(where: { $0.id == phrase.id }),
             content.phrases.count >= LocalQuickContentStore.maximumPhrases
         {
-            let message = "常用语最多保存 100 条，请先删除一条再保存"
+            let message = String(localized: "常用语最多保存 100 条，请先删除一条再保存")
             error = message
             return message
         }
@@ -145,7 +117,7 @@ final class LocalQuickContentModel: ObservableObject {
     nonisolated static func message(for error: Error) -> String {
         if error is LocalQuickContentAccessError { return LocalQuickContentAccessError().localizedDescription }
         if let error = error as? SymbolCatalogError { return error.message }
-        return "无法读取或保存内容，请稍后重试"
+        return String(localized: "无法读取或保存内容，请稍后重试")
     }
 
     func exportPhrases() {

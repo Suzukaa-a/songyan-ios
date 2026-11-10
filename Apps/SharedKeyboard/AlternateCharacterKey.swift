@@ -36,6 +36,7 @@ import SwiftUI
 struct AlternateCharacterKey: UIViewRepresentable {
     @Environment(\.keyboardPanelHostLifetime) private var hostLifetime
     @Environment(\.keyboardAppearance) private var appearance
+    @Environment(\.keyboardInputLanguage) private var inputLanguage
     @Environment(\.isEnabled) private var isEnabled
     @Environment(\.keyboardPopupSurface) private var popupSurface
     let cap: KeyCap
@@ -80,6 +81,9 @@ struct AlternateCharacterKey: UIViewRepresentable {
     /// Overrides the default AX hint. The default only describes "long-press alternate", which is wrong for a tap-cycling key
     /// (the 9-key idle first key); that key must announce the real cycling order.
     var accessibilityHintOverride: String? = nil
+    /// The language key's "中/英" face: whether the first side is the current one (drawn in the
+    /// text colour, the other side dimmed). nil for every other key.
+    var languageCurrentSideIsFirst: Bool? = nil
     var accessibilityID: String? = nil
     let onSelect: (KeyCap) -> Void
 
@@ -99,7 +103,8 @@ struct AlternateCharacterKey: UIViewRepresentable {
             flickConfigured: flickConfigured, flickOptions: flickOptions, flickDigit: flickDigit,
             flickEligible: flickEligible,
             syllableHintBelow: syllableHintBelow, reservesHintBand: reservesHintBand,
-            accessibilityHintOverride: accessibilityHintOverride, onSelect: onSelect)
+            accessibilityHintOverride: accessibilityHintOverride,
+            languageCurrentSideIsFirst: languageCurrentSideIsFirst, inputLanguage: inputLanguage, onSelect: onSelect)
         button.isEnabled = isEnabled
         return button
     }
@@ -119,7 +124,8 @@ struct AlternateCharacterKey: UIViewRepresentable {
             flickConfigured: flickConfigured, flickOptions: flickOptions, flickDigit: flickDigit,
             flickEligible: flickEligible,
             syllableHintBelow: syllableHintBelow, reservesHintBand: reservesHintBand,
-            accessibilityHintOverride: accessibilityHintOverride, onSelect: onSelect)
+            accessibilityHintOverride: accessibilityHintOverride,
+            languageCurrentSideIsFirst: languageCurrentSideIsFirst, inputLanguage: inputLanguage, onSelect: onSelect)
         // `isEnabled` repaints the cap in its setter; only write a real change.
         if button.isEnabled != isEnabled { button.isEnabled = isEnabled }
         if !isEnabled { button.cancelPress() }
@@ -186,6 +192,9 @@ struct AlternateCharacterKey: UIViewRepresentable {
         var didHold = false
         var requiresExplicitAlternateSelection = false
         var showsKeyPreview = false
+        /// Scheme language of the current keyboard; the cap face asks CoreText for its glyph forms.
+        private var inputLanguage: InputLanguage = .simplifiedChinese
+        private var languageCurrentSideIsFirst: Bool?
         private var titleSize: Double?
         private var letterGroup: [String] = []
         private var groupHints: [String?] = []
@@ -281,6 +290,8 @@ struct AlternateCharacterKey: UIViewRepresentable {
             let syllableHintBelow: Bool
             let reservesHintBand: Bool
             let accessibilityHintOverride: String?
+            let languageCurrentSideIsFirst: Bool?
+            let inputLanguage: InputLanguage
             let appearance: KeyboardAppearance
         }
         private var configuration: Configuration?
@@ -394,6 +405,8 @@ struct AlternateCharacterKey: UIViewRepresentable {
             flickOptions: [KeyCap]? = nil, flickDigit: KeyCap? = nil, flickEligible: Bool? = nil,
             syllableHintBelow: Bool = false, reservesHintBand: Bool = false,
             accessibilityHintOverride: String? = nil,
+            languageCurrentSideIsFirst: Bool? = nil,
+            inputLanguage: InputLanguage = .simplifiedChinese,
             onSelect: @escaping (KeyCap) -> Void
         ) {
             // The action closure is cheap to swap and must always be the latest one.
@@ -414,6 +427,8 @@ struct AlternateCharacterKey: UIViewRepresentable {
                 flickDigit: flick.digit, flickEligible: flick.eligible,
                 syllableHintBelow: syllableHintBelow, reservesHintBand: reservesHintBand,
                 accessibilityHintOverride: accessibilityHintOverride,
+                languageCurrentSideIsFirst: languageCurrentSideIsFirst,
+                inputLanguage: inputLanguage,
                 appearance: appearance)
             guard next != configuration else { return }
             configuration = next
@@ -429,6 +444,8 @@ struct AlternateCharacterKey: UIViewRepresentable {
             }
             self.cap = cap
             self.alternates = alternates
+            self.inputLanguage = inputLanguage
+            self.languageCurrentSideIsFirst = languageCurrentSideIsFirst
             self.longPressDelay = longPressDelay
             self.layoutPicker = layoutPicker
             self.phoneKey = phoneKey
@@ -461,7 +478,7 @@ struct AlternateCharacterKey: UIViewRepresentable {
             accessibilityValue = cap.subtitle
             accessibilityHint =
                 accessibilityHintOverride
-                ?? (alternates.isEmpty ? nil : "长按并滑动选择副键，也可使用辅助功能操作")
+                ?? (alternates.isEmpty ? nil : String(localized: "长按并滑动选择副键，也可使用辅助功能操作"))
             if letterGroup.count > 1 {
                 accessibilityLabel = letterGroup.joined(separator: " ")
                 let described = zip(letterGroup, groupHints).compactMap { letter, hint in
@@ -469,26 +486,32 @@ struct AlternateCharacterKey: UIViewRepresentable {
                 }
                 accessibilityValue = described.isEmpty ? nil : described.joined(separator: "，")
                 if !self.letterSwipe.isEmpty, alternates.isEmpty, accessibilityHintOverride == nil {
-                    accessibilityHint = "向左或向右滑动可输入对应的字母，也可使用辅助功能操作"
+                    accessibilityHint = String(localized: "向左或向右滑动可输入对应的字母，也可使用辅助功能操作")
                 }
             }
             if layoutPicker {
-                if cap.subtitle == "返回" {
-                    accessibilityLabel = cap.title == "中文" ? "返回中文字母页" : "返回英文字母页"
-                } else {
-                    accessibilityLabel = cap.title == "中文" ? "切换到中文输入" : "切换到英文输入"
-                }
+                // The spoken name comes from the owner: every caller passes the label table's value
+                // for this key's real action (toggle the language or return to letters), and that
+                // name follows the scheme's input language. Guessing it from the visible face here
+                // announced Chinese for Japanese schemes, and treated one wording as the action.
                 // Final assignment: the long-press list contains the added keyboards and, at the end, More tools.
                 accessibilityHint =
                     alternates.isEmpty
                     ? UserTerminology.userKeyboardSwitcherEmpty
-                    : "长按滑选已添加的键盘或更多工具，按住列表边缘滚动；也可使用辅助功能操作"
+                    : String(localized: "长按滑选已添加的键盘或更多工具，按住列表边缘滚动；也可使用辅助功能操作")
             }
             accessibilityCustomActions = (self.letterSwipe + alternates).map { alternate in
-                UIAccessibilityCustomAction(
-                    name:
-                        "\(requiresExplicitAlternateSelection ? "设为快捷符号：" : layoutPicker ? "切换键盘：" : "输入 ")\(alternate.title)"
-                ) { [weak self] _ in
+                let actionName: String
+                if requiresExplicitAlternateSelection {
+                    actionName = String(localized: "设为快捷符号：\(alternate.title)")
+                } else if layoutPicker, let package = alternate.otherPackageName {
+                    actionName = String(localized: "切换到「\(package)」的「\(alternate.title)」")
+                } else if layoutPicker {
+                    actionName = String(localized: "切换键盘：\(alternate.title)")
+                } else {
+                    actionName = String(localized: "输入 \(alternate.title)")
+                }
+                return UIAccessibilityCustomAction(name: actionName) { [weak self] _ in
                     guard let self, self.isEnabled else { return false }
                     self.onSelect?(alternate)
                     return true
@@ -620,7 +643,7 @@ struct AlternateCharacterKey: UIViewRepresentable {
             // The font setter invalidates the label's layout even for an equal font.
             var titleFont = appearance.uiFont(
                 appearance.scaledFontSize(
-                    base, label: title.text ?? "", availableWidth: bounds.width - 10))
+                    base, label: title.text ?? cap?.title ?? "", availableWidth: bounds.width - 10))
             var referenceFont = appearance.uiFont(base)
             // Only when even the top margin leaves no room above the hint does the title shrink.
             let hintHeight = bottomHintHeight
@@ -636,7 +659,56 @@ struct AlternateCharacterKey: UIViewRepresentable {
             if letterGroup.count > 1 {
                 let merged = mergedTitle(font: titleFont, role: role, contentWidth: contentWidth)
                 if title.attributedText != merged { title.attributedText = merged }
+            } else {
+                applyTitleLanguage(font: titleFont)
             }
+        }
+
+        /// The cap face follows the scheme's input language, so "空白"/"変換"/"確定" take that language's
+        /// glyph forms; Simplified Chinese keeps the plain label.
+        private func applyTitleLanguage(font: UIFont) {
+            guard let cap else { return }
+            if let firstIsCurrent = languageCurrentSideIsFirst, cap.title.contains("/") {
+                applyLanguageSides(font: font, firstIsCurrent: firstIsCurrent)
+                return
+            }
+            // Only CJK faces can take another language's glyph forms; ASCII letters, digits and marks
+            // keep the plain-label path, so ordinary typing adds no attributed-string work. Simplified
+            // Chinese is the system default form and keeps the plain label too.
+            guard inputLanguage != .simplifiedChinese,
+                cap.title.unicodeScalars.contains(where: { $0.value > 0x2E80 })
+            else {
+                if title.attributedText != nil { title.text = cap.title }
+                return
+            }
+            let string = CandidateTextLanguage.attributed(cap.title, language: inputLanguage)
+            guard string.length > 0 else { return }
+            let paragraph = NSMutableParagraphStyle()
+            paragraph.alignment = title.textAlignment
+            string.addAttributes(
+                [
+                    .font: font, .foregroundColor: title.textColor ?? UIColor.label,
+                    .paragraphStyle: paragraph,
+                ], range: NSRange(location: 0, length: string.length))
+            if title.attributedText != string { title.attributedText = string }
+        }
+
+        /// "中/英": both sides drawn, the current one in the text colour and the slash and the other
+        /// side at 60%, as on Android, so the face never changes and still says which side is on.
+        private func applyLanguageSides(font: UIFont, firstIsCurrent: Bool) {
+            guard let cap, let slash = cap.title.firstIndex(of: "/") else { return }
+            let string = CandidateTextLanguage.attributed(cap.title, language: inputLanguage)
+            guard string.length > 0 else { return }
+            let full = title.textColor ?? UIColor.label
+            let dim = full.withAlphaComponent(full.cgColor.alpha * 0.6)
+            let paragraph = NSMutableParagraphStyle()
+            paragraph.alignment = title.textAlignment
+            let whole = NSRange(location: 0, length: string.length)
+            string.addAttributes([.font: font, .foregroundColor: dim, .paragraphStyle: paragraph], range: whole)
+            let current = firstIsCurrent ? cap.title[..<slash] : cap.title[cap.title.index(after: slash)...]
+            string.addAttribute(
+                .foregroundColor, value: full, range: NSRange(current.startIndex..<current.endIndex, in: cap.title))
+            if title.attributedText != string { title.attributedText = string }
         }
 
         /// Height of the hint line under the title: the subtitle, the per-letter columns, or the band a
@@ -679,6 +751,8 @@ struct AlternateCharacterKey: UIViewRepresentable {
                 text.addAttribute(.kern, value: kern, range: NSRange(location: offset + length - 1, length: 1))
                 offset += length
             }
+            // Letters are ASCII today, but a custom layout may put CJK on a merged cap.
+            CandidateTextLanguage.apply(to: text, language: inputLanguage)
             return text
         }
 

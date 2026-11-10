@@ -31,8 +31,15 @@ public enum RimePaths {
         if let container = KeyboardRecipeStore.sharedContainerURL() {
             return container.appendingPathComponent(name, isDirectory: true)
         }
-        return FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent(name, isDirectory: true)
+        return privateOptionPreferencesDirectory()
+    }
+
+    /// This process's own writable option store, used when the App Group is readable but not writable
+    /// (a keyboard without Full Access). The relative layout matches the shared store, so switching
+    /// between the two never changes a switch's stored name.
+    public static func privateOptionPreferencesDirectory() -> URL {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("KeyboardOptions", isDirectory: true)
     }
     /// Built-in package scheme package (BuiltinPackages/Basic in Bundle.main).
     /// - Note: HostApp and KeyboardExtension each embed BuiltinPackages in their own bundle, so both
@@ -94,7 +101,7 @@ public enum RimePaths {
         case .userDictionary: root = applicationSupport.appendingPathComponent("DictionaryImportStore")
         case .userScheme:
             guard let id = activation.packageID, recipeUserDirectory(kind: .userScheme, packageID: id) != nil else {
-                throw KeyboardRecipeStore.StoreError(message: "试打方案标识无效，请重新打开试打")
+                throw KeyboardRecipeStore.StoreError(message: String(localized: "试打方案标识无效，请重新打开试打"))
             }
             root = applicationSupport.appendingPathComponent("SchemePackages/" + id)
         }
@@ -117,7 +124,7 @@ public enum RimePaths {
             return directory.appendingPathComponent("user")
         }
         guard let fallback = publishedTrialUserDirectory(activation) else {
-            throw KeyboardRecipeStore.StoreError(message: "找不到与当前版本对应的试打词库目录，请在「松烟」App 中重新试打")
+            throw KeyboardRecipeStore.StoreError(message: String(localized: "找不到与当前版本对应的试打词库目录，请在「松烟」App 中重新试打"))
         }
         return fallback
     }

@@ -33,11 +33,16 @@ public struct KeyboardPageCategory: Codable, Equatable, Identifiable, Sendable {
     public func validate() throws {
         guard !id.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, id.utf8.count <= 256,
             !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, name.utf8.count <= 256
-        else { throw LayoutError.invalid("请填写分类名称。") }
+        else { throw LayoutError.invalid(String(localized: "page.error.categoryName", bundle: .module)) }
         guard (1...LayoutResourceBudget.categoryColumns).contains(columns) else {
-            throw LayoutError.invalid("分类列数应在 1 到 \(LayoutResourceBudget.categoryColumns) 之间。")
+            throw LayoutError.invalid(
+                String(
+                    format: String(localized: "page.error.categoryColumns", bundle: .module),
+                    String(LayoutResourceBudget.categoryColumns)))
         }
-        guard source == .recent || !keys.isEmpty else { throw LayoutError.invalid("分类请至少保留一个按键。") }
+        guard source == .recent || !keys.isEmpty else {
+            throw LayoutError.invalid(String(localized: "page.error.categoryKeys", bundle: .module))
+        }
         for key in keys { try KeyboardPageDefinition.validateKey(key) }
         // Recent content changes independently of the fixed-key backup.
         let rowCount =

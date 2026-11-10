@@ -25,26 +25,57 @@ public struct UserKeyboard: Equatable, Sendable, Identifiable {
     public let inputMethodName: String
     /// Front-end keyboard layout capability.
     public let layout: KeyboardLayoutKind
+    /// Reserved physical layout ID the keyboard types on (see `PublishedKeyboard.board`); nil = the main layout comes from the pairing.
+    public let board: String?
 
-    public init(inputMethodID: String, inputMethodName: String, layout: KeyboardLayoutKind) {
+    public init(
+        inputMethodID: String, inputMethodName: String, layout: KeyboardLayoutKind, board: String? = nil
+    ) {
         self.inputMethodID = inputMethodID
         self.inputMethodName = inputMethodName
         self.layout = layout
+        self.board = board
     }
 
-    /// Identity is the combination itself (same shape as `PublishedKeyboard.id`; renaming does not change identity).
-    public var id: String { "\(inputMethodID):\(layout.rawValue)" }
+    /// Identity is the keyboard itself (same shape as `PublishedKeyboard.id`; renaming does not change identity).
+    public var id: String { combinationID + (board.map { "#" + $0 } ?? "") }
 
-    /// Display name: input method name plus layout name; only the layout name when the input method name is empty, never exposing the internal id.
+    /// The resource-bearing input method x layout this keyboard runs on (shared by its boards). Never parse `id` back into it.
+    public var combinationID: String { "\(inputMethodID):\(layout.rawValue)" }
+
+    /// The published identity of this keyboard.
+    public var published: PublishedKeyboard {
+        PublishedKeyboard(schemaID: inputMethodID, layout: layout, board: board)
+    }
+
+    /// Display name: input method name plus layout name (the board's own name when a board is set); only the layout name when the input method name is empty, never exposing the internal id.
     public var title: String {
         let name = inputMethodName.trimmingCharacters(in: .whitespaces)
-        guard !name.isEmpty else { return layout.userTitle }
-        return "\(name) · \(layout.userTitle)"
+        let layoutName =
+            board.flatMap { UserTerminology.builtinLayoutName(physicalLayoutID: $0) } ?? layout.userTitle
+        guard !name.isEmpty else { return layoutName }
+        return "\(name) · \(layoutName)"
     }
 
-    /// Whether this keyboard is the currently running combination.
-    public func isCurrent(schemaID: String, layout: KeyboardLayoutKind) -> Bool {
-        inputMethodID == schemaID && self.layout == layout
+    /// A transport kind can represent a differently named physical keyboard.
+    public func title(physicalLayoutName: String?) -> String {
+        Self.physicalBoardTitle(inputMethodName: inputMethodName, physicalLayoutName: physicalLayoutName)
+            ?? title
+    }
+
+    public static func physicalBoardTitle(
+        inputMethodName: String?, physicalLayoutName: String?
+    ) -> String? {
+        let board = (physicalLayoutName ?? "").trimmingCharacters(in: .whitespaces)
+        guard !board.isEmpty else { return nil }
+        let method = (inputMethodName ?? "").trimmingCharacters(in: .whitespaces)
+        guard !method.isEmpty else { return board }
+        return "\(method) · \(board)"
+    }
+
+    /// Whether this keyboard is the currently running one. A nil running board matches only a keyboard without a board.
+    public func isCurrent(schemaID: String, layout: KeyboardLayoutKind, board: String?) -> Bool {
+        inputMethodID == schemaID && self.layout == layout && self.board == board
     }
 }
 
@@ -78,12 +109,28 @@ public enum UserKeyboardRoster {
         }
     }
 
-    /// The current published pair's display name, never an unrelated keyboard's name.
-    public static func currentTitle(
-        schemaID: String, layout: KeyboardLayoutKind,
+    /// The matched published keyboard's input-method name, for a surface that resolved the real
+    /// physical board and must put that board's name first. nil when no item matches or its name is
+    /// blank; the shape-qualified `title` is never returned here.
+    public static func currentInputMethodName(
+        schemaID: String, layout: KeyboardLayoutKind, board: String? = nil,
         in keyboards: [UserKeyboard]
     ) -> String? {
-        keyboards.first { $0.isCurrent(schemaID: schemaID, layout: layout) }?.title
+        guard
+            let keyboard = keyboards.first(where: {
+                $0.isCurrent(schemaID: schemaID, layout: layout, board: board)
+            })
+        else { return nil }
+        let name = keyboard.inputMethodName.trimmingCharacters(in: .whitespaces)
+        return name.isEmpty ? nil : name
+    }
+
+    /// The current published pair's display name, never an unrelated keyboard's name.
+    public static func currentTitle(
+        schemaID: String, layout: KeyboardLayoutKind, board: String? = nil,
+        in keyboards: [UserKeyboard]
+    ) -> String? {
+        keyboards.first { $0.isCurrent(schemaID: schemaID, layout: layout, board: board) }?.title
     }
 
     /// Manifest AND combinations the current resource can really run, in publication order,
@@ -102,11 +149,12 @@ public enum UserKeyboardRoster {
         }
         var seen = Set<String>()
         return keyboards.compactMap { keyboard in
-            guard let name = names[keyboard.id], seen.insert(keyboard.id).inserted else { return nil }
+            // Boards of one combination share its resources, so they look the name up by combination.
+            guard let name = names[keyboard.combinationID], seen.insert(keyboard.id).inserted else { return nil }
             return UserKeyboard(
                 inputMethodID: keyboard.inputMethodID,
                 inputMethodName: name,
-                layout: keyboard.layout)
+                layout: keyboard.layout, board: keyboard.board)
         }
     }
 
@@ -122,11 +170,12 @@ public enum UserKeyboardRoster {
     public static func cycleTarget(
         currentSchemaID: String,
         currentLayout: KeyboardLayoutKind,
+        currentBoard: String? = nil,
         in keyboards: [UserKeyboard]
     ) -> UserKeyboard? {
         guard !keyboards.isEmpty else { return nil }
         if let index = keyboards.firstIndex(where: {
-            $0.isCurrent(schemaID: currentSchemaID, layout: currentLayout)
+            $0.isCurrent(schemaID: currentSchemaID, layout: currentLayout, board: currentBoard)
         }) {
             guard keyboards.count > 1 else { return nil }
             return keyboards[(index + 1) % keyboards.count]
@@ -161,7 +210,7 @@ public enum UserKeyboardRoster {
             else { return keyboard }
             return UserKeyboard(
                 inputMethodID: keyboard.inputMethodID,
-                inputMethodName: name, layout: keyboard.layout)
+                inputMethodName: name, layout: keyboard.layout, board: keyboard.board)
         }
     }
 }

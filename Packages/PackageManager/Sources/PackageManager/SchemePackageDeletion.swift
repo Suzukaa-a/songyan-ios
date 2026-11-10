@@ -42,21 +42,18 @@ public enum SchemePackageDeletion {
 
         public var errorDescription: String? {
             switch self {
-            case .invalidTarget(let detail): return "输入方案路径无效：\(detail)"
-            case .trashUnavailable(let detail): return "删除暂存区不可用：\(detail)"
-            case .moveFailed: return "删除未完成，请返回列表核对后再操作。"
+            case .invalidTarget(let detail): return PackageText.format("delete.error.invalidPath", detail)
+            case .trashUnavailable(let detail): return PackageText.format("delete.error.trashDetail", detail)
+            case .moveFailed: return PackageText.string("delete.error.moveFailed")
             }
         }
 
         /// Ordinary UI copy never includes a raw file path.
         public var userFacingDescription: String {
             switch self {
-            case .invalidTarget:
-                return "无法确认要删除的输入方案，未作任何更改。请返回列表后重试。"
-            case .trashUnavailable:
-                return "暂时无法删除这个输入方案，未作任何更改。请稍后重试。"
-            case .moveFailed:
-                return "删除未完成。请返回列表核对后再操作。"
+            case .invalidTarget: return PackageText.string("delete.error.invalidTarget")
+            case .trashUnavailable: return PackageText.string("delete.error.trashUnavailable")
+            case .moveFailed: return PackageText.string("delete.error.moveFailed")
             }
         }
 
@@ -78,7 +75,7 @@ public enum SchemePackageDeletion {
     /// Pure-string package identity check (no disk access).
     public static func validatePackageID(_ packageID: String) throws {
         guard PublishedKeyboardSourceKey.validPackageID(packageID) else {
-            throw Failure.invalidTarget("输入方案包标识无效")
+            throw Failure.invalidTarget(PackageText.string("delete.error.invalidPackageID"))
         }
     }
 
@@ -92,15 +89,15 @@ public enum SchemePackageDeletion {
         let root = layout.storeRoot.standardizedFileURL
         let target = root.appendingPathComponent(packageID, isDirectory: true).standardizedFileURL
         guard target.deletingLastPathComponent().standardizedFileURL.path == root.path else {
-            throw Failure.invalidTarget("目标不在安装目录内")
+            throw Failure.invalidTarget(PackageText.string("delete.error.targetNotInRoot"))
         }
         let resolvedRoot = root.resolvingSymlinksInPath().standardizedFileURL
         let resolvedTarget = target.resolvingSymlinksInPath().standardizedFileURL
         guard resolvedTarget.deletingLastPathComponent().path == resolvedRoot.path else {
-            throw Failure.invalidTarget("目标指向安装目录之外")
+            throw Failure.invalidTarget(PackageText.string("delete.error.targetOutsideRoot"))
         }
         guard values?.isSymbolicLink != true, values?.isDirectory == true else {
-            throw Failure.invalidTarget("目标不是安装目录")
+            throw Failure.invalidTarget(PackageText.string("delete.error.targetNotDirectory"))
         }
         return target
     }
@@ -118,7 +115,7 @@ public enum SchemePackageDeletion {
         let values = try? target.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
         _ = try validateTarget(packageID: packageID, layout: layout, values: values)
         guard fm.fileExists(atPath: target.path) else {
-            throw Failure.invalidTarget("安装目录不存在")
+            throw Failure.invalidTarget(PackageText.string("delete.error.rootMissing"))
         }
         let trashRoot = layout.trashRoot.standardizedFileURL
         do { try ensureRealDirectory(trashRoot, fm: fm) } catch {

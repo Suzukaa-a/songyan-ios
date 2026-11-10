@@ -24,17 +24,17 @@ struct EngineStatusView: View {
 
     var body: some View {
         List {
-            Section("引擎") {
+            Section(String(localized: "引擎")) {
                 provider
             }
 
-            Section("键盘扩展") {
+            Section(String(localized: "键盘扩展")) {
                 Text("需在系统「设置」中添加并启用键盘扩展。")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
         }
-        .navigationTitle("引擎与集成")
+        .navigationTitle(String(localized: "引擎与集成"))
         .navigationBarTitleDisplayMode(.inline)
     }
 }
@@ -60,7 +60,7 @@ struct SettingsAndAboutView: View {
 
     private var documentsPath: String {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
-            .first?.path ?? "不可用"
+            .first?.path ?? String(localized: "不可用")
     }
 
     private enum Route: String, CaseIterable, Identifiable {
@@ -69,36 +69,37 @@ struct SettingsAndAboutView: View {
         var id: String { rawValue }
         var visibleByDefault: Bool {
             switch self {
-            case .inputOptions, .grammarModel, .quickContent, .keyboardAccess, .advanced: return true
+            case .inputOptions, .grammarModel, .quickContent, .keyboardAccess, .advanced:
+                return true
             default: return false
             }
         }
         var title: String {
             switch self {
-            case .inputOptions: return "输入选项"
+            case .inputOptions: return String(localized: "输入选项")
             case .grammarModel: return UserTerminology.grammarModel
-            case .quickContent: return "常用语与剪贴板"
-            case .keyboardAccess: return "键盘与完全访问"
-            case .advanced: return "高级"
-            case .symbols: return "符号与颜文字"
+            case .quickContent: return String(localized: "常用语")
+            case .keyboardAccess: return String(localized: "键盘与完全访问")
+            case .advanced: return String(localized: "高级")
+            case .symbols: return String(localized: "符号与颜文字")
             case .userKeyboards: return UserTerminology.userKeyboard
             case .appearance: return UserTerminology.keyboardAppearance
             case .dictionary: return UserTerminology.dictionary
-            case .learningBackup: return "学习备份"
+            case .learningBackup: return String(localized: "学习备份")
             }
         }
         var keywords: String {
             switch self {
-            case .inputOptions: return "输入选项 声音 触感 纠错 联想 九键 拼写 高度 紧凑 宽松 双拼 提示 单手 模糊音 弱 适中 强 符号页 分类符号"
-            case .grammarModel: return "语法模型 模型"
-            case .quickContent: return "常用语 剪贴板 历史 快捷短语"
-            case .keyboardAccess: return "键盘 完全访问 权限 添加 引导"
-            case .advanced: return "高级 自定义 布局 扩展 诊断 日志"
-            case .symbols: return "符号 颜文字 标点 特殊符号"
-            case .userKeyboards: return "我的键盘 输入方式 键盘布局 全拼 双拼 九键 26键 14键"
-            case .appearance: return "键盘外观 皮肤 颜色 主题"
-            case .dictionary: return "词库 词典 词汇"
-            case .learningBackup: return "学习备份 词频 备份 换机 恢复"
+            case .inputOptions: return String(localized: "输入选项 声音 触感 纠错 联想 九键 拼写 高度 紧凑 宽松 双拼 提示 单手 模糊音 弱 适中 强 符号页 分类符号")
+            case .grammarModel: return String(localized: "语法模型 模型")
+            case .quickContent: return String(localized: "常用语 快捷短语")
+            case .keyboardAccess: return String(localized: "键盘 完全访问 权限 添加 引导")
+            case .advanced: return String(localized: "高级 自定义 布局 扩展 诊断 日志")
+            case .symbols: return String(localized: "符号 颜文字 标点 特殊符号")
+            case .userKeyboards: return String(localized: "我的键盘 输入方式 键盘布局 全拼 双拼 九键 26键 14键")
+            case .appearance: return String(localized: "键盘外观 皮肤 颜色 主题")
+            case .dictionary: return String(localized: "词库 词典 词汇")
+            case .learningBackup: return String(localized: "学习备份 词频 备份 换机 恢复")
             }
         }
     }
@@ -138,47 +139,47 @@ struct SettingsAndAboutView: View {
                 }
             }
 
-            if matches("隐私 网络 完全访问 权限 关于 版本 许可") {
+            if matches(String(localized: "隐私 网络 完全访问 权限 关于 版本 许可")) {
                 Section {
                     privacyRow(
-                        "键盘不联网", systemImage: "wifi.slash",
-                        text: "输入内容只在设备上处理，不会上传。")
+                        String(localized: "键盘不联网"), systemImage: "wifi.slash",
+                        text: String(localized: "输入内容只在设备上处理，不会上传。"))
                     privacyRow(
-                        "允许完全访问", systemImage: "lock.open",
-                        text: "不开启也能使用所有输入方案；开启后才能使用按键声音和常用语，并记住你在键盘里做的切换。")
+                        String(localized: "允许完全访问"), systemImage: "lock.open",
+                        text: String(localized: "不开启也能使用所有输入方案；开启后才能使用按键声音和常用语，并记住你在键盘里做的切换。"))
                     privacyRow(
-                        "App 何时联网", systemImage: "arrow.down.circle",
-                        text: "仅在你下载文件或检查更新时联网。")
+                        String(localized: "App 何时联网"), systemImage: "arrow.down.circle",
+                        text: String(localized: "仅在你下载文件或检查更新时联网。"))
                     versionRow
-                    NavigationLink("第三方许可") { ThirdPartyLicensesView() }
+                    NavigationLink(String(localized: "第三方许可")) { ThirdPartyLicensesView() }
                         .accessibilityIdentifier("settings.licenses")
                 } header: {
                     Text("隐私与关于")
                 }
             }
 
-            if developerOptions, matches("开发者 引擎 文档 构建") {
-                Section("开发者") {
-                    Toggle("开发者选项", isOn: $developerOptions)
+            if developerOptions, matches(String(localized: "开发者 引擎 文档 构建")) {
+                Section(String(localized: "开发者")) {
+                    Toggle(String(localized: "开发者选项"), isOn: $developerOptions)
                         .accessibilityIdentifier("settings.developerOptions")
-                    LabeledRow(label: "引擎来源", value: EngineIntegration.currentEngineDescription)
-                    LabeledRow(label: "文档目录", value: documentsPath)
-                    LabeledRow(label: "构建配置", value: buildConfigurationName)
+                    LabeledRow(label: String(localized: "引擎来源"), value: EngineIntegration.currentEngineDescription)
+                    LabeledRow(label: String(localized: "文档目录"), value: documentsPath)
+                    LabeledRow(label: String(localized: "构建配置"), value: buildConfigurationName)
                 }
             }
         }
-        .navigationTitle("设置")
+        .navigationTitle(String(localized: "设置"))
         .navigationBarTitleDisplayMode(.inline)
-        .searchable(text: $searchText, prompt: "搜索设置")
+        .searchable(text: $searchText, prompt: String(localized: "搜索设置"))
         .overlay {
-            if visibleRoutes.isEmpty && !matches("隐私 网络 完全访问 权限 关于 版本 许可")
-                && !(developerOptions && matches("开发者 引擎 文档 构建"))
+            if visibleRoutes.isEmpty && !matches(String(localized: "隐私 网络 完全访问 权限 关于 版本 许可"))
+                && !(developerOptions && matches(String(localized: "开发者 引擎 文档 构建")))
             {
                 ContentUnavailableView.search(text: searchText)
             }
         }
-        .alert("已开启开发者选项", isPresented: $showingDeveloperEnabled) {
-            Button("好") {}
+        .alert(String(localized: "已开启开发者选项"), isPresented: $showingDeveloperEnabled) {
+            Button(String(localized: "好")) {}
         } message: {
             Text("可随时在「设置」底部关闭。")
         }
@@ -233,19 +234,20 @@ struct ThirdPartyLicensesView: View {
 
     var body: some View {
         List {
-            Section("Rime 与组件") {
+            Section(String(localized: "Rime 与组件")) {
                 if let url = Bundle.main.resourceURL?.appendingPathComponent("Legal/ThirdPartyNotices.txt"),
                     FileManager.default.fileExists(atPath: url.path)
                 {
-                    NavigationLink("Rime 与第三方组件 · 归属及许可全文") {
-                        LicenseTextView(title: "Rime 与组件", resource: "Legal/ThirdPartyNotices.txt")
+                    NavigationLink(String(localized: "Rime 与第三方组件 · 归属及许可全文")) {
+                        LicenseTextView(title: String(localized: "Rime 与组件"), resource: "Legal/ThirdPartyNotices.txt")
                     }
                 }
                 if let url = Bundle.main.resourceURL?.appendingPathComponent("Legal/ThirdPartyNotices-iOS.txt"),
                     FileManager.default.fileExists(atPath: url.path)
                 {
-                    NavigationLink("iOS 版专用组件 · 归属及许可") {
-                        LicenseTextView(title: "iOS 版专用组件", resource: "Legal/ThirdPartyNotices-iOS.txt")
+                    NavigationLink(String(localized: "iOS 版专用组件 · 归属及许可")) {
+                        LicenseTextView(
+                            title: String(localized: "iOS 版专用组件"), resource: "Legal/ThirdPartyNotices-iOS.txt")
                     }
                 }
                 NavigationLink("librime-lua · BSD-3-Clause") {
@@ -291,10 +293,10 @@ struct ThirdPartyLicensesView: View {
                     LicenseTextView(
                         title: "rime-prelude", resource: "PackageManager_PackageManager.bundle/RimePrelude/LICENSE")
                 }
-                NavigationLink("14 键规则来源 · LGPL-3.0") {
+                NavigationLink(String(localized: "14 键规则来源 · LGPL-3.0")) {
                     LicenseTextView(title: "rime-clover-flypy", resource: "Legal/licenses/LGPL-3.0.txt")
                 }
-                NavigationLink("项目源码与规则 · GPL-3.0") {
+                NavigationLink(String(localized: "项目源码与规则 · GPL-3.0")) {
                     LicenseTextView(title: "GPL-3.0", resource: "Legal/licenses/GPL-3.0.txt")
                 }
             }
@@ -315,7 +317,7 @@ struct ThirdPartyLicensesView: View {
                 Text("在线许可全文")
             }
         }
-        .navigationTitle("第三方许可")
+        .navigationTitle(String(localized: "第三方许可"))
         .navigationBarTitleDisplayMode(.inline)
     }
 
@@ -328,7 +330,7 @@ struct ThirdPartyLicensesView: View {
 private struct LicenseTextView: View {
     let title: String
     let resource: String
-    @State private var content = "正在读取…"
+    @State private var content = String(localized: "正在读取…")
 
     var body: some View {
         ScrollView {
@@ -339,14 +341,14 @@ private struct LicenseTextView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task {
             guard let url = Bundle.main.resourceURL?.appendingPathComponent(resource) else {
-                content = "无法读取许可文件"
+                content = String(localized: "无法读取许可文件")
                 return
             }
             do {
                 content = try await KeyboardResourceReadQueue.async {
                     String(decoding: try Data(contentsOf: url), as: UTF8.self)
                 }
-            } catch { content = "无法读取许可文件" }
+            } catch { content = String(localized: "无法读取许可文件") }
         }
     }
 }

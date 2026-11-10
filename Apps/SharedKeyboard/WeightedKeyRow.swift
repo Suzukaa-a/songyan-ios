@@ -55,6 +55,8 @@ struct KeyAreaRenderToken: Equatable {
     let shiftState: ShiftState
     let isComposing: Bool
     let usesASCIIPunctuation: Bool
+    /// Automatic captions follow the scheme's language; a scheme switch must redraw the rows.
+    let inputLanguage: InputLanguageProfile
     /// Panel-local symbol language after override/page-default/controller resolution; the language
     /// key, symbol pages and paired literal faces redraw from it.
     let symbolMarks: KeyboardNumericMarks
@@ -62,6 +64,10 @@ struct KeyAreaRenderToken: Equatable {
     let isReturnKeyEnabled: Bool
     let schemaAlphabet: String
     let publishedKeyboards: [UserKeyboard]
+    /// The keyboard menu also lists the other packages' keyboards, which change on their own.
+    let otherPackageKeyboards: [OtherPackageKeyboard]
+    /// URL and email fields change the marks beside the space bar.
+    let hostFieldMarks: KeyboardControlPolicy.FieldMarks
     let quickSymbols: String
     let layoutHintName: String?
     let layoutHintToken: UUID?

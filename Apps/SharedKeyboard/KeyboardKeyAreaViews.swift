@@ -163,14 +163,18 @@ struct KeyboardSplitHalvesPad<Key: View>: View {
     @Environment(\.keyboardKeyHeight) private var keyHeight
     let rows: [LayoutSplitRow]
     let split: ActiveLayoutSplit
-    /// Keys that cannot work here (a globe without a system switcher) are left out of their half.
+    /// Keys that cannot work here are left out of their half.
     var isVisible: (LayoutKey) -> Bool = { _ in true }
+    /// Without a system switcher each half drops its globe and hands the width to its Return.
+    var showsGlobe = true
     /// Receives the key, its row and its index in the whole row.
     @ViewBuilder var key: (LayoutKey, Int, Int) -> Key
 
     var body: some View {
         let shown = rows.map {
-            LayoutSplitRow(left: $0.left.filter(isVisible), right: $0.right.filter(isVisible))
+            LayoutSplitRow(
+                left: (showsGlobe ? $0.left : $0.left.withoutGlobe()).filter(isVisible),
+                right: (showsGlobe ? $0.right : $0.right.withoutGlobe()).filter(isVisible))
         }
         GeometryReader { proxy in
             let geometry = SplitHalvesGeometry(width: Double(proxy.size.width), rows: shown, split: split)
@@ -269,7 +273,7 @@ struct KeyboardMergedSeparatorKey: View {
             onTap()
         }
         .disabled(!isComposing)
-        .accessibilityLabel("分词")
+        .accessibilityLabel(String(localized: "分词"))
     }
 }
 
@@ -358,9 +362,10 @@ enum LayoutFooterItem: Hashable {
     case layoutSwitch
     case key(Int)
 
-    func width(keys: [LayoutKey]) -> Double {
+    /// `weights` holds one width weight per declared key.
+    func width(weights: [Double]) -> Double {
         guard case .key(let index) = self else { return 44 }
-        return max(44, keys[index].widthWeight * 44)
+        return max(44, weights[index] * 44)
     }
 }
 
@@ -377,7 +382,14 @@ struct KeyboardLayoutUtilityBar<Key: View, Globe: View, ModeSwitch: View>: View 
     let showsGlobe: Bool
     /// Whether the definition already declares a globe anywhere.
     let definitionHasGlobe: Bool
+    let symbolPageTitle: String
+    let numericPageAccessibilityLabel: String
+    let symbolPageAccessibilityLabel: String
     let onPage: (KeyboardPage) -> Void
+    /// Whether the bar adds its own 123, symbol, globe and 中/英 shortcuts around the authored row.
+    /// A bundled board whose footer declares every control key turns this off, so both platforms
+    /// draw the same footer; every other layout keeps the supplement.
+    var supplementShortcuts = true
     @ViewBuilder var key: (LayoutKey, String, Int) -> Key
     @ViewBuilder var globe: () -> Globe
     @ViewBuilder var modeSwitch: () -> ModeSwitch
@@ -385,35 +397,32 @@ struct KeyboardLayoutUtilityBar<Key: View, Globe: View, ModeSwitch: View>: View 
     private var keys: [LayoutKey] { controlRow?.keys ?? [] }
 
     /// Shortcuts the bar adds only when the authored control row does not already declare them.
-    private var dedupe: (numeric: Bool, symbols: Bool, layout: Bool) {
-        (
-            numeric: keys.contains { $0.action.pageSwitchTarget == .numeric },
-            symbols: keys.contains { $0.action.pageSwitchTarget == .symbols },
-            layout: keys.contains { $0.action.type == .modeSwitch }
-        )
+    private var shortcutPlan: KeyboardFooterShortcutPlan {
+        KeyboardFooterShortcutPlan(controlRow: controlRow, supplementShortcuts: supplementShortcuts)
     }
 
     var body: some View {
         if let split {
             let keys = keys
             let boundary = split.breakIndex(row: rowIndex, keyCount: keys.count)
-            let visible = keys.indices.filter {
-                keys[$0].action.type != .space && (keys[$0].action.type != .globe || showsGlobe)
-            }
-            let dedupe = dedupe
+            let shown = keys.indices.filter { showsGlobe || keys[$0].action.type != .globe }
+            let visible = shown.filter { keys[$0].action.type != .space }
+            let weights = footerWeights(keys, shown: shown)
+            let plan = shortcutPlan
             let shortcuts: [LayoutFooterItem] =
-                (dedupe.numeric ? [] : [.numericShortcut]) + (dedupe.symbols ? [] : [.symbolShortcut])
-                + (!definitionHasGlobe && showsGlobe ? [.globe] : [])
+                (plan.addsNumericShortcut ? [.numericShortcut] : [])
+                + (plan.addsSymbolShortcut ? [.symbolShortcut] : [])
+                + (plan.addsGlobe(definitionHasGlobe: definitionHasGlobe, showsGlobe: showsGlobe) ? [.globe] : [])
             let left = shortcuts + visible.filter { $0 < boundary }.map(LayoutFooterItem.key)
             let right =
                 visible.filter { $0 >= boundary }.map(LayoutFooterItem.key)
-                + (dedupe.layout ? [] : [LayoutFooterItem.layoutSwitch])
+                + (plan.addsLayoutSwitch ? [LayoutFooterItem.layoutSwitch] : [])
             let spaceIndex = keys.firstIndex { $0.action.type == .space }
             let space = spaceIndex.map { keys[$0] } ?? LayoutKey(label: "空格", width: 4, action: .init(.space))
             SplitSpaceKeyboardRow(
                 leftKeys: left, rightKeys: right,
-                leftWidths: left.map { $0.width(keys: keys) },
-                rightWidths: right.map { $0.width(keys: keys) }, split: split,
+                leftWidths: left.map { $0.width(weights: weights) },
+                rightWidths: right.map { $0.width(weights: weights) }, split: split,
                 spaceWidthMultiplier: 3 * space.widthWeight / 4,
                 key: { footerKey($0, keys: keys) },
                 space: { key(space, "controls-space", spaceIndex ?? -1) },
@@ -423,11 +432,23 @@ struct KeyboardLayoutUtilityBar<Key: View, Globe: View, ModeSwitch: View>: View 
         }
     }
 
+    /// Each declared key's width. A hidden globe's width goes to Return; declared indices stay
+    /// stable for the key callbacks.
+    private func footerWeights(_ keys: [LayoutKey], shown: [Int]) -> [Double] {
+        var weights = keys.map(\.widthWeight)
+        guard !showsGlobe else { return weights }
+        for (index, key) in zip(shown, keys.withoutGlobe()) { weights[index] = key.widthWeight }
+        return weights
+    }
+
     @ViewBuilder
     private func footerKey(_ item: LayoutFooterItem, keys: [LayoutKey]) -> some View {
         switch item {
-        case .numericShortcut: pageShortcut("123", target: .numeric)
-        case .symbolShortcut: pageShortcut(KeyboardControlPolicy.symbolPageTitle, target: .symbols)
+        case .numericShortcut:
+            pageShortcut(
+                KeyLabelPolicy.numericPageTitle, target: .numeric, accessibilityLabel: numericPageAccessibilityLabel)
+        case .symbolShortcut:
+            pageShortcut(symbolPageTitle, target: .symbols, accessibilityLabel: symbolPageAccessibilityLabel)
         case .globe: globe()
         case .layoutSwitch: modeSwitch()
         case .key(let index): key(keys[index], "controls-\(index)", index)
@@ -435,24 +456,29 @@ struct KeyboardLayoutUtilityBar<Key: View, Globe: View, ModeSwitch: View>: View 
     }
 
     private var singleSpaceBar: some View {
-        let dedupe = dedupe
+        let plan = shortcutPlan
         return HStack(spacing: 4) {
-            if !dedupe.numeric { pageShortcut("123", target: .numeric) }
-            if !dedupe.symbols {
-                pageShortcut(KeyboardControlPolicy.symbolPageTitle, target: .symbols)
+            if plan.addsNumericShortcut {
+                pageShortcut(
+                    KeyLabelPolicy.numericPageTitle, target: .numeric, accessibilityLabel: numericPageAccessibilityLabel
+                )
+            }
+            if plan.addsSymbolShortcut {
+                pageShortcut(symbolPageTitle, target: .symbols, accessibilityLabel: symbolPageAccessibilityLabel)
             }
             if let row = controlRow {
                 let sources = row.keys.indices.filter { showsGlobe || row.keys[$0].action.type != .globe }
-                KeyboardDefinitionRow(keys: sources.map { row.keys[$0] }, isControls: true) { value, index in
+                let shown = showsGlobe ? row.keys : row.keys.withoutGlobe()
+                KeyboardDefinitionRow(keys: shown, isControls: true) { value, index in
                     key(value, "controls-\(index)", sources[index])
                 }
             } else {
                 Spacer(minLength: 0)
             }
-            if !definitionHasGlobe, showsGlobe {
+            if plan.addsGlobe(definitionHasGlobe: definitionHasGlobe, showsGlobe: showsGlobe) {
                 globe().frame(width: 44, height: keyHeight)
             }
-            if !dedupe.layout {
+            if plan.addsLayoutSwitch {
                 modeSwitch().frame(width: 44, height: keyHeight)
             }
         }
@@ -461,14 +487,14 @@ struct KeyboardLayoutUtilityBar<Key: View, Globe: View, ModeSwitch: View>: View 
         .buttonStyle(KeyboardPressStyle())
     }
 
-    private func pageShortcut(_ title: String, target: KeyboardPage) -> some View {
+    private func pageShortcut(_ title: String, target: KeyboardPage, accessibilityLabel: String) -> some View {
         AlternateCharacterKey(
             cap: KeyCap(id: "layout-page-\(title)", title: title, action: .cycleLayout), alternates: []
         ) { _ in
             onPage(target)
         }
         .frame(width: 44, height: keyHeight)
-        .accessibilityLabel(target == .numeric ? "打开数字符号页" : "打开符号页")
+        .accessibilityLabel(accessibilityLabel)
     }
 }
 
@@ -479,6 +505,7 @@ struct KeyboardFixedEditingRail: View {
     @Environment(\.keyboardAppearance) private var appearance
     let metrics: PhoneKeypadMetrics
     let returnTitle: String
+    var returnAccessibilityLabel: String? = nil
     let isReturnEnabled: Bool
     let isComposing: Bool
     /// Receives whether this call is a repeat of a held Delete.
@@ -491,7 +518,7 @@ struct KeyboardFixedEditingRail: View {
         VStack(spacing: CGFloat(metrics.spacing)) {
             RepeatingDeleteKey(action: onDelete)
                 .frame(height: CGFloat(slots[0].height))
-                .accessibilityLabel("删除")
+                .accessibilityLabel(String(localized: "删除"))
             AlternateCharacterKey(
                 cap: KeyCap(id: "t9-reset", title: "重输", action: .backspace),
                 alternates: [], visualRole: "control",
@@ -501,10 +528,13 @@ struct KeyboardFixedEditingRail: View {
             }
             .disabled(!isComposing)
             .frame(height: CGFloat(slots[1].height))
-            .accessibilityLabel("重输")
-            .accessibilityHint("清空当前输入")
-            ReturnKey(title: returnTitle, isEnabled: isReturnEnabled, onSelect: onReturn)
-                .frame(height: CGFloat(slots[2].height))
+            .accessibilityLabel(String(localized: "重输"))
+            .accessibilityHint(String(localized: "清空当前输入"))
+            ReturnKey(
+                title: returnTitle, isEnabled: isReturnEnabled,
+                accessibilityLabel: returnAccessibilityLabel, onSelect: onReturn
+            )
+            .frame(height: CGFloat(slots[2].height))
         }
     }
 }
@@ -524,7 +554,7 @@ struct KeyboardPhoneDigitTrailingRail: View {
         VStack(spacing: CGFloat(metrics.spacing)) {
             RepeatingDeleteKey(action: onDelete)
                 .frame(height: CGFloat(metrics.rowHeight))
-                .accessibilityLabel("删除")
+                .accessibilityLabel(String(localized: "删除"))
             AlternateCharacterKey(
                 cap: KeyCap(id: "digit-pad-0", title: "0", action: .literal("0")),
                 alternates: [], phoneKey: true, onSelect: onKey
@@ -539,7 +569,7 @@ struct KeyboardPhoneDigitTrailingRail: View {
                 onSelect: onKey
             )
             .frame(height: CGFloat(metrics.rowHeight))
-            .accessibilityLabel("\(comma)，长按选择标点")
+            .accessibilityLabel(String(localized: "\(comma)，长按选择标点"))
         }
         .buttonStyle(KeyboardPressStyle())
     }
@@ -571,7 +601,7 @@ struct KeyboardPhoneSymbolRail: View {
                 .frame(height: CGFloat(metrics.rowHeight))
                 .accessibilityHint(
                     index == 0 && !firstKeyAlternates.isEmpty
-                        ? "长按输入更多符号" : "")
+                        ? String(localized: "长按输入更多符号") : "")
             }
         }
         .buttonStyle(KeyboardPressStyle())
@@ -696,7 +726,8 @@ extension SymbolLibraryModel {
     /// the built-in tabs followed by the library's sets. `ascii` follows the real input language;
     /// an explicit symbol toggle only changes explicitly paired keys.
     func pageCategories(
-        authored: [KeyboardPageCategory]?, ascii: Bool, showsGlobe: Bool, leadingMarks: [String] = []
+        authored: [KeyboardPageCategory]?, ascii: Bool, showsGlobe: Bool, leadingMarks: [String] = [],
+        script: KeyLabelScript = .simplifiedChinese
     ) -> [SymbolPageTable.PhoneSymbolCategory] {
         if let authored {
             return SymbolPageTable.authoredCategories(
@@ -711,6 +742,6 @@ extension SymbolLibraryModel {
                     id: category.id, title: category.name,
                     symbols: catalog.items(in: category.id).map(\.text))
             },
-            leadingMarks: leadingMarks)
+            leadingMarks: leadingMarks, script: script)
     }
 }

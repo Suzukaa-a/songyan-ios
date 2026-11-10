@@ -29,6 +29,15 @@ extension KeyboardController {
         }
     }
 
+    /// URL and email fields put the address marks they type most beside the space bar.
+    var hostFieldMarks: KeyboardControlPolicy.FieldMarks {
+        switch HostKeyboardTypeKind(keyboardType) {
+        case .url: return .url
+        case .emailAddress: return .email
+        default: return .sentence
+        }
+    }
+
     public func toggleInputMode() {
         hostRestoredMode = nil
         automaticShiftArmed = false
@@ -101,7 +110,7 @@ extension KeyboardController {
         return completed
     }
 
-    /// External clipboard/credential text reaches the same outlet but never seeds ABC learning.
+    /// Text that did not come from typing (a tool result) reaches the same outlet but never seeds ABC learning.
     @discardableResult
     public func insertExternalLiteral(_ text: String) -> Bool {
         externalLiteralDepth += 1

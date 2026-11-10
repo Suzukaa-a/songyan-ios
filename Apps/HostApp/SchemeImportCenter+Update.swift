@@ -33,11 +33,11 @@ extension SchemeImportCenter {
         applyingAfterInstall: Bool = true
     ) async -> SchemeUpdateOutcome {
         guard !busy, !schemeUpdateActive else {
-            error = "另一项操作正在进行，请稍后再试。"
+            error = String(localized: "另一项操作正在进行，请稍后再试。")
             return .busy
         }
         guard let item = installedPackages.first(where: { $0.id == packageID }) else {
-            error = "未找到要更新的输入方案。"
+            error = String(localized: "未找到要更新的输入方案。")
             return .unchanged
         }
         // Reserve the update before the first await: two updates for one package must never overlap.
@@ -85,21 +85,23 @@ extension SchemeImportCenter {
         // Recognition rejects a package that declares another scheme.
         guard
             await prepareRecognizedImport(
-                [download.localFileURL],
-                capture: ImportCapture(target: item, sourceURL: download.requestedURL)), let recognized = prepared
+                download.localFileURLs,
+                capture: ImportCapture(
+                    target: item, sourceURL: download.requestedURL, recommendation: download.recommendation)),
+            let recognized = prepared
         else {
             return .unchanged
         }
         // Unchanged content is not reinstalled as an empty new version.
         guard recognized.manifest.revision != previousRevision else {
-            userNotice = "已是最新版本，无需更新。"
+            userNotice = String(localized: "已是最新版本，无需更新。")
             return .unchanged
         }
         guard !Task.isCancelled else { return .unchanged }
         guard let revision = await performInstall(recognized, expectedGeneration: baseline) else { return .unchanged }
         installed = true
         guard revision != previousRevision else {
-            userNotice = "已是最新版本，无需更新。"
+            userNotice = String(localized: "已是最新版本，无需更新。")
             return .unchanged
         }
         guard applyingAfterInstall, publication.isCurrent, !Task.isCancelled else { return .installedOnly }
@@ -109,7 +111,8 @@ extension SchemeImportCenter {
         } catch {
             // The install is committed; the keyboard did not move.
             HostLog.append("scheme update keyboard switch failed: \(error.localizedDescription)")
-            userNotice = "方案已更新。要让键盘改用新版本，请轻点「使用新版本」。"
+            userNotice = String(
+                localized: "方案已更新。要让键盘改用新版本，请轻点「使用新版本」。")
             return .installedOnly
         }
     }
@@ -139,7 +142,8 @@ extension SchemeImportCenter {
         publication: KeyboardPublicationCapture
     ) async throws {
         guard !publication.roster.isEmpty else {
-            throw KeyboardRecipeStore.StoreError(message: "键盘列表为空，请重新选择键盘后再试。")
+            throw KeyboardRecipeStore.StoreError(
+                message: String(localized: "键盘列表为空，请重新选择键盘后再试。"))
         }
         _ = try await performReplaceKeyboards(
             packageID: packageID,
@@ -157,11 +161,11 @@ extension SchemeImportCenter {
         applyingAfterInstall: Bool = true
     ) async -> SchemeUpdateOutcome {
         guard !busy, !schemeUpdateActive else {
-            error = "另一项操作正在进行，请稍后再试。"
+            error = String(localized: "另一项操作正在进行，请稍后再试。")
             return .busy
         }
         guard let item = installedPackages.first(where: { $0.id == packageID }) else {
-            error = "未找到要更新的输入方案。"
+            error = String(localized: "未找到要更新的输入方案。")
             return .unchanged
         }
         // Reserve the update before the first await: two updates for one package must never overlap.
@@ -200,7 +204,7 @@ extension SchemeImportCenter {
             await waitForSourceStep(checkStep), error == nil, let plan = sourcePlan
         else { return .unchanged }
         guard plan.expectedGeneration == baseline, sourcePackageID == packageID else {
-            error = "更新时输入方案发生了变化，请重试。"
+            error = String(localized: "更新时输入方案发生了变化，请重试。")
             return .unchanged
         }
         guard !Task.isCancelled else { return .unchanged }
@@ -209,7 +213,7 @@ extension SchemeImportCenter {
         else { return .unchanged }
         let revision = installedPackages.first { $0.id == packageID }?.active.installation.revision
         guard let revision, revision != previousRevision else {
-            userNotice = "已是最新版本，无需更新。"
+            userNotice = String(localized: "已是最新版本，无需更新。")
             return .unchanged
         }
         guard applyingAfterInstall, publication.isCurrent, !Task.isCancelled else { return .installedOnly }
@@ -218,7 +222,8 @@ extension SchemeImportCenter {
             return .applied
         } catch {
             HostLog.append("source update keyboard switch failed: \(error.localizedDescription)")
-            userNotice = "方案已更新。要让键盘改用新版本，请轻点「使用新版本」。"
+            userNotice = String(
+                localized: "方案已更新。要让键盘改用新版本，请轻点「使用新版本」。")
             return .installedOnly
         }
     }
@@ -227,7 +232,7 @@ extension SchemeImportCenter {
     /// was busy (nil step) or the update was cancelled.
     func waitForSourceStep(_ step: Task<Void, Never>?) async -> Bool {
         guard let step else {
-            error = "另一项操作正在进行，请稍后再试。"
+            error = String(localized: "另一项操作正在进行，请稍后再试。")
             return false
         }
         await withTaskCancellationHandler(operation: { await step.value }, onCancel: { step.cancel() })

@@ -176,6 +176,13 @@ public final class KeyboardController: ObservableObject {
     @Published public internal(set) var inputError: String?
     @Published public internal(set) var inputUnavailableReason: String?
     @Published public internal(set) var selectedSchemaID: String { didSet { definitionInputsRevision &+= 1 } }
+    /// The physical board of the running published keyboard (`PublishedKeyboard.board`); nil = the main
+    /// layout comes from the pairing. Part of the layout inputs, so a change re-resolves the key area.
+    @Published public internal(set) var selectedBoard: String? { didSet { definitionInputsRevision &+= 1 } }
+    /// The board a `selectLayout` in flight switches to. `refresh()` adopts it together with the new
+    /// layout / schema, so the selection change is reported with the board it landed on; any other
+    /// layout or schema change (no board named) drops the board.
+    var incomingBoard: String?
     /// Plain counter (not @Published) bumped on every assignment of `layout` / `selectedSchemaID`.
     /// The key area consults the layout-resolution cache hundreds of times per render; comparing this
     /// integer is much cheaper than reading two @Published values through Combine (the Published
@@ -195,6 +202,19 @@ public final class KeyboardController: ObservableObject {
         return loaded
     }
     private var cachedSchemaDescriptors: [KeyboardSchemaDescriptor]?
+
+    /// The running input method's language and keyboard family, computed and cached by the
+    /// session on scheme/switch changes only. Rendering reads this value; the key path never asks.
+    public var inputLanguage: InputLanguageProfile { session.inputLanguage }
+
+    /// The same language as the label policy's value.
+    public var inputLanguageScript: KeyLabelScript {
+        switch inputLanguage.language {
+        case .simplifiedChinese: return .simplifiedChinese
+        case .traditionalChinese: return .traditionalChinese
+        case .japanese: return .japanese
+        }
+    }
 
     /// The real alphabet declared by the current source schema; empty string if not found. Long-press
     /// policy fails closed on it and never guesses sendable codes from layout names or key caps.
@@ -316,6 +336,15 @@ public final class KeyboardController: ObservableObject {
     /// Memory only, bounded; a guess source for display, never for commits.
     var knownCharacterReadings: [Character: [String]] = [:]
 
+    // MARK: Kana12 input binding state (see KeyboardController+Kana12.swift)
+
+    /// Pure kana12 model, the gestures that arrived while an earlier gesture's batch was still
+    /// decoding, and the document generation those gestures belong to.
+    var kana12 = Kana12BindingState()
+    /// Panel-level navigation for the kana12 surface (symbols page, language key). The
+    /// controller calls it in press order, after every earlier kana gesture has landed.
+    var onKana12Navigation: ((Kana12ViewAction) -> Void)?
+
     // MARK: Input effect observation (feedback/recents fire once, only after a real effect)
 
     /// Snapshot of the "observable effects" around one action: host commit/delete counts, engine
@@ -416,15 +445,31 @@ public final class KeyboardController: ObservableObject {
         if publishedKeyboardError != error { publishedKeyboardError = error }
     }
 
-    /// Switches to a published keyboard (input method + layout together, one transaction).
+    /// Keyboards of other packages (and the built-in input) listed after the current package's keyboards.
+    /// Only the keyboard extension fills it.
+    @Published public private(set) var otherPackageKeyboards: [OtherPackageKeyboard] = []
+    /// Switches to one of `otherPackageKeyboards`; the extension owns the switch because it reloads the engine.
+    public var onSelectOtherPackage: ((OtherPackageKeyboard) -> Void)?
+    /// This keyboard replaced another package's: the panel names it on the space bar when it first
+    /// appears, as it does after a switch within one package.
+    public var announcesSwitchOnAppear = false
+    /// The panel hid its keys for another package's keyboard; false again brings them back.
+    @Published public var awaitsOtherPackage = false
+
+    public func updateOtherPackageKeyboards(_ entries: [OtherPackageKeyboard]) {
+        if otherPackageKeyboards != entries { otherPackageKeyboards = entries }
+    }
+
+    /// Switches to a published keyboard (input method + layout + board together, one transaction).
     /// If it is not in the runnable roster, does nothing and returns false.
     @discardableResult
     public func selectUserKeyboard(_ keyboard: UserKeyboard) -> Bool {
         guard userKeyboardChoices.contains(keyboard) else { return false }
         let previousLayout = layout
         let previousSchema = selectedSchemaID
-        selectLayout(keyboard.layout, boundSchemaID: keyboard.inputMethodID)
-        return layout != previousLayout || selectedSchemaID != previousSchema
+        let previousBoard = selectedBoard
+        selectLayout(keyboard.layout, boundSchemaID: keyboard.inputMethodID, board: keyboard.board)
+        return layout != previousLayout || selectedSchemaID != previousSchema || selectedBoard != previousBoard
     }
 
     /// Callback for engine commit text (host text field / text proxy insertion).
@@ -505,10 +550,11 @@ public final class KeyboardController: ObservableObject {
     ///   - engine: engine backend (production path = RimeBackend).
     ///   - resourceSet: resource-set mapping (nil = built-in mapping).
     public init(
-        layout: KeyboardLayoutKind = .qwerty26, engine: EngineBackend,
+        layout: KeyboardLayoutKind = .qwerty26, board: String? = nil, engine: EngineBackend,
         resourceSet: KeyboardResourceSet? = nil
     ) {
         self.layout = layout
+        self.selectedBoard = board
         self.engineKind = engine.kind
         self.session = InputSession(engine: engine, layout: layout, resourceSet: resourceSet)
         self.selectedSchemaID = self.session.selectedSchemaID
@@ -518,14 +564,23 @@ public final class KeyboardController: ObservableObject {
         self.inputMode = session.mode
         self.shiftState = session.shiftState
         // The engine's composition display request was already installed by `InputSession` for the actual layout; nothing to set here.
-        session.onUpdate = { [weak self] in self?.refresh() }
+        session.onUpdate = { [weak self] in
+            guard let self else { return }
+            self.refresh()
+            self.observeKana12AfterRefresh()
+        }
         // Composing code keys decode on the engine queue (`InputSession.codeKeyQueue`);
         // the field echoes keys still decoding so none of them looks lost.
         if engine is RimeBackend {
             session.codeKeyQueue = EngineOpCodeKeyQueue.shared
             session.codeBatchLookaheadPages = Self.candidatePagesPerRead - 1
         }
-        session.onPendingCodesChanged = { [weak self] in self?.publishPendingEcho() }
+        session.onPendingCodesChanged = { [weak self] in
+            guard let self else { return }
+            self.publishPendingEcho()
+            // A landed batch frees the next kana12 gesture to compute its keys.
+            self.pumpKana12Intents()
+        }
         session.onError = { [weak self] error in
             guard let self else { return }
             // The first reflective description is expensive (about 17ms measured on the simulator): format it in the background, off the key-press main thread.
@@ -533,7 +588,7 @@ public final class KeyboardController: ObservableObject {
             DispatchQueue.global(qos: .utility).async {
                 diagnosticLogger.error("input operation failed: \(String(describing: error), privacy: .private)")
             }
-            let message = "输入操作未完成，请重试。"
+            let message = String(localized: "输入操作未完成，请重试。")
             self.inputError = message
             self.onInputError?(message)
             self.refresh()
@@ -548,7 +603,7 @@ public final class KeyboardController: ObservableObject {
                 if let error {
                     Self.diagnosticLogger.error(
                         "option persistence failed: \(error.localizedDescription, privacy: .private)")
-                    self.optionError = "选项已在本次会话生效，但未能保存，请重试。"
+                    self.optionError = String(localized: "选项已在本次会话生效，但未能保存，请重试。")
                 } else {
                     self.optionError = nil
                 }
@@ -577,6 +632,8 @@ public final class KeyboardController: ObservableObject {
         onReadDocumentContext = nil
         onReplaceLiteralSuffix = nil
         punctuationCycle.reset()
+        resetKana12State()
+        onKana12Navigation = nil
         onRequestHostTraitsRefresh = nil
         onRequestSwitchKeyboard = nil
         onMoveCursor = nil
@@ -590,6 +647,8 @@ public final class KeyboardController: ObservableObject {
     /// semantics; digit/symbol keys (`.literal`) go through the common direct-insert entry `insertLiteral`.
     public func handle(_ action: KeyAction) {
         guard !retired else { return }
+        // A key from another surface ends kana12's claim on the composition tail.
+        invalidateKana12Ownership()
         punctuationCycle.reset()
         #if SONGYAN_PERF
             let endPerformanceInterval = KeyboardPerformanceTrace.interval("key")
@@ -635,7 +694,11 @@ public final class KeyboardController: ObservableObject {
                 noteCommitForEnglishWord(". ")
                 break
             }
-            confirmOrInsert(commitWhenIdle: " ")
+            if !isEnglishMode, !snapshot.isAsciiMode, inputLanguage.family == .zhuyin {
+                session.tap(.space)
+            } else {
+                confirmOrInsert(commitWhenIdle: " ")
+            }
             if englishDocumentGeneration == documentGeneration,
                 doubleSpacePeriodAllowed, wordCharBefore
             {

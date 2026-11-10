@@ -40,14 +40,14 @@ extension SchemeImportCenter {
         } else if let damaged = damagedPackages.first(where: { $0.id == packageID }) {
             schemaIDs = damaged.schemaIDs
         } else {
-            throw RecipeInstallError.invalidResource("找不到输入方案")
+            throw RecipeInstallError.invalidResource(String(localized: "找不到输入方案"))
         }
         let layout = SchemePackageDeletion.Layout(
             storeRoot: Self.storeRoot,
             trashRoot: Self.deletionTrashRoot)
         busy = true
         defer { busy = false }
-        message = "正在删除输入方案…"
+        message = String(localized: "正在删除输入方案…")
         do {
             let outcome = try await EngineOwnershipCoordinator.shared.withExclusive {
                 try await EngineOpQueue.asyncExclusive {

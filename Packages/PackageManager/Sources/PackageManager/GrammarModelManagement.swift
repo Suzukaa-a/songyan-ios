@@ -14,7 +14,7 @@ public struct GrammarManagedOverride: Codable, Equatable, Sendable {
             text.components(separatedBy: "# Rx: \(rx) {\n").count == 2,
             text.components(separatedBy: block).count == 2
         else {
-            throw RecipeInstallError.invalidResource("模型设置已被修改或无法核实；未恢复输入方案的默认设置")
+            throw RecipeInstallError.invalidResource(PackageText.string("grammar.error.changedNotRestored"))
         }
         var lines = text.replacingOccurrences(of: block, with: "").components(separatedBy: "\n")
         if let begin = lines.firstIndex(of: "__patch:") {
@@ -53,10 +53,12 @@ public extension GrammarModelRecipe {
         let selected = Set(schemaIDs)
         let records = overrides(in: sources, files: files).filter { selected.contains($0.schemaID) }
         guard selected == Set(records.map(\.schemaID)) else {
-            throw RecipeInstallError.invalidResource("所选输入方式没有手动设置的模型，无需恢复")
+            throw RecipeInstallError.invalidResource(PackageText.string("grammar.error.noManualModel"))
         }
         for record in records {
-            guard let data = files[record.target] else { throw RecipeInstallError.invalidResource("要修改的模型目标文件不存在") }
+            guard let data = files[record.target] else {
+                throw RecipeInstallError.invalidResource(PackageText.string("recipe.error.missingModelTarget"))
+            }
             _ = try record.removing(from: data)
         }
         for schema in selected {
@@ -71,7 +73,7 @@ public extension GrammarModelRecipe {
                 if lines[(index + 1)..<end].contains(where: { $0.contains("grammar/language:") }),
                     !records.contains(where: { $0.schemaID == schema && $0.rx == rx })
                 {
-                    throw RecipeInstallError.invalidResource("有无法识别的旧模型设置，未恢复默认设置")
+                    throw RecipeInstallError.invalidResource(PackageText.string("grammar.error.unknownOldSettings"))
                 }
             }
         }
@@ -82,9 +84,13 @@ public extension GrammarModelRecipe {
         let ids = Array(Set(schemaIDs)).sorted()
         guard !ids.isEmpty, ids.allSatisfy({ $0.range(of: "^[A-Za-z0-9_-]+$", options: .regularExpression) != nil })
         else {
-            throw RecipeInstallError.invalidResource("要关闭语法模型的输入方式无效")
+            throw RecipeInstallError.invalidResource(PackageText.string("grammar.error.invalidDisableTarget"))
         }
-        var lines = ["recipe:", "  Rx: songyan-models/disable", "  description: 关闭所选输入方式的语法模型", "patch_files:"]
+        var lines = [
+            "recipe:", "  Rx: songyan-models/disable",
+            "  description: " + PackageText.string("recipe.description.grammarDisable"),
+            "patch_files:",
+        ]
         for schema in ids {
             lines += ["  \(schema).custom.yaml:", "    - patch/+:", "        grammar/language: \"\""]
         }
@@ -96,11 +102,12 @@ public extension GrammarModelRecipe {
         let ids = Array(Set(schemaIDs)).sorted()
         guard !ids.isEmpty, ids.allSatisfy({ $0.range(of: "^[A-Za-z0-9_-]+$", options: .regularExpression) != nil })
         else {
-            throw RecipeInstallError.invalidResource("要恢复默认设置的输入方式无效")
+            throw RecipeInstallError.invalidResource(PackageText.string("grammar.error.invalidRestoreTarget"))
         }
         let text =
             "# restore-grammar: " + ids.joined(separator: ",")
-            + "\nrecipe:\n  Rx: songyan-models/restore-defaults\n  description: 恢复输入方案默认语法模型\n"
+            + "\nrecipe:\n  Rx: songyan-models/restore-defaults\n  description: "
+            + PackageText.string("recipe.description.grammarRestoreDefaults") + "\n"
         return try DeclarativeRecipe(path: "songyan-models/restore-defaults.recipe.yaml", source: Data(text.utf8))
     }
 }

@@ -11,8 +11,8 @@ public enum EngineIntegration {
     /// One-line description of the current engine source for the UI.
     public static var currentEngineDescription: String {
         isRimeBridgeAvailable
-            ? "引擎：RimeBridge（真实 librime 1.17.0）"
-            : "引擎：本地演示（未接入 RimeBridge；候选为演示数据）"
+            ? String(localized: "core.engine.realDescription", bundle: .module)
+            : String(localized: "core.engine.demoDescription", bundle: .module)
     }
 }
 

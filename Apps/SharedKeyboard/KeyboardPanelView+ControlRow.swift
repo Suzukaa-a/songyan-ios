@@ -8,13 +8,20 @@ extension KeyboardPanelView {
     // MARK: Control row (layout menu / globe / page switch / CN-EN toggle / space / delete / return)
 
     var currentKeyboardTitle: String {
-        UserKeyboardRoster.currentTitle(
-            schemaID: controller.selectedSchemaID,
-            layout: controller.layout,
-            in: controller.userKeyboardChoices)
-            ?? (isBundledDefinition
-                ? UserTerminology.layoutName(controller.layout)
-                : activeDefinition?.name ?? UserTerminology.layoutName(controller.layout))
+        KeyboardTitleRule.title(
+            published: UserKeyboardRoster.currentTitle(
+                schemaID: controller.selectedSchemaID,
+                layout: controller.layout, board: controller.selectedBoard,
+                in: controller.userKeyboardChoices),
+            inputMethodName: UserKeyboardRoster.currentInputMethodName(
+                schemaID: controller.selectedSchemaID,
+                layout: controller.layout, board: controller.selectedBoard,
+                in: controller.userKeyboardChoices),
+            isBundled: isBundledDefinition,
+            physicalLayoutID: activeDefinition?.id,
+            definitionName: activeDefinition?.name,
+            kindName: UserTerminology.layoutName(controller.layout),
+            builtinName: { UserTerminology.builtinLayoutName(physicalLayoutID: $0) })
     }
 
     var controlRow: some View { controlRow(columns: nil) }
@@ -47,7 +54,9 @@ extension KeyboardPanelView {
         ControlRow(
             policy: controlPolicy,
             returnTitle: controller.returnKeyTitle,
+            returnAccessibilityLabel: controller.returnKeyAccessibilityLabel,
             returnEnabled: controller.isReturnKeyEnabled,
+            isComposing: controller.snapshot.isComposing,
             layoutName: controller.isEnglishMode ? nil : currentKeyboardTitle,
             layoutHintName: layoutHintName,
             layoutHintToken: layoutHintToken,
@@ -67,21 +76,91 @@ extension KeyboardPanelView {
             onToggleSymbolLock: {
                 emitKeyFeedback()
                 symbolPageLocked.toggle()
+            },
+            onSymbolLibrary: {
+                emitKeyFeedback()
+                openQuickContent(section: "symbols")
             }
         )
     }
 
+    /// The running input method as the keyboard menu names it, without its layout: the new keys
+    /// already show the layout.
+    var currentInputMethodName: String {
+        UserKeyboardRoster.currentInputMethodName(
+            schemaID: controller.selectedSchemaID,
+            layout: controller.layout, board: controller.selectedBoard,
+            in: controller.userKeyboardChoices)
+            ?? controller.availableSchemas.first { $0.id == controller.selectedSchemaID }?.name
+            ?? currentKeyboardTitle
+    }
+
     /// Consumes only a token from a real successful switch; reselecting the same item, page switches and view rebuilds produce no new token.
+    /// A new layout of the same input method only fades in: naming the unchanged input method adds nothing.
     func consumeLayoutChange() {
         guard let change = controller.successfulChange, change.token != layoutHintToken else { return }
-        layoutHintToken = change.token
-        layoutHintName = currentKeyboardTitle
-        let token = change.token
+        let named = change.schemaID != (announcedSchemaID ?? change.schemaID)
+        announcedSchemaID = change.schemaID
+        announceSwitch(token: change.token, named: named)
+    }
+
+    /// A keyboard of another package replaced the last one: this panel is new, so it announces
+    /// the switch once when it appears. Its keys start hidden, like the ones they replace.
+    func announceSwitchFromOtherPackage() {
+        announcedSchemaID = controller.selectedSchemaID
+        guard controller.announcesSwitchOnAppear else { return }
+        controller.announcesSwitchOnAppear = false
+        announceSwitch(token: UUID(), from: 0)
+    }
+
+    /// Another package's keyboard was picked: the keys of the one being left go at once, since
+    /// they would type into it (hidden keys take no touches), and the new keys fade in when ready.
+    /// A switch that does not happen brings them back.
+    func hideKeysForOtherPackage() {
+        var instant = Transaction()
+        instant.disablesAnimations = true
+        withTransaction(instant) { switchFade = 0 }
+        controller.awaitsOtherPackage = true
+        let waiting = controller
+        Task { @MainActor in
+            // The engine starts within this when the switch went through; past it the old
+            // keyboard is still here, so the switch failed or never began.
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            waiting.awaitsOtherPackage = false
+        }
+    }
+
+    /// The other package's keyboard did not come: the old keys fade back.
+    func restoreKeysAfterFailedSwitch() {
+        guard !controller.awaitsOtherPackage, switchFade < 1 else { return }
+        withAnimation(.easeOut(duration: Self.switchFadeDuration)) { switchFade = 1 }
+    }
+
+    /// Fades the new keys in and, for a new input method, names it on the space bar for a moment.
+    private func announceSwitch(token: UUID, named: Bool = true, from start: Double = switchFadeStart) {
+        layoutHintToken = token
+        fadeInSwitchedKeys(from: start)
+        guard named else { return }
+        layoutHintName = currentInputMethodName
         Task { @MainActor in
             try? await Task.sleep(nanoseconds: 2_500_000_000)
             if layoutHintToken == token { layoutHintName = nil }
         }
     }
+
+    /// The new keys fade in from faint, the same as on Android. Opacity only: a transform would move
+    /// the caps away from their touch owners, and the keys never fall below UIKit's hit-test alpha.
+    private func fadeInSwitchedKeys(from start: Double) {
+        var instant = Transaction()
+        instant.disablesAnimations = true
+        withTransaction(instant) { switchFade = start }
+        Task { @MainActor in
+            withAnimation(.easeOut(duration: Self.switchFadeDuration)) { switchFade = 1 }
+        }
+    }
+
+    static let switchFadeStart = 0.15
+    static let switchFadeDuration = 0.18
 
     /// **"More tools" entry** (separate from the candidate bar): opens only the utilities panel (symbol library, quick phrases,
     /// keyboard options/inline options). It is the last item of the "ABC/中文" **long-press** menu rather than a large
@@ -98,7 +177,8 @@ extension KeyboardPanelView {
                 id: "input-mode", title: controlPolicy.languageTitle(for: nil),
                 subtitle: nil, action: .cycleLayout),
             alternates: userKeyboardAlternates,
-            layoutPicker: true
+            layoutPicker: true,
+            languageCurrentSideIsFirst: controlPolicy.languageCurrentSideIsFirst(for: nil)
         ) { cap in
             if cap.id == "input-mode" {
                 // Short press follows the page: letters toggle the real input language; 123 and
@@ -133,6 +213,22 @@ extension KeyboardPanelView {
             showsUtilitiesMenu = true
             return
         }
+        if let other = controller.otherPackageKeyboards.first(where: { $0.id == cap.id }) {
+            // Another package reloads the engine: settle the composition first, exactly like a keyboard switch.
+            var settled = false
+            selectionFeedbackAfterEffect {
+                settled = controller.prepareForConfigurationChange()
+                if settled {
+                    hideKeysForOtherPackage()
+                    controller.onSelectOtherPackage?(other)
+                }
+            }
+            if settled {
+                page = .letters
+                showsAllCandidates = false
+            }
+            return
+        }
         guard
             let keyboard = controller.userKeyboardChoices.first(where: {
                 Self.userKeyboardCapID($0) == cap.id
@@ -148,15 +244,33 @@ extension KeyboardPanelView {
         }
     }
 
-    /// The long-press list = those **published** keyboards whose resources are currently runnable (in publish order), with a
-    /// "More tools" item appended; no 26/14/9 layouts and no input-method choice. With an empty list the
+    /// The long-press list = those **published** keyboards whose resources are currently runnable (in publish order), then
+    /// the keyboards of other packages, with a "More tools" item appended; no 26/14/9 layouts and no input-method choice. With an empty list the
     /// "More tools" item is still offered so the tools panel stays reachable (no tappable dead item is built).
     var userKeyboardAlternates: [KeyCap] {
+        let descriptors = controller.availableSchemas
         var caps = controller.userKeyboardChoices.map { keyboard in
-            KeyCap(
-                id: Self.userKeyboardCapID(keyboard), title: keyboard.title,
+            let family = InputLayoutPolicy.family(schemaID: keyboard.inputMethodID, descriptors: descriptors)
+            let availability = LayoutAvailability(
+                allows: { definition, _ in
+                    InputLayoutPolicy.allows(physicalLayoutID: definition.id, family: family)
+                },
+                preferredMainLayoutID: { _ in InputLayoutPolicy.preferredPhysicalLayoutID(family: family) })
+            let physicalID = LayoutInput.Builtin(rawValue: keyboard.layout.rawValue).flatMap { layout in
+                layoutRegistry?.usableMainLayoutID(
+                    for: KeyboardCompositionKey(inputMethodID: keyboard.inputMethodID, layout: layout),
+                    board: keyboard.board, availability: availability)
+            }
+            let board = physicalID.flatMap { UserTerminology.builtinLayoutName(physicalLayoutID: $0) }
+            return KeyCap(
+                id: Self.userKeyboardCapID(keyboard), title: keyboard.title(physicalLayoutName: board),
                 subtitle: isCurrent(keyboard) ? UserTerminology.userKeyboardCurrent : nil,
                 action: .cycleLayout)
+        }
+        // The other packages' keyboards follow the current package's, quieter in the menu; the entry
+        // list is only filled where the switch can be made (the keyboard extension, Full Access).
+        caps += controller.otherPackageKeyboards.map {
+            KeyCap(id: $0.id, title: $0.title, subtitle: $0.packageName, action: .cycleLayout)
         }
         caps.append(
             KeyCap(
@@ -171,12 +285,20 @@ extension KeyboardPanelView {
     }
 
     func isCurrent(_ keyboard: UserKeyboard) -> Bool {
-        keyboard.isCurrent(schemaID: controller.selectedSchemaID, layout: controller.layout)
+        keyboard.isCurrent(
+            schemaID: controller.selectedSchemaID, layout: controller.layout, board: controller.selectedBoard)
+    }
+
+    /// The native footer puts the comma left of the space bar and the full stop right of it in
+    /// both languages and every field, so neither 中/英 nor a URL or email field moves a key;
+    /// they change the marks. A phone shell keeps its grid.
+    private var showsSpaceSideMarks: Bool {
+        !usesPhoneDefinition && !isBuiltinPhonePad
     }
 
     var controlPolicy: KeyboardControlPolicy {
         let showsCategorySymbolPage = showsCategorySymbolPage
-        return KeyboardPanelRules.controlPolicy(
+        let policy = KeyboardPanelRules.controlPolicy(
             page: page, isEnglishMode: controller.isEnglishMode,
             hasGlobe: systemKeyboardSwitch != nil,
             usesASCIIPunctuation: effectiveUsesASCIIPunctuation,
@@ -186,6 +308,15 @@ extension KeyboardPanelView {
             usesFixedEditingRail: usesFixedEditingRail,
             declaredTrailingReturn: t9AuxiliaryKeys(.trailing).contains { $0.action.type == .enter },
             showsCategorySymbolPage: showsCategorySymbolPage,
-            numericPageReachesSymbols: page != .letters || numericPageReachesSymbols)
+            numericPageReachesSymbols: page != .letters || numericPageReachesSymbols,
+            script: controller.inputLanguageScript,
+            showsSpaceSideMarks: showsSpaceSideMarks, offersSymbolLibrary: pageDefinition == nil
+        ).withFieldMarks(controller.hostFieldMarks)
+        // A row too narrow to keep a usable space bar falls back to the single mark; the layout
+        // decides, not a key branch of its own.
+        guard policy.showsSpaceSideMarks,
+            policy.metrics(width: widthBox.contentWidth).space >= 44
+        else { return policy.withSpaceSideMarks(false) }
+        return policy
     }
 }

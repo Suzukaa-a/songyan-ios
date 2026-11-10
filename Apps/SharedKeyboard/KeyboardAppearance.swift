@@ -8,7 +8,7 @@ import os
 
 public enum KeyboardIdleToolbarPreferences {
     public static let key = "keyboard.idleToolbarEnabled.v1"
-    public static let defaultEnabled = false
+    public static let defaultEnabled = true
     public static var defaults: UserDefaults { KeyboardRecipeStore.sharedDefaults() ?? .standard }
 
     public static func read(from defaults: UserDefaults) -> Bool {
@@ -22,6 +22,25 @@ public enum KeyboardHeightPreferences {
     public static var defaults: UserDefaults { KeyboardRecipeStore.sharedDefaults() ?? .standard }
     public static var current: KeyboardHeightPreset {
         KeyboardHeightPreset.resolve(defaults.string(forKey: presetKey))
+    }
+}
+
+/// Which idle-toolbar buttons show and in what order. Nothing is stored for the default layout.
+/// Read at each presentation like the on/off switch, never per key.
+public enum KeyboardIdleToolbarLayoutPreferences {
+    public static let key = "keyboard.idleToolbarLayout.v1"
+    public static var defaults: UserDefaults { KeyboardRecipeStore.sharedDefaults() ?? .standard }
+
+    public static func read(from defaults: UserDefaults) -> IdleToolbarLayout {
+        IdleToolbarLayout.parse(defaults.string(forKey: key))
+    }
+
+    public static func write(_ layout: IdleToolbarLayout, to defaults: UserDefaults) {
+        if layout.isDefault {
+            defaults.removeObject(forKey: key)
+        } else {
+            defaults.set(layout.toWire(), forKey: key)
+        }
     }
 }
 
@@ -108,6 +127,23 @@ public enum KeyboardKeyFeelPreferences {
     }
 }
 
+/// The Japanese twelve-key board's "只用 flick" option (default off): when off, repeated taps of the
+/// same key cycle that row's kana; when on, only flicks do. Read at each presentation like the key
+/// feel options, never per key.
+public enum KeyboardKana12Preferences {
+    public static let flickOnlyKey = "keyboard.kana12FlickOnly.v1"
+    public static let defaultFlickOnly = false
+    public static var defaults: UserDefaults { KeyboardRecipeStore.sharedDefaults() ?? .standard }
+
+    public static var flickOnly: Bool {
+        (SharedPreferences.object(forKey: flickOnlyKey, in: defaults) as? Bool) ?? defaultFlickOnly
+    }
+
+    public static func setFlickOnly(_ value: Bool) {
+        SharedPreferences.set(value, forKey: flickOnlyKey, in: defaults)
+    }
+}
+
 /// Where a width-capped wide-screen keyboard sits. One value per physical layout, so a
 /// 9-key phone pad can hug the left while a 14-key pad stays centred. Unknown or missing
 /// values resolve to centre; the keyboard re-reads them per presentation, never per key.
@@ -154,9 +190,17 @@ extension Notification.Name {
 public struct KeyboardPresentationShell: Equatable {
     public var readingRow: Bool
     public var candidateArea: Bool
-    public init(readingRow: Bool, candidateArea: Bool) {
+    /// Letter rows the physical definition draws above its control row. The shell spreads the
+    /// standard three-row key area over them, so a taller board keeps the same outer height and
+    /// every other page re-fits inside it.
+    public var mainRows: Int
+    public init(
+        readingRow: Bool, candidateArea: Bool,
+        mainRows: Int = KeyboardPanelGeometry.standardMainRowCount
+    ) {
         self.readingRow = readingRow
         self.candidateArea = candidateArea
+        self.mainRows = mainRows
     }
 }
 
@@ -170,6 +214,10 @@ public struct KeyboardInitialPresentation {
     /// eligibility hint (`CandidateReadingRowHint`) the host last **adopted** that matches the current layout selection; no hint or mismatch -> false.
     public private(set) var readingRowReserved = false
     public private(set) var candidateAreaReserved = true
+    /// Physical letter rows of the saved layout selection. The bundled registration table answers
+    /// it synchronously, so the first frame is already budgeted for a four-row board instead of
+    /// growing the shell once the layout registry settles.
+    public private(set) var physicalMainRows = KeyboardPanelGeometry.standardMainRowCount
     /// Only geometry is cached; a palette or candidate layout must never be
     /// reconstructed from UserDefaults instead of the validated store snapshot.
     public private(set) var candidateHeight = CandidateBarDefinition.systemDefault.collapsed.height
@@ -215,6 +263,23 @@ public struct KeyboardInitialPresentation {
         defaults.set(hints, forKey: CandidateReadingRowHint.defaultsKey)
     }
 
+    private static let mainRowsKey = "keyboard.presentation.mainRows.v1"
+
+    /// Records the letter rows the panel reported for the keyboard of `layout`. A board the input
+    /// method picks (Zhuyin's four rows) is not named by the saved definition, so without this every
+    /// presentation would start at the standard three rows and cut off the control row.
+    public static func recordPhysicalMainRows(_ rows: Int, layout: KeyboardLayoutKind) {
+        guard KeyboardPanelGeometry.standardMainRowCount...maximumRecordedMainRows ~= rows else { return }
+        let defaults = UserDefaults.standard
+        let selection = readingRowSelection(layoutKind: layout.rawValue)
+        var stored = defaults.dictionary(forKey: mainRowsKey) as? [String: Int] ?? [:]
+        guard stored[selection] != rows else { return }
+        stored[selection] = rows
+        defaults.set(stored, forKey: mainRowsKey)
+    }
+
+    private static let maximumRecordedMainRows = 6
+
     public static func load() -> Self {
         var result = Self()
         result.heightPreset = KeyboardHeightPreferences.current
@@ -227,6 +292,13 @@ public struct KeyboardInitialPresentation {
                 storedValue: storedHint, currentSelection: readingRowSelection)
         result.candidateAreaReserved = CandidateReadingRowHint.resolveCandidateArea(
             storedValue: storedHint, currentSelection: readingRowSelection)
+        let recordedRows = (defaults.dictionary(forKey: mainRowsKey) as? [String: Int])?[readingRowSelection]
+        result.physicalMainRows =
+            recordedRows.flatMap {
+                KeyboardPanelGeometry.standardMainRowCount...maximumRecordedMainRows ~= $0 ? $0 : nil
+            }
+            ?? KeyboardPanelGeometry.physicalMainRowBudget(
+                forDefinitionID: defaults.string(forKey: "keyboard.selectedLayoutDefinitionID"))
         if let budget = defaults.dictionary(forKey: geometryBudgetKey) as? [String: Double],
             let height = budget["candidateHeight"], (36...56).contains(height),
             let size = budget["candidateSize"], (16...30).contains(size)
@@ -251,11 +323,14 @@ public struct KeyboardInitialPresentation {
             candidateSize: candidateSize,
             readingRow: readingRowReserved,
             candidateArea: candidateAreaReserved,
-            compact: compact, heightPreset: heightPreset)
+            compact: compact, heightPreset: heightPreset,
+            physicalMainRows: physicalMainRows)
     }
 
     public var presentationShell: KeyboardPresentationShell {
-        KeyboardPresentationShell(readingRow: readingRowReserved, candidateArea: candidateAreaReserved)
+        KeyboardPresentationShell(
+            readingRow: readingRowReserved, candidateArea: candidateAreaReserved,
+            mainRows: physicalMainRows)
     }
 
     public func appearance(systemDark: Bool) -> KeyboardAppearance {
@@ -750,6 +825,34 @@ class SkinnedButton: UIButton, KeyboardKeyHitTarget {
         setNeedsLayout()
     }
 
+    /// The button's own title and glyph views, captured whenever its face changes. A layout pass
+    /// must not use the `titleLabel` / `imageView` getters: they create the view or apply the
+    /// title again, and either invalidates the key's size. A creation lays the button out from
+    /// inside the pass until the stack runs out; a reapplied language-tagged title makes the
+    /// SwiftUI host lay the key out again, for ever.
+    private(set) weak var titleView: UILabel?
+    private weak var glyphView: UIImageView?
+
+    override func setTitle(_ title: String?, for state: UIControl.State) {
+        super.setTitle(title, for: state)
+        captureFaceViews()
+    }
+
+    override func setAttributedTitle(_ title: NSAttributedString?, for state: UIControl.State) {
+        super.setAttributedTitle(title, for: state)
+        captureFaceViews()
+    }
+
+    override func setImage(_ image: UIImage?, for state: UIControl.State) {
+        super.setImage(image, for: state)
+        captureFaceViews()
+    }
+
+    private func captureFaceViews() {
+        titleView = currentTitle != nil || currentAttributedTitle != nil ? titleLabel : nil
+        glyphView = currentImage != nil ? imageView : nil
+    }
+
     private func makeAuthorSubtitleLabel() -> UILabel {
         let label = UILabel()
         label.textAlignment = .center
@@ -775,16 +878,25 @@ class SkinnedButton: UIButton, KeyboardKeyHitTarget {
         capLayer.update(in: self, appearance: appearance, role: role, pressed: isHighlighted)
         releaseAnimator.update(layer: capLayer, isPressed: isHighlighted)
         releaseAnimator.updatePressVisual(container: layer, layers: pressVisualLayers, isPressed: isHighlighted)
-        tintColor = appearance.text(on: role)
-        setTitleColor(appearance.text(on: role), for: .normal)
-        titleLabel?.font = appearance.uiFont(appearance.controlTextSize)
-        setPreferredSymbolConfiguration(
-            UIImage.SymbolConfiguration(pointSize: appearance.controlIconSize, weight: .regular), forImageIn: .normal)
+        // Each of these writes invalidates the key's size even when the value is the same, and the
+        // SwiftUI host answers that with another layout pass: only a change is written.
+        let textColor = appearance.text(on: role)
+        if tintColor != textColor { tintColor = textColor }
+        if titleColor(for: .normal) != textColor { setTitleColor(textColor, for: .normal) }
+        // A language-tagged title carries its own font.
+        if currentAttributedTitle == nil, let label = titleView {
+            let font = appearance.uiFont(appearance.controlTextSize)
+            if label.font != font { label.font = font }
+        }
+        let symbols = UIImage.SymbolConfiguration(pointSize: appearance.controlIconSize, weight: .regular)
+        if preferredSymbolConfigurationForImage(in: .normal) != symbols {
+            setPreferredSymbolConfiguration(symbols, forImageIn: .normal)
+        }
     }
     /// The keycap surface plus its glyphs move together; the button's own layer
     /// (hit testing / tracking geometry) is deliberately not transformed.
     private var pressVisualLayers: [CALayer?] {
-        [capLayer, titleLabel?.layer, imageView?.layer, authorSubtitleLabel?.layer]
+        [capLayer, titleView?.layer, glyphView?.layer, authorSubtitleLabel?.layer]
     }
     /// A secondary label lifts the title/glyph so the two read as one face.
     override func contentRect(forBounds bounds: CGRect) -> CGRect {

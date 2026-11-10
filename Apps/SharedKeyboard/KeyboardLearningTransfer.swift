@@ -153,7 +153,7 @@ public enum KeyboardLearningTransfer {
         guard let resources = session.resourceSet, let controller = session.controller else { return }
         switch await checkPublication(request: current, resources: resources) {
         case .mismatch:
-            await failRequest(store, lease, current, message: "备份与当前输入方案不一致，已停止本次操作。")
+            await failRequest(store, lease, current, message: String(localized: "备份与当前输入方案不一致，已停止本次操作。"))
             return
         case .unavailable:
             return
@@ -190,7 +190,7 @@ public enum KeyboardLearningTransfer {
         } catch {
             // Without a claim nothing was started (busy input, cancel, claim failure): stay as is.
             guard let claimed else { return }
-            await failRequest(store, lease, claimed, message: "备份或合并未能完成，请重试。")
+            await failRequest(store, lease, claimed, message: String(localized: "备份或合并未能完成，请重试。"))
         }
     }
 
@@ -288,12 +288,12 @@ public enum KeyboardLearningTransfer {
         do {
             snapshot = try snapshotArchive(claimed: claimed, engine: engine)
         } catch {
-            try await fail(store, lease, claimed.id, message: "未能备份学习数据，未生成完整备份。")
+            try await fail(store, lease, claimed.id, message: String(localized: "未能备份学习数据，未生成完整备份。"))
             return
         }
         // Nothing to back up is an explicit failure, never an empty archive reported as success.
         guard let archive = snapshot else {
-            try await fail(store, lease, claimed.id, message: "暂无可备份的学习数据。")
+            try await fail(store, lease, claimed.id, message: String(localized: "暂无可备份的学习数据。"))
             return
         }
         _ = try await LearningTransferIO.async {
@@ -319,7 +319,7 @@ public enum KeyboardLearningTransfer {
                 try store.readRestoreInput(requestID: claimed.id, lease: lease)
             }
         } catch {
-            try await fail(store, lease, claimed.id, message: "备份内容无法读取，未做任何修改。")
+            try await fail(store, lease, claimed.id, message: String(localized: "备份内容无法读取，未做任何修改。"))
             return
         }
 
@@ -328,7 +328,7 @@ public enum KeyboardLearningTransfer {
                 sourceID: claimed.sourceID,
                 resourceRevision: claimed.resourceRevision)
         } catch {
-            try await fail(store, lease, claimed.id, message: "备份与当前输入方案不一致，未做任何修改。")
+            try await fail(store, lease, claimed.id, message: String(localized: "备份与当前输入方案不一致，未做任何修改。"))
             return
         }
 
@@ -341,13 +341,13 @@ public enum KeyboardLearningTransfer {
                 plan = try engine.planImportedLearningData(
                     input.dictionaries.map { RimeLearningSnapshot(name: $0.name, data: $0.data) })
             } catch {
-                try await fail(store, lease, claimed.id, message: "所选文件无法使用，未做任何修改。")
+                try await fail(store, lease, claimed.id, message: String(localized: "所选文件无法使用，未做任何修改。"))
                 return
             }
             guard !plan.matching.isEmpty else {
                 try await fail(
                     store, lease, claimed.id,
-                    message: "所选文件里没有当前输入方案用到的词库，未做任何修改。")
+                    message: String(localized: "所选文件里没有当前输入方案用到的词库，未做任何修改。"))
                 return
             }
             importPlan = plan
@@ -362,7 +362,7 @@ public enum KeyboardLearningTransfer {
                 try store.saveSafetyBackup(requestID: claimed.id, lease: lease, archive: safety)
             }
         } catch {
-            try await fail(store, lease, claimed.id, message: "未能保存恢复前备份，已中止合并。")
+            try await fail(store, lease, claimed.id, message: String(localized: "未能保存恢复前备份，已中止合并。"))
             return
         }
 
@@ -378,10 +378,10 @@ public enum KeyboardLearningTransfer {
                     })
             }
         } catch RimeLearningBackupError.mergeUnverified {
-            try await fail(store, lease, claimed.id, message: "合并结果未能确认完整，学习数据可能已部分改变。")
+            try await fail(store, lease, claimed.id, message: String(localized: "合并结果未能确认完整，学习数据可能已部分改变。"))
             return
         } catch {
-            try await fail(store, lease, claimed.id, message: "备份内容无法使用，未做任何修改。")
+            try await fail(store, lease, claimed.id, message: String(localized: "备份内容无法使用，未做任何修改。"))
             return
         }
 
@@ -393,9 +393,9 @@ public enum KeyboardLearningTransfer {
 
     /// The receipt line of an import: what was merged, and how many of the picked files were left out.
     nonisolated static func importResultMessage(_ plan: RimeEngine.ImportedLearningPlan) -> String {
-        let merged = "已并入 \(plan.matching.count) 份词库，共 \(plan.entryCount) 条。"
+        let merged = String(localized: "已并入 \(plan.matching.count) 份词库，共 \(plan.entryCount) 条。")
         guard plan.skippedCount > 0 else { return merged }
-        return merged + "另有 \(plan.skippedCount) 份用不到，没有并入。"
+        return merged + String(localized: "另有 \(plan.skippedCount) 份用不到，没有并入。")
     }
 
     nonisolated private static func fail(

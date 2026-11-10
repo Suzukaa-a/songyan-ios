@@ -5,6 +5,13 @@ import KeyboardCore
 // Only publication reads and installer transactions are seams. The production
 // status evaluator, entire view model and Save eligibility body are injected.
 enum UserKeyboardSource { case active, package(String) }
+/// Seam: the source-facts reader reads installation storage the probe does not model; the probe
+/// asserts installation status and save eligibility, not the name or schema list of a source.
+@MainActor enum UserKeyboardSourceFacts {
+    static func facts(for source: UserKeyboardSource) async -> (name: String?, schemas: [KeyboardSchemaDescriptor]) {
+        (nil, [])
+    }
+}
 enum KeyboardRecipeStore {
     struct Activation: Sendable {
         var revision: String
@@ -12,6 +19,11 @@ enum KeyboardRecipeStore {
         var packageID: String?
         var selectedSchemaID: String? = nil
         var selectedLayout: KeyboardLayoutKind? = nil
+        var selectedBoard: String? = nil
+        var selectedKeyboard: PublishedKeyboard? {
+            guard let selectedSchemaID, let selectedLayout else { return nil }
+            return PublishedKeyboard(schemaID: selectedSchemaID, layout: selectedLayout, board: selectedBoard)
+        }
     }
 }
 struct UserKeyboardPublicationView: Sendable {
@@ -100,7 +112,8 @@ struct UserKeyboardPublicationView: Sendable {
         Fixture.view.activation = .init(
             revision: Fixture.installed.revision,
             hostInstallationGeneration: Fixture.installed.generation, packageID: "package",
-            selectedSchemaID: current?.inputMethodID, selectedLayout: current?.layout)
+            selectedSchemaID: current?.inputMethodID, selectedLayout: current?.layout,
+            selectedBoard: current?.board)
         Fixture.view.isCurrent = true
         return selecting.map { "using \($0.id)" } ?? "saved"
     }
@@ -317,6 +330,22 @@ struct DraftChanges {
         precondition(using.currentKeyboardID == nine.id, "the used pair is reported as in use")
         precondition(using.resultMessage == "using \(nine.id)")
         print("PASS: use now adds the pair and reports it as in use")
+
+        // Two boards of one input method are two keyboards: using one reports exactly that one.
+        Fixture.reset(
+            revision: "same", generation: "generation", installedRevision: "same", installedGeneration: "generation")
+        let romaji = UserKeyboard(inputMethodID: "test", inputMethodName: "Test", layout: .qwerty26, board: "romaji26")
+        let kana = UserKeyboard(inputMethodID: "test", inputMethodName: "Test", layout: .qwerty26, board: "kana12")
+        let boards = makeCenter()
+        await boards.refresh()
+        let usedKana = await boards.apply([romaji, kana], selecting: kana)
+        precondition(usedKana && Fixture.writes == 1)
+        precondition(
+            Fixture.view.keyboards.map(\.id) == [romaji.id, kana.id],
+            "both boards are kept as separate keyboards")
+        precondition(boards.currentKeyboardID == kana.id, "the board in use is reported with its board")
+        precondition(boards.currentKeyboardID != romaji.id)
+        print("PASS: use now on a board keyboard reports that board only")
 
         // Another source's publication never marks a keyboard of this page as in use.
         Fixture.reset(

@@ -24,20 +24,39 @@ public struct PublishedKeyboard: Codable, Equatable, Hashable, Sendable, Identif
     /// Keyboard layout (26 / 26 shuangpin / 14 / 9).
     public let layout: KeyboardLayoutKind
 
-    public var id: String { schemaID + ":" + layout.rawValue }
+    /// A reserved physical layout ID (`InputLayoutPolicy.boards(of:)`) the keyboard types on. nil
+    /// keeps the older meaning: the main layout comes from the pairing. Boards of one input method
+    /// share its shape and so its pairing and resources; only the identity differs.
+    public let board: String?
 
-    public init(schemaID: String, layout: KeyboardLayoutKind) {
+    /// Identity: `schema:layout`, plus `#board` when a board is set.
+    public var id: String { combinationID + (board.map { "#" + $0 } ?? "") }
+
+    /// The resource-bearing combination (input method x layout) this keyboard runs on. Never parse
+    /// `id` back into it.
+    public var combinationID: String { schemaID + ":" + layout.rawValue }
+
+    public init(schemaID: String, layout: KeyboardLayoutKind, board: String? = nil) {
         self.schemaID = schemaID
         self.layout = layout
+        self.board = board.flatMap { $0.isEmpty ? nil : $0 }
     }
 
-    private enum CodingKeys: String, CodingKey { case schemaID, layout }
+    private enum CodingKeys: String, CodingKey { case schemaID, layout, board }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
             schemaID: try container.decode(String.self, forKey: .schemaID),
-            layout: try container.decode(KeyboardLayoutKind.self, forKey: .layout))
+            layout: try container.decode(KeyboardLayoutKind.self, forKey: .layout),
+            board: try container.decodeIfPresent(String.self, forKey: .board))
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(schemaID, forKey: .schemaID)
+        try container.encode(layout, forKey: .layout)
+        try container.encodeIfPresent(board, forKey: .board)
     }
 }
 
@@ -95,11 +114,23 @@ public extension PublishedKeyboard {
         return remaining.first
     }
 
+    /// What switching the keyboard to an input scheme publishes: the keyboards remembered for that
+    /// scheme, with the first one in use; when none were ever chosen, one starting keyboard from its
+    /// addable list (the 26-key one when it has it). nil when the scheme offers no keyboard at all.
+    static func switchTarget(
+        remembered: [PublishedKeyboard], addable: [PublishedKeyboard]
+    ) -> (roster: [PublishedKeyboard], selection: PublishedKeyboard)? {
+        let kept = resolve(published: remembered)
+        if let first = kept.first { return (kept, first) }
+        guard let start = addable.first(where: { $0.layout == .qwerty26 }) ?? addable.first else { return nil }
+        return ([start], start)
+    }
+
     /// Adapter generation tasks (deduplicated, ordered): compact-layout combinations only.
     /// 26-key combinations need no generation and are excluded.
     static func generationTasks(for requested: [PublishedKeyboard]) -> [PublishedKeyboard] {
-        var seen = Set<PublishedKeyboard>()
-        return requested.filter { $0.needsGeneratedAdapter && seen.insert($0).inserted }
+        var seen = Set<String>()
+        return requested.filter { $0.needsGeneratedAdapter && seen.insert($0.combinationID).inserted }
     }
 }
 
@@ -125,7 +156,9 @@ public struct PublishedKeyboardDisplay: Equatable, Sendable, Identifiable {
     /// Title: `<input method> · <layout>`; layout name only when there is no input method name.
     public var title: String {
         let trimmed = inputMethodName.trimmingCharacters(in: .whitespaces)
-        let layoutName = UserTerminology.layoutName(layout)
+        let layoutName =
+            keyboard.board.flatMap { UserTerminology.builtinLayoutName(physicalLayoutID: $0) }
+            ?? UserTerminology.layoutName(layout)
         return trimmed.isEmpty ? layoutName : "\(trimmed) · \(layoutName)"
     }
 }

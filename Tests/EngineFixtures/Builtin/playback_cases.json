@@ -1442,6 +1442,102 @@
  {
   "schema": "songyan_quanpin",
   "layout": "qwerty26",
+  "text": "发展",
+  "keys": "fazhan",
+  "keys_with_delim": "fa'zhan",
+  "expect_text": "发展"
+ },
+ {
+  "schema": "songyan_flypy",
+  "layout": "qwerty26",
+  "text": "发展",
+  "keys": "favj",
+  "keys_with_delim": "fa'vj",
+  "expect_text": "发展"
+ },
+ {
+  "schema": "songyan_flypy",
+  "layout": "merged14",
+  "text": "发展",
+  "keys": "dacj",
+  "keys_with_delim": "da'cj",
+  "expect_text": "发展"
+ },
+ {
+  "schema": "songyan_quanpin",
+  "layout": "phone9",
+  "text": "发展",
+  "keys": "329426",
+  "keys_with_delim": "329426",
+  "expect_text": "发展"
+ },
+ {
+  "schema": "songyan_quanpin",
+  "layout": "qwerty26",
+  "text": "软件",
+  "keys": "ruanjian",
+  "keys_with_delim": "ruan'jian",
+  "expect_text": "软件"
+ },
+ {
+  "schema": "songyan_flypy",
+  "layout": "qwerty26",
+  "text": "软件",
+  "keys": "rrjm",
+  "keys_with_delim": "rr'jm",
+  "expect_text": "软件"
+ },
+ {
+  "schema": "songyan_flypy",
+  "layout": "merged14",
+  "text": "软件",
+  "keys": "eejm",
+  "keys_with_delim": "ee'jm",
+  "expect_text": "软件"
+ },
+ {
+  "schema": "songyan_quanpin",
+  "layout": "phone9",
+  "text": "软件",
+  "keys": "78265426",
+  "keys_with_delim": "78265426",
+  "expect_text": "软件"
+ },
+ {
+  "schema": "songyan_quanpin",
+  "layout": "qwerty26",
+  "text": "头发",
+  "keys": "toufa",
+  "keys_with_delim": "tou'fa",
+  "expect_text": "头发"
+ },
+ {
+  "schema": "songyan_flypy",
+  "layout": "qwerty26",
+  "text": "头发",
+  "keys": "tzfa",
+  "keys_with_delim": "tz'fa",
+  "expect_text": "头发"
+ },
+ {
+  "schema": "songyan_flypy",
+  "layout": "merged14",
+  "text": "头发",
+  "keys": "tzda",
+  "keys_with_delim": "tz'da",
+  "expect_text": "头发"
+ },
+ {
+  "schema": "songyan_quanpin",
+  "layout": "phone9",
+  "text": "头发",
+  "keys": "86832",
+  "keys_with_delim": "86832",
+  "expect_text": "头发"
+ },
+ {
+  "schema": "songyan_quanpin",
+  "layout": "qwerty26",
   "text": "你",
   "keys": "ni",
   "keys_with_delim": "ni",
@@ -6302,5 +6398,240 @@
   "keys": "543",
   "keys_with_delim": "543",
   "expect_text": "列"
+ },
+ {
+  "schema": "songyan_quanpin",
+  "layout": "qwerty26",
+  "text": "发",
+  "keys": "fa",
+  "keys_with_delim": "fa",
+  "expect_text": "发"
+ },
+ {
+  "schema": "songyan_flypy",
+  "layout": "qwerty26",
+  "text": "发",
+  "keys": "fa",
+  "keys_with_delim": "fa",
+  "expect_text": "发"
+ },
+ {
+  "schema": "songyan_flypy",
+  "layout": "merged14",
+  "text": "发",
+  "keys": "da",
+  "keys_with_delim": "da",
+  "expect_text": "发"
+ },
+ {
+  "schema": "songyan_quanpin",
+  "layout": "phone9",
+  "text": "发",
+  "keys": "32",
+  "keys_with_delim": "32",
+  "expect_text": "发"
+ },
+ {
+  "schema": "songyan_quanpin",
+  "layout": "qwerty26",
+  "text": "展",
+  "keys": "zhan",
+  "keys_with_delim": "zhan",
+  "expect_text": "展"
+ },
+ {
+  "schema": "songyan_flypy",
+  "layout": "qwerty26",
+  "text": "展",
+  "keys": "vj",
+  "keys_with_delim": "vj",
+  "expect_text": "展"
+ },
+ {
+  "schema": "songyan_flypy",
+  "layout": "merged14",
+  "text": "展",
+  "keys": "cj",
+  "keys_with_delim": "cj",
+  "expect_text": "展"
+ },
+ {
+  "schema": "songyan_quanpin",
+  "layout": "phone9",
+  "text": "展",
+  "keys": "9426",
+  "keys_with_delim": "9426",
+  "expect_text": "展"
+ },
+ {
+  "schema": "songyan_quanpin",
+  "layout": "qwerty26",
+  "text": "软",
+  "keys": "ruan",
+  "keys_with_delim": "ruan",
+  "expect_text": "软"
+ },
+ {
+  "schema": "songyan_flypy",
+  "layout": "qwerty26",
+  "text": "软",
+  "keys": "rr",
+  "keys_with_delim": "rr",
+  "expect_text": "软"
+ },
+ {
+  "schema": "songyan_flypy",
+  "layout": "merged14",
+  "text": "软",
+  "keys": "ee",
+  "keys_with_delim": "ee",
+  "expect_text": "软"
+ },
+ {
+  "schema": "songyan_quanpin",
+  "layout": "phone9",
+  "text": "软",
+  "keys": "7826",
+  "keys_with_delim": "7826",
+  "expect_text": "软"
+ },
+ {
+  "schema": "songyan_quanpin",
+  "layout": "qwerty26",
+  "text": "件",
+  "keys": "jian",
+  "keys_with_delim": "jian",
+  "expect_text": "件"
+ },
+ {
+  "schema": "songyan_flypy",
+  "layout": "qwerty26",
+  "text": "件",
+  "keys": "jm",
+  "keys_with_delim": "jm",
+  "expect_text": "件"
+ },
+ {
+  "schema": "songyan_flypy",
+  "layout": "merged14",
+  "text": "件",
+  "keys": "jm",
+  "keys_with_delim": "jm",
+  "expect_text": "件"
+ },
+ {
+  "schema": "songyan_quanpin",
+  "layout": "phone9",
+  "text": "件",
+  "keys": "5426",
+  "keys_with_delim": "5426",
+  "expect_text": "件"
+ },
+ {
+  "schema": "songyan_quanpin",
+  "layout": "qwerty26",
+  "text": "头",
+  "keys": "tou",
+  "keys_with_delim": "tou",
+  "expect_text": "头"
+ },
+ {
+  "schema": "songyan_flypy",
+  "layout": "qwerty26",
+  "text": "头",
+  "keys": "tz",
+  "keys_with_delim": "tz",
+  "expect_text": "头"
+ },
+ {
+  "schema": "songyan_flypy",
+  "layout": "merged14",
+  "text": "头",
+  "keys": "tz",
+  "keys_with_delim": "tz",
+  "expect_text": "头"
+ },
+ {
+  "schema": "songyan_quanpin",
+  "layout": "phone9",
+  "text": "头",
+  "keys": "868",
+  "keys_with_delim": "868",
+  "expect_text": "头"
+ },
+ {
+  "schema": "songyan_quanpin",
+  "layout": "qwerty26",
+  "options": {
+   "simplification": false,
+   "zht": true,
+   "zh_tw": false,
+   "zh_hk": false
+  },
+  "text": "发展",
+  "keys": "fazhan",
+  "keys_with_delim": "fa'zhan",
+  "expect_first": "發展",
+  "expect_text": "發展"
+ },
+ {
+  "schema": "songyan_quanpin",
+  "layout": "qwerty26",
+  "options": {
+   "simplification": false,
+   "zht": false,
+   "zh_tw": true,
+   "zh_hk": false
+  },
+  "text": "软件",
+  "keys": "ruanjian",
+  "keys_with_delim": "ruan'jian",
+  "expect_first": "軟體",
+  "expect_text": "軟體"
+ },
+ {
+  "schema": "songyan_quanpin",
+  "layout": "qwerty26",
+  "options": {
+   "simplification": false,
+   "zht": true,
+   "zh_tw": false,
+   "zh_hk": false
+  },
+  "text": "软件",
+  "keys": "ruanjian",
+  "keys_with_delim": "ruan'jian",
+  "expect_first": "軟件",
+  "expect_text": "軟件"
+ },
+ {
+  "schema": "songyan_quanpin",
+  "layout": "qwerty26",
+  "options": {
+   "simplification": false,
+   "zht": false,
+   "zh_tw": false,
+   "zh_hk": true
+  },
+  "text": "软件",
+  "keys": "ruanjian",
+  "keys_with_delim": "ruan'jian",
+  "expect_first": "軟件",
+  "expect_text": "軟件"
+ },
+ {
+  "schema": "songyan_quanpin",
+  "layout": "qwerty26",
+  "options": {
+   "simplification": false,
+   "zht": true,
+   "zh_tw": false,
+   "zh_hk": false
+  },
+  "text": "头发",
+  "keys": "toufa",
+  "keys_with_delim": "tou'fa",
+  "expect_first": "頭髮",
+  "expect_text": "頭髮"
  }
 ]

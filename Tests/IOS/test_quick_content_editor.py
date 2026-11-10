@@ -143,18 +143,6 @@ func settle(_ model: LocalQuickContentModel) async {
         await blank.save(dismiss: { dismissed += 1 })
         precondition(dismissed == 0)
         print("PASS: blank, oversized and long-shortcut drafts cannot be saved and never dismiss")
-
-        // Without Full Access an explicit paste is never recorded into the shared history.
-        _ = try store.setClipboardEnabled(true)
-        KeyboardRecipeStore.canWriteSharedContainer = false
-        let readOnlyNote = await SharedQuickContentStorage.recordExplicitPaste("只读粘贴")
-        let afterReadOnly = try store.read()
-        precondition(readOnlyNote == nil && afterReadOnly.clipboard.isEmpty, "a read-only paste must not be recorded")
-        KeyboardRecipeStore.canWriteSharedContainer = true
-        let writableNote = await SharedQuickContentStorage.recordExplicitPaste("可写粘贴")
-        let afterWritable = try store.read()
-        precondition(writableNote == nil && afterWritable.clipboard == ["可写粘贴"])
-        print("PASS: without Full Access a paste leaves the clipboard history untouched")
     }
 }
 '''
@@ -170,7 +158,7 @@ def production_source():
         local_model[local_model.index(STORAGE_MARK):],
         section(editor, SAVE_PATH_MARK, VIEW_MARK),
         # SwiftPM synthesises Bundle.module for the package; the probe supplies it.
-        "import Foundation\nextension Bundle { static var module: Bundle { .main } }\n",
+        "",
     ]
     return ("import SwiftUI\nimport Combine\n"
             + "\n".join(pieces)

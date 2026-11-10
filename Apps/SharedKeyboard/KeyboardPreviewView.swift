@@ -44,11 +44,11 @@ public struct KeyboardPreviewView: View {
         let facts = DefinitionResolutionMemo.Facts(usable: [], active: layout)
         VStack(spacing: 6) {
             if !editing {
-                Picker("示例语言", selection: $language) {
+                Picker(String(localized: "示例语言"), selection: $language) {
                     ForEach(PreviewLanguage.allCases, id: \.self) { Text($0.title).tag($0) }
                 }
                 .pickerStyle(.segmented)
-                Picker("示例状态", selection: $sample) {
+                Picker(String(localized: "示例状态"), selection: $sample) {
                     ForEach(PreviewSample.allCases, id: \.self) { Text($0.title).tag($0) }
                 }
                 .pickerStyle(.segmented)
@@ -59,6 +59,7 @@ public struct KeyboardPreviewView: View {
                     definition: layout, facts: facts,
                     language: editing ? .chinese : language, sample: editing ? .idle : sample,
                     editing: editing, showsGlobe: preferences.showsGlobe(editing: editing), widths: widths,
+                    standardKeyHeight: preferences.keyHeight(compact: verticalSizeClass == .compact),
                     quickSymbols: layout.t9QuickSymbols ?? preferences.t9QuickSymbols,
                     candidateBar: candidateBar, inspected: inspected,
                     onSelect: { path, key in
@@ -83,9 +84,9 @@ private enum PreviewLanguage: CaseIterable {
 
     var title: String {
         switch self {
-        case .chinese: return "中文"
-        case .english: return "英文"
-        case .numeric: return "数字"
+        case .chinese: return String(localized: "中文")
+        case .english: return String(localized: "英文")
+        case .numeric: return String(localized: "数字")
         }
     }
 }
@@ -95,10 +96,10 @@ private enum PreviewSample: CaseIterable {
 
     var title: String {
         switch self {
-        case .idle: return "空闲"
-        case .composing: return "组合"
-        case .expanded: return "展开"
-        case .longPress: return "长按"
+        case .idle: return String(localized: "空闲")
+        case .composing: return String(localized: "组合")
+        case .expanded: return String(localized: "展开")
+        case .longPress: return String(localized: "长按")
         }
     }
 }
@@ -108,7 +109,6 @@ private enum PreviewSample: CaseIterable {
 /// local, because the panel's key builder reads the live session.
 private struct KeyboardMainLayoutPreview: View {
     @Environment(\.keyboardAppearance) private var appearance
-    @Environment(\.keyboardKeyHeight) private var keyHeight
     let definition: LayoutDefinition
     let facts: DefinitionResolutionMemo.Facts
     let language: PreviewLanguage
@@ -116,6 +116,9 @@ private struct KeyboardMainLayoutPreview: View {
     let editing: Bool
     let showsGlobe: Bool
     let widths: KeyboardPreviewWidths
+    /// The preset row height the editor shows at; a board with more letter rows spreads the same
+    /// key area over them, so the preview draws the same rows the keyboard draws.
+    let standardKeyHeight: CGFloat
     let quickSymbols: String
     let candidateBar: CandidateBarDefinition
     let inspected: LayoutKey?
@@ -148,10 +151,27 @@ private struct KeyboardMainLayoutPreview: View {
     /// the row list, and editing them hands the rails or footer back to the stored keys.
     private var showsBundledPhoneShell: Bool { facts.isBuiltinPhonePad }
 
+    /// Letter rows the previewed definition draws above its control row (the bundled registration
+    /// answers it), and the rows the current preview page draws inside that budget.
+    private var physicalMainRowBudget: Int {
+        KeyboardPanelGeometry.physicalMainRowBudget(forDefinitionID: definition.id)
+    }
+    private var mainRowCount: Int {
+        usesConfiguredLayout && !usesStandardQwerty ? max(1, facts.mainRows.count) : 3
+    }
+    private var drawnMainRowCount: Int { min(mainRowCount, physicalMainRowBudget) }
+    /// The preview page's row height: the standard preset on three-row pages, the redistributed
+    /// height on a four-row board, exactly what the host fits for the same page.
+    private var pageKeyHeight: CGFloat {
+        CGFloat(
+            KeyboardPanelGeometry.physicalKeyHeight(
+                standardKeyHeight: Double(standardKeyHeight), physicalMainRows: drawnMainRowCount))
+    }
     private var geometry: KeyboardPanelGeometry {
         KeyboardPanelGeometry(
-            candidateHeight: candidateBar.collapsed.height, keyHeight: Double(keyHeight),
-            selectedMainRows: max(1, facts.mainRows.count),
+            candidateHeight: candidateBar.collapsed.height, keyHeight: Double(pageKeyHeight),
+            selectedMainRows: max(1, drawnMainRowCount),
+            maximumVisibleRows: physicalMainRowBudget,
             candidateSize: appearance.skin.typography.candidateSize)
     }
 
@@ -182,12 +202,11 @@ private struct KeyboardMainLayoutPreview: View {
                 case .phoneDigitPad:
                     phoneDigitPad(split: split)
                 default:
-                    let mainRowCount = usesConfiguredLayout && !usesStandardQwerty ? max(1, facts.mainRows.count) : 3
                     let mainAreaHeight = CGFloat(geometry.mainAreaHeight)
                     VStack(spacing: 4) {
                         if expanded {
                             candidateArea(expanded: true)
-                        } else if CGFloat(mainRowCount) * (keyHeight + 4) - 4 > mainAreaHeight + 1 {
+                        } else if CGFloat(mainRowCount) * (pageKeyHeight + 4) - 4 > mainAreaHeight + 1 {
                             ScrollView { VStack(spacing: 4) { keyRows(split: split) } }
                                 .sharpCandidateScrollEdges()
                         } else {
@@ -211,6 +230,9 @@ private struct KeyboardMainLayoutPreview: View {
         .padding(4)
         .background(appearance.background)
         .clipShape(RoundedRectangle(cornerRadius: 8))
+        // The rows draw at the height the keyboard actually uses for this page: the preset on a
+        // three-row page, the redistributed height on a four-row board.
+        .environment(\.keyboardKeyHeight, pageKeyHeight)
     }
 
     // MARK: Key area
@@ -221,7 +243,7 @@ private struct KeyboardMainLayoutPreview: View {
         case .splitHalves:
             if let split, let rows = facts.splitLetters?.rows {
                 KeyboardSplitHalvesPad(
-                    rows: rows, split: split, isVisible: { showsGlobe || $0.action.type != .globe },
+                    rows: rows, split: split, showsGlobe: showsGlobe,
                     key: { key, row, index in keyFace(key, path: nil, id: "split-\(row)-\(index)") })
             }
         case .standardQwerty:
@@ -296,7 +318,8 @@ private struct KeyboardMainLayoutPreview: View {
         let keys = facts.mainRows[index].keys
         let sources = visibleSources(keys)
         return KeyboardDefinitionRow(
-            keys: sources.map { keys[$0] }, inset: inset, spacing: spacing, split: split, rowIndex: index,
+            keys: showsGlobe ? keys : keys.withoutGlobe(), inset: inset, spacing: spacing, split: split,
+            rowIndex: index,
             fixedKeyWidth: fixedKeyWidth, splitGap: splitGap
         ) { key, visible in
             keyFace(key, path: .row(index, key: sources[visible]), id: "row-\(index)-\(visible)")
@@ -429,7 +452,14 @@ private struct KeyboardMainLayoutPreview: View {
         }
         return KeyboardLayoutUtilityBar(
             controlRow: row, rowIndex: facts.mainRows.count, split: footerSplit ?? split,
-            showsGlobe: showsGlobe, definitionHasGlobe: facts.hasGlobe, onPage: { _ in },
+            showsGlobe: showsGlobe, definitionHasGlobe: facts.hasGlobe,
+            symbolPageTitle: controlPolicy.symbolPageTitle,
+            numericPageAccessibilityLabel: controlPolicy.pageSwitchAccessibilityLabel(
+                for: .numeric, isBundledPhonePad: controlPolicy.isBundledPhonePad),
+            symbolPageAccessibilityLabel: controlPolicy.pageSwitchAccessibilityLabel(
+                for: .symbols, isBundledPhonePad: controlPolicy.isBundledPhonePad),
+            onPage: { _ in },
+            supplementShortcuts: KeyboardFooterShortcutPlan.supplements(physicalLayoutID: definition.id),
             key: { key, id, index in keyFace(key, path: index < 0 ? nil : .row(rowIndex, key: index), id: id) },
             globe: { NativeInputModeKey(handleEvent: { _, _ in }, accessibilitySwitch: {}) },
             modeSwitch: { KeyboardPreviewModeKey(policy: controlPolicy) })

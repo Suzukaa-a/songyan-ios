@@ -117,6 +117,32 @@ final class PublishedKeyboardTests: XCTestCase {
         XCTAssertNil(PublishedKeyboard.selectionAfterRemoval(from: [], current: removedCurrent))
     }
 
+    func testSwitchTargetRestoresTheRememberedKeyboards() {
+        let first = PublishedKeyboard(schemaID: "zhuyin", layout: .merged14)
+        let second = PublishedKeyboard(schemaID: "zhuyin", layout: .qwerty26)
+        let target = PublishedKeyboard.switchTarget(
+            remembered: [first, second, first],
+            addable: [PublishedKeyboard(schemaID: "zhuyin", layout: .phone9)])
+
+        XCTAssertEqual(target?.roster, [first, second])
+        XCTAssertEqual(target?.selection, first)
+    }
+
+    func testSwitchTargetFallsBackToTheDefaultKeyboardWhenNothingWasChosen() {
+        let compact = PublishedKeyboard(schemaID: "zhuyin", layout: .merged14)
+        let full = PublishedKeyboard(schemaID: "zhuyin", layout: .qwerty26)
+
+        let withFull = PublishedKeyboard.switchTarget(remembered: [], addable: [compact, full])
+        XCTAssertEqual(withFull?.roster, [full])
+        XCTAssertEqual(withFull?.selection, full)
+
+        let compactOnly = PublishedKeyboard.switchTarget(remembered: [], addable: [compact])
+        XCTAssertEqual(compactOnly?.roster, [compact])
+        XCTAssertEqual(compactOnly?.selection, compact)
+
+        XCTAssertNil(PublishedKeyboard.switchTarget(remembered: [], addable: []))
+    }
+
     /// Add/delete several keyboards in sequence + registry integrity: adding a second item must not drop the first.
     func testMultiKeyboardAddRemoveKeepsRegistryComplete() {
         let a = PublishedKeyboard(schemaID: "mspy", layout: .merged14)

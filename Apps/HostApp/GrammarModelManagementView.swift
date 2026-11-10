@@ -34,16 +34,16 @@ struct GrammarModelSettingsView: View {
                     if loaded {
                         Text("先添加输入方案，再为它设置语法模型。")
                             .font(.footnote).foregroundStyle(.secondary)
-                        NavigationLink("添加输入方案") { SchemePackageImportView() }
+                        NavigationLink(String(localized: "添加输入方案")) { SchemePackageImportView() }
                     } else {
-                        ProgressView("正在读取输入方案…")
+                        ProgressView(String(localized: "正在读取输入方案…"))
                     }
                 }
             } footer: {
                 Text("开启后，候选会按整句意思排序。")
             }
         }
-        .navigationTitle("语法模型")
+        .navigationTitle(String(localized: "语法模型"))
         .accessibilityIdentifier("sentence-model.settings")
         .task {
             await center.refresh()
@@ -66,7 +66,7 @@ struct GrammarModelManagementView: View {
     @State private var deployedSchemas: [KeyboardSchemaDescriptor] = []
     @State private var bindings: [GrammarBinding] = []
     @State private var managedSchemaIDs: Set<String> = []
-    @State private var statusText = "正在读取…"
+    @State private var statusText = String(localized: "正在读取…")
     @State private var publishedCurrentInstallation = false
     @State private var notice: String?
     @State private var applying = false
@@ -129,7 +129,9 @@ struct GrammarModelManagementView: View {
             Section {
                 Text(statusText).font(.footnote).textSelection(.enabled)
                     .accessibilityIdentifier("sentence-model.status")
-                if applying || (center.busy && workspace != nil) { ProgressView(center.message ?? "正在保存…") }
+                if applying || (center.busy && workspace != nil) {
+                    ProgressView(center.message ?? String(localized: "正在保存…"))
+                }
                 if let notice {
                     Label(notice, systemImage: "checkmark.circle")
                         .font(.footnote).foregroundStyle(.green)
@@ -140,9 +142,9 @@ struct GrammarModelManagementView: View {
                     if let error = center.error, !center.busy, !applying {
                         Text("没能读取这个方案的模型设置。").foregroundStyle(.red)
                         if developerOptions { Text(error).font(.caption).textSelection(.enabled) }
-                        Button("重试") { reloadWorkspace() }
+                        Button(String(localized: "重试")) { reloadWorkspace() }
                     } else {
-                        ProgressView("正在读取…")
+                        ProgressView(String(localized: "正在读取…"))
                     }
                 }
             } else if models.isEmpty {
@@ -154,8 +156,8 @@ struct GrammarModelManagementView: View {
                 } footer: {
                     Text(
                         selectableBindings.isEmpty
-                            ? "这个方案没有可以用语法模型的输入方式。"
-                            : "添加后会为还没开启的输入方式开启。")
+                            ? String(localized: "这个方案没有可以用语法模型的输入方式。")
+                            : String(localized: "添加后会为还没开启的输入方式开启。"))
                 }
                 missingModelsSection
             } else {
@@ -170,7 +172,7 @@ struct GrammarModelManagementView: View {
                     if let only = singleModelPath {
                         let off = selectableBindings.filter { !$0.binds(modelPath: only) }
                         if off.count > 1 {
-                            Button("全部开启") { applyAll(modelPath: only, to: off) }
+                            Button(String(localized: "全部开启")) { applyAll(modelPath: only, to: off) }
                                 .disabled(center.busy || applying)
                         }
                     }
@@ -179,8 +181,8 @@ struct GrammarModelManagementView: View {
                 } footer: {
                     Text(
                         selectableBindings.count < bindings.count
-                            ? "开启后，候选会按整句意思排序。部分输入方式不支持语法模型，没有列在这里。"
-                            : "开启后，候选会按整句意思排序。")
+                            ? String(localized: "开启后，候选会按整句意思排序。部分输入方式不支持语法模型，没有列在这里。")
+                            : String(localized: "开启后，候选会按整句意思排序。"))
                 }
                 missingModelsSection
                 Section {
@@ -193,8 +195,8 @@ struct GrammarModelManagementView: View {
                                 let bound = bindings.filter { $0.binds(modelPath: path) }.map(\.schemaID).sorted()
                                 Text(
                                     bound.isEmpty
-                                        ? "还没有用于任何输入方式"
-                                        : "用于：" + bound.map(schemaName).joined(separator: "、")
+                                        ? String(localized: "还没有用于任何输入方式")
+                                        : String(localized: "用于：\(bound.map(schemaName).joined(separator: "、"))")
                                 )
                                 .font(.caption).foregroundStyle(.secondary)
                             }
@@ -202,8 +204,8 @@ struct GrammarModelManagementView: View {
                                 Text("SHA256 \(models[path]!.sha256)").font(.caption.monospaced()).textSelection(
                                     .enabled)
                                 Text(
-                                    recordedURL(path).map { "下载地址：" + $0.absoluteString }
-                                        ?? "来源：安装包或本地文件"
+                                    recordedURL(path).map { String(localized: "下载地址：\($0.absoluteString)") }
+                                        ?? String(localized: "来源：安装包或本地文件")
                                 )
                                 .font(.caption).textSelection(.enabled)
                             }
@@ -216,7 +218,7 @@ struct GrammarModelManagementView: View {
             }
             if let package {
                 Section {
-                    NavigationLink("前往方案详情") { SchemePackageDetailView(packageID: package.id) }
+                    NavigationLink(String(localized: "前往方案详情")) { SchemePackageDetailView(packageID: package.id) }
                 }
             }
             if let error = center.error, workspace != nil {
@@ -257,11 +259,11 @@ struct GrammarModelManagementView: View {
         .onReceive(center.$installedWorkspace) { value in
             if let value, belongsHere(value) { lastWorkspace = value }
         }
-        .alert("语法模型链接", isPresented: $enteringModelURL) {
+        .alert(String(localized: "语法模型链接"), isPresented: $enteringModelURL) {
             TextField("https://example.com/language.gram", text: $address)
                 .textInputAutocapitalization(.never).autocorrectionDisabled()
-            Button("取消", role: .cancel) { address = "" }
-            Button("下载") { downloadModel() }
+            Button(String(localized: "取消"), role: .cancel) { address = "" }
+            Button(String(localized: "下载")) { downloadModel() }
         } message: {
             Text("请输入 .gram 文件的链接。")
         }
@@ -271,7 +273,7 @@ struct GrammarModelManagementView: View {
         ) { result in
             guard let url = try? result.get().first else { return }
             guard url.pathExtension.lowercased() == "gram" else {
-                center.report(RecipeInstallError.invalidResource("请选择 .gram 模型文件。"))
+                center.report(RecipeInstallError.invalidResource(String(localized: "请选择 .gram 模型文件。")))
                 return
             }
             // The picker URL is only readable while this callback's scope is held.
@@ -298,11 +300,11 @@ struct GrammarModelManagementView: View {
 
     @ViewBuilder
     private var modelImportButtons: some View {
-        Button("从文件添加") {
+        Button(String(localized: "从文件添加")) {
             startImport(requirementPath: nil, bindSchemaID: nil)
         }.accessibilityIdentifier("sentence-model.import-file")
             .disabled(center.busy || applying)
-        Button("从链接添加") {
+        Button(String(localized: "从链接添加")) {
             pendingRequirementPath = nil
             bindingAfterImport = nil
             address = ""
@@ -313,12 +315,13 @@ struct GrammarModelManagementView: View {
     @ViewBuilder
     private var missingModelsSection: some View {
         if !missingModels.isEmpty {
-            Section("缺少模型文件") {
+            Section(String(localized: "缺少模型文件")) {
                 ForEach(missingModels, id: \.path) { item in
                     VStack(alignment: .leading, spacing: 5) {
                         Text(modelTitle(item.path))
-                        Text("用于：" + item.schemaIDs.map(schemaName).joined(separator: "、")).font(.caption)
-                        Button("导入模型文件") {
+                        Text(String(localized: "用于：") + item.schemaIDs.map(schemaName).joined(separator: "、")).font(
+                            .caption)
+                        Button(String(localized: "导入模型文件")) {
                             startImport(requirementPath: item.path, bindSchemaID: nil)
                         }.disabled(center.busy || applying)
                     }
@@ -345,7 +348,7 @@ struct GrammarModelManagementView: View {
         }
         .contextMenu {
             if managedSchemaIDs.contains(binding.schemaID) {
-                Button("使用方案默认") { applyDefaults(binding) }
+                Button(String(localized: "使用方案默认")) { applyDefaults(binding) }
             }
         }
         .disabled(center.busy || applying)
@@ -357,7 +360,7 @@ struct GrammarModelManagementView: View {
         let detail = bindingDetail(binding)
         Menu {
             if !models.isEmpty {
-                Section("选择模型") {
+                Section(String(localized: "选择模型")) {
                     ForEach(models.keys.sorted(), id: \.self) { path in
                         Button {
                             apply(modelPath: path, to: binding)
@@ -372,11 +375,13 @@ struct GrammarModelManagementView: View {
                 }
             }
             Section {
-                Button("添加模型文件…") { startImport(requirementPath: nil, bindSchemaID: binding.schemaID) }
-                Button("不使用语法模型") { applyDisabled(binding) }
+                Button(String(localized: "添加模型文件…")) {
+                    startImport(requirementPath: nil, bindSchemaID: binding.schemaID)
+                }
+                Button(String(localized: "不使用语法模型")) { applyDisabled(binding) }
                     .disabled(binding.language?.isEmpty != false)
                 if managedSchemaIDs.contains(binding.schemaID) {
-                    Button("使用方案默认") { applyDefaults(binding) }
+                    Button(String(localized: "使用方案默认")) { applyDefaults(binding) }
                 }
             }
         } label: {
@@ -396,13 +401,13 @@ struct GrammarModelManagementView: View {
     }
 
     private func bindingDetail(_ binding: GrammarBinding) -> (text: String, isProblem: Bool) {
-        if binding.support == .unsupported { return ("这个输入方式不支持语法模型", false) }
-        guard let language = binding.language, !language.isEmpty else { return ("未开启", false) }
+        if binding.support == .unsupported { return (String(localized: "这个输入方式不支持语法模型"), false) }
+        guard let language = binding.language, !language.isEmpty else { return (String(localized: "未开启"), false) }
         guard let path = modelPath(language) else {
-            return ("模型文件路径无法识别，轻点重新选择", true)
+            return (String(localized: "模型文件路径无法识别，轻点重新选择"), true)
         }
-        if models[path] == nil { return ("缺少模型文件，轻点导入", true) }
-        return ("已开启 · " + modelTitle(path), false)
+        if models[path] == nil { return (String(localized: "缺少模型文件，轻点导入"), true) }
+        return (String(localized: "已开启 · \(modelTitle(path))"), false)
     }
 
     private func recordedURL(_ path: String) -> URL? {
@@ -453,8 +458,8 @@ struct GrammarModelManagementView: View {
             }
             notice =
                 publishedCurrentInstallation
-                ? "已保存，下次打开键盘时生效。"
-                : "已保存。键盘用上这个方案后生效。"
+                ? String(localized: "已保存，下次打开键盘时生效。")
+                : String(localized: "已保存。键盘用上这个方案后生效。")
             readBindings()
         }
     }
@@ -476,11 +481,11 @@ struct GrammarModelManagementView: View {
     private func downloadModel() {
         let filename = URL(string: address)?.lastPathComponent ?? ""
         guard let url = URL(string: address), url.scheme == "https", url.host != nil else {
-            center.report(RecipeInstallError.invalidResource("请输入有效的 https 链接"))
+            center.report(RecipeInstallError.invalidResource(String(localized: "请输入有效的 https 链接")))
             return
         }
         guard filename.lowercased().hasSuffix(".gram") else {
-            center.report(RecipeInstallError.invalidResource("请输入 .gram 文件的链接。"))
+            center.report(RecipeInstallError.invalidResource(String(localized: "请输入 .gram 文件的链接。")))
             return
         }
         let requirement = pendingRequirementPath
@@ -508,7 +513,7 @@ struct GrammarModelManagementView: View {
             let path = requirementPath ?? GrammarModelRecipe.installPath(for: fallbackFilename) ?? ""
             let idle = selectableBindings.filter { $0.language?.isEmpty != false }
             guard firstModel, models.count == 1, models[path] != nil, !idle.isEmpty else {
-                notice = "模型已添加，可在输入方式里选择。"
+                notice = String(localized: "模型已添加，可在输入方式里选择。")
                 return
             }
             applyAll(modelPath: path, to: idle)
@@ -539,7 +544,7 @@ struct GrammarModelManagementView: View {
             guard readID == statusReadID else { return }
             do {
                 guard let active = package?.active else {
-                    statusText = "暂时无法读取状态。"
+                    statusText = String(localized: "暂时无法读取状态。")
                     if !applying { pendingToggles = [:] }
                     return
                 }
@@ -554,7 +559,7 @@ struct GrammarModelManagementView: View {
                     guard source.id == active.installation.id, source.revision == active.installation.revision,
                         source.schemaID == active.installation.schemaID
                     else {
-                        throw RecipeInstallError.invalidResource("方案安装记录与源文件信息不一致，请尝试重新导入")
+                        throw RecipeInstallError.invalidResource(String(localized: "方案安装记录与源文件信息不一致，请尝试重新导入"))
                     }
                     let build = active.userDataURL.appendingPathComponent("build")
                     let descriptors = try KeyboardRecipeStore.deployedSchemas(build: build)
@@ -577,7 +582,9 @@ struct GrammarModelManagementView: View {
             } catch {
                 guard readID == statusReadID else { return }
                 if !applying { pendingToggles = [:] }
-                statusText = developerOptions ? "暂时无法读取状态：\(error.localizedDescription)" : "暂时无法读取状态。"
+                statusText =
+                    developerOptions
+                    ? String(localized: "暂时无法读取状态：\(error.localizedDescription)") : String(localized: "暂时无法读取状态。")
             }
         }
     }
@@ -634,12 +641,12 @@ struct GrammarModelManagementView: View {
                 }
                 let path = language + ".gram"
                 guard GrammarModelRecipe.validModelPath(path) else {
-                    throw ModelStatusProblem(message: "模型文件路径不受支持，请重新选择 .gram 文件。")
+                    throw ModelStatusProblem(message: String(localized: "模型文件路径不受支持，请重新选择 .gram 文件。"))
                 }
                 let file = snapshot.resources.appendingPathComponent(path)
                 let info = try? file.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey])
                 guard info?.isRegularFile == true, let size = info?.fileSize, size > 0 else {
-                    throw ModelStatusProblem(message: "模型文件缺失或内容为空，请重新选择模型文件。")
+                    throw ModelStatusProblem(message: String(localized: "模型文件缺失或内容为空，请重新选择模型文件。"))
                 }
                 let receipt = try GrammarRuntimeReceiptStore.receipt(matching: activation)
                 return .init(
@@ -661,7 +668,9 @@ struct GrammarModelManagementView: View {
             if let problem = error as? ModelStatusProblem {
                 statusText = problem.message
             } else {
-                statusText = developerOptions ? "暂时无法读取状态：\(error.localizedDescription)" : "暂时无法读取状态。"
+                statusText =
+                    developerOptions
+                    ? String(localized: "暂时无法读取状态：\(error.localizedDescription)") : String(localized: "暂时无法读取状态。")
             }
         }
     }

@@ -23,7 +23,7 @@ extension SchemeImportCenter {
     /// Ordinary resources use bounded bytes. Replacing an entry releases the old reference's staging lease; never delete files by hand.
     func provideExternalResource(_ url: URL, requirementPath: String) {
         guard !busy else {
-            message = "另一项操作正在进行，请稍后再试。"
+            message = String(localized: "另一项操作正在进行，请稍后再试。")
             return
         }
         invalidatePlannedRecipeForResourceEdit()
@@ -33,15 +33,15 @@ extension SchemeImportCenter {
             HostLog.append("external resource type mismatch: \(requirementPath) <- \(url.lastPathComponent)")
             error =
                 expectsDatabase
-                ? "需要联想词库文件（.db）。"
-                : "需要语法模型文件（.gram）。"
+                ? String(localized: "需要联想词库文件（.db）。")
+                : String(localized: "需要语法模型文件（.gram）。")
             return
         }
         busy = true
         error = nil
         preparingExternalResource = true
         HostLog.append("reading external resource: \(requirementPath)")
-        message = "正在读取文件…"
+        message = String(localized: "正在读取文件…")
         // The lease must start in this picker callback, before any suspension point.
         let scoped = url.isFileURL && url.startAccessingSecurityScopedResource()
         sourceTask = Task {
@@ -58,8 +58,7 @@ extension SchemeImportCenter {
                     try Task.checkCancellation()
                     providedOrdinaryResources[requirementPath] = nil
                     providedDownloadFiles[requirementPath] = asset
-                    message =
-                        "已添加文件（\(HostStorePaths.fileSizeText(asset.size))）。"
+                    message = String(localized: "已添加文件（\(HostStorePaths.fileSizeText(asset.size))）。")
                 } else {
                     // Ordinary resources are read as bounded immutable bytes on a background task; the SHA/size identity
                     // is pinned from those same bytes, and cancel is forwarded to the reader.
@@ -72,7 +71,8 @@ extension SchemeImportCenter {
                     let task = Task.detached(priority: .userInitiated) { () throws -> ProvidedOrdinaryResource in
                         let info = try sourceURL.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey])
                         guard info.isSymbolicLink != true, info.isRegularFile == true else {
-                            throw RecipeInstallError.invalidResource("文件类型不支持：\(sourceURL.lastPathComponent)")
+                            throw RecipeInstallError.invalidResource(
+                                String(localized: "文件类型不支持：\(sourceURL.lastPathComponent)"))
                         }
                         let resource = try RecipePackageManager.readLocalOrdinaryResource(
                             sourceURL,
@@ -91,11 +91,10 @@ extension SchemeImportCenter {
                     try Task.checkCancellation()
                     providedDownloadFiles[requirementPath] = nil
                     providedOrdinaryResources[requirementPath] = resource
-                    message =
-                        "已添加文件（\(HostStorePaths.fileSizeText(resource.size))）。"
+                    message = String(localized: "已添加文件（\(HostStorePaths.fileSizeText(resource.size))）。")
                 }
             } catch is CancellationError {
-                message = "已取消。"
+                message = String(localized: "已取消。")
             } catch {
                 report(error)
                 message = nil
@@ -110,7 +109,7 @@ extension SchemeImportCenter {
     /// with the SHA/size identity pinned in the same background fetch; the MainActor only publishes the identity.
     func downloadExternalResource(_ requirement: RecipeExternalResource) {
         guard !busy else {
-            message = "另一项操作正在进行，请稍后。"
+            message = String(localized: "另一项操作正在进行，请稍后。")
             return
         }
         invalidatePlannedRecipeForResourceEdit()
@@ -118,7 +117,7 @@ extension SchemeImportCenter {
         error = nil
         preparingExternalResource = true
         HostLog.append("downloading external resource: \(requirement.path)")
-        message = "正在下载…"
+        message = String(localized: "正在下载…")
         let isModel = RecipeResourceBudget.isModel(requirement.path)
         sourceTask = Task {
             defer {
@@ -133,7 +132,7 @@ extension SchemeImportCenter {
                     try Task.checkCancellation()
                     providedOrdinaryResources[requirement.path] = nil
                     providedDownloadFiles[requirement.path] = asset
-                    message = "已下载（\(HostStorePaths.fileSizeText(asset.size))）。"
+                    message = String(localized: "已下载（\(HostStorePaths.fileSizeText(asset.size))）。")
                 } else {
                     let resource = try await RecipePackageManager.fetchOrdinaryResource(
                         requirement.url,
@@ -144,11 +143,10 @@ extension SchemeImportCenter {
                     try Task.checkCancellation()
                     providedDownloadFiles[requirement.path] = nil
                     providedOrdinaryResources[requirement.path] = resource
-                    message =
-                        "已下载（\(HostStorePaths.fileSizeText(resource.size))）。"
+                    message = String(localized: "已下载（\(HostStorePaths.fileSizeText(resource.size))）。")
                 }
             } catch is CancellationError {
-                message = "已取消。"
+                message = String(localized: "已取消。")
             } catch {
                 report(error)
                 message = nil
@@ -175,14 +173,14 @@ extension SchemeImportCenter {
         retryState.succeeded()
         guard plannedRecipe != nil else { return }
         plannedRecipe = nil
-        plannedDiagnostics = ["文件已更改，请重新检查。"]
+        plannedDiagnostics = [String(localized: "文件已更改，请重新检查。")]
     }
 
     /// After the root recipe selection, its parameters or the stages change, the old plan no longer matches the current input; revoke it immediately.
     func invalidatePlannedRecipeForRootChange() {
         guard plannedRecipe != nil else { return }
         plannedRecipe = nil
-        plannedDiagnostics = ["选项已更改，请重新检查。"]
+        plannedDiagnostics = [String(localized: "选项已更改，请重新检查。")]
     }
 
     /// Reset recipe-planning state, dropping provided external resources (the staging

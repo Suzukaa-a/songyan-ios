@@ -37,11 +37,13 @@ public struct GrammarBinding: Identifiable, Sendable {
 
     public static func read(schemaID: String, buildDirectory: URL) throws -> Self {
         guard schemaID.range(of: "^[A-Za-z0-9_-]+$", options: .regularExpression) != nil else {
-            throw RecipeInstallError.invalidResource("输入方式标识无效")
+            throw RecipeInstallError.invalidResource(PackageText.string("schema.error.invalidID"))
         }
         let url = InstalledPackageLayout.compiledSchemaURL(build: buildDirectory, id: schemaID)
         let size = try url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? Int.max
-        guard size <= RecipeResourceBudget.sourceFile else { throw RecipeInstallError.invalidResource("编译配置文件超过大小限制") }
+        guard size <= RecipeResourceBudget.sourceFile else {
+            throw RecipeInstallError.invalidResource(PackageText.string("file.error.compiledConfigTooLarge"))
+        }
         let text = try String(contentsOf: url, encoding: .utf8)
         let root = try BoundedYAML.load(yaml: text) as? [String: Any]
         let node = try BoundedYAML.compose(yaml: text)
@@ -124,13 +126,14 @@ public enum GrammarModelRecipe {
         displayName: String? = nil
     ) throws -> DeclarativeRecipe {
         guard literalModelPath(modelPath) else {
-            throw RecipeInstallError.invalidResource("此模型路径格式不受支持，无法直接配置；请保留方案原配置并补充模型文件")
+            throw RecipeInstallError.invalidResource(PackageText.string("grammar.error.pathUnsupported"))
         }
         let binding = Array(Set(bindingSchemaIDs)).sorted()
         let clearing = Array(Set(clearingSchemaIDs).subtracting(binding)).sorted()
         for schemaID in binding + clearing {
             guard schemaID.range(of: "^[A-Za-z0-9_-]+$", options: .regularExpression) != nil else {
-                throw RecipeInstallError.invalidResource("输入方式标识无效：\(schemaID)")
+                throw RecipeInstallError.invalidResource(
+                    PackageText.format("schema.error.invalidIDWithDetail", schemaID))
             }
         }
         let language = modelName(for: modelPath)
@@ -148,7 +151,7 @@ public enum GrammarModelRecipe {
         lines += [
             "recipe:",
             "  Rx: \(declaredName)",
-            "  description: 语法模型绑定",
+            "  description: " + PackageText.string("recipe.description.grammarBinding"),
         ]
         if let sourceURL {
             lines.append("download_files:")

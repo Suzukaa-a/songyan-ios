@@ -14,6 +14,18 @@ public enum RecipeResourceBudget {
     /// (`*.gram`) and root-level prediction databases (`*.db`, checked by `Prediction`).
     public static func isModel(_ path: String) -> Bool { path.hasSuffix(".gram") || Prediction.isDatabasePath(path) }
     public static func maximumFileBytes(_ path: String) -> Int { isModel(path) ? modelFile : sourceFile }
+
+    /// One catalogue entry can be assembled from several archives; their combined compressed size
+    /// shares the single-archive cap. Checked before any archive is parsed so a large second file
+    /// is refused before it is copied or unpacked.
+    public static func validateArchives(_ sizes: [Int64]) throws {
+        guard sizes.allSatisfy({ $0 >= 0 && $0 <= Int64(archiveFile) }),
+            sizes.reduce(0, +) <= Int64(archiveFile)
+        else {
+            throw RecipeInstallError.invalidResource(
+                PackageText.string("file.error.archiveBudget"))
+        }
+    }
     public static func validate(_ sizes: [String: Int]) throws {
         try validate(sizes, logicalPath: { $0 })
     }
@@ -28,17 +40,19 @@ public enum RecipeResourceBudget {
 
     static func validate(_ sizes: [String: Int], logicalPath: (String) -> String) throws {
         var sources = 0, models = 0
-        guard sizes.count <= 2000 else { throw RecipeInstallError.invalidResource("文件数量超过 2000 个") }
+        guard sizes.count <= 2000 else {
+            throw RecipeInstallError.invalidResource(PackageText.string("file.error.tooManyFiles"))
+        }
         for (path, size) in sizes {
             guard SchemeSourceCheck.safe(path) else { throw RecipeInstallError.invalidResource(path) }
             let logical = logicalPath(path)
             guard size >= 0, size <= maximumFileBytes(logical) else {
-                throw RecipeInstallError.invalidResource("单个文件超过大小限制：\(path)")
+                throw RecipeInstallError.invalidResource(PackageText.format("file.error.singleTooLarge", path))
             }
             if isModel(logical) { models += size } else { sources += size }
         }
         guard sources <= sourceTotal, models <= modelTotal else {
-            throw RecipeInstallError.invalidResource("方案文件或模型文件总大小超过限制")
+            throw RecipeInstallError.invalidResource(PackageText.string("schemeImport.error.totalTooLarge"))
         }
     }
 }
@@ -70,7 +84,8 @@ public struct RecipeFileResource: Sendable {
     ) throws -> RecipeFileResource {
         let result = try stream(url, to: nil, maximumBytes: maximumBytes)
         guard expectedSHA256 == nil || expectedSHA256 == result.sha256 else {
-            throw RecipeInstallError.invalidResource("文件校验不符：\(url.lastPathComponent)")
+            throw RecipeInstallError.invalidResource(
+                PackageText.format("file.error.checksumMismatch", url.lastPathComponent))
         }
         return RecipeFileResource(url: url, size: result.size, sha256: result.sha256)
     }
@@ -84,7 +99,8 @@ public struct RecipeFileResource: Sendable {
         let lease = TemporaryResourceLease(destination)
         let result = try stream(source, to: destination, maximumBytes: maximumBytes)
         guard expectedSHA256 == nil || expectedSHA256 == result.sha256 else {
-            throw RecipeInstallError.invalidResource("文件校验不符：\(source.lastPathComponent)")
+            throw RecipeInstallError.invalidResource(
+                PackageText.format("file.error.checksumMismatch", source.lastPathComponent))
         }
         return RecipeFileResource(url: destination, size: result.size, sha256: result.sha256, lease: lease)
     }
@@ -132,7 +148,7 @@ public struct RecipeFileResource: Sendable {
         progress: @escaping @Sendable (Int64) -> Void = { _ in }
     ) async throws -> RecipeFileResource {
         guard maximumBytes >= 0, maximumBytes <= RecipeResourceBudget.modelFile else {
-            throw RecipeInstallError.invalidResource("文件大小参数超出限制")
+            throw RecipeInstallError.invalidResource(PackageText.string("file.error.invalidSizeArgument"))
         }
         try HTTPSResourceReader.validate(url)
         let delegate = ResourceDownloadDelegate(maximumBytes: maximumBytes, progress: progress)
@@ -165,7 +181,8 @@ public struct RecipeFileResource: Sendable {
     func copy(to destination: URL, maximumBytes: Int) throws {
         let input = try BoundedLocalFile(url, maximumBytes: maximumBytes)
         guard input.size == size else {
-            throw RecipeInstallError.invalidResource("文件在准备期间已被修改：\(url.lastPathComponent)")
+            throw RecipeInstallError.invalidResource(
+                PackageText.format("file.error.changedWhilePreparing", url.lastPathComponent))
         }
         try FileManager.default.createDirectory(
             at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
@@ -176,7 +193,7 @@ public struct RecipeFileResource: Sendable {
         size: Int, sha256: String
     ) {
         guard maximumBytes >= 0, maximumBytes <= RecipeResourceBudget.modelFile else {
-            throw RecipeInstallError.invalidResource("文件大小参数超出限制")
+            throw RecipeInstallError.invalidResource(PackageText.string("file.error.invalidSizeArgument"))
         }
         let input = try BoundedLocalFile(source, maximumBytes: maximumBytes)
         var output: FileHandle?
@@ -188,7 +205,8 @@ public struct RecipeFileResource: Sendable {
         }
         if let destination {
             guard !FileManager.default.fileExists(atPath: destination.path) else {
-                throw RecipeInstallError.invalidResource("目标文件已存在：\(destination.path)")
+                throw RecipeInstallError.invalidResource(
+                    PackageText.format("file.error.destinationExists", destination.path))
             }
             try FileManager.default.createDirectory(
                 at: destination.deletingLastPathComponent(), withIntermediateDirectories: true)
@@ -267,7 +285,7 @@ private final class ResourceDownloadDelegate: NSObject, URLSessionDownloadDelega
         newRequest request: URLRequest, completionHandler: @escaping (URLRequest?) -> Void
     ) {
         guard let url = request.url, (try? HTTPSResourceReader.validate(url)) != nil else {
-            fail("链接跳转到了不安全的地址，已停止下载")
+            fail(PackageText.string("download.error.unsafeRedirect"))
             // Refusing the redirect alone leaves URLSession waiting for the original
             // request until the timeout; cancel so the refusal completes immediately.
             task.cancel()
@@ -281,7 +299,7 @@ private final class ResourceDownloadDelegate: NSObject, URLSessionDownloadDelega
         totalBytesWritten: Int64, totalBytesExpectedToWrite: Int64
     ) {
         if totalBytesWritten > Int64(maximumBytes) || totalBytesExpectedToWrite > Int64(maximumBytes) {
-            fail("外部下载文件超过大小限制")
+            fail(PackageText.string("download.error.tooLarge"))
             downloadTask.cancel()
         }
         progress(totalBytesWritten)
@@ -294,7 +312,7 @@ private final class ResourceDownloadDelegate: NSObject, URLSessionDownloadDelega
         do {
             try FileManager.default.moveItem(at: location, to: url)
             state.withLock { $0.downloaded = lease }
-        } catch { fail("保存模型下载文件失败：\(error.localizedDescription)") }
+        } catch { fail(PackageText.format("download.error.saveFailed", error.localizedDescription)) }
     }
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
         let (continuation, cancelled, problem, downloaded) = state.withLock { state in
@@ -312,7 +330,8 @@ private final class ResourceDownloadDelegate: NSObject, URLSessionDownloadDelega
         } else if let downloaded, let response = task.response {
             continuation?.resume(returning: (downloaded.url, response))
         } else {
-            continuation?.resume(throwing: RecipeInstallError.invalidResource("模型下载未返回完整文件，请重试。"))
+            continuation?.resume(
+                throwing: RecipeInstallError.invalidResource(PackageText.string("download.error.incomplete")))
         }
     }
 }

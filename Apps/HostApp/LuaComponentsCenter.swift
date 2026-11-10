@@ -99,14 +99,14 @@ final class LuaComponentsCenter: ObservableObject {
                 {
                     _ = try await imports.performAddKeyboard(packageID: source.packageID, keyboard: keyboard)
                 } else {
-                    notice = "已保存，下次使用该方案时生效。"
+                    notice = String(localized: "已保存，下次使用该方案时生效。")
                 }
                 HostLog.append(
                     "lua component \(enabled ? "on" : "off") applied: \(schema.id) \(component.prescription)")
             } catch {
                 HostLog.append(
                     "lua component apply failed: \(schema.id) \(component.prescription): \(error.localizedDescription)")
-                failure = enabled ? "未能开启，请重试。" : "未能关闭，请重试。"
+                failure = enabled ? String(localized: "未能开启，请重试。") : String(localized: "未能关闭，请重试。")
             }
             await refresh()
         }
@@ -121,18 +121,18 @@ extension SchemeImportCenter {
         disabled: Set<String>
     ) async throws -> PredictionOutcome {
         let result = try await applyManagedPatch(
-            packageID: packageID, message: "正在保存…",
+            packageID: packageID, message: String(localized: "正在保存…"),
             plan: { context in
                 guard !LuaComponents.userOwnsSetting(customYAML: context.snapshot.files[schemaID + ".custom.yaml"])
                 else {
-                    throw RecipeInstallError.invalidResource("此输入方式的扩展功能由方案配置决定")
+                    throw RecipeInstallError.invalidResource(String(localized: "此输入方式的扩展功能由方案配置决定"))
                 }
                 let recipe = try LuaComponents.make(schemaID: schemaID, baseline: baseline, disabled: disabled)
                 return ManagedPatchPlan(recipe: recipe, change: ())
             },
             verify: { engine, enabledIDs, deployment, _ in
                 guard enabledIDs.contains(schemaID) else {
-                    throw RecipeInstallError.deployment("扩展功能：输入方式「\(schemaID)」未启用")
+                    throw RecipeInstallError.deployment(String(localized: "扩展功能：输入方式「\(schemaID)」未启用"))
                 }
                 let build = deployment.userDataURL.appendingPathComponent("build")
                 let components = Set(engine.schemaComponents(schemaID))
@@ -144,7 +144,7 @@ extension SchemeImportCenter {
                         compiled: compiled, schemaID: schemaID,
                         baseline: baseline, disabled: disabled)
                 else {
-                    throw RecipeInstallError.deployment("扩展功能配置读取不一致：输入方式「\(schemaID)」")
+                    throw RecipeInstallError.deployment(String(localized: "扩展功能配置读取不一致：输入方式「\(schemaID)」"))
                 }
             })
         return PredictionOutcome(changed: true, previousRevision: result.previousRevision)
@@ -158,11 +158,11 @@ struct LuaComponentsView: View {
     var body: some View {
         List {
             if center.sources.isEmpty {
-                Text(center.loading ? "正在读取…" : "已安装的输入方案未包含扩展功能。")
+                Text(center.loading ? String(localized: "正在读取…") : String(localized: "已安装的输入方案未包含扩展功能。"))
                     .font(.footnote).foregroundStyle(.secondary)
             }
             if center.working {
-                ProgressView("正在保存…").font(.footnote)
+                ProgressView(String(localized: "正在保存…")).font(.footnote)
             } else if let failure = center.failure {
                 Label(failure, systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(.red)
             } else if let notice = center.notice {
@@ -196,17 +196,17 @@ struct LuaComponentsView: View {
                 }
             }
         }
-        .navigationTitle("扩展功能")
+        .navigationTitle(String(localized: "扩展功能"))
         .navigationBarTitleDisplayMode(.inline)
         .task { await center.refresh() }
     }
 
     private static func kind(_ list: String) -> String {
         switch list {
-        case "processors": return "按键处理"
-        case "segmentors": return "分词"
-        case "translators": return "候选生成"
-        default: return "候选整理"
+        case "processors": return String(localized: "按键处理")
+        case "segmentors": return String(localized: "分词")
+        case "translators": return String(localized: "候选生成")
+        default: return String(localized: "候选整理")
         }
     }
 }

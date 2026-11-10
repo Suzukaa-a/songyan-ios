@@ -51,6 +51,9 @@ class KeyboardViewController: UIInputViewController {
         session.enablesOfflineBundledInput = true
         session.recordsRuntimeGrammarReceipts = true
         session.optionPreferencesDirectory = RimePaths.optionPreferencesDirectory()
+        // Without Full Access the App Group is readable but not writable: persist a switch choice in
+        // this container instead, so the engine restore reads the same choice back.
+        session.optionFallbackDirectory = RimePaths.privateOptionPreferencesDirectory()
         return session
     }()
     /// The controller presenting the keyboard: the one the process session is bound to.
@@ -321,6 +324,7 @@ class KeyboardViewController: UIInputViewController {
     /// Builds the SwiftUI panel. Also called by `viewWillAppear` when UIKit shows a
     /// controller again after `retirePanelHost()`.
     private func installPanelHost() {
+        session.otherPackageSwitch = { [weak self] entry in self?.selectOtherPackage(entry) }
         let host = ExtensionKeyboardPanel(
             session: session, route: route, panelHostLifetime: panelHostLifetime,
             selectBuiltin: { [weak self] builtin in

@@ -112,11 +112,14 @@ extension KeyboardPanelView {
             shiftState: controller.shiftState,
             isComposing: readsComposition && controller.snapshot.isComposing,
             usesASCIIPunctuation: effectiveUsesASCIIPunctuation,
+            inputLanguage: controller.inputLanguage,
             symbolMarks: effectiveSymbolMarks,
             returnKeyTitle: readsComposition ? controller.returnKeyTitle : "",
             isReturnKeyEnabled: readsComposition && controller.isReturnKeyEnabled,
             schemaAlphabet: controller.activeSchemaAlphabet,
             publishedKeyboards: controller.publishedKeyboards,
+            otherPackageKeyboards: controller.otherPackageKeyboards,
+            hostFieldMarks: controller.hostFieldMarks,
             quickSymbols: activeDefinition?.t9QuickSymbols ?? quickSymbols.symbols,
             layoutHintName: layoutHintName,
             layoutHintToken: layoutHintToken,
@@ -212,7 +215,7 @@ extension KeyboardPanelView {
             let hasSwitch = systemKeyboardSwitch != nil
             KeyboardSplitHalvesPad(
                 rows: rows, split: split,
-                isVisible: { ($0.action.type != .globe || hasSwitch) && $0.action.isUsableJump(among: reachable) },
+                isVisible: { $0.action.isUsableJump(among: reachable) }, showsGlobe: hasSwitch,
                 key: { key, row, index in splitHalvesKey(key, id: "split-\(row)-\(index)") })
         }
     }

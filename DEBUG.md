@@ -110,7 +110,9 @@ These intervals describe their named code boundaries; first-frame and touch-to-v
 
 `make sim-perf MODE=cold ARG=<runs>` retains the AXe lifecycle diagnostic: restart the extension, open “试打” and print launch, appearance and `engineReady` events. Stage Release first with `CONFIGURATION=Release make sim-stage`. Its output is a diagnostic timeline, not a performance assertion. Results go under `.local/ci/perf-cold/`.
 
-For memory use `footprint <extension pid>` on hardware. Simulator memory does not match a device. `keyAreaRenderToken` in `KeyboardPanelView` decides when key areas are rebuilt; new input that changes key drawing must be folded into it.
+For memory use `footprint <extension pid>` on hardware. Simulator memory does not match a device.
+
+For simulator measurements, find the `KeyboardExtension` PID whose executable path contains your simulator UDID, then run `footprint -p <pid> --noCategories --format bytes --json <output.json>`. In the JSON, `processes[].auxiliary.phys_footprint` is the current value and `phys_footprint_peak` is the kernel peak for that process lifetime. Keep the PID and simulator identity with the result. `keyAreaRenderToken` in `KeyboardPanelView` decides when key areas are rebuilt; new input that changes key drawing must be folded into it.
 
 ## 9. Device crash logs
 

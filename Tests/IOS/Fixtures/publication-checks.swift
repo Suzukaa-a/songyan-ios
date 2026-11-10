@@ -286,6 +286,24 @@ func publicationChecks(_ base: URL) throws {
         "publishing a Unicode source keeps A's cached roster")
     check(pubUnicode.keyboards == [a1], "current source list is the Unicode source's own")
 
+    // A persisted compact keyboard of a family that no longer allows folding (cangjie5 on 14-key)
+    // falls back to its 26-key instead of failing with a missing key map.
+    try Data("schema: fixture".utf8).write(to: build.appendingPathComponent("cangjie5.schema.yaml"))
+    try Data("schema_list:\n  - schema: cangjie5\n".utf8).write(to: build.appendingPathComponent("default.yaml"))
+    let cangjieSchemas = [
+        KeyboardSchemaDescriptor(id: "cangjie5", name: "倉頡五代", alphabet: "abcdefghijklmnopqrstuvwxyz")
+    ]
+    try KeyboardRecipeStore.publish(
+        resources: resources, compiledBuild: build, revision: "legacy-fold",
+        rootURL: root, kind: .userScheme, packageID: "pkg-cangjie", schemas: cangjieSchemas,
+        selectedSchemaID: "cangjie5", layout: .merged14,
+        publishedKeyboards: [PublishedKeyboard(schemaID: "cangjie5", layout: .merged14)])
+    let cangjie = try KeyboardRecipeStore.activation(rootURL: root)!
+    check(
+        cangjie.keyboards == [PublishedKeyboard(schemaID: "cangjie5", layout: .qwerty26)],
+        "restricted compact keyboard drops to 26-key")
+    check(cangjie.selectedLayout == .qwerty26, "restricted selected layout drops to 26-key")
+
     print(
         "PASS: list preserved across builtin toggles; removal keeps remaining; missing adapter blocks publish; provenance prune/restore CAS; cross-source roster retained (A four / B one / back to A four); deleting a non-current source clears only its cache and rolls back; Unicode package IDs accepted"
     )

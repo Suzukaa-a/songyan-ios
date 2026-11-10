@@ -7,9 +7,15 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
     public typealias Page = LayoutAction.PageTarget
     public enum Slot: CaseIterable, Hashable, Sendable {
         case page, language, globe, space, utility, enter
+        /// The runtime footer's comma left of the space bar and full stop right of it; they exist
+        /// only while `showsSpaceSideMarks` is on and the row is wide enough.
+        case markLeft, markRight
         /// Keys, never positions: the direct 「符号」 key of a letter page whose 123 page cannot
         /// reach the symbol page, and the symbol page's 锁定 toggle (in the utility position).
         case symbolPage, symbolLock
+        /// A key, never a position: 更多 on the row-shaped symbol page, in the utility position. It
+        /// opens the categorized symbol library instead of typing a mark.
+        case symbolLibrary
         /// A semantic key, never a physical slot: the 123 the row-shaped #+= page's left
         /// switch is "return to letters" (preserving the input language), not a language toggle.
         case returnToLetters
@@ -45,6 +51,22 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
     /// The 123 page is drawn as the digit pad on the nine-key letter shell's grid. An imported
     /// keypad keeps its own declared rails and bottom row, so the shell flag alone is not enough.
     public let usesDigitPadRow: Bool
+    /// The scheme's input language for automatic faces; author labels never read it.
+    public let script: KeyLabelScript
+    /// The row-shaped symbol page already types every mark, so its utility position opens the
+    /// symbol library (更多) instead of typing one. Only the live panel's built-in footer sets it;
+    /// authored and previewed footers are data and keep their marks.
+    public let offersSymbolLibrary: Bool
+    /// The native footer puts a comma left of the space bar and a full stop right of it. Off for
+    /// authored pages, previews and narrow rows, which keep the single comma key.
+    public private(set) var showsSpaceSideMarks: Bool
+    /// Which marks sit beside the space bar: the sentence marks, or the address marks a URL or
+    /// email field types most. The keys stay where they are; only their marks change.
+    public private(set) var fieldMarks: FieldMarks = .sentence
+
+    public enum FieldMarks: Equatable, Sendable {
+        case sentence, url, email
+    }
     /// The bundled phone shell's column widths. When set, the first bottom key sits
     /// under the rail and the rest share the grid's width with a wide space bar
     /// (see `Metrics.init(width:columns:includesUtility:)`) instead of the generic
@@ -70,7 +92,9 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
         page: Page, isEnglishMode: Bool, hasGlobe: Bool,
         isPhoneLayout: Bool, usesASCIIPunctuation: Bool,
         includesBottomEnter: Bool = true, usesCategorySymbolPage: Bool = true,
-        numericPageReachesSymbols: Bool = true, usesDigitPadRow: Bool = false
+        numericPageReachesSymbols: Bool = true, usesDigitPadRow: Bool = false,
+        script: KeyLabelScript = .simplifiedChinese, showsSpaceSideMarks: Bool = false,
+        offersSymbolLibrary: Bool = false
     ) {
         self.page = page
         self.isEnglishMode = isEnglishMode
@@ -81,6 +105,23 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
         self.usesCategorySymbolPage = usesCategorySymbolPage
         self.numericPageReachesSymbols = numericPageReachesSymbols
         self.usesDigitPadRow = usesDigitPadRow
+        self.script = script
+        self.showsSpaceSideMarks = showsSpaceSideMarks
+        self.offersSymbolLibrary = offersSymbolLibrary
+    }
+
+    /// The same policy with the space bar's marks chosen for the host field.
+    public func withFieldMarks(_ marks: FieldMarks) -> KeyboardControlPolicy {
+        var copy = self
+        copy.fieldMarks = marks
+        return copy
+    }
+
+    /// The same policy with the runtime footer marks switched on or off.
+    public func withSpaceSideMarks(_ enabled: Bool) -> KeyboardControlPolicy {
+        var copy = self
+        copy.showsSpaceSideMarks = enabled
+        return copy
     }
 
     /// Slot identities and count stay unchanged across all pages and languages
@@ -97,7 +138,11 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
         if isDigitPad {
             return [.globe, .page, .language, .space, .symbolPage, .enter].filter { $0 != .globe || hasGlobe }
         }
-        return [.globe, .page, .language, .space, .utility, .enter].filter {
+        let row: [Slot] =
+            showsSpaceSideMarks
+            ? [.globe, .page, .language, .markLeft, .space, .utility, .enter]
+            : [.globe, .page, .language, .space, .utility, .enter]
+        return row.filter {
             ($0 != .globe || hasGlobe) && ($0 != .enter || includesBottomEnter)
         }
     }
@@ -151,6 +196,7 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
                 default: return slot
                 }
             }
+            if slot == .utility && offersSymbolLibrary && !isPhoneLayout { return .symbolLibrary }
             return slot == .page ? .returnToLetters : slot
         }
     }
@@ -163,10 +209,25 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
 
     public var pageTarget: Page { page == .numeric ? .symbols : .numeric }
     public var pageTitle: String {
-        guard pageTarget == .symbols else { return "123" }
-        return Self.symbolPageTitle
+        guard pageTarget == .symbols else { return KeyLabelPolicy.numericPageTitle }
+        return symbolPageTitle
     }
-    public static let symbolPageTitle = "符号"
+    /// The automatic face of a key that opens the symbol page (the D27 符 key included).
+    public var symbolPageTitle: String { KeyLabelPolicy.symbolPageTitle(script: script) }
+
+    /// The automatic space caption; an author label is drawn by its owner instead.
+    public func spaceTitle(isComposing: Bool) -> String {
+        KeyLabelPolicy.spaceTitle(script: script, isComposing: isComposing)
+    }
+
+    public func spaceAccessibilityLabel(isComposing: Bool) -> String {
+        KeyLabelPolicy.spaceAccessibilityLabel(script: script, isComposing: isComposing)
+    }
+
+    /// Spoken name of a page switch, read by the panel and both previews.
+    public func pageSwitchAccessibilityLabel(for target: Page, isBundledPhonePad: Bool) -> String {
+        KeyLabelPolicy.pageSwitchAccessibilityLabel(target: target, isBundledPhonePad: isBundledPhonePad)
+    }
 
     /// The page-following default: letters toggle the input language; 123 (the 9-key digit pad
     /// included) and the row-shaped #+= page switch the symbol language in place; the categorized
@@ -190,35 +251,88 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
 
     public var languageTitle: String { languageTitle(for: nil) }
     public func languageTitle(for behavior: LayoutAction.LanguageSwitchBehavior?) -> String {
-        switch languageAction(for: behavior) {
-        // The auto face names the target language, not the current one.
-        case .toggleLanguage: return isEnglishMode ? "中文" : "英文"
-        case .toggleSymbols: return usesASCIIPunctuation ? "中文" : "英文"
-        case .returnToLetters: return "返回"
-        }
+        KeyLabelPolicy.languageTitle(
+            script: script, action: languageAction(for: behavior),
+            isEnglishMode: isEnglishMode, usesASCIIPunctuation: usesASCIIPunctuation)
+    }
+
+    public func languageCurrentSideIsFirst(for behavior: LayoutAction.LanguageSwitchBehavior?) -> Bool? {
+        KeyLabelPolicy.languageCurrentSideIsFirst(
+            action: languageAction(for: behavior),
+            isEnglishMode: isEnglishMode, usesASCIIPunctuation: usesASCIIPunctuation)
     }
 
     public var languageAccessibilityLabel: String { languageAccessibilityLabel(for: nil) }
     public func languageAccessibilityLabel(for behavior: LayoutAction.LanguageSwitchBehavior?) -> String {
-        switch languageAction(for: behavior) {
-        case .toggleLanguage: return isEnglishMode ? "切换到中文" : "切换到英文"
-        case .toggleSymbols: return usesASCIIPunctuation ? "切换到中文符号" : "切换到英文符号"
-        case .returnToLetters: return "返回主键盘"
-        }
+        KeyLabelPolicy.languageAccessibilityLabel(
+            script: script, action: languageAction(for: behavior),
+            isEnglishMode: isEnglishMode, usesASCIIPunctuation: usesASCIIPunctuation)
     }
     public var utility: Utility {
-        isBundledPhonePad && page == .numeric && !isDigitPad ? .digit("0") : .punctuation(utilityText)
+        isBundledPhonePad && page == .numeric && !isDigitPad
+            ? .digit("0") : .punctuation(showsSpaceSideMarks ? fullStopText : utilityText)
     }
 
-    /// Only the effective symbol branch decides the mark: an English input language with an
-    /// explicit Chinese symbol state must keep Chinese punctuation.
-    public var utilityText: String { usesASCIIPunctuation ? "," : "，" }
+    /// The runtime footer's full stop right of the space bar; the same mark in every script.
+    public static let fullStop = "。"
 
-    /// The punctuation slot's long-press list, its first entry being the corner hint.
+    /// The full stop the split footer draws: ASCII marks keep the footer's shape and change the mark,
+    /// so 中/英 never moves a key.
+    public var fullStopText: String {
+        switch fieldMarks {
+        case .url: return "/"
+        case .email: return "."
+        case .sentence: return usesASCIIPunctuation ? "." : Self.fullStop
+        }
+    }
+
+    /// The mark left of the space bar: the comma, or `:` in a URL and `@` in an email field.
+    public var markLeftText: String {
+        switch fieldMarks {
+        case .url: return ":"
+        case .email: return "@"
+        case .sentence: return utilityText
+        }
+    }
+
+    public var markLeftAlternates: [String] {
+        switch fieldMarks {
+        case .url: return [".", "-", "_", "@"]
+        case .email: return ["_", "-", "+"]
+        case .sentence: return utilityAlternates
+        }
+    }
+
+    /// Only the effective symbol branch decides the width; the input script names the mark:
+    /// Japanese types 、 where Chinese types ，.
+    public var utilityText: String {
+        guard !usesASCIIPunctuation else { return "," }
+        return script == .japanese ? "、" : "，"
+    }
+
+    /// The punctuation slot's long-press list, its first entry being the corner hint. Japanese
+    /// adds ・ here; ASCII fields keep only typeable marks.
+    ///
+    /// With the split footer the full stop sits on its own key, so this comma holds only the pauses;
+    /// the single-mark footer keeps the full sentence-mark list.
+    /// The face of 更多 follows the input language, like the other automatic control titles.
+    public var symbolLibraryTitle: String { KeyLabelPolicy.symbolLibraryTitle(script: script) }
+
     public var utilityAlternates: [String] {
-        utilityText == ","
-            ? [".", "?", "!", "'", "\""]
-            : ["。", "？", "！", "、", "…"]
+        if showsSpaceSideMarks {
+            return usesASCIIPunctuation ? ["'", ";", ":"] : [script == .japanese ? "・" : "、", "：", "；"]
+        }
+        if usesASCIIPunctuation { return [".", "?", "!", "'", "\""] }
+        return script == .japanese ? ["。", "？", "！", "・", "…"] : ["。", "？", "！", "、", "…"]
+    }
+
+    /// The split footer's full stop key holds the sentence-ending marks.
+    public var fullStopAlternates: [String] {
+        switch fieldMarks {
+        case .url: return [".", "?", "=", "&", "#"]
+        case .email: return ["-", "_"]
+        case .sentence: return usesASCIIPunctuation ? ["?", "!", "…"] : ["？", "！", "…"]
+        }
     }
 
     /// One budget for every builtin page. Fractions apply to *content* width after gaps.
@@ -232,6 +346,11 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
         if isDigitPad { return Metrics(digitPadWidth: width, rail: phoneColumns?.rail, hasGlobe: hasGlobe) }
         if let phoneColumns, !hasGlobe, !includesBottomEnter {
             return Metrics(width: width, columns: phoneColumns, includesUtility: true)
+        }
+        if showsSpaceSideMarks {
+            return Metrics(
+                width: width, hasGlobe: hasGlobe, includesEnter: includesBottomEnter,
+                withSpaceSideMarks: true)
         }
         return Metrics(
             width: width, hasGlobe: hasGlobe, includesEnter: includesBottomEnter,
@@ -248,6 +367,10 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
         public let enter: Double
         /// The symbol page key; as wide as the page switches except on the digit pad.
         public let symbolPage: Double
+        /// The runtime footer's comma left of the space bar; zero when it is not shown.
+        public let markLeft: Double
+        /// The runtime footer's full stop right of the space bar; zero when it is not shown.
+        public let markRight: Double
 
         /// The digit pad row: one cell under the rail (`rail` wide, or a fifth of the row without
         /// the shell's columns), three equal cells under the digit columns and one under the
@@ -261,6 +384,12 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
             self.init(
                 spacing: 4, page: hasGlobe ? shared : side, language: hasGlobe ? shared : cell,
                 globe: hasGlobe ? side : 0, space: cell, utility: 0, enter: side, symbolPage: cell)
+        }
+
+        /// The rows that also carry the runtime comma/full stop around the space bar.
+        public init(width: Double, hasGlobe: Bool, includesEnter: Bool, withSpaceSideMarks: Bool) {
+            self = Self.sideMarksBudget(
+                width: width, hasGlobe: hasGlobe, includesEnter: includesEnter)
         }
 
         public init(
@@ -305,6 +434,8 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
             }
             space = max(0, content - page - language - globe - utility - enter)
             symbolPage = page
+            markLeft = 0
+            markRight = 0
         }
 
         /// Phone row: the first key sits under the rail; the keys under the 3×3 grid
@@ -330,9 +461,37 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
                 utility: includesUtility ? side : 0, enter: 0)
         }
 
+        /// The rows that also carry the runtime comma/full stop around the space bar. The marks
+        /// take a constant share and the space bar keeps the rest, so the row still fills the width.
+        /// The two marks are the same size and Return takes the rest of the right side, so Return
+        /// is never narrower than a mark.
+        private static func sideMarksBudget(
+            width: Double, hasGlobe: Bool, includesEnter: Bool
+        ) -> Metrics {
+            let width = width.isFinite ? max(0, width) : 0
+            let count = (hasGlobe ? 1 : 0) + 6
+            let minimumContent =
+                (hasGlobe ? 44.0 : 0) + 40 + 40 + 40 + 44 + 40 + (includesEnter ? 80.0 : 0)
+            let minimumTotal = minimumContent + Double(count - 1) * 4
+            let scale = min(1, width / minimumTotal)
+            let spacing = 4 * scale
+            let content = max(0, width - Double(count - 1) * spacing)
+            let page = 40 * scale
+            let language = page
+            let markLeft = 40 * scale
+            let utility = markLeft
+            let globe = hasGlobe ? 44 * scale : 0
+            let enter = includesEnter ? 80 * scale : 0
+            let space = max(0, content - page - language - markLeft - utility - globe - enter)
+            return Metrics(
+                spacing: spacing, page: page, language: language, globe: globe, space: space,
+                utility: utility, enter: enter, markLeft: markLeft, markRight: utility)
+        }
+
         private init(
             spacing: Double, page: Double, language: Double, globe: Double,
-            space: Double, utility: Double, enter: Double, symbolPage: Double? = nil
+            space: Double, utility: Double, enter: Double, symbolPage: Double? = nil,
+            markLeft: Double = 0, markRight: Double = 0
         ) {
             self.spacing = spacing
             self.page = page
@@ -342,6 +501,8 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
             self.utility = utility
             self.enter = enter
             self.symbolPage = symbolPage ?? page
+            self.markLeft = markLeft
+            self.markRight = markRight
         }
 
         public subscript(slot: Slot) -> Double {
@@ -353,7 +514,10 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
             case .utility: return utility
             case .enter: return enter
             case .symbolPage: return symbolPage
+            case .markLeft: return markLeft
+            case .markRight: return markRight
             case .symbolLock: return utility
+            case .symbolLibrary: return utility
             // Semantic slot only; it occupies the physical page position.
             case .returnToLetters: return page
             }

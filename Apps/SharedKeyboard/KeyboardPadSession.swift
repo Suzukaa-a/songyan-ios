@@ -13,8 +13,6 @@ public protocol KeyboardPadHost: AnyObject {
     /// Memory-only identity of the writable document; nil while none can be written.
     /// Tools refuse delivery if confirmation changes the target.
     func hostContextIdentifier() -> String?
-    /// Captured only for explicit asynchronous insertions; nil means no live target.
-    func asyncInsertionContext() -> AnyHashable?
     func updateMarked(_ composition: MarkedComposition?)
     /// The running engine's schema or layout changed; the host decides whether it is remembered.
     func keyboardSelectionChanged(_ change: KeyboardSelectionChange)
@@ -156,18 +154,22 @@ public final class KeyboardPadSession: ObservableObject {
         // layout, so the switcher can still change layout.
         if enablesOfflineBundledInput && resourceSet == nil {
             applyPublishedKeyboards(UserKeyboardRoster.builtinFallback, error: nil)
+            let others = await loadOtherPackageKeyboards(builtinRunning: true)
+            if publishedKeyboardsGate.accepts(token) { applyOtherPackageKeyboards(others) }
             return
         }
         do {
             let keyboards = try await publishedKeyboardProvider.publishedKeyboards()
             guard publishedKeyboardsGate.accepts(token) else { return }
             applyPublishedKeyboards(keyboards, error: nil)
+            let others = await loadOtherPackageKeyboards(builtinRunning: runningResources?.prebuiltDirectory == nil)
+            if publishedKeyboardsGate.accepts(token) { applyOtherPackageKeyboards(others) }
         } catch {
             guard publishedKeyboardsGate.accepts(token) else { return }
             // A failed read is not "no keyboards": keep the old list and surface the error.
             Self.diagnosticLogger.error(
                 "published keyboard read failed: \(error.localizedDescription, privacy: .private)")
-            applyPublishedKeyboards(publishedKeyboards, error: "无法读取我的键盘，请稍后重试。")
+            applyPublishedKeyboards(publishedKeyboards, error: String(localized: "无法读取我的键盘，请稍后重试。"))
         }
     }
 
@@ -175,6 +177,35 @@ public final class KeyboardPadSession: ObservableObject {
         if publishedKeyboards != keyboards { publishedKeyboards = keyboards }
         if publishedKeyboardError != error { publishedKeyboardError = error }
         controller?.updatePublishedKeyboards(keyboards, error: error)
+    }
+
+    /// Switches to a keyboard of another package or to the built-in input. Set by the keyboard
+    /// extension only: the host app switches packages itself, so it never lists them.
+    public var otherPackageSwitch: ((OtherPackageKeyboard) -> Void)? {
+        didSet { controller?.onSelectOtherPackage = otherPackageSwitch }
+    }
+    @Published public private(set) var otherPackageKeyboards: [OtherPackageKeyboard] = []
+    /// Set by the extension when the user picked another package's keyboard; the next controller
+    /// announces itself once.
+    public var announcesNextKeyboard = false
+
+    private func loadOtherPackageKeyboards(builtinRunning: Bool) async -> [OtherPackageKeyboard] {
+        guard otherPackageSwitch != nil else { return [] }
+        let canWrite = KeyboardRecipeStore.canWriteSharedContainer
+        // A failed read leaves the entries out; the current package's own list still works.
+        return
+            (try? await KeyboardResourceReadQueue.async {
+                guard let activation = try KeyboardRecipeStore.activation() else { return [] }
+                return KeyboardRecipeStore.otherPackageKeyboards(
+                    from: activation, builtinRunning: builtinRunning || !activation.recipeEnabled,
+                    canWrite: canWrite,
+                    record: { KeyboardRecipeStore.generationRecord(generation: $0) })
+            }) ?? []
+    }
+
+    private func applyOtherPackageKeyboards(_ entries: [OtherPackageKeyboard]) {
+        if otherPackageKeyboards != entries { otherPackageKeyboards = entries }
+        controller?.updateOtherPackageKeyboards(entries)
     }
     /// Explicit joint selection (layout + bound schema). When ready, hands it to the controller for a real
     /// switch, with the success callback updating the target; otherwise records the full target and
@@ -205,12 +236,6 @@ public final class KeyboardPadSession: ObservableObject {
     public private(set) var resourceSet: KeyboardResourceSet?
 
     @discardableResult
-    public func insertExternalLiteral(_ text: String) -> Bool {
-        guard phase == .ready, let controller else { return false }
-        return quickInsert.withoutRecordingCommits { controller.insertExternalLiteral(text) }
-    }
-
-    @discardableResult
     private func dispatchCommitToHost(_ text: String) -> Bool {
         guard let host, host.hostContextIdentifier() != nil else { return false }
         return host.dispatchCommit(text)
@@ -223,6 +248,9 @@ public final class KeyboardPadSession: ObservableObject {
     /// Set before start. Host and extension should inject the same App Group URL.
     /// Without injection preferences are local to this resource's user directory.
     public var optionPreferencesDirectory: URL?
+    /// Private writable fallback for the option store when the App Group is only readable
+    /// (keyboard without Full Access); nil keeps the historical single-store behavior.
+    public var optionFallbackDirectory: URL?
     /// Resolve mutable installation generations only after acquiring engine ownership.
     /// A queued installer may have committed while this screen was waiting to boot.
     public var resourceResolver: (() async throws -> KeyboardResourceSet?)?
@@ -239,6 +267,7 @@ public final class KeyboardPadSession: ObservableObject {
         var resources: KeyboardResourceSet?
         var schemaID: String?
         var layout: KeyboardLayoutKind
+        var board: String?
     }
     private var selectionTarget: SelectionTarget?
     /// The running real engine (production = RimeBackend). `backend` is kept only as the RimeBackend API facade.
@@ -256,7 +285,7 @@ public final class KeyboardPadSession: ObservableObject {
             resources: KeyboardResourceSet, sourceSchemaID: String,
             layout: KeyboardLayoutKind, input: String
         )?
-    private var lastReadySelection: (schemaID: String, layout: KeyboardLayoutKind)?
+    private var lastReadySelection: (schemaID: String, layout: KeyboardLayoutKind, board: String?)?
     /// Test injection: nil = real RimeBackend in production; tests may return a DemoEngine.
     var bootEngineFactory: ((KeyboardResourceSet) throws -> EngineBackend)?
     /// Test injection: pausable gate after the engine is ready and before ready is published (covers the background-start await window).
@@ -325,7 +354,20 @@ public final class KeyboardPadSession: ObservableObject {
             KeyboardRouteKey(
                 resource: resources,
                 sourceSchemaID: resources.sourceSchemaID(controller.selectedSchemaID),
-                layout: controller.layout))
+                layout: controller.layout, board: controller.selectedBoard))
+    }
+
+    /// The board a record's selection names, only while the record still lists that exact keyboard
+    /// (a removed or unrunnable one falls back to no board).
+    private static func listedBoard(
+        _ board: String?, in resources: KeyboardResourceSet, source: String, layout: KeyboardLayoutKind
+    ) -> String? {
+        guard let board,
+            resources.publishedKeyboards?.contains(where: {
+                $0.schemaID == source && $0.layout == layout && $0.board == board
+            }) == true
+        else { return nil }
+        return board
     }
 
     /// The real combination a boot adopts. Single source: `boot()` and external route checks share it,
@@ -335,8 +377,9 @@ public final class KeyboardPadSession: ObservableObject {
         public let layout: KeyboardLayoutKind
         public let engineSchemaID: String
         public let sourceSchemaID: String
+        public let board: String?
         public var routeKey: KeyboardRouteKey {
-            KeyboardRouteKey(resource: onResource, sourceSchemaID: sourceSchemaID, layout: layout)
+            KeyboardRouteKey(resource: onResource, sourceSchemaID: sourceSchemaID, layout: layout, board: board)
         }
     }
 
@@ -372,9 +415,14 @@ public final class KeyboardPadSession: ObservableObject {
         else {
             return nil
         }
+        let source = resolvedSet.sourceSchemaID(boot.schemaID)
+        // The board follows the target the session already holds, else the record's selection.
+        let board = Self.listedBoard(
+            preservedTarget.map(\.board) ?? resolvedSet.preferredBoard, in: resolvedSet, source: source,
+            layout: boot.layout)
         return BootPlan(
             onResource: resolvedSet, layout: boot.layout, engineSchemaID: boot.schemaID,
-            sourceSchemaID: resolvedSet.sourceSchemaID(boot.schemaID))
+            sourceSchemaID: source, board: board)
     }
 
     // MARK: - Layout selection (callers should limit the list to availableLayouts)
@@ -403,12 +451,12 @@ public final class KeyboardPadSession: ObservableObject {
     /// would take the old resume and override the new target.
     private func recordUnreadySelection(schemaID: String?, layout newLayout: KeyboardLayoutKind) {
         guard availableLayouts.contains(newLayout) else {
-            transitionError = "当前输入方式不支持所选键盘布局，已保留当前输入。"
+            transitionError = String(localized: "当前输入方式不支持所选键盘布局，已保留当前输入。")
             return
         }
         transitionError = nil
         suspendedComposition = nil
-        selectionTarget = SelectionTarget(resources: resourceSet, schemaID: schemaID, layout: newLayout)
+        selectionTarget = SelectionTarget(resources: resourceSet, schemaID: schemaID, layout: newLayout, board: nil)
         self.layout = newLayout
         Self.persistLayout(newLayout)
         guard startTapped else { return }
@@ -432,7 +480,7 @@ public final class KeyboardPadSession: ObservableObject {
         let candidates = [requested] + newSet.availableLayouts
         guard let boot = newSet.bootSelection(candidates: candidates, restrictedToSource: newSet.selectedSchemaID)
         else {
-            transitionError = "所选键盘布局暂时无法使用，已保留当前输入。"
+            transitionError = String(localized: "所选键盘布局暂时无法使用，已保留当前输入。")
             return
         }
         if let reason = newSet.incompatibilityReason(layout: boot.layout, schemaID: boot.schemaID) {
@@ -443,10 +491,11 @@ public final class KeyboardPadSession: ObservableObject {
         // switch, but if the running engine already serves the same publication-level identity (same resource
         // id + generation + source schema + layout) there is nothing to apply. Return here, keeping the ready
         // engine with no teardown and no transient `.starting` (spinner after lock-screen / app-switch return).
+        let targetSource = newSet.sourceSchemaID(boot.schemaID)
+        let targetBoard = Self.listedBoard(
+            newSet.preferredBoard, in: newSet, source: targetSource, layout: boot.layout)
         let targetKey = KeyboardRouteKey(
-            resource: newSet,
-            sourceSchemaID: newSet.sourceSchemaID(boot.schemaID),
-            layout: boot.layout)
+            resource: newSet, sourceSchemaID: targetSource, layout: boot.layout, board: targetBoard)
         if routeState.canReuse(targetKey, isReady: phase == .ready && controller != nil) {
             KeyboardLifecycleDiagnostics.emit(
                 "resourceSwitch.reuse",
@@ -456,7 +505,7 @@ public final class KeyboardPadSession: ObservableObject {
                 ])
             selectionTarget = SelectionTarget(
                 resources: newSet, schemaID: newSet.selectedSchemaID,
-                layout: boot.layout)
+                layout: boot.layout, board: targetBoard)
             return
         }
         guard
@@ -464,7 +513,7 @@ public final class KeyboardPadSession: ObservableObject {
                 atPath: (newSet.prebuiltDirectory ?? newSet.sharedDirectory)
                     .appendingPathComponent(boot.schemaID + ".schema.yaml").path)
         else {
-            transitionError = "所选键盘布局暂时无法使用，已保留当前输入。"
+            transitionError = String(localized: "所选键盘布局暂时无法使用，已保留当前输入。")
             return
         }
         let running = routeState.running
@@ -484,7 +533,8 @@ public final class KeyboardPadSession: ObservableObject {
                 "generation": String(targetKey.publicationGeneration?.prefix(8) ?? "-"),
             ])
         // An explicit resource switch sets a new target: bind the new source snapshot and the resolved source/layout.
-        selectionTarget = SelectionTarget(resources: newSet, schemaID: newSet.selectedSchemaID, layout: boot.layout)
+        selectionTarget = SelectionTarget(
+            resources: newSet, schemaID: newSet.selectedSchemaID, layout: boot.layout, board: targetBoard)
         restart(resourceSet: newSet, layout: boot.layout)
     }
 
@@ -505,7 +555,7 @@ public final class KeyboardPadSession: ObservableObject {
         startTapped = false
         controller?.retire()
         controller = nil
-        phase = .failed("键盘已停止，请轻点「重试」")
+        phase = .failed(String(localized: "键盘已停止，请轻点「重试」"))
         EngineOwnershipCoordinator.shared.release(ownershipID)
     }
 
@@ -554,7 +604,7 @@ public final class KeyboardPadSession: ObservableObject {
             return true
         }
         guard controller.prepareForConfigurationChange() else {
-            transitionError = controller.inputError ?? "当前输入尚未确认，已保留原布局。"
+            transitionError = controller.inputError ?? String(localized: "当前输入尚未确认，已保留原布局。")
             return false
         }
         return true
@@ -599,6 +649,38 @@ public final class KeyboardPadSession: ObservableObject {
 
     // MARK: - boot
 
+    /// The one seeding rule used at boot and by the production-source probe: an input method that
+    /// already carries a choice keeps it, only missing schemes get the locale default, and a failed
+    /// write is reported rather than claimed. Runs on the engine queue before the engine writes.
+    nonisolated private static func seedAndMigrateBuiltinScriptDefault(
+        resources: KeyboardResourceSet, store: OptionStore
+    ) {
+        if KeyboardRecipeStore.canWriteSharedContainer { store.migrateFallbackToShared() }
+        let hostEra =
+            KeyboardRecipeStore.sharedDefaults()?
+            .string(forKey: TraditionalDefault.installEraKey)
+            .flatMap(BuiltinScriptInstallEra.init(rawValue:))
+        // Record the era once, before any source's engine writes this container: the built-in and
+        // imported schemes share the private user root, so a first import this run must not make a
+        // fresh install look old on a later built-in boot; true old data still counts.
+        let userRoot = RimePaths.interactiveUserDirectory() ?? resources.userDirectory
+        let era = BuiltinScriptEraRecord.decideAndRecord(
+            hostEra: hostEra, userDirectory: userRoot, defaults: .standard,
+            savedLayoutKey: AppSettings.selectedLayoutKey)
+        guard BuiltinScriptIdentity.isBuiltin(resources.id) else { return }
+        // The bundled fallback and the installed built-in package are one scheme: persist its script
+        // choice under one key, so switching between them never loses an explicit user choice.
+        let optionResourceID = BuiltinScriptIdentity.optionStoreResourceID(resources.id)
+        // The store owns the read/write adapter, so the boot and the probe seed through one path.
+        let outcome = store.seedBuiltinScriptDefault(
+            evidence: BuiltinScriptBootstrapEvidence(hostEra: era),
+            localeTags: Locale.preferredLanguages, resourceID: optionResourceID,
+            schemaIDs: BuiltinTemplateSchemas.sourceSchemaIDs)
+        if let outcome, !outcome.isComplete {
+            Logger.keyboardStorage.error("script default seed failed for one or more schemes")
+        }
+    }
+
     private func boot() async {
         let generation = routeState.generation
         defer { routeState.clearPending(token: generation) }
@@ -617,7 +699,7 @@ public final class KeyboardPadSession: ObservableObject {
             } catch {
                 Self.diagnosticLogger.error(
                     "resource resolver failed: \(error.localizedDescription, privacy: .private)")
-                if routeState.isCurrent(generation) { phase = .failed("无法读取输入方案，请重试。") }
+                if routeState.isCurrent(generation) { phase = .failed(String(localized: "无法读取输入方案，请重试。")) }
                 return
             }
         }
@@ -628,7 +710,7 @@ public final class KeyboardPadSession: ObservableObject {
         } else {
             guard let shared = RimePaths.builtinPackage() else {
                 if routeState.isCurrent(generation) {
-                    phase = .failed("找不到内置输入方案，请重新安装 App。")
+                    phase = .failed(String(localized: "找不到内置输入方案，请重新安装 App。"))
                 }
                 return
             }
@@ -639,7 +721,7 @@ public final class KeyboardPadSession: ObservableObject {
                 user = interactive
             } else {
                 if routeState.isCurrent(generation) {
-                    phase = .failed("无法访问本地存储目录，请重试")
+                    phase = .failed(String(localized: "无法访问本地存储目录，请重试"))
                 }
                 return
             }
@@ -654,7 +736,7 @@ public final class KeyboardPadSession: ObservableObject {
         // The rules live in `bootPlan(on:)`, so external route checks always agree with this.
         guard let plan = bootPlan(on: resolvedSet) else {
             if routeState.isCurrent(generation) {
-                phase = .failed("当前输入方案没有可用的键盘布局。")
+                phase = .failed(String(localized: "当前输入方案没有可用的键盘布局。"))
             }
             return
         }
@@ -675,6 +757,14 @@ public final class KeyboardPadSession: ObservableObject {
             let dirs = resolvedSet
             let optionDirectory =
                 optionPreferencesDirectory ?? dirs.userDirectory.appendingPathComponent("keyboard-options")
+            let optionStore = OptionStore(
+                directory: optionDirectory, fallbackDirectory: optionFallbackDirectory)
+            // Evidence, migration and seeding are engine-queue work (never main-thread IO) and run
+            // before the engine writes anything: a first install starts in the locale's script, an
+            // install that predates the switch keeps its old value.
+            try? await EngineOpQueue.async {
+                Self.seedAndMigrateBuiltinScriptDefault(resources: dirs, store: optionStore)
+            }
             if let factory = bootEngineFactory {
                 engine = try factory(dirs)
             } else {
@@ -689,8 +779,8 @@ public final class KeyboardPadSession: ObservableObject {
                     sharedDirectory: dirs.sharedDirectory,
                     userDirectory: dirs.userDirectory,
                     prebuiltDirectory: dirs.prebuiltDirectory,
-                    resourceID: dirs.id,
-                    optionStore: OptionStore(directory: optionDirectory),
+                    resourceID: BuiltinScriptIdentity.optionStoreResourceID(dirs.id),
+                    optionStore: optionStore,
                     allowedSchemaIDs: dirs.schemas.isEmpty ? nil : Set(dirs.schemas.map(\.id)),
                     runtimeGrammarReceiptContext: receiptContext,
                     sharedWritesAllowed: { KeyboardRecipeStore.canWriteSharedContainer })
@@ -709,7 +799,8 @@ public final class KeyboardPadSession: ObservableObject {
                         for key in resume.input {
                             let state = try engine.processKey(String(key))
                             guard state.committed.isEmpty else {
-                                throw EngineBackendError.operationFailed("恢复输入状态时输入方案提前上屏；已保留原始编码：\(resume.input)")
+                                throw EngineBackendError.operationFailed(
+                                    String(localized: "恢复输入状态时输入方案提前上屏；已保留原始编码：\(resume.input)"))
                             }
                         }
                     }
@@ -722,7 +813,7 @@ public final class KeyboardPadSession: ObservableObject {
             routeState.clearPending(token: generation)
             Self.diagnosticLogger.error("engine start failed: \(String(describing: error), privacy: .private)")
             if routeState.isCurrent(generation) {
-                phase = .failed("键盘引擎未能启动，请重试。")
+                phase = .failed(String(localized: "键盘引擎未能启动，请重试。"))
             }
             return
         }
@@ -752,7 +843,8 @@ public final class KeyboardPadSession: ObservableObject {
             return
         }
 
-        let ctrl = KeyboardController(layout: bootLayout, engine: engine, resourceSet: resolvedSet)
+        let ctrl = KeyboardController(
+            layout: bootLayout, board: plan.board, engine: engine, resourceSet: resolvedSet)
         // A boot can span a disappear; the backend was not yet published, so the disappearance could not
         // suspend it directly. Read the real schema at construction and apply the latest visibility before handoff, keeping the same engine.
         if hostIsVisible == false, let backend = engine as? RimeBackend {
@@ -787,7 +879,7 @@ public final class KeyboardPadSession: ObservableObject {
             if let reason = ctrl?.session.inputUnavailableReason {
                 Self.diagnosticLogger.error("input became unavailable: \(reason, privacy: .private)")
                 self.selectedSchemaID = ctrl?.session.selectedSchemaID ?? ""
-                self.phase = .failed("当前输入方案无法启用，已保留原布局；请重试或改用其他方案。")
+                self.phase = .failed(String(localized: "当前输入方案无法启用，已保留原布局；请重试或改用其他方案。"))
             }
         }
         ctrl.onMarkedComposition = { [weak self] composition in
@@ -802,11 +894,11 @@ public final class KeyboardPadSession: ObservableObject {
             guard let self else { return }
             self.selectedSchemaID = change.schemaID
             self.successfulChange = change
-            self.lastReadySelection = (change.schemaID, change.layout)
+            self.lastReadySelection = (change.schemaID, change.layout, change.board)
             // A successful selection updates the session target: a same-source same-generation restart reuses this exact schema/layout.
             self.selectionTarget = SelectionTarget(
                 resources: self.runningResources,
-                schemaID: change.schemaID, layout: change.layout)
+                schemaID: change.schemaID, layout: change.layout, board: change.board)
             // The ready engine's real identity changed (within one run): sync the running key so the next appear
             // reuses it instead of restarting because the selection was written back to the shared record.
             self.noteRunningIdentity()
@@ -831,6 +923,10 @@ public final class KeyboardPadSession: ObservableObject {
         // User keyboards: first inject the session's existing list (possibly from a previous boot) into the
         // new controller, then re-read the publication record. A failed read keeps the old list and surfaces the error; never clears to "no keyboards".
         ctrl.updatePublishedKeyboards(publishedKeyboards, error: publishedKeyboardError)
+        ctrl.onSelectOtherPackage = otherPackageSwitch
+        ctrl.announcesSwitchOnAppear = announcesNextKeyboard
+        announcesNextKeyboard = false
+        ctrl.updateOtherPackageKeyboards(otherPackageKeyboards)
         // Bounded, once-per-boot resource/schema diagnostic for Dev validation.
         // No user input content: resource id, startup identity and the schema the
         // engine actually activated (which can differ from the published request).
@@ -844,13 +940,14 @@ public final class KeyboardPadSession: ObservableObject {
         // Record this boot's real session target; a same-source same-generation retry keeps it, and only a new source generation follows the new published selection.
         selectionTarget = SelectionTarget(
             resources: resolvedSet,
-            schemaID: ctrl.selectedSchemaID, layout: ctrl.layout)
+            schemaID: ctrl.selectedSchemaID, layout: ctrl.layout, board: ctrl.selectedBoard)
         if let previous = lastReadySelection,
             previous.schemaID != ctrl.selectedSchemaID || previous.layout != ctrl.layout
+                || previous.board != ctrl.selectedBoard
         {
             ctrl.reportSuccessfulSelectionChange()
         }
-        lastReadySelection = (ctrl.selectedSchemaID, ctrl.layout)
+        lastReadySelection = (ctrl.selectedSchemaID, ctrl.layout, ctrl.selectedBoard)
         if ctrl.snapshot.isComposing {
             refreshCompositionPresentation()
         }

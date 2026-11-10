@@ -22,7 +22,7 @@ public extension LayoutDefinition {
     /// key so the editor can point at the function area; `required == false` never throws.
     func validateRequiredInputModeSwitchKey(_ required: Bool) throws {
         guard required, !hasInputModeSwitchKey else { return }
-        throw LayoutError.invalid("缺少地球键，请添加后再保存或导入。")
+        throw LayoutError.invalid(String(localized: "layout.error.missingGlobeKey", bundle: .module))
     }
 }
 
@@ -46,6 +46,6 @@ public extension KeyboardPageDefinition {
 
     func validateRequiredInputModeSwitchKey(_ required: Bool) throws {
         guard required, !hasInputModeSwitchKey else { return }
-        throw LayoutError.invalid("缺少地球键，请添加后再保存或导入。")
+        throw LayoutError.invalid(String(localized: "layout.error.missingGlobeKey", bundle: .module))
     }
 }

@@ -33,16 +33,16 @@ extension KeyboardPanelView {
                     if openHostApp != nil {
                         // The failure is told in this row itself: it sits at the bottom of a
                         // scrolled list, so a row added below it would land out of sight.
-                        KeyboardToolsSection(title: "松烟 App") {
+                        KeyboardToolsSection(title: String(localized: "松烟 App")) {
                             KeyboardToolsRow(
                                 icon: hostAppUnavailable ? "exclamationmark.circle" : "arrow.up.forward.app",
                                 iconTint: hostAppUnavailable ? appearance.accentForeground : nil,
                                 title: UserTerminology.openHostApp,
                                 detail: hostAppUnavailable
-                                    ? "没能打开，请回到主屏幕，轻点「松烟」。"
-                                    : "输入方案、词库、键盘外观在这里设置",
+                                    ? String(localized: "没能打开，请回到主屏幕，轻点「松烟」。")
+                                    : String(localized: "输入方案、词库、键盘外观在这里设置"),
                                 detailLineLimit: 2,
-                                accessibilityHint: "打开松烟 App 继续设置",
+                                accessibilityHint: String(localized: "打开松烟 App 继续设置"),
                                 action: openHostAppSetting
                             )
                             .accessibilityIdentifier("keyboard.openHostApp")
@@ -66,10 +66,12 @@ extension KeyboardPanelView {
     /// Stable title bar: does not scroll and, like the candidate bar, draws no rule; the back action is still a pure UI dismiss.
     private var toolsTitleBar: some View {
         KeyboardToolsTitleBar {
-            KeyboardToolsTitle(text: "键盘设置")
+            KeyboardToolsTitle(text: String(localized: "键盘设置"))
                 .accessibilityFocused($utilitiesTitleFocused)
         } trailing: {
-            KeyboardToolsDismissButton(title: "完成", accessibilityHint: "返回键盘", minHeight: 40) {
+            KeyboardToolsDismissButton(
+                title: String(localized: "完成"), accessibilityHint: String(localized: "返回键盘"), minHeight: 40
+            ) {
                 showsUtilitiesMenu = false
             }
         }
@@ -84,10 +86,10 @@ extension KeyboardPanelView {
                 iconTint: appearance.accentForeground,
                 title: message,
                 titleLineLimit: 2,
-                detail: "打开详情与恢复操作",
+                detail: String(localized: "打开详情与恢复操作"),
                 showsChevron: true,
                 accessibilityLabel: message,
-                accessibilityHint: "打开详情与恢复操作"
+                accessibilityHint: String(localized: "打开详情与恢复操作")
             ) {
                 showsUtilitiesMenu = false
                 onStatusDetails?()
@@ -103,14 +105,14 @@ extension KeyboardPanelView {
     private var utilitiesSection: some View {
         // Directly under the title bar unless a status card sits between them.
         KeyboardToolsSection(
-            title: "插入",
+            title: String(localized: "插入"),
             topPadding: statusMessage != nil && onStatusDetails != nil ? KeyboardToolsStyle.sectionTopPadding : 4
         ) {
             KeyboardToolsRow(
                 icon: "square.grid.3x3",
-                title: "快捷内容",
+                title: String(localized: "快捷内容"),
                 showsChevron: true,
-                accessibilityHint: "符号、颜文字、常用语与剪贴板"
+                accessibilityHint: String(localized: "符号、颜文字与常用语")
             ) {
                 emitSelectionFeedback()
                 showsUtilitiesMenu = false
@@ -127,7 +129,13 @@ extension KeyboardPanelView {
 
     /// Opens the host app for settings the keyboard cannot change itself.
     private func openHostAppSetting() {
-        guard let url = HostAppLink.settingsURL else { return }
+        openHostAppLink(HostAppLink.settingsURL)
+    }
+
+    /// Opens one settings route in the host app. Nothing is claimed on success, and a refused hop
+    /// is reported by the section's existing row instead of a new line nobody scrolls to.
+    private func openHostAppLink(_ url: URL?) {
+        guard let url else { return }
         emitSelectionFeedback()
         hostAppUnavailable = false
         guard let openHostApp else {

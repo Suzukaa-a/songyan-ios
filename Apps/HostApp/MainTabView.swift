@@ -4,8 +4,9 @@ import SwiftUI
 
 /// Home: input schemes and my keyboards / keyboard (appearance, try typing) / tools; settings at top right (including "Keyboard & Full Access").
 ///
-/// The first two rows are the app's only two places to act: 输入方案 (what is installed, and which
-/// scheme the keyboard uses) and 我的键盘 (what is on the keyboard, and the keyboard in use).
+/// The first two rows say what the keyboard uses now and where to change it: 输入方案 names the scheme in
+/// use and opens the list where another one is picked; 我的键盘 names the keyboard in use (the board picked
+/// in the keyboard's own menu included) and opens the keyboards of that scheme.
 ///
 /// User model (`UserTerminology`):
 ///  - Input scheme: an installable, applicable data unit (source); one source can hold any number of arbitrarily named schemes.
@@ -18,7 +19,7 @@ struct MainTabView: View {
     /// Scheme in use, for the 输入方案 row; nil until read.
     @State private var inUseSchemeName: String?
     /// The keyboard in use, for the 我的键盘 row.
-    @State private var keyboardLine = "正在读取…"
+    @State private var keyboardLine = String(localized: "正在读取…")
     @StateObject private var center = KeyboardSelectionCenter.shared
     @StateObject private var imports = DictionaryImportCenter.shared
     @StateObject private var schemeImports = SchemeImportCenter.shared
@@ -33,7 +34,7 @@ struct MainTabView: View {
                         InputSchemeListView()
                     } label: {
                         HomeRow(
-                            title: UserTerminology.inputScheme, subtitle: installationSummary,
+                            title: UserTerminology.inputScheme, subtitle: schemeSummary,
                             systemImage: "character.book.closed")
                     }
                     NavigationLink {
@@ -55,7 +56,9 @@ struct MainTabView: View {
                     NavigationLink {
                         TryInputView()
                     } label: {
-                        HomeRow(title: "试打", subtitle: "体验键盘输入与候选上屏", systemImage: "text.cursor")
+                        HomeRow(
+                            title: String(localized: "试打"),
+                            subtitle: String(localized: "体验键盘输入与候选上屏"), systemImage: "text.cursor")
                     }
                 } header: {
                     Text("键盘")
@@ -66,18 +69,25 @@ struct MainTabView: View {
                         DictionaryImportView()
                     } label: {
                         HomeRow(
-                            title: UserTerminology.dictionary, subtitle: "管理自定义词库与补充词汇", systemImage: "text.book.closed"
+                            title: UserTerminology.dictionary,
+                            subtitle: String(localized: "管理自定义词库与补充词汇"),
+                            systemImage: "text.book.closed"
                         )
                     }
                     NavigationLink {
                         SymbolCatalogManagementView()
                     } label: {
-                        HomeRow(title: "符号库", subtitle: "标点、特殊符号与颜文字", systemImage: "number")
+                        HomeRow(
+                            title: String(localized: "符号库"),
+                            subtitle: String(localized: "标点、特殊符号与颜文字"), systemImage: "number")
                     }
                     NavigationLink {
                         LearningBackupView()
                     } label: {
-                        HomeRow(title: "学习备份", subtitle: "备份与合并个人词条和词频", systemImage: "tray.and.arrow.up")
+                        HomeRow(
+                            title: String(localized: "学习备份"),
+                            subtitle: String(localized: "备份与合并个人词条和词频"),
+                            systemImage: "tray.and.arrow.up")
                     }
                 } header: {
                     Text("工具")
@@ -90,19 +100,20 @@ struct MainTabView: View {
                     } label: {
                         Image(systemName: "gearshape")
                     }
-                    .accessibilityLabel("设置")
+                    .accessibilityLabel(String(localized: "设置"))
                 }
             }
-            .navigationTitle("松烟")
+            .navigationTitle(String(localized: "松烟"))
             // Structured: the first frame is read once by .task; refreshTick is incremented on apply/install state changes,
             // cancelling and rerunning the old task; no bare Task is created (the main thread never reads disk).
             .task(id: refreshTick) {
+                // First, so returning to the app updates the rows before the slower converging work below.
+                await refreshInUse()
                 await center.refresh()
                 await imports.refresh()
                 await schemeImports.refresh()
                 // On launch / foreground, converge a previously interrupted deletion (removes leftover trash inside the lease).
                 await schemeImports.recoverInterruptedDeletions()
-                await refreshInUse()
                 // Typo correction is on by default: converge once for the source in use (one automatic attempt per publish revision),
                 // after keyboards saved by an older adapter generator are rebuilt (once per launch).
                 // The built-in scheme is installed first so the adapter rebuild sees its current version.
@@ -141,19 +152,33 @@ struct MainTabView: View {
             inUseSchemeName = nil
             keyboardLine =
                 result.error == AppliedSelectionLoader.missingGroupMessage
-                ? "暂时无法读取设置" : "暂时无法读取正在使用的键盘"
+                ? String(localized: "暂时无法读取设置")
+                : String(localized: "暂时无法读取正在使用的键盘")
             return
         }
         if snapshot.recipeEnabled {
-            inUseSchemeName = snapshot.displayConfigName
+            inUseSchemeName =
+                snapshot.packageID.map {
+                    ProductionInputAvailability.packageDisplayName(id: $0, declaredName: snapshot.displayConfigName)
+                } ?? snapshot.displayConfigName
+            let method = UserTerminology.inputMethodName(
+                schemaID: snapshot.selectedSchemaID, schemas: snapshot.schemas)
+            let board = snapshot.selectedLayout.flatMap { layout -> String? in
+                guard let schemaID = snapshot.selectedSchemaID else { return nil }
+                let id = HostLayoutAvailability.effectiveMainLayoutID(
+                    schemaID: schemaID, layout: layout, board: snapshot.selectedBoard,
+                    descriptors: snapshot.schemas,
+                    in: LayoutManager.shared.registry)
+                return UserTerminology.builtinLayoutName(physicalLayoutID: id)
+            }
             keyboardLine =
                 UserTerminology.currentKeyboardSummary(
-                    inputMethod: UserTerminology.inputMethodName(
-                        schemaID: snapshot.selectedSchemaID, schemas: snapshot.schemas),
-                    layout: snapshot.selectedLayout) ?? Self.keyboardSwitchHint
+                    inputMethod: UserKeyboard.physicalBoardTitle(inputMethodName: method, physicalLayoutName: board)
+                        ?? method,
+                    layout: board == nil ? snapshot.selectedLayout : nil) ?? Self.keyboardSwitchHint
         } else {
             // Nothing published: the keyboard runs the built-in scheme's fallback input method.
-            inUseSchemeName = ProductionInputAvailability.builtinDisplayName
+            inUseSchemeName = ProductionInputAvailability.localizedBuiltinDisplayName
             keyboardLine =
                 UserTerminology.currentKeyboardSummary(
                     inputMethod: ProductionInputAvailability.fallbackInputMethodName, layout: nil)
@@ -163,15 +188,18 @@ struct MainTabView: View {
 
     private static let keyboardSwitchHint = UserTerminology.tryUsesCurrentScheme
 
-    /// Number of installed sources (same data set as the input scheme page): **not** called the scheme count.
-    private var installationSummary: String {
+    /// The scheme in use; before it is read, the number of installed sources (same data set as the input scheme page).
+    private var schemeSummary: String {
+        if let inUseSchemeName, !inUseSchemeName.isEmpty {
+            return UserTerminology.inUseSummary(scheme: inUseSchemeName, inputMethod: nil, layout: nil)
+        }
         let count = (imports.installed != nil ? 1 : 0) + schemeImports.installedPackages.count
-        return UserTerminology.installedSchemeSummary(count: count, inUse: inUseSchemeName)
+        return UserTerminology.installedSourceSummary(count: count)
     }
 
     /// Appearance summary: the name of the appearance in use (candidate-bar details live on the appearance page; the home page does not pile up technical parameters).
     private var appearanceSummary: String {
-        "正在使用：\(appearance.applied.name)"
+        String(localized: "正在使用：\(appearance.applied.displayName)")
     }
 }
 

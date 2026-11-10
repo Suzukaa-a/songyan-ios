@@ -139,7 +139,8 @@ final class QuickContentKitTests: XCTestCase {
         exact.append(0x20)
         try exact.write(to: source)
         XCTAssertThrowsError(try store.importCatalog(from: source)) { error in
-            XCTAssertTrue(error.localizedDescription.contains("256KB"))
+            let expected = (try? LocalizedCatalog.renderings("symbol.error.fileTooLarge")) ?? []
+            XCTAssertTrue(expected.contains(error.localizedDescription), error.localizedDescription)
         }
         XCTAssertEqual(try Data(contentsOf: active), before)
         XCTAssertEqual(store.loadActive().items.first?.text, "→")
@@ -251,7 +252,10 @@ final class QuickContentKitTests: XCTestCase {
         errors = []
         XCTAssertEqual(store.read { errors.append($0) }, [])
         XCTAssertEqual(errors.count, 2)
-        XCTAssertTrue(errors.last?.localizedDescription.contains("大小限制") == true)
+        let expected = (try? LocalizedCatalog.renderings("symbol.error.recentTooLarge")) ?? []
+        XCTAssertTrue(
+            errors.last.map { expected.contains($0.localizedDescription) } == true,
+            errors.last?.localizedDescription ?? "missing error")
     }
 
     func testRecentCorruptFallsBackToBackup() throws {

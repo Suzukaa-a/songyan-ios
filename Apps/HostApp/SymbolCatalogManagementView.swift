@@ -45,7 +45,7 @@ private final class SymbolCatalogManagementWorker: @unchecked Sendable {
         return Snapshot(
             catalog: catalog, hasCustomFile: hasCustom, itemCount: catalog.items.count,
             categoryCount: catalog.orderedCategories.count,
-            sourceText: hasCustom && readError == nil ? "自定义" : "默认",
+            sourceText: hasCustom && readError == nil ? String(localized: "自定义") : String(localized: "默认"),
             readError: readError)
     }
 
@@ -102,7 +102,7 @@ final class SymbolCatalogManagementModel: ObservableObject {
     @Published private(set) var hasCustomFile = false
     @Published private(set) var itemCount = 0
     @Published private(set) var categoryCount = 0
-    @Published private(set) var sourceText = "读取中…"
+    @Published private(set) var sourceText = String(localized: "读取中…")
     @Published private(set) var isBusy = false
     @Published private(set) var exportData: Data?
     @Published var showingExporter = false
@@ -126,22 +126,22 @@ final class SymbolCatalogManagementModel: ObservableObject {
     @discardableResult
     func reload() -> Task<Void, Never>? {
         if isBusy { return pendingOperation }
-        return perform(failure: "读取失败") { await $0.load() }
+        return perform(failure: String(localized: "读取失败")) { await $0.load() }
     }
 
     @discardableResult
     func importCatalog(from url: URL) -> Task<Void, Never>? {
-        perform(failure: "无法导入") { await $0.importCatalog(from: url) }
+        perform(failure: String(localized: "无法导入")) { await $0.importCatalog(from: url) }
     }
 
     @discardableResult
     func exportCatalog() -> Task<Void, Never>? {
-        perform(failure: "无法导出") { await $0.export() }
+        perform(failure: String(localized: "无法导出")) { await $0.export() }
     }
 
     @discardableResult
     func restoreDefault() -> Task<Void, Never>? {
-        perform(failure: "恢复失败") { await $0.restoreDefault() }
+        perform(failure: String(localized: "恢复失败")) { await $0.restoreDefault() }
     }
 
     private func perform(
@@ -181,7 +181,7 @@ final class SymbolCatalogManagementModel: ObservableObject {
             case .failure(let error):
                 // Keep the last accepted source/counts and never open an exporter
                 // or publish a successful import after a failed file operation.
-                self.error = "\(failure)：\(error.localizedDescription)"
+                self.error = String(localized: "\(failure)：\(error.localizedDescription)")
             }
         }
         pendingOperation = task
@@ -205,8 +205,8 @@ struct SymbolCatalogManagementView: View {
             importExportSection
             browseSection
         }
-        .searchable(text: $query, prompt: "搜索符号、拼音或颜文字")
-        .navigationTitle("符号与颜文字")
+        .searchable(text: $query, prompt: String(localized: "搜索符号、拼音或颜文字"))
+        .navigationTitle(String(localized: "符号与颜文字"))
         .navigationBarTitleDisplayMode(.inline)
         .onAppear { model.reload() }
         .fileImporter(
@@ -229,21 +229,21 @@ struct SymbolCatalogManagementView: View {
             defaultFilename: "symbol-catalog"
         ) { result in
             if case .failure(let error) = result {
-                model.error = "导出失败：\(error.localizedDescription)"
+                model.error = String(localized: "导出失败：\(error.localizedDescription)")
             }
         }
-        .alert("符号库", isPresented: alertBinding) {
-            Button("好", role: .cancel) { model.error = nil }
+        .alert(String(localized: "符号库"), isPresented: alertBinding) {
+            Button(String(localized: "好"), role: .cancel) { model.error = nil }
         } message: {
             Text(model.error ?? "")
         }
     }
 
     private var browseSection: some View {
-        Section("浏览") {
+        Section(String(localized: "浏览")) {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack {
-                    Button("全部") { model.selectedCategory = nil }
+                    Button(String(localized: "全部")) { model.selectedCategory = nil }
                         .buttonStyle(.bordered).tint(model.selectedCategory == nil ? .accentColor : .secondary)
                         .accessibilityAddTraits(model.selectedCategory == nil ? .isSelected : [])
                         .animation(reduceMotion ? nil : .easeInOut(duration: 0.15), value: model.selectedCategory)
@@ -284,8 +284,8 @@ struct SymbolCatalogManagementView: View {
 
     private var statusSection: some View {
         Section {
-            LabeledRow(label: "当前符号库", value: model.sourceText)
-            if model.isBusy { ProgressView("正在处理符号库…") }
+            LabeledRow(label: String(localized: "当前符号库"), value: model.sourceText)
+            if model.isBusy { ProgressView(String(localized: "正在处理符号库…")) }
         } header: {
             Text("符号库")
         } footer: {
@@ -298,17 +298,19 @@ struct SymbolCatalogManagementView: View {
             Button {
                 showingImporter = true
             } label: {
-                Label("导入符号库", systemImage: "square.and.arrow.down")
+                Label(String(localized: "导入符号库"), systemImage: "square.and.arrow.down")
             }
             Button {
                 model.exportCatalog()
             } label: {
-                Label("导出当前符号库", systemImage: "square.and.arrow.up")
+                Label(String(localized: "导出当前符号库"), systemImage: "square.and.arrow.up")
             }
             if model.hasCustomFile {
-                Button("恢复默认符号库", role: .destructive) { confirmingRestore = true }
-                    .confirmationDialog("恢复默认符号库？", isPresented: $confirmingRestore, titleVisibility: .visible) {
-                        Button("恢复默认", role: .destructive) { model.restoreDefault() }
+                Button(String(localized: "恢复默认符号库"), role: .destructive) { confirmingRestore = true }
+                    .confirmationDialog(
+                        String(localized: "恢复默认符号库？"), isPresented: $confirmingRestore, titleVisibility: .visible
+                    ) {
+                        Button(String(localized: "恢复默认"), role: .destructive) { model.restoreDefault() }
                     } message: {
                         Text("将移除自定义符号库，改用内置符号库。")
                     }
@@ -356,40 +358,29 @@ struct QuickContentManagementView: View {
     @State private var editingPhrase: PhraseEditSelection?
     @State private var showingImporter = false
     @State private var showingExporter = false
-    @State private var confirmingEnable = false
-    @State private var confirmingClear = false
     @State private var confirmingImport = false
     @State private var importURL: URL?
 
     var body: some View {
         List {
-            if model.isBusy { ProgressView("正在处理…") }
+            if model.isBusy { ProgressView(String(localized: "正在处理…")) }
             if let error = model.error {
                 Section {
                     Text(error).foregroundStyle(.secondary)
-                    Button("重试") { model.reload() }
+                    Button(String(localized: "重试")) { model.reload() }
                 }
             }
             phrasesSection
-            clipboardSection
         }
-        .navigationTitle("常用语与剪贴板")
+        .navigationTitle(String(localized: "常用语"))
         .navigationBarTitleDisplayMode(.inline)
-        .searchable(text: $query, prompt: "搜索常用语")
+        .searchable(text: $query, prompt: String(localized: "搜索常用语"))
         .onAppear { model.reload() }
         .sheet(item: $editingPhrase) { selection in
             CommonPhraseEditor(phrase: selection.phrase, isNew: selection.isNew) { await model.savePhrase($0) }
         }
-        .confirmationDialog("开启剪贴板历史？", isPresented: $confirmingEnable, titleVisibility: .visible) {
-            Button("开启") { model.setClipboardEnabled(true) }
-        } message: {
-            Text("只保存你在松烟键盘中轻点「粘贴」输入的文字，最多 20 条，每条不超过 4 KB，仅保存在本机，关闭后全部删除。请避免粘贴密码、验证码等内容。")
-        }
-        .confirmationDialog("清空剪贴板历史？", isPresented: $confirmingClear, titleVisibility: .visible) {
-            Button("清空历史记录", role: .destructive) { model.clearClipboard() }
-        }
-        .confirmationDialog("替换所有常用语？", isPresented: $confirmingImport, titleVisibility: .visible) {
-            Button("导入并替换", role: .destructive) {
+        .confirmationDialog(String(localized: "替换所有常用语？"), isPresented: $confirmingImport, titleVisibility: .visible) {
+            Button(String(localized: "导入并替换"), role: .destructive) {
                 if let importURL { model.importPhrases(from: importURL) }
                 importURL = nil
             }
@@ -401,7 +392,7 @@ struct QuickContentManagementView: View {
             case .success(let url):
                 importURL = url
                 confirmingImport = true
-            case .failure: model.error = "无法打开文件，请重新选择常用语文件。"
+            case .failure: model.error = String(localized: "无法打开文件，请重新选择常用语文件。")
             }
         }
         .onChange(of: model.exportedPhrases) { _, data in showingExporter = data != nil }
@@ -411,7 +402,9 @@ struct QuickContentManagementView: View {
             contentType: .json, defaultFilename: "songyan-phrases"
         ) { result in
             model.exportedPhrases = nil
-            if case .failure = result { model.error = "无法导出常用语，请检查保存位置后重试。" }
+            if case .failure = result {
+                model.error = String(localized: "无法导出常用语，请检查保存位置后重试。")
+            }
         }
     }
 
@@ -420,7 +413,7 @@ struct QuickContentManagementView: View {
             Button {
                 editingPhrase = PhraseEditSelection(phrase: CommonPhrase(text: ""), isNew: true)
             } label: {
-                Label("添加常用语", systemImage: "plus")
+                Label(String(localized: "添加常用语"), systemImage: "plus")
             }
             .accessibilityIdentifier("quickContent.addPhrase")
             ForEach(model.content.phrases.filter { $0.matches(query) }) { phrase in
@@ -433,7 +426,7 @@ struct QuickContentManagementView: View {
                     }
                 }
                 .accessibilityIdentifier("quickContent.editPhrase.\(phrase.id.uuidString)")
-                .swipeActions { Button("删除", role: .destructive) { model.deletePhrase(phrase.id) } }
+                .swipeActions { Button(String(localized: "删除"), role: .destructive) { model.deletePhrase(phrase.id) } }
             }
             if model.content.phrases.isEmpty {
                 Text("还没有常用语").foregroundStyle(.secondary)
@@ -441,55 +434,16 @@ struct QuickContentManagementView: View {
                 Text("没有找到常用语").foregroundStyle(.secondary)
             }
             HStack {
-                Button("导入") { showingImporter = true }.accessibilityIdentifier("quickContent.importPhrases")
+                Button(String(localized: "导入")) { showingImporter = true }.accessibilityIdentifier(
+                    "quickContent.importPhrases")
                 Spacer()
-                Button("导出") { model.exportPhrases() }.accessibilityIdentifier("quickContent.exportPhrases")
+                Button(String(localized: "导出")) { model.exportPhrases() }.accessibilityIdentifier(
+                    "quickContent.exportPhrases")
             }
         } header: {
             Text("常用语")
         } footer: {
             Text("最多保存 100 条。在键盘的「快捷内容」中搜索并轻点输入。")
-        }
-        .disabled(model.isBusy || !model.isAvailable)
-    }
-
-    private var clipboardSection: some View {
-        Section {
-            Toggle(
-                "剪贴板历史",
-                isOn: Binding(
-                    get: { model.content.clipboardEnabled },
-                    set: { enabled in
-                        if enabled { confirmingEnable = true } else { model.setClipboardEnabled(false) }
-                    })
-            )
-            .accessibilityIdentifier("quickContent.clipboardEnabled")
-            .accessibilityValue(model.content.clipboardEnabled ? "已开启" : "已关闭")
-            if model.content.clipboardEnabled {
-                Button("清空历史记录", role: .destructive) { confirmingClear = true }
-                    .disabled(model.content.clipboard.isEmpty)
-                    .accessibilityIdentifier("quickContent.clearHistory")
-                ForEach(model.content.clipboard, id: \.self) { text in
-                    NavigationLink {
-                        ScrollView {
-                            Text(text)
-                                .textSelection(.enabled)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding()
-                        }
-                        .navigationTitle("剪贴板内容")
-                        .navigationBarTitleDisplayMode(.inline)
-                    } label: {
-                        Text(text).foregroundStyle(.primary).lineLimit(4)
-                    }
-                    .swipeActions { Button("删除", role: .destructive) { model.deleteClipboard(text) } }
-                }
-                if model.content.clipboard.isEmpty { Text("还没有历史记录").foregroundStyle(.secondary) }
-            }
-        } header: {
-            Text("剪贴板")
-        } footer: {
-            Text("只保存你在松烟键盘中粘贴的文字，仅保存在本机。")
         }
         .disabled(model.isBusy || !model.isAvailable)
     }
@@ -513,9 +467,13 @@ final class CommonPhraseDraft: ObservableObject {
 
     /// Why the current draft cannot be saved, said the way the user can act on it; `nil` when it can.
     var validationMessage: String? {
-        if phrase.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return "请先输入内容" }
-        if phrase.text.utf8.count > LocalQuickContentStore.maximumTextBytes { return "内容超过 4 KB，请缩短后再保存" }
-        if phrase.shortcut.utf8.count > 64 { return "搜索词太长，请缩短后再保存" }
+        if phrase.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return String(localized: "请先输入内容")
+        }
+        if phrase.text.utf8.count > LocalQuickContentStore.maximumTextBytes {
+            return String(localized: "内容超过 4 KB，请缩短后再保存")
+        }
+        if phrase.shortcut.utf8.count > 64 { return String(localized: "搜索词太长，请缩短后再保存") }
         return nil
     }
 
@@ -553,12 +511,12 @@ struct CommonPhraseEditor: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("内容") {
+                Section(String(localized: "内容")) {
                     TextEditor(text: $draft.phrase.text).frame(minHeight: 120).focused($focused)
                         .accessibilityIdentifier("quickContent.phraseText")
                 }
                 Section {
-                    TextField("例如：dz、sh", text: $draft.phrase.shortcut)
+                    TextField(String(localized: "例如：dz、sh"), text: $draft.phrase.shortcut)
                         .keyboardType(.asciiCapable).textInputAutocapitalization(.never).autocorrectionDisabled()
                         .accessibilityIdentifier("quickContent.phraseShortcut")
                 } header: {
@@ -575,17 +533,17 @@ struct CommonPhraseEditor: View {
                 }
             }
             .disabled(draft.saving)
-            .navigationTitle(isNew ? "添加常用语" : "编辑常用语")
+            .navigationTitle(isNew ? String(localized: "添加常用语") : String(localized: "编辑常用语"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("取消") { dismiss() }.disabled(draft.saving)
+                    Button(String(localized: "取消")) { dismiss() }.disabled(draft.saving)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     if draft.saving {
                         ProgressView().accessibilityIdentifier("quickContent.saveProgress")
                     } else {
-                        Button("保存") {
+                        Button(String(localized: "保存")) {
                             focused = false
                             startSave()
                         }

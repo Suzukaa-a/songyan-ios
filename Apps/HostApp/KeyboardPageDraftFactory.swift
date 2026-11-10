@@ -62,7 +62,8 @@ enum KeyboardPageDraftFactory {
                 // initial-language snapshot) or author-modified (then it keeps them, along with the
                 // author's split). Hand-picking a preset here would discard both.
                 let copy = base.copy(
-                    name: page.name + " 副本", numericMarks: numericMarks, numericForm: numericForm ?? .rows)
+                    name: String(localized: "\(page.listName) 副本"), numericMarks: numericMarks,
+                    numericForm: numericForm ?? .rows)
                 try copy.validate()
                 return copy
             case .categorized:
@@ -89,8 +90,10 @@ enum KeyboardPageDraftFactory {
     private static func numericCopyName(marks: KeyboardNumericMarks, form: KeyboardNumericForm) -> String {
         switch form {
         // The digit pad's keys are the same digits in both languages.
-        case .phoneDigitPad: return UserTerminology.phoneDigitPad + " 副本"
-        case .rows: return (marks == .ascii ? "英文 123 副本" : "中文 123 副本")
+        case .phoneDigitPad: return String(localized: "\(UserTerminology.phoneDigitPad) 副本")
+        case .rows:
+            let language = marks == .ascii ? String(localized: "英文 123") : String(localized: "中文 123")
+            return String(localized: "\(language) 副本")
         }
     }
 
@@ -124,7 +127,9 @@ enum KeyboardPageDraftFactory {
                     source: category.id == SymbolPageTable.recentCategoryID ? .recent : .fixed)
             }
             if !result.contains(where: { $0.source == .recent }) {
-                result.insert(.init(id: SymbolPageTable.recentCategoryID, name: "最近", keys: [], source: .recent), at: 1)
+                let recent = KeyboardPageCategory(
+                    id: SymbolPageTable.recentCategoryID, name: String(localized: "最近"), keys: [], source: .recent)
+                result.insert(recent, at: 1)
             }
             // Preserve the user's quick symbols even when the current common tab does not contain them.
             if let common = result.firstIndex(where: { $0.id == SymbolPageTable.commonCategoryID }) {

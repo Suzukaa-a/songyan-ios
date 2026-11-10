@@ -50,7 +50,7 @@ struct LearningBackupView: View {
                 }
             }
         }
-        .navigationTitle("学习备份")
+        .navigationTitle(String(localized: "学习备份"))
         .navigationBarTitleDisplayMode(.inline)
         .task { model.refreshSource() }
         .onAppear { model.activate() }
@@ -88,8 +88,8 @@ struct LearningBackupView: View {
             model.restoreConfirmationTitle, isPresented: $model.confirmingRestore,
             titleVisibility: .visible
         ) {
-            Button("导入并合并") { model.confirmRestore() }
-            Button("取消", role: .cancel) { model.discardPendingRestore() }
+            Button(String(localized: "导入并合并")) { model.confirmRestore() }
+            Button(String(localized: "取消"), role: .cancel) { model.discardPendingRestore() }
         } message: {
             Text(model.restoreConfirmationMessage ?? "")
         }
@@ -121,7 +121,7 @@ struct LearningBackupView: View {
                 Text("无法读取当前输入方案，请稍后重试。")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
-                Button("重试") { model.refreshSource() }
+                Button(String(localized: "重试")) { model.refreshSource() }
             }
         } header: {
             Text("当前来源")
@@ -144,8 +144,8 @@ struct LearningBackupView: View {
             }
             // Cancel is available only for a waiting request; once processing has started, say so and never claim it was cancelled.
             if model.canCancelWaiting {
-                Button("取消等待") { model.cancelWaiting() }
-                    .accessibilityLabel("取消等待")
+                Button(String(localized: "取消等待")) { model.cancelWaiting() }
+                    .accessibilityLabel(String(localized: "取消等待"))
             } else if model.transfer?.status == .running {
                 Text("键盘正在处理，无法取消。")
                     .font(.footnote)
@@ -161,18 +161,18 @@ struct LearningBackupView: View {
             Button {
                 model.requestBackup()
             } label: {
-                Label("请求学习备份", systemImage: "square.and.arrow.down.on.square")
+                Label(String(localized: "请求学习备份"), systemImage: "square.and.arrow.down.on.square")
             }
             .disabled(!model.canStartTransfer)
-            .accessibilityLabel("请求学习备份")
+            .accessibilityLabel(String(localized: "请求学习备份"))
 
             Button {
                 model.importing = true
             } label: {
-                Label("导入并合并学习备份", systemImage: "square.and.arrow.up.on.square")
+                Label(String(localized: "导入并合并学习备份"), systemImage: "square.and.arrow.up.on.square")
             }
             .disabled(!model.canStartTransfer)
-            .accessibilityLabel("导入并合并学习备份")
+            .accessibilityLabel(String(localized: "导入并合并学习备份"))
         } header: {
             Text("学习数据")
         } footer: {
@@ -182,11 +182,11 @@ struct LearningBackupView: View {
 
     private var keyboardActivationSection: some View {
         Section {
-            TextField("激活系统键盘", text: $activationField)
+            TextField(String(localized: "激活系统键盘"), text: $activationField)
                 .focused($activationFocused)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
-                .accessibilityLabel("激活系统键盘")
+                .accessibilityLabel(String(localized: "激活系统键盘"))
                 .onAppear {
                     // Request submitted: have the keyboard appear on screen once so the extension can read this request.
                     activationField = ""
@@ -204,10 +204,10 @@ struct LearningBackupView: View {
             Button {
                 model.prepareBackupExport()
             } label: {
-                Label("导出学习备份", systemImage: "square.and.arrow.up")
+                Label(String(localized: "导出学习备份"), systemImage: "square.and.arrow.up")
             }
             .disabled(!model.canExportBackup)
-            .accessibilityLabel("导出学习备份")
+            .accessibilityLabel(String(localized: "导出学习备份"))
 
             // Offer export whenever a pre-restore backup actually exists in the container (independent of
             // the current request: the slot is kept across requests and a new backup/merge doesn't remove it).
@@ -215,10 +215,10 @@ struct LearningBackupView: View {
                 Button {
                     model.prepareSafetyBackupExport()
                 } label: {
-                    Label("导出恢复前备份", systemImage: "clock.arrow.circlepath")
+                    Label(String(localized: "导出恢复前备份"), systemImage: "clock.arrow.circlepath")
                 }
                 .disabled(!model.canExportSafetyBackup)
-                .accessibilityLabel("导出恢复前备份")
+                .accessibilityLabel(String(localized: "导出恢复前备份"))
                 if let detail = model.safetyBackupDetail {
                     Text(detail)
                         .font(.footnote)

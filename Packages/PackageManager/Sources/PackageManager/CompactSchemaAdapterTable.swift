@@ -246,7 +246,7 @@ public extension CompactSchemaAdapter {
         projection: SourceProjection
     ) throws -> Data {
         guard let fold = physicalFold(sourceAlphabet: projection.alphabet, fold: compactFold) else {
-            throw RecipeInstallError.invalidResource("输入方案的字母表无法适配紧凑键盘布局")
+            throw RecipeInstallError.invalidResource(PackageText.string("adapter.error.alphabetUnfit"))
         }
         guard compiled.count <= RecipeResourceBudget.sourceFile,
             let text = String(data: compiled, encoding: .utf8),
@@ -258,11 +258,12 @@ public extension CompactSchemaAdapter {
             var translator = root[producer.namespace] as? [String: Any],
             let dictionary = translator["dictionary"] as? String, !dictionary.isEmpty
         else {
-            throw RecipeInstallError.invalidResource("输入方案不是可自动适配的码表配置")
+            throw RecipeInstallError.invalidResource(PackageText.string("adapter.error.notTable"))
         }
         let target = identifier(sourceID: sourceID, fold: compactFold)
         schema["schema_id"] = target
-        schema["name"] = "\(schema["name"] as? String ?? sourceID) · \(compactFold.id)键适配"
+        schema["name"] = PackageText.format(
+            "adapter.name.compact", schema["name"] as? String ?? sourceID, compactFold.id)
         root["schema"] = schema
 
         // `engine/translators`, the auxiliary config sections and segmentors are
@@ -298,7 +299,8 @@ public extension CompactSchemaAdapter {
             let samples = keys.map(String.init) + [String(keys.prefix(4))]
             for (name, pattern) in patterns {
                 guard let regex = try? NSRegularExpression(pattern: pattern) else {
-                    throw RecipeInstallError.invalidResource("无法检查识别规则：\(name)")
+                    throw RecipeInstallError.invalidResource(
+                        PackageText.format("adapter.error.cannotCheckRecognizer", name))
                 }
                 if samples.contains(where: {
                     regex.firstMatch(in: $0, range: NSRange($0.startIndex..., in: $0)) != nil

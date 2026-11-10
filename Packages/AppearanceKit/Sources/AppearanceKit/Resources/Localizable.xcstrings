@@ -1,0 +1,864 @@
+{
+  "sourceLanguage": "zh-Hans",
+  "strings": {
+    "appearance.name.systemDefault": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系统默认"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "システムの既定"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "系統預設"
+          }
+        }
+      }
+    },
+    "appearance.name.copySuffix": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ 副本"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ のコピー"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ 副本"
+          }
+        }
+      }
+    },
+    "appearance.name.songyan": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "松烟墨韵"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "松煙墨韻"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "松煙墨韻"
+          }
+        }
+      }
+    },
+    "appearance.name.ink": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "墨夜"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "墨夜"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "墨夜"
+          }
+        }
+      }
+    },
+    "appearance.name.bamboo": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "青竹"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "青竹"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "青竹"
+          }
+        }
+      }
+    },
+    "appearance.name.paper": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暖纸"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暖紙"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暖紙"
+          }
+        }
+      }
+    },
+    "appearance.name.galaxy": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "星河"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "星河"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "星河"
+          }
+        }
+      }
+    },
+    "appearance.name.dusk": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "薄暮"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "薄暮"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "薄暮"
+          }
+        }
+      }
+    },
+    "appearance.error.fileTooLarge": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外观文件超过 256KB，请删掉一些内容后再试。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外観ファイルが 256KB を超えています。内容を減らしてからもう一度お試しください。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外觀檔案超過 256KB，請刪掉一些內容後再試。"
+          }
+        }
+      }
+    },
+    "appearance.error.notAnObject": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外观文件的内容无法读取，请检查文件后再试。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外観ファイルの内容を読み取れません。ファイルを確認してからもう一度お試しください。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外觀檔案的內容無法讀取，請檢查檔案後再試。"
+          }
+        }
+      }
+    },
+    "appearance.error.unsupportedVersion": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只支持版本 %1$@ 的外观文件，请检查文件。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "対応している外観ファイルのバージョンは %1$@ だけです。ファイルを確認してください。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只支援版本 %1$@ 的外觀檔案，請檢查檔案。"
+          }
+        }
+      }
+    },
+    "appearance.error.unknownField": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外观文件里有不支持的字段「%1$@」，请检查文件。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外観ファイルに未対応の項目「%1$@」があります。ファイルを確認してください。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外觀檔案裡有不支援的欄位「%1$@」，請檢查檔案。"
+          }
+        }
+      }
+    },
+    "appearance.error.missingID": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外观文件缺少标识，请检查文件。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外観ファイルに識別子がありません。ファイルを確認してください。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外觀檔案缺少標識，請檢查檔案。"
+          }
+        }
+      }
+    },
+    "appearance.error.missingName": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外观文件缺少名称，请检查文件。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外観ファイルに名前がありません。ファイルを確認してください。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外觀檔案缺少名稱，請檢查檔案。"
+          }
+        }
+      }
+    },
+    "appearance.error.missingParts": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外观文件必须同时包含皮肤和候选栏，请检查文件。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外観ファイルにはスキンと候補列の両方が必要です。ファイルを確認してください。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外觀檔案必須同時包含皮膚和候選列，請檢查檔案。"
+          }
+        }
+      }
+    },
+    "appearance.error.invalidValue": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外观文件里有一项值无效（%1$@），请检查文件。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外観ファイルの値が正しくありません（%1$@）。ファイルを確認してください。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外觀檔案裡有一項值無效（%1$@），請檢查檔案。"
+          }
+        }
+      }
+    },
+    "appearance.error.skinIdentityMismatch": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外观项目与皮肤不是同一个标识（%1$@），请检查文件。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外観とスキンの識別子が一致していません（%1$@）。ファイルを確認してください。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外觀專案與皮膚不是同一個標識（%1$@），請檢查檔案。"
+          }
+        }
+      }
+    },
+    "appearance.error.barIdentityMismatch": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外观项目与候选栏不是同一个标识（%1$@），请检查文件。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外観と候補列の識別子が一致していません（%1$@）。ファイルを確認してください。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外觀專案與候選列不是同一個標識（%1$@），請檢查檔案。"
+          }
+        }
+      }
+    },
+    "appearance.error.skinIDMismatch": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "皮肤不属于这个外观项目（%1$@），请检查文件。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スキンがこの外観に属していません（%1$@）。ファイルを確認してください。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "皮膚不屬於這個外觀專案（%1$@），請檢查檔案。"
+          }
+        }
+      }
+    },
+    "appearance.error.barIDMismatch": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "候选栏不属于这个外观项目（%1$@），请检查文件。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "候補列がこの外観に属していません（%1$@）。ファイルを確認してください。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "候選列不屬於這個外觀專案（%1$@），請檢查檔案。"
+          }
+        }
+      }
+    },
+    "appearance.error.authorNotString": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外观文件里的作者需要是文字，请检查文件。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外観ファイルの作者は文字で指定してください。ファイルを確認してください。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外觀檔案裡的作者需要是文字，請檢查檔案。"
+          }
+        }
+      }
+    },
+    "appearance.error.invalidAppearance": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外观文件的深浅色设置无效，请填写 system、light 或 dark。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外観ファイルのライト／ダーク設定が正しくありません。system、light、dark のいずれかを指定してください。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外觀檔案的深淺色設定無效，請填寫 system、light 或 dark。"
+          }
+        }
+      }
+    },
+    "appearance.error.notLocalFile": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只能导入本机的普通文件，请重新选择文件。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この端末の通常のファイルだけを読み込めます。ファイルを選び直してください。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只能匯入本機的普通檔案，請重新選擇檔案。"
+          }
+        }
+      }
+    },
+    "appearance.error.notRegularFile": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这个文件无法读取，请选择普通文件。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このファイルは読み取れません。通常のファイルを選んでください。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這個檔案無法讀取，請選擇普通檔案。"
+          }
+        }
+      }
+    },
+    "appearance.error.snapshotFile": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这是快照文件（选择与内容），请分别导入皮肤、候选栏或外观项目文件。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "これはスナップショットファイルです（選択と内容）。スキン、候補列、外観の各ファイルを個別に読み込んでください。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這是快照檔案（選擇與內容），請分別匯入皮膚、候選列或外觀專案檔案。"
+          }
+        }
+      }
+    },
+    "appearance.error.unrecognizedFile": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法识别这个文件，请选择皮肤、候选栏或外观项目文件。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このファイルは認識できません。スキン、候補列、外観のいずれかのファイルを選んでください。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無法識別這個檔案，請選擇皮膚、候選列或外觀專案檔案。"
+          }
+        }
+      }
+    },
+    "appearance.error.fileNameMismatch": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "文件名与外观项目标识不一致（%1$@），请重新导出后再导入。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ファイル名と外観の識別子が一致していません（%1$@）。書き出し直してから読み込んでください。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "檔名與外觀專案標識不一致（%1$@），請重新匯出後再匯入。"
+          }
+        }
+      }
+    },
+    "appearance.error.invalidFileName": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外观文件名无效，请重新选择文件。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外観ファイルの名前が正しくありません。ファイルを選び直してください。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外觀檔名無效，請重新選擇檔案。"
+          }
+        }
+      }
+    },
+    "appearance.error.unreadableFile": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法读取外观文件，请选择普通文件。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外観ファイルを読み取れません。通常のファイルを選んでください。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無法讀取外觀檔案，請選擇普通檔案。"
+          }
+        }
+      }
+    },
+    "appearance.error.systemDefaultReadOnly": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「系统默认」是内置外观，请先复制再编辑。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「システムの既定」は組み込みの外観です。コピーしてから編集してください。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「系統預設」是內建外觀，請先複製再編輯。"
+          }
+        }
+      }
+    },
+    "appearance.error.duplicateID": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已存在相同标识的外观项目，请替换或另存为副本。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "同じ識別子の外観がすでにあります。置き換えるか、別の名前で保存してください。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已存在相同標識的外觀專案，請取代或另存為副本。"
+          }
+        }
+      }
+    },
+    "appearance.error.invalidID": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外观项目标识无效，请检查文件。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外観の識別子が正しくありません。ファイルを確認してください。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外觀專案標識無效，請檢查檔案。"
+          }
+        }
+      }
+    },
+    "appearance.error.cannotDeleteSystemDefault": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「系统默认」无法删除。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「システムの既定」は削除できません。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「系統預設」無法刪除。"
+          }
+        }
+      }
+    },
+    "appearance.error.notFound": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未找到外观项目（%1$@），请刷新后再试。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外観が見つかりません（%1$@）。一覧を更新してからもう一度お試しください。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未找到外觀專案（%1$@），請重新整理後再試。"
+          }
+        }
+      }
+    },
+    "appearance.error.snapshotTooLarge": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外观快照过大，请重新应用一次外观。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外観のスナップショットが大きすぎます。もう一度外観を適用してください。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外觀快照過大，請重新應用一次外觀。"
+          }
+        }
+      }
+    },
+    "appearance.error.snapshotMalformed": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外观快照格式无效，请重新应用一次外观。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外観のスナップショットの形式が正しくありません。もう一度外観を適用してください。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外觀快照格式無效，請重新應用一次外觀。"
+          }
+        }
+      }
+    },
+    "appearance.error.snapshotContentMismatch": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外观快照内容不一致，请重新应用一次外观。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外観のスナップショットの内容が一致しません。もう一度外観を適用してください。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外觀快照內容不一致，請重新應用一次外觀。"
+          }
+        }
+      }
+    },
+    "appearance.error.snapshotSelectionMismatch": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外观快照不一致：当前所选与内容不是同一个外观项目，请重新应用一次外观。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外観のスナップショットが一致しません。選択中の外観と内容が同じではありません。もう一度外観を適用してください。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外觀快照不一致：當前所選與內容不是同一個外觀專案，請重新應用一次外觀。"
+          }
+        }
+      }
+    },
+    "appearance.error.snapshotIdentityMismatch": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外观快照不一致：皮肤与候选栏不匹配（%1$@），请重新应用一次外观。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外観のスナップショットが一致しません。スキンと候補列が同じ外観ではありません（%1$@）。もう一度外観を適用してください。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外觀快照不一致：皮膚與候選列不匹配（%1$@），請重新應用一次外觀。"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

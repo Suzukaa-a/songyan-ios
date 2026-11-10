@@ -22,12 +22,12 @@ extension SchemeImportCenter {
                 Logger.keyboardPreparation.debug("finished in \(ms, format: .fixed(precision: 1), privacy: .public) ms")
             }
         #endif
-        if announce { message = "正在添加键盘…" }
+        if announce { message = String(localized: "正在添加键盘…") }
         let store = manager(id)
         let packageName = explicitName ?? installedPackages.first { $0.id == id }?.name ?? id
         let reused = try await EngineOwnershipCoordinator.shared.withExclusive {
             guard let active = try await store.activeInstallation() else {
-                throw RecipeInstallError.invalidResource("请先安装输入方案")
+                throw RecipeInstallError.invalidResource(String(localized: "请先安装输入方案"))
             }
             // Inspect this installation under the same lease as regeneration. A roster-only
             // change must not reinstall dictionaries or restart the engine unnecessarily.
@@ -98,7 +98,6 @@ extension SchemeImportCenter {
         lastInstalledPackageID = id
         await refresh()
         diagnostics = []
-        if announce { userNotice = "已准备所选键盘。" }
     }
 
     private static var outdatedAdapterRebuild: Task<Void, Never>?
@@ -168,19 +167,21 @@ extension SchemeImportCenter {
     /// republishes its keyboards as `rebuildAdaptersIfOutdated` does. Scripts the user has not agreed to
     /// yet come back as `needsConfirmation`; the keys it carries go back with the yes.
     func applyRimeConfig(confirmed: [String] = []) async -> RimeConfigApplyResult {
-        guard !busy else { return .finished("还有别的操作没做完，请稍后再试。", applied: false, overrides: []) }
+        guard !busy else {
+            return .finished(String(localized: "还有别的操作没做完，请稍后再试。"), applied: false, overrides: [])
+        }
         busy = true
         defer { busy = false }
-        let failed = "改动没能生效，键盘仍用原来的设置。"
+        let failed = String(localized: "改动没能生效，键盘仍用原来的设置。")
         func refused(_ text: String) -> RimeConfigApplyResult { .finished(text, applied: false, overrides: []) }
         do {
             guard let shared = try await loadSharedActivation(), shared.kind == .userScheme,
                 let packageID = shared.packageID
-            else { return refused("正在使用的键盘不是来自输入方案，这里的文件对它不起作用。") }
+            else { return refused(String(localized: "正在使用的键盘不是来自输入方案，这里的文件对它不起作用。")) }
             let active = try await activeRecipe(packageID: packageID)
             // A pending update the user has not chosen is never applied on the side.
             guard shared.revision == active.installation.revision else {
-                return refused("这个输入方案有新版本还没使用，先使用新版本再应用更改。")
+                return refused(String(localized: "这个输入方案有新版本还没使用，先使用新版本再应用更改。"))
             }
             let store = manager(packageID)
             if case .needsConfirmation(let scripts, let keys, let firstTime) = try await store.rimeConfigReadiness(
@@ -203,17 +204,21 @@ extension SchemeImportCenter {
                 prepare: false, added: nil, baseline: .publication(shared), preservingSelection: true)
             let told = (try? await store.rimeConfigOverview().unacknowledged) ?? []
             let unused = (try? await store.unusedRimeConfigFiles()) ?? []
-            guard !unused.isEmpty else { return .finished("已应用更改。", applied: true, overrides: told) }
+            guard !unused.isEmpty else {
+                return .finished(String(localized: "已应用更改。"), applied: true, overrides: told)
+            }
             let names = unused.map { "「\($0)」" }.joined(separator: "")
             return .finished(
-                "已应用更改，但\(names)没有用上。文件不能超过 4 MB，要用 UTF-8 编码，也不能和松烟自己的设置文件同名。",
+                String(
+                    localized:
+                        "已应用更改，但\(names)没有用上。文件不能超过 4 MB，要用 UTF-8 编码，也不能和松烟自己的设置文件同名。"),
                 applied: true, overrides: told)
         } catch let error as UserConfigError {
             HostLog.append("rime config refused: \(error.problem) \(error.file ?? "")")
             return refused(error.errorDescription ?? failed)
         } catch {
             HostLog.append("rime config apply failed: \(error.localizedDescription)")
-            return refused(failed + "检查最近改过的文件后再试。")
+            return refused(failed + String(localized: "检查最近改过的文件后再试。"))
         }
     }
 
@@ -226,7 +231,7 @@ extension SchemeImportCenter {
     func performAddKeyboard(packageID: String, keyboard: PublishedKeyboard) async throws
         -> UserKeyboardMutationOutcome
     {
-        try await rosterTransaction("正在添加键盘…") {
+        try await rosterTransaction(String(localized: "正在添加键盘…")) {
             let shared = try await loadSharedActivation()
             let list = PublishedKeyboard.adding(
                 keyboard, to: try await resolvedRosterForTargetSource(shared, packageID: packageID))
@@ -249,7 +254,7 @@ extension SchemeImportCenter {
     func performRemoveKeyboard(packageID: String, keyboard: PublishedKeyboard) async throws
         -> UserKeyboardMutationOutcome
     {
-        try await rosterTransaction("正在移除键盘…") {
+        try await rosterTransaction(String(localized: "正在移除键盘…")) {
             guard let shared = try await loadSharedActivation(),
                 Self.sameSource(shared, packageID: packageID)
             else {
@@ -258,9 +263,7 @@ extension SchemeImportCenter {
             guard shared.keyboards.contains(keyboard) else { throw UserKeyboardPublicationError.notAdded }
             let list = PublishedKeyboard.removing(keyboard, from: shared.keyboards)
             if list.isEmpty { throw Self.keepOneKeyboard }
-            let selected = shared.selectedSchemaID.flatMap { schemaID in
-                shared.selectedLayout.map { PublishedKeyboard(schemaID: schemaID, layout: $0) }
-            }
+            let selected = shared.selectedKeyboard
             try await publishRoster(
                 packageID: packageID, roster: list,
                 selection: PublishedKeyboard.selectionAfterRemoval(from: list, current: selected),
@@ -283,7 +286,7 @@ extension SchemeImportCenter {
     ) async throws
         -> [PublishedKeyboard]
     {
-        try await rosterTransaction("正在更新我的键盘…") {
+        try await rosterTransaction(String(localized: "正在更新我的键盘…")) {
             let shared = try await loadSharedActivation()
             var list: [PublishedKeyboard] = []
             for keyboard in requested where !list.contains(keyboard) { list.append(keyboard) }
@@ -292,9 +295,7 @@ extension SchemeImportCenter {
             let installed = try await activeRecipe(packageID: packageID)
             let selected =
                 Self.sameSource(shared, packageID: packageID)
-                ? shared?.selectedSchemaID.flatMap { schemaID in
-                    shared?.selectedLayout.map { PublishedKeyboard(schemaID: schemaID, layout: $0) }
-                } : nil
+                ? shared?.selectedKeyboard : nil
             if Self.sameSource(shared, packageID: packageID), shared?.recipeEnabled == true,
                 shared?.revision == installed.installation.revision,
                 shared?.hostInstallationGeneration == installed.installation.generation,
@@ -313,8 +314,25 @@ extension SchemeImportCenter {
         }
     }
 
+    /// Switches the keyboard to this input scheme with the keyboards remembered for it, or with its
+    /// default keyboard when none were ever chosen. Goes through the same transaction as 我的键盘, whose
+    /// page-read baseline makes it refuse when the publication changed meanwhile. Returns the keyboard in use.
+    @discardableResult
+    func useInputScheme(packageID: String) async throws -> PublishedKeyboard {
+        guard !busy else { throw UserKeyboardPublicationError.busy }
+        let viewed = try await SourcePublishedKeyboardProvider(source: .package(packageID)).snapshot()
+        let addable = viewed.roster.isEmpty ? try await addableKeyboards(packageID: packageID) : []
+        guard let target = PublishedKeyboard.switchTarget(remembered: viewed.roster, addable: addable) else {
+            throw UserKeyboardPublicationError.noAddableKeyboards
+        }
+        _ = try await performReplaceKeyboards(
+            packageID: packageID, requested: target.roster, selecting: target.selection,
+            viewedActivation: viewed.activation, viewedRoster: viewed.roster, viewedSourceKey: viewed.sourceKey)
+        return target.selection
+    }
+
     private static let keepOneKeyboard = UserKeyboardPublicationError.unavailable(
-        "请至少保留一个键盘。如需停用整个方案，请直接删除该输入方案。")
+        String(localized: "请至少保留一个键盘。如需停用整个方案，请直接删除该输入方案。"))
 
     /// Runs one roster change; `busy` is the only gate (the engine lease and the store's compare-and-set
     /// cover everything else). Conflicts throw, failures propagate unchanged and publish nothing.
@@ -345,7 +363,7 @@ extension SchemeImportCenter {
         let resources = try await keyboardResources(packageID: packageID)
         if !prepare, let added {
             guard resources.schemas.contains(where: { $0.id == added.schemaID }) else {
-                throw UserKeyboardPublicationError.unavailable("此输入方案已变更，请重新选择。")
+                throw UserKeyboardPublicationError.unavailable(String(localized: "此输入方案已变更，请重新选择。"))
             }
             guard
                 resources.availableCombinations.contains(where: {
@@ -364,7 +382,7 @@ extension SchemeImportCenter {
                     revision: active.installation.revision, kind: .userScheme,
                     dictionaryName: resources.name,
                     packageID: packageID, schemas: resources.schemas,
-                    selectedSchemaID: selection?.schemaID, layout: selection?.layout,
+                    selectedSchemaID: selection?.schemaID, layout: selection?.layout, board: selection?.board,
                     bindings: resources.layoutEntries, publishedKeyboards: roster,
                     preservingSelection: preservingSelection, baseline: baseline)
             }
@@ -387,7 +405,8 @@ extension SchemeImportCenter {
 
     private func loadSharedActivation() async throws -> KeyboardRecipeStore.Activation? {
         do { return try await AppliedSelectionLoader.loadWriteBaseline() } catch {
-            throw KeyboardRecipeStore.StoreError(message: "共享选择读取失败：\(error.localizedDescription)")
+            throw KeyboardRecipeStore.StoreError(
+                message: String(localized: "共享选择读取失败：\(error.localizedDescription)"))
         }
     }
 
@@ -459,7 +478,11 @@ extension SchemeImportCenter {
                         ?? .unsupported("")
                 else { continue }
                 let alphabet = resources.schemas.first { $0.id == source }?.alphabet
+                // The shared family rule gates the folded shapes too: a known family never offers
+                // 14 / 18 / 9 even when the source is structurally adaptable.
+                let family = InputLayoutPolicy.family(schemaID: source, alphabet: alphabet ?? "")
                 for layout in KeyboardLayoutKind.allCases where layout.requiresSpellingDisplay {
+                    guard InputLayoutPolicy.allows(kind: layout, family: family) else { continue }
                     let foldable =
                         layout.compactFold.flatMap { fold in
                             (alphabet.flatMap { $0.isEmpty ? nil : $0 }).map {
@@ -482,6 +505,6 @@ extension SchemeImportCenter {
 
     func keyboardResources(packageID: String) async throws -> KeyboardResourceSet {
         if let set = try await tryResources(packageID: packageID) { return set }
-        throw RecipeInstallError.deployment("未找到已安装方案")
+        throw RecipeInstallError.deployment(String(localized: "未找到已安装方案"))
     }
 }

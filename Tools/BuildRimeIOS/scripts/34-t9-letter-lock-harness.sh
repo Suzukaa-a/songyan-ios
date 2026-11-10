@@ -16,8 +16,8 @@
 #     the native candidate-free deploy verification, and make the live report for
 #     `2` offer the actual a/b/c classes — each one lockable, restorable,
 #     continuable and refusal-checked. The source files must stay byte-identical.
-#   * PROFILE C — the same source without the opt-in: the generator keeps the
-#     bounded alias lock and adds no letter-class grammar.
+#   * PROFILE C — the same source without the opt-in: phone9 stays native; the
+#     14-key companion keeps its alias lock without letter-class grammar.
 #
 # Everything is machine-parsable (`INFO`/`PASS`/`FAIL`/`RESULT` JSON lines). The
 # script fails only on contract violations (`FAIL:` lines).
@@ -85,6 +85,8 @@ python3 "${PROJECT_ROOT}/Tools/BuildRimeIOS/scripts/build-learning-support.py" \
   --kit-include-dir "${MAC_PREFIX}/include" \
   --output-dir "${RUN_DIR}/learning-support"
 
+python3 "${IOS_TOOLS_DIR}/scripts/build-harness-resources.py" "${RUN_DIR}/flat"
+
 swiftc -O -parse-as-library \
   -Xcc -fmodule-map-file="${RUN_DIR}/RimeKitModule/module.modulemap" \
   -Xcc -fmodule-map-file="${PM_CHECKOUTS}/Yams/Sources/CYaml/include/module.modulemap" \
@@ -98,11 +100,13 @@ swiftc -O -parse-as-library \
   "${PM_DEBUG}/PackageManager.o" "${PM_DEBUG}/KeyboardCore.o" "${PM_DEBUG}/Yams.o" \
   "${PM_DEBUG}/CYaml.o" "${PM_DEBUG}/ZIPFoundation.o" \
   "${RUN_DIR}/rime_bridge.o" "${RUN_DIR}/rime_spelling.o" "${RUN_DIR}/rime_display_map.o" \
-  "${RUN_DIR}/rime_grammar_diagnostics.o" "${RUN_DIR}/rb_grammar_noop.o" \
+  "${RUN_DIR}/rime_grammar_diagnostics.o" \
+  "${RUN_DIR}/rb_grammar_noop.o" \
   "${RUN_DIR}/learning-support/RimeLeversSupport.o" \
   "${MAC_LINK_FLAGS[@]}" \
   -target arm64-apple-macos13.0 -o "${RUN_DIR}/harness"
 
+export PACKAGE_RESOURCE_BUNDLE_PATH="${PM_DEBUG}"
 SOURCES="${TLL_SOURCES:-${PROJECT_ROOT}/Resources/BuiltinPackages/Basic}"
 [[ -f "${SOURCES}/default.yaml" ]] || die "source testdata missing: ${SOURCES}"
 

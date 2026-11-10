@@ -1,0 +1,64 @@
+{
+  "id": "zhuyin41",
+  "name": "注音 41 键",
+  "input": {"builtinLayout": "qwerty26"},
+  "rows": [
+    {"keys": [
+      {"label":"ㄅ","action":{"type":"code","value":"1"}},
+      {"label":"ㄉ","action":{"type":"code","value":"2"}},
+      {"label":"ˇ","action":{"type":"code","value":"3"}},
+      {"label":"ˋ","action":{"type":"code","value":"4"}},
+      {"label":"ㄓ","action":{"type":"code","value":"5"}},
+      {"label":"ˊ","action":{"type":"code","value":"6"}},
+      {"label":"˙","action":{"type":"code","value":"7"}},
+      {"label":"ㄚ","action":{"type":"code","value":"8"}},
+      {"label":"ㄞ","action":{"type":"code","value":"9"}},
+      {"label":"ㄢ","action":{"type":"code","value":"0"}},
+      {"label":"ㄦ","action":{"type":"code","value":"-"}}
+    ]},
+    {"keys": [
+      {"label":"ㄆ","action":{"type":"code","value":"q"}},
+      {"label":"ㄊ","action":{"type":"code","value":"w"}},
+      {"label":"ㄍ","action":{"type":"code","value":"e"}},
+      {"label":"ㄐ","action":{"type":"code","value":"r"}},
+      {"label":"ㄔ","action":{"type":"code","value":"t"}},
+      {"label":"ㄗ","action":{"type":"code","value":"y"}},
+      {"label":"ㄧ","action":{"type":"code","value":"u"}},
+      {"label":"ㄛ","action":{"type":"code","value":"i"}},
+      {"label":"ㄟ","action":{"type":"code","value":"o"}},
+      {"label":"ㄣ","action":{"type":"code","value":"p"}}
+    ]},
+    {"keys": [
+      {"label":"ㄇ","action":{"type":"code","value":"a"}},
+      {"label":"ㄋ","action":{"type":"code","value":"s"}},
+      {"label":"ㄎ","action":{"type":"code","value":"d"}},
+      {"label":"ㄑ","action":{"type":"code","value":"f"}},
+      {"label":"ㄕ","action":{"type":"code","value":"g"}},
+      {"label":"ㄘ","action":{"type":"code","value":"h"}},
+      {"label":"ㄨ","action":{"type":"code","value":"j"}},
+      {"label":"ㄜ","action":{"type":"code","value":"k"}},
+      {"label":"ㄠ","action":{"type":"code","value":"l"}},
+      {"label":"ㄤ","action":{"type":"code","value":";"}}
+    ]},
+    {"keys": [
+      {"label":"ㄈ","action":{"type":"code","value":"z"}},
+      {"label":"ㄌ","action":{"type":"code","value":"x"}},
+      {"label":"ㄏ","action":{"type":"code","value":"c"}},
+      {"label":"ㄒ","action":{"type":"code","value":"v"}},
+      {"label":"ㄖ","action":{"type":"code","value":"b"}},
+      {"label":"ㄙ","action":{"type":"code","value":"n"}},
+      {"label":"ㄩ","action":{"type":"code","value":"m"}},
+      {"label":"ㄝ","action":{"type":"code","value":","}},
+      {"label":"ㄡ","action":{"type":"code","value":"."}},
+      {"label":"ㄥ","action":{"type":"code","value":"/"}},
+      {"label":"⌫","titleMode":"automatic","action":{"type":"backspace"}}
+    ]},
+    {"keys": [
+      {"label":"布局","action":{"type":"modeSwitch","value":"nextLayout"}},
+      {"label":"🌐","action":{"type":"globe"}},
+      {"label":"空格","width":4,"action":{"type":"space"}},
+      {"label":"⌫","action":{"type":"backspace"}},
+      {"label":"⏎","action":{"type":"enter"}}
+    ]}
+  ]
+}

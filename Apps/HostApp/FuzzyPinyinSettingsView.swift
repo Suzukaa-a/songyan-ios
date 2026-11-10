@@ -11,7 +11,7 @@ struct FuzzyPinyinSettingsView: View {
         List {
             Section {
                 if center.working {
-                    ProgressView("正在保存…")
+                    ProgressView(String(localized: "正在保存…"))
                 } else if let failure = center.failure {
                     Label(failure, systemImage: "exclamationmark.triangle")
                         .font(.caption).foregroundStyle(.red)
@@ -24,7 +24,7 @@ struct FuzzyPinyinSettingsView: View {
             }
             pairSection
         }
-        .navigationTitle("模糊音")
+        .navigationTitle(String(localized: "模糊音"))
         .navigationBarTitleDisplayMode(.inline)
         .task { await center.refresh() }
         .refreshable { await center.refresh() }

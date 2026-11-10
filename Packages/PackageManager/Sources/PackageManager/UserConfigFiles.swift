@@ -37,31 +37,34 @@ public struct UserConfigError: Error, LocalizedError, Equatable, Sendable {
     }
 
     public var errorDescription: String? {
-        let name = file.map { "「\($0)」" } ?? "文件"
+        let name =
+            file.map { PackageText.format("rimeConfig.error.fileName", $0) }
+            ?? PackageText.string("rimeConfig.error.fileGeneric")
         switch problem {
         case .invalidYAML:
-            let place = line.map { "第 \($0) 行" } ?? ""
-            return "\(name)\(place)格式有误，改动没有应用，键盘仍用原来的设置。改好或删掉这个文件后再试。"
+            let place = line.map { PackageText.format("rimeConfig.error.line", String($0)) } ?? ""
+            return PackageText.format("rimeConfig.error.invalidYAML", name, place)
         case .notText:
-            return "\(name)不是 UTF-8 文本，改动没有应用，键盘仍用原来的设置。"
+            return PackageText.format("rimeConfig.error.notText", name)
         case .tooLarge:
-            return "\(name)太大，改动没有应用。每个文件不超过 4 MB，全部加起来不超过 8 MB。"
+            return PackageText.format("rimeConfig.error.tooLarge", name)
         case .tooMany:
-            return "文件太多，改动没有应用。最多放 100 个文件。"
+            return PackageText.string("rimeConfig.error.tooMany")
         case .unsafeReference:
-            return "\(name)里有指向别处文件的写法，改动没有应用，键盘仍用原来的设置。"
+            return PackageText.format("rimeConfig.error.unsafeReference", name)
         case .unconfirmedScript:
-            if detail != nil { return "\(name)使用了尚未允许的扩展脚本，请检查配置文件。" }
-            return "扩展脚本在你确认之后又有改动，改动没有应用。再点一次「应用更改」。"
+            return detail != nil
+                ? PackageText.format("rimeConfig.error.unconfirmedScriptNew", name)
+                : PackageText.string("rimeConfig.error.unconfirmedScriptChanged")
         case .managedMarker:
-            return "\(name)里有以「# Rx: 」开头的行或单独的「# }」行，这是松烟自己用的标记，改动没有应用。删掉这些行后再试。"
+            return PackageText.format("rimeConfig.error.managedMarker", name)
         case .name:
-            return "\(name)的名字不能用，改动没有应用，键盘仍用原来的设置。"
+            return PackageText.format("rimeConfig.error.badName", name)
         }
     }
 }
 
-/// The Chinese text for an error that comes from the 「Rime 配置」 folder; nil for any other error.
+/// The user-facing text for an error that comes from the 「Rime 配置」 folder; nil for any other error.
 public func rimeConfigUserMessage(_ error: Error) -> String? {
     switch error {
     case let error as UserConfigError: return error.errorDescription

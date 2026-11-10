@@ -16,6 +16,20 @@ extension EnvironmentValues {
     }
 }
 
+private struct KeyboardInputLanguageKey: EnvironmentKey {
+    static var defaultValue: InputLanguage { .simplifiedChinese }
+}
+
+extension EnvironmentValues {
+    /// Input language of the scheme being typed, for labels the keyboard draws itself (keycap faces,
+    /// composition badge): those need the glyph forms of Japanese / Traditional / Simplified Chinese.
+    /// The scheme decides it, not the system or app language.
+    var keyboardInputLanguage: InputLanguage {
+        get { self[KeyboardInputLanguageKey.self] }
+        set { self[KeyboardInputLanguageKey.self] = newValue }
+    }
+}
+
 func rebindPanelHostObserver(
     _ observer: Any, selector: Selector,
     from old: KeyboardPanelHostLifetime?,
@@ -60,8 +74,6 @@ public struct KeyboardPanelView: View {
     let additionalTools: AnyView?
     /// Rows injected by the host into the "Insert" card (repeat last input, date/time).
     let insertTools: AnyView?
-    private let asyncInsertionContext: (@MainActor () -> AnyHashable?)?
-    private let pasteLiteral: (@MainActor (String) -> Bool)?
     /// Injected by the extension; nil in the app's own trial area (there the app is already open).
     let openHostApp: ((URL, @escaping @MainActor (Bool) -> Void) -> Void)?
     /// Extension-only real dismissal for the wide-screen header button. Nil in the app trial.
@@ -75,9 +87,7 @@ public struct KeyboardPanelView: View {
     @State var quickContentSection = "symbols"
     @State var quickContentCategory: String?
     @State private var idleToolbarEnabled = KeyboardIdleToolbarPreferences.defaultEnabled
-    @State private var clipboardPasteSlot = QuickPasteSlotLease()
-    @State private var clipboardPasteError: String?
-    @State private var clipboardPasteRevision = 0
+    @State private var idleToolbarLayout = IdleToolbarLayout.default
     /// Set only when the system refused the hop to the app; nothing is claimed on success.
     @State var hostAppUnavailable = false
     @AccessibilityFocusState var utilitiesTitleFocused: Bool
@@ -126,6 +136,8 @@ public struct KeyboardPanelView: View {
     /// shows a brief sublabel that fades out; number/symbol page switches and view rebuilds do not trigger it.
     @State var layoutHintToken: UUID?
     @State var layoutHintName: String?
+    /// The input method the last switch landed on: only a switch away from it names the new one.
+    @State var announcedSchemaID: String?
     /// Feedback lifecycle session token (returned by prepare; handed back to end(token:) on disappear).
     @State private var feedbackLifecycleToken = 0
     /// Last settled rail/reading-row choices, shown inert while the next key's
@@ -136,6 +148,8 @@ public struct KeyboardPanelView: View {
     /// read on the render the next key's controller update already causes.
     @State private var choiceHold = HeldReadingChoices()
     @State var keyAreaGeneration = 0
+    /// The key area's opacity: the keys fade in after a switch of input method or layout.
+    @State var switchFade = 1.0
     /// A symbol page entered with a live composition keeps its candidate row for
     /// the whole visit (see `readingRowReport`).
     @State private var symbolPageKeepsCandidates = false
@@ -164,8 +178,6 @@ public struct KeyboardPanelView: View {
         allowsCursorMovement: Bool = false, statusMessage: String? = nil,
         onStatusDetails: (() -> Void)? = nil, additionalTools: AnyView? = nil,
         insertTools: AnyView? = nil,
-        asyncInsertionContext: (@MainActor () -> AnyHashable?)? = nil,
-        pasteLiteral: (@MainActor (String) -> Bool)? = nil,
         openHostApp: ((URL, @escaping @MainActor (Bool) -> Void) -> Void)? = nil,
         dismissKeyboard: (() -> Void)? = nil,
         candidateBar candidateBarDefinition: CandidateBarDefinition = .systemDefault,
@@ -205,8 +217,6 @@ public struct KeyboardPanelView: View {
         self.onStatusDetails = onStatusDetails
         self.additionalTools = additionalTools
         self.insertTools = insertTools
-        self.asyncInsertionContext = asyncInsertionContext
-        self.pasteLiteral = pasteLiteral
         self.openHostApp = openHostApp
         self.dismissKeyboard = dismissKeyboard
         self.candidateBarDefinition = candidateBarDefinition
@@ -241,11 +251,11 @@ public struct KeyboardPanelView: View {
             let _ = widthBox.record(contentWidth: contentWidth - 8, mainSplitWidth: rawWidth - 8)
             panelBody(isWide: isWideSurface)
                 .frame(width: contentWidth, alignment: .topLeading)
-                .disabled(showsUtilitiesMenu || showsSymbolLibrary)
-                .accessibilityHidden(showsUtilitiesMenu || showsSymbolLibrary)
+                .disabled(showsCoveringPanel)
+                .accessibilityHidden(showsCoveringPanel)
                 // Hidden rather than painted over, so the covering panels can sit on the
                 // keyboard's own surface instead of a second opaque sheet.
-                .opacity(showsUtilitiesMenu || showsSymbolLibrary ? 0 : 1)
+                .opacity(showsCoveringPanel ? 0 : 1)
                 .overlay {
                     // Overlays are pinned to the panel's own height. Without this the overlay
                     // grows to its intrinsic content height, so its inner ScrollView believes
@@ -260,9 +270,7 @@ public struct KeyboardPanelView: View {
                         // A new controller identity (session reconnect) rebuilds the model wholesale, so no stale onInsert callback survives.
                         SymbolLibraryPanel(
                             controller: controller, initialSection: quickContentSection,
-                            initialCategory: quickContentCategory,
-                            clipboardPaste: AnyView(clipboardPasteControl),
-                            clipboardPasteRevision: clipboardPasteRevision
+                            initialCategory: quickContentCategory
                         ) { showsSymbolLibrary = false }
                         .id(ObjectIdentifier(controller))
                         .frame(width: contentWidth, height: geometry.size.height)
@@ -275,7 +283,7 @@ public struct KeyboardPanelView: View {
                             .clipped()
                     }
                 }
-                // The covering overlay (tools / symbol library) swaps in immediately: no
+                // The covering overlay (utilities / symbol library) swaps in immediately: no
                 // outgoing menu is retained over the next immediately usable key, and this
                 // is not a transition owner (the key-area cue owns page/language).
                 //
@@ -327,6 +335,7 @@ public struct KeyboardPanelView: View {
             // App-owned panels do not share an extension process session.
             controller.cancelRailSelection()
         }
+        clearKana12PanelBinding()
         feedback.end(token: feedbackLifecycleToken)
     }
 
@@ -343,7 +352,7 @@ public struct KeyboardPanelView: View {
                 }
                 .buttonStyle(KeyboardPressStyle())
                 .contentShape(Rectangle())
-                .accessibilityLabel("收起键盘")
+                .accessibilityLabel(String(localized: "收起键盘"))
                 .accessibilityIdentifier("keyboard.wideDismiss")
             }
             Spacer(minLength: 0)
@@ -450,7 +459,8 @@ public struct KeyboardPanelView: View {
             visibleEntries: readingEntries,
             visibleHasMore: filteringReadings ? controller.readingFilter.hasMore : nil,
             visibleFrontier: filteringReadings ? controller.readingFilter.nextIndex : nil,
-            contentLift: candidateContentLift)
+            contentLift: candidateContentLift,
+            inputLanguage: controller.inputLanguage.language)
         if expanded {
             CandidateRendererRegistry.renderer(id: DefaultCandidateAreaRenderer.rendererID)
                 .makeExpanded(context)
@@ -475,6 +485,16 @@ public struct KeyboardPanelView: View {
         if let pageDefinition { return max(1, pageDefinition.rows.count) }
         return usesConfiguredLayout && !usesStandardQwerty ? max(1, definitionMainRows.count) : 3
     }
+    /// Letter rows the selected physical definition draws above its control row; the bundled
+    /// registration answers it (four for the 注音 board), any other layout keeps three.
+    var physicalMainRowBudget: Int {
+        KeyboardPanelGeometry.physicalMainRowBudget(forDefinitionID: activeDefinition?.id)
+    }
+    /// Rows this page draws inside the shell: the definition's budget on its letters page, three
+    /// on the shared ABC/123 pages, and the physical budget caps a longer DIY layout.
+    var drawnMainRowCount: Int {
+        min(mainRowCount, physicalMainRowBudget)
+    }
     var keyHeight: CGFloat {
         keyHeightOverride ?? CGFloat(KeyboardHeightPreset.standard.keyHeight(compact: verticalSizeClass == .compact))
     }
@@ -485,7 +505,8 @@ public struct KeyboardPanelView: View {
     private var panelGeometry: KeyboardPanelGeometry {
         KeyboardPanelGeometry(
             candidateHeight: candidateBarDefinition.collapsed.height,
-            keyHeight: keyHeight, selectedMainRows: max(1, definitionMainRows.count),
+            keyHeight: keyHeight, selectedMainRows: max(1, drawnMainRowCount),
+            maximumVisibleRows: physicalMainRowBudget,
             readingRowReserved: readingRowReserved,
             candidateSize: appearance.skin.typography.candidateSize,
             compactReadingRow: verticalSizeClass == .compact,
@@ -517,7 +538,9 @@ public struct KeyboardPanelView: View {
             candidateAreaRequired: definitionPage
                 ? definitionFacts.candidateAreaRequired
                 : page == .letters || symbolPageKeepsCandidates,
-            pageOverride: !definitionPage)
+            pageOverride: !definitionPage,
+            physicalMainRowCount: physicalMainRowBudget,
+            drawnMainRowCount: drawnMainRowCount)
     }
 
     /// The Host grants this fixed capability after the layout source resolves.
@@ -627,10 +650,16 @@ public struct KeyboardPanelView: View {
     /// Key-type pure UI actions (page switch and other control keys that cannot fail): key haptic (feedback on touch).
     func emitKeyFeedback() { feedback.keyPressed() }
 
-    private func openQuickContent(section: String, category: String? = nil) {
+    func openQuickContent(section: String, category: String? = nil) {
         quickContentSection = section
         quickContentCategory = category
         showsSymbolLibrary = true
+    }
+
+    /// Any panel that covers the keys; while one is open the key area takes no touches and is
+    /// hidden from VoiceOver, and the idle toolbar treats the panel as covered.
+    private var showsCoveringPanel: Bool {
+        showsUtilitiesMenu || showsSymbolLibrary
     }
 
     private func idleTool(_ title: String, icon: String, action: @escaping () -> Void) -> some View {
@@ -649,69 +678,29 @@ public struct KeyboardPanelView: View {
         .accessibilityIdentifier("keyboard.toolbar." + title)
     }
 
-    private var clipboardPasteAllowed: Bool {
-        var input = quickPasteIdleInput
-        input.isCovered = showsUtilitiesMenu
-        return showsSymbolLibrary && input.allowsPaste
-    }
-
-    private var clipboardPasteControl: some View {
-        clipboardPasteSlot.observe(
-            identity: ObjectIdentifier(controller),
-            changes: controller.objectWillChange.merge(with: quickSymbols.objectWillChange).eraseToAnyPublisher())
-        clipboardPasteSlot.updateEligibility(clipboardPasteAllowed)
-        return VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text("粘贴当前剪贴板")
-                Spacer()
-                QuickPasteView(
-                    inputContext: {
-                        guard let asyncInsertionContext,
-                            clipboardPasteSlot.isCurrent(identity: ObjectIdentifier(controller)), clipboardPasteAllowed
-                        else { return nil }
-                        return clipboardPasteSlot.context(host: asyncInsertionContext())
-                    },
-                    insertLiteral: { [weak controller] text in
-                        guard let controller, clipboardPasteSlot.isCurrent(identity: ObjectIdentifier(controller)),
-                            clipboardPasteAllowed
-                        else { return false }
-                        if let pasteLiteral { return pasteLiteral(text) }
-                        return controller.insertExternalLiteral(text)
-                    }, foreground: appearance.text(on: "panel"),
-                    onError: { error in
-                        guard clipboardPasteSlot.isCurrent(identity: ObjectIdentifier(controller)),
-                            clipboardPasteAllowed
-                        else { return }
-                        clipboardPasteError = error
-                    },
-                    didDispatchUserPaste: { text in
-                        Task { @MainActor in
-                            let note = await SharedQuickContentStorage.recordExplicitPaste(text)
-                            guard clipboardPasteSlot.isCurrent(identity: ObjectIdentifier(controller)),
-                                clipboardPasteAllowed
-                            else { return }
-                            clipboardPasteError = note
-                            clipboardPasteRevision &+= 1
-                        }
+    /// The idle toolbar in the user's order, cut to what the real toolbar width holds.
+    private func idleToolbar(width: CGFloat, fixedSlots: Int, trailingInset: CGFloat) -> some View {
+        let chosen = IdleToolbarAssembly.slots(layout: idleToolbarLayout, hidden: false)
+        let slots = IdleToolbarAssembly.fitting(chosen, width: Double(width), fixedSlots: fixedSlots)
+        return HStack(spacing: 4) {
+            ForEach(Array(slots.enumerated()), id: \.offset) { _, slot in
+                switch slot {
+                case .emoji:
+                    idleTool(String(localized: "颜文字"), icon: "face.smiling") {
+                        openQuickContent(section: "symbols", category: "kaomoji")
                     }
-                )
-                .id("\(ObjectIdentifier(controller))-\(hostBindingTick)")
-                .frame(width: 44, height: 44)
+                case .settings:
+                    idleTool(String(localized: "键盘设置"), icon: "gearshape") { showsUtilitiesMenu = true }
+                }
             }
-            if let clipboardPasteError { Text(clipboardPasteError).font(.footnote).foregroundStyle(.red) }
         }
-        // An old failure belongs to that attempt; it must not greet the next opening of the clipboard.
-        .onChange(of: clipboardPasteAllowed) { _, allowed in
-            if !allowed { clipboardPasteError = nil }
-        }
-        .onDisappear {
-            clipboardPasteSlot.updateEligibility(false)
-            clipboardPasteError = nil
-        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 8)
+        .padding(.trailing, trailingInset)
     }
 
-    private var quickPasteIdleInput: QuickPasteIdleInput {
-        QuickPasteIdleInput(
+    private var idleToolbarInput: IdleToolbarInput {
+        IdleToolbarInput(
             isComposing: controller.snapshot.isComposing,
             hasPrediction: controller.snapshot.isPrediction,
             hasCandidates: !controller.snapshot.candidates.isEmpty
@@ -725,13 +714,13 @@ public struct KeyboardPanelView: View {
             hasReadingContent: controller.ambiguityPicker.showsPicker || controller.readingFilter.isFiltering,
             hasPendingQueries: controller.readingQueryPending || controller.ambiguityQueryPending,
             isExpanded: showsAllCandidates,
-            isCovered: showsUtilitiesMenu || showsSymbolLibrary)
+            isCovered: showsCoveringPanel)
     }
 
     private func panelSurface(isWide: Bool) -> some View {
         let plan = layoutPlan
         let showsWideDismiss = isWide && dismissKeyboard != nil
-        let idle = quickPasteIdleInput.allowsPaste
+        let idle = idleToolbarInput.allowsToolbar
         return VStack(spacing: 0) {
             // While composing, the full original budget for candidates, readings, status and fallback badge is kept;
             // Optional tools use the blank band only when strictly idle, without splitting candidate width.
@@ -748,16 +737,13 @@ public struct KeyboardPanelView: View {
                     .padding(.trailing, showsWideDismiss ? 44 : 0)
                     .overlay(alignment: .trailing) {
                         if idleToolbarEnabled, idle, plan.headerHeight >= 32 {
-                            HStack(spacing: 4) {
-                                idleTool("剪贴板", icon: "list.clipboard") { openQuickContent(section: "clipboard") }
-                                idleTool("颜文字", icon: "face.smiling") {
-                                    openQuickContent(section: "symbols", category: "kaomoji")
-                                }
-                                idleTool("键盘设置", icon: "gearshape") { showsUtilitiesMenu = true }
+                            GeometryReader { proxy in
+                                idleToolbar(
+                                    width: proxy.size.width - 16, fixedSlots: showsWideDismiss ? 1 : 0,
+                                    trailingInset: showsWideDismiss ? 44 : 0
+                                )
+                                .frame(width: proxy.size.width, height: proxy.size.height)
                             }
-                            .frame(maxWidth: .infinity)
-                            .padding(.horizontal, 8)
-                            .padding(.trailing, showsWideDismiss ? 44 : 0)
                         }
                     }
                     .overlay(alignment: .trailing) {
@@ -770,7 +756,7 @@ public struct KeyboardPanelView: View {
                             .buttonStyle(KeyboardPressStyle())
                             .frame(width: 44, height: min(44, CGFloat(plan.headerHeight)))
                             .contentShape(Rectangle())
-                            .accessibilityLabel("收起键盘")
+                            .accessibilityLabel(String(localized: "收起键盘"))
                             .accessibilityIdentifier("keyboard.wideDismiss")
                         }
                     }
@@ -799,27 +785,33 @@ public struct KeyboardPanelView: View {
                 case .phonePad:
                     standardT9Keypad
                 case .authoredRows, .standardQwerty, .mergedPad, .configuredRows, .symbolRows, .splitHalves:
-                    VStack(spacing: 4) {
-                        if showsAllCandidates && !controller.snapshot.candidates.isEmpty {
-                            expandedCandidates
-                        } else if CGFloat(mainRowCount) * (keyHeight + 4) - 4 > mainAreaHeight + 1 {
-                            ScrollView {
+                    if showsKana12Surface {
+                        // The Japanese twelve-key board draws its four rows as one surface, so the
+                        // standard rows area and its footer are replaced by it in place.
+                        kana12KeyArea
+                    } else {
+                        VStack(spacing: 4) {
+                            if showsAllCandidates && !controller.snapshot.candidates.isEmpty {
+                                expandedCandidates
+                            } else if CGFloat(mainRowCount) * (keyHeight + 4) - 4 > mainAreaHeight + 1 {
+                                ScrollView {
+                                    gatedKeyRows
+                                }
+                                .sharpCandidateScrollEdges()
+                                .frame(height: mainAreaHeight)
+                            } else {
                                 gatedKeyRows
                             }
-                            .sharpCandidateScrollEdges()
-                            .frame(height: mainAreaHeight)
-                        } else {
-                            gatedKeyRows
                         }
-                    }
-                    .frame(height: mainAreaHeight, alignment: .top)
-                    if usesConfiguredLayout && !definitionFacts.isBundledControlRowPolicy {
-                        // Author layout bar: the declared control row is rendered with its actions,
-                        // order, widths and long-press menus; shortcut injections are de-duplicated
-                        // against entries the author already declared.
-                        KeyAreaRenderGate(token: keyAreaRenderToken) { layoutUtilityBar }.equatable()
-                    } else {
-                        KeyAreaRenderGate(token: keyAreaRenderToken) { controlRow }.equatable()
+                        .frame(height: mainAreaHeight, alignment: .top)
+                        if usesConfiguredLayout && !definitionFacts.isBundledControlRowPolicy {
+                            // Author layout bar: the declared control row is rendered with its actions,
+                            // order, widths and long-press menus; shortcut injections are de-duplicated
+                            // against entries the author already declared.
+                            KeyAreaRenderGate(token: keyAreaRenderToken) { layoutUtilityBar }.equatable()
+                        } else {
+                            KeyAreaRenderGate(token: keyAreaRenderToken) { controlRow }.equatable()
+                        }
                     }
                 }
             }
@@ -829,7 +821,9 @@ public struct KeyboardPanelView: View {
             .padding(.horizontal, splitEdgeInset)
             .id(keyAreaGeneration)
             .background(Color.black.opacity(0.001))
-            // Switch pages in place. A keyframeAnimator/visualEffect around this
+            .opacity(switchFade)
+            // Switch pages in place; a switch of input method or layout only fades the keys in. A
+            // keyframeAnimator/visualEffect around this
             // entire subtree also wrapped UIKit key views; even a 2pt settle
             // introduced a separate presentation surface and displaced the cap
             // while its touch owner stayed put. Only the individual key's release
@@ -856,6 +850,7 @@ public struct KeyboardPanelView: View {
                 fontFamily: appearance.skin.typography.family,
                 fontWeight: appearance.skin.typography.weight)
         )
+        .environment(\.keyboardInputLanguage, controller.inputLanguage.language)
         .overlay { KeyboardPopupSurface(view: popupSurface).allowsHitTesting(false) }
         .background(appearance.panelBackground.ignoresSafeArea(edges: .bottom))
         .tint(appearance.accentForeground)
@@ -956,10 +951,17 @@ public struct KeyboardPanelView: View {
             }
             .onChange(of: controller.keyboardType) { syncHostPage() }
             .onAppear { syncHostPage() }
+            .onAppear { announceSwitchFromOtherPackage() }
+            .onChange(of: controller.awaitsOtherPackage) { restoreKeysAfterFailedSwitch() }
+            // Another package's keyboard list loads after its keys: the notice catches up with it.
+            .onChange(of: controller.userKeyboardChoices) {
+                if layoutHintName != nil { layoutHintName = currentInputMethodName }
+            }
             .onAppear { refreshContentDock() }
             .onChange(of: hostBindingTick) {
                 refreshContentDock()
                 clearSymbolMarksOverride()
+                refreshKana12Preferences()
             }
     }
 
@@ -988,6 +990,8 @@ public struct KeyboardPanelView: View {
     /// Presentation, layout and dock-change hooks only; never per key.
     private func refreshContentDock() {
         idleToolbarEnabled = KeyboardIdleToolbarPreferences.read(from: KeyboardIdleToolbarPreferences.defaults)
+        idleToolbarLayout = KeyboardIdleToolbarLayoutPreferences.read(
+            from: KeyboardIdleToolbarLayoutPreferences.defaults)
         let dock = KeyboardContentDockPreferences.dock(for: controller.layout)
         ContentDockCache.docks[controller.layout] = dock
         if contentDock != dock { contentDock = dock }
@@ -1003,6 +1007,7 @@ public struct KeyboardPanelView: View {
                 // still have a cost, so zero overhead is not claimed.
                 feedback.refreshPreferences()
                 feedbackLifecycleToken = feedback.prepare()
+                installKana12PanelBinding()
             }
             .onDisappear(perform: finishPanelLifecycle)
     }

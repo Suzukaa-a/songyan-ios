@@ -86,20 +86,42 @@ public struct ShuangpinHintSnapshot: Codable, Equatable, Sendable {
     /// Strict: an inconsistent snapshot is refused, never silently repaired. Re-pointing a broken
     /// selection at the built-in preset would show hints the user never chose.
     public func validate() throws {
-        try check(version == Self.currentVersion, "版本", "只支持版本 \(Self.currentVersion)")
         try check(
-            presets.count <= Self.maximumPresets, "预设数量",
-            "最多 \(Self.maximumPresets) 个，请先删除不用的预设")
-        try check(Set(presets.map(\.id)).count == presets.count, "预设列表", "标识不能重复")
-        try check(!selectedPresetID.isEmpty, "当前预设", "需要选择一个预设")
+            version == Self.currentVersion,
+            String(localized: "shinpin.field.version", bundle: .module),
+            String(
+                format: String(localized: "shinpin.reason.onlyVersion", bundle: .module),
+                String(Self.currentVersion)))
         try check(
-            preset(id: selectedPresetID) != nil, "当前预设",
-            "找不到标识为 \(selectedPresetID) 的预设")
+            presets.count <= Self.maximumPresets,
+            String(localized: "shinpin.field.presetCount", bundle: .module),
+            String(
+                format: String(localized: "shinpin.reason.moreThanMaximum", bundle: .module),
+                String(Self.maximumPresets)))
+        try check(
+            Set(presets.map(\.id)).count == presets.count,
+            String(localized: "shinpin.field.presetList", bundle: .module),
+            String(localized: "shinpin.reason.idsUnique", bundle: .module))
+        try check(
+            !selectedPresetID.isEmpty,
+            String(localized: "shinpin.field.currentPreset", bundle: .module),
+            String(localized: "shinpin.reason.selectPreset", bundle: .module))
+        try check(
+            preset(id: selectedPresetID) != nil,
+            String(localized: "shinpin.field.currentPreset", bundle: .module),
+            String(
+                format: String(localized: "shinpin.reason.presetNotFound", bundle: .module),
+                selectedPresetID))
         for preset in presets { try preset.validate() }
     }
 
     private func check(_ condition: Bool, _ field: String, _ reason: String) throws {
-        guard condition else { throw ShuangpinHintError("提示设置「\(field)」无法使用：\(reason)。") }
+        guard condition else {
+            throw ShuangpinHintError(
+                String(
+                    format: String(localized: "shinpin.error.settingsUnusable", bundle: .module),
+                    field, reason))
+        }
     }
 }
 
@@ -149,7 +171,8 @@ public struct ShuangpinHintStore: Sendable {
         } catch let error as LayoutError {
             throw ShuangpinHintError(friendly(error))
         } catch {
-            throw ShuangpinHintError("提示文件无法打开，请确认它是一个普通文件后再试。")
+            throw ShuangpinHintError(
+                String(localized: "shinpin.error.fileUnopenable", bundle: .module))
         }
     }
 
@@ -158,29 +181,55 @@ public struct ShuangpinHintStore: Sendable {
     /// Strict decode: unknown fields, wrong versions, wrong JSON types and inconsistent selections
     /// are refused with the offending field named.
     public static func decodeSnapshot(_ data: Data) throws -> ShuangpinHintSnapshot {
-        try ShuangpinHintDocument.checkSize(data, "提示设置")
-        let root = try ShuangpinHintDocument.object(data, "提示设置", "请选择双拼提示文件")
+        let settingsLabel = String(localized: "shinpin.field.settings", bundle: .module)
+        try ShuangpinHintDocument.checkSize(data, settingsLabel)
+        let root = try ShuangpinHintDocument.object(
+            data, settingsLabel, String(localized: "shinpin.malformed.chooseSettings", bundle: .module))
         try ShuangpinHintDocument.rejectUnknownKeys(
             root, allowed: ["version", "enabled", "selectedPresetID", "presets"])
         let version =
-            try ShuangpinHintDocument.int(root["version"], "版本", key: "version")
+            try ShuangpinHintDocument.int(
+                root["version"], String(localized: "shinpin.field.version", bundle: .module),
+                key: "version")
             ?? ShuangpinHintSnapshot.currentVersion
-        let enabled = try ShuangpinHintDocument.bool(root["enabled"], "开关", key: "enabled") ?? false
+        let enabled =
+            try ShuangpinHintDocument.bool(
+                root["enabled"], String(localized: "shinpin.field.enabled", bundle: .module),
+                key: "enabled") ?? false
         let selected =
             try ShuangpinHintDocument.string(
-                root["selectedPresetID"], "当前预设",
+                root["selectedPresetID"],
+                String(localized: "shinpin.field.currentPreset", bundle: .module),
                 key: "selectedPresetID", required: true) ?? ""
         var presets: [ShuangpinHintPreset] = []
         if let raw = root["presets"] {
+            let presetList = String(localized: "shinpin.field.presetList", bundle: .module)
             guard let list = raw as? [Any] else {
-                throw ShuangpinHintError("提示设置「预设列表」无法使用：需要一组预设。")
+                throw ShuangpinHintError(
+                    String(
+                        format: String(localized: "shinpin.error.settingsUnusable", bundle: .module),
+                        presetList,
+                        String(localized: "shinpin.reason.presetListNeeded", bundle: .module)))
             }
             guard list.count <= ShuangpinHintSnapshot.maximumPresets else {
-                throw ShuangpinHintError("提示设置「预设列表」无法使用：最多 \(ShuangpinHintSnapshot.maximumPresets) 个。")
+                throw ShuangpinHintError(
+                    String(
+                        format: String(localized: "shinpin.error.settingsUnusable", bundle: .module),
+                        presetList,
+                        String(
+                            format: String(
+                                localized: "shinpin.reason.presetListMaximum", bundle: .module),
+                            String(ShuangpinHintSnapshot.maximumPresets))))
             }
             for element in list {
                 guard let object = element as? [String: Any] else {
-                    throw ShuangpinHintError("提示设置「预设列表」无法使用：每一项都需要是一个预设。")
+                    throw ShuangpinHintError(
+                        String(
+                            format: String(
+                                localized: "shinpin.error.settingsUnusable", bundle: .module),
+                            presetList,
+                            String(
+                                localized: "shinpin.reason.presetListEntries", bundle: .module)))
                 }
                 presets.append(try ShuangpinHintPreset.decode(JSONSerialization.data(withJSONObject: object)))
             }
@@ -196,7 +245,8 @@ public struct ShuangpinHintStore: Sendable {
         try snapshot.validate()
         let encoder = JSONEncoder.layoutKitPretty()
         let data = try encoder.encode(snapshot)
-        try ShuangpinHintDocument.checkSize(data, "提示设置")
+        try ShuangpinHintDocument.checkSize(
+            data, String(localized: "shinpin.field.settings", bundle: .module))
         return data
     }
 
@@ -208,8 +258,10 @@ public struct ShuangpinHintStore: Sendable {
     /// Reads either a single preset file or a whole settings file. Enabled: the preset in use.
     /// Disabled: the first user preset, so importing a shared file yields something worth keeping.
     public static func decodePresetFile(_ data: Data) throws -> ShuangpinHintPreset {
-        try ShuangpinHintDocument.checkSize(data, "提示文件")
-        let root = try ShuangpinHintDocument.object(data, "提示文件", "请选择提示预设文件")
+        let fileLabel = String(localized: "shinpin.field.file", bundle: .module)
+        try ShuangpinHintDocument.checkSize(data, fileLabel)
+        let root = try ShuangpinHintDocument.object(
+            data, fileLabel, String(localized: "shinpin.malformed.choosePreset", bundle: .module))
         if root["presets"] != nil {
             let snapshot = try decodeSnapshot(data)
             // A validated snapshot always contains its selected preset.
@@ -218,7 +270,8 @@ public struct ShuangpinHintStore: Sendable {
                     ?? snapshot.userPresets.first
                     ?? snapshot.preset(id: snapshot.selectedPresetID)
             else {
-                throw ShuangpinHintError("提示文件里没有可用的预设。")
+                throw ShuangpinHintError(
+                    String(localized: "shinpin.error.noUsablePreset", bundle: .module))
             }
             return preset
         }
@@ -228,9 +281,18 @@ public struct ShuangpinHintStore: Sendable {
     /// Maps an internal read failure to wording a user can act on.
     public static func friendly(_ error: LayoutError) -> String {
         switch error {
-        case .invalid(let reason): return "提示设置无法读取：\(reason)"
-        case .duplicateID(let id): return "提示设置里有重复的预设标识：\(id)。"
-        case .unknownID(let id): return "提示设置里找不到标识为 \(id) 的预设。"
+        case .invalid(let reason):
+            return String(
+                format: String(localized: "shinpin.error.settingsUnreadable", bundle: .module),
+                reason)
+        case .duplicateID(let id):
+            return String(
+                format: String(localized: "shinpin.error.settingsDuplicateID", bundle: .module),
+                id)
+        case .unknownID(let id):
+            return String(
+                format: String(localized: "shinpin.error.settingsUnknownID", bundle: .module),
+                id)
         }
     }
 }

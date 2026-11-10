@@ -53,6 +53,24 @@ public struct AppearanceDocument: Codable, Equatable, Identifiable, Sendable {
 
     public var isSystemDefault: Bool { id == Self.systemDefaultID }
 
+    /// The name to show in the interface for the built-in appearances. The stored `name` keeps the
+    /// record's own value (it is written into saved files), so the interface language is never baked
+    /// into a saved record; an appearance the user made always shows its stored name.
+    public var displayName: String {
+        if isSystemDefault {
+            return String(localized: "appearance.name.systemDefault", bundle: .module)
+        }
+        switch id {
+        case "builtin-songyan": return String(localized: "appearance.name.songyan", bundle: .module)
+        case "builtin-ink": return String(localized: "appearance.name.ink", bundle: .module)
+        case "builtin-bamboo": return String(localized: "appearance.name.bamboo", bundle: .module)
+        case "builtin-paper": return String(localized: "appearance.name.paper", bundle: .module)
+        case "builtin-galaxy": return String(localized: "appearance.name.galaxy", bundle: .module)
+        case "builtin-twilight": return String(localized: "appearance.name.dusk", bundle: .module)
+        default: return name
+        }
+    }
+
     // MARK: - Identity consistency
 
     /// Whether the three identities agree (skin, candidate bar, project).
@@ -83,7 +101,8 @@ public struct AppearanceDocument: Codable, Equatable, Identifiable, Sendable {
         let newID = UUID().uuidString.lowercased()
         var result = normalized()
         result.id = newID
-        result.name = name + " 副本"
+        result.name = String(
+            format: String(localized: "appearance.name.copySuffix", bundle: .module), name)
         result.skin = Self.reidentified(skin, id: newID, name: result.name).normalized()
         result.candidateBar = Self.reidentified(candidateBar, id: newID, name: result.name)
         return result
@@ -119,7 +138,11 @@ public struct AppearanceDocument: Codable, Equatable, Identifiable, Sendable {
 
     public func validate() throws {
         func require(_ test: Bool, _ path: String) throws {
-            if !test { throw AppearanceError("\(path): 值无效") }
+            if !test {
+                throw AppearanceError(
+                    String(
+                        format: String(localized: "appearance.error.invalidValue", bundle: .module), path))
+            }
         }
         try require(formatVersion == Self.formatVersionValue, "$.formatVersion")
         let charset = CharacterSet(charactersIn: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_")
@@ -128,8 +151,16 @@ public struct AppearanceDocument: Codable, Equatable, Identifiable, Sendable {
         try skin.validate()
         try candidateBar.validate()
         // Composite identity: skin/candidate-bar generation mixing is not allowed.
-        try require(id == skin.id, "$.skin.id 必须等于 $.id（皮肤与外观项目标识必须一致）")
-        try require(id == candidateBar.id, "$.candidateBar.id 必须等于 $.id（候选栏归属该外观项目）")
+        try require(
+            id == skin.id,
+            String(
+                format: String(localized: "appearance.error.skinIdentityMismatch", bundle: .module),
+                "$.skin.id"))
+        try require(
+            id == candidateBar.id,
+            String(
+                format: String(localized: "appearance.error.barIdentityMismatch", bundle: .module),
+                "$.candidateBar.id"))
     }
 
     // MARK: - Coding (strict fields + default filling, same discipline as SkinKit/CandidateKit)
@@ -139,26 +170,37 @@ public struct AppearanceDocument: Codable, Equatable, Identifiable, Sendable {
     ]
 
     public static func decode(_ data: Data) throws -> Self {
-        guard data.count <= 256 * 1024 else { throw AppearanceError("$: JSON 超过 256KB") }
+        guard data.count <= 256 * 1024 else {
+            throw AppearanceError(String(localized: "appearance.error.fileTooLarge", bundle: .module))
+        }
         guard let source = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            throw AppearanceError("$: 需要对象")
+            throw AppearanceError(String(localized: "appearance.error.notAnObject", bundle: .module))
         }
         guard source["formatVersion"] as? Int == formatVersionValue else {
-            throw AppearanceError("$.formatVersion: 只支持 \(formatVersionValue)")
+            throw AppearanceError(
+                String(
+                    format: String(localized: "appearance.error.unsupportedVersion", bundle: .module),
+                    String(formatVersionValue)))
         }
         // Known fields are kept, unknown fields rejected; nested content is validated by each package's strict decoding.
         var payload: [String: Any] = [:]
         for (key, value) in source {
-            guard topLevelFields.contains(key) else { throw AppearanceError("$.\(key): 未知字段") }
+            guard topLevelFields.contains(key) else {
+                throw AppearanceError(
+                    String(
+                        format: String(localized: "appearance.error.unknownField", bundle: .module), key))
+            }
             payload[key] = value
         }
-        guard let id = payload["id"] as? String, !id.isEmpty else { throw AppearanceError("$.id: 缺少或为空") }
+        guard let id = payload["id"] as? String, !id.isEmpty else {
+            throw AppearanceError(String(localized: "appearance.error.missingID", bundle: .module))
+        }
         guard let name = payload["name"] as? String, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         else {
-            throw AppearanceError("$.name: 缺少或为空")
+            throw AppearanceError(String(localized: "appearance.error.missingName", bundle: .module))
         }
         guard let skinObject = payload["skin"], let barObject = payload["candidateBar"] else {
-            throw AppearanceError("$: 外观项目必须同时包含 skin 与 candidateBar")
+            throw AppearanceError(String(localized: "appearance.error.missingParts", bundle: .module))
         }
         // Skin and candidate area each go through their own package's strict decoding (unknown fields, invalid values, wrong versions are rejected).
         let skin = try SkinDefinition.decode(try JSONSerialization.data(withJSONObject: skinObject))
@@ -166,19 +208,27 @@ public struct AppearanceDocument: Codable, Equatable, Identifiable, Sendable {
         // Mixed generations must be rejected: skin/candidate-area identities in the file must match the project's.
         // (The programmatic `init` re-attaches identities, but persisted content must not be inconsistent.)
         guard skin.id == id else {
-            throw AppearanceError("$.skin.id: 与 $.id 不一致（皮肤与外观项目不匹配）")
+            throw AppearanceError(
+                String(
+                    format: String(localized: "appearance.error.skinIDMismatch", bundle: .module),
+                    "$.skin.id"))
         }
         guard bar.id == id else {
-            throw AppearanceError("$.candidateBar.id: 与 $.id 不一致（候选栏与外观项目不匹配）")
+            throw AppearanceError(
+                String(
+                    format: String(localized: "appearance.error.barIDMismatch", bundle: .module),
+                    "$.candidateBar.id"))
         }
         var document = AppearanceDocument(id: id, name: name, skin: skin, candidateBar: bar)
         if let author = payload["author"] {
-            guard let author = author as? String else { throw AppearanceError("$.author: 需要字符串") }
+            guard let author = author as? String else {
+                throw AppearanceError(String(localized: "appearance.error.authorNotString", bundle: .module))
+            }
             document.author = author
         }
         if let appearance = payload["appearance"] {
             guard let raw = appearance as? String, let parsed = SkinAppearance(rawValue: raw) else {
-                throw AppearanceError("$.appearance: 需要 system/light/dark")
+                throw AppearanceError(String(localized: "appearance.error.invalidAppearance", bundle: .module))
             }
             document.appearance = parsed
         }
@@ -191,7 +241,9 @@ public struct AppearanceDocument: Codable, Equatable, Identifiable, Sendable {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let data = try encoder.encode(normalized())
-        guard data.count <= 256 * 1024 else { throw AppearanceError("$: JSON 超过 256KB") }
+        guard data.count <= 256 * 1024 else {
+            throw AppearanceError(String(localized: "appearance.error.fileTooLarge", bundle: .module))
+        }
         return data
     }
 
@@ -206,29 +258,36 @@ public struct AppearanceDocument: Codable, Equatable, Identifiable, Sendable {
         try decodeImported(
             readData(
                 from: url, maximumBytes: 256 * 1024,
-                oversizeMessage: "$: JSON 超过 256KB"))
+                oversizeMessage: String(
+                    localized: "appearance.error.fileTooLarge", bundle: .module)))
     }
 
     /// Reads an untrusted user-supplied file: it must be a regular file within the size limit.
     static func readData(from url: URL, maximumBytes: Int, oversizeMessage: String) throws -> Data {
-        guard url.isFileURL else { throw AppearanceError("需要本地普通文件") }
+        guard url.isFileURL else {
+            throw AppearanceError(String(localized: "appearance.error.notLocalFile", bundle: .module))
+        }
         let values = try url.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey])
-        guard values.isRegularFile == true else { throw AppearanceError("需要普通文件") }
+        guard values.isRegularFile == true else {
+            throw AppearanceError(String(localized: "appearance.error.notRegularFile", bundle: .module))
+        }
         guard (values.fileSize ?? 0) <= maximumBytes else { throw AppearanceError(oversizeMessage) }
         return try Data(contentsOf: url)
     }
 
     public static func decodeImported(_ data: Data) throws -> AppearanceDocument {
-        guard data.count <= 256 * 1024 else { throw AppearanceError("$: JSON 超过 256KB") }
+        guard data.count <= 256 * 1024 else {
+            throw AppearanceError(String(localized: "appearance.error.fileTooLarge", bundle: .module))
+        }
         guard let raw = try? JSONSerialization.jsonObject(with: data),
             let object = raw as? [String: Any]
         else {
-            throw AppearanceError("$: 需要对象")
+            throw AppearanceError(String(localized: "appearance.error.notAnObject", bundle: .module))
         }
         // A snapshot file (selection + content) is not an importable config: give clear guidance instead of a vague schema error.
         let snapshotKeys: Set<String> = ["selectedSkinID", "selectedBarID", "selectedID"]
         if !snapshotKeys.isDisjoint(with: object.keys) {
-            throw AppearanceError("$: 这是快照文件（选择与内容），请分别导入皮肤、候选栏或外观项目文件。")
+            throw AppearanceError(String(localized: "appearance.error.snapshotFile", bundle: .module))
         }
         if object["skin"] != nil || object["candidateBar"] != nil {
             return try decode(data)
@@ -253,7 +312,7 @@ public struct AppearanceDocument: Codable, Equatable, Identifiable, Sendable {
                     skin: .systemDefault, candidateBar: bar
                 ).encoded())
         }
-        throw AppearanceError("$: 无法识别为皮肤、候选栏或外观项目文件。")
+        throw AppearanceError(String(localized: "appearance.error.unrecognizedFile", bundle: .module))
     }
 }
 

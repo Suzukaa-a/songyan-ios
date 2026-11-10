@@ -60,7 +60,9 @@ public struct SymbolCatalogStore: Sendable {
             do {
                 return try SymbolCatalog.decode(contentsOf: activeFile)
             } catch {
-                readError?(SymbolCatalogError("自定义符号目录读取失败：\(error.localizedDescription)"))
+                readError?(
+                    SymbolCatalogError(
+                        QuickContentText.format("symbol.error.customUnreadable", error.localizedDescription)))
             }
         }
         // A missing bundled default is a packaging error; throwing here would break keyboard

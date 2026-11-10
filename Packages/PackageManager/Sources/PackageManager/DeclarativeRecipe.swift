@@ -38,7 +38,7 @@ public struct DeclarativeRecipe: Sendable {
         guard let text = String(data: source, encoding: .utf8), !text.contains("\r"), !text.contains("\t"),
             !text.contains("\0")
         else {
-            throw RecipeInstallError.invalidManifest("配置文件格式必须为 UTF-8 编码，且使用换行符与空格缩进")
+            throw RecipeInstallError.invalidManifest(PackageText.string("recipe.error.invalidEncoding"))
         }
         try RecipePlanSupport.validateYAML(text, label: path)
         let document = try BoundedYAML.load(yaml: text) as? [String: Any]
@@ -59,17 +59,22 @@ public struct DeclarativeRecipe: Sendable {
                 guard ["recipe:", "download_files:", "install_files:", "patch_files:"].contains(header),
                     sections[String(header.dropLast())] == nil
                 else {
-                    throw RecipeInstallError.invalidManifest("不支持的配置顶层语句：\(line)")
+                    throw RecipeInstallError.invalidManifest(
+                        PackageText.format("recipe.error.unsupportedTopLevel", line))
                 }
                 section = String(header.dropLast())
                 sections[section!] = []
                 if folded { foldedSections.insert(section!) }
             } else {
-                guard let section else { throw RecipeInstallError.invalidManifest("配置文件缺少顶层声明") }
+                guard let section else {
+                    throw RecipeInstallError.invalidManifest(PackageText.string("recipe.error.missingTopLevel"))
+                }
                 sections[section, default: []].append(line)
             }
         }
-        guard let metadata = sections["recipe"] else { throw RecipeInstallError.invalidManifest("配置文件缺少元信息声明") }
+        guard let metadata = sections["recipe"] else {
+            throw RecipeInstallError.invalidManifest(PackageText.string("recipe.error.missingMetadata"))
+        }
         var name: String?
         var args: [String] = []
         var readingArgs = false
@@ -92,7 +97,7 @@ public struct DeclarativeRecipe: Sendable {
             } else if line.hasPrefix("    - "), readingArgs {
                 args.append(String(line.dropFirst(6)))
             } else {
-                throw RecipeInstallError.invalidManifest("不支持的配置元信息语句：\(line)")
+                throw RecipeInstallError.invalidManifest(PackageText.format("recipe.error.unsupportedMetadata", line))
             }
         }
         func list(_ key: String) throws -> [String] {
@@ -100,13 +105,14 @@ public struct DeclarativeRecipe: Sendable {
                 let clean = line.trimmingCharacters(in: .whitespaces)
                 if clean.isEmpty || clean.hasPrefix("#") { return nil }
                 guard line.hasPrefix(foldedSections.contains(key) ? "  " : "  - ") else {
-                    throw RecipeInstallError.invalidManifest("\(key) 仅支持列表或每行一项的文本")
+                    throw RecipeInstallError.invalidManifest(PackageText.format("recipe.error.listOnly", key))
                 }
                 let value = String(line.dropFirst(foldedSections.contains(key) ? 2 : 4))
                 guard !value.isEmpty, !value.contains(where: { $0.isWhitespace }), !value.contains("$"),
                     !value.contains("`"), !value.contains("\""), !value.contains("'")
                 else {
-                    throw RecipeInstallError.invalidManifest("\(key) 不支持引号或变量插值：\(value)")
+                    throw RecipeInstallError.invalidManifest(
+                        PackageText.format("recipe.error.noQuotesOrVariables", key, value))
                 }
                 return value
             }
@@ -116,14 +122,14 @@ public struct DeclarativeRecipe: Sendable {
         for value in try list("download_files") {
             let parts = value.components(separatedBy: "::")
             guard parts.count <= 2, let url = URL(string: parts.last!), url.scheme == "https", url.host != nil else {
-                throw RecipeInstallError.invalidManifest("外部下载仅支持 HTTPS 链接：\(value)")
+                throw RecipeInstallError.invalidManifest(PackageText.format("recipe.error.httpsOnly", value))
             }
             let filename =
                 parts.count == 2
                 ? parts[0] : String(value.split(separator: "/", omittingEmptySubsequences: false).last ?? "")
             try RecipePlanSupport.checkPath(filename)
             guard downloadPaths.insert(filename).inserted else {
-                throw RecipeInstallError.invalidManifest("暂不支持重复的下载目标：\(filename)")
+                throw RecipeInstallError.invalidManifest(PackageText.format("recipe.error.duplicateDownload", filename))
             }
             downloads.append(.init(path: filename, url: url))
         }
@@ -135,7 +141,7 @@ public struct DeclarativeRecipe: Sendable {
         func finish() throws {
             guard let target else { return }
             guard lines.contains(where: { $0.hasPrefix("  - ") }) else {
-                throw RecipeInstallError.invalidManifest("patch_files 目标必须包含补丁列表：\(target)")
+                throw RecipeInstallError.invalidManifest(PackageText.format("recipe.error.patchListRequired", target))
             }
             patches.append((target, lines.joined(separator: "\n") + "\n"))
         }
@@ -148,7 +154,7 @@ public struct DeclarativeRecipe: Sendable {
                 if target != nil { lines.append(line.hasPrefix("  ") ? String(line.dropFirst(2)) : line) }
             } else {
                 guard target != nil, line.hasPrefix("    ") else {
-                    throw RecipeInstallError.invalidManifest("patch_files 缩进格式不正确：\(line)")
+                    throw RecipeInstallError.invalidManifest(PackageText.format("recipe.error.patchIndentation", line))
                 }
                 lines.append(String(line.dropFirst(2)))
             }
@@ -236,7 +242,7 @@ public struct DeclarativeRecipePlan: Sendable {
     ) throws {
         self.sharedOpenCCDirectory = sharedOpenCCDirectory
         if let original = packageFiles[recipe.path], original != recipe.source {
-            throw RecipeInstallError.invalidResource("所选配置文件与同路径原始文件冲突：\(recipe.path)")
+            throw RecipeInstallError.invalidResource(PackageText.format("recipe.error.samePathConflict", recipe.path))
         }
         sourceFiles = packageFiles.merging([recipe.path: recipe.source]) { _, new in new }
         sourceFileResources = packageFileResources
@@ -244,14 +250,19 @@ public struct DeclarativeRecipePlan: Sendable {
         for input in [packageFiles, existingFiles, providedDownloads] {
             for (path, data) in input
             where RecipeResourceBudget.isModel(path) && data.count > RecipeResourceBudget.bufferBytes {
-                throw RecipeInstallError.invalidResource("大型模型文件超出内存限制，请使用外部文件引用：\(path)")
+                throw RecipeInstallError.invalidResource(PackageText.format("recipe.error.modelTooLarge", path))
             }
         }
-        for input in [packageFileResources, existingFileResources, providedDownloadFiles] {
+        // An installed compiled-only package keeps its compiled tables as references; a recipe over
+        // it carries them unchanged, since there is no text dictionary to rebuild them from.
+        for (input, installed) in [
+            (packageFileResources, true), (existingFileResources, true), (providedDownloadFiles, false),
+        ] {
             for path in input.keys {
+                if installed, SchemeSourceCheck.isCompiledBuildFile(path) { continue }
                 try RecipePlanSupport.checkPath(path)
                 guard RecipeResourceBudget.isModel(path) else {
-                    throw RecipeInstallError.invalidResource("当前外部文件仅支持 .gram 语法模型与联想词库：\(path)")
+                    throw RecipeInstallError.invalidResource(PackageText.format("recipe.error.externalModelOnly", path))
                 }
             }
         }
@@ -262,14 +273,14 @@ public struct DeclarativeRecipePlan: Sendable {
         guard Set(packageFiles.keys).isDisjoint(with: packageFileResources.keys),
             Set(existingFiles.keys).isDisjoint(with: existingFileResources.keys),
             Set(providedDownloads.keys).isDisjoint(with: providedDownloadFiles.keys)
-        else { throw RecipeInstallError.invalidResource("同一路径同时提供了内存数据和外部文件引用") }
+        else { throw RecipeInstallError.invalidResource(PackageText.string("recipe.error.mixedSources")) }
         guard packageReference.range(of: "^[A-Za-z0-9_./-]+$", options: .regularExpression) != nil else {
             throw RecipeInstallError.invalidManifest("package reference")
         }
         if !selectedRecipe.isEmpty {
             try RecipePlanSupport.checkPath(selectedRecipe)
             guard recipe.declaredName == selectedRecipe else {
-                throw RecipeInstallError.invalidManifest("安装规则与所选配置文件路径不一致")
+                throw RecipeInstallError.invalidManifest(PackageText.string("recipe.error.recipePathMismatch"))
             }
         }
         var environment: [String: String] = [:]
@@ -277,30 +288,37 @@ public struct DeclarativeRecipePlan: Sendable {
             guard argument.name.range(of: "^[A-Za-z_][A-Za-z0-9_]*$", options: .regularExpression) != nil,
                 argument.value.range(of: "^[A-Za-z0-9_./-]*$", options: .regularExpression) != nil
             else {
-                throw RecipeInstallError.invalidManifest("参数仅支持 name=value 格式")
+                throw RecipeInstallError.invalidManifest(PackageText.string("recipe.error.argumentFormat"))
             }
             environment[argument.name] = argument.value
         }
         let rx =
             packageReference + ":" + selectedRecipe + ":"
             + arguments.map { $0.name + "=" + $0.value }.joined(separator: ",")
-        guard !rx.contains(".") else { throw RecipeInstallError.invalidManifest("暂不支持包含正则元字符的旧版更新规则") }
+        guard !rx.contains(".") else {
+            throw RecipeInstallError.invalidManifest(PackageText.string("recipe.error.legacyRegex"))
+        }
         var available = packageFiles
         var availableFiles = packageFileResources
         for download in recipe.downloads {
             if let file = providedDownloadFiles[download.path] {
                 guard
                     expectedDownloadSHA256[download.path] == nil || expectedDownloadSHA256[download.path] == file.sha256
-                else { throw RecipeInstallError.invalidResource("外部文件校验不符：\(download.path)") }
+                else {
+                    throw RecipeInstallError.invalidResource(
+                        PackageText.format("recipe.error.checksumMismatch", download.path))
+                }
                 availableFiles[download.path] = file
                 available[download.path] = nil
                 continue
             }
             guard let bytes = providedDownloads[download.path] else {
-                throw RecipeInstallError.invalidResource("缺少配置所需的外部文件：\(download.path)（\(download.url.absoluteString)）")
+                throw RecipeInstallError.invalidResource(
+                    PackageText.format("recipe.error.missingExternal", download.path, download.url.absoluteString))
             }
             if let expected = expectedDownloadSHA256[download.path], sha256Hex(bytes) != expected {
-                throw RecipeInstallError.invalidResource("外部文件校验不符：\(download.path)")
+                throw RecipeInstallError.invalidResource(
+                    PackageText.format("recipe.error.checksumMismatch", download.path))
             }
             available[download.path] = bytes
             availableFiles[download.path] = nil
@@ -324,12 +342,14 @@ public struct DeclarativeRecipePlan: Sendable {
                     pattern.withCString { p in path.withCString { fnmatch(p, $0, FNM_PATHNAME | FNM_PERIOD) == 0 } }
                 })
             else {
-                throw RecipeInstallError.invalidManifest("暂不支持匹配目录的展开规则：\(pattern)")
+                throw RecipeInstallError.invalidManifest(PackageText.format("recipe.error.directoryPattern", pattern))
             }
             let matches = availablePaths.filter { path in
                 pattern.withCString { p in path.withCString { fnmatch(p, $0, FNM_PATHNAME | FNM_PERIOD) == 0 } }
             }.sorted()
-            guard !matches.isEmpty else { throw RecipeInstallError.invalidResource("未找到符合安装规则的文件：\(pattern)") }
+            guard !matches.isEmpty else {
+                throw RecipeInstallError.invalidResource(PackageText.format("recipe.error.noMatchedFiles", pattern))
+            }
             for path in matches {
                 output[path] = available[path]
                 outputFiles[path] = availableFiles[path]
@@ -340,14 +360,16 @@ public struct DeclarativeRecipePlan: Sendable {
             try SharedRimePresets.supplement(&output, openCCDirectory: sharedOpenCCDirectory)
         }
         guard Set(restoringGrammarOverrides.map(\.key)).count == restoringGrammarOverrides.count else {
-            throw RecipeInstallError.invalidResource("存在重复的模型配置记录")
+            throw RecipeInstallError.invalidResource(PackageText.string("recipe.error.duplicateModelRecord"))
         }
         for override in restoringGrammarOverrides {
             guard let original = output[override.target] else {
-                throw RecipeInstallError.invalidResource("要修改的模型目标文件不存在")
+                throw RecipeInstallError.invalidResource(PackageText.string("recipe.error.missingModelTarget"))
             }
             let restored = try override.removing(from: original)
-            try RecipePlanSupport.validateYAML(String(decoding: restored, as: UTF8.self), label: "恢复默认配置")
+            try RecipePlanSupport.validateYAML(
+                String(decoding: restored, as: UTF8.self),
+                label: PackageText.string("recipe.error.labelRestoreDefaults"))
             output[override.target] = restored
         }
         restoredGrammarOverrides = restoringGrammarOverrides
@@ -357,11 +379,13 @@ public struct DeclarativeRecipePlan: Sendable {
         for patch in recipe.patches {
             let target = try RecipePlanSupport.expand(patch.target, variables: environment)
             try RecipePlanSupport.checkPath(target)
-            guard target.hasSuffix(".yaml") else { throw RecipeInstallError.invalidManifest("补丁目标仅支持 YAML 文件") }
+            guard target.hasSuffix(".yaml") else {
+                throw RecipeInstallError.invalidManifest(PackageText.string("recipe.error.patchTargetYAMLOnly"))
+            }
             let body = try RecipePlanSupport.expand(patch.body, variables: environment)
             let prior = output[target] ?? Data()
             guard let text = String(data: prior, encoding: .utf8) else {
-                throw RecipeInstallError.invalidResource("补丁目标文件不是 UTF-8 编码：\(target)")
+                throw RecipeInstallError.invalidResource(PackageText.format("recipe.error.patchTargetNotUTF8", target))
             }
             if text.contains("# Rx: \(rx)\n") || text.contains("# Rx: \(rx) {") { replaced.append(target) }
             if text.components(separatedBy: "\n").contains(where: { $0.hasPrefix("# Rx: ") && $0 != "# Rx: \(rx) {" }) {
@@ -436,7 +460,7 @@ public struct DeclarativeRecipePlan: Sendable {
     /// another package's provenance in an ordered multi-package transaction.
     public func archivingSources(prefix: String) throws -> Self {
         guard prefix.hasSuffix("/"), SchemeSourceCheck.safe(String(prefix.dropLast())) else {
-            throw RecipeInstallError.invalidResource("安装源归档前缀无效")
+            throw RecipeInstallError.invalidResource(PackageText.string("recipe.error.invalidArchivePrefix"))
         }
         return Self(original: self, archivePrefix: prefix)
     }
@@ -519,19 +543,19 @@ extension GrammarModelRecipe {
             guard canonical.source == recipe.source, canonical.path == recipe.path,
                 invocation.count == 3, invocation[1] == "songyan-models/disable", invocation[2].isEmpty
             else {
-                throw RecipeInstallError.invalidResource("关闭语法模型的配置来源无法核实")
+                throw RecipeInstallError.invalidResource(PackageText.string("recipe.error.grammarDisableUnverified"))
             }
             return recipe.patches.map { .init(schemaID: String($0.target.dropLast(12)), rx: rx, body: $0.body) }
         }
         guard let modelPath = recipe.installPatterns.first else {
-            throw RecipeInstallError.invalidResource("模型配置文件缺少文件引用")
+            throw RecipeInstallError.invalidResource(PackageText.string("recipe.error.modelFileMissing"))
         }
         let name = managedName(for: modelPath)
         let declaredName = "songyan-models/" + name
         guard invocation.count == 3, invocation[1] == declaredName, invocation[2].isEmpty,
             recipe.declaredName == declaredName, recipe.installPatterns == [modelPath],
             recipe.downloads.count <= 1
-        else { throw RecipeInstallError.invalidResource("语法模型配置来源无法核实") }
+        else { throw RecipeInstallError.invalidResource(PackageText.string("recipe.error.grammarSourceUnverified")) }
         var binding: [String] = [], clearing: [String] = []
         let language = modelName(for: modelPath)
         for patch in recipe.patches {
@@ -541,7 +565,7 @@ extension GrammarModelRecipe {
                 let map = list[0]["patch/+"] as? [String: Any], map.count == 1,
                 let value = map["grammar/language"] as? String, value == language || value.isEmpty
             else {
-                throw RecipeInstallError.invalidResource("语法模型配置格式无法核实")
+                throw RecipeInstallError.invalidResource(PackageText.string("recipe.error.grammarFormatUnverified"))
             }
             let schema = String(patch.target.dropLast(12))
             if value.isEmpty { clearing.append(schema) } else { binding.append(schema) }
@@ -551,7 +575,7 @@ extension GrammarModelRecipe {
             sourceURL: recipe.downloads.first?.url,
             displayName: displayName(for: modelPath, sources: [recipe.path: recipe.source]))
         guard canonical.source == recipe.source, canonical.path == recipe.path else {
-            throw RecipeInstallError.invalidResource("语法模型配置不是已知有效操作")
+            throw RecipeInstallError.invalidResource(PackageText.string("recipe.error.grammarUnknownOperation"))
         }
         return recipe.patches.map { .init(schemaID: String($0.target.dropLast(12)), rx: rx, body: $0.body) }
     }
@@ -576,14 +600,15 @@ public struct RecipePlanReceipt: Codable, Sendable {
 enum RecipePlanSupport {
     static func validateYAML(_ text: String, label: String) throws {
         do { _ = try BoundedYAML.compose(yaml: text) } catch {
-            throw RecipeInstallError.invalidResource("\(label) YAML 格式无效：\(error)")
+            throw RecipeInstallError.invalidResource(
+                PackageText.format("recipe.error.invalidYAML", label, String(describing: error)))
         }
     }
     static func checkPath(_ path: String, glob: Bool = false) throws {
         if !glob {
             guard SchemeSourceCheck.safe(path), !path.contains(".userdb"),
                 (!path.hasPrefix("build/") || path == "build/.gitkeep")
-            else { throw RecipeInstallError.invalidResource("配置文件路径不受支持：\(path)") }
+            else { throw RecipeInstallError.invalidResource(PackageText.format("recipe.error.pathUnsupported", path)) }
             return
         }
         let pattern = glob ? "^[\\p{L}\\p{N}\\p{S}_.*?\\[\\]!-]+$" : "^[A-Za-z0-9_.-]+$"
@@ -592,7 +617,7 @@ enum RecipePlanSupport {
                 !part.isEmpty && part != "." && part != ".."
                     && part.range(of: pattern, options: .regularExpression) != nil
             }), !path.contains(".userdb"), (!path.hasPrefix("build/") || path == "build/.gitkeep")
-        else { throw RecipeInstallError.invalidResource("配置文件路径不受支持：\(path)") }
+        else { throw RecipeInstallError.invalidResource(PackageText.format("recipe.error.pathUnsupported", path)) }
     }
 
     static func expand(_ text: String, variables: [String: String]) throws -> String {
@@ -600,7 +625,7 @@ enum RecipePlanSupport {
         while index < text.endIndex {
             let character = text[index]
             if character == "`" || character == "\\" {
-                throw RecipeInstallError.invalidManifest("不支持 heredoc 求值或反斜线转义")
+                throw RecipeInstallError.invalidManifest(PackageText.string("recipe.error.heredocUnsupported"))
             }
             guard character == "$" else {
                 output.append(character)
@@ -608,16 +633,20 @@ enum RecipePlanSupport {
                 continue
             }
             let next = text.index(after: index)
-            guard next < text.endIndex else { throw RecipeInstallError.invalidManifest("不支持此 $ 变量格式") }
+            guard next < text.endIndex else {
+                throw RecipeInstallError.invalidManifest(PackageText.string("recipe.error.dollarFormat"))
+            }
             let name: String
             let fallback: String?
             if text[next] == "{" {
                 guard let end = text[next...].firstIndex(of: "}") else {
-                    throw RecipeInstallError.invalidManifest("变量表达式未闭合（缺少 }）")
+                    throw RecipeInstallError.invalidManifest(PackageText.string("recipe.error.unclosedExpression"))
                 }
                 let value = String(text[text.index(after: next)..<end])
                 let parts = value.components(separatedBy: ":-")
-                guard parts.count <= 2 else { throw RecipeInstallError.invalidManifest("不支持此变量展开格式") }
+                guard parts.count <= 2 else {
+                    throw RecipeInstallError.invalidManifest(PackageText.string("recipe.error.expandFormat"))
+                }
                 name = parts[0]
                 fallback = parts.count == 2 ? parts[1] : nil
                 index = text.index(after: end)
@@ -633,7 +662,7 @@ enum RecipePlanSupport {
             guard name.range(of: "^[A-Za-z_][A-Za-z0-9_]*$", options: .regularExpression) != nil,
                 fallback?.range(of: "^[A-Za-z0-9_./-]*$", options: .regularExpression) != nil || fallback == nil
             else {
-                throw RecipeInstallError.invalidManifest("变量格式仅支持 $name、${name} 与 ${name:-literal}")
+                throw RecipeInstallError.invalidManifest(PackageText.string("recipe.error.variableFormat"))
             }
             let value = variables[name] ?? ""
             output += value.isEmpty ? (fallback ?? "") : value
@@ -643,26 +672,26 @@ enum RecipePlanSupport {
 
     static func patch(_ original: String, body: String, rx: String) throws -> String {
         guard !original.contains("\r"), original.isEmpty || original.hasSuffix("\n") else {
-            throw RecipeInstallError.invalidResource("补丁目标文件必须使用换行符（LF）结尾")
+            throw RecipeInstallError.invalidResource(PackageText.string("recipe.error.patchTargetLF"))
         }
-        try validateYAML(original, label: "现有自定义配置")
-        try validateYAML("__patch:\n" + body, label: "补丁内容")
+        try validateYAML(original, label: PackageText.string("recipe.error.labelExistingCustom"))
+        try validateYAML("__patch:\n" + body, label: PackageText.string("recipe.error.labelPatchBody"))
         var lines = original.components(separatedBy: "\n")
         if lines.last == "" { lines.removeLast() }
         let marker = "# Rx: \(rx) {"
         while let start = lines.firstIndex(of: marker) {
             guard let end = lines[(start + 1)...].firstIndex(of: "# }") else {
-                throw RecipeInstallError.invalidResource("已有配置管理块未闭合")
+                throw RecipeInstallError.invalidResource(PackageText.string("recipe.error.unclosedManagedBlock"))
             }
             lines.removeSubrange(start...end)
         }
         if !lines.contains("__patch:") { lines.append("__patch:") }
         guard lines.filter({ $0 == "__patch:" }).count == 1,
             let begin = lines.firstIndex(of: "__patch:")
-        else { throw RecipeInstallError.invalidResource("不支持包含多个 __patch 顶层键") }
+        else { throw RecipeInstallError.invalidResource(PackageText.string("recipe.error.multiplePatchKeys")) }
         // Inline __patch maps/scalars cannot be safely combined with a new block-list key.
         guard !lines.contains(where: { $0.hasPrefix("__patch:") && $0 != "__patch:" }) else {
-            throw RecipeInstallError.invalidResource("已有 __patch 格式不是列表结构")
+            throw RecipeInstallError.invalidResource(PackageText.string("recipe.error.patchNotList"))
         }
         let end =
             lines.indices.dropFirst(begin + 1).first { i in
@@ -674,7 +703,7 @@ enum RecipePlanSupport {
             ]
         lines.insert(contentsOf: block, at: end)
         let result = lines.joined(separator: "\n") + "\n"
-        try validateYAML(result, label: "合并后的自定义配置")
+        try validateYAML(result, label: PackageText.string("recipe.error.labelMergedCustom"))
         return result
     }
 }
@@ -728,9 +757,25 @@ public extension RecipePackageManager {
                             .isRegularFileKey, .isSymbolicLinkKey, .fileSizeKey,
                         ])
                         guard value.isRegularFile == true, value.isSymbolicLink != true, value.fileSize == 0 else {
-                            throw RecipeInstallError.invalidResource("build 目录只允许包含空的 .gitkeep 占位文件")
+                            throw RecipeInstallError.invalidResource(PackageText.string("recipe.error.gitkeepOnly"))
                         }
                         files[prefix + "build/.gitkeep"] = Data()
+                    }
+                    // A compiled-only package's tables are part of the installed workspace: the next
+                    // generation has no text dictionary to rebuild them from.
+                    if !customOnly, !sourceArchive, prefix.isEmpty {
+                        for compiled in try FileManager.default.contentsOfDirectory(
+                            at: url, includingPropertiesForKeys: [.isRegularFileKey, .isSymbolicLinkKey])
+                        {
+                            let path = "build/" + compiled.lastPathComponent
+                            guard SchemeSourceCheck.isCompiledBuildFile(path) else { continue }
+                            let value = try compiled.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey])
+                            guard value.isRegularFile == true, value.isSymbolicLink != true else {
+                                throw RecipeInstallError.invalidResource(
+                                    PackageText.format("recipe.error.symlinkUnsupported", path))
+                            }
+                            fileResources[path] = try RecipeFileResource.reference(at: compiled)
+                        }
                     }
                     continue
                 }
@@ -738,10 +783,13 @@ public extension RecipePackageManager {
                 let info = try url.resourceValues(forKeys: [
                     .isDirectoryKey, .isRegularFileKey, .isSymbolicLinkKey, .fileSizeKey,
                 ])
-                guard info.isSymbolicLink != true else { throw RecipeInstallError.invalidResource("不支持符号链接：\(path)") }
+                guard info.isSymbolicLink != true else {
+                    throw RecipeInstallError.invalidResource(
+                        PackageText.format("recipe.error.symlinkUnsupported", path))
+                }
                 if info.isDirectory == true {
                     guard prefix.split(separator: "/").count < 32 else {
-                        throw RecipeInstallError.invalidResource("目录层级过深（超过 32 层）")
+                        throw RecipeInstallError.invalidResource(PackageText.string("recipe.error.directoryTooDeep"))
                     }
                     try read(url, prefix: path + "/", customOnly: customOnly)
                 } else if !customOnly || path.hasSuffix(".custom.yaml")
@@ -752,7 +800,10 @@ public extension RecipePackageManager {
                         fileResources[path] = try RecipeFileResource.reference(at: url)
                         continue
                     }
-                    guard files.count < 2000 else { throw RecipeInstallError.invalidResource("工作区文件数量超过限制：\(path)") }
+                    guard files.count < 2000 else {
+                        throw RecipeInstallError.invalidResource(
+                            PackageText.format("recipe.error.tooManyWorkspaceFiles", path))
+                    }
                     let remaining = RecipeResourceBudget.sourceTotal - bytes + (files[path]?.count ?? 0)
                     var data = try BoundedLocalFile.read(
                         url, maximumBytes: min(RecipeResourceBudget.sourceFile, remaining))
@@ -785,7 +836,8 @@ public extension RecipePackageManager {
         initialUserDataURL: URL? = nil, deploy: @escaping Deploy
     ) async throws -> InstalledRecipe {
         // Composed recipes may supply dependencies in later stages; validate the final tree.
-        try SchemeSourceCheck.dependencies(plan.files)
+        try SchemeSourceCheck.dependencies(
+            plan.files, compiled: Set(plan.fileResources.keys.filter { SchemeSourceCheck.isCompiledBuildFile($0) }))
         let records = Set(plan.files.keys).union(plan.fileResources.keys).sorted().map { path in
             if let file = plan.fileResources[path] {
                 return RecipeManifest.File(path: path, sha256: file.sha256, size: file.size)
@@ -801,14 +853,16 @@ public extension RecipePackageManager {
         let revision = String(sha256Hex(Data(identity.utf8)).prefix(40))
         let manifest = RecipeManifest(
             id: packageID, repository: "user/recipe", revision: revision,
-            recipePath: plan.recipePath, license: "原包声明", schemaID: schemaID,
+            recipePath: plan.recipePath,
+            license: PackageText.string("manifest.license.originalDeclaration"), schemaID: schemaID,
             requiredComponents: [], files: records, origin: .userRecipe)
         return try await installResources(
             manifest, initialUserDataURL: initialUserDataURL,
             deploy: { deployment in
                 let actual = try Self.readUserCustomFiles(at: deployment.userDataURL)
                 guard actual == plan.userCustomBaseline else {
-                    throw RecipeInstallError.invalidResource("安装准备期间自定义配置发生改变，请重新尝试安装。")
+                    throw RecipeInstallError.invalidResource(
+                        PackageText.string("recipe.error.customChangedDuringInstall"))
                 }
                 try catalog.write(to: deployment.userDataURL.deletingLastPathComponent())
                 var owned: [String] = []

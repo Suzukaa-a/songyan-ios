@@ -32,6 +32,7 @@
   "alphabet": "zyxwvutsrqponmlkjihgfedcba",
   "declaration": "canonical_pinyin",
   "dictionary": "songyan_basic",
+  "prefix_declaration": "",
   "producer_class": "script_translator",
   "separator": " ",
   "source_schema": "songyan_flypy",
@@ -209,6 +210,13 @@
         "correction": false,
         "normal": true,
         "text": "er"
+      }
+    ],
+    "fa": [
+      {
+        "correction": false,
+        "normal": true,
+        "text": "fa"
       }
     ],
     "fan": [
@@ -615,6 +623,13 @@
         "text": "ri"
       }
     ],
+    "ruan": [
+      {
+        "correction": false,
+        "normal": true,
+        "text": "rr"
+      }
+    ],
     "se": [
       {
         "correction": false,
@@ -697,6 +712,13 @@
         "correction": false,
         "normal": true,
         "text": "ts"
+      }
+    ],
+    "tou": [
+      {
+        "correction": false,
+        "normal": true,
+        "text": "tz"
       }
     ],
     "wang": [
@@ -842,6 +864,13 @@
         "correction": false,
         "normal": true,
         "text": "zc"
+      }
+    ],
+    "zhan": [
+      {
+        "correction": false,
+        "normal": true,
+        "text": "vj"
       }
     ],
     "zhang": [

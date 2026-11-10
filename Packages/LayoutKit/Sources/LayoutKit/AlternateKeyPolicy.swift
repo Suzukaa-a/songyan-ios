@@ -60,7 +60,11 @@ public enum AlternateKeyPolicy {
         /// given, in order, and the **first emitted option is the key-face hint**.
         public let secondaryLiterals: [String]
         public let page: Page
+        /// The engine mode the key dispatches into (composition or direct text).
         public let language: Language
+        /// The running scheme's input script. It names the bundled long-press marks and the
+        /// symbol-page additions; it never changes what a key dispatches into.
+        public let script: KeyLabelScript
         /// Shift is active, so letter variants render (and insert) uppercase.
         public let isUppercase: Bool
         /// The host field / language requires ASCII punctuation. In an ASCII field
@@ -79,6 +83,7 @@ public enum AlternateKeyPolicy {
             secondaryLiterals: [String] = [],
             page: Page,
             language: Language,
+            script: KeyLabelScript = .simplifiedChinese,
             isUppercase: Bool = false,
             usesASCIIPunctuation: Bool = false,
             schemaAlphabet: String = "",
@@ -89,6 +94,7 @@ public enum AlternateKeyPolicy {
             self.secondaryLiterals = secondaryLiterals
             self.page = page
             self.language = language
+            self.script = script
             self.isUppercase = isUppercase
             self.usesASCIIPunctuation = usesASCIIPunctuation
             self.schemaAlphabet = schemaAlphabet
@@ -127,15 +133,26 @@ public enum AlternateKeyPolicy {
 
     /// Ordered builtin defaults only. Callers must pass DIY declarations instead
     /// of using this as a fallback for custom keys with deliberately empty options.
-    public static func defaultLetterLiterals(for letter: String) -> [String] {
-        defaultLetters[letter.lowercased()] ?? []
+    public static func defaultLetterLiterals(
+        for letter: String, script: KeyLabelScript = .simplifiedChinese
+    ) -> [String] {
+        let key = letter.lowercased()
+        let marks: [String: [String]]
+        switch script {
+        case .simplifiedChinese: marks = defaultLetters
+        case .traditionalChinese: marks = traditionalLetters
+        case .japanese: marks = japaneseLetters
+        }
+        return marks[key] ?? defaultLetters[key] ?? []
     }
 
     /// The marks of a bundled merged pair key ("df"), empty for any other group. Each pair
     /// borrows one letter's 26-key marks, picked so the most used Chinese marks sit on the home
-    /// row of both merged layouts.
-    public static func mergedPairLiterals(for pair: String) -> [String] {
-        mergedPairMarks[pair.lowercased()].flatMap { defaultLetters[$0] } ?? []
+    /// row of both merged layouts. The borrowed letter's marks follow the input language's script.
+    public static func mergedPairLiterals(
+        for pair: String, script: KeyLabelScript = .simplifiedChinese
+    ) -> [String] {
+        mergedPairMarks[pair.lowercased()].map { defaultLetterLiterals(for: $0, script: script) } ?? []
     }
 
     private static let mergedPairMarks: [String: String] = [
@@ -160,6 +177,38 @@ public enum AlternateKeyPolicy {
         "z": ["@"], "x": ["-", "_"], "c": ["“", "”", "\""], "v": ["‘", "’", "'"],
         "b": ["【", "[", "《", "<"], "n": ["】", "]", "》", ">"], "m": ["/"],
     ]
+
+    /// Traditional Chinese keeps the same everyday marks and names its quotes 「」/『』 first.
+    private static let traditionalLetters: [String: [String]] =
+        defaultLetters.merging([
+            "c": ["「", "『", "“", "\""],
+            "v": ["」", "』", "”", "'"],
+        ]) { _, new in new }
+
+    /// Japanese keeps the marks readers of Chinese know where they are the same, moves 、 to the
+    /// comma letter and puts its own ・ ー ～ on the letters that already carry those relatives.
+    private static let japaneseLetters: [String: [String]] =
+        defaultLetters.merging([
+            "a": ["、"],
+            "g": ["・"],
+            "x": ["ー", "～", "-", "_"],
+            "c": ["「", "『"],
+            "v": ["」", "』"],
+        ]) { _, new in new }
+
+    /// The long-press menu a bundled letter key shows. Only a proven native bundled default is
+    /// rewritten to the script's marks; a DIY list — including one the author cleared, or one that
+    /// happens to equal the old defaults — is returned verbatim. The script list replaces the old
+    /// menu (never prepends to it), so its first mark is the corner hint.
+    public static func letterLongPressLiterals(
+        declared: [String], representative: String, script: KeyLabelScript,
+        isNativeBundledDefault: Bool
+    ) -> [String] {
+        guard isNativeBundledDefault else { return declared }
+        let letter = representative.lowercased()
+        guard letter.count == 1, letter.first?.isLetter == true else { return declared }
+        return defaultLetterLiterals(for: letter, script: script)
+    }
 
     private static func letterOptions(_ request: Request) -> [Option] {
         guard request.keyLabel.count == 1,
@@ -229,8 +278,9 @@ public enum AlternateKeyPolicy {
     private static func symbolOptions(_ request: Request) -> [Option] {
         let label = request.keyLabel
         let table = request.usesASCIIPunctuation ? asciiSymbolAlternates : chineseSymbolAlternates
+        let japanese = request.script == .japanese ? japaneseSymbolAlternates[label] : nil
         var variants = deduplicated(
-            (table[label] ?? sharedSymbolAlternates[label] ?? []).filter {
+            (japanese ?? table[label] ?? sharedSymbolAlternates[label] ?? []).filter {
                 $0 != label && !request.visibleKeys.contains($0)
             })
         if request.usesASCIIPunctuation {
@@ -254,6 +304,14 @@ public enum AlternateKeyPolicy {
         "¥": ["$", "€", "£", "￥"],
         "“": ["「", "『", "\"", "‘"], "”": ["」", "』", "\"", "’"],
         "，": [","], "、": ["·"], "？": ["?"], "！": ["!"],
+    ]
+
+    /// Marks Japanese needs that the Chinese table has no home for; ー is a letter and is still
+    /// offered by long press. An ASCII field filters this list like any other.
+    private static let japaneseSymbolAlternates: [String: [String]] = [
+        "-": ["ー", "～", "—", "_"],
+        "・": ["ー", "～", "·"],
+        "。": ["、", "．", "·"],
     ]
 
     /// Half-width punctuation (English mode and ASCII fields): only what an

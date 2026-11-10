@@ -19,7 +19,8 @@ final class UserKeyboardCenter: ObservableObject {
     static func scoped(to source: UserKeyboardSource) -> UserKeyboardCenter {
         UserKeyboardCenter(
             manager: DictionaryImportCenterUserKeyboards(center: .shared, source: source),
-            listProvider: SourcePublishedKeyboardProvider(source: source))
+            listProvider: SourcePublishedKeyboardProvider(source: source),
+            source: source)
     }
 
     /// Page-level state: loading / ready / read failed / view only.
@@ -38,6 +39,10 @@ final class UserKeyboardCenter: ObservableObject {
     @Published private(set) var publishedKeyboards: [UserKeyboard] = []
     /// Authoritative addable combinations (only items the transaction provides and that are not yet added).
     @Published private(set) var addableKeyboards: [UserKeyboardCandidate] = []
+    /// The schema facts of this page's own source (never another source's alphabet).
+    @Published private(set) var sourceSchemas: [KeyboardSchemaDescriptor] = []
+    /// Name of the input scheme these keyboards come from; nil until read.
+    @Published private(set) var sourceName: String?
     /// The keyboard currently in progress (add or remove); nil = idle.
     @Published private(set) var busyKeyboardID: String?
     /// User-facing note for the most recent successful action.
@@ -56,11 +61,14 @@ final class UserKeyboardCenter: ObservableObject {
 
     private let manager: UserKeyboardManaging
     private let listProvider: PublishedKeyboardListProviding
+    private let source: UserKeyboardSource
 
     init(
         manager: UserKeyboardManaging,
-        listProvider: PublishedKeyboardListProviding = ActivationPublishedKeyboardProvider()
+        listProvider: PublishedKeyboardListProviding = ActivationPublishedKeyboardProvider(),
+        source: UserKeyboardSource = .active
     ) {
+        self.source = source
         self.manager = manager
         self.listProvider = listProvider
     }
@@ -86,6 +94,9 @@ final class UserKeyboardCenter: ObservableObject {
             }
             let addable = try await manager.addableKeyboards()
             updateLists(published: published, addable: addable)
+            let facts = await UserKeyboardSourceFacts.facts(for: source)
+            sourceSchemas = facts.schemas
+            sourceName = facts.name
             viewedPublication = viewed
             currentKeyboardID = Self.currentKeyboardID(in: viewed)
             sourceIsCurrent = viewed?.isCurrent ?? true
@@ -104,7 +115,7 @@ final class UserKeyboardCenter: ObservableObject {
         } catch {
             // A failed read keeps the old list (no flicker to empty).
             HostLog.append("user keyboard list failed: \(error.localizedDescription)")
-            phase = .failed("无法读取我的键盘，请重试。")
+            phase = .failed(String(localized: "无法读取我的键盘，请重试。"))
         }
     }
 
@@ -122,7 +133,7 @@ final class UserKeyboardCenter: ObservableObject {
             // Only structured pre-write errors prove that the published list did not change.
             HostLog.append("user keyboard add failed: \(error.localizedDescription)")
             errorMessage = UserTerminology.userKeyboardFailureMessage(
-                error, fallback: "无法确认结果，请重新读取后重试。")
+                error, fallback: String(localized: "无法确认结果，请重新读取后重试。"))
             await reloadAfterMutation(succeeded: false)
         }
     }
@@ -140,7 +151,7 @@ final class UserKeyboardCenter: ObservableObject {
         } catch {
             HostLog.append("user keyboard removal failed: \(error.localizedDescription)")
             errorMessage = UserTerminology.userKeyboardFailureMessage(
-                error, fallback: "无法确认结果，请重新读取后重试。")
+                error, fallback: String(localized: "无法确认结果，请重新读取后重试。"))
             await reloadAfterMutation(succeeded: false)
         }
     }
@@ -172,7 +183,7 @@ final class UserKeyboardCenter: ObservableObject {
         do {
             if let production = manager as? DictionaryImportCenterUserKeyboards {
                 guard let viewedPublication else {
-                    throw UserKeyboardPublicationError.unavailable("键盘列表尚未读取，请重新读取后保存。")
+                    throw UserKeyboardPublicationError.unavailable(String(localized: "键盘列表尚未读取，请重新读取后保存。"))
                 }
                 resultMessage = try await production.replaceKeyboards(
                     keyboards, selecting: selecting, viewed: viewedPublication)
@@ -185,7 +196,7 @@ final class UserKeyboardCenter: ObservableObject {
             // Structured pre-write errors preserve the list; an atomic publish error may not.
             HostLog.append("user keyboard batch apply failed: \(error.localizedDescription)")
             errorMessage = UserTerminology.userKeyboardFailureMessage(
-                error, fallback: "无法确认结果，请重新读取后重试。")
+                error, fallback: String(localized: "无法确认结果，请重新读取后重试。"))
             await reloadAfterMutation(succeeded: false)
             return false
         }
@@ -217,9 +228,9 @@ final class UserKeyboardCenter: ObservableObject {
             HostLog.append("user keyboard reload failed after mutation: \(error.localizedDescription)")
             phase = .failed(
                 succeeded
-                    ? "操作已完成，但列表未能刷新，请重新打开此页面。"
+                    ? String(localized: "操作已完成，但列表未能刷新，请重新打开此页面。")
                     : (errorMessage ?? UserTerminology.genericOperationFailure)
-                        + "\n列表未能刷新，请重试。")
+                        + "\n" + String(localized: "列表未能刷新，请重试。"))
         }
     }
 
@@ -234,9 +245,11 @@ final class UserKeyboardCenter: ObservableObject {
     /// Only a publication of this page's own source has a keyboard in use.
     private static func currentKeyboardID(in viewed: UserKeyboardPublicationView?) -> String? {
         guard let viewed, viewed.isCurrent, let activation = viewed.activation,
-            let schemaID = activation.selectedSchemaID, let layout = activation.selectedLayout
+            let selected = activation.selectedKeyboard
         else { return nil }
-        return UserKeyboard(inputMethodID: schemaID, inputMethodName: "", layout: layout).id
+        return UserKeyboard(
+            inputMethodID: selected.schemaID, inputMethodName: "", layout: selected.layout, board: selected.board
+        ).id
     }
 
     func dismissMessages() {

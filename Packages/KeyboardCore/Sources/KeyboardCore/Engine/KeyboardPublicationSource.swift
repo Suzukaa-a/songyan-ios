@@ -112,7 +112,7 @@ public enum InstalledSourceDeletionPolicy {
     }
 
     /// User-facing refusal text (no raw error; raw errors only appear in developer options).
-    public static let refusedMessage = "这个输入方案正在使用。请先切换到其他输入方案，再删除。"
+    public static var refusedMessage: String { String(localized: "core.error.sourceInUse", bundle: .module) }
 }
 
 // MARK: - Structured source key (dictionary key of the cross-source keyboard cache)

@@ -5,7 +5,7 @@ import SwiftUI
 /// KeyboardExtension; the Host does not embed or simulate a keyboard panel.
 struct TryInputView: View {
     var body: some View {
-        SystemKeyboardTestView(title: "试打")
+        SystemKeyboardTestView(title: String(localized: "试打"))
     }
 }
 
@@ -18,9 +18,17 @@ struct SystemKeyboardTestView: View {
     @State private var inputKind = InputKind.text
     @FocusState private var focused: Bool
 
-    private enum InputKind: String, CaseIterable, Identifiable {
-        case text = "文本", url = "网址", number = "数字"
+    private enum InputKind: CaseIterable, Identifiable, Hashable {
+        case text, url, number
         var id: Self { self }
+
+        var displayName: String {
+            switch self {
+            case .text: return String(localized: "文本")
+            case .url: return String(localized: "网址")
+            case .number: return String(localized: "数字")
+            }
+        }
         var keyboardType: UIKeyboardType {
             switch self {
             case .text: return .default
@@ -58,9 +66,9 @@ struct SystemKeyboardTestView: View {
                 }
                 .padding(.vertical, 2)
             }
-            Section("输入框") {
-                Picker("输入类型", selection: $inputKind) {
-                    ForEach(InputKind.allCases) { kind in Text(kind.rawValue).tag(kind) }
+            Section(String(localized: "输入框")) {
+                Picker(String(localized: "输入类型"), selection: $inputKind) {
+                    ForEach(InputKind.allCases) { kind in Text(kind.displayName).tag(kind) }
                 }
                 .pickerStyle(.segmented)
                 .padding(.vertical, 2)
@@ -73,7 +81,7 @@ struct SystemKeyboardTestView: View {
                     .frame(minHeight: 180)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                    .accessibilityLabel("试打输入框")
+                    .accessibilityLabel(String(localized: "试打输入框"))
                     // A fresh native editor also ends the old marked-text session when clearing.
                     .id(clearRevision)
             }
@@ -85,7 +93,7 @@ struct SystemKeyboardTestView: View {
             }
             #if SONGYAN_PERF
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("重置") {
+                    Button(String(localized: "重置")) {
                         text = ""
                         focused = false
                     }
@@ -104,7 +112,7 @@ struct SystemKeyboardTestView: View {
             text = ""
             clearRevision += 1
         } label: {
-            Label("清空", systemImage: "trash")
+            Label(String(localized: "清空"), systemImage: "trash")
         }
         .disabled(text.isEmpty)
     }
@@ -113,9 +121,11 @@ struct SystemKeyboardTestView: View {
         Button {
             UIPasteboard.general.string = text
             copied = true
-            UIAccessibility.post(notification: .announcement, argument: "已复制")
+            UIAccessibility.post(notification: .announcement, argument: String(localized: "已复制"))
         } label: {
-            Label(copied ? "已复制" : "复制内容", systemImage: copied ? "checkmark" : "doc.on.doc")
+            Label(
+                copied ? String(localized: "已复制") : String(localized: "复制内容"),
+                systemImage: copied ? "checkmark" : "doc.on.doc")
         }
         .disabled(text.isEmpty)
     }

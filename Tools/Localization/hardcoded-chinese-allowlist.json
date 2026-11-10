@@ -1,0 +1,953 @@
+{
+  "rationale": {
+    "swiftuiTextCalls": "SwiftUI resolves these literals as String Catalog keys; Text(verbatim:) is excluded.",
+    "localizedCalls": "These initializers take the literal as a lookup key, so it is not user-visible copy.",
+    "localizedStringCalls": "String(localized:) takes its literal as the lookup key.",
+    "localizedArgumentLabels": "Only the key argument of String(...) is a lookup key.",
+    "loggingCalls": "Diagnostic log text never reaches the interface.",
+    "keycapCalls": "Key caps follow the input language and are data, never interface copy.",
+    "keycapFunctions": "Automatic key-label providers return key-cap faces in the scheme's input language.",
+    "dataCalls": "Data tables and demo fixtures; these values are not interface copy.",
+    "skippedPathComponents": "Tests and build products are out of scope.",
+    "skippedFileSuffixes": "Test targets are out of scope.",
+    "dataLiterals": "Exact immutable data values scoped to one source path; other values and paths remain scanned."
+  },
+  "swiftuiTextCalls": [
+    "Text"
+  ],
+  "localizedCalls": [
+    "NSLocalizedString",
+    "LocalizedStringKey",
+    "LocalizedStringResource"
+  ],
+  "localizedStringCalls": [
+    "String"
+  ],
+  "localizedArgumentLabels": [
+    "localized"
+  ],
+  "loggingCalls": [
+    "log",
+    "debug",
+    "info",
+    "notice",
+    "warning",
+    "error",
+    "critical",
+    "fault",
+    "os_log",
+    "NSLog",
+    "print",
+    "debugPrint",
+    "assertionFailure",
+    "preconditionFailure",
+    "fatalError"
+  ],
+  "keycapCalls": [
+    "KeyCap",
+    "LayoutKey",
+    "AlternateKey",
+    "KeyFace"
+  ],
+  "keycapFunctions": [
+    "spaceTitle",
+    "spaceAccessibilityLabel",
+    "returnTitle",
+    "returnAccessibilityLabel",
+    "languageTitle",
+    "languageAccessibilityLabel",
+    "symbolPageTitle",
+    "pageSwitchAccessibilityLabel"
+  ],
+  "dataCalls": [
+    "DemoWord",
+    "SymbolEntry",
+    "PhoneSymbolCategory",
+    "category",
+    "cap",
+    "literal",
+    "literals"
+  ],
+  "skippedPathComponents": [
+    "Tests",
+    "TestsIOS",
+    "Vendored",
+    "DerivedData",
+    "node_modules"
+  ],
+  "skippedFileSuffixes": [
+    "Tests.swift"
+  ],
+  "dataLiterals": [
+    {
+      "path": "Packages/PackageManager/Sources/PackageManager/RimeConfigFolder.swift",
+      "value": "Rime 配置",
+      "reason": "Persistent configuration directory name; translating it would disconnect existing user files."
+    },
+    {
+      "path": "Packages/KeyboardCore/Sources/KeyboardCore/Support/TraditionalDefault.swift",
+      "value": "简体",
+      "reason": "Exact canonical YAML switch-label equality tokens; display labels are resolved separately."
+    },
+    {
+      "path": "Packages/KeyboardCore/Sources/KeyboardCore/Support/TraditionalDefault.swift",
+      "value": "繁體",
+      "reason": "Exact canonical YAML switch-label equality tokens; display labels are resolved separately."
+    },
+    {
+      "path": "Packages/KeyboardCore/Sources/KeyboardCore/Support/TraditionalDefault.swift",
+      "value": "臺灣",
+      "reason": "Exact canonical YAML switch-label equality tokens; display labels are resolved separately."
+    },
+    {
+      "path": "Packages/KeyboardCore/Sources/KeyboardCore/Support/TraditionalDefault.swift",
+      "value": "香港",
+      "reason": "Exact canonical YAML switch-label equality tokens; display labels are resolved separately."
+    },
+    {
+      "path": "Packages/KeyboardCore/Sources/KeyboardCore/QuickInsert/QuickInsertCore.swift",
+      "value": "yyyy'年'M'月'd'日'",
+      "reason": "Explicit Chinese date-format templates selected by input language, not interface text."
+    },
+    {
+      "path": "Packages/KeyboardCore/Sources/KeyboardCore/QuickInsert/QuickInsertCore.swift",
+      "value": "yyyy'年'M'月'd'日' HH:mm",
+      "reason": "Explicit Chinese date-format templates selected by input language, not interface text."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/AlternateKeyPolicy.swift",
+      "value": "一",
+      "reason": "Curated Chinese numeral alternatives emitted literally as input symbols."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/AlternateKeyPolicy.swift",
+      "value": "壹",
+      "reason": "Curated Chinese numeral alternatives emitted literally as input symbols."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/AlternateKeyPolicy.swift",
+      "value": "二",
+      "reason": "Curated Chinese numeral alternatives emitted literally as input symbols."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/AlternateKeyPolicy.swift",
+      "value": "贰",
+      "reason": "Curated Chinese numeral alternatives emitted literally as input symbols."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/AlternateKeyPolicy.swift",
+      "value": "三",
+      "reason": "Curated Chinese numeral alternatives emitted literally as input symbols."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/AlternateKeyPolicy.swift",
+      "value": "叁",
+      "reason": "Curated Chinese numeral alternatives emitted literally as input symbols."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/AlternateKeyPolicy.swift",
+      "value": "四",
+      "reason": "Curated Chinese numeral alternatives emitted literally as input symbols."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/AlternateKeyPolicy.swift",
+      "value": "肆",
+      "reason": "Curated Chinese numeral alternatives emitted literally as input symbols."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/AlternateKeyPolicy.swift",
+      "value": "五",
+      "reason": "Curated Chinese numeral alternatives emitted literally as input symbols."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/AlternateKeyPolicy.swift",
+      "value": "伍",
+      "reason": "Curated Chinese numeral alternatives emitted literally as input symbols."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/AlternateKeyPolicy.swift",
+      "value": "六",
+      "reason": "Curated Chinese numeral alternatives emitted literally as input symbols."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/AlternateKeyPolicy.swift",
+      "value": "陆",
+      "reason": "Curated Chinese numeral alternatives emitted literally as input symbols."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/AlternateKeyPolicy.swift",
+      "value": "七",
+      "reason": "Curated Chinese numeral alternatives emitted literally as input symbols."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/AlternateKeyPolicy.swift",
+      "value": "柒",
+      "reason": "Curated Chinese numeral alternatives emitted literally as input symbols."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/AlternateKeyPolicy.swift",
+      "value": "八",
+      "reason": "Curated Chinese numeral alternatives emitted literally as input symbols."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/AlternateKeyPolicy.swift",
+      "value": "捌",
+      "reason": "Curated Chinese numeral alternatives emitted literally as input symbols."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/AlternateKeyPolicy.swift",
+      "value": "九",
+      "reason": "Curated Chinese numeral alternatives emitted literally as input symbols."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/AlternateKeyPolicy.swift",
+      "value": "玖",
+      "reason": "Curated Chinese numeral alternatives emitted literally as input symbols."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/AlternateKeyPolicy.swift",
+      "value": "零",
+      "reason": "Curated Chinese numeral alternatives emitted literally as input symbols."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/BuiltinLayouts.swift",
+      "value": "26 键",
+      "reason": "Canonical editable layout records and Cangjie radical keycaps mirrored in the shared layout JSON."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/BuiltinLayouts.swift",
+      "value": "14 键",
+      "reason": "Canonical editable layout records and Cangjie radical keycaps mirrored in the shared layout JSON."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/BuiltinLayouts.swift",
+      "value": "18 键",
+      "reason": "Canonical editable layout records and Cangjie radical keycaps mirrored in the shared layout JSON."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/BuiltinLayouts.swift",
+      "value": "9 键",
+      "reason": "Canonical editable layout records and Cangjie radical keycaps mirrored in the shared layout JSON."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/BuiltinLayouts.swift",
+      "value": "注音 41 键",
+      "reason": "Canonical editable layout records and Cangjie radical keycaps mirrored in the shared layout JSON."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/BuiltinLayouts.swift",
+      "value": "仓颉 26 键",
+      "reason": "Canonical editable layout records and Cangjie radical keycaps mirrored in the shared layout JSON."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/BuiltinLayouts.swift",
+      "value": "罗马字 26 键",
+      "reason": "Canonical editable layout records and Cangjie radical keycaps mirrored in the shared layout JSON."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/BuiltinLayouts.swift",
+      "value": "假名 12 键",
+      "reason": "Canonical editable layout records and Cangjie radical keycaps mirrored in the shared layout JSON."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/BuiltinLayouts.swift",
+      "value": "手",
+      "reason": "Canonical editable layout records and Cangjie radical keycaps mirrored in the shared layout JSON."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/BuiltinLayouts.swift",
+      "value": "田",
+      "reason": "Canonical editable layout records and Cangjie radical keycaps mirrored in the shared layout JSON."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/BuiltinLayouts.swift",
+      "value": "水",
+      "reason": "Canonical editable layout records and Cangjie radical keycaps mirrored in the shared layout JSON."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/BuiltinLayouts.swift",
+      "value": "口",
+      "reason": "Canonical editable layout records and Cangjie radical keycaps mirrored in the shared layout JSON."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/BuiltinLayouts.swift",
+      "value": "廿",
+      "reason": "Canonical editable layout records and Cangjie radical keycaps mirrored in the shared layout JSON."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/BuiltinLayouts.swift",
+      "value": "卜",
+      "reason": "Canonical editable layout records and Cangjie radical keycaps mirrored in the shared layout JSON."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/BuiltinLayouts.swift",
+      "value": "山",
+      "reason": "Canonical editable layout records and Cangjie radical keycaps mirrored in the shared layout JSON."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/BuiltinLayouts.swift",
+      "value": "戈",
+      "reason": "Canonical editable layout records and Cangjie radical keycaps mirrored in the shared layout JSON."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/BuiltinLayouts.swift",
+      "value": "人",
+      "reason": "Canonical editable layout records and Cangjie radical keycaps mirrored in the shared layout JSON."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/BuiltinLayouts.swift",
+      "value": "心",
+      "reason": "Canonical editable layout records and Cangjie radical keycaps mirrored in the shared layout JSON."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/BuiltinLayouts.swift",
+      "value": "日",
+      "reason": "Canonical editable layout records and Cangjie radical keycaps mirrored in the shared layout JSON."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/BuiltinLayouts.swift",
+      "value": "尸",
+      "reason": "Canonical editable layout records and Cangjie radical keycaps mirrored in the shared layout JSON."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/BuiltinLayouts.swift",
+      "value": "木",
+      "reason": "Canonical editable layout records and Cangjie radical keycaps mirrored in the shared layout JSON."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/BuiltinLayouts.swift",
+      "value": "火",
+      "reason": "Canonical editable layout records and Cangjie radical keycaps mirrored in the shared layout JSON."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/BuiltinLayouts.swift",
+      "value": "土",
+      "reason": "Canonical editable layout records and Cangjie radical keycaps mirrored in the shared layout JSON."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/BuiltinLayouts.swift",
+      "value": "竹",
+      "reason": "Canonical editable layout records and Cangjie radical keycaps mirrored in the shared layout JSON."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/BuiltinLayouts.swift",
+      "value": "十",
+      "reason": "Canonical editable layout records and Cangjie radical keycaps mirrored in the shared layout JSON."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/BuiltinLayouts.swift",
+      "value": "大",
+      "reason": "Canonical editable layout records and Cangjie radical keycaps mirrored in the shared layout JSON."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/BuiltinLayouts.swift",
+      "value": "中",
+      "reason": "Canonical editable layout records and Cangjie radical keycaps mirrored in the shared layout JSON."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/BuiltinLayouts.swift",
+      "value": "重",
+      "reason": "Canonical editable layout records and Cangjie radical keycaps mirrored in the shared layout JSON."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/BuiltinLayouts.swift",
+      "value": "難",
+      "reason": "Canonical editable layout records and Cangjie radical keycaps mirrored in the shared layout JSON."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/BuiltinLayouts.swift",
+      "value": "金",
+      "reason": "Canonical editable layout records and Cangjie radical keycaps mirrored in the shared layout JSON."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/BuiltinLayouts.swift",
+      "value": "女",
+      "reason": "Canonical editable layout records and Cangjie radical keycaps mirrored in the shared layout JSON."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/BuiltinLayouts.swift",
+      "value": "月",
+      "reason": "Canonical editable layout records and Cangjie radical keycaps mirrored in the shared layout JSON."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/BuiltinLayouts.swift",
+      "value": "弓",
+      "reason": "Canonical editable layout records and Cangjie radical keycaps mirrored in the shared layout JSON."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/BuiltinLayouts.swift",
+      "value": "一",
+      "reason": "Canonical editable layout records and Cangjie radical keycaps mirrored in the shared layout JSON."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/KeyboardPageDefinition.swift",
+      "value": "中英",
+      "reason": "Stored automatic control labels in editable page records; runtime faces are resolved by input-language policy."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/KeyboardPageDefinition.swift",
+      "value": "返回",
+      "reason": "Stored automatic control labels in editable page records; runtime faces are resolved by input-language policy."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/KeyboardPageDefinition.swift",
+      "value": "空格",
+      "reason": "Stored automatic control labels in editable page records; runtime faces are resolved by input-language policy."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/KeyboardPageDefinition.swift",
+      "value": "锁定",
+      "reason": "Stored automatic control labels in editable page records; runtime faces are resolved by input-language policy."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/KeyboardPageDefinition.swift",
+      "value": "符号",
+      "reason": "Stored automatic control labels in editable page records; runtime faces are resolved by input-language policy."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/KeyboardPageDefinition.swift",
+      "value": "重输",
+      "reason": "Stored automatic control labels in editable page records; runtime faces are resolved by input-language policy."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/KeyboardPagePresets.swift",
+      "value": "自动 123",
+      "reason": "Stored page preset names, including historical exact-equality migration records; display titles resolve separately."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/KeyboardPagePresets.swift",
+      "value": "数字九宫格",
+      "reason": "Stored page preset names, including historical exact-equality migration records; display titles resolve separately."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/KeyboardPagePresets.swift",
+      "value": "符号",
+      "reason": "Stored page preset names, including historical exact-equality migration records; display titles resolve separately."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/KeyboardPagePresets.swift",
+      "value": "英文 QWERTY",
+      "reason": "Stored page preset names, including historical exact-equality migration records; display titles resolve separately."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/KeyboardPagePresets.swift",
+      "value": "默认符号页",
+      "reason": "Stored page preset names, including historical exact-equality migration records; display titles resolve separately."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/KeyboardPagePresets.swift",
+      "value": "分类符号",
+      "reason": "Stored page preset names, including historical exact-equality migration records; display titles resolve separately."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/KeyboardPagePresets.swift",
+      "value": "中文 123",
+      "reason": "Stored page preset names, including historical exact-equality migration records; display titles resolve separately."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/KeyboardPagePresets.swift",
+      "value": "英文 123",
+      "reason": "Stored page preset names, including historical exact-equality migration records; display titles resolve separately."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/KeyboardPagePresets.swift",
+      "value": "中文符号",
+      "reason": "Stored page preset names, including historical exact-equality migration records; display titles resolve separately."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/KeyboardPagePresets.swift",
+      "value": "英文符号",
+      "reason": "Stored page preset names, including historical exact-equality migration records; display titles resolve separately."
+    },
+    {
+      "path": "Packages/KeyboardCore/Sources/KeyboardCore/Support/UserTerminology.swift",
+      "value": "键型",
+      "reason": "Forbidden internal-term matching tokens for the UI wording gate."
+    },
+    {
+      "path": "Packages/KeyboardCore/Sources/KeyboardCore/Support/UserTerminology.swift",
+      "value": "键盘样式",
+      "reason": "Forbidden internal-term matching tokens for the UI wording gate."
+    },
+    {
+      "path": "Packages/KeyboardCore/Sources/KeyboardCore/Support/UserTerminology.swift",
+      "value": "方案配对",
+      "reason": "Forbidden internal-term matching tokens for the UI wording gate."
+    },
+    {
+      "path": "Packages/KeyboardCore/Sources/KeyboardCore/Support/UserTerminology.swift",
+      "value": "部署",
+      "reason": "Forbidden internal-term matching tokens for the UI wording gate."
+    },
+    {
+      "path": "Packages/KeyboardCore/Sources/KeyboardCore/Support/UserTerminology.swift",
+      "value": "发布",
+      "reason": "Forbidden internal-term matching tokens for the UI wording gate."
+    },
+    {
+      "path": "Packages/KeyboardCore/Sources/KeyboardCore/Support/UserTerminology.swift",
+      "value": "配方",
+      "reason": "Forbidden internal-term matching tokens for the UI wording gate."
+    },
+    {
+      "path": "Packages/KeyboardCore/Sources/KeyboardCore/Support/UserTerminology.swift",
+      "value": "绑定",
+      "reason": "Forbidden internal-term matching tokens for the UI wording gate."
+    },
+    {
+      "path": "Packages/KeyboardCore/Sources/KeyboardCore/Support/UserTerminology.swift",
+      "value": "幂等",
+      "reason": "Forbidden internal-term matching tokens for the UI wording gate."
+    },
+    {
+      "path": "Packages/KeyboardCore/Sources/KeyboardCore/Support/UserTerminology.swift",
+      "value": "共享容器",
+      "reason": "Forbidden internal-term matching tokens for the UI wording gate."
+    },
+    {
+      "path": "Packages/KeyboardCore/Sources/KeyboardCore/Engine/EngineTypes.swift",
+      "value": "雾凇拼音",
+      "reason": "Upstream input-method proper names used only as known schema-ID fallbacks; author names are preserved."
+    },
+    {
+      "path": "Packages/KeyboardCore/Sources/KeyboardCore/Engine/EngineTypes.swift",
+      "value": "小鹤双拼",
+      "reason": "Upstream input-method proper names used only as known schema-ID fallbacks; author names are preserved."
+    },
+    {
+      "path": "Packages/KeyboardCore/Sources/KeyboardCore/Engine/EngineTypes.swift",
+      "value": "自然码双拼",
+      "reason": "Upstream input-method proper names used only as known schema-ID fallbacks; author names are preserved."
+    },
+    {
+      "path": "Packages/KeyboardCore/Sources/KeyboardCore/Engine/EngineTypes.swift",
+      "value": "智能 ABC 双拼",
+      "reason": "Upstream input-method proper names used only as known schema-ID fallbacks; author names are preserved."
+    },
+    {
+      "path": "Packages/KeyboardCore/Sources/KeyboardCore/Engine/EngineTypes.swift",
+      "value": "微软双拼",
+      "reason": "Upstream input-method proper names used only as known schema-ID fallbacks; author names are preserved."
+    },
+    {
+      "path": "Packages/KeyboardCore/Sources/KeyboardCore/Engine/EngineTypes.swift",
+      "value": "搜狗双拼",
+      "reason": "Upstream input-method proper names used only as known schema-ID fallbacks; author names are preserved."
+    },
+    {
+      "path": "Packages/KeyboardCore/Sources/KeyboardCore/Engine/EngineTypes.swift",
+      "value": "紫光双拼",
+      "reason": "Upstream input-method proper names used only as known schema-ID fallbacks; author names are preserved."
+    },
+    {
+      "path": "Packages/KeyboardCore/Sources/KeyboardCore/Engine/EngineTypes.swift",
+      "value": "拼音加加双拼",
+      "reason": "Upstream input-method proper names used only as known schema-ID fallbacks; author names are preserved."
+    },
+    {
+      "path": "Packages/KeyboardCore/Sources/KeyboardCore/Engine/EngineTypes.swift",
+      "value": "朙月拼音",
+      "reason": "Upstream input-method proper names used only as known schema-ID fallbacks; author names are preserved."
+    },
+    {
+      "path": "Packages/KeyboardCore/Sources/KeyboardCore/Engine/EngineTypes.swift",
+      "value": "朙月拼音·简化字",
+      "reason": "Upstream input-method proper names used only as known schema-ID fallbacks; author names are preserved."
+    },
+    {
+      "path": "Packages/AppearanceKit/Sources/AppearanceKit/AppearanceDocument.swift",
+      "value": "系统默认",
+      "reason": "Persisted builtin appearance record names; localized displayName resolves separately."
+    },
+    {
+      "path": "Packages/AppearanceKit/Sources/AppearanceKit/AppearanceDocument.swift",
+      "value": "松烟墨韵",
+      "reason": "Persisted builtin appearance record names; localized displayName resolves separately."
+    },
+    {
+      "path": "Packages/AppearanceKit/Sources/AppearanceKit/AppearanceDocument.swift",
+      "value": "墨夜",
+      "reason": "Persisted builtin appearance record names; localized displayName resolves separately."
+    },
+    {
+      "path": "Packages/AppearanceKit/Sources/AppearanceKit/AppearanceDocument.swift",
+      "value": "青竹",
+      "reason": "Persisted builtin appearance record names; localized displayName resolves separately."
+    },
+    {
+      "path": "Packages/AppearanceKit/Sources/AppearanceKit/AppearanceDocument.swift",
+      "value": "暖纸",
+      "reason": "Persisted builtin appearance record names; localized displayName resolves separately."
+    },
+    {
+      "path": "Packages/AppearanceKit/Sources/AppearanceKit/AppearanceDocument.swift",
+      "value": "星河",
+      "reason": "Persisted builtin appearance record names; localized displayName resolves separately."
+    },
+    {
+      "path": "Packages/AppearanceKit/Sources/AppearanceKit/AppearanceDocument.swift",
+      "value": "薄暮",
+      "reason": "Persisted builtin appearance record names; localized displayName resolves separately."
+    },
+    {
+      "path": "Apps/SharedKeyboard/KeyboardPanelView+Kana12.swift",
+      "value": "あ行",
+      "reason": "Japanese kana row names and modifier keycap describe literal kana input independent of interface locale."
+    },
+    {
+      "path": "Apps/SharedKeyboard/KeyboardPanelView+Kana12.swift",
+      "value": "か行",
+      "reason": "Japanese kana row names and modifier keycap describe literal kana input independent of interface locale."
+    },
+    {
+      "path": "Apps/SharedKeyboard/KeyboardPanelView+Kana12.swift",
+      "value": "さ行",
+      "reason": "Japanese kana row names and modifier keycap describe literal kana input independent of interface locale."
+    },
+    {
+      "path": "Apps/SharedKeyboard/KeyboardPanelView+Kana12.swift",
+      "value": "た行",
+      "reason": "Japanese kana row names and modifier keycap describe literal kana input independent of interface locale."
+    },
+    {
+      "path": "Apps/SharedKeyboard/KeyboardPanelView+Kana12.swift",
+      "value": "な行",
+      "reason": "Japanese kana row names and modifier keycap describe literal kana input independent of interface locale."
+    },
+    {
+      "path": "Apps/SharedKeyboard/KeyboardPanelView+Kana12.swift",
+      "value": "は行",
+      "reason": "Japanese kana row names and modifier keycap describe literal kana input independent of interface locale."
+    },
+    {
+      "path": "Apps/SharedKeyboard/KeyboardPanelView+Kana12.swift",
+      "value": "ま行",
+      "reason": "Japanese kana row names and modifier keycap describe literal kana input independent of interface locale."
+    },
+    {
+      "path": "Apps/SharedKeyboard/KeyboardPanelView+Kana12.swift",
+      "value": "や行",
+      "reason": "Japanese kana row names and modifier keycap describe literal kana input independent of interface locale."
+    },
+    {
+      "path": "Apps/SharedKeyboard/KeyboardPanelView+Kana12.swift",
+      "value": "ら行",
+      "reason": "Japanese kana row names and modifier keycap describe literal kana input independent of interface locale."
+    },
+    {
+      "path": "Apps/SharedKeyboard/KeyboardPanelView+Kana12.swift",
+      "value": "わ行",
+      "reason": "Japanese kana row names and modifier keycap describe literal kana input independent of interface locale."
+    },
+    {
+      "path": "Apps/SharedKeyboard/KeyboardPanelView+Kana12.swift",
+      "value": "句読点",
+      "reason": "Japanese kana row names and modifier keycap describe literal kana input independent of interface locale."
+    },
+    {
+      "path": "Apps/SharedKeyboard/KeyboardPanelView+Kana12.swift",
+      "value": "小゛゜",
+      "reason": "Japanese kana row names and modifier keycap describe literal kana input independent of interface locale."
+    },
+    {
+      "path": "Apps/SharedKeyboard/CandidateBarPreviewView.swift",
+      "value": "你好",
+      "reason": "Fixed nihao sample candidate data used only to preview candidate geometry."
+    },
+    {
+      "path": "Apps/SharedKeyboard/CandidateBarPreviewView.swift",
+      "value": "您好",
+      "reason": "Fixed nihao sample candidate data used only to preview candidate geometry."
+    },
+    {
+      "path": "Apps/SharedKeyboard/CandidateBarPreviewView.swift",
+      "value": "你 好",
+      "reason": "Fixed nihao sample candidate data used only to preview candidate geometry."
+    },
+    {
+      "path": "Apps/SharedKeyboard/CandidateBarPreviewView.swift",
+      "value": "你好世界今天天气不错",
+      "reason": "Fixed nihao sample candidate data used only to preview candidate geometry."
+    },
+    {
+      "path": "Apps/SharedKeyboard/CandidateBarPreviewView.swift",
+      "value": "cháng jù · 长注释示例",
+      "reason": "Fixed nihao sample candidate data used only to preview candidate geometry."
+    },
+    {
+      "path": "Apps/SharedKeyboard/CandidateBarPreviewView.swift",
+      "value": "尼奥",
+      "reason": "Fixed nihao sample candidate data used only to preview candidate geometry."
+    },
+    {
+      "path": "Apps/SharedKeyboard/KeyboardPreviewView.swift",
+      "value": "你好",
+      "reason": "Fixed sample candidates and composing separator keycap in the keyboard preview."
+    },
+    {
+      "path": "Apps/SharedKeyboard/KeyboardPreviewView.swift",
+      "value": "您好",
+      "reason": "Fixed sample candidates and composing separator keycap in the keyboard preview."
+    },
+    {
+      "path": "Apps/SharedKeyboard/KeyboardPreviewView.swift",
+      "value": "你",
+      "reason": "Fixed sample candidates and composing separator keycap in the keyboard preview."
+    },
+    {
+      "path": "Apps/SharedKeyboard/KeyboardPreviewView.swift",
+      "value": "你好啊",
+      "reason": "Fixed sample candidates and composing separator keycap in the keyboard preview."
+    },
+    {
+      "path": "Apps/SharedKeyboard/KeyboardPreviewView.swift",
+      "value": "你好呀",
+      "reason": "Fixed sample candidates and composing separator keycap in the keyboard preview."
+    },
+    {
+      "path": "Apps/SharedKeyboard/KeyboardPreviewView.swift",
+      "value": "分词",
+      "reason": "Fixed sample candidates and composing separator keycap in the keyboard preview."
+    },
+    {
+      "path": "Packages/KeyboardCore/Sources/KeyboardCore/Layout/KeyboardLayout.swift",
+      "value": "内置全拼",
+      "reason": "Canonical schema names mirrored from bundled YAML, preserved as input-method proper names."
+    },
+    {
+      "path": "Packages/KeyboardCore/Sources/KeyboardCore/Layout/KeyboardLayout.swift",
+      "value": "内置小鹤双拼",
+      "reason": "Canonical schema names mirrored from bundled YAML, preserved as input-method proper names."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/KeyLabelPolicy.swift",
+      "value": "中文",
+      "reason": "Input-language keycap target faces selected explicitly by script, never interface locale."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/KeyLabelPolicy.swift",
+      "value": "英文",
+      "reason": "Input-language keycap target faces selected explicitly by script, never interface locale."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/ShuangpinHintStore.swift",
+      "value": "小鹤双拼提示",
+      "reason": "Stored and exported builtin hint-preset record name."
+    },
+    {
+      "path": "Packages/CandidateKit/Sources/CandidateKit/CandidateBarDefinition.swift",
+      "value": "系统默认",
+      "reason": "Persisted builtin candidate record name, localized displayName is separate."
+    },
+    {
+      "path": "Packages/SkinKit/Sources/SkinKit/SkinDefinition.swift",
+      "value": "系统默认",
+      "reason": "Persisted builtin skin record name, localized displayName is separate."
+    },
+    {
+      "path": "Packages/KeyboardCore/Sources/KeyboardCore/Support/LearningTransferStore.swift",
+      "value": "归档封装缺少 requestID",
+      "reason": "DecodingError debugDescription payload; user-facing transfer failure is rendered separately."
+    },
+    {
+      "path": "Packages/KeyboardCore/Sources/KeyboardCore/Support/LearningTransferStore.swift",
+      "value": "归档封装缺少 archive",
+      "reason": "DecodingError debugDescription payload; user-facing transfer failure is rendered separately."
+    },
+    {
+      "path": "Apps/SharedKeyboard/KeyboardController+Candidates.swift",
+      "value": "输入框暂不可用",
+      "reason": "Unrendered composition-presentation fallback reason; never displayed."
+    },
+    {
+      "path": "Apps/SharedKeyboard/KeyboardController+MarkedComposition.swift",
+      "value": "输入框暂不可用",
+      "reason": "Unrendered composition-presentation fallback reason; never displayed."
+    },
+    {
+      "path": "Apps/SharedKeyboard/KeyboardPadSession.swift",
+      "value": "输入框暂不可用",
+      "reason": "Unrendered composition-presentation fallback reason; never displayed."
+    },
+    {
+      "path": "Apps/SharedKeyboard/KeyboardControlKeys.swift",
+      "value": "空格",
+      "reason": "Initial UIKit default keycap, replaced by the actual policy-driven face in updateUIView before display."
+    },
+    {
+      "path": "Apps/SharedKeyboard/KeyboardPanelView+DefinitionKeys.swift",
+      "value": "分词",
+      "reason": "Literal Chinese input separator keycap on the T9 composing surface."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/KeyLabelPolicy.swift",
+      "value": "锁定",
+      "reason": "Explicit input-script automatic control faces, chosen by KeyLabelScript rather than app locale."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/KeyLabelPolicy.swift",
+      "value": "鎖定",
+      "reason": "Explicit input-script automatic control faces, chosen by KeyLabelScript rather than app locale."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/KeyLabelPolicy.swift",
+      "value": "固定",
+      "reason": "Explicit input-script automatic control faces, chosen by KeyLabelScript rather than app locale."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/KeyLabelPolicy.swift",
+      "value": "更多",
+      "reason": "Explicit input-script automatic control faces, chosen by KeyLabelScript rather than app locale."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/KeyLabelPolicy.swift",
+      "value": "その他",
+      "reason": "Explicit input-script automatic control faces, chosen by KeyLabelScript rather than app locale."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/KeyLabelPolicy.swift",
+      "value": "重输",
+      "reason": "Explicit input-script automatic control faces, chosen by KeyLabelScript rather than app locale."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/KeyLabelPolicy.swift",
+      "value": "重輸",
+      "reason": "Explicit input-script automatic control faces, chosen by KeyLabelScript rather than app locale."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/KeyLabelPolicy.swift",
+      "value": "取消",
+      "reason": "Explicit input-script automatic control faces, chosen by KeyLabelScript rather than app locale."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/KeyLabelPolicy.swift",
+      "value": "上档",
+      "reason": "Explicit input-script automatic control faces, chosen by KeyLabelScript rather than app locale."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/KeyLabelPolicy.swift",
+      "value": "上檔",
+      "reason": "Explicit input-script automatic control faces, chosen by KeyLabelScript rather than app locale."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/BuiltinLayouts.swift",
+      "value": "两个字母合用一个键，轻点输入。输入方案支持时，向左或向右滑动可只输入左边或右边的字母。",
+      "reason": "Shared serialized builtin note data, translated only by LayoutDefinition.displayNote when unchanged."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/BuiltinLayouts.swift",
+      "value": "部分键由两个字母合用，轻点输入。输入方案支持时，向左或向右滑动可只输入左边或右边的字母。",
+      "reason": "Shared serialized builtin note data, translated only by LayoutDefinition.displayNote when unchanged."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/BuiltinLayouts.swift",
+      "value": "2–9 键按所选的输入方案输入。输入中轻点首键可分词；未输入时，左栏前三个符号可直接输入，连续点按首键可轮换其余符号。长按首键输入 1，长按 2–9 输入对应数字。",
+      "reason": "Shared serialized builtin note data, translated only by LayoutDefinition.displayNote when unchanged."
+    },
+    {
+      "path": "Packages/KeyboardCore/Sources/KeyboardCore/Support/ProductionInputAvailability.swift",
+      "value": "内置输入方案",
+      "reason": "Persistent builtin package name; localizedBuiltinDisplayName is the display-only accessor."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/LayoutKeyFaceEditing.swift",
+      "value": "符号",
+      "reason": "Serialized automatic jump-key label; actual face resolves from input-script policy."
+    },
+    {
+      "path": "Apps/KeyboardExtension/KeyboardViewController+HostDocument.swift",
+      "value": "未开启在输入框中显示拼写",
+      "reason": "Internal CompositionPresentation fallback reasons, never rendered by a consumer."
+    },
+    {
+      "path": "Apps/KeyboardExtension/KeyboardViewController+HostDocument.swift",
+      "value": "长拼写在键盘内显示",
+      "reason": "Internal CompositionPresentation fallback reasons, never rendered by a consumer."
+    },
+    {
+      "path": "Packages/KeyboardCore/Sources/KeyboardCore/Layout/KeyboardLayout.swift",
+      "value": "26键",
+      "reason": "Legacy key-count tokens retained for source compatibility; UI uses localized userTitle."
+    },
+    {
+      "path": "Packages/KeyboardCore/Sources/KeyboardCore/Layout/KeyboardLayout.swift",
+      "value": "14键",
+      "reason": "Legacy key-count tokens retained for source compatibility; UI uses localized userTitle."
+    },
+    {
+      "path": "Packages/KeyboardCore/Sources/KeyboardCore/Layout/KeyboardLayout.swift",
+      "value": "18键",
+      "reason": "Legacy key-count tokens retained for source compatibility; UI uses localized userTitle."
+    },
+    {
+      "path": "Packages/KeyboardCore/Sources/KeyboardCore/Layout/KeyboardLayout.swift",
+      "value": "9键",
+      "reason": "Legacy key-count tokens retained for source compatibility; UI uses localized userTitle."
+    },
+    {
+      "path": "Apps/HostApp/CompactAdapterDeployment.swift",
+      "value": "「」不能用在上：它把数字键用作选字或其他功能（）",
+      "reason": "HostLog-only diagnostic for rejected adapter; not rendered in interface."
+    },
+    {
+      "path": "Apps/HostApp/EngineDeployVerification.swift",
+      "value": "你好",
+      "reason": "Fixed native playback expected word and HostLog-only verification payload."
+    },
+    {
+      "path": "Apps/HostApp/EngineDeployVerification.swift",
+      "value": "import verified :  → 你好",
+      "reason": "Fixed native playback expected word and HostLog-only verification payload."
+    },
+    {
+      "path": "Apps/HostApp/HostApp.swift",
+      "value": "日本語",
+      "reason": "DEBUG native deployment and font glyph probe data, never interface labels."
+    },
+    {
+      "path": "Apps/HostApp/HostApp.swift",
+      "value": "nihongo candidates do not contain 日本語: ",
+      "reason": "DEBUG native deployment and font glyph probe data, never interface labels."
+    },
+    {
+      "path": "Apps/HostApp/HostApp.swift",
+      "value": "直",
+      "reason": "DEBUG native deployment and font glyph probe data, never interface labels."
+    },
+    {
+      "path": "Apps/HostApp/HostApp.swift",
+      "value": "骨",
+      "reason": "DEBUG native deployment and font glyph probe data, never interface labels."
+    },
+    {
+      "path": "Apps/HostApp/HostApp.swift",
+      "value": "海",
+      "reason": "DEBUG native deployment and font glyph probe data, never interface labels."
+    },
+    {
+      "path": "Apps/HostApp/SchemeImportCenter+Keyboards.swift",
+      "value": "recipe:n  Rx: keyboard-adaptersn  description: 生成物理键盘编码适配n",
+      "reason": "Synthetic recipe source data used for internal adapter generation."
+    },
+    {
+      "path": "Apps/HostApp/SchemePackageDeletionCenter.swift",
+      "value": "composition-cleanup-skipped: 已安装的输入方式没读全，先保留所有页面搭配。",
+      "reason": "Internal cleanup diagnostic appended to diagnostic payload only."
+    },
+    {
+      "path": "Packages/KeyboardCore/Sources/KeyboardCore/Engine/DemoEngine.swift",
+      "value": "内嵌 43 词演示词表",
+      "reason": "Test/self-check-only demo backend status; production never selects this backend."
+    },
+    {
+      "path": "Packages/KeyboardCore/Sources/KeyboardCore/Engine/DemoEngine.swift",
+      "value": "（未设置）",
+      "reason": "Test/self-check-only demo backend status; production never selects this backend."
+    },
+    {
+      "path": "Packages/KeyboardCore/Sources/KeyboardCore/Engine/DemoEngine.swift",
+      "value": "演示引擎 · 输入方案  · 用户目录 ",
+      "reason": "Test/self-check-only demo backend status; production never selects this backend."
+    }
+  ]
+}

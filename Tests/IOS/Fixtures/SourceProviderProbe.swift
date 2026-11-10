@@ -130,6 +130,29 @@ enum UserKeyboardSource: Equatable { case active, package(String) }
             empty.keyboards.isEmpty && empty.roster.isEmpty && empty.isCurrent == false,
             "no usable record presents an empty, non-current page")
         print("PASS: absent record yields empty non-current snapshot")
+
+        // Case 4: switching to a scheme restores what that scheme remembers (read through the real
+        // provider, as the switch action does) and falls back to its default keyboard otherwise.
+        let compact = PublishedKeyboard(schemaID: "astra_review", layout: .merged14)
+        let full = PublishedKeyboard(schemaID: "astra_review", layout: .qwerty26)
+        KeyboardRecipeStore.fixtureActivation = .init(
+            recipeEnabled: true, kind: .userScheme, packageID: "pkg-b",
+            revision: "r2", hostInstallationGeneration: "g2",
+            keyboards: [.init(schemaID: "b_schema", layout: .qwerty26)],
+            keyboardsBySource: [
+                "userScheme:pkg-a": [compact],
+                "userScheme:pkg-b": [.init(schemaID: "b_schema", layout: .qwerty26)],
+            ],
+            schemas: [.init(id: "b_schema", name: "乙方案", alphabet: "abcdefghijklmnopqrstuvwxyz")])
+        let rememberedA = try await packageProvider("pkg-a").snapshot()
+        let restored = PublishedKeyboard.switchTarget(remembered: rememberedA.roster, addable: [full, compact])
+        precondition(restored?.roster == [compact], "the remembered keyboards come back, not the default")
+        precondition(restored?.selection == compact)
+        let rememberedC = try await packageProvider("pkg-c").snapshot()
+        precondition(rememberedC.roster.isEmpty, "a scheme never used has nothing remembered")
+        let fallback = PublishedKeyboard.switchTarget(remembered: rememberedC.roster, addable: [compact, full])
+        precondition(fallback?.roster == [full] && fallback?.selection == full, "no memory falls back to the default")
+        print("PASS: switching restores remembered keyboards and falls back to the default")
         AddableCombinationsProbe.run()
     }
 }

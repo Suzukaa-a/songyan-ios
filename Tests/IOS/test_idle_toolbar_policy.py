@@ -1,13 +1,12 @@
-"""Strict idle paste policy, production controller wiring, and ABA lease races."""
+"""Strict idle toolbar policy and production controller wiring."""
 import sys
 import unittest
 
 from swift_probe import ROOT, controller_sources, production_modules, run, scratch_directory, section, type_source_text
 
-PASTE = ROOT / "Apps/SharedKeyboard/QuickPasteView.swift"
 SHARED = ROOT / "Apps/SharedKeyboard"
 MEMO = SHARED / "KeyboardPanelView+LayoutDefinitions.swift"
-FIXTURE = ROOT / "Tests/IOS/Fixtures/IdlePastePolicy.swift"
+FIXTURE = ROOT / "Tests/IOS/Fixtures/IdleToolbarPolicy.swift"
 
 
 def panel_fragments(source, memo):
@@ -22,7 +21,7 @@ def panel_fragments(source, memo):
         "/* PRODUCTION_DEFINITION_MEMO */": memo[memo.index("final class DefinitionResolutionMemo {"):],
         "/* PRODUCTION_DEFINITION_CHROME */": section(source, "    var usesConfiguredLayout:",
                                                       "    var usesBundledMergedPad:"),
-        "/* PRODUCTION_IDLE_GETTER */": section(source, "    private var quickPasteIdleInput:",
+        "/* PRODUCTION_IDLE_GETTER */": section(source, "    private var idleToolbarInput:",
                                                 "    private func panelSurface("),
         "/* PRODUCTION_SYMBOL_ERROR_GETTER */": section(source, "    var t9QuickSymbolsError:",
                                                         "    // MARK: Key feedback"),
@@ -30,9 +29,9 @@ def panel_fragments(source, memo):
 
 
 @unittest.skipUnless(sys.platform == "darwin", "requires macOS Swift")
-class IdlePasteProductionTests(unittest.TestCase):
-    def test_complete_production_policy_lease_controller_and_symbol_model(self):
-        with scratch_directory("idle-paste-policy") as directory:
+class IdleToolbarProductionTests(unittest.TestCase):
+    def test_complete_production_policy_controller_and_symbol_model(self):
+        with scratch_directory("idle-toolbar-policy") as directory:
             modules = production_modules()
             existing = (ROOT / "Tests/IOS/Fixtures/ControllerInputRegressions.swift").read_text(encoding="utf-8")
             platform = directory / "PlatformSeam.swift"
@@ -45,7 +44,7 @@ class IdlePasteProductionTests(unittest.TestCase):
             for marker, fragment in fragments.items():
                 self.assertEqual(generated.count(marker), 1, marker)
                 generated = generated.replace(marker, fragment)
-            fixture = directory / "IdlePastePolicy.swift"
+            fixture = directory / "IdleToolbarPolicy.swift"
             fixture.write_text(generated, encoding="utf-8")
             binary = directory / "probe"
             run(["xcrun", "swiftc", "-swift-version", "5", "-parse-as-library",
@@ -53,7 +52,7 @@ class IdlePasteProductionTests(unittest.TestCase):
                  "-module-cache-path", str(directory / "module-cache"),
                  "-lKeyboardCore", "-lLayoutKit", "-lCandidateKit",
                  "-Xlinker", "-rpath", "-Xlinker", str(modules),
-                 str(PASTE), str(ROOT / "Apps/SharedKeyboard/T9QuickSymbolModel.swift"),
+                 str(ROOT / "Apps/SharedKeyboard/T9QuickSymbolModel.swift"),
                  *map(str, controller), str(queue), str(platform), str(fixture), "-o", str(binary)])
             runtime = directory / "runtime"
             runtime.mkdir()

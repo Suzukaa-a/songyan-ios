@@ -50,12 +50,13 @@ public enum KeyboardLayoutKind: String, CaseIterable, Identifiable, Codable, Sen
     }
 
     /// User-facing "keyboard layout" name (same wording in Host and keyboard; see `UserTerminology`).
+    /// The words live in the package catalog, like the other ordinary interface copy.
     public var userTitle: String {
         switch self {
-        case .qwerty26: return "26 键"
-        case .merged14: return "14 键"
-        case .merged18: return "18 键"
-        case .phone9: return "9 键"
+        case .qwerty26: return String(localized: "core.layout.qwertyTitle", bundle: .module)
+        case .merged14: return String(localized: "core.layout.merged14Title", bundle: .module)
+        case .merged18: return String(localized: "core.layout.merged18Title", bundle: .module)
+        case .phone9: return String(localized: "core.layout.phone9Title", bundle: .module)
         }
     }
 
@@ -67,10 +68,10 @@ public enum KeyboardLayoutKind: String, CaseIterable, Identifiable, Codable, Sen
 
     public var detail: String {
         switch self {
-        case .qwerty26: return "每个字母一个键。"
-        case .merged14: return "两个字母合用一个键。"
-        case .merged18: return "部分字母单独一个键，其余两个字母合用一个键。"
-        case .phone9: return "数字键 2–9 各对应几个字母。"
+        case .qwerty26: return String(localized: "core.layout.qwertyDetail", bundle: .module)
+        case .merged14: return String(localized: "core.layout.merged14Detail", bundle: .module)
+        case .merged18: return String(localized: "core.layout.merged18Detail", bundle: .module)
+        case .phone9: return String(localized: "core.layout.phone9Detail", bundle: .module)
         }
     }
 }
@@ -135,6 +136,20 @@ public enum BuiltinTemplateSchemas {
     public static let sourceSchemaIDs = [quanpin, flypy]
     /// Same as `schema/name` in the YAML; a companion shows its source's name.
     public static let names = [quanpin: "内置全拼", flypy: "内置小鹤双拼"]
+
+    /// What the interface calls a bundled scheme or one of its companions while it carries its
+    /// bundled name (or none). The YAML keeps the Simplified Chinese name the engine and saved
+    /// choices know; the words follow the app language. A name the user gave it (a dictionary
+    /// built on it) is theirs and stays.
+    public static func localizedName(for id: String, name: String = "") -> String? {
+        let source = sourceSchemaIDs.contains(id) ? id : adapters.first { $0.schemaID == id }?.sourceSchemaID
+        guard let source, name.isEmpty || name == id || name == source || name == names[source] else { return nil }
+        switch source {
+        case quanpin: return String(localized: "core.builtin.quanpinName", bundle: .module)
+        case flypy: return String(localized: "core.builtin.flypyName", bundle: .module)
+        default: return nil
+        }
+    }
 
     /// The generated companions shipped in the bundle. Ids follow
     /// `CompactSchemaAdapter.identifier`; the PackageManager tests regenerate the files and

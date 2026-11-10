@@ -1,0 +1,107 @@
+{
+  "rationale": {
+    "japaneseMatchesSource": "Japanese keeps a Simplified Chinese string only when the wording is identical in Japanese. Each entry pins the exact value so a future translation cannot reuse the exemption silently."
+  },
+  "japaneseMatchesSource": [
+    {
+      "catalog": "Resources/Localizable.xcstrings",
+      "key": "catalog.bopomofo.name",
+      "value": "注音（台湾）"
+    },
+    {
+      "catalog": "Resources/Localizable.xcstrings",
+      "key": "列数：%lld",
+      "value": "列数：%lld"
+    },
+    {
+      "catalog": "Resources/Localizable.xcstrings",
+      "key": "保存",
+      "value": "保存"
+    },
+    {
+      "catalog": "Resources/Localizable.xcstrings",
+      "key": "数字",
+      "value": "数字"
+    },
+    {
+      "catalog": "Resources/Localizable.xcstrings",
+      "key": "位置",
+      "value": "位置"
+    },
+    {
+      "catalog": "Resources/Localizable.xcstrings",
+      "key": "左手",
+      "value": "左手"
+    },
+    {
+      "catalog": "Resources/Localizable.xcstrings",
+      "key": "右手",
+      "value": "右手"
+    },
+    {
+      "catalog": "Resources/Localizable.xcstrings",
+      "key": "背景",
+      "value": "背景"
+    },
+    {
+      "catalog": "Resources/Localizable.xcstrings",
+      "key": "%@：%.1f",
+      "value": "%@：%.1f"
+    },
+    {
+      "catalog": "Resources/Localizable.xcstrings",
+      "key": "%@：%@",
+      "value": "%@：%@"
+    },
+    {
+      "catalog": "Resources/Localizable.xcstrings",
+      "key": "内容",
+      "value": "内容"
+    },
+    {
+      "catalog": "Resources/Localizable.xcstrings",
+      "key": "全角",
+      "value": "全角"
+    },
+    {
+      "catalog": "Resources/Localizable.xcstrings",
+      "key": "字形",
+      "value": "字形"
+    },
+    {
+      "catalog": "Resources/Localizable.xcstrings",
+      "key": "最近",
+      "value": "最近"
+    },
+    {
+      "catalog": "Packages/KeyboardCore/Sources/KeyboardCore/Resources/Localizable.xcstrings",
+      "key": "core.term.statusNotApplied",
+      "value": "未使用"
+    },
+    {
+      "catalog": "Packages/PackageManager/Sources/PackageManager/Resources/Localizable.xcstrings",
+      "key": "rimeConfig.error.fileName",
+      "value": "「%1$@」"
+    },
+    {
+      "catalog": "Packages/AppearanceKit/Sources/AppearanceKit/Resources/Localizable.xcstrings",
+      "key": "appearance.name.ink",
+      "value": "墨夜"
+    },
+    {
+      "catalog": "Packages/AppearanceKit/Sources/AppearanceKit/Resources/Localizable.xcstrings",
+      "key": "appearance.name.bamboo",
+      "value": "青竹"
+    },
+    {
+      "catalog": "Packages/AppearanceKit/Sources/AppearanceKit/Resources/Localizable.xcstrings",
+      "key": "appearance.name.galaxy",
+      "value": "星河"
+    },
+    {
+      "catalog": "Packages/AppearanceKit/Sources/AppearanceKit/Resources/Localizable.xcstrings",
+      "key": "appearance.name.dusk",
+      "value": "薄暮"
+    }
+  ]
+}

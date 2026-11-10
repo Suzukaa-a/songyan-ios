@@ -859,9 +859,55 @@ final class ManualQueue: EngineWorkQueue {
         controller.retire()
     }
 
+    /// Romaji and kana of one input method are two published keyboards on the same 26-key shape: selecting
+    /// the other board is a real switch that settles the composition and is reported with its board, while
+    /// re-selecting the running one is a no-op. Cycling treats each board as its own entry.
+    @MainActor static func boardSwitch() {
+        let base = URL(fileURLWithPath: "/tmp/board-switch")
+        let romaji = PublishedKeyboard(schemaID: "jp", layout: .qwerty26, board: "romaji26")
+        let kana = PublishedKeyboard(schemaID: "jp", layout: .qwerty26, board: "kana12")
+        let resources = KeyboardResourceSet(
+            id: "board-switch", name: "", sharedDirectory: base, userDirectory: base, layoutEntries: [],
+            prebuiltDirectory: base,
+            schemas: [KeyboardSchemaDescriptor(id: "jp", name: "日本語", alphabet: "abcdefghijklmnopqrstuvwxyz")],
+            selectedSchemaID: "jp", preferredLayout: .qwerty26, preferredBoard: "romaji26",
+            publishedKeyboards: [romaji, kana])
+        let controller = KeyboardController(
+            layout: .qwerty26, board: "romaji26", engine: ProbeEngine(), resourceSet: resources)
+        let keyboards = [romaji, kana].map {
+            UserKeyboard(inputMethodID: "jp", inputMethodName: "日本語", layout: .qwerty26, board: $0.board)
+        }
+        controller.updatePublishedKeyboards(keyboards)
+        precondition(controller.selectedBoard == "romaji26", "the controller starts on the record's board")
+        precondition(controller.userKeyboardChoices.map(\.id) == keyboards.map(\.id), "both boards are listed")
+        var changes: [KeyboardSelectionChange] = []
+        controller.onSelectionChanged = { changes.append($0) }
+        let revision = controller.definitionInputsRevision
+
+        precondition(!controller.selectUserKeyboard(keyboards[0]), "re-selecting the running board is a no-op")
+        precondition(changes.isEmpty)
+        precondition(controller.selectUserKeyboard(keyboards[1]), "the other board is a real switch")
+        precondition(controller.selectedBoard == "kana12", "the board follows the selection")
+        precondition(controller.layout == .qwerty26 && controller.selectedSchemaID == "jp")
+        precondition(changes.map(\.board) == ["kana12"], "the change is reported once, with its board")
+        precondition(controller.definitionInputsRevision != revision, "the key area re-resolves its layout")
+
+        controller.cycleLayout()
+        precondition(controller.selectedBoard == "romaji26", "cycling steps between the two board keyboards")
+        controller.cycleLayout()
+        precondition(controller.selectedBoard == "kana12")
+        precondition(changes.map(\.board) == ["kana12", "romaji26", "kana12"])
+
+        // A switch that names no board (layout key of another shape, schema pick) lands on no board.
+        controller.selectLayout(.qwerty26, boundSchemaID: "jp", board: nil)
+        precondition(controller.selectedBoard == nil, "naming no board is a switch to the keyboard without one")
+        controller.retire()
+    }
+
     @MainActor static func main() async {
         letters(ascii: false)
         letters(ascii: true)
+        boardSwitch()
         punctuationCycle()
         firstKeyLongPressInsertsOne()
         t9DigitLongPressIsLiteralNotCode()

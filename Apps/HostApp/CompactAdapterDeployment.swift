@@ -17,13 +17,15 @@ enum CompactAdapterDeployment {
         let url = build.appendingPathComponent(KeyboardResourceSet.adapterRegistryFileName)
         guard FileManager.default.fileExists(atPath: url.path) else { return [] }
         let data = try Data(contentsOf: url)
-        guard data.count < 1_000_000 else { throw RecipeInstallError.invalidResource("键盘适配配置文件大小超出限制") }
+        guard data.count < 1_000_000 else {
+            throw RecipeInstallError.invalidResource(String(localized: "键盘适配配置文件大小超出限制"))
+        }
         let adapters = try JSONDecoder().decode([KeyboardResourceSet.EncodingAdapter].self, from: data)
         let requests = adapters.map { PublishedKeyboard(schemaID: $0.sourceSchemaID, layout: $0.layout) }
         guard Set(requests).count == requests.count,
             adapters.allSatisfy({ $0.sourceSchemaID.range(of: "^[A-Za-z0-9_-]+$", options: .regularExpression) != nil })
         else {
-            throw RecipeInstallError.invalidResource("键盘适配配置文件格式无效")
+            throw RecipeInstallError.invalidResource(String(localized: "键盘适配配置文件格式无效"))
         }
         return PublishedKeyboard.generationTasks(for: requests)
     }
@@ -109,6 +111,12 @@ enum CompactAdapterDeployment {
             case .adaptable:
                 break
             }
+            // A known scheme family never offers the folded 14 / 18 / 9 layouts (its own physical
+            // layout is registered instead). The add-keyboard list already skips them; this keeps
+            // a persisted or author-declared combination from decoding the source projection at all.
+            let family = InputLayoutPolicy.family(
+                schemaID: source, alphabet: engine.schemaValue(source, key: "speller/alphabet") ?? "")
+            guard InputLayoutPolicy.allowsCompactLayouts(family: family) else { continue }
             try engine.validateSchemaForActivation(schemaID: source)
             let wasASCII = engine.option("ascii_mode")
             engine.setOption("ascii_mode", value: false)
@@ -119,7 +127,8 @@ enum CompactAdapterDeployment {
                 let projection = engine.sourceProjectionMap()
                     .flatMap(CompactSchemaAdapter.SourceProjection.decode(json:))
             else {
-                throw RecipeInstallError.deployment("无法读取输入方式「\(source)」的编码映射")
+                throw RecipeInstallError.deployment(
+                    String(localized: "无法读取输入方式「\(source)」的编码映射"))
             }
             // Structural contract, NOT a candidate oracle:
             //   * no primary token at all          -> `.native` (nothing to represent);
@@ -144,7 +153,8 @@ enum CompactAdapterDeployment {
             // own spellings, never from candidate presence.
             let routes = layoutRoutes(
                 requestedLayouts,
-                numericSource: aliasRepresentable && CompactSchemaAdapter.isNumericCodeSource(projection))
+                numericSource: aliasRepresentable && CompactSchemaAdapter.isNumericCodeSource(projection)
+                    && !CompactSchemaAdapter.declaresLetterClassPrefixSource(projection))
             if let digits = routes.native {
                 adapters.append(
                     .init(
@@ -163,7 +173,8 @@ enum CompactAdapterDeployment {
                     compiled: compiled, sourceID: source, projection: projection,
                     sourceDelimiter: sourceDelimiter)
             } catch {
-                throw RecipeInstallError.deployment("无法为输入方式「\(source)」生成按键显示：\(error)")
+                throw RecipeInstallError.deployment(
+                    String(localized: "无法为输入方式「\(source)」生成按键显示：\(error)"))
             }
 
             // Requested layouts are always compact (needsGeneratedAdapter): letter groups or phone digits.
@@ -179,7 +190,8 @@ enum CompactAdapterDeployment {
                     !fm.fileExists(
                         atPath: resourceURL.appendingPathComponent(InstalledPackageLayout.schemaFile(target)).path)
                 else {
-                    throw RecipeInstallError.deployment("生成的键盘适配名称与已有输入方式冲突：\(target)")
+                    throw RecipeInstallError.deployment(
+                        String(localized: "生成的键盘适配名称与已有输入方式冲突：\(target)"))
                 }
                 try data.write(to: generated, options: .atomic)
                 // Ensure the rewritten source is strictly newer than any recorded
@@ -200,7 +212,10 @@ enum CompactAdapterDeployment {
                 guard Prediction.sameWiring(engine.schemaComponents(source), engine.schemaComponents(target)),
                     engine.schemaValue(source, key: "predictor/db") == engine.schemaValue(target, key: "predictor/db")
                 else {
-                    throw RecipeInstallError.deployment("输入方式「\(source)」在\(layout.userTitle)上的联想词设置与原方案不一致")
+                    throw RecipeInstallError.deployment(
+                        String(
+                            localized:
+                                "输入方式「\(source)」在\(layout.userTitle)上的联想词设置与原方案不一致"))
                 }
                 adapters.append(
                     .init(

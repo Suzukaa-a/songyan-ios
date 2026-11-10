@@ -21,6 +21,7 @@ struct SchemePackageImportView: View {
     var initialSourceURL: URL?
     @State private var initialized = false
     @State private var recognizedNames: [String: String] = [:]
+    @StateObject private var switcher = InputSchemeSwitch()
 
     /// One use of fileImporter: pick a scheme package source, or supply a local file for a declared external resource.
     enum ImporterPurpose: Equatable {
@@ -100,12 +101,12 @@ struct SchemePackageImportView: View {
             if !center.recipes.isEmpty, isInstalledMode || developerOptions {
                 configurationSection
             } else if !center.recipeDiscoveryErrors.isEmpty, isInstalledMode || developerOptions {
-                Section("提示") {
+                Section(String(localized: "提示")) {
                     ForEach(Array(center.plannedDiagnostics.enumerated()), id: \.offset) { _, message in
                         Text(message).font(.footnote).textSelection(.enabled)
                     }
                     if developerOptions {
-                        DisclosureGroup("开发者诊断") {
+                        DisclosureGroup(String(localized: "开发者诊断")) {
                             ForEach(Array(center.recipeDiscoveryErrors.enumerated()), id: \.offset) { _, message in
                                 Text(message).font(.caption.monospaced()).textSelection(.enabled)
                             }
@@ -118,7 +119,9 @@ struct SchemePackageImportView: View {
                         let id = center.installedWorkspace?.packageID,
                         SchemeImportCenter.recordedSourceTarget(packageID: id) != nil
                     {
-                        NavigationLink("从 Rime 来源配置 / 更新") { RimeSourceInstallView(updatingPackageID: id) }
+                        NavigationLink(String(localized: "从 Rime 来源配置 / 更新")) {
+                            RimeSourceInstallView(updatingPackageID: id)
+                        }
                     } else {
                         Text("当前输入方案没有可调整的选项。").foregroundStyle(.secondary)
                     }
@@ -133,7 +136,7 @@ struct SchemePackageImportView: View {
             }
             if let message = center.message, !center.busy { messageSection(message) }
         }
-        .navigationTitle(isInstalledMode ? "方案选项" : UserTerminology.addInputScheme)
+        .navigationTitle(isInstalledMode ? String(localized: "方案选项") : UserTerminology.addInputScheme)
         .navigationBarTitleDisplayMode(.inline)
         .task {
             guard !initialized else { return }
@@ -223,22 +226,33 @@ struct SchemePackageImportView: View {
                             .font(.caption).foregroundStyle(.secondary)
                     }
                 }
-                DisclosureGroup("详细信息") {
+                DisclosureGroup(String(localized: "详细信息")) {
                     // Raw schema IDs show only under developer options; the normal flow shows only the count.
                     if developerOptions {
-                        LabeledRow(label: "输入方式标识", value: workspace.schemaIDs.joined(separator: "、"))
+                        LabeledRow(
+                            label: String(localized: "输入方式标识"),
+                            value: workspace.schemaIDs.joined(separator: "、"))
                     } else {
-                        LabeledRow(label: "输入方式", value: "\(workspace.schemaIDs.count) 种")
+                        LabeledRow(
+                            label: String(localized: "输入方式"),
+                            value: String(localized: "\(workspace.schemaIDs.count) 种"))
                     }
                     if !workspace.snapshot.fileResources.isEmpty {
                         if developerOptions {
                             LabeledRow(
-                                label: "模型文件", value: workspace.snapshot.fileResources.keys.joined(separator: "、"))
+                                label: String(localized: "模型文件"),
+                                value: workspace.snapshot.fileResources.keys.joined(separator: "、"))
                         } else {
                             let grams = workspace.snapshot.fileResources.keys.filter { $0.hasSuffix(".gram") }.count
-                            if grams > 0 { LabeledRow(label: "语法模型", value: "\(grams) 个") }
+                            if grams > 0 {
+                                LabeledRow(
+                                    label: String(localized: "语法模型"),
+                                    value: String(localized: "\(grams) 个"))
+                            }
                             if workspace.snapshot.fileResources.keys.contains(where: Prediction.isDatabasePath) {
-                                LabeledRow(label: "联想词库", value: "已安装")
+                                LabeledRow(
+                                    label: String(localized: "联想词库"),
+                                    value: String(localized: "已安装"))
                             }
                         }
                     }
@@ -257,7 +271,8 @@ struct SchemePackageImportView: View {
     /// it does not pop back to the main list or mark the new item as the current selection.
     private var installedSuccessNotice: String? {
         guard !center.busy, center.error == nil, center.lastInstalledPackageID != nil else { return nil }
-        return isInstalledMode || center.lastInstallReplacedVersion ? "更新完成" : "安装完成"
+        return isInstalledMode || center.lastInstallReplacedVersion
+            ? String(localized: "更新完成") : String(localized: "安装完成")
     }
 
     private func installedSection(_ notice: String) -> some View {
@@ -265,16 +280,23 @@ struct SchemePackageImportView: View {
             Label(notice, systemImage: "checkmark.circle.fill")
                 .foregroundStyle(.green)
             if let packageID = center.lastInstalledPackageID {
-                NavigationLink("选择键盘并开始使用") {
-                    UserKeyboardManagementView(source: .package(packageID), returnsToSource: true)
+                if switcher.phase == .done(packageID) {
+                    Text(UserTerminology.statusInUse).foregroundStyle(.green)
+                    NavigationLink(UserTerminology.userKeyboard) {
+                        UserKeyboardManagementView(source: .active)
+                    }
+                } else {
+                    UseInputSchemeRows(
+                        switcher: switcher, packageID: packageID, title: String(localized: "开始使用"),
+                        disabled: center.busy)
+                    Text("轻点「开始使用」，键盘会换成这个输入方案。")
+                        .font(.footnote).foregroundStyle(.secondary)
                 }
-                NavigationLink("查看方案详情") {
+                NavigationLink(String(localized: "查看方案详情")) {
                     SchemePackageDetailView(packageID: packageID)
                 }
-                Text("轻点键盘下方的「使用」即可开始打字。")
-                    .font(.footnote).foregroundStyle(.secondary)
             } else {
-                NavigationLink("查看方案") {
+                NavigationLink(String(localized: "查看方案")) {
                     SchemeDetailRouter()
                 }
             }
@@ -293,13 +315,14 @@ struct SchemePackageImportView: View {
     @ViewBuilder
     private var entrySection: some View {
         Section {
-            ForEach(RecommendedSchemeSource.catalog) { source in
+            ForEach(RecommendedSchemeSource.ordered(preferredLanguages: Locale.preferredLanguages)) { source in
                 NavigationLink {
                     SchemeURLImportView(source: source)
                 } label: {
                     VStack(alignment: .leading, spacing: 3) {
                         Label(source.name, systemImage: "star")
                         Text(source.detail).font(.caption).foregroundStyle(.secondary)
+                        Text(source.licenseSummary).font(.caption2).foregroundStyle(.secondary)
                     }
                 }
                 .disabled(center.busy)
@@ -312,13 +335,13 @@ struct SchemePackageImportView: View {
                 importerPurpose = .packageSource
                 showingImporter = true
             } label: {
-                Label("从文件导入", systemImage: "folder.badge.plus")
+                Label(String(localized: "从文件导入"), systemImage: "folder.badge.plus")
             }
             .disabled(center.busy)
             NavigationLink {
                 SchemeURLImportView(initialURL: initialSourceURL)
             } label: {
-                Label("从链接导入", systemImage: "link.badge.plus")
+                Label(String(localized: "从链接导入"), systemImage: "link.badge.plus")
             }
             .disabled(center.busy)
             if developerOptions {
@@ -326,7 +349,7 @@ struct SchemePackageImportView: View {
                 NavigationLink {
                     RimeSourceInstallView(updatingPackageID: nil)
                 } label: {
-                    Label("从 Rime 来源安装", systemImage: "shippingbox")
+                    Label(String(localized: "从 Rime 来源安装"), systemImage: "shippingbox")
                 }
                 .disabled(center.busy)
             }
@@ -379,29 +402,30 @@ struct SchemePackageImportView: View {
                         : (prepared.declaration.name.isEmpty ? UserTerminology.inputScheme : prepared.declaration.name)
                 )
                 .font(.headline)
-                Text("包含 \(prepared.schemaIDs.count) 种输入方式")
+                Text("包含 \(prepared.offeredSchemaIDs.count) 种输入方式")
                     .font(.caption).foregroundStyle(.secondary)
                 if let replaced = center.preparedReplacedPackageName {
                     Text("将更新已安装的「\(replaced)」，原来的设置和输入习惯会保留。")
                         .font(.caption).foregroundStyle(.secondary)
                 }
             }
-            recognizedInputMethods(Array(prepared.schemaIDs.prefix(5)))
-            if prepared.schemaIDs.count > 5 {
-                DisclosureGroup("其余 \(prepared.schemaIDs.count - 5) 种输入方式") {
-                    recognizedInputMethods(Array(prepared.schemaIDs.dropFirst(5)))
+            recognizedInputMethods(Array(prepared.offeredSchemaIDs.prefix(5)))
+            if prepared.offeredSchemaIDs.count > 5 {
+                DisclosureGroup(String(localized: "其余 \(prepared.offeredSchemaIDs.count - 5) 种输入方式")) {
+                    recognizedInputMethods(Array(prepared.offeredSchemaIDs.dropFirst(5)))
                 }
             }
             if developerOptions {
-                DisclosureGroup("输入方式标识") {
+                DisclosureGroup(String(localized: "输入方式标识")) {
                     ForEach(prepared.schemaIDs, id: \.self) { id in
-                        LabeledRow(label: recognizedNames[id] ?? "未命名输入方式", value: id)
+                        LabeledRow(
+                            label: recognizedNames[id] ?? String(localized: "未命名输入方式"), value: id)
                     }
                 }
             }
-            LabeledRow(label: "来自", value: sourceSummary)
+            LabeledRow(label: String(localized: "来自"), value: sourceSummary)
             LabeledRow(
-                label: "大小",
+                label: String(localized: "大小"),
                 value: HostStorePaths.fileSizeText(prepared.resourceBytes))
             ForEach(Array(prepared.requiredModelPaths.enumerated()), id: \.element) { index, path in
                 VStack(alignment: .leading, spacing: 8) {
@@ -449,7 +473,7 @@ struct SchemePackageImportView: View {
             Button {
                 center.install()
             } label: {
-                Label(center.preparedUpdatesInstalledPackage ? "更新" : "安装", systemImage: "checkmark.square")
+                Text(center.preparedUpdatesInstalledPackage ? String(localized: "更新") : String(localized: "安装"))
             }
             .disabled(
                 center.busy || showingImporter
@@ -459,7 +483,7 @@ struct SchemePackageImportView: View {
         } header: {
             Text("方案信息")
         } footer: {
-            Text(center.preparedUpdatesInstalledPackage ? "更新后在「我的键盘」中换用新版本。" : "安装后在「我的键盘」中选择使用。")
+            if center.preparedUpdatesInstalledPackage { Text("更新后轻点「开始使用」，键盘会换用新版本。") }
         }
         .task(id: prepared.manifest.revision) {
             let names = await Task.detached(priority: .userInitiated) { prepared.schemaNames }.value
@@ -477,9 +501,9 @@ struct SchemePackageImportView: View {
     /// Source: host for URL import, file name for file import.
     private var sourceSummary: String {
         if let sourceURL = center.preparedSourceURL {
-            return sourceURL.host ?? "下载链接"
+            return sourceURL.host ?? String(localized: "下载链接")
         }
-        return "本机文件"
+        return String(localized: "本机文件")
     }
 
     // MARK: - Check result and install (affected/missing items, required blocks; raw plan collapsed)
@@ -493,7 +517,7 @@ struct SchemePackageImportView: View {
             }
             if !planned.changedPaths.isEmpty {
                 if developerOptions {
-                    DisclosureGroup("将修改 \(planned.changedPaths.count) 个文件") {
+                    DisclosureGroup(String(localized: "将修改 \(planned.changedPaths.count) 个文件")) {
                         ForEach(planned.changedPaths, id: \.self) { path in
                             Text(path).font(.caption.monospaced()).foregroundStyle(.secondary)
                         }
@@ -501,9 +525,9 @@ struct SchemePackageImportView: View {
                 }
             }
             if developerOptions {
-                DisclosureGroup("开发者详情") {
-                    LabeledRow(label: "配置", value: planned.recipePath)
-                    LabeledRow(label: "参数", value: planned.rx)
+                DisclosureGroup(String(localized: "开发者详情")) {
+                    LabeledRow(label: String(localized: "配置"), value: planned.recipePath)
+                    LabeledRow(label: String(localized: "参数"), value: planned.rx)
                 }
             }
             Button {
@@ -520,13 +544,13 @@ struct SchemePackageImportView: View {
                         currentStages: stageArguments())
                 }
             } label: {
-                Label(isInstalledMode ? "更新" : "安装", systemImage: "checkmark.square")
+                Text(isInstalledMode ? String(localized: "更新") : String(localized: "安装"))
             }
             .disabled(center.busy || !planned.isDeployable)
         } header: {
             Text("检查结果")
         } footer: {
-            Text(isInstalledMode ? "更新后在「我的键盘」中换用新版本。" : "安装后在「我的键盘」中选择使用。")
+            if isInstalledMode { Text("更新后轻点「开始使用」，键盘会换用新版本。") }
         }
     }
 
@@ -538,7 +562,7 @@ struct SchemePackageImportView: View {
         let state = center.failureState ?? .unknown
         return Section {
             VStack(alignment: .leading, spacing: 4) {
-                Label("操作未完成", systemImage: "xmark.octagon.fill")
+                Label(String(localized: "操作未完成"), systemImage: "xmark.octagon.fill")
                     .foregroundStyle(.red).font(.subheadline.bold())
                 Text(error).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
                 Text(state.stateLine)
@@ -549,8 +573,9 @@ struct SchemePackageImportView: View {
             }
             Button(
                 center.retryDecision == .requestInput
-                    ? (installedPackageID != nil ? "重新载入" : "重新选择文件")
-                    : "重试"
+                    ? (installedPackageID != nil
+                        ? String(localized: "重新载入") : String(localized: "重新选择文件"))
+                    : String(localized: "重试")
             ) {
                 // Retry on the failure page must replay the same selected file/scheme: first consume the same operation captured by the import center.
                 // Only when there is truly nothing to replay does it fall back to an action explicitly labeled "reselect/load";
@@ -565,7 +590,9 @@ struct SchemePackageImportView: View {
             }.disabled(center.busy)
             // When the install content is saved but the keyboard is unchanged, offer an explicit apply entry so users do not think they must reinstall.
             if state == .installedNotApplied, let packageID = center.lastInstalledPackageID {
-                NavigationLink("打开已安装方案") { SchemePackageDetailView(packageID: packageID) }
+                NavigationLink(String(localized: "打开已安装方案")) {
+                    SchemePackageDetailView(packageID: packageID)
+                }
             }
         } header: {
             Text("错误")

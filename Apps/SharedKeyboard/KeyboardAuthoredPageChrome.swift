@@ -141,6 +141,8 @@ struct KeyboardPageAuthoredState: Equatable {
     var isEnglishMode: Bool
     var shiftState: ShiftState
     var returnTitle: String
+    /// Spoken Return name; empty keeps the visible title.
+    var returnAccessibilityLabel = ""
     var isReturnEnabled: Bool
     var symbolLocked: Bool
     var isComposing: Bool
@@ -155,6 +157,8 @@ struct KeyboardPageAuthoredState: Equatable {
     /// Explicit category decision. A trailing rail alone must never tag a keypad/row page as the
     /// categorized grid (that changes the language key's return/toggle semantics).
     var usesCategorySymbolPage = false
+    /// The scheme's input language for automatic faces; author labels never read it.
+    var script: KeyLabelScript = .simplifiedChinese
 
     var shiftActive: Bool { shiftState.isActive }
 
@@ -164,7 +168,8 @@ struct KeyboardPageAuthoredState: Equatable {
         KeyboardControlPolicy(
             page: page, isEnglishMode: isEnglishMode, hasGlobe: hasGlobe,
             isPhoneLayout: isPhoneStyled, usesASCIIPunctuation: usesASCIIPunctuation,
-            includesBottomEnter: true, usesCategorySymbolPage: usesCategorySymbolPage)
+            includesBottomEnter: true, usesCategorySymbolPage: usesCategorySymbolPage,
+            script: script)
     }
 
     /// The real title of a key: the authored label for .custom, otherwise the live native title.
@@ -183,10 +188,14 @@ struct KeyboardPageAuthoredState: Equatable {
         }
     }
 
+    func languageCurrentSideIsFirst(for key: LayoutKey) -> Bool? {
+        KeyboardPageControlFace.languageCurrentSideIsFirst(for: key, policy: controlPolicy)
+    }
+
     private func automaticTitle(for key: LayoutKey) -> String {
         switch key.action.type {
         case .enter: return returnTitle
-        case .space: return isEnglishMode ? "space" : "空格"
+        case .space: return key.automaticSpaceTitle(policy: controlPolicy, isComposing: isComposing)
         case .literal:
             return key.literalFaceTitle(usesASCIIPunctuation: usesASCIIPunctuation)
         default:
@@ -202,12 +211,21 @@ struct KeyboardPageAuthoredState: Equatable {
         return true
     }
 
+    /// Spoken Return name: composition confirms, otherwise the visible action word.
+    var returnAccessibility: String {
+        returnAccessibilityLabel.isEmpty ? returnTitle : returnAccessibilityLabel
+    }
+
     /// Extra accessible value for automatic controls (the visible face stays the native one).
     func accessibilityValue(for key: LayoutKey) -> String? {
         guard key.titleMode == .automatic else { return nil }
         switch key.action.type {
-        case .symbolLock: return symbolLocked ? "已开启" : "已关闭"
-        case .shift: return shiftState == .locked ? "大写锁定" : (shiftState == .once ? "下一字母大写" : "小写")
+        case .symbolLock: return symbolLocked ? String(localized: "已开启") : String(localized: "已关闭")
+        case .shift:
+            // Shift draws a glyph in every language, so the spoken state is interface copy.
+            return shiftState == .locked
+                ? String(localized: "大写锁定")
+                : (shiftState == .once ? String(localized: "下一字母大写") : String(localized: "小写"))
         default: return nil
         }
     }
@@ -216,21 +234,27 @@ struct KeyboardPageAuthoredState: Equatable {
 /// Automatic faces of the page UI controls. Authored pages and main-layout definition keys read
 /// this one table, so a control never carries two names.
 enum KeyboardPageControlFace {
+    /// The emphasised side of an automatic 中/英 face; nil for any other key or a custom label.
+    static func languageCurrentSideIsFirst(for key: LayoutKey, policy: KeyboardControlPolicy) -> Bool? {
+        guard key.action.type == .languageSwitch, key.titleMode == .automatic else { return nil }
+        return policy.languageCurrentSideIsFirst(for: key.action.languageSwitchBehavior)
+    }
+
     /// The native title of a page UI control, or nil for any other action.
     static func title(for key: LayoutKey, policy: KeyboardControlPolicy) -> String? {
         switch key.action.type {
         case .pageSwitch:
             switch key.action.pageSwitchTarget {
-            case .letters: return "返回"
-            case .numeric: return "123"
-            case .symbols: return "符号"
+            case .letters: return policy.languageTitle(for: .letters)
+            case .numeric: return KeyLabelPolicy.numericPageTitle
+            case .symbols: return policy.symbolPageTitle
             case nil: return key.label
             }
         case .layoutPageSwitch: return key.action.layoutPageJump?.pageLabel ?? key.label
         case .languageSwitch: return policy.languageTitle(for: key.action.languageSwitchBehavior)
-        case .symbolLock: return "锁定"
-        case .clearInput: return "重输"
-        case .shift: return "上档"
+        case .symbolLock: return KeyLabelPolicy.symbolLockTitle(script: policy.script)
+        case .clearInput: return KeyLabelPolicy.clearInputTitle(script: policy.script)
+        case .shift: return KeyLabelPolicy.shiftTitle(script: policy.script)
         default: return nil
         }
     }
@@ -238,15 +262,23 @@ enum KeyboardPageControlFace {
     /// The spoken name of a page UI control, or nil for any other action.
     static func accessibilityLabel(for key: LayoutKey, policy: KeyboardControlPolicy) -> String? {
         switch key.action.type {
-        case .pageSwitch where key.action.pageSwitchTarget == .letters: return "返回主键盘"
-        case .pageSwitch: return title(for: key, policy: policy).map { "打开\($0)页" }
+        case .pageSwitch where key.action.pageSwitchTarget == .letters:
+            return policy.pageSwitchAccessibilityLabel(for: .letters, isBundledPhonePad: policy.isBundledPhonePad)
+        case .pageSwitch:
+            guard let target = key.action.pageSwitchTarget else {
+                return title(for: key, policy: policy)
+            }
+            return policy.pageSwitchAccessibilityLabel(
+                for: target, isBundledPhonePad: policy.isBundledPhonePad)
         case .layoutPageSwitch:
             guard let jump = key.action.layoutPageJump else { return title(for: key, policy: policy) }
             let name = KeyboardLayoutKind(rawValue: jump.layout.rawValue)?.userTitle ?? jump.layout.rawValue
-            return "切换到\(name)并打开\(jump.page == .symbols ? "符号页" : "数字符号页")"
+            let pageName =
+                jump.page == .symbols ? String(localized: "符号页") : String(localized: "数字符号页")
+            return String(localized: "切换到\(name)并打开\(pageName)")
         case .languageSwitch: return policy.languageAccessibilityLabel(for: key.action.languageSwitchBehavior)
-        case .symbolLock: return "锁定符号页"
-        case .shift: return "上档键"
+        case .symbolLock: return String(localized: "锁定符号页")
+        case .shift: return String(localized: "上档键")
         default: return title(for: key, policy: policy)
         }
     }
@@ -279,9 +311,14 @@ struct KeyboardPageAuthoredActions {
 
 extension LayoutAction.Kind {
     /// Page-level controls the host dispatches itself; they never become an engine key action.
+    /// The kana kinds belong here too: a row, the modifier and the composition caret are resolved
+    /// by the kana handler, so an edited board's stored kana key keeps working through the same
+    /// page/definition dispatcher instead of needing a fake engine codeword.
     var isPageUI: Bool {
         switch self {
-        case .shift, .pageSwitch, .languageSwitch, .symbolLock, .clearInput, .layoutPageSwitch: return true
+        case .shift, .pageSwitch, .languageSwitch, .symbolLock, .clearInput, .layoutPageSwitch,
+            .kana, .kanaModifier, .cursorLeft:
+            return true
         default: return false
         }
     }

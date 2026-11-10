@@ -32,7 +32,7 @@ struct KeyboardPageManagementView: View {
             onDismiss: {
                 if savedFromSheet {
                     savedFromSheet = false
-                    toast = "已保存"
+                    toast = String(localized: "已保存")
                 }
             }
         ) { page in
@@ -40,11 +40,11 @@ struct KeyboardPageManagementView: View {
         }
         .savedToast($toast)
         .confirmationDialog(
-            "删除「\(removing?.name ?? "")」？",
+            String(localized: "删除「\(removing?.name ?? "")」？"),
             isPresented: Binding(get: { removing != nil }, set: { if !$0 { removing = nil } }),
             titleVisibility: .visible
         ) {
-            Button("删除页面", role: .destructive) {
+            Button(String(localized: "删除页面"), role: .destructive) {
                 guard let page = removing else { return }
                 removing = nil
                 Task {
@@ -56,13 +56,14 @@ struct KeyboardPageManagementView: View {
             }
         }
         .confirmationDialog(
-            "恢复预设？", isPresented: Binding(get: { restoring != nil }, set: { if !$0 { restoring = nil } }),
+            String(localized: "恢复预设？"),
+            isPresented: Binding(get: { restoring != nil }, set: { if !$0 { restoring = nil } }),
             titleVisibility: .visible
         ) {
-            Button("恢复预设", role: .destructive) {
+            Button(String(localized: "恢复预设"), role: .destructive) {
                 guard let preset = restoring else { return }
                 restoring = nil
-                busyMessage = "正在恢复预设…"
+                busyMessage = String(localized: "正在恢复预设…")
                 Task {
                     defer { busyMessage = nil }
                     if !(await manager.savePage(preset)) {
@@ -77,7 +78,7 @@ struct KeyboardPageManagementView: View {
         .alert(
             UserTerminology.pageLibrary, isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })
         ) {
-            Button("好", role: .cancel) { error = nil }
+            Button(String(localized: "好"), role: .cancel) { error = nil }
         } message: {
             Text(error ?? "")
         }
@@ -110,23 +111,26 @@ struct KeyboardPageManagementView: View {
                     .frame(minWidth: 44, minHeight: 44)
             }
             .buttonStyle(.borderless)
-            .accessibilityLabel("\(page.name)的更多操作")
+            .accessibilityLabel(String(localized: "\(page.listName)的更多操作"))
         }
         .padding(.vertical, 2)
         .swipeActions {
             if !isPreset(page), usage == nil {
-                Button("删除", role: .destructive) { removing = page }
+                Button(String(localized: "删除"), role: .destructive) { removing = page }
             }
         }
     }
 
     private func pageLabel(_ page: KeyboardPageDefinition, usage: String?) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(page.name).font(.headline).foregroundStyle(.primary)
+            Text(page.listName).font(.headline).foregroundStyle(.primary)
             Text(summary(page)).font(.caption).foregroundStyle(.secondary)
             if let usage { Text(usage).font(.caption).foregroundStyle(.secondary) }
-            Label(isPreset(page) ? "复制并编辑" : "编辑页面", systemImage: isPreset(page) ? "plus.square.on.square" : "pencil")
-                .font(.caption).foregroundStyle(Color.accentColor)
+            Label(
+                isPreset(page) ? String(localized: "复制并编辑") : String(localized: "编辑页面"),
+                systemImage: isPreset(page) ? "plus.square.on.square" : "pencil"
+            )
+            .font(.caption).foregroundStyle(Color.accentColor)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(Rectangle())
@@ -135,59 +139,60 @@ struct KeyboardPageManagementView: View {
     @ViewBuilder
     private func actions(_ page: KeyboardPageDefinition, usage: String?) -> some View {
         if !isPreset(page) {
-            Button("编辑", systemImage: "pencil") { openEditor(page) }
+            Button(String(localized: "编辑"), systemImage: "pencil") { openEditor(page) }
         }
         if page.numericPresentation == .automatic {
-            Menu("复制并编辑", systemImage: "plus.square.on.square") {
-                Button("复制中文 123") { copy(page, numericMarks: .chinese) }
-                Button("复制英文 123") { copy(page, numericMarks: .ascii) }
-                Button("复制\(UserTerminology.phoneDigitPad)") {
+            Menu(String(localized: "复制并编辑"), systemImage: "plus.square.on.square") {
+                Button(String(localized: "复制中文 123")) { copy(page, numericMarks: .chinese) }
+                Button(String(localized: "复制英文 123")) { copy(page, numericMarks: .ascii) }
+                Button(String(localized: "复制\(UserTerminology.phoneDigitPad)")) {
                     copy(page, numericMarks: .chinese, numericForm: .phoneDigitPad)
                 }
             }
         } else if page.symbolPresentation == .automatic {
-            Menu("复制并编辑", systemImage: "plus.square.on.square") {
-                Button("复制多行符号页") { copy(page, presentation: .rows) }
-                Button("复制分类符号页") { copy(page, presentation: .categorized) }
+            Menu(String(localized: "复制并编辑"), systemImage: "plus.square.on.square") {
+                Button(String(localized: "复制多行符号页")) { copy(page, presentation: .rows) }
+                Button(String(localized: "复制分类符号页")) { copy(page, presentation: .categorized) }
             }
         } else {
-            Button("复制并编辑", systemImage: "plus.square.on.square") { copy(page) }
+            Button(String(localized: "复制并编辑"), systemImage: "plus.square.on.square") { copy(page) }
         }
         if let preset = KeyboardPagePresets.all.first(where: { $0.id == page.id }), preset != page {
-            Button("恢复预设", systemImage: "arrow.counterclockwise") { restoring = preset }
+            Button(String(localized: "恢复预设"), systemImage: "arrow.counterclockwise") { restoring = preset }
         }
         if !isPreset(page) {
-            Button("删除", systemImage: "trash", role: .destructive) { removing = page }
+            Button(String(localized: "删除"), systemImage: "trash", role: .destructive) { removing = page }
                 .disabled(usage != nil)
         }
     }
 
     private func summary(_ page: KeyboardPageDefinition) -> String {
         if page.numericPresentation == .automatic {
-            return "标点跟着中英文，9 键是\(UserTerminology.phoneDigitPad)"
+            return String(localized: "标点跟着中英文，9 键是\(UserTerminology.phoneDigitPad)")
         }
         if page.numericPresentation == .keypad {
             let content = page.rows.reduce(0) { $0 + $1.keys.count }
-            return "\(UserTerminology.phoneDigitPad) · 共 \(content + page.chromeKeys.count) 个按键"
+            return String(localized: "\(UserTerminology.phoneDigitPad) · 共 \(content + page.chromeKeys.count) 个按键")
         }
         if page.usesSymbolBrowser {
             guard let categories = page.categories else {
-                return page.symbolPresentation == .automatic ? "九键用分类浏览，其他布局用多行" : "分类浏览"
+                return page.symbolPresentation == .automatic
+                    ? String(localized: "九键用分类浏览，其他布局用多行") : String(localized: "分类浏览")
             }
-            return "\(categories.count) 个分类"
+            return String(localized: "\(categories.count) 个分类")
         }
         let content = page.rows.reduce(0) { $0 + $1.keys.count }
         if page.chromeKeys.isEmpty {
-            return "\(page.rows.count) 行 · \(content) 个按键"
+            return String(localized: "\(page.rows.count) 行 · \(content) 个按键")
         }
-        return "\(page.rows.count) 行 · \(content) 个内容键 · \(page.chromeKeys.count) 个功能键"
+        return String(localized: "\(page.rows.count) 行 · \(content) 个内容键 · \(page.chromeKeys.count) 个功能键")
     }
 
     private func copy(
         _ page: KeyboardPageDefinition, presentation: KeyboardSymbolPresentation? = nil,
         numericMarks: KeyboardNumericMarks? = nil, numericForm: KeyboardNumericForm? = nil
     ) {
-        busyMessage = "正在准备页面…"
+        busyMessage = String(localized: "正在准备页面…")
         Task { @MainActor in
             defer { busyMessage = nil }
             do {
@@ -203,13 +208,13 @@ struct KeyboardPageManagementView: View {
     /// without its snapshot reads the symbol library first on the background queue.
     private func openEditor(_ page: KeyboardPageDefinition) {
         guard page.numericPresentation != .automatic else { return }
-        busyMessage = "正在准备页面…"
+        busyMessage = String(localized: "正在准备页面…")
         Task { @MainActor in
             defer { busyMessage = nil }
             do {
                 editing = try await KeyboardPageDraftFactory.editableDraft(page)
             } catch {
-                self.error = "分类没有读取成功，请重试。"
+                self.error = String(localized: "分类没有读取成功，请重试。")
             }
         }
     }

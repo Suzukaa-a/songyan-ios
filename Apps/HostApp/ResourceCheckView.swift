@@ -15,7 +15,7 @@ struct ResourceCheckView: View {
 
     var body: some View {
         List {
-            Section("内置输入方案与关键文件") {
+            Section(String(localized: "内置输入方案与关键文件")) {
                 if rows.isEmpty {
                     Text("正在检查…")
                 } else {
@@ -32,7 +32,7 @@ struct ResourceCheckView: View {
                 }
             }
         }
-        .navigationTitle("内置资源检查")
+        .navigationTitle(String(localized: "内置资源检查"))
         .task { rows = check() }
     }
 
@@ -43,7 +43,7 @@ struct ResourceCheckView: View {
             Row(
                 id: "dir", name: "BuiltinPackages/Basic",
                 ok: base != nil,
-                note: base?.path ?? "未在 App 中找到"))
+                note: base?.path ?? String(localized: "未在 App 中找到")))
         guard let dir = base else { return result }
         let fm = FileManager.default
         for file in BuiltinResources.requiredFiles {
@@ -52,7 +52,7 @@ struct ResourceCheckView: View {
             result.append(
                 Row(
                     id: file, name: file, ok: ok,
-                    note: ok ? "存在" : "缺失"))
+                    note: ok ? String(localized: "存在") : String(localized: "缺失")))
         }
         return result
     }

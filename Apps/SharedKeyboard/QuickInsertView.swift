@@ -24,11 +24,11 @@ public struct QuickInsertView: View {
             KeyboardToolsSeparator(leadingInset: separatorInset)
             KeyboardToolsRow(
                 icon: "arrow.uturn.backward",
-                title: "重复上次输入",
+                title: String(localized: "重复上次输入"),
                 trailingText: state.repeatPreview.map { "“\($0)”" },
-                accessibilityLabel: "重复上次输入",
+                accessibilityLabel: String(localized: "重复上次输入"),
                 accessibilityValue: state.repeatPreview ?? "",
-                accessibilityHint: "再次输入最近一次上屏的文字"
+                accessibilityHint: String(localized: "再次输入最近一次上屏的文字")
             ) {
                 state.performRepeat()
             }
@@ -72,7 +72,7 @@ public struct QuickInsertView: View {
         }
         // Function-key tone on the key-coloured card, like Shift/Delete beside letters.
         .buttonStyle(KeyboardToolsKeyButtonStyle(role: "control"))
-        .accessibilityLabel("插入\(format.title)")
+        .accessibilityLabel(String(localized: "插入\(format.title)"))
         .accessibilityValue(text)
     }
 

@@ -13,10 +13,13 @@
 //     candidate text color and size still derive from the skin (SkinDefinition).
 //   - Selection and application commit atomically in one file, so a runtime snapshot can never mix
 //     generations (selectedID == document.id == skin.id == candidateBar.id).
+// User-facing wording lives in Resources/Localizable.xcstrings (zh-Hans source, zh-Hant and ja
+// translations) and is read through the package bundle.
 import PackageDescription
 
 let package = Package(
     name: "AppearanceKit",
+    defaultLocalization: "zh-Hans",
     platforms: [
         .iOS(.v17),
         .macOS(.v13),
@@ -29,7 +32,9 @@ let package = Package(
         .package(path: "../CandidateKit"),
     ],
     targets: [
-        .target(name: "AppearanceKit", dependencies: ["SkinKit", "CandidateKit"]),
+        .target(
+            name: "AppearanceKit", dependencies: ["SkinKit", "CandidateKit"],
+            resources: [.process("Resources")]),
         .testTarget(
             name: "AppearanceKitTests",
             dependencies: ["AppearanceKit", "SkinKit", "CandidateKit"]

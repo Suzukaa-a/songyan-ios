@@ -30,7 +30,7 @@ struct LayoutManagementView: View {
                 Button {
                     showingImporter = true
                 } label: {
-                    Label("导入", systemImage: "square.and.arrow.down")
+                    Label(String(localized: "导入"), systemImage: "square.and.arrow.down")
                 }
                 .disabled(manager.isImporting)
             }
@@ -51,7 +51,7 @@ struct LayoutManagementView: View {
             }
         }
         .alert(UserTerminology.keyboardLayout, isPresented: errorBinding) {
-            Button("好", role: .cancel) {
+            Button(String(localized: "好"), role: .cancel) {
                 manager.clearError()
                 importError = nil
             }
@@ -64,7 +64,7 @@ struct LayoutManagementView: View {
             onDismiss: {
                 if savedFromSheet {
                     savedFromSheet = false
-                    toast = "已保存"
+                    toast = String(localized: "已保存")
                 }
             }
         ) { draft in
@@ -72,7 +72,7 @@ struct LayoutManagementView: View {
         }
         .savedToast($toast)
         .confirmationDialog(removalTitle, isPresented: removalBinding, titleVisibility: .visible) {
-            Button("移除布局", role: .destructive) {
+            Button(String(localized: "移除布局"), role: .destructive) {
                 let ids = pendingRemoval.map(\.id)
                 pendingRemoval = []
                 Task { for id in ids { await manager.remove(id) } }
@@ -83,7 +83,9 @@ struct LayoutManagementView: View {
     }
 
     private var removalTitle: String {
-        pendingRemoval.count == 1 ? "移除「\(pendingRemoval[0].name)」？" : "移除 \(pendingRemoval.count) 个布局？"
+        pendingRemoval.count == 1
+            ? String(localized: "移除「\(pendingRemoval[0].name)」？")
+            : String(localized: "移除 \(pendingRemoval.count) 个布局？")
     }
 
     private var removalBinding: Binding<Bool> {
@@ -99,10 +101,10 @@ struct LayoutManagementView: View {
         if manager.isImporting || sharedFailed {
             Section {
                 if manager.isImporting {
-                    ProgressView("正在读取布局…")
+                    ProgressView(String(localized: "正在读取布局…"))
                 }
                 if sharedFailed {
-                    Label("键盘暂时读不到这些布局，它们只保存在当前 App 里。", systemImage: "exclamationmark.triangle")
+                    Label(String(localized: "键盘暂时读不到这些布局，它们只保存在当前 App 里。"), systemImage: "exclamationmark.triangle")
                 }
             }
         }
@@ -119,7 +121,7 @@ struct LayoutManagementView: View {
     @ViewBuilder private var pairedSection: some View {
         let layouts = manager.registry.layouts.filter { !users(of: $0.id).isEmpty }
         if !layouts.isEmpty {
-            Section("正在被键盘使用") {
+            Section(String(localized: "正在被键盘使用")) {
                 ForEach(layouts) { layout in row(for: layout, isPaired: true) }
             }
         }
@@ -128,7 +130,7 @@ struct LayoutManagementView: View {
     @ViewBuilder private var otherSection: some View {
         let others = manager.registry.layouts.filter { users(of: $0.id).isEmpty }
         if !others.isEmpty {
-            Section("其他布局") {
+            Section(String(localized: "其他布局")) {
                 ForEach(others) { layout in row(for: layout, isPaired: false) }
                     .onDelete { offsets in
                         // Confirm first: a removed layout can only be re-imported. Staged by value so
@@ -157,7 +159,7 @@ struct LayoutManagementView: View {
                             .font(.caption).foregroundStyle(.secondary)
                         }
                         Spacer()
-                        Button("添加") { Task { await manager.addBuiltin(builtin) } }
+                        Button(String(localized: "添加")) { Task { await manager.addBuiltin(builtin) } }
                             .buttonStyle(.bordered)
                             .controlSize(.small)
                     }
@@ -177,7 +179,7 @@ struct LayoutManagementView: View {
             LayoutDetailView(layoutID: layout.id, keyboardNames: keyboardNames)
         } label: {
             VStack(alignment: .leading, spacing: 3) {
-                Text(layout.name).font(.body)
+                Text(layout.listName).font(.body)
                 Text(rowSubtitle(layout, isPaired: isPaired))
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -193,9 +195,9 @@ struct LayoutManagementView: View {
     }
 
     private func rowSubtitle(_ layout: LayoutDefinition, isPaired: Bool) -> String {
-        let source = isBuiltin(layout) ? "内置" : "自定义"
+        let source = isBuiltin(layout) ? String(localized: "内置") : String(localized: "自定义")
         let keyForm = keyFormDescription(layout)
-        let mapping = layout.input.schemaID == nil || isPaired ? "" : " · 仅限指定输入方式"
+        let mapping = layout.input.schemaID == nil || isPaired ? "" : String(localized: " · 仅限指定输入方式")
         return "\(source) · \(keyForm)\(mapping)"
     }
 
@@ -205,7 +207,7 @@ struct LayoutManagementView: View {
         if let kind = KeyboardLayoutKind(rawValue: layout.input.builtinLayout?.rawValue ?? "") {
             return UserTerminology.layoutName(kind)
         }
-        return "\(layout.rows.count) 行 \(keyCount) 键"
+        return String(localized: "\(layout.rows.count) 行 \(keyCount) 键")
     }
 
     private func isBuiltin(_ layout: LayoutDefinition) -> Bool {
@@ -257,29 +259,35 @@ struct LayoutDetailView: View {
     var body: some View {
         List {
             if let layout {
-                Section("布局") {
-                    LabeledRow(label: "名称", value: layout.name)
+                Section(String(localized: "布局")) {
+                    LabeledRow(label: String(localized: "名称"), value: layout.listName)
                     if developerOptions { LabeledRow(label: "ID", value: layout.id) }
-                    LabeledRow(label: "输入", value: inputText(layout))
-                    LabeledRow(label: "来源", value: isBuiltin(layout) ? "内置" : "自定义导入")
-                    LabeledRow(label: "按键", value: "\(layout.rows.count) 行 · \(keyCount(layout)) 个")
-                    if let note = layout.note, !note.isEmpty {
+                    LabeledRow(label: String(localized: "输入"), value: inputText(layout))
+                    LabeledRow(
+                        label: String(localized: "来源"),
+                        value: isBuiltin(layout) ? String(localized: "内置") : String(localized: "自定义导入"))
+                    LabeledRow(
+                        label: String(localized: "按键"),
+                        value: String(localized: "\(layout.rows.count) 行 · \(keyCount(layout)) 个"))
+                    if let note = layout.displayNote, !note.isEmpty {
                         Text(note).font(.footnote).foregroundStyle(.secondary)
                     }
                 }
 
                 Section {
-                    Button("编辑键位与副键") { editingDraft = layout }
-                    Button("复制为新布局并编辑") { editingDraft = BuiltinLayouts.persistingHandCuts(in: layout).copy() }
+                    Button(String(localized: "编辑键位与副键")) { editingDraft = layout }
+                    Button(String(localized: "复制为新布局并编辑")) {
+                        editingDraft = BuiltinLayouts.persistingHandCuts(in: layout).copy()
+                    }
                     if let preset = BuiltinLayouts.all.first(where: { $0.id == layout.id }), preset != layout {
-                        Button("恢复预设") { confirmingPresetRestore = true }
+                        Button(String(localized: "恢复预设")) { confirmingPresetRestore = true }
                     }
                     Button {
                         guard let data = manager.exportData(for: layout.id) else { return }
                         exportDocument = LayoutJSONDocument(data: data)
                         exporting = true
                     } label: {
-                        Label("导出", systemImage: "square.and.arrow.up")
+                        Label(String(localized: "导出"), systemImage: "square.and.arrow.up")
                     }
                 } header: {
                     Text("编辑")
@@ -287,23 +295,24 @@ struct LayoutDetailView: View {
 
                 if !isBuiltin(layout) {
                     Section {
-                        Button("移除布局", role: .destructive) { confirmingRemoval = true }
+                        Button(String(localized: "移除布局"), role: .destructive) { confirmingRemoval = true }
                             .disabled(usage != nil)
                     } footer: {
-                        if let usage { Text(usage + "，换掉后才能移除。") }
+                        if let usage { Text(usage + String(localized: "，换掉后才能移除。")) }
                     }
                 }
             } else {
                 Text("布局不存在或已被移除。").font(.footnote).foregroundStyle(.secondary)
             }
         }
-        .navigationTitle(layout?.name ?? "布局")
+        .navigationTitle(layout?.name ?? String(localized: "布局"))
         .navigationBarTitleDisplayMode(.inline)
         .confirmationDialog(
-            "移除「\(layout?.name ?? "这个布局")」？", isPresented: $confirmingRemoval,
+            String(localized: "移除「\(layout?.name ?? String(localized: "这个布局"))」？"),
+            isPresented: $confirmingRemoval,
             titleVisibility: .visible
         ) {
-            Button("移除布局", role: .destructive) {
+            Button(String(localized: "移除布局"), role: .destructive) {
                 Task {
                     await manager.remove(layoutID)
                     if manager.registry.layout(id: layoutID) == nil { dismiss() }
@@ -312,8 +321,10 @@ struct LayoutDetailView: View {
         } message: {
             Text("移除后要重新导入才能再用。")
         }
-        .confirmationDialog("恢复预设？", isPresented: $confirmingPresetRestore, titleVisibility: .visible) {
-            Button("恢复预设", role: .destructive) {
+        .confirmationDialog(
+            String(localized: "恢复预设？"), isPresented: $confirmingPresetRestore, titleVisibility: .visible
+        ) {
+            Button(String(localized: "恢复预设"), role: .destructive) {
                 if let preset = BuiltinLayouts.all.first(where: { $0.id == layoutID }) {
                     Task { _ = await manager.saveDraft(preset) }
                 }
@@ -326,7 +337,7 @@ struct LayoutDetailView: View {
             onDismiss: {
                 if savedFromSheet {
                     savedFromSheet = false
-                    toast = "已保存"
+                    toast = String(localized: "已保存")
                 }
             }
         ) { draft in
@@ -340,11 +351,11 @@ struct LayoutDetailView: View {
             defaultFilename: layout?.id ?? "layout"
         ) { result in
             if case .failure(let error) = result {
-                exportError = "键盘布局没有导出：\(error.localizedDescription)"
+                exportError = String(localized: "键盘布局没有导出：\(error.localizedDescription)")
             }
         }
         .alert(UserTerminology.keyboardLayout, isPresented: exportErrorBinding) {
-            Button("好", role: .cancel) {
+            Button(String(localized: "好"), role: .cancel) {
                 manager.clearError()
                 exportError = nil
             }
@@ -365,7 +376,9 @@ struct LayoutDetailView: View {
     }
 
     private func inputText(_ layout: LayoutDefinition) -> String {
-        if let schema = layout.input.schemaID { return developerOptions ? "仅限输入方式 \(schema)" : "仅限指定输入方式" }
+        if let schema = layout.input.schemaID {
+            return developerOptions ? String(localized: "仅限输入方式 \(schema)") : String(localized: "仅限指定输入方式")
+        }
         if let kind = KeyboardLayoutKind(rawValue: layout.input.builtinLayout?.rawValue ?? "") {
             return UserTerminology.layoutName(kind)
         }
@@ -400,5 +413,21 @@ struct LayoutJSONDocument: FileDocument {
 
     func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
         FileWrapper(regularFileWithContents: data)
+    }
+}
+
+extension LayoutDefinition {
+    /// The name layout lists show: a bundled layout is worded in the UI language while its shipped
+    /// name is unchanged; every other layout keeps the name it was saved with.
+    var listName: String {
+        UserTerminology.layoutListName(
+            id: id, name: name, shippedName: BuiltinLayouts.all.first { $0.id == id }?.name)
+    }
+}
+
+extension KeyboardPageDefinition {
+    /// The name page lists show, by the same rule as `LayoutDefinition.listName`.
+    var listName: String {
+        UserTerminology.pageListName(id: id, name: name, shippedName: KeyboardPagePresets.preset(id: id)?.name)
     }
 }

@@ -30,9 +30,13 @@ final class SchemeURLDownloadService: ObservableObject {
 
         var errorDescription: String? {
             switch self {
-            case .emptyAddress: return "请输入 ZIP 文件链接。"
-            case .notHTTPS: return "请输入以 https 开头的链接。"
-            case .notZIP: return "链接未指向 ZIP 文件。请填写 ZIP 下载链接或 GitHub 仓库地址（例如 https://github.com/用户/仓库）。"
+            case .emptyAddress: return String(localized: "请输入 ZIP 文件链接。")
+            case .notHTTPS: return String(localized: "请输入以 https 开头的链接。")
+            case .notZIP:
+                return String(
+                    localized:
+                        "链接未指向 ZIP 文件。请填写 ZIP 下载链接或 GitHub 仓库地址（例如 https://github.com/用户/仓库）。"
+                )
             }
         }
     }
@@ -50,6 +54,9 @@ final class SchemeURLDownloadService: ObservableObject {
         let finalURL: URL
         let byteCount: Int64
         let lease: DownloadLease
+        var additionalFileURLs: [URL] = []
+        var recommendation: RecommendedSchemeSource? = nil
+        var localFileURLs: [URL] { [localFileURL] + additionalFileURLs }
     }
 
     final class DownloadLease: Sendable {
@@ -115,7 +122,7 @@ final class SchemeURLDownloadService: ObservableObject {
     /// user cancel is not a failure.
     func download(address: String) async throws -> Result {
         guard Self.preflight(address) == nil, let url = normalizedURL(from: address) else {
-            let message = (Self.preflight(address) ?? .notHTTPS).errorDescription ?? "地址无效。"
+            let message = (Self.preflight(address) ?? .notHTTPS).errorDescription ?? String(localized: "地址无效。")
             lastError = message
             throw Failure(message: message)
         }
@@ -127,7 +134,35 @@ final class SchemeURLDownloadService: ObservableObject {
         progress = Progress(downloadedBytes: 0, totalBytes: nil)
         let staging = Self.stagingRoot.appendingPathComponent(UUID().uuidString, isDirectory: true)
         let task = Task { [weak self] in
-            try await Self.perform(url: url, staging: staging) { downloaded, total in
+            if let source = RecommendedSchemeSource.catalog.first(where: { $0.url == url }) {
+                let lease = DownloadLease(directory: staging)
+                var results: [Result] = []
+                var completed: Int64 = 0
+                for (index, archive) in source.archives.enumerated() {
+                    let previousBytes = completed
+                    // The entry's archives share one compressed budget; each transfer may only
+                    // use what its predecessors left.
+                    let remaining = RecipeResourceBudget.archiveFile - Int(clamping: completed)
+                    guard remaining > 0 else { throw TransportError.tooLarge }
+                    let result = try await Self.perform(
+                        url: archive.url, staging: staging.appendingPathComponent("archive-" + String(index)),
+                        lease: lease, maximumBytes: remaining
+                    ) { downloaded, _ in
+                        Task { @MainActor in
+                            guard let self, self.requestGeneration == generation else { return }
+                            self.progress = Progress(
+                                downloadedBytes: previousBytes + downloaded, totalBytes: source.byteCountHint)
+                        }
+                    }
+                    completed += result.byteCount
+                    results.append(result)
+                }
+                var result = results[0]
+                result.additionalFileURLs = results.dropFirst().map(\.localFileURL)
+                result.recommendation = source
+                return result
+            }
+            return try await Self.perform(url: url, staging: staging) { downloaded, total in
                 Task { @MainActor in
                     guard let self, self.requestGeneration == generation else { return }
                     self.progress = Progress(downloadedBytes: downloaded, totalBytes: total)
@@ -174,26 +209,28 @@ final class SchemeURLDownloadService: ObservableObject {
         let ns = error as NSError
         if ns.domain == NSURLErrorDomain {
             switch ns.code {
-            case NSURLErrorTimedOut: return "连接超时，请检查网络后重试。"
+            case NSURLErrorTimedOut: return String(localized: "连接超时，请检查网络后重试。")
             case NSURLErrorCannotFindHost, NSURLErrorCannotConnectToHost,
                 NSURLErrorDNSLookupFailed:
-                return "无法连接服务器，请检查地址和网络。"
-            case NSURLErrorNetworkConnectionLost: return "网络连接中断，请重试。"
-            case NSURLErrorNotConnectedToInternet: return "无网络连接，请检查你的网络设置。"
+                return String(localized: "无法连接服务器，请检查地址和网络。")
+            case NSURLErrorNetworkConnectionLost: return String(localized: "网络连接中断，请重试。")
+            case NSURLErrorNotConnectedToInternet: return String(localized: "无网络连接，请检查你的网络设置。")
             case NSURLErrorBadServerResponse, NSURLErrorHTTPTooManyRedirects:
-                return "服务器响应异常，请确认链接指向可下载的 ZIP 文件。"
+                return String(localized: "服务器响应异常，请确认链接指向可下载的 ZIP 文件。")
             default: break
             }
         }
         if let download = error as? TransportError {
             switch download {
-            case .redirectDowngrade: return "链接被重定向至非 HTTPS 地址，已停止下载。"
-            case .http(let code): return "服务器返回错误（HTTP \(code)），请确认链接是否有效后重试。"
-            case .tooLarge: return "文件超出可导入的大小限制（1.5 GB）。"
-            case .notZIP: return DownloadError.notZIP.errorDescription ?? "链接未指向 ZIP 文件。"
+            case .redirectDowngrade: return String(localized: "链接被重定向至非 HTTPS 地址，已停止下载。")
+            case .http(let code):
+                return String(localized: "服务器返回错误（HTTP \(code)），请确认链接是否有效后重试。")
+            case .tooLarge: return String(localized: "文件超出可导入的大小限制（1.5 GB）。")
+            case .notZIP:
+                return DownloadError.notZIP.errorDescription ?? String(localized: "链接未指向 ZIP 文件。")
             }
         }
-        return "下载未完成：\(error.localizedDescription)"
+        return String(localized: "下载未完成：\(error.localizedDescription)")
     }
 
     // MARK: - Transfer (URLSession downloadTask writes to disk + progress/budget/redirect validation)
@@ -206,13 +243,14 @@ final class SchemeURLDownloadService: ObservableObject {
     }
 
     nonisolated private static func perform(
-        url: URL, staging: URL,
+        url: URL, staging: URL, lease: DownloadLease? = nil,
+        maximumBytes: Int = RecipeResourceBudget.archiveFile,
         progress: @escaping @Sendable (Int64, Int64?) -> Void
     ) async throws -> Result {
         try FileManager.default.createDirectory(at: staging, withIntermediateDirectories: true)
         let landing = staging.appendingPathComponent("scheme-\(UUID().uuidString).zip")
         let delegate = TransportDelegate(
-            maximumBytes: RecipeResourceBudget.archiveFile, landing: landing, progress: progress)
+            maximumBytes: maximumBytes, landing: landing, progress: progress)
         let session = URLSession(configuration: .ephemeral, delegate: delegate, delegateQueue: nil)
         defer { session.invalidateAndCancel() }
         // Explicit downloadTask + continuation: async `download(from:)` does not guarantee session-level
@@ -233,10 +271,10 @@ final class SchemeURLDownloadService: ObservableObject {
         // ZIP magic-number check (not URL suffix): HTML repo pages etc. get direct-link guidance.
         guard try Self.startsWithZipMagic(landing) else { throw TransportError.notZIP }
         let size = (try? landing.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0
-        guard size <= RecipeResourceBudget.archiveFile else { throw TransportError.tooLarge }
+        guard size <= maximumBytes else { throw TransportError.tooLarge }
         return Result(
             localFileURL: landing, requestedURL: url, finalURL: final,
-            byteCount: Int64(size), lease: DownloadLease(directory: staging))
+            byteCount: Int64(size), lease: lease ?? DownloadLease(directory: staging))
     }
 
     /// Same rules as PackageManager's `HTTPSResourceReader.validate`: HTTPS only, non-empty host, no embedded credentials.
@@ -367,31 +405,22 @@ final class SchemeURLDownloadService: ObservableObject {
     }
 }
 
-/// Recommended input schemes (pure data catalog; the import page has no source-specific logic). Downloaded from the public upstream
-/// repository only after the user taps; not bundled or redistributed; the revision is pinned to a reviewed version and goes through the same recognition/install flow as any link.
-struct RecommendedSchemeSource: Identifiable, Sendable {
-    let name: String
-    let detail: String
-    let url: URL
-    /// The project page; `url` is the archive itself, which a browser would just download.
-    let homepage: URL
-    var id: String { url.absoluteString }
+extension RecommendedSchemeSource {
+    var name: String { Bundle.main.localizedString(forKey: nameKey, value: nil, table: nil) }
+    var detail: String { Bundle.main.localizedString(forKey: detailKey, value: nil, table: nil) }
 
-    static let catalog: [RecommendedSchemeSource] = [
-        RecommendedSchemeSource(
-            name: "雾凇拼音",
-            detail: "全拼与多种双拼，词库丰富 · GPL-3.0",
-            url: URL(
-                string: "https://codeload.github.com/iDvel/rime-ice/zip/fbb516b2786e4d5444383706d13c31c2e4d10c08")!,
-            homepage: URL(string: "https://github.com/iDvel/rime-ice")!
-        ),
-        RecommendedSchemeSource(
-            name: "万象拼音",
-            detail: "全拼与多种双拼，另需下载约 400 MB 的模型 · CC-BY-4.0",
-            // Release asset, not the repository zip: the repository only has OpenCC text sources, while the
-            // compiled .ocd2 dictionaries that its opencc/*.json files reference ship only in the release.
-            url: URL(
-                string: "https://github.com/amzxyz/rime-wanxiang/releases/download/v18.1.3/rime-wanxiang-base.zip")!,
-            homepage: URL(string: "https://github.com/amzxyz/rime-wanxiang")!),
-    ]
+    var licenseSummary: String {
+        let names = archives.flatMap(\.licenses).map(\.name).reduce(into: [String]()) {
+            if !$0.contains($1) { $0.append($1) }
+        }
+        return String(
+            format: Bundle.main.localizedString(forKey: "catalog.licenses.format", value: nil, table: nil),
+            names.joined(separator: "、"))
+    }
+
+    var downloadSizeHint: String {
+        String(
+            format: Bundle.main.localizedString(forKey: "catalog.downloadSize.format", value: nil, table: nil),
+            ByteCountFormatter.string(fromByteCount: byteCountHint, countStyle: .file))
+    }
 }

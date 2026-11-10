@@ -1,0 +1,79 @@
+[
+ {
+  "schema": "kagiroi",
+  "layout": "romaji26",
+  "text": "日本語",
+  "keys": "nihongo",
+  "expect_preedit": "にほんご",
+  "expect_top3": "日本語",
+  "expect_text": "日本語"
+ },
+ {
+  "schema": "kagiroi",
+  "layout": "romaji26",
+  "text": "にほんご",
+  "keys": "nihongo{Return}",
+  "expect_commit": "にほんご"
+ },
+ {
+  "schema": "kagiroi",
+  "layout": "romaji26",
+  "text": "コーヒー",
+  "keys": "ko-hi-",
+  "expect_preedit": "こーひー",
+  "expect_top3": "コーヒー",
+  "expect_text": "コーヒー"
+ },
+ {
+  "schema": "kagiroi",
+  "layout": "romaji26",
+  "text": "私は学生です",
+  "keys": "watashihagakuseidesu",
+  "expect_preedit": "わたしはがくせいです",
+  "expect_top3": "私は学生です",
+  "expect_text": "私は学生です"
+ },
+ {
+  "schema": "kagiroi",
+  "layout": "romaji26",
+  "text": "漢字",
+  "keys": "kanji",
+  "expect_preedit": "かんじ",
+  "expect_top3": "漢字",
+  "expect_text": "漢字"
+ },
+ {
+  "schema": "kagiroi",
+  "layout": "romaji26",
+  "text": "テスト",
+  "keys": "tesuto",
+  "options": {
+   "katakana": true,
+   "hiragana": false,
+   "hw_katakana": false
+  },
+  "expect_preedit": "テスト",
+  "expect_text": "テスト"
+ },
+ {
+  "schema": "kagiroi",
+  "layout": "romaji26",
+  "text": "、",
+  "keys": ",",
+  "expect_commit": "、"
+ },
+ {
+  "schema": "kagiroi",
+  "layout": "romaji26",
+  "text": "。",
+  "keys": ".",
+  "expect_commit": "。"
+ },
+ {
+  "schema": "kagiroi",
+  "layout": "romaji26",
+  "text": "にほんごー",
+  "keys": "nihongo{Page_Down}-",
+  "expect_preedit": "にほんごー"
+ }
+]

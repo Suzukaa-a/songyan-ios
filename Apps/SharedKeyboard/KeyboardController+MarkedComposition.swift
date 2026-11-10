@@ -90,7 +90,14 @@ extension KeyboardController {
     /// keypad it joins a spelled syllable with `'` and runs straight on from a
     /// confirmed Chinese prefix (`你ga`), like `MarkedComposition.keypadText`.
     private func withPendingEcho(_ base: MarkedComposition?) -> MarkedComposition? {
-        let pending = session.pendingCodes
+        // A kana composition is typed as romaji/BackSpace code keys that the engine itself
+        // turns into kana, so echoing the queued keys would show raw romaji (or a control
+        // character) instead of the kana the press will produce. The engine's own preedit is
+        // the only truthful thing to show; control tokens are never echoable text anywhere.
+        guard !Self.kana12IsKanaComposition(snapshot) else { return base }
+        let pending = session.pendingCodes.filter {
+            $0 != EngineCodeKeyToken.backspace && $0 != EngineCodeKeyToken.cursorLeft
+        }
         guard !pending.isEmpty else { return base }
         let text = (base?.text ?? "") as NSString
         let caret = min(max(0, base?.selection.location ?? text.length), text.length)
