@@ -64,6 +64,13 @@ public final class FeedbackInputView: KeyboardPanelInputView {
                 return hit
             }
         }
+        if let hit, Self.isKey(hit) {
+            if let corrected = correctedKey(for: hit, at: point, with: event) {
+                if let window { KeyboardRoutedTouch.route(corrected, at: convert(point, to: window)) }
+                return corrected
+            }
+            return hit
+        }
         guard !(hit is UIControl), self.point(inside: point, with: event) else { return hit }
         // Inside a scroll view (the 9-key reading rail, a candidate strip) empty space
         // belongs to that view, not to a key beside it.
@@ -82,11 +89,42 @@ public final class FeedbackInputView: KeyboardPanelInputView {
             }
         #endif
         // Only hand off to keys that are hittable at their own center: keys covered by overlays such as the tools/symbol panels must not receive gap touches.
-        guard let key else { return hit }
+        guard let key, isHittable(key, with: event) else { return hit }
+        let target = correctedKey(for: key, at: point, with: event) ?? key
+        if let window { KeyboardRoutedTouch.route(target, at: convert(point, to: window)) }
+        return target
+    }
+
+    private static func isKey(_ view: UIView) -> Bool {
+        view is SkinnedButton || view is AlternateCharacterKey.CharacterButton
+    }
+
+    /// Keys covered by overlays such as the tools/symbol panels must not receive routed touches.
+    private func isHittable(_ key: UIView, with event: UIEvent?) -> Bool {
         let center = key.convert(CGPoint(x: key.bounds.midX, y: key.bounds.midY), to: self)
-        guard let top = super.hitTest(center, with: event), top === key || top.isDescendant(of: key) else { return hit }
-        if let window { KeyboardRoutedTouch.route(key, at: convert(point, to: window)) }
-        return key
+        guard let top = super.hitTest(center, with: event) else { return false }
+        return top === key || top.isDescendant(of: key)
+    }
+
+    /// The key a press on `key` is read as once corrected for where fingers land
+    /// (`KeyTouchCorrection`), or nil when it stays on `key`. Only presses near the key's top
+    /// edge can move, so every other touch skips measuring the key area.
+    private func correctedKey(for key: UIView, at point: CGPoint, with event: UIEvent?) -> UIView? {
+        let frame = key.convert(key.bounds, to: self)
+        guard point.y - frame.minY < KeyTouchCorrection.band(rowHeight: frame.height) else { return nil }
+        var keys: [(view: UIView, frame: CGRect)] = []
+        collectKeys(in: self, into: &keys)
+        guard let top = keys.map(\.frame.minY).min(), let bottom = keys.map(\.frame.maxY).max() else { return nil }
+        let lift = KeyTouchCorrection.lift(y: point.y, rowHeight: frame.height, areaTop: top, areaBottom: bottom)
+        let read = CGPoint(x: point.x, y: point.y - lift)
+        guard read.y < frame.minY else { return nil }
+        if let direct = super.hitTest(read, with: event), Self.isKey(direct) {
+            return direct === key ? nil : direct
+        }
+        // Read into the gap between rows: the nearer key takes it, as for any gap touch.
+        let (gapKey, _) = keyForGap(at: read, allowEdges: false)
+        guard let gapKey, gapKey !== key, isHittable(gapKey, with: event) else { return nil }
+        return gapKey
     }
 
     private func keyForGap(at point: CGPoint, allowEdges: Bool) -> (UIView?, [(view: UIView, frame: CGRect)]) {
