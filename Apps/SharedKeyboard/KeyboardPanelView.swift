@@ -403,7 +403,7 @@ public struct KeyboardPanelView: View {
                 2
                     * KeyboardPanelGeometry.candidateTextCentreAboveKeys(
                         candidateHeight: candidateBarDefinition.collapsed.height,
-                        candidateSize: appearance.skin.typography.candidateSize)))
+                        candidateSize: appearance.candidateFontSize)))
     }
     /// `topTrim` lands on the reading row when there is one, else on the candidate row.
     var headerTopTrim: CGFloat { layoutPlan.readingRowHeight > 0 ? 0 : topTrim }
@@ -417,8 +417,8 @@ public struct KeyboardPanelView: View {
 
     private var candidateTypography: CandidateTypography {
         CandidateTypography(
-            candidateSize: appearance.skin.typography.candidateSize,
-            secondarySize: appearance.skin.typography.secondarySize)
+            candidateSize: appearance.candidateFontSize,
+            secondarySize: appearance.candidateSecondaryFontSize)
     }
 
     @ViewBuilder
@@ -521,7 +521,7 @@ public struct KeyboardPanelView: View {
             keyHeight: keyHeight, selectedMainRows: max(1, drawnMainRowCount),
             maximumVisibleRows: physicalMainRowBudget,
             readingRowReserved: readingRowReserved,
-            candidateSize: appearance.skin.typography.candidateSize,
+            candidateSize: appearance.candidateFontSize,
             compactReadingRow: verticalSizeClass == .compact,
             fittedHeaderHeight: candidateBandHeight.map(Double.init),
             topSlack: Double(topSlack),

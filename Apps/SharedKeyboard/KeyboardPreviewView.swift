@@ -175,7 +175,7 @@ private struct KeyboardMainLayoutPreview: View {
             candidateHeight: candidateBar.collapsed.height, keyHeight: Double(pageKeyHeight),
             selectedMainRows: max(1, drawnMainRowCount),
             maximumVisibleRows: physicalMainRowBudget,
-            candidateSize: appearance.skin.typography.candidateSize)
+            candidateSize: appearance.candidateFontSize)
     }
 
     private var controlPolicy: KeyboardControlPolicy {
@@ -609,8 +609,8 @@ private struct KeyboardMainLayoutPreview: View {
         let context = CandidateAreaContext(
             state: state, bar: candidateBar, actions: .init { _ in },
             typography: .init(
-                candidateSize: appearance.skin.typography.candidateSize,
-                secondarySize: appearance.skin.typography.secondarySize))
+                candidateSize: appearance.candidateFontSize,
+                secondarySize: appearance.candidateSecondaryFontSize))
         let renderer = CandidateRendererRegistry.renderer(id: DefaultCandidateAreaRenderer.rendererID)
         return Group {
             if expanded { renderer.makeExpanded(context) } else { renderer.makeCollapsed(context) }

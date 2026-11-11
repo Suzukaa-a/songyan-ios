@@ -56,8 +56,8 @@ public struct CandidateBarPreviewView: View {
     public var body: some View {
         let appearance = KeyboardAppearance(skin: skin, dark: dark)
         let typography = CandidateTypography(
-            candidateSize: skin.typography.candidateSize,
-            secondarySize: skin.typography.secondarySize)
+            candidateSize: appearance.candidateFontSize,
+            secondarySize: appearance.candidateSecondaryFontSize)
         let context = CandidateAreaContext(
             state: sampleState, bar: bar,
             actions: previewActions, typography: typography)
@@ -65,7 +65,7 @@ public struct CandidateBarPreviewView: View {
             Text("示例候选（ni hao）").font(.caption2).foregroundStyle(.secondary)
             ScrollView(.horizontal, showsIndicators: false) {
                 Text("ni hao")
-                    .font(.system(size: skin.typography.secondarySize))
+                    .font(.system(size: appearance.candidateSecondaryFontSize))
                     .foregroundStyle(.secondary)
             }.frame(height: 20)
             if expanded {

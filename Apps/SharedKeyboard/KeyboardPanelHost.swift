@@ -39,6 +39,7 @@ public struct KeyboardPanelHost: View {
             systemTraitKnown: systemTraitKnown)
         var resolved = KeyboardAppearance(skin: appearanceSnapshot.document.skin, dark: dark)
         resolved.widensKeyGaps = compactReadingRow
+        resolved.candidateTextSize = storedCandidateTextSize
         return resolved
     }
     /// Runtime-only rescue; implementations must not require a shared selection write.
@@ -68,11 +69,12 @@ public struct KeyboardPanelHost: View {
         return initialGeometryBudget?.height ?? appearanceSnapshot.document.candidateBar.collapsed.height
     }
     private var candidateSize: Double {
-        if presentationBudget != nil { return appearance.skin.typography.candidateSize }
-        return initialGeometryBudget?.size ?? appearance.skin.typography.candidateSize
+        if presentationBudget != nil { return appearance.candidateFontSize }
+        return initialGeometryBudget?.size ?? appearance.candidateFontSize
     }
     private var compactReadingRow: Bool { presentationBudget?.compact ?? (verticalSizeClass == .compact) }
     @State private var storedHeightPreset = KeyboardHeightPreferences.current
+    @State private var storedCandidateTextSize = CandidateTextSizePreferences.current
     private var keyHeight: CGFloat {
         CGFloat(presentationBudget?.keyHeight ?? heightPreset.keyHeight(compact: compactReadingRow))
     }
@@ -244,6 +246,8 @@ public struct KeyboardPanelHost: View {
             // is replaced in the same SwiftUI update.
             .onAppear {
                 KeyboardKeyFeelPreferences.refresh()
+                CandidateTextSizePreferences.refresh()
+                storedCandidateTextSize = CandidateTextSizePreferences.current
                 storedHeightPreset = KeyboardHeightPreferences.current
                 if presentationBudget == nil {
                     readingPlacement = KeyboardReadingPlacementPreferences.current
@@ -290,6 +294,8 @@ public struct KeyboardPanelHost: View {
                 // budget's row count and lose its control row below the shell.
                 applyReadingRowReport()
                 KeyboardKeyFeelPreferences.refresh()
+                CandidateTextSizePreferences.refresh()
+                storedCandidateTextSize = CandidateTextSizePreferences.current
                 oneHandMode = KeyboardOneHandPreferences.current
                 if oneHandMode != .off { lastOneHandSide = oneHandMode }
                 storedHeightPreset = KeyboardHeightPreferences.current

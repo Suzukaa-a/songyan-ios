@@ -12,11 +12,22 @@ struct CandidateBarStyleView: View {
     @State private var draft = AppearanceDocument.systemDefault
     @State private var loaded = false
     @State private var toast: String?
+    @State private var textSize = CandidateTextSizePreferences.current
 
     private var hasChanges: Bool { loaded && draft.candidateBar != manager.applied.candidateBar }
 
     var body: some View {
         Form {
+            // A device preference applied at once, not part of the appearance file.
+            Section {
+                Picker(String(localized: "候选字号"), selection: $textSize) {
+                    ForEach(CandidateTextSize.allCases, id: \.self) { Text($0.displayName).tag($0) }
+                }
+                .pickerStyle(.inline)
+                .accessibilityIdentifier("candidateBarStyle.textSize")
+            } header: {
+                Text("候选字号")
+            }
             CandidateAreaEditorSections(document: $draft)
             if let error = manager.error { Section { Text(error).foregroundStyle(.red) } }
         }
@@ -24,6 +35,7 @@ struct CandidateBarStyleView: View {
         .navigationBarTitleDisplayMode(.inline)
         .disabled(manager.isLoading || manager.isMutating)
         .savedToast($toast)
+        .onChange(of: textSize) { CandidateTextSizePreferences.current = textSize }
         .onChange(of: manager.isLoading, initial: true) {
             guard !manager.isLoading, !loaded else { return }
             draft = manager.applied
@@ -42,6 +54,17 @@ struct CandidateBarStyleView: View {
                 }
                 .disabled(!hasChanges || manager.isMutating)
             }
+        }
+    }
+}
+
+extension CandidateTextSize {
+    var displayName: String {
+        switch self {
+        case .small: return String(localized: "小")
+        case .standard: return String(localized: "标准")
+        case .large: return String(localized: "大")
+        case .extraLarge: return String(localized: "特大")
         }
     }
 }

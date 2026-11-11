@@ -148,7 +148,7 @@ extension KeyboardPanelView {
                     selectionFeedbackAfterEffect { controller.selectEnglishSuggestion(word) }
                 } label: {
                     Text(word)
-                        .font(appearance.font(appearance.skin.typography.candidateSize - 2))
+                        .font(appearance.font(appearance.candidateFontSize - 2))
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
                         .padding(.horizontal, 6)
@@ -317,7 +317,7 @@ extension KeyboardPanelView {
             let displayed = displayedReadingRowContent
             let items = displayed.content.inlineItems
             if !items.isEmpty {
-                let font = appearance.uiFont(appearance.skin.typography.candidateSize)
+                let font = appearance.uiFont(appearance.candidateFontSize)
                 // Leave the candidates at least half of the row beside the expand control.
                 let layout = InlineReadingStrip.layout(
                     textWidths: items.map { Double(KeyboardTextMeasure.width(of: $0.label, font: font)) },

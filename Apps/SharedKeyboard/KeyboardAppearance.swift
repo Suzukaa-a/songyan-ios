@@ -25,6 +25,39 @@ public enum KeyboardHeightPreferences {
     }
 }
 
+/// The candidate text scale. The keyboard reads the in-process copy while it draws and re-reads the
+/// stored id at presentation (`refresh`), never per key; a write from this process updates the copy.
+public enum CandidateTextSizePreferences {
+    public static let key = "keyboard.candidateTextSize.v1"
+    public static var defaults: UserDefaults { KeyboardRecipeStore.sharedDefaults() ?? .standard }
+
+    private static let cache = OSAllocatedUnfairLock<CandidateTextSize?>(uncheckedState: nil)
+
+    private static func load() -> CandidateTextSize {
+        CandidateTextSize.resolve(SharedPreferences.object(forKey: key, in: defaults) as? String)
+    }
+
+    public static var current: CandidateTextSize {
+        get {
+            cache.withLockUnchecked { state in
+                if let state { return state }
+                let loaded = load()
+                state = loaded
+                return loaded
+            }
+        }
+        set {
+            SharedPreferences.set(newValue.rawValue, forKey: key, in: defaults)
+            cache.withLockUnchecked { $0 = newValue }
+        }
+    }
+
+    public static func refresh() {
+        let loaded = load()
+        cache.withLockUnchecked { $0 = loaded }
+    }
+}
+
 /// Where a large screen starts and the blank margin beside the key area on one. Shared by the app
 /// and the keyboard extension; the keyboard reads the in-process copy while it draws and re-reads
 /// the stored values at presentation (`refresh`), never per key.
@@ -359,7 +392,7 @@ public struct KeyboardInitialPresentation {
             let size = budget["candidateSize"], (16...30).contains(size)
         {
             result.candidateHeight = height
-            result.candidateSize = size
+            result.candidateSize = size * CandidateTextSizePreferences.current.factor
         }
         return result
     }
@@ -412,6 +445,12 @@ public struct KeyboardAppearance: Equatable, Sendable {
     /// keyboard it shows a wider seam between caps. Only the painted cap narrows; touch areas
     /// still meet, so no tap lands in a dead gap.
     public var widensKeyGaps = false
+    /// Device-level candidate text scale; read from the cached preference when the appearance is built.
+    public var candidateTextSize = CandidateTextSizePreferences.current
+    /// The skin's candidate size with the device scale applied.
+    public var candidateFontSize: Double { skin.typography.candidateSize * candidateTextSize.factor }
+    /// The skin's comment size with the device scale applied.
+    public var candidateSecondaryFontSize: Double { skin.typography.secondarySize * candidateTextSize.factor }
     /// Extra inset on each side of a cap when `widensKeyGaps` is set.
     static let landscapeGapInset: Double = 1.5
     public init(skin: SkinDefinition = .systemDefault, dark: Bool = false) {
@@ -427,6 +466,7 @@ public struct KeyboardAppearance: Equatable, Sendable {
     /// an identical appearance.
     public static func == (lhs: KeyboardAppearance, rhs: KeyboardAppearance) -> Bool {
         lhs.dark == rhs.dark && lhs.skin == rhs.skin && lhs.widensKeyGaps == rhs.widensKeyGaps
+            && lhs.candidateTextSize == rhs.candidateTextSize
     }
 
     public var isSystemDefault: Bool { skin.id == SkinDefinition.systemDefault.id }
