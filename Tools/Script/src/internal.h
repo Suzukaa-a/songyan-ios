@@ -99,9 +99,14 @@ uint64_t songyan_script_now_ns(void);
 void songyan_script_run_failf(songyan_script_run *run, songyan_script_error code,
                               const char *format, ...);
 /* Copies a string that came out of the engine as well-formed UTF-8, replacing lone surrogates and
- * other ill-formed sequences with U+FFFD. Returns 0 when memory runs out. */
-int songyan_script_copy_utf8(const char *input, size_t length, char **output,
-                             size_t *output_length);
+ * other ill-formed sequences with U+FFFD. Checks cancellation and the duration limit while it
+ * walks the bytes. Returns 1 on success, 0 when memory runs out and -1 when the run was stopped
+ * (the run already has its terminal state in that case). */
+int songyan_script_copy_utf8(songyan_script_run *run, const char *input, size_t length,
+                             char **output, size_t *output_length);
+/* Returns 1 when the run must stop now: cancellation or an expired duration limit. The run's
+ * terminal state is set in that case, so callers just unwind without producing partial results. */
+int songyan_script_run_aborted(songyan_script_run *run);
 void songyan_script_run_fail(songyan_script_run *run, songyan_script_error code,
                              const char *message, size_t line);
 void songyan_script_run_fail_from_exception(songyan_script_run *run, JSValue exception);

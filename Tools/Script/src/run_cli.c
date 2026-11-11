@@ -428,6 +428,11 @@ static int emit_header_error(songyan_script_error code, const songyan_script_hea
     write_indent(stdout, indent + 2);
     fputs("\"message\": ", stdout);
     write_json_string_z(stdout, error == NULL ? "" : error->message);
+    if (error != NULL && error->message_truncated) {
+        fputs(",\n", stdout);
+        write_indent(stdout, indent + 2);
+        fputs("\"messageTruncated\": true", stdout);
+    }
     fputc('\n', stdout);
     write_indent(stdout, indent);
     fputc('}', stdout);

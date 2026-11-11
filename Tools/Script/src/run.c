@@ -83,7 +83,11 @@ static void *run_allocator_realloc(void *opaque, void *pointer, size_t size) {
 }
 
 static void *run_allocator_calloc(void *opaque, size_t count, size_t size) {
+    songyan_script_run *run = opaque;
     if (size != 0 && count > SIZE_MAX / size) {
+        if (run != NULL) {
+            run->allocation_failed = 1;
+        }
         return NULL;
     }
     size_t total = count * size;
@@ -203,11 +207,15 @@ static size_t utf8_bad_prefix_length(const unsigned char *bytes, size_t remainin
     return consumed;
 }
 
-int songyan_script_copy_utf8(const char *input, size_t length, char **output,
-                             size_t *output_length) {
+int songyan_script_copy_utf8(songyan_script_run *run, const char *input, size_t length,
+                             char **output, size_t *output_length) {
     static const char kReplacement[] = "\xEF\xBF\xBD"; /* U+FFFD */
     const unsigned char *bytes = (const unsigned char *)input;
+    if (songyan_script_run_aborted(run)) {
+        return -1;
+    }
     size_t written = 0;
+    size_t next_check = 4096;
     for (size_t index = 0; index < length;) {
         size_t valid = utf8_valid_sequence(bytes + index, length - index);
         if (valid > 0) {
@@ -217,12 +225,19 @@ int songyan_script_copy_utf8(const char *input, size_t length, char **output,
             written += sizeof(kReplacement) - 1;
             index += utf8_bad_prefix_length(bytes + index, length - index);
         }
+        if (index >= next_check) {
+            if (songyan_script_run_aborted(run)) {
+                return -1;
+            }
+            next_check = index + 4096;
+        }
     }
     char *clean = malloc(written + 1);
     if (clean == NULL) {
         return 0;
     }
     size_t at = 0;
+    next_check = 4096;
     for (size_t index = 0; index < length;) {
         size_t valid = utf8_valid_sequence(bytes + index, length - index);
         if (valid > 0) {
@@ -233,6 +248,13 @@ int songyan_script_copy_utf8(const char *input, size_t length, char **output,
             memcpy(clean + at, kReplacement, sizeof(kReplacement) - 1);
             at += sizeof(kReplacement) - 1;
             index += utf8_bad_prefix_length(bytes + index, length - index);
+        }
+        if (index >= next_check) {
+            if (songyan_script_run_aborted(run)) {
+                free(clean);
+                return -1;
+            }
+            next_check = index + 4096;
         }
     }
     clean[at] = '\0';
@@ -332,6 +354,24 @@ void songyan_script_run_failf(songyan_script_run *run, songyan_script_error code
     finish(run, SONGYAN_SCRIPT_STEP_FAILED);
 }
 
+int songyan_script_run_aborted(songyan_script_run *run) {
+    if (run == NULL || run->finished) {
+        return 1;
+    }
+    if (run->cancelled) {
+        finish(run, SONGYAN_SCRIPT_STEP_CANCELLED);
+        return 1;
+    }
+    if (songyan_script_run_deadline_passed(run)) {
+        run->timed_out = 1;
+        songyan_script_run_failf(run, SONGYAN_SCRIPT_ERROR_TIMEOUT,
+                                 "the script ran longer than %u ms",
+                                 (unsigned)run->limits.duration_ms);
+        return 1;
+    }
+    return 0;
+}
+
 static void finish_invalid(songyan_script_run *run, const char *format, ...) {
     if (run->finished) {
         return;
@@ -368,10 +408,9 @@ static size_t stack_line(const char *stack) {
 
 void songyan_script_run_fail_from_exception(songyan_script_run *run, JSValue exception) {
     if (run->timed_out) {
-        char message[128];
-        snprintf(message, sizeof(message), "the script ran longer than %u ms",
-                 (unsigned)run->limits.duration_ms);
-        songyan_script_run_fail(run, SONGYAN_SCRIPT_ERROR_TIMEOUT, message, 0);
+        songyan_script_run_failf(run, SONGYAN_SCRIPT_ERROR_TIMEOUT,
+                                 "the script ran longer than %u ms",
+                                 (unsigned)run->limits.duration_ms);
         return;
     }
     /* Only an allocation this bridge refused is a real out-of-memory; a script's own error text
@@ -382,8 +421,8 @@ void songyan_script_run_fail_from_exception(songyan_script_run *run, JSValue exc
                                  run->limits.heap_bytes);
         return;
     }
-    char raw_message[512] = "";
-    char stack[2048] = "";
+    char *raw = NULL;
+    size_t error_line = 0;
     JSContext *context = run->context;
     if (!JS_IsUndefined(run->describe)) {
         JSValue described = JS_Call(context, run->describe, JS_UNDEFINED, 1, &exception);
@@ -393,37 +432,54 @@ void songyan_script_run_fail_from_exception(songyan_script_run *run, JSValue exc
             JSValue text = JS_GetPropertyStr(context, described, "message");
             const char *value = JS_ToCString(context, text);
             if (value != NULL) {
-                snprintf(raw_message, sizeof(raw_message), "%s", value);
+                raw = duplicate_bytes(value, strlen(value));
                 JS_FreeCString(context, value);
             }
             JS_FreeValue(context, text);
             JSValue trace = JS_GetPropertyStr(context, described, "stack");
             const char *trace_text = JS_ToCString(context, trace);
             if (trace_text != NULL) {
-                snprintf(stack, sizeof(stack), "%s", trace_text);
+                error_line = stack_line(trace_text);
                 JS_FreeCString(context, trace_text);
             }
             JS_FreeValue(context, trace);
             JS_FreeValue(context, described);
         }
     }
-    if (raw_message[0] == '\0') {
+    if (raw == NULL) {
         const char *value = JS_ToCString(context, exception);
-        snprintf(raw_message, sizeof(raw_message), "%s", value == NULL ? "the script failed" : value);
+        const char *fallback = value == NULL ? "the script failed" : value;
+        raw = duplicate_bytes(fallback, strlen(fallback));
         if (value != NULL) {
             JS_FreeCString(context, value);
         }
     }
+    if (run->allocation_failed) {
+        free(raw);
+        songyan_script_run_failf(run, SONGYAN_SCRIPT_ERROR_OUT_OF_MEMORY,
+                                 "the script needed more than %zu bytes of memory",
+                                 run->limits.heap_bytes);
+        return;
+    }
+    if (raw == NULL) {
+        songyan_script_run_fail(run, SONGYAN_SCRIPT_ERROR_SCRIPT,
+                                "the script failed and its error could not be read", error_line);
+        return;
+    }
     char *clean = NULL;
     size_t clean_length = 0;
-    if (songyan_script_copy_utf8(raw_message, strlen(raw_message), &clean, &clean_length)) {
-        songyan_script_run_fail(run, SONGYAN_SCRIPT_ERROR_SCRIPT, clean, stack_line(stack));
-        free(clean);
-    } else {
-        songyan_script_run_fail(run, SONGYAN_SCRIPT_ERROR_SCRIPT,
-                                "the script failed and its error could not be read",
-                                stack_line(stack));
+    int copied = songyan_script_copy_utf8(run, raw, strlen(raw), &clean, &clean_length);
+    free(raw);
+    if (copied < 0) {
+        return; /* the run stopped for time or cancellation; its terminal state is set */
     }
+    if (copied == 0) {
+        songyan_script_run_fail(run, SONGYAN_SCRIPT_ERROR_SCRIPT,
+                                "the script failed and its error could not be read", error_line);
+        return;
+    }
+    songyan_script_run_fail(run, SONGYAN_SCRIPT_ERROR_SCRIPT, clean, error_line);
+    free(clean);
 }
 
 /* console output is streamed to the host: the bridge keeps no copy and applies no byte cap, so
@@ -442,8 +498,11 @@ static JSValue js_log(JSContext *context, JSValueConst this_value, int argc,
     }
     char *clean = NULL;
     size_t clean_length = 0;
-    int ok = songyan_script_copy_utf8(text, length, &clean, &clean_length);
+    int ok = songyan_script_copy_utf8(run, text, length, &clean, &clean_length);
     JS_FreeCString(context, text);
+    if (ok < 0) {
+        return JS_EXCEPTION;
+    }
     if (!ok) {
         return JS_ThrowOutOfMemory(context);
     }
@@ -483,7 +542,11 @@ static int append_output(songyan_script_run *run, char ***outputs, size_t **leng
     }
     char *clean = NULL;
     size_t clean_length = 0;
-    if (!songyan_script_copy_utf8(text, length, &clean, &clean_length)) {
+    int copied = songyan_script_copy_utf8(run, text, length, &clean, &clean_length);
+    if (copied < 0) {
+        return -1;
+    }
+    if (!copied) {
         return 0;
     }
     if (!charge_copy(run, clean_length + 1)) {
@@ -531,6 +594,10 @@ static int finish_outputs(songyan_script_run *run, JSValue value) {
         size_t capacity = 0;
         int ok = append_output(run, &outputs, &lengths, &count, &capacity, text, length);
         JS_FreeCString(context, text);
+        if (ok < 0) {
+            release_outputs(outputs, lengths, count);
+            return -1;
+        }
         if (!ok) {
             release_outputs(outputs, lengths, count);
             fail_result_memory(run);
@@ -561,6 +628,10 @@ static int finish_outputs(songyan_script_run *run, JSValue value) {
         size_t written = 0;
         size_t capacity = 0;
         for (uint32_t index = 0; index < count; index++) {
+            if (songyan_script_run_aborted(run)) {
+                release_outputs(outputs, lengths, written);
+                return -1;
+            }
             JSValue item = JS_GetPropertyUint32(context, value, index);
             if (JS_IsException(item)) {
                 release_outputs(outputs, lengths, written);
@@ -585,6 +656,10 @@ static int finish_outputs(songyan_script_run *run, JSValue value) {
             }
             ok = append_output(run, &outputs, &lengths, &written, &capacity, text, length);
             JS_FreeCString(context, text);
+            if (ok < 0) {
+                release_outputs(outputs, lengths, written);
+                return -1;
+            }
             if (!ok) {
                 release_outputs(outputs, lengths, written);
                 fail_result_memory(run);
@@ -609,10 +684,9 @@ static int finish_outputs(songyan_script_run *run, JSValue value) {
     } else if (JS_IsFunction(context, value)) {
         kind = "function";
     }
-    char message[256];
-    snprintf(message, sizeof(message),
-             "the script returned %s; a string or an array of strings is required", kind);
-    songyan_script_run_fail(run, SONGYAN_SCRIPT_ERROR_SCRIPT, message, 0);
+    songyan_script_run_failf(run, SONGYAN_SCRIPT_ERROR_SCRIPT,
+                             "the script returned %s; a string or an array of strings is required",
+                             kind);
     return -1;
 }
 
@@ -723,9 +797,8 @@ static int validate_config(songyan_script_run *run) {
         const char *name = (missing_capabilities & SONGYAN_SCRIPT_CAPABILITY_AUDIO) != 0
                                ? songyan_script_capability_name(SONGYAN_SCRIPT_CAPABILITY_AUDIO)
                                : songyan_script_capability_name(SONGYAN_SCRIPT_CAPABILITY_TEXT);
-        char message[160];
-        snprintf(message, sizeof(message), "this host cannot provide %s input", name);
-        songyan_script_run_fail(run, SONGYAN_SCRIPT_ERROR_CAPABILITY, message, 0);
+        songyan_script_run_failf(run, SONGYAN_SCRIPT_ERROR_CAPABILITY,
+                                 "this host cannot provide %s input", name);
         return -1;
     }
     if ((run->config.header->needs & SONGYAN_SCRIPT_CAPABILITY_AUDIO) != 0 &&

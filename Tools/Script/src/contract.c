@@ -268,8 +268,9 @@ static songyan_script_error reject(songyan_script_header *header, songyan_script
         error->line = line;
         va_list arguments;
         va_start(arguments, format);
-        vsnprintf(error->message, sizeof(error->message), format, arguments);
+        int written = vsnprintf(error->message, sizeof(error->message), format, arguments);
         va_end(arguments);
+        error->message_truncated = written >= (int)sizeof(error->message);
     }
     songyan_script_header_free(header);
     return code;
@@ -577,6 +578,7 @@ songyan_script_error songyan_script_header_parse(const char *source, size_t leng
     memset(header, 0, sizeof(*header));
     if (error != NULL) {
         error->line = 0;
+        error->message_truncated = 0;
         error->message[0] = '\0';
     }
     if (source == NULL) {

@@ -121,8 +121,12 @@ typedef struct {
     unsigned needs; /* songyan_script_capability bits */
 } songyan_script_header;
 
+/* The diagnostic buffer is fixed at 256 bytes because this struct is passed by value across the
+ * C bridge. A longer declaration text is cut at 255 bytes and message_truncated is set, so a
+ * caller can tell the user the report was shortened instead of silently showing half a message. */
 typedef struct {
     size_t line; /* 1-based source line; 0 when the problem is not tied to one */
+    int message_truncated; /* non-zero when message was cut at the 255-byte limit */
     char message[256]; /* English developer diagnostic; platforms own the user copy */
 } songyan_script_header_error;
 

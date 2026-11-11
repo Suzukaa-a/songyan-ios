@@ -25,16 +25,19 @@ static char *copy_text(const char *text, size_t length) {
 
 /* Everything handed to the host must be well-formed UTF-8; a JS string can carry a lone
  * surrogate, which JS_ToCString encodes as WTF-8. */
-static char *copy_js_text(const char *text, size_t length, size_t *clean_length) {
+static int copy_js_text(songyan_script_run *run, const char *text, size_t length, char **output,
+                        size_t *clean_length) {
     char *clean = NULL;
     size_t normalized = 0;
-    if (!songyan_script_copy_utf8(text, length, &clean, &normalized)) {
-        return NULL;
+    int copied = songyan_script_copy_utf8(run, text, length, &clean, &normalized);
+    if (copied <= 0) {
+        return copied;
     }
     if (clean_length != NULL) {
         *clean_length = normalized;
     }
-    return clean;
+    *output = clean;
+    return 1;
 }
 
 static void slot_release(songyan_script_run *run, songyan_script_fetch_slot *slot) {
@@ -115,15 +118,31 @@ static int authorize(songyan_script_run *run, const char *url,
     return run->host.authorize(run->host.userdata, url, phase) == SONGYAN_SCRIPT_ADDRESS_ALLOWED;
 }
 
-static int copy_response_into(songyan_script_fetch_slot *slot,
+static int copy_response_into(songyan_script_run *run, songyan_script_fetch_slot *slot,
                               const songyan_script_fetch_response *response) {
     slot->status = response->status;
     if (response->body != NULL && response->body_length > 0) {
+        if (songyan_script_run_aborted(run)) {
+            return -1;
+        }
         slot->response_body = malloc(response->body_length);
         if (slot->response_body == NULL) {
             return 0;
         }
-        memcpy(slot->response_body, response->body, response->body_length);
+        size_t at = 0;
+        while (at < response->body_length) {
+            size_t step = response->body_length - at;
+            if (step > 65536) {
+                step = 65536;
+            }
+            memcpy(slot->response_body + at, response->body + at, step);
+            at += step;
+            if (songyan_script_run_aborted(run)) {
+                free(slot->response_body);
+                slot->response_body = NULL;
+                return -1;
+            }
+        }
         slot->response_body_length = response->body_length;
     }
     if (response->content_type != NULL) {
@@ -242,11 +261,18 @@ static int submit_slot(songyan_script_run *run, size_t index) {
         slot_remove(run, index);
         return -1;
     }
-    if (!copy_response_into(slot, &response)) {
-        songyan_script_run_fail(run, SONGYAN_SCRIPT_ERROR_OUT_OF_MEMORY,
-                                "not enough memory for the script result", 0);
-        slot_remove(run, index);
-        return -1;
+    {
+        int copied = copy_response_into(run, slot, &response);
+        if (copied < 0) {
+            slot_remove(run, index);
+            return -1;
+        }
+        if (copied == 0) {
+            songyan_script_run_fail(run, SONGYAN_SCRIPT_ERROR_OUT_OF_MEMORY,
+                                    "not enough memory for the script result", 0);
+            slot_remove(run, index);
+            return -1;
+        }
     }
     return resolve_slot(run, index) < 0 ? -1 : 0;
 }
@@ -292,7 +318,17 @@ int songyan_script_run_complete_fetch(songyan_script_run *run, uint64_t id,
             continue;
         }
         slot->answered = 1;
-        if (!copy_response_into(slot, response)) {
+        if (response->body_length > run->limits.response_bytes) {
+            slot->response_oversize = 1;
+            slot->response_declared_length = response->body_length;
+            return 1;
+        }
+        int copied = copy_response_into(run, slot, response);
+        if (copied < 0) {
+            slot->answered = 0;
+            return 0;
+        }
+        if (copied == 0) {
             slot->answered = 0;
             return 0;
         }
@@ -317,9 +353,13 @@ static JSValue js_fetch_raw(JSContext *context, JSValueConst this_value, int arg
         return JS_EXCEPTION;
     }
     size_t clean_url_length = 0;
-    char *url = copy_js_text(url_text, url_length, &clean_url_length);
+    char *url = NULL;
+    int copied = copy_js_text(run, url_text, url_length, &url, &clean_url_length);
     JS_FreeCString(context, url_text);
-    if (url == NULL) {
+    if (copied < 0) {
+        return JS_EXCEPTION;
+    }
+    if (copied == 0) {
         return JS_ThrowOutOfMemory(context);
     }
     url_length = clean_url_length;
@@ -330,11 +370,17 @@ static JSValue js_fetch_raw(JSContext *context, JSValueConst this_value, int arg
     }
     size_t method_length = 0;
     const char *method_text = JS_ToCStringLen(context, &method_length, argv[1]);
-    char *method = method_text == NULL ? NULL : copy_js_text(method_text, method_length, NULL);
+    char *method = NULL;
+    int method_copied = 0;
     if (method_text != NULL) {
+        method_copied = copy_js_text(run, method_text, method_length, &method, NULL);
         JS_FreeCString(context, method_text);
     }
-    if (method == NULL) {
+    if (method_copied < 0) {
+        free(url);
+        return JS_EXCEPTION;
+    }
+    if (method_copied == 0) {
         free(url);
         return JS_ThrowOutOfMemory(context);
     }
@@ -347,9 +393,14 @@ static JSValue js_fetch_raw(JSContext *context, JSValueConst this_value, int arg
             free(method);
             return JS_EXCEPTION;
         }
-        headers_json = copy_js_text(text, length, NULL);
+        int headers_copied = copy_js_text(run, text, length, &headers_json, NULL);
         JS_FreeCString(context, text);
-        if (headers_json == NULL) {
+        if (headers_copied < 0) {
+            free(url);
+            free(method);
+            return JS_EXCEPTION;
+        }
+        if (headers_copied == 0) {
             free(url);
             free(method);
             return JS_ThrowOutOfMemory(context);
@@ -366,10 +417,17 @@ static JSValue js_fetch_raw(JSContext *context, JSValueConst this_value, int arg
             return JS_EXCEPTION;
         }
         size_t clean_body_length = 0;
-        body_text = copy_js_text(text, body_text_length, &clean_body_length);
+        int body_copied = copy_js_text(run, text, body_text_length, &body_text,
+                                       &clean_body_length);
         body_text_length = clean_body_length;
         JS_FreeCString(context, text);
-        if (body_text == NULL) {
+        if (body_copied < 0) {
+            free(url);
+            free(method);
+            free(headers_json);
+            return JS_EXCEPTION;
+        }
+        if (body_copied == 0) {
             free(url);
             free(method);
             free(headers_json);
@@ -413,13 +471,13 @@ static JSValue js_fetch_raw(JSContext *context, JSValueConst this_value, int arg
                           "this host does not provide network access");
     }
     if (!authorize(run, url, SONGYAN_SCRIPT_FETCH_INITIAL)) {
-        char message[512];
-        snprintf(message, sizeof(message), "the address %s is not allowed", url);
+        JSValue failure = fetch_fail(context, run, SONGYAN_SCRIPT_ERROR_ADDRESS_NOT_ALLOWED,
+                                     "the address %s is not allowed", url);
         free(url);
         free(method);
         free(headers_json);
         free(body);
-        return fetch_fail(context, run, SONGYAN_SCRIPT_ERROR_ADDRESS_NOT_ALLOWED, "%s", message);
+        return failure;
     }
     if (run->request_count >= run->limits.request_count) {
         free(url);

@@ -193,6 +193,9 @@ static void emit_error_report(songyan_script_error code, const songyan_script_he
     printf("  \"line\": %zu,\n", error == NULL ? (size_t)0 : error->line);
     printf("  \"message\": ");
     write_json_string(stdout, error == NULL ? "" : error->message);
+    if (error != NULL && error->message_truncated) {
+        printf(",\n  \"messageTruncated\": true");
+    }
     printf("\n}\n");
 }
 
