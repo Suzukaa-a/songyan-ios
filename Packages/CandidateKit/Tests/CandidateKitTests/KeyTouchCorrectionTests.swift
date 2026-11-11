@@ -7,16 +7,19 @@ final class KeyTouchCorrectionTests: XCTestCase {
     }
 
     func testTheBottomIsReadNinePercentOfARowHigher() {
-        XCTAssertEqual(KeyTouchCorrection.lift(y: 210, rowHeight: 50, areaTop: 10, areaBottom: 210), 4.5, accuracy: 0.001)
+        XCTAssertEqual(
+            KeyTouchCorrection.lift(y: 210, rowHeight: 50, areaTop: 10, areaBottom: 210), 4.5, accuracy: 0.001)
     }
 
     func testTheLiftGrowsWithTheDepthInTheArea() {
-        XCTAssertEqual(KeyTouchCorrection.lift(y: 110, rowHeight: 50, areaTop: 10, areaBottom: 210), 2.25, accuracy: 0.001)
+        XCTAssertEqual(
+            KeyTouchCorrection.lift(y: 110, rowHeight: 50, areaTop: 10, areaBottom: 210), 2.25, accuracy: 0.001)
     }
 
     func testPointsOutsideTheAreaAreClampedAndEmptyAreasDoNothing() {
         XCTAssertEqual(KeyTouchCorrection.lift(y: 0, rowHeight: 50, areaTop: 10, areaBottom: 210), 0)
-        XCTAssertEqual(KeyTouchCorrection.lift(y: 400, rowHeight: 50, areaTop: 10, areaBottom: 210), 4.5, accuracy: 0.001)
+        XCTAssertEqual(
+            KeyTouchCorrection.lift(y: 400, rowHeight: 50, areaTop: 10, areaBottom: 210), 4.5, accuracy: 0.001)
         XCTAssertEqual(KeyTouchCorrection.lift(y: 50, rowHeight: 50, areaTop: 10, areaBottom: 10), 0)
     }
 
