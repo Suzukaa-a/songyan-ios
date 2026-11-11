@@ -71,10 +71,10 @@ final class SkinFormatV2Tests: XCTestCase {
         XCTAssertNotEqual(SkinDefinition.inspectImage(dataURL: url(riff, type: "webp")), .failure(.badMagic))
     }
 
-    func testDecodedSizeLimitIsExactlyOneAndAHalfMebibyte() {
+    func testDecodedSizeLimitIsExactlyOneMebibyte() {
         var bytes = pngHeader(width: 1, height: 1)
         bytes.append(Data(repeating: 0, count: SkinDefinition.maximumImageBytes - bytes.count + 1))
-        XCTAssertEqual(bytes.count, 1_572_865)
+        XCTAssertEqual(bytes.count, 1_048_577)
         XCTAssertEqual(SkinDefinition.inspectImage(dataURL: url(bytes)), .failure(.tooLarge))
         bytes.removeLast()
         // At the limit the size check passes; the bytes are not a decodable image.

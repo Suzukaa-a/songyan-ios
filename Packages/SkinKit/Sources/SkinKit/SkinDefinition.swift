@@ -17,7 +17,7 @@ public struct SkinDefinition: Codable, Equatable, Identifiable, Sendable {
     /// Limit for a skin that carries an image background.
     public static let maximumBytesWithImage = 2_097_152
     /// Decoded image payload limit and the per-side pixel limit.
-    public static let maximumImageBytes = 1_572_864
+    public static let maximumImageBytes = 1_048_576
     public static let maximumImagePixels = 4096
 
     public var formatVersion = 1
