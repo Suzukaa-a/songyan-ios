@@ -292,7 +292,6 @@ struct AppearanceDetailView: View {
                 if let status = manager.applicationStatus(for: document) {
                     Label(status, systemImage: "checkmark.circle").foregroundStyle(.secondary)
                 }
-                WebEditLink()
                 Button(String(localized: "导出文件"), systemImage: "square.and.arrow.up") {
                     do {
                         exportDocument = SkinFileDocument(data: try document.encoded())
