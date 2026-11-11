@@ -87,13 +87,21 @@ extension KeyboardController {
 
     // MARK: Cursor movement (relative offset; the host consumes it via onMoveCursor)
 
-    /// Requests a relative cursor move of `offset` characters (negative = left). With an empty composition it
-    /// forwards straight to `onMoveCursor`; while composing it first commits the current composition with
-    /// confirm semantics, then moves (nothing is silently dropped). If `onMoveCursor` is nil it does nothing:
-    /// the main app omits the callback when it cannot move the selection precisely, rather than pretending.
+    /// Requests a relative cursor move of `offset` characters (negative = left). While a spelling is composed
+    /// it moves the engine's composition caret and confirms nothing. Otherwise it forwards to `onMoveCursor`
+    /// (after confirming a prediction); if that is nil it does nothing: the main app omits the callback when it
+    /// cannot move the selection precisely, rather than pretending.
     public func moveCursor(by offset: Int) {
         // The tracked English word belongs to the old insertion point.
         resetEnglishWord()
+        // While a spelling is composed the drag walks the engine's caret through it, so a letter
+        // can be fixed in the middle without retyping; the composition is never confirmed.
+        if session.movesCompositionCaret {
+            // A caret move is never the state the kana model predicted.
+            invalidateKana12Ownership()
+            session.moveCompositionCaret(by: offset)
+            return
+        }
         session.moveCursor(by: offset)
     }
 

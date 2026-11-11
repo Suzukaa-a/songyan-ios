@@ -241,4 +241,6 @@ public enum EngineCodeKeyToken {
     /// Move the composition caret one step left without confirming the composition. Queueing
     /// it in the same batch keeps a later replacement from overtaking the move.
     public static let cursorLeft = "Left"
+    /// The same step to the right.
+    public static let cursorRight = "Right"
 }

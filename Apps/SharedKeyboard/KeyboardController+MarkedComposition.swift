@@ -97,6 +97,7 @@ extension KeyboardController {
         guard !Self.kana12IsKanaComposition(snapshot) else { return base }
         let pending = session.pendingCodes.filter {
             $0 != EngineCodeKeyToken.backspace && $0 != EngineCodeKeyToken.cursorLeft
+                && $0 != EngineCodeKeyToken.cursorRight
         }
         guard !pending.isEmpty else { return base }
         let text = (base?.text ?? "") as NSString

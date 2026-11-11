@@ -881,6 +881,7 @@ public final class RimeBackend: EngineBackend, @unchecked Sendable {
         // Kana12 queues a composition caret move through the same code-key batch, so a
         // replacement typed after it can never overtake it.
         case "Left": return RimeKey(keycode: RimeKeyCode.keyLeft)
+        case "Right": return RimeKey(keycode: RimeKeyCode.keyRight)
         case " ": return .space
         default:
             guard value.count == 1, let ch = value.first else { return nil }

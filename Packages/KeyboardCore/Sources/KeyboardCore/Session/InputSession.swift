@@ -734,6 +734,25 @@ public final class InputSession {
         onMoveCursor?(offset)
     }
 
+    /// Whether a cursor drag belongs to the composition: a spelling is being composed, or keys of
+    /// one are still decoding. A post-commit prediction is not a spelling.
+    public var movesCompositionCaret: Bool {
+        !retired && ((snapshot.isComposing && !snapshot.isPrediction) || !pendingCodes.isEmpty)
+    }
+
+    /// Moves the engine's composition caret by `offset` characters (negative = left) with the
+    /// engine's own Left / Right keys, so a letter can be fixed inside the spelling. Nothing is
+    /// committed and the host's caret stays put. The keys join the deferred batch, behind any key
+    /// still decoding and ahead of the next one, and never run engine work on the calling thread.
+    /// False when there is no composition to move through or the offset is zero.
+    @discardableResult
+    public func moveCompositionCaret(by offset: Int) -> Bool {
+        guard offset != 0, inputAvailable(), movesCompositionCaret else { return false }
+        let token = offset < 0 ? EngineCodeKeyToken.cursorLeft : EngineCodeKeyToken.cursorRight
+        enqueueCodeKeys(Array(repeating: token, count: offset.magnitude > 64 ? 64 : Int(offset.magnitude)))
+        return true
+    }
+
     /// Dismisses post-commit prediction (called on idle backspace, direct input, cursor move, and before switches).
     /// A no-op returning true when there is no prediction; returns false if dismissal fails
     /// (engine error or prediction remains), keeping the current state and never picking a word for the user.
