@@ -117,6 +117,16 @@ struct SkinManagementView: View {
                 Label(String(localized: "导入外观文件"), systemImage: "square.and.arrow.down")
             }
             WebEditLink()
+            NavigationLink {
+                CandidateBarStyleView()
+            } label: {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("候选栏样式")
+                    Text("行高、展开方式与间距")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
             if let importError { Text(importError).foregroundStyle(.red) }
         }.navigationTitle(UserTerminology.keyboardAppearance)
             .onAppear { manager.reload() }

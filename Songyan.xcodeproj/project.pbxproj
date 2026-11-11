@@ -35,6 +35,7 @@
 		G20200000000000000000002 = {isa = PBXBuildFile; fileRef = G20200000000000000000005; };
         F10000000000000000000005 = {isa = PBXBuildFile; fileRef = F10000000000000000000101; };
         F10000000000000000000002 = {isa = PBXBuildFile; fileRef = F10000000000000000000102; };
+        F10000000000000000000004 = {isa = PBXBuildFile; fileRef = F10000000000000000000104; };
         F10000000000000000000011 = {isa = PBXBuildFile; productRef = F10000000000000000000201; };
         F10000000000000000000012 = {isa = PBXBuildFile; productRef = F10000000000000000000202; };
         AB0000000000000000000001 = {isa = PBXBuildFile; productRef = AB0000000000000000000011; };
@@ -297,6 +298,7 @@
         F10000000000000000000101 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardCandidateActions.swift; sourceTree = "<group>"; };
         AB0000000000000000000003 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppearanceManager.swift; sourceTree = "<group>"; };
         F10000000000000000000102 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CandidateBarPreviewView.swift; sourceTree = "<group>"; };
+        F10000000000000000000104 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CandidateBarManagementView.swift; sourceTree = "<group>"; };
         E90000000000000000000001 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardAppearance.swift; sourceTree = "<group>"; };
         E90000000000000000000002 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardPreviewView.swift; sourceTree = "<group>"; };
         E90000000000000000000003 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkinManager.swift; sourceTree = "<group>"; };
@@ -562,6 +564,7 @@
                 12EC6896AEEF4E587E6AFCF0 /* KeyboardCompositionView.swift */,
                 3ACBDB4B3BC97D723910E638 /* KeyboardPageDraftFactory.swift */,
                 E1F4F8BE770A497DAD09C992 /* KeyboardCategoryEditorView.swift */,
+                F10000000000000000000104 /* CandidateBarManagementView.swift */,
                 AB0000000000000000000003 /* AppearanceManager.swift */,
                 PRIVH0ST0000000000000001 /* PrivacyInfo.xcprivacy */,
 				AS1C0N0000000000000001 /* Assets.xcassets */,
@@ -925,6 +928,7 @@
                 TB2700000000000000000002 /* IdleToolbarSettingsView.swift in Sources */,
 				G20200000000000000000001 /* SymbolLibraryView.swift in Sources */,
 				G20200000000000000000011 /* HostAppLink.swift in Sources */,
+                F10000000000000000000004 /* CandidateBarManagementView.swift in Sources */,
                 AB0000000000000000000004 /* AppearanceManager.swift in Sources */,
                 F10000000000000000000002 /* CandidateBarPreviewView.swift in Sources */,
                 F10000000000000000000005 /* KeyboardCandidateActions.swift in Sources */,
