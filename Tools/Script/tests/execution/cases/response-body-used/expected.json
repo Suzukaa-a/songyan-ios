@@ -1,0 +1,27 @@
+{
+  "ok": true,
+  "outputs": [
+    "一",
+    "the response body has already been used",
+    "the response body has already been used",
+    "二",
+    "二",
+    "true"
+  ],
+  "logs": [],
+  "logsTruncated": false,
+  "requests": [
+    {
+      "method": "GET",
+      "url": "https://api.example.com/one",
+      "headers": null,
+      "bodyLength": 0
+    },
+    {
+      "method": "GET",
+      "url": "https://api.example.com/two",
+      "headers": null,
+      "bodyLength": 0
+    }
+  ]
+}

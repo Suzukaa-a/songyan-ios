@@ -1,0 +1,24 @@
+{
+  "ok": true,
+  "error": "ok",
+  "line": 0,
+  "header": {
+    "api": 1,
+    "name": "听写",
+    "description": null,
+    "connects": [],
+    "settings": [],
+    "secrets": [],
+    "needs": [
+      "text",
+      "audio"
+    ]
+  },
+  "capabilities": {
+    "host": [
+      "text",
+      "audio"
+    ],
+    "missing": []
+  }
+}

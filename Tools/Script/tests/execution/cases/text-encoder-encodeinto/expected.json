@@ -1,0 +1,12 @@
+{
+  "ok": true,
+  "outputs": [
+    "{\"read\":1,\"written\":1}",
+    "{\"read\":0,\"written\":0}",
+    "{\"read\":2,\"written\":2}",
+    "97,0,0,0",
+    "TypeError"
+  ],
+  "logs": [],
+  "logsTruncated": false
+}

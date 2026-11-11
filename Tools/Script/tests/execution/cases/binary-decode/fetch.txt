@@ -1,0 +1,2 @@
+allow https://api.example.com/bytes
+response 200 application/octet-stream 5ZON5bqU

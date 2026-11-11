@@ -1,0 +1,28 @@
+{
+  "ok": true,
+  "error": "ok",
+  "line": 0,
+  "header": {
+    "api": 1,
+    "name": "两个空格的名字",
+    "description": "说明里保留  两个空格",
+    "connects": [],
+    "settings": [
+      {
+        "key": "endpoint",
+        "kind": "url",
+        "label": "服务 地址"
+      }
+    ],
+    "secrets": [],
+    "needs": [
+      "text"
+    ]
+  },
+  "capabilities": {
+    "host": [
+      "text"
+    ],
+    "missing": []
+  }
+}

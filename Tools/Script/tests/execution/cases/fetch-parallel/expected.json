@@ -1,0 +1,22 @@
+{
+  "ok": true,
+  "outputs": [
+    "甲|乙"
+  ],
+  "logs": [],
+  "logsTruncated": false,
+  "requests": [
+    {
+      "method": "GET",
+      "url": "https://api.example.com/a",
+      "headers": null,
+      "bodyLength": 0
+    },
+    {
+      "method": "GET",
+      "url": "https://api.example.com/b",
+      "headers": null,
+      "bodyLength": 0
+    }
+  ]
+}

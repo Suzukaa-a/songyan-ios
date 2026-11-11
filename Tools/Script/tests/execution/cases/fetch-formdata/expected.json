@@ -1,0 +1,30 @@
+{
+  "ok": true,
+  "outputs": [
+    "200:true:1"
+  ],
+  "logs": [],
+  "logsTruncated": false,
+  "requests": [
+    {
+      "method": "POST",
+      "url": "https://api.example.com/form",
+      "headers": "{\"content-type\":\"multipart/form-data; boundary=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\"}",
+      "bodyLength": 311,
+      "parts": [
+        {
+          "name": "input",
+          "value": "上传文字"
+        },
+        {
+          "name": "count",
+          "value": "1"
+        },
+        {
+          "name": "bytes",
+          "valueBase64": "AP8="
+        }
+      ]
+    }
+  ]
+}

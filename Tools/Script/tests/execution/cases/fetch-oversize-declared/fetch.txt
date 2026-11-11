@@ -1,0 +1,2 @@
+allow https://api.example.com/big
+oversize 200 text/plain 1073741824

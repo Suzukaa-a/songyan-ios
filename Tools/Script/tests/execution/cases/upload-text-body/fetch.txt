@@ -1,0 +1,2 @@
+allow https://api.example.com/echo
+response 200 application/json eyJvayI6dHJ1ZX0=

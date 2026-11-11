@@ -1,0 +1,8 @@
+{
+  "ok": true,
+  "outputs": [
+    "https://api.example.com/x|密钥值"
+  ],
+  "logs": [],
+  "logsTruncated": false
+}

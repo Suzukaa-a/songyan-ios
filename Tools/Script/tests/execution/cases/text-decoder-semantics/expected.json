@@ -1,0 +1,19 @@
+{
+  "ok": true,
+  "outputs": [
+    "A",
+    "﻿A",
+    "�",
+    "���",
+    "���",
+    "�",
+    "TypeError",
+    "\"\"",
+    "一",
+    "�",
+    "TextDecoder option foo is not supported",
+    "RangeError"
+  ],
+  "logs": [],
+  "logsTruncated": false
+}

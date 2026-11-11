@@ -1,0 +1,6 @@
+{
+  "ok": false,
+  "error": "capabilityUnavailable",
+  "message": "this host cannot provide audio input",
+  "line": 0
+}

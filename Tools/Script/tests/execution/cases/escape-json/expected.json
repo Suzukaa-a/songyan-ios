@@ -1,0 +1,8 @@
+{
+  "ok": true,
+  "outputs": [
+    "引号\"反斜杠\\换行\n制表\t结束"
+  ],
+  "logs": [],
+  "logsTruncated": false
+}

@@ -1,0 +1,6 @@
+{
+  "ok": false,
+  "error": "addressNotAllowed",
+  "message": "the address https://api.example.com/v1 is not allowed",
+  "line": 0
+}

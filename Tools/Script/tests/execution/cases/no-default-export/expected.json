@@ -1,0 +1,6 @@
+{
+  "ok": false,
+  "error": "script",
+  "message": "the script has no default export function",
+  "line": 0
+}

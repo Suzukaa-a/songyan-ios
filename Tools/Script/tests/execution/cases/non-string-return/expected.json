@@ -1,0 +1,6 @@
+{
+  "ok": false,
+  "error": "script",
+  "message": "the script returned number; a string or an array of strings is required",
+  "line": 0
+}

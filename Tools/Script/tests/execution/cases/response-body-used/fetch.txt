@@ -1,0 +1,4 @@
+allow https://api.example.com/one
+allow https://api.example.com/two
+response 200 text/plain 5LiA
+response 200 text/plain 5LqM

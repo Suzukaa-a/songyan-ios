@@ -1,0 +1,18 @@
+{
+  "ok": true,
+  "outputs": [
+    "响应",
+    "6",
+    "6"
+  ],
+  "logs": [],
+  "logsTruncated": false,
+  "requests": [
+    {
+      "method": "GET",
+      "url": "https://api.example.com/bytes",
+      "headers": null,
+      "bodyLength": 0
+    }
+  ]
+}

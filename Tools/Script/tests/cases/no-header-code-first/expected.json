@@ -1,0 +1,6 @@
+{
+  "ok": false,
+  "error": "badHeader",
+  "line": 1,
+  "message": "no header"
+}

@@ -211,14 +211,26 @@ data is not bundled with the app.
       (kagiroi_kanji.dict.yaml, kagiroi_symbols.dict.yaml,
       kagiroi_matrix.dict.yaml); not bundled with the app.
 
+21. QuickJS-ng 0.18.0 (script engine)
+    - Upstream: https://github.com/quickjs-ng/quickjs
+    - Pinned: tag v0.18.0; source archive sha256
+      28bcd89aa3683fd2a946537e5ce3f11cc46b5cbf3383c7561aaef3df5ff9f1dd
+    - License: MIT; Copyright (c) 2017-2026 Fabrice Bellard,
+      Copyright (c) 2017-2024 Charlie Gordon, Copyright (c) 2023-2026
+      Ben Noordhuis, Copyright (c) 2023-2026 Saúl Ibarra Corretgé
+    - Role: JavaScript engine for the user scripts feature, linked statically
+      into the script bridge.
+    - Full text: quickjs-ng-0.18.0-LICENSE.txt
+
 Distribution note
 -----------------
 The engine components above are merged into a single static library
 (librime, glog, LevelDB, marisa-trie, OpenCC, RapidJSON, darts-clone,
 yaml-cpp, Boost.Regex, librime-lua, Lua, librime-octagram, librime-predict,
-and the project's C bridge). The final binary only contains the object files
-the linker pulls in; these notices list the linked components and bundled
-data.
+and the project's C bridge). The script engine named in component 21 is built
+as its own static library and linked into the script bridge, not into the Rime
+engine library. The final binary only contains the object files the linker
+pulls in; these notices list the linked components and bundled data.
 
 The built-in dictionary (songyan_basic.dict.yaml) is original to this project
 and contains no upstream dictionary corpus. The bundled songyan_flypy schema

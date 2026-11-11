@@ -1,0 +1,6 @@
+{
+  "ok": false,
+  "error": "outOfMemory",
+  "message": "the script needed more than 4194304 bytes of memory",
+  "line": 0
+}

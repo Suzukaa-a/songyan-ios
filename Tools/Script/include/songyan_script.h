@@ -1,0 +1,157 @@
+#ifndef SONGYAN_SCRIPT_H
+#define SONGYAN_SCRIPT_H
+
+/* Shared script contract, implemented once in C and used by both platforms. The header syntax,
+ * the declarations it produces, the error codes and the capability model are defined here; the
+ * reference implementation is src/contract.c and the shared behaviour cases are tests/cases/.
+ *
+ * Header grammar, interface version 1:
+ *
+ *   // @api <n>                        required; exactly SONGYAN_SCRIPT_API_VERSION
+ *   // @name <text>                    required
+ *   // @description <text>             optional
+ *   // @connect <host>                 optional, repeatable; host name only
+ *   // @setting <key> <text|url|choice> <label>
+ *   // @secret <key> <label>
+ *   // @input audio                    optional (text input is implicit)
+ *
+ * The header is the run of leading lines that are blank or start with //; the first other line
+ * ends it, so comments in the body are not declarations and non-declaration // lines are notes.
+ * Fields are separated by runs of spaces or tabs; name, description and labels are the rest of
+ * the line, trimmed. Declarations may appear in any order; single-value declarations, setting or
+ * secret keys (unique across both lists) and audio input may not repeat. Unknown @keys are an
+ * error. A refusal reports the 1-based source line, or 0 when the problem is a missing required
+ * declaration. Setting and secret keys are ASCII letters, digits, '_' and '-'. @connect folds to
+ * lowercase and accepts letters, digits, dots and inner hyphens only: no scheme, port, path,
+ * wildcard or space. A missing host capability never rejects a file; it is reported separately.
+ *
+ * @api is an unsigned decimal without leading zeros. Exactly the version this host implements is
+ * accepted; a higher one is a file this host refuses with unsupportedApiVersion and never runs;
+ * 0, a leading zero or a non-number is a broken header. A version token too large for 64 bits is
+ * refused as unsupportedApiVersion as well, and its diagnostic says the number is too large
+ * instead of echoing a clipped value. A UTF-8 BOM at the very start of the file is accepted and
+ * ignored. The source is external input, so an embedded NUL or an invalid UTF-8 sequence is
+ * refused as a broken header before parsing: both would otherwise truncate a declaration or
+ * produce a report that JSON parsers reject.
+ *
+ * Shared cases for both platforms: tests/cases/<name>/expected.json plus an optional
+ * capabilities.txt ("text" or "text,audio"; default "text"), and script.js unless the case is fed
+ * from examples/<name>.js: the minimal example is a case input, not a copy of one. expected.json
+ * is the canonical JSON this implementation prints; a case whose expectation says "ok": false
+ * must exit 1. The AI instructions users copy are resources/ai-guide.txt. The cases, the example
+ * and that guide belong to the same sync set.
+ *
+ * Resource limits are injected by the host through songyan_script_limits: this contract carries
+ * no numbers, because the final limits have to come from measured headroom, not from a guess. */
+
+#include <stddef.h>
+#include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* Interface version this implementation speaks. A script declaring a higher @api is refused with
+ * unsupportedApiVersion and never runs; 0, a leading zero or a non-number is a broken header. */
+#define SONGYAN_SCRIPT_API_VERSION 1u
+
+/* Every way a script can fail, defined once. Codes are stable across platforms; each platform
+ * maps a code to its own user-facing wording and the bridge only supplies a developer
+ * diagnostic. HEADER and API_VERSION are produced while parsing the header. TIMEOUT,
+ * OUT_OF_MEMORY, ADDRESS_NOT_ALLOWED, NETWORK_FAILURE and SCRIPT belong to the execution layer.
+ * CAPABILITY is reported when a run is requested for a script whose declared input the host
+ * cannot offer; importing such a file never fails, it is reported separately as unavailable. */
+typedef enum {
+    SONGYAN_SCRIPT_OK = 0,
+    SONGYAN_SCRIPT_ERROR_TIMEOUT,
+    SONGYAN_SCRIPT_ERROR_OUT_OF_MEMORY,
+    SONGYAN_SCRIPT_ERROR_ADDRESS_NOT_ALLOWED,
+    SONGYAN_SCRIPT_ERROR_NETWORK_FAILURE,
+    SONGYAN_SCRIPT_ERROR_SCRIPT,
+    SONGYAN_SCRIPT_ERROR_HEADER,
+    SONGYAN_SCRIPT_ERROR_API_VERSION,
+    SONGYAN_SCRIPT_ERROR_CAPABILITY
+} songyan_script_error;
+
+/* Stable machine name, e.g. "badHeader". Used by the shared test cases. */
+const char *songyan_script_error_name(songyan_script_error error);
+
+typedef enum {
+    SONGYAN_SCRIPT_SETTING_TEXT = 0,
+    SONGYAN_SCRIPT_SETTING_URL,
+    SONGYAN_SCRIPT_SETTING_CHOICE
+} songyan_script_setting_kind;
+
+const char *songyan_script_setting_kind_name(songyan_script_setting_kind kind);
+
+/* Capabilities a host can offer and a header can require. Text is always required; audio only
+ * when the header declares @input audio. A missing capability never rejects the import: the
+ * script is kept and shown as unavailable on that device, and a run of it is refused with
+ * SONGYAN_SCRIPT_ERROR_CAPABILITY. */
+typedef enum {
+    SONGYAN_SCRIPT_CAPABILITY_TEXT = 1u << 0,
+    SONGYAN_SCRIPT_CAPABILITY_AUDIO = 1u << 1
+} songyan_script_capability;
+
+const char *songyan_script_capability_name(songyan_script_capability capability);
+
+typedef struct {
+    char *key;
+    songyan_script_setting_kind kind;
+    char *label;
+} songyan_script_setting;
+
+typedef struct {
+    char *key;
+    char *label;
+} songyan_script_secret;
+
+/* A parsed header. Declaration order is kept: the settings page shows it. All strings are
+ * UTF-8 and owned by the header until songyan_script_header_free. */
+typedef struct {
+    unsigned api;
+    char *name;
+    char *description; /* NULL when the header has none */
+    char **connects;
+    size_t connect_count;
+    songyan_script_setting *settings;
+    size_t setting_count;
+    songyan_script_secret *secrets;
+    size_t secret_count;
+    unsigned needs; /* songyan_script_capability bits */
+} songyan_script_header;
+
+typedef struct {
+    size_t line; /* 1-based source line; 0 when the problem is not tied to one */
+    char message[256]; /* English developer diagnostic; platforms own the user copy */
+} songyan_script_header_error;
+
+/* Parses the comment header at the top of source. The header ends at the first line that is
+ * neither blank nor a // comment. On any error the returned header is freed and zeroed. */
+songyan_script_error songyan_script_header_parse(const char *source, size_t length,
+                                                 songyan_script_header *header,
+                                                 songyan_script_header_error *error);
+
+void songyan_script_header_free(songyan_script_header *header);
+
+/* Resource limits, injected by the host. The bridge has no defaults: a host that does not set
+ * every field cannot run anything, which keeps unmeasured numbers out of the contract. */
+typedef struct {
+    size_t source_bytes;
+    size_t heap_bytes;
+    uint32_t duration_ms;
+    uint32_t request_count;
+    size_t response_bytes;
+    size_t input_text_bytes;
+} songyan_script_limits;
+
+/* Names of the fields still zero, in declaration order. Returns the number written, which may
+ * exceed capacity; call with a NULL array to count. */
+size_t songyan_script_limits_missing(const songyan_script_limits *limits,
+                                     const char *missing[], size_t capacity);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif

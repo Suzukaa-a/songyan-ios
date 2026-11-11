@@ -1,0 +1,21 @@
+{
+  "runs": [
+    {
+      "ok": true,
+      "outputs": [
+        "a"
+      ],
+      "logs": [],
+      "logsTruncated": false
+    },
+    {
+      "ok": true,
+      "outputs": [
+        "undefined"
+      ],
+      "logs": [],
+      "logsTruncated": false
+    }
+  ],
+  "ok": true
+}

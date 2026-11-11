@@ -1,0 +1,6 @@
+{
+  "ok": false,
+  "error": "script",
+  "message": "could not load module 'other.js'",
+  "line": 0
+}

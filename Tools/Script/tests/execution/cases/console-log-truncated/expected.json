@@ -1,0 +1,11 @@
+{
+  "ok": true,
+  "outputs": [
+    "done"
+  ],
+  "logs": [
+    "line-one-0123456789",
+    "line-two-0123456789"
+  ],
+  "logsTruncated": true
+}

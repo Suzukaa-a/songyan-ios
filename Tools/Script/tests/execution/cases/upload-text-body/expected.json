@@ -1,0 +1,17 @@
+{
+  "ok": true,
+  "outputs": [
+    "{\"ok\":true}"
+  ],
+  "logs": [],
+  "logsTruncated": false,
+  "requests": [
+    {
+      "method": "POST",
+      "url": "https://api.example.com/echo",
+      "headers": "{\"content-type\":\"application/json\",\"x-note\":\"测试\"}",
+      "bodyLength": 24,
+      "body": "{\"input\":\"上传文字\"}"
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "ok": true,
+  "outputs": [
+    "fetch=function,FormData=function,TextEncoder=function,TextDecoder=function,console.log=function,rawFetch=undefined,rawLog=undefined,describe=undefined"
+  ],
+  "logs": [],
+  "logsTruncated": false
+}

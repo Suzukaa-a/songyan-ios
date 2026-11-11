@@ -1,0 +1,2 @@
+allow https://api.example.com/raw
+response 200 text/plain b2s=

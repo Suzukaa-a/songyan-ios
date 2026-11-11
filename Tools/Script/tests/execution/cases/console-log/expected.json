@@ -1,0 +1,11 @@
+{
+  "ok": true,
+  "outputs": [
+    "文字"
+  ],
+  "logs": [
+    "第一行 文字",
+    "{\"key\":\"值\"}"
+  ],
+  "logsTruncated": false
+}

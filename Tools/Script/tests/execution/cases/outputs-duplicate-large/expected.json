@@ -1,0 +1,6 @@
+{
+  "ok": false,
+  "error": "outOfMemory",
+  "message": "the script produced more results than the injected 8388608 byte memory limit allows",
+  "line": 0
+}

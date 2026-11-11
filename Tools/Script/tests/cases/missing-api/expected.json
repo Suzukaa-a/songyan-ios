@@ -1,0 +1,6 @@
+{
+  "ok": false,
+  "error": "badHeader",
+  "line": 0,
+  "message": "missing @api"
+}

@@ -1,0 +1,4 @@
+allow https://api.example.com/a
+allow https://api.example.com/b
+deferred 200 text/plain 55Sy
+response 200 text/plain 5LmZ

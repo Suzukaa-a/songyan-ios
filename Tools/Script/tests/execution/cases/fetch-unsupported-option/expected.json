@@ -1,0 +1,13 @@
+{
+  "ok": true,
+  "outputs": [
+    "fetch option signal is not supported",
+    "fetch option mode is not supported",
+    "fetch option credentials is not supported",
+    "fetch expects a URL string",
+    "fetch method is not a valid HTTP method: GE T",
+    "fetch cannot send a body with GET"
+  ],
+  "logs": [],
+  "logsTruncated": false
+}

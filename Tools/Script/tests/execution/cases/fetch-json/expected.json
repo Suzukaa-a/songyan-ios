@@ -1,0 +1,17 @@
+{
+  "ok": true,
+  "outputs": [
+    "润色结果"
+  ],
+  "logs": [],
+  "logsTruncated": false,
+  "requests": [
+    {
+      "method": "POST",
+      "url": "https://api.example.com/v1",
+      "headers": "{\"content-type\":\"application/json\"}",
+      "bodyLength": 18,
+      "body": "{\"input\":\"原文\"}"
+    }
+  ]
+}

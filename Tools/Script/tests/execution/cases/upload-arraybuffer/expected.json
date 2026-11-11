@@ -1,0 +1,17 @@
+{
+  "ok": true,
+  "outputs": [
+    "200"
+  ],
+  "logs": [],
+  "logsTruncated": false,
+  "requests": [
+    {
+      "method": "PUT",
+      "url": "https://api.example.com/raw",
+      "headers": "{\"content-type\":\"application/octet-stream\"}",
+      "bodyLength": 4,
+      "bodyBase64": "AAH/QQ=="
+    }
+  ]
+}

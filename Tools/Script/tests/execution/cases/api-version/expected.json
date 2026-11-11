@@ -1,0 +1,6 @@
+{
+  "ok": false,
+  "error": "unsupportedApiVersion",
+  "line": 1,
+  "message": "unsupported @api 2; this host implements 1"
+}

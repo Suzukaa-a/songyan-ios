@@ -1,0 +1,6 @@
+{
+  "ok": false,
+  "error": "script",
+  "message": "unexpected token in expression: ''",
+  "line": 6
+}

@@ -1,0 +1,5 @@
+allow https://api.example.com/a
+allow https://api.example.com/b
+allow https://api.example.com/c
+response 200 text/plain b2s=
+response 200 text/plain b2s=

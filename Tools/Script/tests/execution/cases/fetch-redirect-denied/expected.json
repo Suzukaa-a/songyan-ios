@@ -1,0 +1,6 @@
+{
+  "ok": false,
+  "error": "addressNotAllowed",
+  "message": "the redirect target https://evil.example.com/out is not allowed",
+  "line": 0
+}

@@ -1,0 +1,22 @@
+{
+  "ok": true,
+  "error": "ok",
+  "line": 0,
+  "header": {
+    "api": 1,
+    "name": "带 BOM",
+    "description": "文件开头有字节顺序标记",
+    "connects": [],
+    "settings": [],
+    "secrets": [],
+    "needs": [
+      "text"
+    ]
+  },
+  "capabilities": {
+    "host": [
+      "text"
+    ],
+    "missing": []
+  }
+}

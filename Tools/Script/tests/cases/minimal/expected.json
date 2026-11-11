@@ -1,0 +1,22 @@
+{
+  "ok": true,
+  "error": "ok",
+  "line": 0,
+  "header": {
+    "api": 1,
+    "name": "加书名号",
+    "description": "把选中的文字两边加上书名号",
+    "connects": [],
+    "settings": [],
+    "secrets": [],
+    "needs": [
+      "text"
+    ]
+  },
+  "capabilities": {
+    "host": [
+      "text"
+    ],
+    "missing": []
+  }
+}

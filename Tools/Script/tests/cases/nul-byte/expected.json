@@ -1,0 +1,6 @@
+{
+  "ok": false,
+  "error": "badHeader",
+  "line": 2,
+  "message": "NUL byte in source"
+}

@@ -1,0 +1,22 @@
+{
+  "ok": true,
+  "error": "ok",
+  "line": 0,
+  "header": {
+    "api": 1,
+    "name": "正文注释",
+    "description": null,
+    "connects": [],
+    "settings": [],
+    "secrets": [],
+    "needs": [
+      "text"
+    ]
+  },
+  "capabilities": {
+    "host": [
+      "text"
+    ],
+    "missing": []
+  }
+}

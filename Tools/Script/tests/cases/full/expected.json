@@ -1,0 +1,46 @@
+{
+  "ok": true,
+  "error": "ok",
+  "line": 0,
+  "header": {
+    "api": 1,
+    "name": "润色",
+    "description": "把文字改得更通顺",
+    "connects": [
+      "api.example.com",
+      "cdn.example.com"
+    ],
+    "settings": [
+      {
+        "key": "endpoint",
+        "kind": "url",
+        "label": "服务地址"
+      },
+      {
+        "key": "tone",
+        "kind": "choice",
+        "label": "语气"
+      },
+      {
+        "key": "note",
+        "kind": "text",
+        "label": "备注"
+      }
+    ],
+    "secrets": [
+      {
+        "key": "key",
+        "label": "密钥"
+      }
+    ],
+    "needs": [
+      "text"
+    ]
+  },
+  "capabilities": {
+    "host": [
+      "text"
+    ],
+    "missing": []
+  }
+}
