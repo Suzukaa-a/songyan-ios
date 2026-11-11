@@ -865,7 +865,8 @@ final class KeyLabelFadeBinding {
                 let views = labels()
                 let target = fade.opacity
                 UIView.animate(
-                    withDuration: fade.animationDuration, delay: 0, options: [.beginFromCurrentState, .allowUserInteraction]
+                    withDuration: fade.animationDuration, delay: 0,
+                    options: [.beginFromCurrentState, .allowUserInteraction]
                 ) {
                     for label in views { label?.alpha = target }
                 }
