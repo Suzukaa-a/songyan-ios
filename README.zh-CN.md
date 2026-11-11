@@ -4,7 +4,7 @@
 
 [English](README.md)
 
-松烟是一款基于 [RIME 中州韵](https://rime.im) 引擎的 iPhone / iPad 中文输入法。引擎直接在键盘里、在你的设备上运行，任何 RIME 输入方案都能用。引擎、输入方案和文件格式与 [松烟 Android 版](https://github.com/Suzukaa-a/songyan-android) 通用。
+松烟是一款基于 [RIME 中州韵](https://rime.im) 引擎的 iPhone / iPad 输入法。RIME 输入方案能打什么，松烟就能打什么：拼音、双拼、注音、仓颉、粤拼、日语等等。引擎直接在键盘里、在你的设备上运行。引擎、输入方案和文件格式与 [松烟 Android 版](https://github.com/Suzukaa-a/songyan-android) 通用。
 
 <p>
   <img src=".github/screenshots/keyboard-14.png" width="240" alt="14 键键盘输入 nihao">
@@ -23,7 +23,7 @@
 - **任何 RIME 输入方案**：从推荐列表添加（雾凇拼音、万象拼音、注音、仓颉、速成、粤拼、日语カギロイ），也可以从文件或链接导入自己的方案。你确认后才会下载。导入的方案还能用注音、仓颉、日语罗马字和假名键盘。
 - **简体或繁体输出**（也有台湾、香港用字），可按输入方式分别切换。
 - **合并键左右滑**可以打出其中任一个字母，还可以在字母键上显示双拼提示。
-- **布局和外观随你定**：可以编辑键盘布局和候选栏；外观文件 iOS 和 Android 通用。
+- **布局和外观随你定**：在 App 里编辑键盘布局，用[网页外观编辑器](https://suzukaa-a.github.io/songyan-themes/)做外观。外观文件 iOS 和 Android 通用。
 - **需要时再开的功能**：错键纠正、联想、语法模型，以及学到的词的备份（与 Android 版通用）。
 - 界面提供简体中文、繁体中文和日语。
 

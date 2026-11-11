@@ -4,9 +4,9 @@
 
 [简体中文](README.zh-CN.md)
 
-Songyan is a Chinese keyboard for iPhone and iPad built on the [RIME](https://rime.im) input
-method engine. The engine runs inside the keyboard on your device, with any RIME input scheme you
-give it. It shares its engine, schemes and file formats with
+Songyan is a keyboard for iPhone and iPad built on the [RIME](https://rime.im) input method engine.
+It types in whatever your RIME input scheme types: pinyin and double pinyin, zhuyin, cangjie,
+Cantonese, Japanese and more. The engine runs inside the keyboard on your device. It shares its engine, schemes and file formats with
 [Songyan for Android](https://github.com/Suzukaa-a/songyan-android).
 
 <p>
@@ -33,8 +33,8 @@ give it. It shares its engine, schemes and file formats with
 - **Simplified or Traditional output** (Taiwan and Hong Kong standards too), switchable per input
   method.
 - **Swipe sideways on a merged key** to type either letter, with optional double pinyin hints.
-- **Your own layouts and appearance:** edit key layouts and the candidate bar; appearance files work
-  on both iOS and Android.
+- **Your own layouts and appearance:** edit key layouts in the app, and make appearances in the
+  [appearance editor](https://suzukaa-a.github.io/songyan-themes/). Appearance files work on both iOS and Android.
 - **Extras when you want them:** typo correction, prediction, grammar models, and backups of the
   words it learned (shared with Android).
 - Interface in Simplified Chinese, Traditional Chinese and Japanese.
