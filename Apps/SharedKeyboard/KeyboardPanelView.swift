@@ -109,6 +109,8 @@ public struct KeyboardPanelView: View {
     private let topTrim: CGFloat
     /// Reports eligibility facts (physical definition content) to the host, not heights.
     let onReadingRowReport: ((CandidateReadingRowReport) -> Void)?
+    /// The toolbar's one-handed button; nil where this surface offers no one-handed mode.
+    let oneHand: OneHandToolbarControl?
     @State var page: KeyboardPage = .letters
     /// Panel-local symbol language chosen by a language/symbol key. It overrides the selected
     /// page's default and the controller punctuation state for this keyboard session only; the
@@ -193,7 +195,8 @@ public struct KeyboardPanelView: View {
         topSlack: CGFloat = 0,
         readingRowBandHeight: CGFloat? = nil,
         topTrim: CGFloat = 0,
-        onReadingRowReport: ((CandidateReadingRowReport) -> Void)? = nil
+        onReadingRowReport: ((CandidateReadingRowReport) -> Void)? = nil,
+        oneHand: OneHandToolbarControl? = nil
     ) {
         self.controller = controller
         self.keyHeightOverride = keyHeightOverride
@@ -205,6 +208,7 @@ public struct KeyboardPanelView: View {
         self.readingPlacement = readingPlacement
         self.candidateAreaReserved = candidateAreaReserved
         self.onReadingRowReport = onReadingRowReport
+        self.oneHand = oneHand
         self.onSelectLayout = onSelectLayout
         self.onSelectLayoutBound = onSelectLayoutBound
         self.systemKeyboardSwitch = systemKeyboardSwitch
@@ -671,7 +675,10 @@ public struct KeyboardPanelView: View {
         showsUtilitiesMenu || showsSymbolLibrary
     }
 
-    private func idleTool(_ title: String, icon: String, action: @escaping () -> Void) -> some View {
+    private func idleTool(
+        _ title: String, icon: String, value: String? = nil, highlighted: Bool = false,
+        action: @escaping () -> Void
+    ) -> some View {
         Button {
             emitSelectionFeedback()
             action()
@@ -682,14 +689,32 @@ public struct KeyboardPanelView: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .foregroundStyle(Color(uiColor: appearance.text(on: "panel", secondary: true)))
+        .foregroundStyle(
+            highlighted ? appearance.accentForeground : Color(uiColor: appearance.text(on: "panel", secondary: true))
+        )
         .accessibilityLabel(title)
+        .accessibilityValue(value ?? "")
         .accessibilityIdentifier("keyboard.toolbar." + title)
+    }
+
+    /// The one-handed button shows the side it hugs, in the accent while on, and says it.
+    @ViewBuilder
+    private func oneHandTool(_ control: OneHandToolbarControl) -> some View {
+        let (icon, value): (String, String) =
+            switch control.mode {
+            case .off: ("hand.raised", String(localized: "关闭"))
+            case .left: ("keyboard.onehanded.left", String(localized: "左手"))
+            case .right: ("keyboard.onehanded.right", String(localized: "右手"))
+            }
+        idleTool(
+            String(localized: "单手模式"), icon: icon, value: value, highlighted: control.mode != .off,
+            action: control.toggle)
     }
 
     /// The idle toolbar in the user's order, cut to what the real toolbar width holds.
     private func idleToolbar(width: CGFloat, fixedSlots: Int, trailingInset: CGFloat) -> some View {
-        let chosen = IdleToolbarAssembly.slots(layout: idleToolbarLayout, hidden: false)
+        let chosen = IdleToolbarAssembly.slots(
+            layout: idleToolbarLayout, hidden: false, oneHandAvailable: oneHand != nil)
         let slots = IdleToolbarAssembly.fitting(chosen, width: Double(width), fixedSlots: fixedSlots)
         return HStack(spacing: 4) {
             ForEach(Array(slots.enumerated()), id: \.offset) { _, slot in
@@ -698,6 +723,8 @@ public struct KeyboardPanelView: View {
                     idleTool(String(localized: "颜文字"), icon: "face.smiling") {
                         openQuickContent(section: "symbols", category: "kaomoji")
                     }
+                case .oneHand:
+                    if let oneHand { oneHandTool(oneHand) }
                 case .settings:
                     idleTool(String(localized: "键盘设置"), icon: "gearshape") { showsUtilitiesMenu = true }
                 }
@@ -1123,4 +1150,16 @@ final class KeyboardPanelWidthBox {
 final class HeldReadingChoices {
     var rail: KeyboardPanelView.T9RailChoices?
     var row: CandidateReadingRowContent?
+}
+
+/// What the toolbar's one-handed button shows and does.
+public struct OneHandToolbarControl {
+    let mode: KeyboardOneHandMode
+    /// Off turns on the last side used; on turns off.
+    let toggle: () -> Void
+
+    public init(mode: KeyboardOneHandMode, toggle: @escaping () -> Void) {
+        self.mode = mode
+        self.toggle = toggle
+    }
 }

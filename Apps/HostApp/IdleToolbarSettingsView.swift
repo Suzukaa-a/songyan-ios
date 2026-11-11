@@ -74,6 +74,7 @@ extension IdleToolbarItem {
     fileprivate var title: String {
         switch self {
         case .emoji: String(localized: "颜文字")
+        case .oneHand: String(localized: "单手模式")
         case .settings: String(localized: "键盘设置")
         }
     }

@@ -96,6 +96,9 @@ public struct KeyboardPanelHost: View {
     private let presentationBudget: KeyboardPanelPresentationBudget?
     /// Adopted on every host (re)binding; the in-panel restore turns it off in place.
     @State private var oneHandMode = KeyboardOneHandPreferences.current
+    /// The side the toolbar button turns back on. Starts on the right, like the Android keyboard.
+    @State private var lastOneHandSide: KeyboardOneHandMode =
+        KeyboardOneHandPreferences.current == .off ? .right : KeyboardOneHandPreferences.current
     /// The selected definition's own page facts (ABC/123 grants excluded).
     @State private var definitionShell = KeyboardPresentationShell(readingRow: false, candidateArea: true)
     /// Letter rows the current page draws: the definition's budget on its letters page, three on
@@ -138,6 +141,7 @@ public struct KeyboardPanelHost: View {
         guard mode != oneHandMode else { return }
         KeyboardOneHandPreferences.set(mode)
         oneHandMode = mode
+        if mode != .off { lastOneHandSide = mode }
         // Keys move under any recorded route's window point, so drop it.
         KeyboardRoutedTouch.clear()
     }
@@ -287,6 +291,7 @@ public struct KeyboardPanelHost: View {
                 applyReadingRowReport()
                 KeyboardKeyFeelPreferences.refresh()
                 oneHandMode = KeyboardOneHandPreferences.current
+                if oneHandMode != .off { lastOneHandSide = oneHandMode }
                 storedHeightPreset = KeyboardHeightPreferences.current
                 readingPlacement = KeyboardReadingPlacementPreferences.current
                 reloadStoredLayouts()
@@ -473,7 +478,11 @@ public struct KeyboardPanelHost: View {
                 onReadingRowReport: { report in
                     latestReadingRowReport = report
                     applyReadingRowReport()
-                }
+                },
+                oneHand: oneHandAvailable
+                    ? OneHandToolbarControl(mode: oneHandMode) {
+                        setOneHandMode(oneHandMode == .off ? lastOneHandSide : .off)
+                    } : nil
             )
             // Host-trait changes (field focus / forced light/dark field) may not
             // publish `objectWillChange`, so bump a tick to force a repaint of the

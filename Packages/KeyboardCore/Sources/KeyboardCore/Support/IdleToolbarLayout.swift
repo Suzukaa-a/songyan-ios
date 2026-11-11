@@ -3,6 +3,7 @@ import Foundation
 /// The idle-toolbar entries the user can turn off and reorder; `rawValue` is the stored name.
 public enum IdleToolbarItem: String, CaseIterable, Sendable {
     case emoji
+    case oneHand = "one_hand"
     case settings
 }
 
@@ -23,9 +24,9 @@ public struct IdleToolbarLayout: Equatable, Sendable {
 
     private init(validated entries: [Entry]) { self.entries = entries }
 
-    /// Today's idle toolbar: kaomoji, then settings.
+    /// Today's idle toolbar: kaomoji, one-handed mode, then settings.
     public static let `default` = IdleToolbarLayout(
-        validated: [IdleToolbarItem.emoji, .settings].map { Entry(item: $0, shown: true) })
+        validated: [IdleToolbarItem.emoji, .oneHand, .settings].map { Entry(item: $0, shown: true) })
 
     public var shown: [IdleToolbarItem] { entries.filter(\.shown).map(\.item) }
     public var isDefault: Bool { self == .default }
@@ -74,6 +75,7 @@ public struct IdleToolbarLayout: Equatable, Sendable {
 /// One drawn idle-toolbar slot.
 public enum IdleToolbarSlot: Equatable, Sendable {
     case emoji
+    case oneHand
     case settings
 }
 
@@ -120,12 +122,16 @@ public enum IdleToolbarCapacity {
 
 /// Builds the idle toolbar's slot list from the user's choice and what the field and window offer.
 public enum IdleToolbarAssembly {
-    /// The shown items in the user's order. A choice can only remove entries, never add one.
-    public static func slots(layout: IdleToolbarLayout, hidden: Bool) -> [IdleToolbarSlot] {
+    /// The shown items in the user's order. A choice can only remove entries, never add one. The
+    /// one-handed button needs a surface that offers one-handed mode, so it is left out elsewhere.
+    public static func slots(
+        layout: IdleToolbarLayout, hidden: Bool, oneHandAvailable: Bool
+    ) -> [IdleToolbarSlot] {
         guard !hidden else { return [] }
-        return layout.shown.map { item -> IdleToolbarSlot in
+        return layout.shown.compactMap { item -> IdleToolbarSlot? in
             switch item {
             case .emoji: .emoji
+            case .oneHand: oneHandAvailable ? .oneHand : nil
             case .settings: .settings
             }
         }
