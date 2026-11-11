@@ -160,7 +160,9 @@ extension AlternateCharacterKey.CharacterButton {
             let inRow = min(columns, alternates.count - row * columns)
             return row * columns + (mirrored ? inRow - 1 - column : column)
         }
-        let y = max(safe.minY, min(keyFrame.minY - height - 6, safe.maxY - height))
+        // Lifted like the letter preview it expands from, so the finger leaves the options visible.
+        let lift = layoutPicker ? 6 : max(6, KeyCalloutGeometry.lift(keyHeight: keyFrame.height, spare: above - height))
+        let y = max(safe.minY, min(keyFrame.minY - height - lift, safe.maxY - height))
         let scroll = UIScrollView(frame: singleBubble ?? CGRect(x: x, y: y, width: width, height: height))
         // Blind-drag grid in the popup's content space. Rows are packed edge
         // to edge (label y = row * rowHeight), columns 4pt apart — exactly the
@@ -344,18 +346,9 @@ extension AlternateCharacterKey.CharacterButton {
     }
 
     private func keyPreviewFrame(in host: UIView) -> CGRect {
-        let safe = host.bounds.insetBy(dx: 4, dy: 4)
-        let keyRect = convert(appearance.visualRect(in: bounds), to: host)
-        let width = min(max(48, keyRect.width * 1.2), safe.width)
-        // The top row has little room above it inside the keyboard: a shorter bubble that
-        // still sits on the key keeps the joined shape; only when even that does not fit
-        // does the bubble overlap the key.
-        let wanted = min(max(52, keyRect.height * 1.12), safe.height)
-        let room = keyRect.minY - safe.minY
-        let height = room >= 36 ? min(wanted, room) : wanted
-        let x = min(max(keyRect.midX - width / 2, safe.minX), safe.maxX - width)
-        let y = max(safe.minY, keyRect.minY - height)
-        return CGRect(x: x, y: y, width: width, height: height)
+        KeyCalloutGeometry.bubbleFrame(
+            key: convert(appearance.visualRect(in: bounds), to: host),
+            safe: host.bounds.insetBy(dx: 4, dy: 4))
     }
 
     private func advancePopupScroll() {
