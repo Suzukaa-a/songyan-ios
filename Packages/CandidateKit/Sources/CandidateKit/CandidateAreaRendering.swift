@@ -518,7 +518,8 @@ struct CollapsedCandidateRow: View {
             context.actions.perform(context.selectAction(entry))
         } label: {
             VStack(spacing: 1) {
-                HStack(spacing: 4) {
+                // Baseline alignment keeps the smaller comment on the candidate's writing line instead of floating at its centre.
+                HStack(alignment: .lastTextBaseline, spacing: 4) {
                     if let badge = entry.selectionBadge {
                         Text(badge)
                             .font(skin.font(context.typography.secondarySize))
