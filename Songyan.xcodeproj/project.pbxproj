@@ -35,7 +35,6 @@
 		G20200000000000000000002 = {isa = PBXBuildFile; fileRef = G20200000000000000000005; };
         F10000000000000000000005 = {isa = PBXBuildFile; fileRef = F10000000000000000000101; };
         F10000000000000000000002 = {isa = PBXBuildFile; fileRef = F10000000000000000000102; };
-        F10000000000000000000004 = {isa = PBXBuildFile; fileRef = F10000000000000000000104; };
         F10000000000000000000011 = {isa = PBXBuildFile; productRef = F10000000000000000000201; };
         F10000000000000000000012 = {isa = PBXBuildFile; productRef = F10000000000000000000202; };
         AB0000000000000000000001 = {isa = PBXBuildFile; productRef = AB0000000000000000000011; };
@@ -55,7 +54,6 @@
         E90000000000000000000202 = {isa = PBXBuildFile; fileRef = E90000000000000000000002; };
         E90000000000000000000103 = {isa = PBXBuildFile; fileRef = E90000000000000000000003; };
         E90000000000000000000104 = {isa = PBXBuildFile; fileRef = E90000000000000000000004; };
-        E90000000000000000000105 = {isa = PBXBuildFile; fileRef = E90000000000000000000005; };
         E90000000000000000000106 = {isa = PBXBuildFile; fileRef = E90000000000000000000006; };
         E9000000000000000000F101 = {isa = PBXBuildFile; fileRef = E9000000000000000000F001; };
         E90000000000000000000107 = {isa = PBXBuildFile; fileRef = E90000000000000000000007; };
@@ -299,12 +297,10 @@
         F10000000000000000000101 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardCandidateActions.swift; sourceTree = "<group>"; };
         AB0000000000000000000003 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppearanceManager.swift; sourceTree = "<group>"; };
         F10000000000000000000102 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CandidateBarPreviewView.swift; sourceTree = "<group>"; };
-        F10000000000000000000104 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CandidateBarManagementView.swift; sourceTree = "<group>"; };
         E90000000000000000000001 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardAppearance.swift; sourceTree = "<group>"; };
         E90000000000000000000002 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardPreviewView.swift; sourceTree = "<group>"; };
         E90000000000000000000003 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkinManager.swift; sourceTree = "<group>"; };
         E90000000000000000000004 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkinManagementView.swift; sourceTree = "<group>"; };
-        E90000000000000000000005 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SkinEditorView.swift; sourceTree = "<group>"; };
         E90000000000000000000006 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutEditorView.swift; sourceTree = "<group>"; };
         E9000000000000000000F001 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedToast.swift; sourceTree = "<group>"; };
         E90000000000000000000007 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OptionStore.swift; sourceTree = "<group>"; };
@@ -558,7 +554,6 @@
 				LT2600000000000000000002 /* LearningBackupView.swift */,
                 E90000000000000000000003 /* SkinManager.swift */,
                 E90000000000000000000004 /* SkinManagementView.swift */,
-                E90000000000000000000005 /* SkinEditorView.swift */,
                 E90000000000000000000006 /* LayoutEditorView.swift */,
                 E9000000000000000000F001 /* SavedToast.swift */,
                 7EE4CFD1E2CDBCF323B9A7FA /* KeyboardRowsEditor.swift */,
@@ -567,7 +562,6 @@
                 12EC6896AEEF4E587E6AFCF0 /* KeyboardCompositionView.swift */,
                 3ACBDB4B3BC97D723910E638 /* KeyboardPageDraftFactory.swift */,
                 E1F4F8BE770A497DAD09C992 /* KeyboardCategoryEditorView.swift */,
-                F10000000000000000000104 /* CandidateBarManagementView.swift */,
                 AB0000000000000000000003 /* AppearanceManager.swift */,
                 PRIVH0ST0000000000000001 /* PrivacyInfo.xcprivacy */,
 				AS1C0N0000000000000001 /* Assets.xcassets */,
@@ -899,7 +893,6 @@
                 E90000000000000000000102 /* KeyboardPreviewView.swift in Sources */,
                 E90000000000000000000103 /* SkinManager.swift in Sources */,
                 E90000000000000000000104 /* SkinManagementView.swift in Sources */,
-                E90000000000000000000105 /* SkinEditorView.swift in Sources */,
                 E90000000000000000000106 /* LayoutEditorView.swift in Sources */,
                 E9000000000000000000F101 /* SavedToast.swift in Sources */,
                 2A2902328E0C51CE3950B287 /* KeyboardRowsEditor.swift in Sources */,
@@ -932,7 +925,6 @@
                 TB2700000000000000000002 /* IdleToolbarSettingsView.swift in Sources */,
 				G20200000000000000000001 /* SymbolLibraryView.swift in Sources */,
 				G20200000000000000000011 /* HostAppLink.swift in Sources */,
-                F10000000000000000000004 /* CandidateBarManagementView.swift in Sources */,
                 AB0000000000000000000004 /* AppearanceManager.swift in Sources */,
                 F10000000000000000000002 /* CandidateBarPreviewView.swift in Sources */,
                 F10000000000000000000005 /* KeyboardCandidateActions.swift in Sources */,

@@ -47,7 +47,6 @@ struct SkinManagementView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.colorScheme) private var colorScheme
     @State private var importing = false
-    @State private var draft: AppearanceDocument?
     @State private var importError: String?
     @State private var savedDestination: AppearanceDocument?
     @State private var showsSaved = false
@@ -133,22 +132,23 @@ struct SkinManagementView: View {
             } label: {
                 Label(String(localized: "导入外观文件"), systemImage: "square.and.arrow.down")
             }
+            WebEditLink()
             if let importError { Text(importError).foregroundStyle(.red) }
         }.navigationTitle(UserTerminology.keyboardAppearance)
             .onAppear { manager.reload() }
             .fileImporter(isPresented: $importing, allowedContentTypes: [.json]) { result in
                 do {
-                    draft = try AppearanceImportSupport.decode(documentAt: result.get())
+                    let imported = try AppearanceImportSupport.decode(documentAt: result.get()).normalized()
                     importError = nil
+                    Task {
+                        do {
+                            // Re-importing an edited file replaces the earlier copy with the same identity.
+                            try await manager.save(imported, replacing: true)
+                            savedDestination = imported
+                            showsSaved = true
+                        } catch { importError = error.localizedDescription }
+                    }
                 } catch { importError = error.localizedDescription }
-            }
-            .sheet(
-                item: $draft,
-                onDismiss: {
-                    if savedDestination != nil { showsSaved = true }
-                }
-            ) {
-                SkinEditorView(document: $0) { savedDestination = $0 }
             }
             .navigationDestination(isPresented: $showsSaved) {
                 if let savedDestination {
@@ -250,7 +250,7 @@ private struct UnreadableAppearanceView: View {
     }
 }
 
-/// Appearance detail: preview (keyboard + candidate bar shown together), edit, apply, export.
+/// Appearance detail: preview (keyboard + candidate bar shown together), apply, export.
 /// The candidate-bar layout and skin belong to this one document, so there is no second "Apply" here.
 struct AppearanceDetailView: View {
     private let initialDocument: AppearanceDocument
@@ -260,7 +260,6 @@ struct AppearanceDetailView: View {
         _toast = State(initialValue: notice)
     }
     @State private var toast: String?
-    @State private var savedInPlace = false
     @ObservedObject private var manager = AppearanceManager.shared
     private var document: AppearanceDocument {
         manager.projects.first(where: { $0.id == initialDocument.id }) ?? initialDocument
@@ -270,12 +269,9 @@ struct AppearanceDetailView: View {
     @State private var layouts: [LayoutDefinition] = []
     @State private var dark = false
     @State private var showsExpandedCandidates = false
-    @State private var draft: AppearanceDocument?
     @State private var exporting = false
     @State private var exportDocument = SkinFileDocument(data: Data())
     @State private var error: String?
-    @State private var savedDestination: AppearanceDocument?
-    @State private var showsSaved = false
     @State private var confirmingDelete = false
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
@@ -302,12 +298,7 @@ struct AppearanceDetailView: View {
                 if let status = manager.applicationStatus(for: document) {
                     Label(status, systemImage: "checkmark.circle").foregroundStyle(.secondary)
                 }
-                if !document.isBuiltin {
-                    Button(String(localized: "编辑外观"), systemImage: "pencil") { draft = document }
-                }
-                if !document.isBuiltin {
-                    Button(String(localized: "复制并编辑"), systemImage: "plus.square.on.square") { draft = document.copy() }
-                }
+                WebEditLink()
                 Button(String(localized: "导出文件"), systemImage: "square.and.arrow.up") {
                     do {
                         exportDocument = SkinFileDocument(data: try document.encoded())
@@ -380,42 +371,20 @@ struct AppearanceDetailView: View {
         }
         .navigationTitle(document.displayName)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button(document.isBuiltin ? String(localized: "复制并编辑") : String(localized: "编辑")) {
-                    draft = document.isBuiltin ? document.copy() : document
-                }
-                .disabled(manager.isLoading || manager.isMutating)
-            }
-        }
-        .sheet(
-            item: $draft,
-            onDismiss: {
-                if savedDestination != nil {
-                    showsSaved = true
-                } else if savedInPlace {
-                    // Shown after the sheet is gone, so the confirmation is not hidden behind it.
-                    savedInPlace = false
-                    toast = String(localized: "已保存")
-                }
-            }
-        ) {
-            SkinEditorView(document: $0, previewLayoutID: layoutID.isEmpty ? nil : layoutID, previewDark: dark) {
-                saved in
-                if saved.id != document.id { savedDestination = saved } else { savedInPlace = true }
-            }
-        }
-        .navigationDestination(isPresented: $showsSaved) {
-            if let savedDestination {
-                AppearanceDetailView(document: savedDestination, notice: String(localized: "已保存"))
-            }
-        }
-        .onChange(of: showsSaved) { if !showsSaved { savedDestination = nil } }
         .fileExporter(
             isPresented: $exporting, document: exportDocument, contentType: .json,
             defaultFilename: "\(document.id)\(AppearanceDocument.fileExtension)"
         ) { result in
             if case .failure(let e) = result { error = e.localizedDescription }
+        }
+    }
+}
+
+/// Appearance files are edited in the web editor; only the host app opens it.
+private struct WebEditLink: View {
+    var body: some View {
+        Link(destination: URL(string: "https://suzukaa-a.github.io/songyan-themes/")!) {
+            Label(String(localized: "在网页上编辑外观"), systemImage: "safari")
         }
     }
 }
