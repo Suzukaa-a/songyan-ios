@@ -52,8 +52,6 @@ learns stay on your device.
   up, or switching to Songyan from a system keyboard with a top bar, iOS can add a blank strip above
   third-party keyboards. Switch to the Emoji keyboard and back, or reopen the app. Reported to Apple
   ([forum](https://developer.apple.com/forums/thread/843093), FB24460699, FB25094825).
-- **Safari's address bar completion.** When Safari completes a URL, Delete removes the last letter
-  and Safari completes it again.
 
 ## Build from source
 
