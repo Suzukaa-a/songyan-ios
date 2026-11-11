@@ -160,6 +160,25 @@ final class CandidateKitTests: XCTestCase {
         XCTAssertEqual(commented.comment, "nei5")
     }
 
+    /// With the single-row comment setting off, a comment adds no collapsed width; the entry still carries it.
+    func testCollapsedCellWidthIgnoresCommentWhenHidden() {
+        let typography = CandidateTypography(candidateSize: 20, secondarySize: 10)
+        let plain = entry("你")
+        let commented = entry("你", comment: "nei5")
+        func width(_ e: BrowserCandidate, shows: Bool) -> CGFloat {
+            CandidateCollapsedFlow.intrinsicCellWidth(
+                text: e.text, comment: e.comment, showsComment: shows, typography: typography, cellPaddingX: 2)
+        }
+        XCTAssertEqual(width(commented, shows: false), width(plain, shows: false))
+        XCTAssertGreaterThan(width(commented, shows: true), width(plain, shows: true))
+        let bar = CandidateBarDefinition.systemDefault.collapsed
+        let hidden = CandidateCollapsedFlow.layout(
+            entries: [commented, plain], collapsed: bar, typography: typography, availableWidth: 40,
+            fillsAvailableWidth: false, showsComments: false)
+        XCTAssertEqual(hidden.cellWidths[0], hidden.cellWidths[1])
+        XCTAssertEqual(commented.comment, "nei5")
+    }
+
     func testSelectionBadgeParticipatesInCollapsedAndExpandedWidthBudgets() {
         let typography = CandidateTypography(candidateSize: 20, secondarySize: 10)
         let plain = entry("甲")

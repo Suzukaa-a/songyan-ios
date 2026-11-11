@@ -473,7 +473,8 @@ public struct KeyboardPanelView: View {
             visibleHasMore: filteringReadings ? controller.readingFilter.hasMore : nil,
             visibleFrontier: filteringReadings ? controller.readingFilter.nextIndex : nil,
             contentLift: candidateContentLift,
-            inputLanguage: controller.inputLanguage.language)
+            inputLanguage: controller.inputLanguage.language,
+            showsCollapsedComments: appearance.showsCollapsedCandidateComments)
         if expanded {
             CandidateRendererRegistry.renderer(id: DefaultCandidateAreaRenderer.rendererID)
                 .makeExpanded(context)

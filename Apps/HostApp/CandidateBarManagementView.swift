@@ -13,6 +13,7 @@ struct CandidateBarStyleView: View {
     @State private var loaded = false
     @State private var toast: String?
     @State private var textSize = CandidateTextSizePreferences.current
+    @State private var showsComments = CollapsedCandidateCommentPreferences.current
 
     private var hasChanges: Bool { loaded && draft.candidateBar != manager.applied.candidateBar }
 
@@ -28,6 +29,12 @@ struct CandidateBarStyleView: View {
             } header: {
                 Text("候选字号")
             }
+            Section {
+                Toggle(String(localized: "单行显示注释"), isOn: $showsComments)
+                    .accessibilityIdentifier("candidateBarStyle.collapsedComments")
+            } footer: {
+                Text("关闭后，注释只在展开候选栏时显示。")
+            }
             CandidateAreaEditorSections(document: $draft)
             if let error = manager.error { Section { Text(error).foregroundStyle(.red) } }
         }
@@ -36,6 +43,7 @@ struct CandidateBarStyleView: View {
         .disabled(manager.isLoading || manager.isMutating)
         .savedToast($toast)
         .onChange(of: textSize) { CandidateTextSizePreferences.current = textSize }
+        .onChange(of: showsComments) { CollapsedCandidateCommentPreferences.current = showsComments }
         .onChange(of: manager.isLoading, initial: true) {
             guard !manager.isLoading, !loaded else { return }
             draft = manager.applied

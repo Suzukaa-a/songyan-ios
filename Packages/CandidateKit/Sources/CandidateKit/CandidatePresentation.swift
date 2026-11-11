@@ -172,14 +172,19 @@ public struct CandidateAreaContext {
     /// the drawing position moves, each cell's hit region stays the full row height.
     /// The value is clamped to the row's height slack (see `CandidateCollapsedFlow.clampedLift`).
     public let contentLift: Double
+    /// Whether the collapsed strip draws each candidate's comment (and counts it in the cell width). The
+    /// expanded panel and the accessibility value always carry the comment.
+    public let showsCollapsedComments: Bool
     public init(
         state: CandidatePresentationState, bar: CandidateBarDefinition,
         actions: CandidateAreaActionSink, typography: CandidateTypography,
         browser: CandidateBrowser = CandidateBrowser(), isExpanded: Bool = false,
         visibleEntries: [BrowserCandidate]? = nil,
         visibleHasMore: Bool? = nil, visibleFrontier: Int? = nil,
-        contentLift: Double = 0, inputLanguage: InputLanguage = .simplifiedChinese
+        contentLift: Double = 0, inputLanguage: InputLanguage = .simplifiedChinese,
+        showsCollapsedComments: Bool = true
     ) {
+        self.showsCollapsedComments = showsCollapsedComments
         self.contentLift = contentLift
         self.state = state
         self.browser = browser

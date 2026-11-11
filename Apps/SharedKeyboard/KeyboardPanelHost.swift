@@ -40,6 +40,7 @@ public struct KeyboardPanelHost: View {
         var resolved = KeyboardAppearance(skin: appearanceSnapshot.document.skin, dark: dark)
         resolved.widensKeyGaps = compactReadingRow
         resolved.candidateTextSize = storedCandidateTextSize
+        resolved.showsCollapsedCandidateComments = storedCollapsedCandidateComments
         return resolved
     }
     /// Runtime-only rescue; implementations must not require a shared selection write.
@@ -75,6 +76,7 @@ public struct KeyboardPanelHost: View {
     private var compactReadingRow: Bool { presentationBudget?.compact ?? (verticalSizeClass == .compact) }
     @State private var storedHeightPreset = KeyboardHeightPreferences.current
     @State private var storedCandidateTextSize = CandidateTextSizePreferences.current
+    @State private var storedCollapsedCandidateComments = CollapsedCandidateCommentPreferences.current
     private var keyHeight: CGFloat {
         CGFloat(presentationBudget?.keyHeight ?? heightPreset.keyHeight(compact: compactReadingRow))
     }
@@ -248,6 +250,8 @@ public struct KeyboardPanelHost: View {
                 KeyboardKeyFeelPreferences.refresh()
                 CandidateTextSizePreferences.refresh()
                 storedCandidateTextSize = CandidateTextSizePreferences.current
+                CollapsedCandidateCommentPreferences.refresh()
+                storedCollapsedCandidateComments = CollapsedCandidateCommentPreferences.current
                 storedHeightPreset = KeyboardHeightPreferences.current
                 if presentationBudget == nil {
                     readingPlacement = KeyboardReadingPlacementPreferences.current
@@ -296,6 +300,8 @@ public struct KeyboardPanelHost: View {
                 KeyboardKeyFeelPreferences.refresh()
                 CandidateTextSizePreferences.refresh()
                 storedCandidateTextSize = CandidateTextSizePreferences.current
+                CollapsedCandidateCommentPreferences.refresh()
+                storedCollapsedCandidateComments = CollapsedCandidateCommentPreferences.current
                 oneHandMode = KeyboardOneHandPreferences.current
                 if oneHandMode != .off { lastOneHandSide = oneHandMode }
                 storedHeightPreset = KeyboardHeightPreferences.current

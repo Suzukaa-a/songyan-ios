@@ -52,6 +52,7 @@ public enum CandidateCollapsedFlow {
     public static func intrinsicCellWidth(
         text: String, comment: String,
         selectionBadge: String? = nil,
+        showsComment: Bool = true,
         typography: CandidateTypography,
         cellPaddingX: Double
     ) -> CGFloat {
@@ -61,7 +62,7 @@ public enum CandidateCollapsedFlow {
                 CandidateTextMetrics.estimatedWidth($0, fontSize: typography.secondarySize) + 4
             } ?? 0
         let commentWidth =
-            comment.isEmpty
+            comment.isEmpty || !showsComment
             ? 0 : commentGap + CandidateTextMetrics.estimatedWidth(comment, fontSize: typography.secondarySize)
         let pad = cellPaddingX.isFinite ? max(0, CGFloat(cellPaddingX)) : 0
         return max(minimumCellWidth, textWidth + badgeWidth + commentWidth + pad * 2 + textSlack)
@@ -136,7 +137,8 @@ public enum CandidateCollapsedFlow {
         collapsed: CandidateBarDefinition.Collapsed,
         typography: CandidateTypography,
         availableWidth: CGFloat,
-        fillsAvailableWidth: Bool? = nil
+        fillsAvailableWidth: Bool? = nil,
+        showsComments: Bool = true
     ) -> CandidateCollapsedLayout {
         guard !entries.isEmpty else { return CandidateCollapsedLayout(cellWidths: [], scrolls: false) }
         let spacing = collapsed.cellSpacing.isFinite ? max(0, CGFloat(collapsed.cellSpacing)) : 0
@@ -145,7 +147,7 @@ public enum CandidateCollapsedFlow {
         let intrinsic = entries.map {
             intrinsicCellWidth(
                 text: $0.text, comment: $0.comment,
-                selectionBadge: $0.selectionBadge,
+                selectionBadge: $0.selectionBadge, showsComment: showsComments,
                 typography: typography, cellPaddingX: collapsed.cellPaddingX)
         }
         let count = entries.count

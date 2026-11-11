@@ -32670,6 +32670,50 @@
           }
         }
       }
+    },
+    "单行显示注释": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "单行显示注释"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "單行顯示註釋"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "1行表示でも注釈を表示"
+          }
+        }
+      }
+    },
+    "关闭后，注释只在展开候选栏时显示。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭后，注释只在展开候选栏时显示。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "關閉後，註釋只在展開候選列時顯示。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オフにすると、注釈は候補欄を展開したときだけ表示されます。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

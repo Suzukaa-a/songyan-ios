@@ -383,7 +383,8 @@ private struct DefaultCollapsedCandidateBar: View {
         let layout = CandidateCollapsedFlow.layout(
             entries: entries, collapsed: stripDefinition,
             typography: context.typography, availableWidth: available,
-            fillsAvailableWidth: stripDefinition.fillsAvailableWidth ?? true)
+            fillsAvailableWidth: stripDefinition.fillsAvailableWidth ?? true,
+            showsComments: context.showsCollapsedComments)
         // Candidate widths change as pages arrive; switching container types at
         // the overflow threshold remounts every cell and the load sentinel.
         // At rest the viewport ends on a cell boundary instead of halving a glyph.
@@ -538,7 +539,7 @@ struct CollapsedCandidateRow: View {
                             fontFamily: skin.fontFamily, fontWeight: skin.fontWeight,
                             color: skin.candidateColor, lineLimit: 1, truncation: .tail)
                     }
-                    if !entry.comment.isEmpty {
+                    if context.showsCollapsedComments, !entry.comment.isEmpty {
                         Text(entry.comment)
                             .font(skin.font(context.typography.secondarySize))
                             .foregroundStyle(highlighted ? skin.candidateColor : skin.secondaryColor)
