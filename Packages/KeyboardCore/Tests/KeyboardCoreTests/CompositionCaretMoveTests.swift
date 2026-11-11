@@ -89,7 +89,8 @@ final class CompositionCaretMoveTests: XCTestCase {
         "ludi".forEach { session.tap(.code(String($0))) }
         XCTAssertTrue(session.movesCompositionCaret)
         XCTAssertTrue(session.moveCompositionCaret(by: -2))
-        XCTAssertEqual(Array(engine.received.suffix(2)), [EngineCodeKeyToken.cursorLeft, EngineCodeKeyToken.cursorLeft])
+        XCTAssertEqual(
+            Array(engine.received.suffix(2)), [EngineCodeKeyToken.cursorLeft, EngineCodeKeyToken.cursorLeft])
         XCTAssertTrue(session.snapshot.isComposing, "the spelling is still being composed")
         XCTAssertEqual(session.snapshot.preeditCaretByte, 2)
         XCTAssertTrue(box.committed.isEmpty, "a caret move never confirms the composition")
