@@ -19,6 +19,7 @@ struct KeyboardPreviewPreferences: Equatable, Sendable {
     var needsInputModeSwitchKey = true
     var t9QuickSymbols = T9QuickSymbolStore.defaultSymbols
     var docks: [KeyboardLayoutKind: KeyboardContentDock] = [:]
+    var widthSettings = KeyboardWidthSettings.standard
 
     @MainActor static var cached = KeyboardPreviewPreferences()
 
@@ -47,7 +48,7 @@ struct KeyboardPreviewPreferences: Equatable, Sendable {
                     directory: $0.appendingPathComponent(T9QuickSymbolStore.directoryName, isDirectory: true)
                 ).load().symbols
             } ?? T9QuickSymbolStore.defaultSymbols,
-            docks: docks)
+            docks: docks, widthSettings: KeyboardWidthPreferences.read(from: KeyboardWidthPreferences.defaults))
     }
 }
 
@@ -57,6 +58,8 @@ struct KeyboardPreviewWidths: Equatable {
     let content: Double
     /// The width the main layout's split activation is decided on.
     let mainSplit: Double
+    /// An automatic split shows above this width.
+    var splitAbove = KeyboardSurfaceWidth.phoneMaximum
 }
 
 /// Applies the keyboard's own width rules to the preview's frame: a wide surface caps and docks
@@ -66,28 +69,35 @@ struct KeyboardPreviewFrame<Content: View>: View {
     let layout: KeyboardLayoutKind?
     let mainSplit: LayoutSplitConfiguration?
     let dock: KeyboardContentDock
+    var widthSettings = KeyboardWidthSettings.standard
     @ViewBuilder var content: (KeyboardPreviewWidths) -> Content
     @State private var width: CGFloat = 0
 
     var body: some View {
         let raw = Double(width)
+        let splitAbove = Double(widthSettings.splitWidth)
+        let margin = KeyboardWideContentPolicy.sideMargin(panelWidth: raw, requested: Double(widthSettings.sideMargin))
         let plan = KeyboardWideContentPolicy.plan(
             panelWidth: raw,
             maximumContentWidth: KeyboardPanelRules.wideMaximumContentWidth(
-                rawWidth: raw, mainSplit: mainSplit, layout: layout),
-            dock: dock)
-        let contentWidth = plan.active ? plan.contentWidth : raw
-        content(KeyboardPreviewWidths(content: max(0, contentWidth - 8), mainSplit: max(0, raw - 8)))
-            .frame(width: CGFloat(contentWidth))
-            .frame(maxWidth: .infinity, alignment: alignment)
-            .opacity(width > 0 ? 1 : 0)
-            .background {
-                GeometryReader { proxy in
-                    Color.clear
-                        .onAppear { width = proxy.size.width }
-                        .onChange(of: proxy.size.width) { _, newWidth in width = newWidth }
-                }
+                rawWidth: raw - 2 * margin, mainSplit: mainSplit, layout: layout, splitAbove: splitAbove),
+            dock: dock, sideMargin: margin)
+        let contentWidth = plan.contentWidth
+        content(
+            KeyboardPreviewWidths(
+                content: max(0, contentWidth - 8), mainSplit: max(0, raw - 2 * margin - 8), splitAbove: splitAbove)
+        )
+        .frame(width: CGFloat(contentWidth))
+        .padding(.leading, margin > 0 ? CGFloat(plan.leadingInset) : 0)
+        .frame(maxWidth: .infinity, alignment: margin > 0 ? .leading : alignment)
+        .opacity(width > 0 ? 1 : 0)
+        .background {
+            GeometryReader { proxy in
+                Color.clear
+                    .onAppear { width = proxy.size.width }
+                    .onChange(of: proxy.size.width) { _, newWidth in width = newWidth }
             }
+        }
     }
 
     private var alignment: Alignment {
@@ -221,7 +231,10 @@ public struct KeyboardPagePreviewView: View {
         let resolution = resolution
         let appearance = KeyboardAppearance(skin: skin, dark: previewDark ?? (colorScheme == .dark))
         let layout = mainLayout ?? (isPhoneLayout ? .phone9 : nil)
-        KeyboardPreviewFrame(layout: layout, mainSplit: inheritedSplit, dock: preferences.dock(for: layout)) {
+        KeyboardPreviewFrame(
+            layout: layout, mainSplit: inheritedSplit, dock: preferences.dock(for: layout),
+            widthSettings: preferences.widthSettings
+        ) {
             widths in
             content(resolution, widths: widths)
                 .padding(
@@ -289,7 +302,8 @@ public struct KeyboardPagePreviewView: View {
         KeyboardPanelRules.activeSplit(
             main: inheritedSplit, mainWidth: widths.mainSplit, showsMainLetters: false,
             pageSplit: split, contentWidth: widths.content,
-            showsEnglishLetters: usesHandCuts && page.kind == .english, authoredPage: authored)
+            showsEnglishLetters: usesHandCuts && page.kind == .english, authoredPage: authored,
+            splitAbove: widths.splitAbove)
     }
 
     private var mainAreaHeight: CGFloat {
@@ -360,7 +374,8 @@ public struct KeyboardPagePreviewView: View {
         if let open = categories.first(where: { $0.id == openCategoryID }) ?? categories.first {
             KeyboardCategoryGrid(
                 keys: open.keys, columns: open.columns,
-                split: ActiveLayoutSplit.resolving(nested: open.split, parent: split, width: widths.content)
+                split: ActiveLayoutSplit.resolving(
+                    nested: open.split, parent: split, width: widths.content, automaticAbove: widths.splitAbove)
             ) { key, index in
                 chromeCategoryKey(page, open: open, key: key, index: index)
             }
@@ -508,7 +523,8 @@ public struct KeyboardPagePreviewView: View {
     ) -> some View {
         let categories = categories(page)
         if let open = categories.first(where: { $0.id == openCategoryID }) ?? categories.first {
-            let categorySplit = ActiveLayoutSplit.resolving(nested: open.split, parent: split, width: widths.content)
+            let categorySplit = ActiveLayoutSplit.resolving(
+                nested: open.split, parent: split, width: widths.content, automaticAbove: widths.splitAbove)
             // A phone main layout is drawn as the bundled 9-key; an imported keypad's own rails
             // are not known to a page preview.
             let fixedRail = KeyboardPanelRules.usesFixedEditingRail(

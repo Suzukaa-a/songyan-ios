@@ -163,6 +163,8 @@ public struct KeyboardPanelView: View {
     @State var widthBox = KeyboardPanelWidthBox()
     /// Per-physical wide-screen dock, read at presentation/layout changes (never per key).
     @State private var contentDock: KeyboardContentDock
+    /// The user's split width and side margin, re-read at presentation like the dock (never per key).
+    @State var widthSettings = KeyboardWidthPreferences.current
 
     /// Observation coordinator for definition changes (pure value): distinguishes "the panel's own explicit selection/reconciliation" from
     /// "external registry content replacement". The explicit path registers the expected (from, to) before acting; the observation callback
@@ -230,10 +232,15 @@ public struct KeyboardPanelView: View {
         GeometryReader { geometry in
             let rawWidth = geometry.size.width
             let isWideSurface = rawWidth > KeyboardSurfaceWidth.phoneMaximum
+            // The margin comes off the surface first: the split decision and the cap see the width
+            // the keys really get. The panel itself (candidate bar included) keeps the margins' width.
+            let sideMargin = KeyboardWideContentPolicy.sideMargin(
+                panelWidth: Double(rawWidth), requested: Double(widthSettings.sideMargin))
+            let keyAreaSurface = Double(rawWidth) - 2 * sideMargin
             let widePlan = KeyboardWideContentPolicy.plan(
                 panelWidth: Double(rawWidth),
-                maximumContentWidth: wideMaximumContentWidth(rawWidth: Double(rawWidth)),
-                dock: contentDock)
+                maximumContentWidth: wideMaximumContentWidth(rawWidth: keyAreaSurface),
+                dock: contentDock, sideMargin: sideMargin)
             // A definition without a candidate area has no header to host the dismiss entry.
             // Wide-only fallback: reserve a real 44pt right rail outside the keys. Standard
             // pages with a header keep their full content width and use the header entry.
@@ -241,14 +248,17 @@ public struct KeyboardPanelView: View {
                 isWideSurface && layoutPlan.headerHeight == 0 && dismissKeyboard != nil
             let availableWidth =
                 needsHeaderlessToolRail ? max(0, rawWidth - 44) : rawWidth
-            let baseContentWidth = widePlan.active ? CGFloat(widePlan.contentWidth) : availableWidth
+            let baseContentWidth =
+                widePlan.active ? CGFloat(widePlan.contentWidth + 2 * sideMargin) : availableWidth
             let contentWidth =
                 needsHeaderlessToolRail ? min(baseContentWidth, availableWidth) : baseContentWidth
             let contentIsDocked = widePlan.active || needsHeaderlessToolRail
             let wideSignature = WideContentSignature(
                 isWideSurface: isWideSurface, active: contentIsDocked,
                 headerlessToolRail: needsHeaderlessToolRail, dock: contentDock)
-            let _ = widthBox.record(contentWidth: contentWidth - 8, mainSplitWidth: rawWidth - 8)
+            let _ = widthBox.record(
+                contentWidth: contentWidth - 8 - CGFloat(2 * sideMargin),
+                mainSplitWidth: CGFloat(keyAreaSurface) - 8, sideMargin: CGFloat(sideMargin))
             panelBody(isWide: isWideSurface)
                 .frame(width: contentWidth, alignment: .topLeading)
                 .disabled(showsCoveringPanel)
@@ -296,7 +306,9 @@ public struct KeyboardPanelView: View {
                 .background(appearance.panelBackground.ignoresSafeArea(edges: .bottom))
                 // The blank side margins of a docked keyboard are not part of the key
                 // surface: touches there must not route to an edge key.
-                .background { WideContentFrameReporter(active: contentIsDocked) }
+                .background {
+                    WideContentFrameReporter(active: contentIsDocked).padding(.horizontal, CGFloat(sideMargin))
+                }
                 .onChange(of: wideSignature) { _, _ in
                     // Docking moves every key under any retained touch; a plain width change
                     // only needs the route cleared, which the host does on every resize.
@@ -317,7 +329,8 @@ public struct KeyboardPanelView: View {
     /// change this host-level width.
     private func wideMaximumContentWidth(rawWidth: Double) -> Double? {
         KeyboardPanelRules.wideMaximumContentWidth(
-            rawWidth: rawWidth, mainSplit: activeDefinition?.split, layout: controller.layout)
+            rawWidth: rawWidth, mainSplit: activeDefinition?.split, layout: controller.layout,
+            splitAbove: Double(widthSettings.splitWidth))
     }
 
     private var wideDockAlignment: Alignment {
@@ -818,7 +831,7 @@ public struct KeyboardPanelView: View {
             // Under the default skin the key area is transparent (system keyboard surface shows through); iOS does not deliver touches in fully transparent
             // areas to a keyboard extension, so taps in the gaps between keys would be lost entirely. Lay down an invisible hit surface, and the root input view
             // (FeedbackInputView.hitTest) hands gap touches to the adjacent key. It covers the key area only, not the root view.
-            .padding(.horizontal, splitEdgeInset)
+            .padding(.horizontal, splitEdgeInset + widthBox.sideMargin)
             .id(keyAreaGeneration)
             .background(Color.black.opacity(0.001))
             .opacity(switchFade)
@@ -896,6 +909,9 @@ public struct KeyboardPanelView: View {
                 refreshContentDock()
             }
             .onReceive(NotificationCenter.default.publisher(for: .keyboardContentDockChanged)) { _ in
+                refreshContentDock()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .keyboardWidthChanged)) { _ in
                 refreshContentDock()
             }
     }
@@ -995,6 +1011,13 @@ public struct KeyboardPanelView: View {
         let dock = KeyboardContentDockPreferences.dock(for: controller.layout)
         ContentDockCache.docks[controller.layout] = dock
         if contentDock != dock { contentDock = dock }
+        let widths = KeyboardWidthPreferences.refresh()
+        if widthSettings != widths {
+            widthSettings = widths
+            // Every key moves under any retained touch.
+            keyAreaGeneration &+= 1
+            KeyboardRoutedTouch.clear()
+        }
     }
 
     private func observeFeedbackLifecycle<Content: View>(_ content: Content) -> some View {
@@ -1076,14 +1099,18 @@ private struct WideContentFrameReporter: UIViewRepresentable {
 final class KeyboardPanelWidthBox {
     private(set) var contentWidth: Double = 0
     private(set) var mainSplitWidth: Double = 0
+    /// The blank margin on each side of the key area, already part of neither width above.
+    private(set) var sideMargin: CGFloat = 0
 
     @discardableResult
-    func record(contentWidth: CGFloat, mainSplitWidth: CGFloat) -> Bool {
+    func record(contentWidth: CGFloat, mainSplitWidth: CGFloat, sideMargin: CGFloat = 0) -> Bool {
         let next = Double(contentWidth)
         let nextMainSplit = Double(mainSplitWidth)
-        guard next != self.contentWidth || nextMainSplit != self.mainSplitWidth else { return false }
+        guard next != self.contentWidth || nextMainSplit != self.mainSplitWidth || sideMargin != self.sideMargin
+        else { return false }
         self.contentWidth = next
         self.mainSplitWidth = nextMainSplit
+        self.sideMargin = sideMargin
         return true
     }
 }

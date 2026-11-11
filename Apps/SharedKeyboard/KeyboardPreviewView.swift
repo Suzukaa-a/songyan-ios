@@ -53,8 +53,10 @@ public struct KeyboardPreviewView: View {
                 }
                 .pickerStyle(.segmented)
             }
-            KeyboardPreviewFrame(layout: layoutKind, mainSplit: layout.split, dock: preferences.dock(for: layoutKind)) {
-                widths in
+            KeyboardPreviewFrame(
+                layout: layoutKind, mainSplit: layout.split, dock: preferences.dock(for: layoutKind),
+                widthSettings: preferences.widthSettings
+            ) { widths in
                 KeyboardMainLayoutPreview(
                     definition: layout, facts: facts,
                     language: editing ? .chinese : language, sample: editing ? .idle : sample,
@@ -141,7 +143,8 @@ private struct KeyboardMainLayoutPreview: View {
         KeyboardPanelRules.activeSplit(
             main: facts.handSplit ?? definition.split, mainWidth: widths.mainSplit,
             showsMainLetters: usesConfiguredLayout, pageSplit: nil, contentWidth: widths.content,
-            showsEnglishLetters: page == .letters && isEnglishMode && facts.handSplit != nil)
+            showsEnglishLetters: page == .letters && isEnglishMode && facts.handSplit != nil,
+            splitAbove: widths.splitAbove)
     }
     private var usesConfiguredLayout: Bool { page == .letters && !isEnglishMode }
     private var usesStandardT9: Bool { renderer == .phonePad }

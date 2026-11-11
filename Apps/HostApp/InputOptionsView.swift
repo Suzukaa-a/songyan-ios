@@ -68,6 +68,10 @@ struct InputOptionsView: View {
     @AppStorage(KeyboardKana12Preferences.flickOnlyKey, store: KeyboardKana12Preferences.defaults)
     private var kanaFlickOnly = KeyboardKana12Preferences.defaultFlickOnly
     @State private var wideDockValues: [String: KeyboardContentDock] = [:]
+    /// The split width and side margin being dragged; stored once the finger lifts, so the panel
+    /// does not rebuild its keys on every tick.
+    @State private var splitWidthDraft = Double(KeyboardWidthSettings.defaultSplitWidth)
+    @State private var sideMarginDraft = 0.0
     @StateObject private var typoCorrection = TypoCorrectionCenter.shared
     @StateObject private var prediction = PredictionCenter.shared
     @State private var importingPrediction = false
@@ -94,6 +98,7 @@ struct InputOptionsView: View {
             keyboardHeightSection
             readingPlacementSection
             wideDockSection
+            keyboardWidthSection
             if UIDevice.current.userInterfaceIdiom == .phone { oneHandSection }
             Section {
                 NavigationLink(String(localized: "双拼提示")) { ShuangpinHintManagementView() }
@@ -111,6 +116,7 @@ struct InputOptionsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task {
             reloadWideDocks()
+            reloadWidthSettings()
             await reload()
             await typoCorrection.refresh()
             await prediction.refresh()
@@ -236,6 +242,78 @@ struct InputOptionsView: View {
         } footer: {
             Text("下次打开键盘时生效。")
         }
+    }
+
+    private var keyboardWidthSection: some View {
+        Section {
+            widthRow(
+                title: String(localized: "自动拆分宽度"),
+                subtitle: String(localized: "键盘宽于 \(Int(splitWidthDraft)) pt 时拆分"),
+                value: $splitWidthDraft,
+                range: Double(
+                    KeyboardWidthSettings.splitWidthRange.lowerBound)...Double(
+                        KeyboardWidthSettings.splitWidthRange.upperBound),
+                step: Double(KeyboardWidthSettings.splitWidthStep),
+                isDefault: Int(splitWidthDraft) == KeyboardWidthSettings.defaultSplitWidth,
+                identifier: "inputOptions.splitWidth",
+                commit: { KeyboardWidthPreferences.set(splitWidth: Int($0)) },
+                reset: {
+                    splitWidthDraft = Double(KeyboardWidthSettings.defaultSplitWidth)
+                    KeyboardWidthPreferences.set(splitWidth: KeyboardWidthSettings.defaultSplitWidth)
+                })
+            widthRow(
+                title: String(localized: "两侧留白"),
+                subtitle: sideMarginDraft == 0
+                    ? String(localized: "无") : "\(Int(sideMarginDraft)) pt",
+                value: $sideMarginDraft,
+                range: Double(
+                    KeyboardWidthSettings.sideMarginRange.lowerBound)...Double(
+                        KeyboardWidthSettings.sideMarginRange.upperBound),
+                step: Double(KeyboardWidthSettings.sideMarginStep),
+                isDefault: sideMarginDraft == 0,
+                identifier: "inputOptions.sideMargin",
+                commit: { KeyboardWidthPreferences.set(sideMargin: Int($0)) },
+                reset: {
+                    sideMarginDraft = 0
+                    KeyboardWidthPreferences.set(sideMargin: 0)
+                })
+        } footer: {
+            Text("下次打开键盘时生效。")
+        }
+    }
+
+    private func widthRow(
+        title: String, subtitle: String, value: Binding<Double>, range: ClosedRange<Double>, step: Double,
+        isDefault: Bool, identifier: String, commit: @escaping (Double) -> Void, reset: @escaping () -> Void
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                    Text(subtitle)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                if !isDefault {
+                    Button(String(localized: "恢复默认"), action: reset)
+                        .font(.footnote)
+                        .buttonStyle(.borderless)
+                }
+            }
+            Slider(value: value, in: range, step: step) { editing in
+                if !editing { commit(value.wrappedValue) }
+            }
+            .accessibilityLabel(title)
+            .accessibilityValue(subtitle)
+            .accessibilityIdentifier(identifier)
+        }
+    }
+
+    private func reloadWidthSettings() {
+        let stored = KeyboardWidthPreferences.read(from: KeyboardWidthPreferences.defaults)
+        splitWidthDraft = Double(stored.splitWidth)
+        sideMarginDraft = Double(stored.sideMargin)
     }
 
     private func reloadWideDocks() {

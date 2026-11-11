@@ -25,6 +25,57 @@ public enum KeyboardHeightPreferences {
     }
 }
 
+/// Where an automatic split starts and the blank margin beside the key area. Shared by the app
+/// and the keyboard extension; the keyboard reads the in-process copy while it draws and re-reads
+/// the stored values at presentation (`refresh`), never per key.
+public enum KeyboardWidthPreferences {
+    public static let splitWidthKey = "keyboard.splitWidth.v1"
+    public static let sideMarginKey = "keyboard.sideMargin.v1"
+    public static var defaults: UserDefaults { KeyboardRecipeStore.sharedDefaults() ?? .standard }
+
+    private static let cache = OSAllocatedUnfairLock<KeyboardWidthSettings?>(uncheckedState: nil)
+
+    /// The stored choices; a missing or non-numeric value is the default.
+    public static func read(from defaults: UserDefaults) -> KeyboardWidthSettings {
+        func stored(_ key: String) -> Int? {
+            (SharedPreferences.object(forKey: key, in: defaults) as? NSNumber)?.intValue
+        }
+        return KeyboardWidthSettings(
+            splitWidth: stored(splitWidthKey) ?? KeyboardWidthSettings.defaultSplitWidth,
+            sideMargin: stored(sideMarginKey) ?? 0)
+    }
+
+    public static var current: KeyboardWidthSettings {
+        cache.withLockUnchecked { state in
+            if let state { return state }
+            let loaded = read(from: defaults)
+            state = loaded
+            return loaded
+        }
+    }
+
+    @discardableResult
+    public static func refresh() -> KeyboardWidthSettings {
+        let loaded = read(from: defaults)
+        cache.withLockUnchecked { $0 = loaded }
+        return loaded
+    }
+
+    public static func set(splitWidth: Int) {
+        write(KeyboardWidthSettings.clampedSplitWidth(splitWidth), key: splitWidthKey)
+    }
+
+    public static func set(sideMargin: Int) {
+        write(KeyboardWidthSettings.clampedSideMargin(sideMargin), key: sideMarginKey)
+    }
+
+    private static func write(_ value: Int, key: String) {
+        SharedPreferences.set(value, forKey: key, in: defaults)
+        refresh()
+        NotificationCenter.default.post(name: .keyboardWidthChanged, object: nil)
+    }
+}
+
 /// Which idle-toolbar buttons show and in what order. Nothing is stored for the default layout.
 /// Read at each presentation like the on/off switch, never per key.
 public enum KeyboardIdleToolbarLayoutPreferences {
@@ -182,6 +233,9 @@ extension Notification.Name {
     /// A wide-screen dock preference changed in the host app while its own panel is visible.
     /// The extension cannot receive this cross-process write; it re-reads on the next presentation.
     static let keyboardContentDockChanged = Notification.Name("keyboard.wideContentDock.changed")
+
+    /// The split width or side margin changed in the host app while its own panel is visible.
+    static let keyboardWidthChanged = Notification.Name("keyboard.width.changed")
 }
 
 /// The selected definition's facts one presentation's shell height is budgeted for.

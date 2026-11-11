@@ -12,12 +12,13 @@ enum KeyboardPanelRules {
     static func activeSplit(
         main: LayoutSplitConfiguration?, mainWidth: Double, showsMainLetters: Bool,
         pageSplit: @autoclosure () -> LayoutSplitConfiguration?, contentWidth: Double,
-        showsEnglishLetters: Bool = false, authoredPage: KeyboardPageDefinition? = nil
+        showsEnglishLetters: Bool = false, authoredPage: KeyboardPageDefinition? = nil,
+        splitAbove: Double = KeyboardSurfaceWidth.phoneMaximum
     ) -> ActiveLayoutSplit? {
         ActiveLayoutSplit.drawn(
             main: main, mainWidth: mainWidth, showsMainLetters: showsMainLetters,
             showsEnglishLetters: showsEnglishLetters, authoredPage: authoredPage,
-            pageSplit: pageSplit(), contentWidth: contentWidth)
+            pageSplit: pageSplit(), contentWidth: contentWidth, automaticAbove: splitAbove)
     }
 
     /// Extra room at both edges of a split key area, so the halves do not run into the screen
@@ -27,12 +28,14 @@ enum KeyboardPanelRules {
     }
 
     /// The width cap a physical layout uses on a wide surface. A main split that really splits at the
-    /// pre-rail width keeps the full surface instead of silently cancelling the opt-in.
+    /// pre-rail width keeps the full surface instead of silently cancelling the opt-in. `rawWidth` is
+    /// the key area's: the surface after the user's side margins.
     static func wideMaximumContentWidth(
-        rawWidth: Double, mainSplit: @autoclosure () -> LayoutSplitConfiguration?, layout: KeyboardLayoutKind?
+        rawWidth: Double, mainSplit: @autoclosure () -> LayoutSplitConfiguration?, layout: KeyboardLayoutKind?,
+        splitAbove: Double = KeyboardSurfaceWidth.phoneMaximum
     ) -> Double? {
         guard rawWidth > KeyboardSurfaceWidth.phoneMaximum else { return nil }
-        if let split = mainSplit(), split.isActive(width: rawWidth - 8) { return nil }
+        if let split = mainSplit(), split.isActive(width: rawWidth - 8, automaticAbove: splitAbove) { return nil }
         switch layout {
         case .phone9: return KeyboardWideContentPolicy.phoneNineMaximumContentWidth
         case .merged14, .merged18: return KeyboardWideContentPolicy.mergedMaximumContentWidth

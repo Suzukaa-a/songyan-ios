@@ -109,6 +109,34 @@ final class LayoutSplitConfigurationTests: XCTestCase {
             forced?.gap(width: 466, keyCount: 10) ?? 0, 466 * ActiveLayoutSplit.automaticGapShare, accuracy: 0.001)
     }
 
+    func testTheAutomaticThresholdIsTheUsersAndEqualWidthDoesNotSplit() throws {
+        let automatic = LayoutSplitConfiguration()
+        XCTAssertFalse(automatic.isActive(width: 400, automaticAbove: 400))
+        XCTAssertTrue(automatic.isActive(width: 401, automaticAbove: 400))
+        XCTAssertTrue(automatic.isActive(width: 601, automaticAbove: 400))
+        XCTAssertFalse(automatic.isActive(width: 1200, automaticAbove: 1200))
+        XCTAssertTrue(automatic.isActive(width: 1200.5, automaticAbove: 1200))
+        XCTAssertNil(automatic.resolved(forWidth: 700, automaticAbove: 700))
+        XCTAssertNotNil(automatic.resolved(forWidth: 701, automaticAbove: 700))
+        // Without a choice the phone limit still decides.
+        XCTAssertFalse(automatic.isActive(width: KeyboardSurfaceWidth.phoneMaximum))
+        XCTAssertTrue(automatic.isActive(width: KeyboardSurfaceWidth.phoneMaximum + 1))
+        // The threshold concerns the automatic rule only.
+        XCTAssertTrue(LayoutSplitConfiguration(activation: .always).isActive(width: 100, automaticAbove: 1200))
+        XCTAssertFalse(LayoutSplitConfiguration(activation: .off).isActive(width: 2000, automaticAbove: 400))
+    }
+
+    func testTheThresholdReachesNestedAndDrawnSplits() throws {
+        let page = LayoutSplitConfiguration()
+        XCTAssertNil(ActiveLayoutSplit.resolving(nested: page, parent: nil, width: 500))
+        XCTAssertNotNil(ActiveLayoutSplit.resolving(nested: page, parent: nil, width: 500, automaticAbove: 400))
+        XCTAssertNotNil(
+            ActiveLayoutSplit.drawn(
+                main: LayoutSplitConfiguration(), mainWidth: 450, showsMainLetters: true,
+                showsEnglishLetters: false, authoredPage: nil, pageSplit: nil, contentWidth: 450,
+                automaticAbove: 400))
+    }
+
     func testActivationIsDecidedOnceOnTheWholeKeyboard() throws {
         let automatic = LayoutSplitConfiguration(rowBreaks: [5])
         for width in [320.0, 466, KeyboardSurfaceWidth.phoneMaximum] {

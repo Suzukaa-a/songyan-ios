@@ -73,8 +73,70 @@ public enum KeyboardWideContentPolicy {
             leadingInset: leading, trailingInset: trailing)
     }
 
+    /// The key area never gets narrower than this, whatever side margin is chosen.
+    public static let minimumKeyAreaWidth: Double = 280
+
+    /// The blank margin kept on each side of a `panelWidth` wide surface for a `requested` choice:
+    /// cut so the key area keeps `minimumKeyAreaWidth`, and zero on a surface already that narrow.
+    public static func sideMargin(panelWidth: Double, requested: Double) -> Double {
+        guard panelWidth.isFinite, requested.isFinite else { return 0 }
+        return max(0, min(requested, (panelWidth - minimumKeyAreaWidth) / 2))
+    }
+
+    /// The plan for a surface with a blank `sideMargin` on each side. The cap and dock work on the
+    /// width left after the margins, so a margin can bring a surface under a threshold; the insets
+    /// then include the margin and the content width never exceeds what the margins leave.
+    public static func plan(
+        panelWidth: Double,
+        maximumContentWidth: Double?,
+        dock: KeyboardContentDock,
+        sideMargin: Double
+    ) -> KeyboardWideContentPlan {
+        let width = normalized(panelWidth)
+        let margin = min(max(0, sideMargin.isFinite ? sideMargin : 0), width / 2)
+        let inner = plan(panelWidth: width - 2 * margin, maximumContentWidth: maximumContentWidth, dock: dock)
+        guard margin > 0 else { return inner }
+        return KeyboardWideContentPlan(
+            active: true, contentWidth: inner.contentWidth,
+            leadingInset: inner.leadingInset + margin, trailingInset: inner.trailingInset + margin)
+    }
+
     /// Real UI widths may be negative or non-finite right after a resize; normalize exactly once.
     static func normalized(_ width: Double) -> Double {
         width.isFinite ? max(0, width) : 0
+    }
+}
+
+/// The user's two width choices, in points: where an automatic split starts and the blank margin
+/// beside the key area. Device settings, not layout content, so a layout file never carries them.
+public struct KeyboardWidthSettings: Equatable, Sendable {
+    public static let splitWidthRange = 400...1200
+    public static let splitWidthStep = 20
+    /// The default is the phone-sized surface limit, so an untouched setting splits exactly where
+    /// it always did.
+    public static let defaultSplitWidth = Int(KeyboardSurfaceWidth.phoneMaximum)
+    public static let sideMarginRange = 0...96
+    public static let sideMarginStep = 4
+
+    /// A key area wider than this splits (when the layout's split is automatic).
+    public let splitWidth: Int
+    public let sideMargin: Int
+
+    public static let standard = KeyboardWidthSettings()
+
+    /// Out-of-range or off-step values snap down into the offered choices.
+    public init(splitWidth: Int = defaultSplitWidth, sideMargin: Int = 0) {
+        self.splitWidth = Self.clampedSplitWidth(splitWidth)
+        self.sideMargin = Self.clampedSideMargin(sideMargin)
+    }
+
+    public static func clampedSplitWidth(_ value: Int) -> Int {
+        let low = splitWidthRange.lowerBound
+        let clamped = min(max(value, low), splitWidthRange.upperBound)
+        return (clamped - low) / splitWidthStep * splitWidthStep + low
+    }
+
+    public static func clampedSideMargin(_ value: Int) -> Int {
+        min(max(value, sideMarginRange.lowerBound), sideMarginRange.upperBound) / sideMarginStep * sideMarginStep
     }
 }

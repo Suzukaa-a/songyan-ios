@@ -219,7 +219,7 @@ extension KeyboardPanelView {
             pageSplit: pageDefinition?.split, contentWidth: widthBox.contentWidth,
             showsEnglishLetters: page == .letters && controller.isEnglishMode
                 && definitionFacts.handSplit != nil,
-            authoredPage: pageDefinition)
+            authoredPage: pageDefinition, splitAbove: Double(widthSettings.splitWidth))
     }
 
     /// Extra room at both edges of a split key area, on top of the panel's own 4pt, so the halves do
@@ -243,7 +243,9 @@ extension KeyboardPanelView {
     /// A category grid carries its own split; settle it against the same real keyboard width so
     /// the inner grid and the outer page agree on whether the surface is split.
     func resolvedCategorySplit(_ categorySplit: LayoutSplitConfiguration?) -> ActiveLayoutSplit? {
-        ActiveLayoutSplit.resolving(nested: categorySplit, parent: activeSplit, width: widthBox.contentWidth)
+        ActiveLayoutSplit.resolving(
+            nested: categorySplit, parent: activeSplit, width: widthBox.contentWidth,
+            automaticAbove: Double(widthSettings.splitWidth))
     }
 
     func authoredPage(_ definition: KeyboardPageDefinition) -> some View {

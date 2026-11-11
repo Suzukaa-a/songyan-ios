@@ -121,20 +121,24 @@ public struct LayoutSplitConfiguration: Codable, Equatable, Sendable {
         case halfEmpty
     }
 
-    /// Whether this split really shows at `width`, measured on the whole keyboard.
-    public func isActive(width: Double) -> Bool {
+    /// Whether this split really shows at `width`, measured on the whole keyboard. `.automatic`
+    /// splits above `automaticAbove`, which the user's device setting can move without touching the
+    /// layout file; `.always` and `.off` ignore it.
+    public func isActive(width: Double, automaticAbove: Double = KeyboardSurfaceWidth.phoneMaximum) -> Bool {
         switch activation {
         case .off: return false
         case .always: return true
-        case .automatic: return width.isFinite && width > KeyboardSurfaceWidth.phoneMaximum
+        case .automatic: return width.isFinite && width > automaticAbove
         }
     }
 
     /// The split to render at this width, or nil when rows stay whole. Renderers and previews
     /// resolve once against the whole keyboard, so an inner key area narrowed by rails can never
     /// switch the split off a second time.
-    public func resolved(forWidth width: Double) -> ActiveLayoutSplit? {
-        guard isActive(width: width) else { return nil }
+    public func resolved(
+        forWidth width: Double, automaticAbove: Double = KeyboardSurfaceWidth.phoneMaximum
+    ) -> ActiveLayoutSplit? {
+        guard isActive(width: width, automaticAbove: automaticAbove) else { return nil }
         // Explicit halves carry their own cuts, so stale row breaks never reach a renderer.
         return ActiveLayoutSplit(
             rowBreaks: halves == nil ? rowBreaks : [], gapFraction: gapFraction, automaticGap: automaticGap,
@@ -240,9 +244,10 @@ public struct ActiveLayoutSplit: Equatable, Sendable {
     /// A nested area (a category grid) inside an already-resolved page: its own setting wins and is
     /// resolved at `width`; otherwise it inherits the page's active spacing with its own row cuts.
     public static func resolving(
-        nested: LayoutSplitConfiguration?, parent: ActiveLayoutSplit?, width: Double
+        nested: LayoutSplitConfiguration?, parent: ActiveLayoutSplit?, width: Double,
+        automaticAbove: Double = KeyboardSurfaceWidth.phoneMaximum
     ) -> ActiveLayoutSplit? {
-        if let nested { return nested.resolved(forWidth: width) }
+        if let nested { return nested.resolved(forWidth: width, automaticAbove: automaticAbove) }
         return parent?.withoutRowBreaks
     }
 
@@ -267,14 +272,15 @@ public struct ActiveLayoutSplit: Equatable, Sendable {
     public static func drawn(
         main: LayoutSplitConfiguration?, mainWidth: Double, showsMainLetters: Bool,
         showsEnglishLetters: Bool, authoredPage: KeyboardPageDefinition?,
-        pageSplit: @autoclosure () -> LayoutSplitConfiguration?, contentWidth: Double
+        pageSplit: @autoclosure () -> LayoutSplitConfiguration?, contentWidth: Double,
+        automaticAbove: Double = KeyboardSurfaceWidth.phoneMaximum
     ) -> ActiveLayoutSplit? {
-        let resolved = main?.resolved(forWidth: mainWidth)
+        let resolved = main?.resolved(forWidth: mainWidth, automaticAbove: automaticAbove)
         if showsMainLetters { return resolved }
         if showsEnglishLetters, !Self.drawsItsOwnRows(authoredPage), let resolved, pageSplit() == nil {
             return resolved.forStandardLetterRows
         }
-        return resolving(nested: pageSplit(), parent: resolved, width: contentWidth)
+        return resolving(nested: pageSplit(), parent: resolved, width: contentWidth, automaticAbove: automaticAbove)
     }
 
     /// Whether a page's own rows replace the standard English letters. The preset English page and
