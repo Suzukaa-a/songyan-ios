@@ -198,8 +198,11 @@ enum KeyboardPanelRules {
             letter
             ? (alternate ? .letterVariant(value) : .code(value.lowercased()))
             : key.action.keyAction(usesASCIIPunctuation: usesASCIIPunctuation)
+        // English letters follow Shift as before; other pages follow it for the code keys Shift
+        // capitalises (see `KeyCapShiftTitle`). A custom title keeps its label.
+        let followsShift = letter || (key.titleMode != .custom && KeyCapShiftTitle.followsShift(action))
         return KeyCap(
-            id: id, title: letter && shiftActive() ? key.label.uppercased() : key.label,
+            id: id, title: followsShift && shiftActive() ? key.label.uppercased() : key.label,
             subtitle: key.secondaryLabel ?? key.longPress?.first?.label, action: action)
     }
 }

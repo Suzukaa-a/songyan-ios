@@ -287,7 +287,8 @@ extension KeyboardPanelView {
                 cap: KeyCap(
                     id: primaryID,
                     title: customTitle
-                        ?? key.literalFaceTitle(usesASCIIPunctuation: effectiveUsesASCIIPunctuation),
+                        ?? shiftedTitle(
+                            key.literalFaceTitle(usesASCIIPunctuation: effectiveUsesASCIIPunctuation), key: key),
                     subtitle: key.secondaryLabel,
                     action: keyAction(key.action)),
                 alternates: optionCaps, longPressDelay: longPressDelay,
@@ -433,7 +434,8 @@ extension KeyboardPanelView {
                     ? firstKeyTitle
                     : (bundledMergedFace
                         ? key.label.lowercased()
-                        : key.literalFaceTitle(usesASCIIPunctuation: effectiveUsesASCIIPunctuation)),
+                        : shiftedTitle(
+                            key.literalFaceTitle(usesASCIIPunctuation: effectiveUsesASCIIPunctuation), key: key)),
                 subtitle: subtitle, action: keyAction(isT9FirstKey ? firstKeyAction : key.action))
             // A sideways swipe types either exact letter, when the schema accepts both.
             let letterSwipe =
@@ -563,6 +565,14 @@ extension KeyboardPanelView {
                 usesStandardT9 && key.action == LayoutAction(.code, value: "'") && !controller.snapshot.isComposing
                     ? 0.45 : 1)
         }
+    }
+
+    /// A code key Shift capitalises draws its title in capitals while Shift is on, in any input mode.
+    /// The tap action stays the lowercase code; custom titles are handled by the callers.
+    private func shiftedTitle(_ title: String, key: LayoutKey) -> String {
+        KeyCapShiftTitle.title(
+            title, action: keyAction(key.action), isCustom: key.titleMode == .custom,
+            shiftActive: controller.shiftState.isActive)
     }
 
     private var knownMainShellPreset: LayoutDefinition? {

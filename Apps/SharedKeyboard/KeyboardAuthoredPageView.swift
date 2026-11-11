@@ -175,9 +175,13 @@ struct KeyboardAuthoredPageKey: View {
     /// On an English page a single ASCII letter is a real letter key: its title follows Shift and
     /// its action is an engine code, so caps-lock, word and double-space logic keep working.
     private var displayTitle: String {
-        guard state.kind == .english, key.titleMode != .custom, key.action.singleASCIILetter != nil
-        else { return state.title(for: key) }
-        return state.shiftActive ? key.label.uppercased() : key.label
+        if state.kind == .english, key.titleMode != .custom, key.action.singleASCIILetter != nil {
+            return state.shiftActive ? key.label.uppercased() : key.label
+        }
+        // Other pages: a code key Shift capitalises shows the capital too.
+        return KeyCapShiftTitle.title(
+            state.title(for: key), action: faceAction(key.action, alternate: false),
+            isCustom: key.titleMode == .custom, shiftActive: state.shiftActive)
     }
 
     /// A keypad page keeps the phone key faces: digits use the pad's larger glyph, rails use the
