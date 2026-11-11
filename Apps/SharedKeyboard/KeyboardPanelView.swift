@@ -232,14 +232,14 @@ public struct KeyboardPanelView: View {
         GeometryReader { geometry in
             let rawWidth = geometry.size.width
             let isWideSurface = rawWidth > KeyboardSurfaceWidth.phoneMaximum
-            // The margin comes off the surface first: the split decision and the cap see the width
-            // the keys really get. The panel itself (candidate bar included) keeps the margins' width.
-            let sideMargin = KeyboardWideContentPolicy.sideMargin(
-                panelWidth: Double(rawWidth), requested: Double(widthSettings.sideMargin))
+            // The split is decided on the full width, so a margin never undoes it. The margin comes
+            // off the surface before the cap and dock, which see the width the keys really get.
+            // The panel itself (candidate bar included) keeps the margins' width.
+            let sideMargin = KeyboardPanelRules.sideMargin(panelWidth: Double(rawWidth), settings: widthSettings)
             let keyAreaSurface = Double(rawWidth) - 2 * sideMargin
             let widePlan = KeyboardWideContentPolicy.plan(
                 panelWidth: Double(rawWidth),
-                maximumContentWidth: wideMaximumContentWidth(rawWidth: keyAreaSurface),
+                maximumContentWidth: wideMaximumContentWidth(rawWidth: keyAreaSurface, fullWidth: Double(rawWidth)),
                 dock: contentDock, sideMargin: sideMargin)
             // A definition without a candidate area has no header to host the dismiss entry.
             // Wide-only fallback: reserve a real 44pt right rail outside the keys. Standard
@@ -258,7 +258,7 @@ public struct KeyboardPanelView: View {
                 headerlessToolRail: needsHeaderlessToolRail, dock: contentDock)
             let _ = widthBox.record(
                 contentWidth: contentWidth - 8 - CGFloat(2 * sideMargin),
-                mainSplitWidth: CGFloat(keyAreaSurface) - 8, sideMargin: CGFloat(sideMargin))
+                mainSplitWidth: rawWidth, pageSplitWidth: contentWidth - 8, sideMargin: CGFloat(sideMargin))
             panelBody(isWide: isWideSurface)
                 .frame(width: contentWidth, alignment: .topLeading)
                 .disabled(showsCoveringPanel)
@@ -323,9 +323,9 @@ public struct KeyboardPanelView: View {
 
     /// The main split comes from the same active definition the panel draws; page splits never
     /// change this host-level width.
-    private func wideMaximumContentWidth(rawWidth: Double) -> Double? {
+    private func wideMaximumContentWidth(rawWidth: Double, fullWidth: Double) -> Double? {
         KeyboardPanelRules.wideMaximumContentWidth(
-            rawWidth: rawWidth, mainSplit: activeDefinition?.split, layout: controller.layout,
+            rawWidth: rawWidth, fullWidth: fullWidth, mainSplit: activeDefinition?.split, layout: controller.layout,
             splitAbove: Double(widthSettings.splitWidth))
     }
 
@@ -827,7 +827,7 @@ public struct KeyboardPanelView: View {
             // Under the default skin the key area is transparent (system keyboard surface shows through); iOS does not deliver touches in fully transparent
             // areas to a keyboard extension, so taps in the gaps between keys would be lost entirely. Lay down an invisible hit surface, and the root input view
             // (FeedbackInputView.hitTest) hands gap touches to the adjacent key. It covers the key area only, not the root view.
-            .padding(.horizontal, splitEdgeInset + widthBox.sideMargin)
+            .padding(.horizontal, widthBox.sideMargin)
             .id(keyAreaGeneration)
             .background(Color.black.opacity(0.001))
             .opacity(switchFade)
@@ -1094,17 +1094,26 @@ private struct WideContentFrameReporter: UIViewRepresentable {
 final class KeyboardPanelWidthBox {
     private(set) var contentWidth: Double = 0
     private(set) var mainSplitWidth: Double = 0
+    /// The width a page's own automatic split is decided on: the content width with the margins
+    /// still counted, so a margin never undoes a split.
+    private(set) var pageSplitWidth: Double = 0
     /// The blank margin on each side of the key area, already part of neither width above.
     private(set) var sideMargin: CGFloat = 0
 
     @discardableResult
-    func record(contentWidth: CGFloat, mainSplitWidth: CGFloat, sideMargin: CGFloat = 0) -> Bool {
+    func record(
+        contentWidth: CGFloat, mainSplitWidth: CGFloat, pageSplitWidth: CGFloat, sideMargin: CGFloat = 0
+    ) -> Bool {
         let next = Double(contentWidth)
         let nextMainSplit = Double(mainSplitWidth)
-        guard next != self.contentWidth || nextMainSplit != self.mainSplitWidth || sideMargin != self.sideMargin
+        let nextPageSplit = Double(pageSplitWidth)
+        guard
+            next != self.contentWidth || nextMainSplit != self.mainSplitWidth
+                || nextPageSplit != self.pageSplitWidth || sideMargin != self.sideMargin
         else { return false }
         self.contentWidth = next
         self.mainSplitWidth = nextMainSplit
+        self.pageSplitWidth = nextPageSplit
         self.sideMargin = sideMargin
         return true
     }

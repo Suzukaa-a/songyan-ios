@@ -76,11 +76,12 @@ public enum KeyboardWideContentPolicy {
     /// The key area never gets narrower than this, whatever side margin is chosen.
     public static let minimumKeyAreaWidth: Double = 280
 
-    /// The blank margin kept on each side of a `panelWidth` wide surface for a `requested` choice:
-    /// cut so the key area keeps `minimumKeyAreaWidth`, and zero on a surface already that narrow.
-    public static func sideMargin(panelWidth: Double, requested: Double) -> Double {
-        guard panelWidth.isFinite, requested.isFinite else { return 0 }
-        return max(0, min(requested, (panelWidth - minimumKeyAreaWidth) / 2))
+    /// The blank margin kept on each side of a `panelWidth` wide surface: `percent` of the full
+    /// width on a large screen (wider than `largeAbove`), cut so the key area keeps
+    /// `minimumKeyAreaWidth`, and zero on any other screen.
+    public static func sideMargin(panelWidth: Double, percent: Double, largeAbove: Double) -> Double {
+        guard panelWidth.isFinite, percent.isFinite, largeAbove.isFinite, panelWidth > largeAbove else { return 0 }
+        return max(0, min(panelWidth * percent / 100, (panelWidth - minimumKeyAreaWidth) / 2))
     }
 
     /// The plan for a surface with a blank `sideMargin` on each side. The cap and dock work on the
@@ -107,27 +108,30 @@ public enum KeyboardWideContentPolicy {
     }
 }
 
-/// The user's two width choices, in points: where an automatic split starts and the blank margin
-/// beside the key area. Device settings, not layout content, so a layout file never carries them.
+/// The user's two width choices: the width above which a screen counts as large (where an
+/// automatic split starts and the side margin applies), and that margin as a share of the width.
+/// Device settings, not layout content, so a layout file never carries them.
 public struct KeyboardWidthSettings: Equatable, Sendable {
     public static let splitWidthRange = 400...1200
     public static let splitWidthStep = 20
     /// The default is the phone-sized surface limit, so an untouched setting splits exactly where
     /// it always did.
     public static let defaultSplitWidth = Int(KeyboardSurfaceWidth.phoneMaximum)
-    public static let sideMarginRange = 0...96
-    public static let sideMarginStep = 4
+    public static let sideMarginPercentRange = 0.0...10.0
+    public static let sideMarginPercentStep = 0.5
+    public static let defaultSideMarginPercent = 2.5
 
-    /// A key area wider than this splits (when the layout's split is automatic).
+    /// A keyboard wider than this is a large screen.
     public let splitWidth: Int
-    public let sideMargin: Int
+    /// Each side's blank margin on a large screen, in percent of the keyboard's full width.
+    public let sideMarginPercent: Double
 
     public static let standard = KeyboardWidthSettings()
 
-    /// Out-of-range or off-step values snap down into the offered choices.
-    public init(splitWidth: Int = defaultSplitWidth, sideMargin: Int = 0) {
+    /// Out-of-range or off-step values snap into the offered choices.
+    public init(splitWidth: Int = defaultSplitWidth, sideMarginPercent: Double = defaultSideMarginPercent) {
         self.splitWidth = Self.clampedSplitWidth(splitWidth)
-        self.sideMargin = Self.clampedSideMargin(sideMargin)
+        self.sideMarginPercent = Self.clampedSideMarginPercent(sideMarginPercent)
     }
 
     public static func clampedSplitWidth(_ value: Int) -> Int {
@@ -136,7 +140,9 @@ public struct KeyboardWidthSettings: Equatable, Sendable {
         return (clamped - low) / splitWidthStep * splitWidthStep + low
     }
 
-    public static func clampedSideMargin(_ value: Int) -> Int {
-        min(max(value, sideMarginRange.lowerBound), sideMarginRange.upperBound) / sideMarginStep * sideMarginStep
+    public static func clampedSideMarginPercent(_ value: Double) -> Double {
+        guard value.isFinite else { return defaultSideMarginPercent }
+        let clamped = min(max(value, sideMarginPercentRange.lowerBound), sideMarginPercentRange.upperBound)
+        return (clamped / sideMarginPercentStep).rounded() * sideMarginPercentStep
     }
 }

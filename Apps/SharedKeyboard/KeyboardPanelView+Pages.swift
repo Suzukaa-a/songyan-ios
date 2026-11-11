@@ -216,16 +216,10 @@ extension KeyboardPanelView {
         KeyboardPanelRules.activeSplit(
             main: definitionFacts.handSplit ?? activeDefinition?.split, mainWidth: widthBox.mainSplitWidth,
             showsMainLetters: page == .letters && !controller.isEnglishMode,
-            pageSplit: pageDefinition?.split, contentWidth: widthBox.contentWidth,
+            pageSplit: pageDefinition?.split, contentWidth: widthBox.pageSplitWidth,
             showsEnglishLetters: page == .letters && controller.isEnglishMode
                 && definitionFacts.handSplit != nil,
             authoredPage: pageDefinition, splitAbove: Double(widthSettings.splitWidth))
-    }
-
-    /// Extra room at both edges of a split key area, on top of the panel's own 4pt, so the halves do
-    /// not run into the screen edges. Zero whenever the page is not split.
-    var splitEdgeInset: CGFloat {
-        KeyboardPanelRules.splitEdgeInset(split: activeSplit, contentWidth: widthBox.contentWidth)
     }
 
     /// Tells the user why the built-in page replaced their authored one for this visit: the page
@@ -244,7 +238,7 @@ extension KeyboardPanelView {
     /// the inner grid and the outer page agree on whether the surface is split.
     func resolvedCategorySplit(_ categorySplit: LayoutSplitConfiguration?) -> ActiveLayoutSplit? {
         ActiveLayoutSplit.resolving(
-            nested: categorySplit, parent: activeSplit, width: widthBox.contentWidth,
+            nested: categorySplit, parent: activeSplit, width: widthBox.pageSplitWidth,
             automaticAbove: Double(widthSettings.splitWidth))
     }
 

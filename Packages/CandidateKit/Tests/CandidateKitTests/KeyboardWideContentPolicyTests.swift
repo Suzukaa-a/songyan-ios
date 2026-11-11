@@ -147,15 +147,24 @@ final class KeyboardWideContentPolicyTests: XCTestCase {
 
     // MARK: Side margin and the user's widths
 
-    func testSideMarginKeepsTheKeyAreaAtLeast280() {
-        XCTAssertEqual(KeyboardWideContentPolicy.sideMargin(panelWidth: 411, requested: 96), 65.5, accuracy: 1e-9)
-        XCTAssertEqual(KeyboardWideContentPolicy.sideMargin(panelWidth: 411, requested: 24), 24)
-        // A surface already that narrow keeps its full width.
-        XCTAssertEqual(KeyboardWideContentPolicy.sideMargin(panelWidth: 270, requested: 96), 0)
-        XCTAssertEqual(KeyboardWideContentPolicy.sideMargin(panelWidth: 280, requested: 96), 0)
-        XCTAssertEqual(KeyboardWideContentPolicy.sideMargin(panelWidth: .nan, requested: 96), 0)
+    func testSideMarginIsAShareOfTheFullWidthOnLargeScreensOnly() {
+        func margin(_ width: Double, _ percent: Double, above: Double = 600) -> Double {
+            KeyboardWideContentPolicy.sideMargin(panelWidth: width, percent: percent, largeAbove: above)
+        }
+        // A phone with default settings is not a large screen: no margin.
+        XCTAssertEqual(margin(402, 2.5), 0)
+        XCTAssertEqual(margin(600, 2.5), 0, "equal to the threshold is not large")
+        XCTAssertEqual(margin(402, 2.5, above: 400), 10.05, accuracy: 1e-9)
+        XCTAssertEqual(margin(1024, 2.5), 25.6, accuracy: 1e-9)
+        XCTAssertEqual(margin(1024, 0), 0)
+        XCTAssertEqual(margin(401, 10, above: 400), 40.1, accuracy: 1e-9)
+        // The key area keeps 280: at 300 pt wide a 10 % margin would be 30, but (300 - 280) / 2 = 10 caps it.
+        XCTAssertEqual(margin(300, 10, above: 200), 10, accuracy: 1e-9)
+        XCTAssertEqual(margin(290, 10, above: 200), 5, accuracy: 1e-9)
+        XCTAssertEqual(margin(270, 10, above: 200), 0)
+        XCTAssertEqual(margin(.nan, 10, above: 200), 0)
         let plan = KeyboardWideContentPolicy.plan(
-            panelWidth: 411, maximumContentWidth: nil, dock: .center, sideMargin: 65.5)
+            panelWidth: 300, maximumContentWidth: nil, dock: .center, sideMargin: margin(300, 10, above: 200))
         XCTAssertEqual(plan.contentWidth, 280, accuracy: 1e-9)
     }
 
@@ -187,12 +196,13 @@ final class KeyboardWideContentPolicyTests: XCTestCase {
         XCTAssertEqual(withMargin.leadingInset, 20, accuracy: 1e-9)
     }
 
-    func testAMarginPreventsASplitAtTheUsersThreshold() {
+    func testTheSplitIsDecidedOnTheFullWidthSoAMarginNeverUndoesIt() {
         let split = LayoutSplitConfiguration()
-        // Default threshold: 700 splits, but with a 60 margin the key area is 580 and does not.
-        XCTAssertTrue(split.isActive(width: 700))
-        let margin = KeyboardWideContentPolicy.sideMargin(panelWidth: 700, requested: 60)
-        XCTAssertFalse(split.isActive(width: 700 - 2 * margin))
+        let margin = KeyboardWideContentPolicy.sideMargin(panelWidth: 700, percent: 10, largeAbove: 600)
+        XCTAssertEqual(margin, 70, accuracy: 1e-9)
+        XCTAssertTrue(split.isActive(width: 700, automaticAbove: 600))
+        // The key area after the margins would be under the threshold; the decision ignores that.
+        XCTAssertFalse(split.isActive(width: 700 - 2 * margin, automaticAbove: 600))
         // Equal to the user's threshold means no split; one point more splits.
         XCTAssertFalse(split.isActive(width: 580, automaticAbove: 580))
         XCTAssertTrue(split.isActive(width: 581, automaticAbove: 580))
@@ -200,13 +210,14 @@ final class KeyboardWideContentPolicyTests: XCTestCase {
 
     func testWidthSettingsSnapIntoTheOfferedChoices() {
         XCTAssertEqual(KeyboardWidthSettings.standard.splitWidth, 600)
-        XCTAssertEqual(KeyboardWidthSettings.standard.sideMargin, 0)
-        XCTAssertEqual(KeyboardWidthSettings(splitWidth: 100, sideMargin: -5).splitWidth, 400)
-        XCTAssertEqual(KeyboardWidthSettings(splitWidth: 100, sideMargin: -5).sideMargin, 0)
-        XCTAssertEqual(KeyboardWidthSettings(splitWidth: 5000, sideMargin: 500).splitWidth, 1200)
-        XCTAssertEqual(KeyboardWidthSettings(splitWidth: 5000, sideMargin: 500).sideMargin, 96)
-        XCTAssertEqual(KeyboardWidthSettings(splitWidth: 619, sideMargin: 7).splitWidth, 600)
-        XCTAssertEqual(KeyboardWidthSettings(splitWidth: 619, sideMargin: 7).sideMargin, 4)
+        XCTAssertEqual(KeyboardWidthSettings.standard.sideMarginPercent, 2.5)
+        XCTAssertEqual(KeyboardWidthSettings(splitWidth: 100, sideMarginPercent: -5).splitWidth, 400)
+        XCTAssertEqual(KeyboardWidthSettings(splitWidth: 100, sideMarginPercent: -5).sideMarginPercent, 0)
+        XCTAssertEqual(KeyboardWidthSettings(splitWidth: 5000, sideMarginPercent: 50).splitWidth, 1200)
+        XCTAssertEqual(KeyboardWidthSettings(splitWidth: 5000, sideMarginPercent: 50).sideMarginPercent, 10)
+        XCTAssertEqual(KeyboardWidthSettings(splitWidth: 619, sideMarginPercent: 3.2).splitWidth, 600)
+        XCTAssertEqual(KeyboardWidthSettings(splitWidth: 619, sideMarginPercent: 3.2).sideMarginPercent, 3)
+        XCTAssertEqual(KeyboardWidthSettings(sideMarginPercent: .nan).sideMarginPercent, 2.5)
         XCTAssertEqual(KeyboardWidthSettings.defaultSplitWidth, Int(KeyboardSurfaceWidth.phoneMaximum))
     }
 }

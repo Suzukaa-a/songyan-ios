@@ -25,24 +25,25 @@ public enum KeyboardHeightPreferences {
     }
 }
 
-/// Where an automatic split starts and the blank margin beside the key area. Shared by the app
+/// Where a large screen starts and the blank margin beside the key area on one. Shared by the app
 /// and the keyboard extension; the keyboard reads the in-process copy while it draws and re-reads
 /// the stored values at presentation (`refresh`), never per key.
 public enum KeyboardWidthPreferences {
     public static let splitWidthKey = "keyboard.splitWidth.v1"
-    public static let sideMarginKey = "keyboard.sideMargin.v1"
+    public static let sideMarginPercentKey = "keyboard.sideMarginPercent.v1"
     public static var defaults: UserDefaults { KeyboardRecipeStore.sharedDefaults() ?? .standard }
 
     private static let cache = OSAllocatedUnfairLock<KeyboardWidthSettings?>(uncheckedState: nil)
 
     /// The stored choices; a missing or non-numeric value is the default.
     public static func read(from defaults: UserDefaults) -> KeyboardWidthSettings {
-        func stored(_ key: String) -> Int? {
-            (SharedPreferences.object(forKey: key, in: defaults) as? NSNumber)?.intValue
+        func stored(_ key: String) -> NSNumber? {
+            SharedPreferences.object(forKey: key, in: defaults) as? NSNumber
         }
         return KeyboardWidthSettings(
-            splitWidth: stored(splitWidthKey) ?? KeyboardWidthSettings.defaultSplitWidth,
-            sideMargin: stored(sideMarginKey) ?? 0)
+            splitWidth: stored(splitWidthKey)?.intValue ?? KeyboardWidthSettings.defaultSplitWidth,
+            sideMarginPercent: stored(sideMarginPercentKey)?.doubleValue
+                ?? KeyboardWidthSettings.defaultSideMarginPercent)
     }
 
     public static var current: KeyboardWidthSettings {
@@ -65,11 +66,11 @@ public enum KeyboardWidthPreferences {
         write(KeyboardWidthSettings.clampedSplitWidth(splitWidth), key: splitWidthKey)
     }
 
-    public static func set(sideMargin: Int) {
-        write(KeyboardWidthSettings.clampedSideMargin(sideMargin), key: sideMarginKey)
+    public static func set(sideMarginPercent: Double) {
+        write(KeyboardWidthSettings.clampedSideMarginPercent(sideMarginPercent), key: sideMarginPercentKey)
     }
 
-    private static func write(_ value: Int, key: String) {
+    private static func write(_ value: Any, key: String) {
         SharedPreferences.set(value, forKey: key, in: defaults)
         refresh()
         NotificationCenter.default.post(name: .keyboardWidthChanged, object: nil)

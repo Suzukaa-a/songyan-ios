@@ -225,7 +225,6 @@ private struct KeyboardMainLayoutPreview: View {
                     }
                 }
             }
-            .padding(.horizontal, KeyboardPanelRules.splitEdgeInset(split: split, contentWidth: widths.content))
             if sample == .longPress {
                 longPressSample
             }

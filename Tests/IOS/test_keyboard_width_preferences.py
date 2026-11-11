@@ -28,18 +28,29 @@ extension Notification.Name { static let keyboardWidthChanged = Notification.Nam
 let domain = KeyboardRecipeStore.groupID
 let store = UserDefaults(suiteName: domain)!
 defer { store.removePersistentDomain(forName: domain) }
-// Nothing stored: the split starts at the phone limit and there is no margin.
-precondition(KeyboardWidthPreferences.read(from: store) == KeyboardWidthSettings(splitWidth: 600, sideMargin: 0))
+// Nothing stored: a large screen starts at the phone limit with a 2.5 % margin.
+precondition(KeyboardWidthPreferences.read(from: store) == KeyboardWidthSettings(splitWidth: 600, sideMarginPercent: 2.5))
 precondition(KeyboardWidthPreferences.current == KeyboardWidthSettings.standard)
+precondition(KeyboardWidthSettings.standard.sideMarginPercent == 2.5)
 // A stored choice is read by the other process and snaps into the offered steps.
 KeyboardWidthPreferences.set(splitWidth: 819)
-KeyboardWidthPreferences.set(sideMargin: 30)
-precondition(KeyboardWidthPreferences.current == KeyboardWidthSettings(splitWidth: 800, sideMargin: 28))
-precondition(KeyboardWidthPreferences.read(from: UserDefaults(suiteName: domain)!) == KeyboardWidthSettings(splitWidth: 800, sideMargin: 28))
+KeyboardWidthPreferences.set(sideMarginPercent: 3.8)
+precondition(KeyboardWidthPreferences.current == KeyboardWidthSettings(splitWidth: 800, sideMarginPercent: 4))
+precondition(KeyboardWidthPreferences.read(from: UserDefaults(suiteName: domain)!) == KeyboardWidthSettings(splitWidth: 800, sideMarginPercent: 4))
+KeyboardWidthPreferences.set(sideMarginPercent: 0)
+precondition(KeyboardWidthPreferences.current.sideMarginPercent == 0)
 // A stored value outside the range snaps to the nearest choice; a non-numeric one is the default.
 store.set(5000, forKey: KeyboardWidthPreferences.splitWidthKey)
-store.set("wide", forKey: KeyboardWidthPreferences.sideMarginKey)
-precondition(KeyboardWidthPreferences.read(from: store) == KeyboardWidthSettings(splitWidth: 1200, sideMargin: 0))
+store.set(40, forKey: KeyboardWidthPreferences.sideMarginPercentKey)
+precondition(KeyboardWidthPreferences.read(from: store) == KeyboardWidthSettings(splitWidth: 1200, sideMarginPercent: 10))
+store.set(-3, forKey: KeyboardWidthPreferences.sideMarginPercentKey)
+precondition(KeyboardWidthPreferences.read(from: store).sideMarginPercent == 0)
+store.set("wide", forKey: KeyboardWidthPreferences.sideMarginPercentKey)
+precondition(KeyboardWidthPreferences.read(from: store).sideMarginPercent == 2.5)
+// The retired point-based key is ignored.
+store.removeObject(forKey: KeyboardWidthPreferences.sideMarginPercentKey)
+store.set(48, forKey: "keyboard.sideMargin.v1")
+precondition(KeyboardWidthPreferences.read(from: store).sideMarginPercent == 2.5)
 print("width preference checks passed")
 '''
         print(run_swift("", program, prefix="width-preferences"), end="")

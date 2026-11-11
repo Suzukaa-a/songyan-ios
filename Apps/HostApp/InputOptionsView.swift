@@ -71,7 +71,7 @@ struct InputOptionsView: View {
     /// The split width and side margin being dragged; stored once the finger lifts, so the panel
     /// does not rebuild its keys on every tick.
     @State private var splitWidthDraft = Double(KeyboardWidthSettings.defaultSplitWidth)
-    @State private var sideMarginDraft = 0.0
+    @State private var sideMarginPercentDraft = KeyboardWidthSettings.defaultSideMarginPercent
     @StateObject private var typoCorrection = TypoCorrectionCenter.shared
     @StateObject private var prediction = PredictionCenter.shared
     @State private var importingPrediction = false
@@ -247,8 +247,8 @@ struct InputOptionsView: View {
     private var keyboardWidthSection: some View {
         Section {
             widthRow(
-                title: String(localized: "自动拆分宽度"),
-                subtitle: String(localized: "键盘宽于 \(Int(splitWidthDraft)) pt 时拆分"),
+                title: String(localized: "大屏宽度"),
+                subtitle: String(localized: "键盘宽于 \(Int(splitWidthDraft)) pt 时算作大屏"),
                 value: $splitWidthDraft,
                 range: Double(
                     KeyboardWidthSettings.splitWidthRange.lowerBound)...Double(
@@ -262,20 +262,21 @@ struct InputOptionsView: View {
                     KeyboardWidthPreferences.set(splitWidth: KeyboardWidthSettings.defaultSplitWidth)
                 })
             widthRow(
-                title: String(localized: "两侧留白"),
-                subtitle: sideMarginDraft == 0
-                    ? String(localized: "无") : "\(Int(sideMarginDraft)) pt",
-                value: $sideMarginDraft,
-                range: Double(
-                    KeyboardWidthSettings.sideMarginRange.lowerBound)...Double(
-                        KeyboardWidthSettings.sideMarginRange.upperBound),
-                step: Double(KeyboardWidthSettings.sideMarginStep),
-                isDefault: sideMarginDraft == 0,
+                title: String(localized: "大屏两侧留白"),
+                subtitle: sideMarginPercentDraft == 0
+                    ? String(localized: "无")
+                    : String(
+                        localized:
+                            "宽度的 \(sideMarginPercentDraft.formatted(.number.precision(.fractionLength(0...1))))%"),
+                value: $sideMarginPercentDraft,
+                range: KeyboardWidthSettings.sideMarginPercentRange,
+                step: KeyboardWidthSettings.sideMarginPercentStep,
+                isDefault: sideMarginPercentDraft == KeyboardWidthSettings.defaultSideMarginPercent,
                 identifier: "inputOptions.sideMargin",
-                commit: { KeyboardWidthPreferences.set(sideMargin: Int($0)) },
+                commit: { KeyboardWidthPreferences.set(sideMarginPercent: $0) },
                 reset: {
-                    sideMarginDraft = 0
-                    KeyboardWidthPreferences.set(sideMargin: 0)
+                    sideMarginPercentDraft = KeyboardWidthSettings.defaultSideMarginPercent
+                    KeyboardWidthPreferences.set(sideMarginPercent: KeyboardWidthSettings.defaultSideMarginPercent)
                 })
         } footer: {
             Text("下次打开键盘时生效。")
@@ -313,7 +314,7 @@ struct InputOptionsView: View {
     private func reloadWidthSettings() {
         let stored = KeyboardWidthPreferences.read(from: KeyboardWidthPreferences.defaults)
         splitWidthDraft = Double(stored.splitWidth)
-        sideMarginDraft = Double(stored.sideMargin)
+        sideMarginPercentDraft = stored.sideMarginPercent
     }
 
     private func reloadWideDocks() {

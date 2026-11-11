@@ -76,16 +76,17 @@ struct KeyboardPreviewFrame<Content: View>: View {
     var body: some View {
         let raw = Double(width)
         let splitAbove = Double(widthSettings.splitWidth)
-        let margin = KeyboardWideContentPolicy.sideMargin(panelWidth: raw, requested: Double(widthSettings.sideMargin))
+        let margin = KeyboardPanelRules.sideMargin(panelWidth: raw, settings: widthSettings)
         let plan = KeyboardWideContentPolicy.plan(
             panelWidth: raw,
             maximumContentWidth: KeyboardPanelRules.wideMaximumContentWidth(
-                rawWidth: raw - 2 * margin, mainSplit: mainSplit, layout: layout, splitAbove: splitAbove),
+                rawWidth: raw - 2 * margin, fullWidth: raw, mainSplit: mainSplit, layout: layout, splitAbove: splitAbove
+            ),
             dock: dock, sideMargin: margin)
         let contentWidth = plan.contentWidth
         content(
             KeyboardPreviewWidths(
-                content: max(0, contentWidth - 8), mainSplit: max(0, raw - 2 * margin - 8), splitAbove: splitAbove)
+                content: max(0, contentWidth + 2 * margin - 8), mainSplit: raw, splitAbove: splitAbove)
         )
         .frame(width: CGFloat(contentWidth))
         .padding(.leading, margin > 0 ? CGFloat(plan.leadingInset) : 0)
@@ -237,12 +238,6 @@ public struct KeyboardPagePreviewView: View {
         ) {
             widths in
             content(resolution, widths: widths)
-                .padding(
-                    .horizontal,
-                    KeyboardPanelRules.splitEdgeInset(
-                        split: pageSplit(resolution.page?.split, widths: widths, authored: resolution.page),
-                        contentWidth: widths.content)
-                )
                 .padding(4)
                 .background(appearance.previewSurface, in: RoundedRectangle(cornerRadius: 8))
         }

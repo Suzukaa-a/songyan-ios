@@ -21,21 +21,22 @@ enum KeyboardPanelRules {
             pageSplit: pageSplit(), contentWidth: contentWidth, automaticAbove: splitAbove)
     }
 
-    /// Extra room at both edges of a split key area, so the halves do not run into the screen
-    /// edges; zero when the page is not split. The live panel and both previews use it.
-    static func splitEdgeInset(split: ActiveLayoutSplit?, contentWidth: Double) -> CGFloat {
-        CGFloat(split?.edgeInset(width: contentWidth) ?? 0)
+    /// The blank margin on each side of a keyboard `panelWidth` wide under the user's width settings.
+    static func sideMargin(panelWidth: Double, settings: KeyboardWidthSettings) -> Double {
+        KeyboardWideContentPolicy.sideMargin(
+            panelWidth: panelWidth, percent: settings.sideMarginPercent, largeAbove: Double(settings.splitWidth))
     }
 
     /// The width cap a physical layout uses on a wide surface. A main split that really splits at the
-    /// pre-rail width keeps the full surface instead of silently cancelling the opt-in. `rawWidth` is
-    /// the key area's: the surface after the user's side margins.
+    /// full keyboard width keeps the full surface instead of silently cancelling the opt-in. `rawWidth`
+    /// is the key area's (the surface after the user's side margins); `fullWidth` decides the split.
     static func wideMaximumContentWidth(
-        rawWidth: Double, mainSplit: @autoclosure () -> LayoutSplitConfiguration?, layout: KeyboardLayoutKind?,
+        rawWidth: Double, fullWidth: Double, mainSplit: @autoclosure () -> LayoutSplitConfiguration?,
+        layout: KeyboardLayoutKind?,
         splitAbove: Double = KeyboardSurfaceWidth.phoneMaximum
     ) -> Double? {
         guard rawWidth > KeyboardSurfaceWidth.phoneMaximum else { return nil }
-        if let split = mainSplit(), split.isActive(width: rawWidth - 8, automaticAbove: splitAbove) { return nil }
+        if let split = mainSplit(), split.isActive(width: fullWidth, automaticAbove: splitAbove) { return nil }
         switch layout {
         case .phone9: return KeyboardWideContentPolicy.phoneNineMaximumContentWidth
         case .merged14, .merged18: return KeyboardWideContentPolicy.mergedMaximumContentWidth

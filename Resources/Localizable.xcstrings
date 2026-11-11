@@ -5589,72 +5589,6 @@
         }
       }
     },
-    "自动拆分宽度": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "自動分割の幅"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "自动拆分宽度"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "自動拆分寬度"
-          }
-        }
-      }
-    },
-    "键盘宽于 %lld pt 时拆分": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "キーボードの幅が %lld pt を超えると分割します"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "键盘宽于 %lld pt 时拆分"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "鍵盤寬於 %lld pt 時拆分"
-          }
-        }
-      }
-    },
-    "两侧留白": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "左右の余白"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "两侧留白"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "兩側留白"
-          }
-        }
-      }
-    },
     "宽屏键盘位置": {
       "localizations": {
         "zh-Hans": {
@@ -32557,6 +32491,94 @@
           "stringUnit": {
             "state": "translated",
             "value": "行の高さ、展開方法、間隔"
+          }
+        }
+      }
+    },
+    "大屏宽度": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "大画面とみなす幅"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "大屏宽度"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "大螢幕寬度"
+          }
+        }
+      }
+    },
+    "键盘宽于 %lld pt 时算作大屏": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーボードの幅が %lld pt を超えると大画面とみなします"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "键盘宽于 %lld pt 时算作大屏"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "鍵盤寬於 %lld pt 時算作大螢幕"
+          }
+        }
+      }
+    },
+    "大屏两侧留白": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "大画面での左右の余白"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "大屏两侧留白"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "大螢幕兩側留白"
+          }
+        }
+      }
+    },
+    "宽度的 %@%%": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "幅の %@%%"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "宽度的 %@%%"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "寬度的 %@%%"
           }
         }
       }
