@@ -470,6 +470,10 @@ public struct KeyboardAppearance: Equatable, Sendable {
     }
     public func color(_ name: String) -> Color { Color(uiColor: uiColor(name)) }
     public func uiColor(_ name: String) -> UIColor { palette.fill(name) }
+    /// The function keys of a dark, borderless skin get a hairline; see `outlinesFunctionKeys`.
+    public func borderWidth(for role: String) -> Double {
+        (role == "control" || role == "accent") && palette.outlinesControls ? 1 : skin.keycap.borderWidth
+    }
     public func text(on role: String, secondary: Bool = false) -> UIColor {
         palette.text(on: role, secondary: secondary)
     }
@@ -488,6 +492,7 @@ private final class KeyboardPalette: Sendable {
     private let texts: [String: UIColor]
     private let secondaryTexts: [String: UIColor]
     let accentForeground: UIColor
+    let outlinesControls: Bool
     /// Keys are drawn over the system keyboard surface of the mode, so translucent fills are judged
     /// as composited over it.
     private let surface: SkinColor
@@ -510,6 +515,7 @@ private final class KeyboardPalette: Sendable {
         let panel = (colors["panel"] ?? colors["key"]!).composited(over: surface)
         let accent = (colors["accent"] ?? panel).composited(over: panel)
         accentForeground = ui(Self.legibleAccent(accent, text: colors["accentText"], on: panel))
+        outlinesControls = skin.outlinesFunctionKeys(dark: dark)
     }
 
     /// An authored accent that already reads as a glyph on the panel (3:1) is
@@ -636,7 +642,7 @@ struct SkinKeyBackground: View {
             .fill(appearance.color(role))
             .overlay(
                 RoundedRectangle(cornerRadius: appearance.skin.keycap.cornerRadius).stroke(
-                    appearance.color("border"), lineWidth: appearance.skin.keycap.borderWidth)
+                    appearance.color("border"), lineWidth: appearance.borderWidth(for: role))
             )
             .shadow(
                 color: .black.opacity(restShadowOpacity),
@@ -672,7 +678,7 @@ final class SkinCapLayer: CALayer {
         frame = appearance.visualRect(in: view.bounds)
         cornerRadius = appearance.skin.keycap.cornerRadius
         backgroundColor = appearance.uiColor(role).cgColor
-        borderWidth = appearance.skin.keycap.borderWidth
+        borderWidth = appearance.borderWidth(for: role)
         borderColor = appearance.uiColor("border").cgColor
         let restOpacity: Float = appearance.skin.keycap.shadow == "subtle" ? 0.18 : 0
         shadowColor = UIColor.black.cgColor

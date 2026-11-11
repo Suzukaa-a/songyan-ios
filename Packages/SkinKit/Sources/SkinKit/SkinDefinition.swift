@@ -376,6 +376,16 @@ public struct SkinDefinition: Codable, Equatable, Identifiable, Sendable {
     public static func systemSurface(dark: Bool) -> SkinColor {
         SkinColor(hex: dark ? "#222223" : "#E0E1E8")!
     }
+    /// Dark function keys sit only a few steps off the panel, so a borderless skin outlines them (and
+    /// the return key) with a 1 pt hairline in its own border colour. Contrast against black below
+    /// 5:1 is a relative luminance below 0.2, the line Android draws too.
+    public func outlinesFunctionKeys(dark: Bool) -> Bool {
+        guard keycap.borderWidth == 0 else { return false }
+        let colors = resolvedColors(dark: dark)
+        guard let control = colors["control"], control.alpha >= 1 else { return false }
+        let panel = (colors["panel"] ?? colors["key"]!).composited(over: Self.systemSurface(dark: dark))
+        return panel.contrast(on: SkinColor(hex: "#000000")!) < 5
+    }
     public func resolvedColors(dark: Bool) -> [String: SkinColor] {
         let values =
             dark

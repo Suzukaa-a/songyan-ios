@@ -472,4 +472,17 @@ final class AppearancePresetTests: XCTestCase {
             }
         }
     }
+
+    func testDarkBorderlessPresetsOutlineTheirFunctionKeys() {
+        for preset in AppearanceDocument.builtinPresets {
+            let bordered = preset.skin.keycap.borderWidth > 0
+            XCTAssertEqual(preset.skin.outlinesFunctionKeys(dark: true), !bordered, preset.id)
+            XCTAssertFalse(preset.skin.outlinesFunctionKeys(dark: false), preset.id)
+        }
+        var translucent = AppearanceDocument.builtinPresets[0].skin
+        var variant = SkinDefinition.Variant()
+        variant.colors = ["control": "#38393C80"]
+        translucent.variants.dark = variant
+        XCTAssertFalse(translucent.outlinesFunctionKeys(dark: true))
+    }
 }
