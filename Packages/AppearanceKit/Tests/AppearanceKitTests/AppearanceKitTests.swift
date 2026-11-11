@@ -441,27 +441,12 @@ final class AppearancePresetTests: XCTestCase {
 
     // MARK: - Built-in looks
 
-    func testPresetsLeaveTheKeyboardSurfaceToTheSystem() {
+    func testPresetsCarryNoBackground() {
         for preset in AppearanceDocument.builtinPresets {
-            XCTAssertTrue(preset.surfaceFollowsSystem, preset.id)
             for dark in [false, true] {
                 XCTAssertFalse(preset.skin.hasExplicitBackground(dark: dark), "\(preset.id) dark=\(dark)")
             }
         }
-    }
-
-    func testExplicitBackgroundAndForcedLookAreNotLeftToTheSystem() throws {
-        var skin = SkinDefinition.systemDefault.copy()
-        XCTAssertFalse(skin.hasExplicitBackground(dark: false))
-        var background = SkinDefinition.Background()
-        background.color = "#112233"
-        var light = skin.variants.light ?? SkinDefinition.Variant()
-        light.background = background
-        skin.variants.light = light
-        XCTAssertTrue(skin.hasExplicitBackground(dark: false))
-        XCTAssertFalse(skin.hasExplicitBackground(dark: true))
-        XCTAssertFalse(
-            AppearanceDocument(id: "forced", name: "forced", appearance: .dark, skin: skin).surfaceFollowsSystem)
     }
 
     func testDarkPresetKeysStandOutFromTheSystemPanel() throws {

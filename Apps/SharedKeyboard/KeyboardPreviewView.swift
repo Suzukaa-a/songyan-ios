@@ -231,7 +231,7 @@ private struct KeyboardMainLayoutPreview: View {
             }
         }
         .padding(4)
-        .background(appearance.background)
+        .background(appearance.previewSurface)
         .clipShape(RoundedRectangle(cornerRadius: 8))
         // The rows draw at the height the keyboard actually uses for this page: the preset on a
         // three-row page, the redistributed height on a four-row board.

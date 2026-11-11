@@ -244,7 +244,7 @@ public struct KeyboardPagePreviewView: View {
                         contentWidth: widths.content)
                 )
                 .padding(4)
-                .background(appearance.background, in: RoundedRectangle(cornerRadius: 8))
+                .background(appearance.previewSurface, in: RoundedRectangle(cornerRadius: 8))
         }
         .environment(\.keyboardAppearance, appearance)
         .environment(\.keyboardKeyHeight, preferences.keyHeight(compact: verticalSizeClass == .compact))

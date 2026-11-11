@@ -22,7 +22,7 @@ public struct KeyboardPanelHost: View {
     @State private var appearanceReadError: String?
     @State private var hasValidAppearance = false
     /// The ready controller's host appearance (Extension only; nil in the Host trial area,
-    /// which has no `UITextDocumentProxy`). Default skin follows it, custom skins do not.
+    /// which has no `UITextDocumentProxy`). Only a fallback until the surface trait is known.
     private var hostAppearance: HostKeyboardAppearance {
         guard let controller = session.controller else { return .unspecified }
         return HostKeyboardAppearance(controller.keyboardAppearance)
@@ -35,8 +35,6 @@ public struct KeyboardPanelHost: View {
         _ = hostTraitsTick
         let host = hostAppearance
         let dark = KeyboardAppearancePolicy.resolvedDark(
-            skinIsSystemDefault: appearanceSnapshot.document.isSystemDefault,
-            skinAppearance: appearanceSnapshot.document.appearance,
             hostAppearance: host, systemDark: colorScheme == .dark,
             systemTraitKnown: systemTraitKnown)
         var resolved = KeyboardAppearance(skin: appearanceSnapshot.document.skin, dark: dark)
@@ -306,7 +304,6 @@ public struct KeyboardPanelHost: View {
             .environment(\.keyboardAppearance, appearance)
             // SwiftUI controls (candidates, bar controls, readings, tools buttons) give the key feedback on press.
             .environment(\.keyboardTouchDownFeedback, { KeyboardFeedbackService.shared.keyTouchDown() })
-            .background(appearance.panelBackground.ignoresSafeArea(edges: .bottom))
     }
 
     /// Every settled phase uses the same fixed outer height. On a cold-start cache miss or right after a

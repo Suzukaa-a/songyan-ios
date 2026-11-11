@@ -53,21 +53,6 @@ struct SkinManagementView: View {
     var body: some View {
         List {
             Section {
-                // Light/dark is part of the applied appearance: applied immediately on selection, no need to open detail and tap Apply.
-                Picker(
-                    String(localized: "深浅色"),
-                    selection: Binding(
-                        get: { manager.editingAppearance },
-                        set: { mode in
-                            guard mode != manager.editingAppearance else { return }
-                            Task { await manager.apply(manager.applied, persistDraft: false, appearance: mode) }
-                        })
-                ) {
-                    Text("跟随系统").tag(SkinAppearance.system)
-                    Text("浅色").tag(SkinAppearance.light)
-                    Text("深色").tag(SkinAppearance.dark)
-                }
-                .disabled(manager.isLoading || manager.isMutating)
                 if let message = manager.message { Text(message).font(.footnote) }
                 if let error = manager.error { Text(error).font(.footnote).foregroundStyle(.red) }
                 if let degraded = manager.appliedSourceNotice {
@@ -102,8 +87,7 @@ struct SkinManagementView: View {
                         rowLayout {
                             SkinThumbnailBadge(
                                 document: project,
-                                isDark: manager.editingAppearance == .dark
-                                    || (manager.editingAppearance == .system && colorScheme == .dark)
+                                isDark: colorScheme == .dark
                             )
                             .accessibilityHidden(true)
                             VStack(alignment: .leading, spacing: 3) {
@@ -397,9 +381,9 @@ struct SkinThumbnailBadge: View {
     var body: some View {
         let appearance = KeyboardAppearance(skin: document.skin, dark: isDark)
         ZStack {
-            // Panel background
+            // Stand-in for the system keyboard surface
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(appearance.color("panel"))
+                .fill(appearance.previewSurface)
 
             // Stacked miniature keys
             VStack(spacing: 3) {

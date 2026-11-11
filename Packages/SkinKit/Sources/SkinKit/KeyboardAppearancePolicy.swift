@@ -13,35 +13,23 @@ public enum HostKeyboardAppearance: String, CaseIterable, Sendable {
 
 /// Decides which variant (light/dark) of the active skin to render.
 ///
-/// Rules (single source of truth; consumed by `KeyboardPanelHost`):
-///  - The **system default** skin follows the actual keyboard surface trait once
-///    UIKit has resolved it, including a field-specific light/dark surface.
-///    A proxy field's keyboardAppearance can lag behind a live style transition,
-///    so it is only a fallback before the surface trait is known.
-///  - A **custom** skin keeps the user's own `SkinAppearance`; the host field never
-///    repaints a user-authored skin.
+/// iOS draws the keyboard surface, so every skin follows the surface trait once UIKit has
+/// resolved it (including a field-specific light/dark surface); the document's own
+/// light/dark choice never overrides it. A proxy field's keyboardAppearance can lag behind a
+/// live style transition, so it is only a fallback before the surface trait is known.
 ///
 /// `systemDark` is the SwiftUI environment's colour scheme (`colorScheme == .dark`).
 public enum KeyboardAppearancePolicy {
     public static func resolvedDark(
-        skinIsSystemDefault: Bool,
-        skinAppearance: SkinAppearance,
         hostAppearance: HostKeyboardAppearance,
         systemDark: Bool,
         systemTraitKnown: Bool = false
     ) -> Bool {
-        if skinIsSystemDefault {
-            if systemTraitKnown { return systemDark }
-            switch hostAppearance {
-            case .light: return false
-            case .dark: return true
-            case .unspecified: return systemDark
-            }
-        }
-        switch skinAppearance {
+        if systemTraitKnown { return systemDark }
+        switch hostAppearance {
         case .light: return false
         case .dark: return true
-        case .system: return systemDark
+        case .unspecified: return systemDark
         }
     }
 }

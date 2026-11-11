@@ -94,12 +94,11 @@ extension KeyboardPanelView {
     /// fixed height = configured budget; each content lays itself out within the budget, and the whole text block is never clipped.
     /// Candidate text and the key area each stay in place thanks to fixed frames; scrolling is managed by the candidates' own ScrollView.
     /// **Appears only with real content** (candidates / composition fallback / disambiguation / status); idle draws nothing.
-    /// The background belongs to `KeyboardAppearance.headerBacking`: transparent under the system default (follows the iOS keyboard host),
-    /// and only a custom skin covers the content area the product actually owns. The status-detail overlay appears only when explicitly opened.
+    /// The header is transparent so the iOS keyboard surface shows through. The status-detail overlay appears only when explicitly opened.
     var compositionArea: some View {
         CandidateHeaderSurface(
             height: candidateRowHeight,
-            backing: appearance.headerBacking
+            backing: .clear
         ) {
             if controller.isEnglishMode && !controller.englishSuggestions.isEmpty && statusMessage == nil {
                 englishSuggestionStrip
@@ -278,12 +277,12 @@ extension KeyboardPanelView {
     /// Content is decided by `CandidateReadingRowContent.resolve`: a single-syllable segment first uses the lockable spelling reported by the engine;
     /// a multi-character composition (not covered by the disambiguation report) uses the engine readings of loaded real candidates for a read-only filter. With no content it is a transparent
     /// empty band (no "candidate reading" title or "none" placeholder). The background shares its source with the candidate bar
-    /// (`headerBacking`: transparent by system default, a custom skin draws its own surface), with no blur layer on top.
+    /// (transparent, so the iOS keyboard surface shows through), with no blur layer on top.
     func readingRow(height: Double) -> some View {
         let displayed = displayedReadingRowContent
         let content = displayed.content
         return ZStack(alignment: .leading) {
-            appearance.headerBacking
+            Color.clear
             // The scroller stays mounted across keys; only its cells change.
             ScrollView(.horizontal, showsIndicators: false) {
                 LazyHStack(spacing: 2) {

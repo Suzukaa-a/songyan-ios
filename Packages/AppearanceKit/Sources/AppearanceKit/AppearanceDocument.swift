@@ -409,10 +409,6 @@ extension AppearanceDocument {
             ]),
     ]
 
-    /// Whether the keyboard may leave its background to the system keyboard surface. A forced light
-    /// or dark look can disagree with the system surface (light keys on a dark panel), so it paints its own.
-    public var surfaceFollowsSystem: Bool { appearance == .system }
-
     public static let builtinPresetIDs: Set<String> = Set(builtinPresets.map(\.id))
 
     /// Built-in appearances (system default + presets): read-only, not deletable.

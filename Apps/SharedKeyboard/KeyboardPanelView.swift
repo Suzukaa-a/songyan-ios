@@ -297,13 +297,9 @@ public struct KeyboardPanelView: View {
                 // outgoing menu is retained over the next immediately usable key, and this
                 // is not a transition owner (the key-area cue owns page/language).
                 //
-                // The panel is **not** uniformly opaque, menus included. Under the
-                // system-default appearance the product owns no keyboard surface: iOS
-                // supplies it, its rounded corners and the bottom input-mode bar. Painting
-                // our own panel here would be a second, disjoint background, which the
-                // Apple contract forbids. A user-authored skin keeps painting its own
-                // authored surface (see `KeyboardAppearance.panelBackground` / `drawsOwnSurface`).
-                .background(appearance.panelBackground.ignoresSafeArea(edges: .bottom))
+                // The product owns no keyboard surface: iOS supplies it, its rounded corners and
+                // the bottom input-mode bar. Painting our own panel would be a second, disjoint
+                // background, so no skin paints one.
                 // The blank side margins of a docked keyboard are not part of the key
                 // surface: touches there must not route to an edge key.
                 .background {
@@ -865,7 +861,6 @@ public struct KeyboardPanelView: View {
         )
         .environment(\.keyboardInputLanguage, controller.inputLanguage.language)
         .overlay { KeyboardPopupSurface(view: popupSurface).allowsHitTesting(false) }
-        .background(appearance.panelBackground.ignoresSafeArea(edges: .bottom))
         .tint(appearance.accentForeground)
         // Text-bearing surfaces (status, candidate labels, tool rows) grow with the
         // user's text size. Key geometry stays fixed: keycaps use explicit metrics and
