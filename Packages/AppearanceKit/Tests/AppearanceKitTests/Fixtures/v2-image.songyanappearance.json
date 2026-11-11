@@ -1,0 +1,86 @@
+{
+  "appearance" : "system",
+  "candidateBar" : {
+    "collapsed" : {
+      "cellPaddingX" : 12,
+      "cellSpacing" : 4,
+      "height" : 44
+    },
+    "compositionRow" : {
+      "visible" : "composingOnly"
+    },
+    "controls" : {
+      "pagePosition" : "both",
+      "showsExpand" : true
+    },
+    "expanded" : {
+      "columnSpacing" : 4,
+      "columns" : 2,
+      "fullRowTextLength" : 8,
+      "mode" : "adaptive",
+      "rowSpacing" : 4
+    },
+    "formatVersion" : 2,
+    "id" : "v2-image",
+    "name" : "V2 图片"
+  },
+  "formatVersion" : 2,
+  "id" : "v2-image",
+  "name" : "V2 图片",
+  "skin" : {
+    "formatVersion" : 2,
+    "id" : "v2-image",
+    "keycap" : {
+      "borderWidth" : 0,
+      "cornerRadius" : 6,
+      "shadow" : "subtle"
+    },
+    "name" : "V2 图片",
+    "spacing" : {
+      "visualInsetX" : 2,
+      "visualInsetY" : 2
+    },
+    "typography" : {
+      "candidateSize" : 20,
+      "family" : "system",
+      "keySize" : 22,
+      "secondarySize" : 11,
+      "weight" : "medium"
+    },
+    "variants" : {
+      "dark" : {
+        "colors" : {
+          "accent" : "#286CD8",
+          "accentText" : "#FFFFFF",
+          "border" : "#808080",
+          "control" : "#55565A",
+          "key" : "#44474E80",
+          "panel" : "#202124",
+          "pressed" : "#65666A",
+          "secondaryText" : "#FFFFFF",
+          "selected" : "#55565A",
+          "text" : "#FFFFFF"
+        }
+      },
+      "light" : {
+        "background" : {
+          "align" : "bottom",
+          "image" : "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAECAYAAACzzX7wAAAAP0lEQVR4nBXKMQHAMAgAMJRMCUpQgpIqQcRuDG3pkS8R8X4PSdEchiUiBZKiOQybN7RAUjSHYfuGEUiK5jAsP00BUUFzkZmjAAAAAElFTkSuQmCC",
+          "type" : "image"
+        },
+        "colors" : {
+          "accent" : "#145ACC",
+          "accentText" : "#FFFFFF",
+          "border" : "#777777",
+          "control" : "#ADB2BC",
+          "key" : "#FFFFFF",
+          "panel" : "#D1D3D9",
+          "pressed" : "#C2C5CC",
+          "secondaryText" : "#333333",
+          "selected" : "#ADB2BC",
+          "text" : "#000000"
+        }
+      }
+    }
+  }
+}

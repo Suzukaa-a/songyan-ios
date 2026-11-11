@@ -179,7 +179,9 @@ public struct AppearanceStore: Sendable {
     public func apply(_ document: AppearanceDocument) throws {
         let validated = try AppearanceDocument.decode(document.encoded())
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        try JSONEncoder().encode(AppearanceSnapshot(document: validated)).write(to: active, options: .atomic)
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.withoutEscapingSlashes]
+        try encoder.encode(AppearanceSnapshot(document: validated)).write(to: active, options: .atomic)
     }
 
     // MARK: - Read
@@ -204,7 +206,8 @@ public struct AppearanceStore: Sendable {
 
     private func decodeSnapshot(_ file: URL) throws -> AppearanceSnapshot {
         let size = try file.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
-        guard size <= 512 * 1024 else {
+        // A document with an image background is up to `maximumBytesWithImage`.
+        guard size <= AppearanceDocument.maximumBytesWithImage + 64 * 1024 else {
             throw AppearanceError(String(localized: "appearance.error.snapshotTooLarge", bundle: .module))
         }
         return try decodeSnapshot(data: Data(contentsOf: file))
@@ -216,7 +219,10 @@ public struct AppearanceStore: Sendable {
             let document = object["document"]
         else { throw AppearanceError(String(localized: "appearance.error.snapshotMalformed", bundle: .module)) }
         // Strict decoding (unknown fields, wrong versions, invalid values, mixed identities are rejected) before any use.
-        let decoded = try AppearanceDocument.decode(JSONSerialization.data(withJSONObject: document))
+        // The host verified the image when applying; the keyboard extension never decodes it.
+        let decoded = try AppearanceDocument.decode(
+            JSONSerialization.data(withJSONObject: document, options: [.withoutEscapingSlashes]),
+            verifyImage: false)
         guard decoded == value.document.normalized() else {
             throw AppearanceError(
                 String(localized: "appearance.error.snapshotContentMismatch", bundle: .module))

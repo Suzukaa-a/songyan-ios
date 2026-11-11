@@ -16,7 +16,12 @@ import SkinKit
 ///     collapsed strip height/padding, expanded layout, control placement); it carries no colors
 ///     and cannot configure fake candidates.
 public struct AppearanceDocument: Codable, Equatable, Identifiable, Sendable {
+    /// Version a document without any version 2 feature is written as.
     public static let formatVersionValue = 1
+    public static let supportedFormatVersions = 1...2
+    /// Limit for a document without an image background; one with an image may use `maximumBytesWithImage`.
+    public static let maximumBytes = 256 * 1024
+    public static let maximumBytesWithImage = 2_097_152
     public static let systemDefaultID = "system-default"
     public static let fileExtension = ".songyanappearance.json"
 
@@ -89,10 +94,12 @@ public struct AppearanceDocument: Codable, Equatable, Identifiable, Sendable {
     /// the skin is normalized (resolved colors are filled and materialized), the candidate bar is re-attached to the same identity.
     public func normalized() -> AppearanceDocument {
         var result = self
-        result.formatVersion = Self.formatVersionValue
         result.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
         result.skin = Self.reidentified(skin, id: id, name: result.name).normalized()
         result.candidateBar = Self.reidentified(candidateBar, id: id, name: result.name)
+        // The version follows the features in use, on the document and both parts alike.
+        result.formatVersion = result.skin.formatVersion
+        result.candidateBar.formatVersion = result.skin.formatVersion
         return result
     }
 
@@ -136,7 +143,7 @@ public struct AppearanceDocument: Codable, Equatable, Identifiable, Sendable {
 
     // MARK: - Validation
 
-    public func validate() throws {
+    public func validate(verifyImage: Bool = true) throws {
         func require(_ test: Bool, _ path: String) throws {
             if !test {
                 throw AppearanceError(
@@ -144,11 +151,11 @@ public struct AppearanceDocument: Codable, Equatable, Identifiable, Sendable {
                         format: String(localized: "appearance.error.invalidValue", bundle: .module), path))
             }
         }
-        try require(formatVersion == Self.formatVersionValue, "$.formatVersion")
+        try require(Self.supportedFormatVersions.contains(formatVersion), "$.formatVersion")
         let charset = CharacterSet(charactersIn: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_")
         try require(!id.isEmpty && id.unicodeScalars.allSatisfy(charset.contains), "$.id")
         try require(!name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, "$.name")
-        try skin.validate()
+        try skin.validate(verifyImage: verifyImage)
         try candidateBar.validate()
         // Composite identity: skin/candidate-bar generation mixing is not allowed.
         try require(
@@ -163,24 +170,31 @@ public struct AppearanceDocument: Codable, Equatable, Identifiable, Sendable {
                 "$.candidateBar.id"))
     }
 
+    /// Rejects input above the hard limit, and input above the plain limit that cannot hold an image.
+    /// The decoded content is checked again after parsing.
+    private static func checkSize(_ data: Data) throws {
+        guard data.count <= maximumBytesWithImage,
+            data.count <= maximumBytes || data.range(of: Data(#""image""#.utf8)) != nil
+        else { throw AppearanceError(String(localized: "appearance.error.fileTooLarge", bundle: .module)) }
+    }
+
     // MARK: - Coding (strict fields + default filling, same discipline as SkinKit/CandidateKit)
 
     static let topLevelFields: Set<String> = [
         "formatVersion", "id", "name", "author", "appearance", "skin", "candidateBar",
     ]
 
-    public static func decode(_ data: Data) throws -> Self {
-        guard data.count <= 256 * 1024 else {
-            throw AppearanceError(String(localized: "appearance.error.fileTooLarge", bundle: .module))
-        }
+    /// `verifyImage: false` skips decoding the image payload (the keyboard extension reads snapshots
+    /// the host already verified); the data-URL shape is still checked.
+    public static func decode(_ data: Data, verifyImage: Bool = true) throws -> Self {
+        try checkSize(data)
         guard let source = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             throw AppearanceError(String(localized: "appearance.error.notAnObject", bundle: .module))
         }
-        guard source["formatVersion"] as? Int == formatVersionValue else {
+        guard let declared = source["formatVersion"] as? Int, supportedFormatVersions.contains(declared) else {
             throw AppearanceError(
                 String(
-                    format: String(localized: "appearance.error.unsupportedVersion", bundle: .module),
-                    String(formatVersionValue)))
+                    format: String(localized: "appearance.error.unsupportedVersion", bundle: .module), "1、2"))
         }
         // Known fields are kept, unknown fields rejected; nested content is validated by each package's strict decoding.
         var payload: [String: Any] = [:]
@@ -203,7 +217,22 @@ public struct AppearanceDocument: Codable, Equatable, Identifiable, Sendable {
             throw AppearanceError(String(localized: "appearance.error.missingParts", bundle: .module))
         }
         // Skin and candidate area each go through their own package's strict decoding (unknown fields, invalid values, wrong versions are rejected).
-        let skin = try SkinDefinition.decode(try JSONSerialization.data(withJSONObject: skinObject))
+        // A version 1 document cannot hold a version 2 part.
+        for (key, part) in [("skin", skinObject), ("candidateBar", barObject)] {
+            if let partVersion = (part as? [String: Any])?["formatVersion"] as? Int, partVersion > declared {
+                throw AppearanceError(
+                    String(
+                        format: String(localized: "appearance.error.invalidValue", bundle: .module),
+                        "$.\(key).formatVersion"))
+            }
+        }
+        guard let skinSource = skinObject as? [String: Any] else {
+            throw AppearanceError(String(localized: "appearance.error.notAnObject", bundle: .module))
+        }
+        let skin = try SkinDefinition.decode(object: skinSource, verifyImage: verifyImage)
+        guard data.count <= maximumBytes || skin.usesImage else {
+            throw AppearanceError(String(localized: "appearance.error.fileTooLarge", bundle: .module))
+        }
         let bar = try CandidateBarDefinition.decode(try JSONSerialization.data(withJSONObject: barObject))
         // Mixed generations must be rejected: skin/candidate-area identities in the file must match the project's.
         // (The programmatic `init` re-attaches identities, but persisted content must not be inconsistent.)
@@ -232,7 +261,7 @@ public struct AppearanceDocument: Codable, Equatable, Identifiable, Sendable {
             }
             document.appearance = parsed
         }
-        try document.validate()
+        try document.validate(verifyImage: verifyImage)
         return document.normalized()
     }
 
@@ -240,8 +269,11 @@ public struct AppearanceDocument: Codable, Equatable, Identifiable, Sendable {
         try validate()
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-        let data = try encoder.encode(normalized())
-        guard data.count <= 256 * 1024 else {
+        let result = normalized()
+        // Slashes stay unescaped in version 2 so a data URL keeps its size; version 1 bytes are unchanged.
+        if result.formatVersion >= 2 { encoder.outputFormatting.insert(.withoutEscapingSlashes) }
+        let data = try encoder.encode(result)
+        guard data.count <= (skin.usesImage ? Self.maximumBytesWithImage : Self.maximumBytes) else {
             throw AppearanceError(String(localized: "appearance.error.fileTooLarge", bundle: .module))
         }
         return data
@@ -257,7 +289,7 @@ public struct AppearanceDocument: Codable, Equatable, Identifiable, Sendable {
     public static func decodeImported(contentsOf url: URL) throws -> AppearanceDocument {
         try decodeImported(
             readData(
-                from: url, maximumBytes: 256 * 1024,
+                from: url, maximumBytes: maximumBytesWithImage,
                 oversizeMessage: String(
                     localized: "appearance.error.fileTooLarge", bundle: .module)))
     }
@@ -276,9 +308,7 @@ public struct AppearanceDocument: Codable, Equatable, Identifiable, Sendable {
     }
 
     public static func decodeImported(_ data: Data) throws -> AppearanceDocument {
-        guard data.count <= 256 * 1024 else {
-            throw AppearanceError(String(localized: "appearance.error.fileTooLarge", bundle: .module))
-        }
+        try checkSize(data)
         guard let raw = try? JSONSerialization.jsonObject(with: data),
             let object = raw as? [String: Any]
         else {

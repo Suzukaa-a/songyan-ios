@@ -1,0 +1,87 @@
+{
+  "appearance" : "system",
+  "candidateBar" : {
+    "collapsed" : {
+      "cellPaddingX" : 12,
+      "cellSpacing" : 4,
+      "height" : 44
+    },
+    "compositionRow" : {
+      "visible" : "composingOnly"
+    },
+    "controls" : {
+      "pagePosition" : "both",
+      "showsExpand" : true
+    },
+    "expanded" : {
+      "columnSpacing" : 4,
+      "columns" : 2,
+      "fullRowTextLength" : 8,
+      "mode" : "adaptive",
+      "rowSpacing" : 4
+    },
+    "formatVersion" : 1,
+    "id" : "v1-gradient",
+    "name" : "V1 渐变\/斜杠"
+  },
+  "formatVersion" : 1,
+  "id" : "v1-gradient",
+  "name" : "V1 渐变\/斜杠",
+  "skin" : {
+    "formatVersion" : 1,
+    "id" : "v1-gradient",
+    "keycap" : {
+      "borderWidth" : 0,
+      "cornerRadius" : 6,
+      "shadow" : "subtle"
+    },
+    "name" : "V1 渐变\/斜杠",
+    "spacing" : {
+      "visualInsetX" : 2,
+      "visualInsetY" : 2
+    },
+    "typography" : {
+      "candidateSize" : 20,
+      "family" : "system",
+      "keySize" : 22,
+      "secondarySize" : 11,
+      "weight" : "medium"
+    },
+    "variants" : {
+      "dark" : {
+        "colors" : {
+          "accent" : "#286CD8",
+          "accentText" : "#FFFFFF",
+          "border" : "#808080",
+          "control" : "#55565A",
+          "key" : "#38393C",
+          "panel" : "#202124",
+          "pressed" : "#65666A",
+          "secondaryText" : "#FFFFFF",
+          "selected" : "#55565A",
+          "text" : "#FFFFFF"
+        }
+      },
+      "light" : {
+        "background" : {
+          "direction" : "vertical",
+          "from" : "#102030",
+          "to" : "#a0b0c0",
+          "type" : "linearGradient"
+        },
+        "colors" : {
+          "accent" : "#145ACC",
+          "accentText" : "#FFFFFF",
+          "border" : "#777777",
+          "control" : "#ADB2BC",
+          "key" : "#FFFFFF",
+          "panel" : "#D1D3D9",
+          "pressed" : "#C2C5CC",
+          "secondaryText" : "#333333",
+          "selected" : "#ADB2BC",
+          "text" : "#000000"
+        }
+      }
+    }
+  }
+}

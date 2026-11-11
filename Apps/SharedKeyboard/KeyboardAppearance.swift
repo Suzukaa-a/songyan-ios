@@ -488,22 +488,27 @@ private final class KeyboardPalette: Sendable {
     private let texts: [String: UIColor]
     private let secondaryTexts: [String: UIColor]
     let accentForeground: UIColor
+    /// Keys are drawn over the system keyboard surface of the mode, so translucent fills are judged
+    /// as composited over it.
+    private let surface: SkinColor
 
     private init(skin: SkinDefinition, dark: Bool) {
         let colors = skin.resolvedColors(dark: dark)
+        let surface = SkinDefinition.systemSurface(dark: dark)
+        self.surface = surface
         resolved = colors
-        func ui(_ c: SkinColor) -> UIColor { UIColor(red: c.red, green: c.green, blue: c.blue, alpha: 1) }
+        func ui(_ c: SkinColor) -> UIColor { UIColor(red: c.red, green: c.green, blue: c.blue, alpha: c.alpha) }
         fills = colors.mapValues(ui)
         var texts: [String: UIColor] = [:]
         var secondary: [String: UIColor] = [:]
         for role in colors.keys {
-            texts[role] = ui(Self.textColor(colors, role: role, secondary: false))
-            secondary[role] = ui(Self.textColor(colors, role: role, secondary: true))
+            texts[role] = ui(Self.textColor(colors, role: role, secondary: false, surface: surface))
+            secondary[role] = ui(Self.textColor(colors, role: role, secondary: true, surface: surface))
         }
         self.texts = texts
         secondaryTexts = secondary
-        let panel = colors["panel"] ?? colors["key"]!
-        let accent = colors["accent"] ?? panel
+        let panel = (colors["panel"] ?? colors["key"]!).composited(over: surface)
+        let accent = (colors["accent"] ?? panel).composited(over: panel)
         accentForeground = ui(Self.legibleAccent(accent, text: colors["accentText"], on: panel))
     }
 
@@ -528,9 +533,11 @@ private final class KeyboardPalette: Sendable {
         return target
     }
 
-    private static func textColor(_ colors: [String: SkinColor], role: String, secondary: Bool) -> SkinColor {
+    private static func textColor(
+        _ colors: [String: SkinColor], role: String, secondary: Bool, surface: SkinColor
+    ) -> SkinColor {
         colors[secondary ? "secondaryText" : (role == "accent" ? "accentText" : "text")]!
-            .contrasting(on: colors[role] ?? colors["key"]!)
+            .contrasting(on: colors[role] ?? colors["key"]!, over: surface)
     }
 
     func fill(_ name: String) -> UIColor { fills[name] ?? .black }
@@ -538,8 +545,8 @@ private final class KeyboardPalette: Sendable {
     func text(on role: String, secondary: Bool) -> UIColor {
         if let cached = (secondary ? secondaryTexts : texts)[role] { return cached }
         // Unknown role: contrast against the key surface, exactly as before.
-        let c = Self.textColor(resolved, role: role, secondary: secondary)
-        return UIColor(red: c.red, green: c.green, blue: c.blue, alpha: 1)
+        let c = Self.textColor(resolved, role: role, secondary: secondary, surface: surface)
+        return UIColor(red: c.red, green: c.green, blue: c.blue, alpha: c.alpha)
     }
 
     private static let recent = OSAllocatedUnfairLock<[(skin: SkinDefinition, dark: Bool, palette: KeyboardPalette)]>(

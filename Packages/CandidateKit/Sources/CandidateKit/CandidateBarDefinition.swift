@@ -220,10 +220,10 @@ public struct CandidateBarDefinition: Codable, Equatable, Identifiable, Sendable
             default: return []
             }
         }
-        guard source["formatVersion"] as? Int == 1 else {
+        guard let declared = source["formatVersion"] as? Int, (1...2).contains(declared) else {
             throw CandidateBarError(
                 String(
-                    format: String(localized: "candidate.error.unsupportedVersion", bundle: .module), "1"))
+                    format: String(localized: "candidate.error.unsupportedVersion", bundle: .module), "1、2"))
         }
         let bar = try JSONDecoder().decode(
             Self.self,
@@ -241,7 +241,8 @@ public struct CandidateBarDefinition: Codable, Equatable, Identifiable, Sendable
                         format: String(localized: "candidate.error.invalidValue", bundle: .module), path))
             }
         }
-        try require(formatVersion == 1, "$.formatVersion")
+        // Version 2 adds nothing to this part; it only tracks the appearance document it belongs to.
+        try require((1...2).contains(formatVersion), "$.formatVersion")
         try require(
             !id.isEmpty
                 && id.utf8.allSatisfy {

@@ -82,7 +82,7 @@ final class AppearanceKitTests: XCTestCase {
         XCTAssertEqual(try AppearanceDocument.decode(document.encoded()), document)
         for json in [
             // wrong version
-            #"{"formatVersion":2,"id":"x","name":"x","skin":{},"candidateBar":{}}"#,
+            #"{"formatVersion":3,"id":"x","name":"x","skin":{},"candidateBar":{}}"#,
             // unknown top-level field
             #"{"formatVersion":1,"id":"x","name":"x","renderer":"evil","skin":{},"candidateBar":{}}"#,
             // missing candidate area
@@ -208,7 +208,7 @@ final class AppearanceKitTests: XCTestCase {
 
         let active = directory.appendingPathComponent("active.json")
         let encoded = try JSONEncoder().encode(AppearanceSnapshot(document: second))
-        let limit = 512 * 1024
+        let limit = AppearanceDocument.maximumBytesWithImage + 64 * 1024
         XCTAssertLessThan(encoded.count, limit)
         var boundary = encoded
         boundary.append(Data(repeating: 0x20, count: limit - encoded.count))

@@ -37,7 +37,8 @@ let package = Package(
             resources: [.process("Resources")]),
         .testTarget(
             name: "AppearanceKitTests",
-            dependencies: ["AppearanceKit", "SkinKit", "CandidateKit"]
+            dependencies: ["AppearanceKit", "SkinKit", "CandidateKit"],
+            resources: [.copy("Fixtures")]
         ),
     ],
     swiftLanguageModes: [.v6]

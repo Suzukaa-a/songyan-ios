@@ -1,0 +1,98 @@
+{
+  "appearance" : "system",
+  "candidateBar" : {
+    "collapsed" : {
+      "cellPaddingX" : 12,
+      "cellSpacing" : 4,
+      "height" : 44
+    },
+    "compositionRow" : {
+      "visible" : "composingOnly"
+    },
+    "controls" : {
+      "pagePosition" : "both",
+      "showsExpand" : true
+    },
+    "expanded" : {
+      "columnSpacing" : 4,
+      "columns" : 2,
+      "fullRowTextLength" : 8,
+      "mode" : "adaptive",
+      "rowSpacing" : 4
+    },
+    "formatVersion" : 2,
+    "id" : "v2-gradient",
+    "name" : "V2 横向渐变"
+  },
+  "formatVersion" : 2,
+  "id" : "v2-gradient",
+  "name" : "V2 横向渐变",
+  "skin" : {
+    "formatVersion" : 2,
+    "id" : "v2-gradient",
+    "keycap" : {
+      "borderWidth" : 0,
+      "cornerRadius" : 6,
+      "shadow" : "subtle"
+    },
+    "name" : "V2 横向渐变",
+    "spacing" : {
+      "visualInsetX" : 2,
+      "visualInsetY" : 2
+    },
+    "typography" : {
+      "candidateSize" : 20,
+      "family" : "system",
+      "keySize" : 22,
+      "secondarySize" : 11,
+      "weight" : "medium"
+    },
+    "variants" : {
+      "dark" : {
+        "background" : {
+          "colors" : [
+            "#000000",
+            "#202040FF"
+          ],
+          "direction" : "diagonal",
+          "type" : "linearGradient"
+        },
+        "colors" : {
+          "accent" : "#286CD8",
+          "accentText" : "#FFFFFF",
+          "border" : "#808080",
+          "control" : "#55565A",
+          "key" : "#38393C",
+          "panel" : "#202124",
+          "pressed" : "#65666A",
+          "secondaryText" : "#FFFFFF",
+          "selected" : "#55565A",
+          "text" : "#FFFFFF"
+        }
+      },
+      "light" : {
+        "background" : {
+          "colors" : [
+            "#102030",
+            "#4060A0",
+            "#A0B0C0"
+          ],
+          "direction" : "horizontal",
+          "type" : "linearGradient"
+        },
+        "colors" : {
+          "accent" : "#145ACC",
+          "accentText" : "#FFFFFF",
+          "border" : "#777777",
+          "control" : "#ADB2BC",
+          "key" : "#FFFFFF",
+          "panel" : "#D1D3D9",
+          "pressed" : "#C2C5CC",
+          "secondaryText" : "#333333",
+          "selected" : "#ADB2BC",
+          "text" : "#000000"
+        }
+      }
+    }
+  }
+}

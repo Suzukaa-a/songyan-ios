@@ -12,7 +12,7 @@ final class SkinKitTests: XCTestCase {
         XCTAssertEqual(skin.resolvedColors(dark: false)["text"]!.hex, "#000000")
         XCTAssertEqual(try SkinDefinition.decode(skin.encoded()), skin)
         for json in [
-            #"{"formatVersion":2,"id":"x","name":"x"}"#, #"{"formatVersion":1,"id":"../x","name":"x"}"#,
+            #"{"formatVersion":3,"id":"x","name":"x"}"#, #"{"formatVersion":1,"id":"../x","name":"x"}"#,
             #"{"formatVersion":1,"id":"x","name":"x","variants":{"light":{"code":"a"}}}"#,
             #"{"formatVersion":1,"id":"x","name":"x","spacing":{"visualInsetX":7}}"#,
         ] {

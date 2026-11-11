@@ -1,0 +1,82 @@
+{
+  "appearance" : "system",
+  "candidateBar" : {
+    "collapsed" : {
+      "cellPaddingX" : 7,
+      "cellSpacing" : 0,
+      "fillsAvailableWidth" : false,
+      "height" : 40
+    },
+    "compositionRow" : {
+      "visible" : "composingOnly"
+    },
+    "controls" : {
+      "pagePosition" : "both",
+      "showsExpand" : true
+    },
+    "expanded" : {
+      "columnSpacing" : 0,
+      "columns" : 2,
+      "fullRowTextLength" : 8,
+      "mode" : "adaptive",
+      "rowSpacing" : 0
+    },
+    "formatVersion" : 1,
+    "id" : "builtin-songyan",
+    "name" : "松烟墨韵"
+  },
+  "formatVersion" : 1,
+  "id" : "builtin-songyan",
+  "name" : "松烟墨韵",
+  "skin" : {
+    "formatVersion" : 1,
+    "id" : "builtin-songyan",
+    "keycap" : {
+      "borderWidth" : 1,
+      "cornerRadius" : 6,
+      "shadow" : "none"
+    },
+    "name" : "松烟墨韵",
+    "spacing" : {
+      "visualInsetX" : 0,
+      "visualInsetY" : 1
+    },
+    "typography" : {
+      "candidateSize" : 21,
+      "family" : "system",
+      "keySize" : 22,
+      "secondarySize" : 10,
+      "weight" : "regular"
+    },
+    "variants" : {
+      "dark" : {
+        "colors" : {
+          "accent" : "#8FD7AA",
+          "accentText" : "#003820",
+          "border" : "#272C28",
+          "control" : "#383E3A",
+          "key" : "#454D47",
+          "panel" : "#121513",
+          "pressed" : "#57635A",
+          "secondaryText" : "#B4BEB5",
+          "selected" : "#1C3426",
+          "text" : "#E2E5E0"
+        }
+      },
+      "light" : {
+        "colors" : {
+          "accent" : "#2A593F",
+          "accentText" : "#FFFFFF",
+          "border" : "#D5DDD4",
+          "control" : "#DDE3DA",
+          "key" : "#FFFFFF",
+          "panel" : "#ECEFEA",
+          "pressed" : "#D2DDD3",
+          "secondaryText" : "#586159",
+          "selected" : "#D8E6DB",
+          "text" : "#191D1A"
+        }
+      }
+    }
+  }
+}
