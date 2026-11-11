@@ -45,9 +45,12 @@ public enum CandidateCollapsedFlow {
     /// Floating-point tolerance (used in the total-width comparison; there is no per-cell 0.5pt tolerance anymore).
     static let fitEpsilon: CGFloat = 0.001
 
-    /// Collapsed cell width is estimated only from the actually drawn candidate text / selection marker; comments stay in the expanded area and the accessibility value.
+    /// Gap between the candidate text and its engine comment on the same line.
+    public static let commentGap: CGFloat = 4
+
+    /// Collapsed cell width is estimated from the drawn candidate text, selection marker and the engine comment (same line, after the text).
     public static func intrinsicCellWidth(
-        text: String, comment _: String,
+        text: String, comment: String,
         selectionBadge: String? = nil,
         typography: CandidateTypography,
         cellPaddingX: Double
@@ -57,8 +60,11 @@ public enum CandidateCollapsedFlow {
             selectionBadge.map {
                 CandidateTextMetrics.estimatedWidth($0, fontSize: typography.secondarySize) + 4
             } ?? 0
+        let commentWidth =
+            comment.isEmpty
+            ? 0 : commentGap + CandidateTextMetrics.estimatedWidth(comment, fontSize: typography.secondarySize)
         let pad = cellPaddingX.isFinite ? max(0, CGFloat(cellPaddingX)) : 0
-        return max(minimumCellWidth, textWidth + badgeWidth + pad * 2 + textSlack)
+        return max(minimumCellWidth, textWidth + badgeWidth + commentWidth + pad * 2 + textSlack)
     }
 
     // MARK: Vertical budget (inside the fixed header surface)
@@ -66,8 +72,7 @@ public enum CandidateCollapsedFlow {
     /// Automatic layout box height: always <= budget (never exceeding the original block height).
     ///
     /// The collapsed state never scales as a whole: the primary candidate is always rasterized natively at its
-    /// own size; the effective budget grows to fit the font size, and the secondary comment yields in the collapsed
-    /// state (the expanded area and accessibility value keep it).
+    /// own size; the effective budget grows to fit the font size, and the comment shares the candidate's line.
     public static func fittedBlockHeight(blockHeight: CGFloat, budget: CGFloat) -> CGFloat {
         guard blockHeight.isFinite, budget.isFinite, blockHeight > 0, budget > 0 else { return blockHeight }
         return min(blockHeight, budget)

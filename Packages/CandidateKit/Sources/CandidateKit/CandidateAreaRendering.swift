@@ -504,10 +504,9 @@ struct CollapsedCandidateRow: View {
         // two-character candidate is not truncated to an ellipsis for padding; wide cells restore the configured cellPaddingX.
         let padX = min(stripDefinition.cellPaddingX, max(4, (width - 40) / 2))
         let maxText = max(20, width - padX * 2)
-        // The collapsed state keeps only the primary candidate and the highlight line. Scaling candidate + comment as
-        // one block with `scaleEffect` to fit a limited header budget triggers offscreen resampling and turns the whole
-        // row into a blurry smear. Comments stay in the expanded area and the accessibility value; the primary candidate
-        // is always rasterized directly at its own size, and the layout box is clamped into the budget by the shared policy, never scaled as a whole.
+        // The engine comment is drawn on the candidate's own line, so it adds width but no height. Scaling the block
+        // with `scaleEffect` to fit a limited header budget triggers offscreen resampling and turns the whole
+        // row into a blurry smear; the primary candidate is always rasterized directly at its own size, and the layout box is clamped into the budget by the shared policy, never scaled as a whole.
         let budget = effectiveHeaderHeight
         let blockHeight = CandidateCollapsedFlow.fittedBlockHeight(
             blockHeight: CandidateCollapsedFlow.estimatedBlockHeight(
@@ -538,6 +537,12 @@ struct CollapsedCandidateRow: View {
                             fontSize: context.typography.candidateSize,
                             fontFamily: skin.fontFamily, fontWeight: skin.fontWeight,
                             color: skin.candidateColor, lineLimit: 1, truncation: .tail)
+                    }
+                    if !entry.comment.isEmpty {
+                        Text(entry.comment)
+                            .font(skin.font(context.typography.secondarySize))
+                            .foregroundStyle(highlighted ? skin.candidateColor : skin.secondaryColor)
+                            .lineLimit(1)
                     }
                 }
                 // Reserve the same baseline for every candidate, including the underline.

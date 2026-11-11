@@ -143,6 +143,23 @@ final class CandidateKitTests: XCTestCase {
         XCTAssertNil(entry("甲", comment: "comment is not a label").selectionBadge)
     }
 
+    /// Engine comments (e.g. Jyutping `nei5`) are drawn in the collapsed row, so the cell must be wider.
+    func testCollapsedCellWidthIncludesEngineComment() {
+        let typography = CandidateTypography(candidateSize: 20, secondarySize: 10)
+        let plain = entry("你")
+        let commented = entry("你", comment: "nei5")
+        let widthPlain = CandidateCollapsedFlow.intrinsicCellWidth(
+            text: plain.text, comment: plain.comment, typography: typography, cellPaddingX: 2)
+        let widthCommented = CandidateCollapsedFlow.intrinsicCellWidth(
+            text: commented.text, comment: commented.comment, typography: typography, cellPaddingX: 2)
+        XCTAssertGreaterThan(widthCommented, widthPlain)
+        let layout = CandidateCollapsedFlow.layout(
+            entries: [commented], collapsed: CandidateBarDefinition.systemDefault.collapsed,
+            typography: typography, availableWidth: 40)
+        XCTAssertGreaterThanOrEqual(layout.cellWidths[0], widthCommented)
+        XCTAssertEqual(commented.comment, "nei5")
+    }
+
     func testSelectionBadgeParticipatesInCollapsedAndExpandedWidthBudgets() {
         let typography = CandidateTypography(candidateSize: 20, secondarySize: 10)
         let plain = entry("甲")
@@ -415,26 +432,14 @@ final class CandidateKitTests: XCTestCase {
         XCTAssertEqual(Set(exact.cellWidths), [88])
     }
 
-    /// The collapsed state draws no comments, so a long reading cannot crowd out the primary candidate; degenerate input still does not crash.
-    func testCollapsedCommentsDoNotAffectVisibleWidthsOrScroll() {
+    /// Comments widen the collapsed cell; degenerate input still does not crash.
+    func testCollapsedCommentsWidenCellsAndDegenerateInputIsSafe() {
         let typography = CandidateTypography(candidateSize: 20, secondarySize: 10)
         let plain = CandidateCollapsedFlow.intrinsicCellWidth(
             text: "甲", comment: "", typography: typography, cellPaddingX: 12)
         let withComment = CandidateCollapsedFlow.intrinsicCellWidth(
             text: "甲", comment: "很长很长的注释", typography: typography, cellPaddingX: 12)
-        XCTAssertEqual(withComment, plain)
-
-        let words = [entry("甲", local: 0), entry("早上好", local: 1), entry("乙", local: 2)]
-        let annotated = words.enumerated().map {
-            entry($0.element.text, comment: String(repeating: "读音", count: 80), local: $0.offset)
-        }
-        let bare = CandidateCollapsedFlow.layout(
-            entries: words, collapsed: .init(), typography: typography, availableWidth: 260)
-        let withNotes = CandidateCollapsedFlow.layout(
-            entries: annotated, collapsed: .init(), typography: typography, availableWidth: 260)
-        XCTAssertEqual(withNotes, bare)
-        XCTAssertFalse(withNotes.scrolls)
-        XCTAssertEqual(withNotes.cellWidths, [48, 88, 48])
+        XCTAssertGreaterThan(withComment, plain)
 
         XCTAssertEqual(
             CandidateCollapsedFlow.layout(
