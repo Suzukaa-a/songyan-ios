@@ -33,9 +33,9 @@ Cantonese, Japanese and more. The engine runs inside the keyboard on your device
 - **Simplified or Traditional output** (Taiwan and Hong Kong standards too), switchable per input
   method.
 - **Swipe sideways on a merged key** to type either letter, with optional double pinyin hints.
-- **Your own layouts and appearance:** edit key layouts in the app, and make appearances in the
+- **Layouts and appearance:** edit key layouts in the app, and make appearances in the
   [appearance editor](https://suzukaa-a.github.io/songyan-themes/). Appearance files work on both iOS and Android.
-- **Extras when you want them:** typo correction, prediction, grammar models, and backups of the
+- **Optional features:** typo correction, prediction, grammar models, and backups of the
   words it learned (shared with Android).
 - Interface in Simplified Chinese, Traditional Chinese and Japanese.
 
@@ -48,17 +48,12 @@ learns stay on your device.
 
 ## Known issues
 
-- **Extra 17 pt gap above the keyboard (iOS 26 and 27 bug).** After switching apps with the
-  keyboard up, or switching to Songyan from a system keyboard with a top bar, iOS can add a blank
-  17 pt strip above any third-party keyboard. The keyboard can't detect or undo it. Switch to the
-  Emoji keyboard and back, or reopen the app you're typing in. Tracked in the
-  [Apple Developer Forums](https://developer.apple.com/forums/thread/843093) (FB24460699,
-  FB25094825). Until Apple fixes it, Songyan's candidate area is 10 pt shorter so the keyboard
-  doesn't look too tall when the strip appears.
-- **Safari's address bar completion.** When Safari fills in the rest of a URL, Delete removes the
-  last letter you typed and Safari fills the address in again, instead of removing only the filled-in
-  part. iOS does not show that completion to third-party keyboards, so they can't remove it on its
-  own.
+- **Extra 17 pt gap above the keyboard (iOS 26 and 27).** After switching apps with the keyboard
+  up, or switching to Songyan from a system keyboard with a top bar, iOS can add a blank strip above
+  third-party keyboards. Switch to the Emoji keyboard and back, or reopen the app. Reported to Apple
+  ([forum](https://developer.apple.com/forums/thread/843093), FB24460699, FB25094825).
+- **Safari's address bar completion.** When Safari completes a URL, Delete removes the last letter
+  and Safari completes it again.
 
 ## Build from source
 

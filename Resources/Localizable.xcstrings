@@ -32517,7 +32517,7 @@
         }
       }
     },
-    "键盘宽于 %lld pt 时算作大屏": {
+    "键盘宽度超过 %lld pt 时视为大屏": {
       "localizations": {
         "ja": {
           "stringUnit": {
@@ -32528,13 +32528,13 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "键盘宽于 %lld pt 时算作大屏"
+            "value": "键盘宽度超过 %lld pt 时视为大屏"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "鍵盤寬於 %lld pt 時算作大螢幕"
+            "value": "鍵盤寬度超過 %lld pt 時視為大螢幕"
           }
         }
       }

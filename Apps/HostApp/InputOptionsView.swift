@@ -248,7 +248,7 @@ struct InputOptionsView: View {
         Section {
             widthRow(
                 title: String(localized: "大屏宽度"),
-                subtitle: String(localized: "键盘宽于 \(Int(splitWidthDraft)) pt 时算作大屏"),
+                subtitle: String(localized: "键盘宽度超过 \(Int(splitWidthDraft)) pt 时视为大屏"),
                 value: $splitWidthDraft,
                 range: Double(
                     KeyboardWidthSettings.splitWidthRange.lowerBound)...Double(
