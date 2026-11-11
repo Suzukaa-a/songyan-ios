@@ -8,6 +8,8 @@ Thanks for helping. Songyan (松烟) is an iOS keyboard built on the RIME engine
 - Python 3.11 or later; the gates and helper scripts use only the standard library.
 - For `make lint`: `shellcheck` (`brew install shellcheck`) and `ruff` (used directly, or through `uvx` or `pipx` when installed). `swift-format` ships with Xcode.
 - To run on a device under your own Apple team, create the git-ignored `Config/Local.xcconfig` and override any of `SONGYAN_BUNDLE_ID`, `SONGYAN_APP_GROUP` and `DEVELOPMENT_TEAM` from [Config/Identity.xcconfig](Config/Identity.xcconfig).
+- The app runs on iOS 17.0 and later. The engine ships only an arm64 simulator slice, so the simulator needs an Apple silicon Mac. The prebuilt engine (`Packages/RimeBridge/Vendored/RimeKit.xcframework`) is committed, so building the app never compiles librime.
+- To rebuild the engine: `Tools/BuildRime` (macOS) and `Tools/BuildRimeIOS` (iOS slices) build librime and its plugins from the sources pinned in `Tools/BuildRime/VERSIONS.env`; `Tools/BuildRimeIOS/scripts/43-build-rimekit.py` builds the XCFramework and `Tools/BuildRimeIOS/scripts/export-rimekit.py` installs it and records its checksums.
 - To run on a simulator use `make sim-stage`. It signs ad hoc, so the App Group works without a developer account. Unsigned builds (`make build-simulator`, CI) carry no entitlements and must not be used to run the app. See [DEBUG.md](DEBUG.md).
 
 ## Repository layout

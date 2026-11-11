@@ -4,7 +4,7 @@
 
 [English](README.md)
 
-松烟是一款基于 [RIME 中州韵](https://rime.im) 引擎的 iOS 通用中文输入法：主 App 负责管理输入方案，键盘扩展直接在设备端运行引擎。
+松烟是一款基于 [RIME 中州韵](https://rime.im) 引擎的 iPhone / iPad 中文输入法。引擎直接在键盘里、在你的设备上运行，任何 RIME 输入方案都能用。引擎、输入方案和文件格式与 [松烟 Android 版](https://github.com/Suzukaa-a/songyan-android) 通用。
 
 <p>
   <img src=".github/screenshots/keyboard-14.png" width="240" alt="14 键键盘输入 nihao">
@@ -12,67 +12,34 @@
   <img src=".github/screenshots/home.png" width="240" alt="主 App 首页">
 </p>
 
-## 功能
+## 安装
 
-- RIME 引擎（librime 1.17）直接在键盘扩展中运行，包含 `lua`、`octagram`（语法模型）与 `predict` 插件。
-- 内置全拼和小鹤双拼两种输入方案，可用于 26 键、14 键、18 键、9 键四种键盘布局；14、18、9 键版本由方案自动生成。
-- 导入的方案还能用大千注音（41 键）、仓颉（26 键，速成也用这一布局）、日语罗马字（26 键）和十二键假名键盘；某个方案能用哪些键盘布局，由它自己的键位决定。
-- 繁体输出：内置方案可以打出简体、繁体、台湾或香港用字，首次安装时按系统语言选好，之后可按输入方式切换。键名、候选字形与标点都跟着切换。
-- 在合并键上左右滑动可直接打出其中一个字母；可选在字母键上显示双拼提示。
-- 支持从文件或链接导入 RIME 输入方案与词库，可在主 App 中启用、停用或删除。推荐目录里的雾凇拼音、万象拼音、注音、仓颉、速成、粤拼与日语カギロイ，都是你确认后才下载的上游钉版压缩包，并按你的语言排序。安装カギロイ时会补上键盘需要的翻页与标点修改。
-- 支持自定义键盘外观、候选栏与键盘布局，并可直接试打。
-- 可按需开启错键纠正、上屏联想（需自行导入 `predict.db`）和语法模型，并支持逐项开关 Lua 组件。
-- 支持手动备份与合并学习数据。
-- 界面提供简体中文、繁体中文与日语三种语言。
-- 键盘扩展不会发起任何网络请求。只有你主动操作时主 App 才会联网：通过链接导入或更新输入方案，或下载词库、模型文件。开启「允许完全访问」仅用于通过 App Group 与主 App 共享数据。
+1. 从 [Releases](https://github.com/Suzukaa-a/songyan-ios/releases) 下载 IPA，用 AltStore、Sideloadly 这类能用你自己的 Apple ID 重新签名的工具安装；也可以自己构建（见下文）。需要 iOS 17.0 或更高版本。
+2. 在「设置 → 通用 → 键盘 → 键盘」中添加松烟，并打开「允许完全访问」。完全访问只用来让键盘和松烟 App 共用你的输入方案和设置。
 
-## 环境要求
+## 能做什么
 
-- macOS 与 Xcode 27 或更高版本（iOS 27 SDK 及以上）；App 支持 iOS 17.0 及以上。
-- 在模拟器上运行需要 Apple 芯片的 Mac：引擎只提供 arm64 模拟器版本。
-- Python 3.11 或更高版本，用于运行项目脚本与测试（只用标准库）。
+- **内置全拼和小鹤双拼**，可用 26 键、14 键、18 键、9 键。
+- **任何 RIME 输入方案**：从推荐列表添加（雾凇拼音、万象拼音、注音、仓颉、速成、粤拼、日语カギロイ），也可以从文件或链接导入自己的方案。你确认后才会下载。导入的方案还能用注音、仓颉、日语罗马字和假名键盘。
+- **简体或繁体输出**（也有台湾、香港用字），可按输入方式分别切换。
+- **合并键左右滑**可以打出其中任一个字母，还可以在字母键上显示双拼提示。
+- **布局和外观随你定**：可以编辑键盘布局和候选栏；外观文件 iOS 和 Android 通用。
+- **需要时再开的功能**：错键纠正、联想、语法模型，以及学到的词的备份（与 Android 版通用）。
+- 界面提供简体中文、繁体中文和日语。
 
-仓库已包含预编译引擎 `Packages/RimeBridge/Vendored/RimeKit.xcframework`，构建 App 时无需编译 librime。
+## 隐私
 
-## 快速开始
-
-1. 克隆仓库并打开 `Songyan.xcodeproj`。
-2. 在模拟器上运行：执行 `make sim-stage`。它会构建 Debug 版本并做 Ad-hoc 签名，无需开发者账号即可使用 App Group，然后安装到专用模拟器上，详见 [DEBUG.md](DEBUG.md)。
-3. 在真机上运行：新建 `Config/Local.xcconfig`（Git 会忽略它），把 `DEVELOPMENT_TEAM` 设为你的团队。如果默认标识已被占用，一并改掉：
-
-   ```
-   DEVELOPMENT_TEAM = ABCDE12345
-   SONGYAN_BUNDLE_ID = com.example.songyan
-   SONGYAN_APP_GROUP = group.com.example.songyan
-   ```
-
-   键盘扩展的 Bundle ID 为 `$(SONGYAN_BUNDLE_ID).keyboard`。
-4. 构建并运行 `HostApp` scheme，然后在「设置 → 通用 → 键盘 → 键盘」中添加松烟，并开启「允许完全访问」。
-
-## 开发
-
-| 命令 | 用途 |
-| --- | --- |
-| `make fast` | 结构检查、Swift 包测试与离线探针 |
-| `make lint` / `make format` | 检查 / 整理 Swift、Shell 与 Python 代码格式 |
-| `make extended` | `fast` + 原生引擎 harness + 模拟器与真机 Debug 构建 |
-| `make release` | `extended` + 已安装引擎检查 + Release 构建 |
-| `make sim-stage` | 在专用模拟器上构建、安装并启动 |
-
-每个 Pull Request 都会在 CI 上运行代码格式检查、`make fast` 测试，以及模拟器与真机的无签名 Debug 和 Release 构建。
-
-开发流程参见 [CONTRIBUTING.md](CONTRIBUTING.md)，模块索引参见 [ARCHITECTURE.md](ARCHITECTURE.md)，调试与模拟器自动化参见 [DEBUG.md](DEBUG.md)。
-
-## 重新构建引擎
-
-`Tools/BuildRime`（macOS）与 `Tools/BuildRimeIOS`（iOS 切片）基于锁定版本的上游源码构建 librime 及其插件：`Tools/BuildRimeIOS/scripts/43-build-rimekit.py` 生成 XCFramework，`Tools/BuildRimeIOS/scripts/export-rimekit.py` 检查并安装它，校验值记录在 `Packages/RimeBridge/RimeKitArtifact.json`；上游版本记录在 `Tools/BuildRime/VERSIONS.env` 中。
+松烟不收集任何个人数据，也不向开发者或任何人发送数据。键盘本身从不联网；只有你在 App 里主动操作时才会联网：下载或更新输入方案，或者下载词库、模型文件。你输入的内容和学到的词只留在你的设备上。
 
 ## 已知问题
 
-- **键盘上方偶尔多出 17pt 空白（iOS 26、27 的问题）。** 键盘弹出时切到别的 App 再回来，或者从带顶栏的系统键盘（英文、拼音）切到松烟，iOS 可能会在所有第三方键盘上方多加一条 17pt 的空白。键盘自身的尺寸和安全区都没有变化，所以松烟无法察觉，也无法修正。切到表情键盘再切回来，或者彻底关掉正在打字的 App 再打开，空白就会消失。详见 [Apple 开发者论坛](https://developer.apple.com/forums/thread/843093)（FB24460699、FB25094825）。在 Apple 修复之前，松烟的候选区暂时矮 10pt，这样出现空白时键盘不会显得太高。
+- **键盘上方多出 17 pt 空白（iOS 26、27 的问题）**：键盘弹出时切换 App，或从带顶栏的系统键盘（英文、拼音）切到松烟后，iOS 可能在所有第三方键盘上方加一条 17 pt 的空白，键盘无法察觉也无法去掉。切到表情键盘再切回来，或者重新打开正在输入的 App 即可。已在 [Apple 开发者论坛](https://developer.apple.com/forums/thread/843093) 反馈（FB24460699、FB25094825）。在苹果修复之前，松烟的候选区矮了 10 pt，出现空白时键盘不会显得太高。
+- **Safari 地址栏的自动补全**：Safari 帮你补全网址时，按删除键会删掉你打的最后一个字母，然后 Safari 又重新补全，而不是只删掉补全的部分。iOS 不把这段补全告诉第三方键盘，所以没法单独删掉它。
+
+## 从源码构建
+
+打开 `Songyan.xcodeproj`，或者运行 `make sim-stage`，不需要开发者账号就能在模拟器上构建并安装。环境要求、检查命令和项目规则见 [CONTRIBUTING.md](CONTRIBUTING.md)，模块结构见 [ARCHITECTURE.md](ARCHITECTURE.md)，模拟器自动化见 [DEBUG.md](DEBUG.md)。安全问题请按 [SECURITY.md](SECURITY.md) 报告。
 
 ## 许可
 
-Copyright © 2026 Suzukaa-a。松烟采用 [GNU 通用公共许可证第 3 版](LICENSE)，仅限第 3 版（GPL-3.0-only）。
-
-第三方组件及其许可证详见 [Resources/Legal/ThirdPartyNotices.txt](Resources/Legal/ThirdPartyNotices.txt) 与 [Resources/Legal/ThirdPartyNotices-iOS.txt](Resources/Legal/ThirdPartyNotices-iOS.txt)。
+Copyright © 2026 Suzukaa-a。采用 [GPL-3.0-only](LICENSE) 许可。第三方组件及其许可见 [Resources/Legal/ThirdPartyNotices.txt](Resources/Legal/ThirdPartyNotices.txt) 与 [Resources/Legal/ThirdPartyNotices-iOS.txt](Resources/Legal/ThirdPartyNotices-iOS.txt)。
