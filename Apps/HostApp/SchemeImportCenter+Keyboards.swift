@@ -457,6 +457,21 @@ extension SchemeImportCenter {
     /// are listed only when the source is structurally adaptable and the physical alphabet can fold. Used by the "add keyboard" UI;
     /// the list holds candidates to try adding, and an add failure is reported as such, never pretending to be usable here.
     func addableKeyboards(packageID: String) async throws -> [PublishedKeyboard] {
+        let revision = installedPackages.first { $0.id == packageID }?.active.installation.revision
+        let result = try await readAddableKeyboards(packageID: packageID)
+        if let revision { addableKeyboardsCache[packageID] = (revision, result) }
+        return result
+    }
+
+    /// The last list read for this package, valid only for the revision it was read for. Pages seed their
+    /// layout names from it so rows open complete instead of growing a line when the read returns.
+    func cachedAddableKeyboards(for package: InstalledPackage) -> [PublishedKeyboard]? {
+        guard let cached = addableKeyboardsCache[package.id], cached.revision == package.active.installation.revision
+        else { return nil }
+        return cached.keyboards
+    }
+
+    private func readAddableKeyboards(packageID: String) async throws -> [PublishedKeyboard] {
         let resources = try await keyboardResources(packageID: packageID)
         return try await KeyboardResourceReadQueue.async {
             let build = resources.prebuiltDirectory ?? resources.userDirectory.appendingPathComponent("build")

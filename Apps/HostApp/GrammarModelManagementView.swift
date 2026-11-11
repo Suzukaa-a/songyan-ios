@@ -13,6 +13,14 @@ struct GrammarModelSettingsView: View {
     /// page out from under the user.
     @State private var onlySource: String?
 
+    init() {
+        // Sources the home screen already read decide this before the first frame; waiting for the
+        // refresh below would show the list for a moment and then swap it for the settings page.
+        let known = SchemeImportCenter.shared.installedPackages
+        _onlySource = State(initialValue: known.count == 1 ? known.first?.id : nil)
+        _loaded = State(initialValue: !known.isEmpty)
+    }
+
     var body: some View {
         // One source leaves nothing to pick, so its settings open right away.
         if let onlySource {
@@ -66,7 +74,8 @@ struct GrammarModelManagementView: View {
     @State private var deployedSchemas: [KeyboardSchemaDescriptor] = []
     @State private var bindings: [GrammarBinding] = []
     @State private var managedSchemaIDs: Set<String> = []
-    @State private var statusText = String(localized: "正在读取…")
+    /// Empty until the first read finishes, so the page does not show a loading line that is replaced a frame later.
+    @State private var statusText = ""
     @State private var publishedCurrentInstallation = false
     @State private var notice: String?
     @State private var applying = false
@@ -126,25 +135,29 @@ struct GrammarModelManagementView: View {
 
     var body: some View {
         List {
-            Section {
-                Text(statusText).font(.footnote).textSelection(.enabled)
-                    .accessibilityIdentifier("sentence-model.status")
-                if applying || (center.busy && workspace != nil) {
-                    ProgressView(center.message ?? String(localized: "正在保存…"))
-                }
-                if let notice {
-                    Label(notice, systemImage: "checkmark.circle")
-                        .font(.footnote).foregroundStyle(.green)
+            if workspace != nil || !statusText.isEmpty || notice != nil {
+                Section {
+                    if !statusText.isEmpty {
+                        Text(statusText).font(.footnote).textSelection(.enabled)
+                            .accessibilityIdentifier("sentence-model.status")
+                    }
+                    if applying || (center.busy && workspace != nil) {
+                        ProgressView(center.message ?? String(localized: "正在保存…"))
+                    }
+                    if let notice {
+                        Label(notice, systemImage: "checkmark.circle")
+                            .font(.footnote).foregroundStyle(.green)
+                    }
                 }
             }
             if workspace == nil {
-                Section {
-                    if let error = center.error, !center.busy, !applying {
+                // While the first read runs the list stays empty and the spinner sits over it, so the page
+                // changes once when the content arrives instead of swapping placeholder rows.
+                if let error = center.error, !center.busy, !applying {
+                    Section {
                         Text("没能读取这个方案的模型设置。").foregroundStyle(.red)
                         if developerOptions { Text(error).font(.caption).textSelection(.enabled) }
                         Button(String(localized: "重试")) { reloadWorkspace() }
-                    } else {
-                        ProgressView(String(localized: "正在读取…"))
                     }
                 }
             } else if models.isEmpty {
@@ -223,6 +236,11 @@ struct GrammarModelManagementView: View {
             }
             if let error = center.error, workspace != nil {
                 Section { Text(error).foregroundStyle(.red).textSelection(.enabled) }
+            }
+        }
+        .overlay {
+            if workspace == nil, center.error == nil || center.busy || applying {
+                ProgressView()
             }
         }
         .navigationTitle(sourceName)

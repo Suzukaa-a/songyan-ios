@@ -30,6 +30,9 @@ final class KeyboardSelectionCenter: ObservableObject {
     /// Latest-wins gate: a late read never overwrites a newer value.
     private var gate = LatestWinsReadGate()
     private var snapshot = AppliedSelectionSnapshot.none
+    /// The last successfully read selection, nil before the first read. Pages seed their state from it so
+    /// they open showing the current selection instead of a placeholder that the read replaces a frame later.
+    private(set) var lastReadSnapshot: AppliedSelectionSnapshot?
     private var switchTask: Task<Void, Never>?
 
     /// Reads the shared selection on the read queue; the main actor only applies the result.
@@ -43,6 +46,7 @@ final class KeyboardSelectionCenter: ObservableObject {
         else { return }
         let resolved = AppliedSelectionSnapshot.resolve(previous: snapshot, outcome: outcome)
         snapshot = resolved.snapshot
+        if resolved.error == nil { lastReadSnapshot = resolved.snapshot }
         usesInstalledScheme = resolved.snapshot.recipeEnabled
         HostLog.append(
             "keyboard selection: "

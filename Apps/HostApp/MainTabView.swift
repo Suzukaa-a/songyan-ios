@@ -126,6 +126,12 @@ struct MainTabView: View {
                     })
                 // Commit prediction (on by default once a dictionary is imported) converges after typo correction so the two do not contend for the install transaction.
                 PredictionCenter.shared.scheduleReconcile(after: TypoCorrectionCenter.shared.reconcileTask)
+                // Read each source's keyboard list now so the scheme pages open with their layout lines complete.
+                for package in schemeImports.installedPackages where !Task.isCancelled {
+                    if schemeImports.cachedAddableKeyboards(for: package) == nil {
+                        _ = try? await schemeImports.addableKeyboards(packageID: package.id)
+                    }
+                }
             }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active { refreshTick &+= 1 }

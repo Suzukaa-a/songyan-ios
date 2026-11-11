@@ -34,6 +34,30 @@ struct InputSchemeListView: View {
     @State private var presentations: [String: SourcePresentation] = [:]
     @State private var engineCapabilities: EngineCapabilities?
 
+    init() {
+        // Seed from what the home screen already read: the status column and the layout lines are right on the
+        // first frame instead of changing when the reads in `.task` return.
+        if let snapshot = KeyboardSelectionCenter.shared.lastReadSnapshot {
+            _selectedRecipeEnabled = State(initialValue: snapshot.recipeEnabled)
+            _selectedKind = State(
+                initialValue: snapshot.resourceKind.isEmpty
+                    ? nil : KeyboardRecipeStore.ResourceKind(rawValue: snapshot.resourceKind))
+            _selectedRevision = State(initialValue: snapshot.revision)
+            _selectedPackageID = State(initialValue: snapshot.packageID)
+            _selectedSchemaID = State(initialValue: snapshot.selectedSchemaID)
+        }
+        var seeded: [String: SourcePresentation] = [:]
+        let centerPackages = SchemeImportCenter.shared
+        for package in centerPackages.installedPackages {
+            guard let keyboards = centerPackages.cachedAddableKeyboards(for: package) else { continue }
+            seeded["package-\(package.id)"] = SourcePresentation(
+                layouts: HostLayoutAvailability.keyboardNames(
+                    for: keyboards, descriptors: package.schemas, in: LayoutManager.shared.registry),
+                revision: package.active.installation.revision)
+        }
+        _presentations = State(initialValue: seeded)
+    }
+
     /// Per-source "input methods / keyboard layouts" display (dynamic, from the resource snapshot).
     private struct SourcePresentation: Equatable {
         var inputMethods: [String] = []

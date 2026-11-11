@@ -46,6 +46,26 @@ struct SchemePackageDetailView: View {
     @State private var updateTask: Task<Void, Never>?
     @StateObject private var switcher = InputSchemeSwitch()
 
+    init(packageID: String) {
+        self.packageID = packageID
+        // Start from what the home screen already read, so the status, the input method order and the layout
+        // lines are right on the first frame instead of changing when the reads below return.
+        if let snapshot = KeyboardSelectionCenter.shared.lastReadSnapshot {
+            _selectionSnapshot = State(initialValue: snapshot)
+            _selectionReadable = State(initialValue: true)
+            _selectedKind = State(
+                initialValue: snapshot.recipeEnabled
+                    ? KeyboardRecipeStore.ResourceKind(rawValue: snapshot.resourceKind) : nil)
+            _selectedPackageID = State(initialValue: snapshot.packageID)
+            _selectedRevision = State(initialValue: snapshot.revision)
+        }
+        if let package = SchemeImportCenter.shared.installedPackages.first(where: { $0.id == packageID }),
+            let cached = SchemeImportCenter.shared.cachedAddableKeyboards(for: package)
+        {
+            _addableKeyboards = State(initialValue: Set(cached))
+        }
+    }
+
     private var item: SchemeImportCenter.InstalledPackage? {
         center.installedPackages.first { $0.id == packageID }
     }

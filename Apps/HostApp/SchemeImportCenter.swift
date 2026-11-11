@@ -66,6 +66,7 @@ final class SchemeImportCenter: ObservableObject {
         let schemaIDs: Set<String>
     }
     @Published private(set) var installedPackages: [InstalledPackage] = []
+    var addableKeyboardsCache: [String: (revision: String, keyboards: [PublishedKeyboard])] = [:]
     @Published private(set) var damagedPackages: [DamagedPackage] = []
     private var refreshGeneration: UInt64 = 0
     @Published var prepared: PreparedSchemeImport?
