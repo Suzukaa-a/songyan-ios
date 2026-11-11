@@ -845,7 +845,48 @@ enum KeyboardRoutedTouch {
     }
 }
 
+/// Fades a key's label views with the shared caret-drag fade: one opacity animation per change,
+/// nothing running between changes. The keycap layer is never in `labels`. A key leaving its
+/// window detaches the observer (`didMoveToWindow`), so no deinit is needed.
+@MainActor
+final class KeyLabelFadeBinding {
+    private var token: NSObjectProtocol?
+
+    func attach(to view: UIView, labels: @escaping @MainActor () -> [UIView?]) {
+        detach()
+        guard view.window != nil else { return }
+        let fade = KeyLabelFade.shared
+        let current = fade.opacity
+        for label in labels() { label?.alpha = current }
+        token = NotificationCenter.default.addObserver(
+            forName: .keyLabelFadeDidChange, object: fade, queue: .main
+        ) { _ in
+            MainActor.assumeIsolated {
+                let views = labels()
+                let target = fade.opacity
+                UIView.animate(
+                    withDuration: fade.animationDuration, delay: 0, options: [.beginFromCurrentState, .allowUserInteraction]
+                ) {
+                    for label in views { label?.alpha = target }
+                }
+            }
+        }
+    }
+
+    func detach() {
+        if let token { NotificationCenter.default.removeObserver(token) }
+        token = nil
+    }
+}
+
 class SkinnedButton: UIButton, KeyboardKeyHitTarget {
+    private let labelFadeBinding = KeyLabelFadeBinding()
+    /// The views that carry this key's text and glyph; they fade while the space bar drags the caret.
+    var fadingLabelViews: [UIView?] { [titleView, glyphView, authorSubtitleLabel] }
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        labelFadeBinding.attach(to: self) { [weak self] in self?.fadingLabelViews ?? [] }
+    }
     /// Feedback on touch down (system keyboard behavior); the globe key leaves switch feedback to the system, so subclasses can turn this off.
     var emitsTouchDownFeedback: Bool { true }
     override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {

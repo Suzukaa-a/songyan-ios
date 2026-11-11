@@ -1275,8 +1275,14 @@ struct AlternateCharacterKey: UIViewRepresentable {
             return true
         }
 
+        private let labelFadeBinding = KeyLabelFadeBinding()
+
         override func didMoveToWindow() {
             super.didMoveToWindow()
+            labelFadeBinding.attach(to: self) { [weak self] in
+                guard let self else { return [] }
+                return [self.title, self.subtitle, self.alternateHint] + self.columnHints
+            }
             if window == nil { cancelPress() }
         }
 

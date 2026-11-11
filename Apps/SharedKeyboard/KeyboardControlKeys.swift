@@ -597,11 +597,16 @@ struct CursorSpaceKey: UIViewRepresentable {
             onTap?()
         }
 
+        override var fadingLabelViews: [UIView?] { super.fadingLabelViews + [layoutLabel] }
+
         private func startCursorMode() {
             KeyRollover.release(self)
             hintTimer?.invalidate()
             hintTimer = nil
             isDragging = true
+            if KeyLabelFade.shared.setDragging(true, reduceMotion: UIAccessibility.isReduceMotionEnabled) {
+                KeyboardFeedbackService.shared.caretModeEntered()
+            }
             steppedX = latestX
             refreshAppearance()
         }
@@ -644,6 +649,7 @@ struct CursorSpaceKey: UIViewRepresentable {
             isDragging = false
             didMoveCursor = false
             isHighlighted = false
+            KeyLabelFade.shared.setDragging(false, reduceMotion: UIAccessibility.isReduceMotionEnabled)
             refreshAppearance()
         }
 

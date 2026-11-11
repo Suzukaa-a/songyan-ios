@@ -400,6 +400,13 @@ public final class KeyboardFeedbackService {
         selectionGenerator?.prepare()
     }
 
+    /// The space bar entering caret-drag mode: one key haptic, no click, only when haptics are on.
+    public func caretModeEntered() {
+        guard hapticEnabled, hapticsAllowedInProcess else { return }
+        lastImpactAt = CACurrentMediaTime()
+        playKeyHaptic(level: hapticLevel)
+    }
+
     /// Slide-selection on an alternate key crossing to another item: only the lighter selection haptic, no
     /// click (sounding on every step of the slide would drown out typing; the final commit still goes
     /// through selectionChanged / key feedback). Has a minimum interval so sweeping across options does not burst.
