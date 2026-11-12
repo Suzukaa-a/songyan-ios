@@ -385,5 +385,58 @@ final class ScriptAddonCenter: ObservableObject {
             NSLog("SONGYAN_SCRIPT_ADDON_SELFTEST %@", text)
             return text
         }
+
+        /// Simulator smoke test for the host add flow that the settings screen drives:
+        /// stage the bundled example, confirm it, toggle it and run it through the same
+        /// center and store the screen uses. Writes the outcome to the app's temporary
+        /// directory; the numbers are the production limits.
+        static func runCenterSelfTest() -> String {
+            var lines: [String] = []
+            let root =
+                FileManager.default.temporaryDirectory
+                .appendingPathComponent("center-selftest-\(UUID().uuidString)", isDirectory: true)
+            let center = ScriptAddonCenter(root: root)
+            guard
+                let sourceURL = ScriptAddonCenter.bundledResource("minimal", "js"),
+                let source = try? Data(contentsOf: sourceURL)
+            else {
+                lines.append("error: bundled minimal.js missing")
+                return writeCenterSelfTest(lines)
+            }
+            lines.append("staged=\(center.stage(source: source))")
+            guard let draft = center.pending else {
+                lines.append("error: no pending draft after staging")
+                return writeCenterSelfTest(lines)
+            }
+            lines.append("draft id=\(draft.id) name=\(draft.declarations.name)")
+            center.confirm(draft, name: nil, settings: [:], secretValues: [:])
+            lines.append("addons=\(center.addons.count) pending=\(center.pending != nil)")
+            guard let addon = center.addons.first else {
+                lines.append("error: no addon after confirming")
+                return writeCenterSelfTest(lines)
+            }
+            lines.append("enabled=\(addon.state.enabled)")
+            center.setEnabled(false, addon: addon)
+            lines.append("after disable=\(center.addons.first?.state.enabled ?? false)")
+            center.setEnabled(true, addon: addon)
+            lines.append("after enable=\(center.addons.first?.state.enabled ?? false)")
+            if let addon = center.addons.first {
+                if let result = center.tryRun(addon: addon, inputText: "Hello") {
+                    lines.append("outputs=\(result.outputs)")
+                } else {
+                    lines.append("tryRun=nil error=\(center.errorMessage ?? "none")")
+                }
+            }
+            return writeCenterSelfTest(lines)
+        }
+
+        private static func writeCenterSelfTest(_ lines: [String]) -> String {
+            let text = lines.joined(separator: "\n") + "\n"
+            let url = FileManager.default.temporaryDirectory
+                .appendingPathComponent("center-selftest.txt")
+            try? text.write(to: url, atomically: true, encoding: .utf8)
+            NSLog("SONGYAN_SCRIPT_CENTER_SELFTEST %@", text)
+            return text
+        }
     }
 #endif

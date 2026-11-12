@@ -32,6 +32,9 @@ struct HostApp: App {
             if ProcessInfo.processInfo.environment["SONGYAN_SCRIPT_ADDON_SELFTEST"] == "1" {
                 _ = ScriptAddonCenter.runTryRunSelfTest()
             }
+            if ProcessInfo.processInfo.environment["SONGYAN_SCRIPT_CENTER_SELFTEST"] == "1" {
+                _ = ScriptAddonCenter.runCenterSelfTest()
+            }
         #endif
     }
 
@@ -41,6 +44,10 @@ struct HostApp: App {
                 #if DEBUG
                     if S0InputProbe.enabled {
                         S0InputProbeView()
+                    } else if ScriptCenterProbe.enabled {
+                        NavigationStack {
+                            ScriptAddonCenterView(center: ScriptAddonCenter.shared)
+                        }
                     } else if DeploymentProbe.enabled {
                         ProbeLaunchView()
                     } else if GlyphProbe.enabled {
@@ -80,6 +87,14 @@ struct HostApp: App {
     }
 
     // MARK: - Deployment probe (Debug only)
+
+    /// Shows the scripts screen directly for a simulator screenshot: the home row is the normal
+    /// entry, this only saves driving the UI for a manual visual check.
+    enum ScriptCenterProbe {
+        static var enabled: Bool {
+            ProcessInfo.processInfo.environment["SONGYAN_SCRIPT_CENTER_SCREEN"] == "1"
+        }
+    }
 
     /// Keeps exploratory deployments out of the normal startup path and its persisted settings.
     enum DeploymentProbe {
