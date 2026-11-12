@@ -626,6 +626,31 @@ public final class RimeEngine: @unchecked Sendable {
         }
     }
 
+    /// Moves the composition caret by `offset` input characters and stops at either end, reported
+    /// like a fed key. librime's own Left / Right keys jump by syllable and wrap from one end to the
+    /// other, which a caret drag must never do. The caret moves by whole characters, so a
+    /// multi-byte input never splits.
+    public func feedCaretMove(by offset: Int) throws -> RimeKeyFeed {
+        try queue.sync {
+            try requireReadableSessionOnQueue()
+            guard engine != nil, let api = rime_get_api(), let getInput = api.pointee.get_input,
+                let getCaret = api.pointee.get_caret_pos, let setCaret = api.pointee.set_caret_pos
+            else { throw RimeEngineError.notStarted }
+            guard let input = getInput(session) else {
+                return RimeKeyFeed(consumed: false, isComposing: false, hasInput: false, commitText: "")
+            }
+            let bytes = Array(String(cString: input).utf8)
+            // Byte offsets where a character starts, and the end.
+            let stops = bytes.indices.filter { bytes[$0] & 0xC0 != 0x80 } + [bytes.count]
+            let caret = getCaret(session)
+            let at = stops.firstIndex { $0 >= caret } ?? stops.count - 1
+            let target = min(max(at + offset, 0), stops.count - 1)
+            let moved = stops[target] != caret
+            if moved { setCaret(session, stops[target]) }
+            return RimeKeyFeed(consumed: moved, isComposing: !bytes.isEmpty, hasInput: !bytes.isEmpty, commitText: "")
+        }
+    }
+
     /// The state after keys fed with `feedKey`, with the same failure contract
     /// as an action's own read.
     public func actionState() throws -> RimeState {

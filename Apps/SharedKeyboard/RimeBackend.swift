@@ -492,7 +492,14 @@ public final class RimeBackend: EngineBackend, @unchecked Sendable {
             try dismissPredictionOnEngine(engine)
         }
         let result: RimeActionResult
-        do { result = try engine.processKey(key) } catch {
+        do {
+            if movesCaretDirectly(keyValue) {
+                let feed = try engine.feedCaretMove(by: keyValue == "Left" ? -1 : 1)
+                result = RimeActionResult(consumed: feed.consumed, state: try engine.actionState())
+            } else {
+                result = try engine.processKey(key)
+            }
+        } catch {
             lastErrorText = error.localizedDescription
             throw error
         }
@@ -540,7 +547,11 @@ public final class RimeBackend: EngineBackend, @unchecked Sendable {
                         try closePrediction(on: engine)
                     }
                     let result: RimeKeyFeed
-                    do { result = try engine.feedKey(key) } catch {
+                    do {
+                        result =
+                            try movesCaretDirectly(keyValue)
+                            ? engine.feedCaretMove(by: keyValue == "Left" ? -1 : 1) : engine.feedKey(key)
+                    } catch {
                         lastErrorText = error.localizedDescription
                         throw error
                     }
@@ -583,6 +594,16 @@ public final class RimeBackend: EngineBackend, @unchecked Sendable {
             batch.snapshot = batch.processed > 0 ? snap : nil
         }
         return batch
+    }
+
+    /// A caret move inside a composition sets the caret: librime's Left / Right keys jump by
+    /// syllable and wrap round, so a space-bar drag bounced between the ends of the spelling. A
+    /// kana composition keeps the keys: its input is romaji and its caret moves by kana.
+    private func movesCaretDirectly(_ keyValue: String) -> Bool {
+        guard keyValue == "Left" || keyValue == "Right" else { return false }
+        let schemaID = lastState.schemaID
+        return InputLayoutPolicy.family(schemaID: schemaID, alphabet: spellerAlphabet(schemaID: schemaID) ?? "")
+            != .japanese
     }
 
     private func commitFullyConfirmedZhuyin(_ state: RimeState, on engine: RimeEngine) throws -> RimeState {
