@@ -193,6 +193,7 @@ Shared container root: the App Group directory; recipe publication lives under `
 | `KeyboardAppearance/` | unified appearance snapshot | host writes; extension reads |
 | `KeyboardOptions/` | option preferences | |
 | App Group `UserDefaults` `keyboard.oneHand.v1` | `off` / `left` / `right`, unknown values mean off; adopted on presentation, restore immediately writes off | host writes; host/extension read |
+| App Group `UserDefaults` `keyboard.oneHandWidthPercent.v1` / `keyboard.cursorSwipeAnywhere.v1` | narrowed width in percent (60–90, default 85, out-of-range snaps) and the sideways-slide cursor choice (default off, asked when a slide starts, only while nothing is being typed) | host writes; host/extension read |
 | App Group `UserDefaults` `keyboard.readingPlacement.v1` | `row` / `candidateBar`, unknown values mean row; `candidateBar` reserves no reading row height; adopted on presentation | host writes; host/extension read |
 | App Group `UserDefaults` `keyboard.keySoundLevel`, `keyboard.keyHapticLevel` | `soft` / `medium` / `strong`, unknown values mean medium; enable switches remain separate | shared feedback service caches values outside key handling |
 | App Group `UserDefaults` `keyboard.heightPreset.v1` | `KeyboardHeightPreferences`, adopted by the next presentation; the same finite height feeds host and extension shell budgets | host writes; host/extension read |

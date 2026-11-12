@@ -874,6 +874,17 @@ public struct KeyboardPanelView: View {
         .environment(\.keyboardPopupSurface, popupSurface)
         .environment(\.keyboardFlashSurface, popupSurface)
         .environment(
+            \.keyboardCursorSwipe,
+            cursorMovement.map { move in
+                KeyboardCursorSwipe(
+                    isActive: {
+                        KeyboardCursorSwipePreferences.isEnabled && !controller.snapshot.isComposing
+                            && controller.session.pendingCodes.isEmpty
+                    },
+                    move: move)
+            }
+        )
+        .environment(
             \.keyboardDeleteHasComposition,
             { controller.snapshot.isComposing || !controller.session.pendingCodes.isEmpty }
         )

@@ -194,6 +194,14 @@ public enum KeyboardOneHandPreferences {
     }
 }
 
+/// Sliding sideways over the keys moves the cursor while nothing is being typed; off by default.
+public enum KeyboardCursorSwipePreferences {
+    public static let key = "keyboard.cursorSwipeAnywhere.v1"
+    public static var isEnabled: Bool {
+        (SharedPreferences.object(forKey: key, in: KeyboardOneHandPreferences.defaults) as? Bool) ?? false
+    }
+}
+
 /// Key feel shared by the app and the keyboard extension: the global long-press delay and the
 /// corner-hint flick of character keys. Keys read the in-process copy on every render, so the stored
 /// values are re-read only when a keyboard presentation starts (`refresh`).

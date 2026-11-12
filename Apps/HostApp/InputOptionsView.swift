@@ -58,6 +58,8 @@ struct InputOptionsView: View {
     @AppStorage(KeyboardOneHandPreferences.widthPercentKey, store: KeyboardOneHandPreferences.defaults)
     private var oneHandWidthValue = KeyboardOneHandLayoutPolicy.defaultWidthPercent
     @State private var oneHandWidthDraft: Double?
+    @AppStorage(KeyboardCursorSwipePreferences.key, store: KeyboardOneHandPreferences.defaults)
+    private var cursorSwipeEnabled = false
     @AppStorage(KeyboardReadingPlacementPreferences.key, store: KeyboardReadingPlacementPreferences.defaults)
     private var readingPlacementValue = ReadingPlacement.row.rawValue
     /// Per-physical wide-screen dock. Read once per visit, written through the same shared
@@ -97,6 +99,17 @@ struct InputOptionsView: View {
                     }
                 }
                 .accessibilityIdentifier("inputOptions.idleToolbarLayout")
+            }
+            Section {
+                Toggle(isOn: $cursorSwipeEnabled) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("横滑移动光标")
+                        Text("没在打字时，在按键上左右滑动来移动光标。")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .accessibilityIdentifier("inputOptions.cursorSwipe")
             }
             keyboardHeightSection
             readingPlacementSection

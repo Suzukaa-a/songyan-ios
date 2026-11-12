@@ -8,7 +8,20 @@ import SwiftUI
 
 private struct KeyboardKeyHeightKey: EnvironmentKey { static let defaultValue: CGFloat = 50 }
 private struct KeyboardPopupSurfaceKey: EnvironmentKey { static let defaultValue: UIView? = nil }
+
+/// A sideways slide over a character key that moves the cursor instead, when the user turned it
+/// on and nothing is being typed. `isActive` is asked as the slide starts, never per render.
+struct KeyboardCursorSwipe {
+    let isActive: () -> Bool
+    let move: (Int) -> Void
+}
+
+private struct KeyboardCursorSwipeKey: EnvironmentKey { static var defaultValue: KeyboardCursorSwipe? { nil } }
 extension EnvironmentValues {
+    var keyboardCursorSwipe: KeyboardCursorSwipe? {
+        get { self[KeyboardCursorSwipeKey.self] }
+        set { self[KeyboardCursorSwipeKey.self] = newValue }
+    }
     var keyboardKeyHeight: CGFloat {
         get { self[KeyboardKeyHeightKey.self] }
         set { self[KeyboardKeyHeightKey.self] = newValue }

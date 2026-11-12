@@ -32715,6 +32715,50 @@
         }
       }
     },
+    "横滑移动光标": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "横滑移动光标"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "横スワイプでカーソル移動"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "橫滑移動游標"
+          }
+        }
+      }
+    },
+    "没在打字时，在按键上左右滑动来移动光标。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没在打字时，在按键上左右滑动来移动光标。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力していないとき、キーの上を左右にスワイプしてカーソルを移動します。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "沒在打字時，在按鍵上左右滑動來移動游標。"
+          }
+        }
+      }
+    },
     "键盘宽度": {
       "localizations": {
         "zh-Hans": {
