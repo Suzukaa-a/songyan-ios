@@ -10,6 +10,59 @@ final class KeyboardPerformanceTests: XCTestCase {
     }
 
     @MainActor
+    func testOnboardingRecommendationsStartCollapsedAndExpand() {
+        let app = openOnboardingSchemes()
+        XCTAssertTrue(app.buttons["schemes.download.rime-ice"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["雾凇拼音"].exists)
+        XCTAssertTrue(
+            app.descendants(matching: .any).matching(identifier: "schemes.featured.rime-ice").firstMatch.exists)
+        XCTAssertFalse(app.buttons["schemes.download.rime-wanxiang"].exists)
+        XCTAssertFalse(app.buttons["schemes.download.rime-bopomofo"].exists)
+        let more = app.buttons["schemes.more"]
+        XCTAssertTrue(more.exists)
+        more.tap()
+        XCTAssertTrue(app.buttons["schemes.download.rime-wanxiang"].waitForExistence(timeout: 5))
+        app.swipeUp()
+        XCTAssertTrue(app.buttons["schemes.download.rime-bopomofo"].exists)
+    }
+
+    @MainActor
+    func testOnboardingRecommendationDownloadCanBeCancelledInPlace() {
+        let app = openOnboardingSchemes()
+        let download = app.buttons["schemes.download.rime-ice"]
+        XCTAssertTrue(download.waitForExistence(timeout: 5))
+        download.tap()
+        let confirm = app.buttons["schemes.confirmDownload"]
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.links["查看项目主页"].exists)
+        XCTAssertFalse(app.buttons["schemes.cancel.rime-ice"].exists)
+        confirm.tap()
+        let cancel = app.buttons["schemes.cancel.rime-ice"]
+        XCTAssertTrue(cancel.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.progressIndicators.firstMatch.exists)
+        XCTAssertFalse(download.exists)
+        cancel.tap()
+        XCTAssertTrue(cancel.waitForNonExistence(timeout: 5))
+        XCTAssertTrue(download.waitForExistence(timeout: 5))
+        XCTAssertTrue(download.isEnabled)
+        XCTAssertFalse(app.buttons["schemes.download.rime-wanxiang"].exists)
+    }
+
+    @MainActor
+    private func openOnboardingSchemes() -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchArguments = ["-app.songyan.settings.onboardingCompleted", "YES", "-AppleLanguages", "(zh-Hans)"]
+        app.launch()
+        let settings = app.buttons["设置"]
+        XCTAssertTrue(settings.waitForExistence(timeout: 10))
+        settings.tap()
+        app.buttons["键盘与完全访问"].tap()
+        app.buttons["下一步"].tap()
+        app.swipeUp()
+        return app
+    }
+
+    @MainActor
     func testKeyboardAppearance() {
         let app = prepareKeyboard()
         let field = app.textViews["试打输入框"]

@@ -19,7 +19,9 @@ struct SchemePackageImportView: View {
     /// Opens for recipe configuration against one source (nil = new import).
     var installedPackageID: String?
     var initialSourceURL: URL?
+    var downloadedSource: SchemeURLDownloadService.Result?
     @State private var initialized = false
+    @ObservedObject private var downloadService = SchemeURLDownloadService.shared
     @State private var recognizedNames: [String: String] = [:]
     @StateObject private var switcher = InputSchemeSwitch()
 
@@ -136,6 +138,7 @@ struct SchemePackageImportView: View {
             }
             if let message = center.message, !center.busy { messageSection(message) }
         }
+        .listStyle(.insetGrouped)
         .navigationTitle(isInstalledMode ? String(localized: "方案选项") : UserTerminology.addInputScheme)
         .navigationBarTitleDisplayMode(.inline)
         .task {
@@ -146,6 +149,12 @@ struct SchemePackageImportView: View {
                 center.openInstalledWorkspace(packageID: installedPackageID)
             } else {
                 center.beginSourceImport()
+                if let downloadedSource {
+                    center.accept(
+                        downloadedSource.localFileURLs, sourceURL: downloadedSource.requestedURL,
+                        recommendation: downloadedSource.recommendation,
+                        onFinished: { withExtendedLifetime(downloadedSource) {} })
+                }
             }
         }
         .fileImporter(
@@ -314,22 +323,9 @@ struct SchemePackageImportView: View {
 
     @ViewBuilder
     private var entrySection: some View {
-        Section {
-            ForEach(RecommendedSchemeSource.ordered(preferredLanguages: Locale.preferredLanguages)) { source in
-                NavigationLink {
-                    SchemeURLImportView(source: source)
-                } label: {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Label(source.name, systemImage: "star")
-                        Text(source.detail).font(.caption).foregroundStyle(.secondary)
-                        Text(source.licenseSummary).font(.caption2).foregroundStyle(.secondary)
-                    }
-                }
-                .disabled(center.busy)
-            }
-        } header: {
-            Text("推荐")
-        }
+        RecommendedInputMethodsView(center: center)
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
         Section {
             Button {
                 importerPurpose = .packageSource
@@ -337,13 +333,13 @@ struct SchemePackageImportView: View {
             } label: {
                 Label(String(localized: "从文件导入"), systemImage: "folder.badge.plus")
             }
-            .disabled(center.busy)
+            .disabled(center.busy || downloadService.isDownloading)
             NavigationLink {
                 SchemeURLImportView(initialURL: initialSourceURL)
             } label: {
                 Label(String(localized: "从链接导入"), systemImage: "link.badge.plus")
             }
-            .disabled(center.busy)
+            .disabled(center.busy || downloadService.isDownloading)
             if developerOptions {
                 // A rime-install source expression (owner/repo@branch) is not a normal product path.
                 NavigationLink {
@@ -351,7 +347,7 @@ struct SchemePackageImportView: View {
                 } label: {
                     Label(String(localized: "从 Rime 来源安装"), systemImage: "shippingbox")
                 }
-                .disabled(center.busy)
+                .disabled(center.busy || downloadService.isDownloading)
             }
         } footer: {
             Text("文件支持 ZIP、文件夹或方案文件；链接支持 ZIP 下载地址或 GitHub 仓库地址。")
@@ -604,4 +600,175 @@ struct SchemePackageImportView: View {
             Text(message).font(.footnote).foregroundStyle(.secondary)
         }
     }
+}
+
+struct RecommendedInputMethodsView: View {
+    @ObservedObject var center = SchemeImportCenter.shared
+    var onDownloaded: ((SchemeURLDownloadService.Result) -> Void)?
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @ObservedObject private var downloadService = SchemeURLDownloadService.shared
+    @State private var showingOtherSchemes = false
+    @State private var downloadingSourceID: String?
+    @State private var pendingSource: RecommendedSchemeSource?
+
+    var body: some View {
+        let sources = RecommendedSchemeSource.ordered(preferredLanguages: Locale.preferredLanguages)
+        VStack(alignment: .leading, spacing: 12) {
+            if let featured = sources.first {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("推荐").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                    recommendationSummary(featured)
+                    recommendationAction(featured, prominent: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(16)
+                .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
+                .accessibilityIdentifier("schemes.featured.\(featured.id)")
+                DisclosureGroup(isExpanded: $showingOtherSchemes) {
+                    VStack(spacing: 12) {
+                        ForEach(Array(sources.dropFirst())) { source in
+                            Divider()
+                            let layout =
+                                dynamicTypeSize.isAccessibilitySize
+                                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+                                : AnyLayout(HStackLayout(alignment: .top, spacing: 12))
+                            layout {
+                                recommendationSummary(source)
+                                recommendationAction(source, prominent: false)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+                    .padding(.top, 12)
+                } label: {
+                    Text("更多输入方式（\(sources.count - 1)）")
+                }
+                .padding(16)
+                .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
+                .accessibilityIdentifier("schemes.more")
+            }
+        }
+        .onDisappear { if downloadingSourceID != nil { downloadService.cancel() } }
+        .sheet(item: $pendingSource) { source in
+            NavigationStack {
+                Form {
+                    Section {
+                        Text(source.name).font(.headline)
+                        Text(source.detail).foregroundStyle(.secondary)
+                        Text(
+                            "\(ByteCountFormatter.string(fromByteCount: source.byteCountHint, countStyle: .file)) · \(licenseNames(source))"
+                        )
+                        .font(.footnote).foregroundStyle(.secondary)
+                        Link(String(localized: "查看项目主页"), destination: source.homepage)
+                    }
+                    Section {
+                        Button(String(localized: "下载")) {
+                            pendingSource = nil
+                            startDownload(source)
+                        }
+                        .accessibilityIdentifier("schemes.confirmDownload")
+                    }
+                }
+                .navigationTitle(String(localized: "下载「\(source.name)」？"))
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button(String(localized: "取消")) { pendingSource = nil }
+                    }
+                }
+            }
+            .presentationDetents([.medium, .large])
+        }
+    }
+
+    private func licenseNames(_ source: RecommendedSchemeSource) -> String {
+        var seen = Set<String>()
+        return source.archives.flatMap(\.licenses).map(\.name).filter { seen.insert($0).inserted }.joined(
+            separator: ", ")
+    }
+
+    private func startDownload(_ source: RecommendedSchemeSource) {
+        downloadingSourceID = source.id
+        Task {
+            guard let result = try? await downloadService.download(address: source.url.absoluteString) else { return }
+            if let onDownloaded {
+                onDownloaded(result)
+            } else {
+                center.accept(
+                    result.localFileURLs, sourceURL: result.requestedURL, recommendation: result.recommendation,
+                    onFinished: { withExtendedLifetime(result) {} })
+            }
+        }
+    }
+
+    private func recommendationSummary(_ source: RecommendedSchemeSource) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "character.book.closed")
+                .font(.title2)
+                .foregroundStyle(.tint)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(source.name).font(.headline)
+                Text(source.detail).font(.subheadline).foregroundStyle(.secondary)
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
+                Text(
+                    "\(ByteCountFormatter.string(fromByteCount: source.byteCountHint, countStyle: .file)) · \(licenseNames(source))"
+                )
+                .font(.footnote).foregroundStyle(.secondary)
+            }
+            .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    @ViewBuilder
+    private func recommendationAction(_ source: RecommendedSchemeSource, prominent: Bool) -> some View {
+        if downloadingSourceID == source.id, downloadService.isDownloading {
+            VStack(alignment: .leading, spacing: 8) {
+                if let progress = downloadService.progress, let total = progress.totalBytes, total > 0 {
+                    ProgressView(value: Double(min(progress.downloadedBytes, total)), total: Double(total))
+                    Text(
+                        "\(HostStorePaths.fileSizeText(progress.downloadedBytes)) / \(HostStorePaths.fileSizeText(total))"
+                    )
+                    .font(.footnote).foregroundStyle(.secondary)
+                } else {
+                    ProgressView(String(localized: "正在下载…"))
+                    if let progress = downloadService.progress, progress.downloadedBytes > 0 {
+                        Text("已下载 \(HostStorePaths.fileSizeText(progress.downloadedBytes))")
+                            .font(.footnote).foregroundStyle(.secondary)
+                    }
+                }
+                Button(String(localized: "取消")) { downloadService.cancel() }
+                    .buttonStyle(.borderless)
+                    .frame(minHeight: 44)
+                    .accessibilityIdentifier("schemes.cancel.\(source.id)")
+            }
+            .accessibilityIdentifier("schemes.progress.\(source.id)")
+        } else {
+            VStack(alignment: .leading, spacing: 8) {
+                if downloadingSourceID == source.id, let failure = downloadService.lastError {
+                    Text(failure).font(.footnote).foregroundStyle(.red)
+                }
+                if prominent {
+                    downloadButton(source)
+                        .buttonStyle(.borderedProminent)
+                } else {
+                    downloadButton(source)
+                        .buttonStyle(.borderless)
+                }
+            }
+        }
+    }
+
+    private func downloadButton(_ source: RecommendedSchemeSource) -> some View {
+        Button {
+            pendingSource = source
+        } label: {
+            Text("下载")
+                .frame(minHeight: 32)
+        }
+        .disabled(center.busy || downloadService.isDownloading)
+        .accessibilityLabel(String(localized: "下载\(source.name)"))
+        .accessibilityIdentifier("schemes.download.\(source.id)")
+    }
+
 }

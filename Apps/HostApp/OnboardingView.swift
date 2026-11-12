@@ -35,6 +35,8 @@ struct OnboardingView: View {
     @StateObject private var schemeImports = SchemeImportCenter.shared
 
     @State private var step = 0
+    @State private var downloadedSource: SchemeURLDownloadService.Result?
+    @State private var showingDownloadedScheme = false
     @State private var verificationText = ""
     @FocusState private var verificationFocused: Bool
     @State private var statusLine = String(localized: "读取中…")
@@ -157,6 +159,9 @@ struct OnboardingView: View {
             if value != 2 { verificationFocused = false }
         }
         .onDisappear { verificationFocused = false }
+        .navigationDestination(isPresented: $showingDownloadedScheme) {
+            SchemePackageImportView(downloadedSource: downloadedSource)
+        }
         .onChange(of: scenePhase) { _, value in if value == .active { refreshTick &+= 1 } }
         // Structured replacement for "refresh in onAppear on return to this page": reruns only on real install/apply state changes,
         // not on every redraw, and does not race the first-frame `.task` (`onChange` ignores the initial value).
@@ -279,13 +284,17 @@ struct OnboardingView: View {
 
                 if index == 1 {
                     VStack(alignment: .leading, spacing: 12) {
+                        RecommendedInputMethodsView(center: schemeImports) { result in
+                            downloadedSource = result
+                            showingDownloadedScheme = true
+                        }
                         NavigationLink {
                             destinationView(.addScheme)
                         } label: {
                             Label(String(localized: "浏览并下载输入方案"), systemImage: "arrow.down.circle.fill")
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.bordered)
                         .controlSize(.large)
 
                         NavigationLink {

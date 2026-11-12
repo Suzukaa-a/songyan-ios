@@ -5,6 +5,11 @@
   "japaneseMatchesSource": [
     {
       "catalog": "Resources/Localizable.xcstrings",
+      "key": "%@ · %@",
+      "value": "%@ · %@"
+    },
+    {
+      "catalog": "Resources/Localizable.xcstrings",
       "key": "catalog.bopomofo.name",
       "value": "注音（台湾）"
     },

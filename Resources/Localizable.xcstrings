@@ -1,6 +1,94 @@
 {
   "sourceLanguage": "zh-Hans",
   "strings": {
+    "查看项目主页": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "查看项目主页"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プロジェクトページを開く"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "查看專案首頁"
+          }
+        }
+      }
+    },
+    "下载「%@」？": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下载「%@」？"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「%@」をダウンロードしますか？"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下載「%@」？"
+          }
+        }
+      }
+    },
+    "更多输入方式（%lld）": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更多输入方式（%lld）"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "その他の入力方式（%lld）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更多輸入方式（%lld）"
+          }
+        }
+      }
+    },
+    "下载%@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下载%@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@をダウンロード"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下載%@"
+          }
+        }
+      }
+    },
     "script.state.hongKong": {
       "localizations": {
         "ja": {
@@ -29970,7 +30058,7 @@
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@・%@"
+            "value": "%@ · %@"
           }
         },
         "zh-Hans": {
