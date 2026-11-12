@@ -193,7 +193,7 @@ struct ScriptSettingField: View {
             if setting.kind == .url, !value.isEmpty,
                 !ScriptAddonURLValidation.isValidHTTPS(value)
             {
-                Text(String(localized: "请输入有效的 https 链接"))
+                Text(String(localized: "请输入有效的 HTTPS 链接"))
                     .font(.caption)
                     .foregroundStyle(.red)
             }
@@ -241,7 +241,7 @@ struct ScriptAddonDetailView: View {
             if center.needsReconfirmation(addon) {
                 Section {
                     Label {
-                        Text(String(localized: "声明已变化，需要重新确认"))
+                        Text(String(localized: "脚本要求有变化，需要重新确认"))
                     } icon: {
                         Image(systemName: "exclamationmark.triangle.fill")
                     }
@@ -278,7 +278,7 @@ struct ScriptAddonDetailView: View {
                         String(localized: "设置与密钥"),
                         value: settingsSummary)
                 }
-                .accessibilityHint(String(localized: "填写脚本需要的设置和密钥"))
+                .accessibilityHint(String(localized: "输入此脚本需要的设置和密钥"))
             }
             Section {
                 Button(String(localized: "编辑脚本")) { editing = true }
@@ -551,7 +551,7 @@ struct ScriptAddonEditorView: View {
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
                     ForEach(Array(result.outputs.enumerated()), id: \.offset) { _, output in
-                        Text(output.isEmpty ? String(localized: "空字符串") : output)
+                        Text(output.isEmpty ? String(localized: "（没有返回内容）") : output)
                             .font(.system(.body, design: .monospaced))
                     }
                     Button(copied ? String(localized: "已复制") : String(localized: "复制结果")) {

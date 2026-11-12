@@ -154,7 +154,8 @@ struct HostApp: App {
                 settings: "// @input audio\n", code: "export default () => []")
             let stale = header(
                 name: "\u{5F85}\u{786E}\u{8BA4}\u{811A}\u{672C}",
-                description: "\u{58F0}\u{660E}\u{53D8}\u{5316}\u{540E}\u{7B49}\u{5F85}\u{91CD}\u{65B0}\u{786E}\u{8BA4}",
+                description:
+                    "\u{6765}\u{81EA}\u{793A}\u{4F8B}\u{6E90}\u{7684}\u{811A}\u{672C}",
                 connect: "cdn.example.com",
                 settings: "", code: "export default ({ text }) => [text]")
             let result = header(

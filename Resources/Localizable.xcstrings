@@ -35355,28 +35355,6 @@
         }
       }
     },
-    "声明已变化，需要重新确认": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "声明已变化，需要重新确认"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "宣言が変更されました。再確認が必要です"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "宣告已變化，需要重新確認"
-          }
-        }
-      }
-    },
     "复制给 AI 的说明": {
       "localizations": {
         "zh-Hans": {
@@ -35586,7 +35564,7 @@
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "この説明を AI にコピーして、スクリプトを作らせます"
+            "value": "この説明を AI にコピーして、スクリプトを生成します"
           }
         },
         "zh-Hant": {
@@ -35659,28 +35637,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "新建指令碼"
-          }
-        }
-      }
-    },
-    "无法读取这个脚本的密钥。请到「松烟」中重新填写该脚本的密钥后再试。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "无法读取这个脚本的密钥。请到「松烟」中重新填写该脚本的密钥后再试。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "このスクリプトのキーを読み取れません。「松煙」でキーを入力し直してから再試行してください。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "無法讀取這個指令碼的金鑰。請到「松煙」中重新填寫該指令碼的金鑰後再試。"
           }
         }
       }
@@ -36103,28 +36059,6 @@
         }
       }
     },
-    "输出：": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "输出："
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "出力："
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "輸出："
-          }
-        }
-      }
-    },
     "还没有脚本": {
       "localizations": {
         "zh-Hans": {
@@ -36235,94 +36169,6 @@
         }
       }
     },
-    "本机不提供录音，声音脚本只能导入，键盘里会标为不可用": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "本机不提供录音，声音脚本只能导入，键盘里会标为不可用"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "この端末では録音できません。音声スクリプトは読み込みのみで、キーボードでは使用不可と表示されます"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "本機不提供錄音，聲音指令碼只能匯入，鍵盤裡會標為不可用"
-          }
-        }
-      }
-    },
-    "脚本运行限额还没配置好": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "脚本运行限额还没配置好"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "スクリプトの実行上限がまだ設定されていません"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "指令碼執行限額還沒配置好"
-          }
-        }
-      }
-    },
-    "请输入 https 链接": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "请输入 https 链接"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "https のリンクを入力してください"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "請輸入 https 連結"
-          }
-        }
-      }
-    },
-    "脚本头部有误": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "脚本头部有误"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "スクリプトの宣言に誤りがあります"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "指令碼頭部有誤"
-          }
-        }
-      }
-    },
     "脚本运行出错": {
       "localizations": {
         "zh-Hans": {
@@ -36341,50 +36187,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "指令碼執行出錯"
-          }
-        }
-      }
-    },
-    "脚本运行配置无效": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "脚本运行配置无效"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "スクリプトの実行設定が無効です"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "指令碼執行配置無效"
-          }
-        }
-      }
-    },
-    "脚本运行已取消": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "脚本运行已取消"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "スクリプトの実行をキャンセルしました"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "指令碼執行已取消"
           }
         }
       }
@@ -36499,50 +36301,6 @@
         }
       }
     },
-    "停用": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "停用"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "無効にする"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "停用"
-          }
-        }
-      }
-    },
-    "打开详情": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "打开详情"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "詳細を開く"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "開啟詳情"
-          }
-        }
-      }
-    },
     "在这里粘贴或编写脚本": {
       "localizations": {
         "zh-Hans": {
@@ -36631,28 +36389,6 @@
         }
       }
     },
-    "空字符串": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "空字符串"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "（空文字列）"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "空字串"
-          }
-        }
-      }
-    },
     "运行中…": {
       "localizations": {
         "zh-Hans": {
@@ -36697,28 +36433,6 @@
         }
       }
     },
-    "粘贴后先确认声明再添加。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "粘贴后先确认声明再添加。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "貼り付けた後、宣言を確認してから追加します。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "粘貼後先確認宣告再新增。"
-          }
-        }
-      }
-    },
     "只支持 HTTPS 链接；脚本只在这里下载一次，之后可在详情页检查更新。": {
       "localizations": {
         "zh-Hans": {
@@ -36759,28 +36473,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "下載中…"
-          }
-        }
-      }
-    },
-    "本机不提供录音": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "本机不提供录音"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "この端末では録音できません"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "本機不提供錄音"
           }
         }
       }
@@ -37005,28 +36697,6 @@
         }
       }
     },
-    "填写脚本需要的设置和密钥": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "填写脚本需要的设置和密钥"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "スクリプトに必要な設定とキーを入力します"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "填寫指令碼需要的設定和金鑰"
-          }
-        }
-      }
-    },
     "导出脚本": {
       "localizations": {
         "zh-Hans": {
@@ -37093,28 +36763,6 @@
         }
       }
     },
-    "录音不可用，脚本会在键盘里标为不可用": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "录音不可用，脚本会在键盘里标为不可用"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "録音は使用できません。このスクリプトはキーボードで使用不可と表示されます"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "錄音不可用，指令碼會在鍵盤裡標為不可用"
-          }
-        }
-      }
-    },
     "打开 %@ 的详情": {
       "localizations": {
         "zh-Hans": {
@@ -37155,28 +36803,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "開啟或關閉這個指令碼"
-          }
-        }
-      }
-    },
-    "打开脚本详情": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "打开脚本详情"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "スクリプトの詳細を開く"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "開啟指令碼詳情"
           }
         }
       }
@@ -37243,6 +36869,270 @@
           "stringUnit": {
             "state": "translated",
             "value": "指令碼以 // @api 1 開頭"
+          }
+        }
+      }
+    },
+    "脚本开头格式有误": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "脚本开头格式有误"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スクリプト先頭の形式に誤りがあります"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "指令碼開頭格式有誤"
+          }
+        }
+      }
+    },
+    "脚本功能暂时不可用，请稍后重试。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "脚本功能暂时不可用，请稍后重试。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スクリプト機能は現在利用できません。しばらくしてから再試行してください。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "指令碼功能暫時不可用，請稍後重試。"
+          }
+        }
+      }
+    },
+    "脚本要求有变化，需要重新确认": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "脚本要求有变化，需要重新确认"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スクリプトの要件が変更されました。再確認してください"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "指令碼要求有變化，需要重新確認"
+          }
+        }
+      }
+    },
+    "粘贴后先确认脚本要求，再添加。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "粘贴后先确认脚本要求，再添加。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "貼り付けた後、スクリプトの要件を確認してから追加します"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "粘貼後先確認指令碼要求，再新增。"
+          }
+        }
+      }
+    },
+    "此脚本需要录音，键盘里会标为不可用": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此脚本需要录音，键盘里会标为不可用"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このスクリプトは録音が必要です。キーボードでは使用できないと表示されます"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此指令碼需要錄音，鍵盤裡會標為不可用"
+          }
+        }
+      }
+    },
+    "此设备无法录音。声音脚本可以导入，但在键盘里会标为不可用。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此设备无法录音。声音脚本可以导入，但在键盘里会标为不可用。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このデバイスでは録音できません。音声スクリプトは読み込めますが、キーボードでは使用できないと表示されます"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此裝置無法錄音。聲音指令碼可以匯入，但在鍵盤裡會標為不可用。"
+          }
+        }
+      }
+    },
+    "（没有返回内容）": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "（没有返回内容）"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "（内容なし）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "（沒有返回內容）"
+          }
+        }
+      }
+    },
+    "查看它能读取的内容和会连接的网站": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "查看它能读取的内容和会连接的网站"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "読み取れる内容と接続先を確認します"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "檢視它能讀取的內容和會連線的網站"
+          }
+        }
+      }
+    },
+    "输入此脚本需要的设置和密钥": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入此脚本需要的设置和密钥"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このスクリプトに必要な設定とキーを入力します"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "輸入此指令碼需要的設定和金鑰"
+          }
+        }
+      }
+    },
+    "请输入有效的 HTTPS 链接": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请输入有效的 HTTPS 链接"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有効な HTTPS リンクを入力してください"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請輸入有效的 HTTPS 連結"
+          }
+        }
+      }
+    },
+    "运行已取消": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "运行已取消"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "実行をキャンセルしました"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "執行已取消"
+          }
+        }
+      }
+    },
+    "无法读取这个脚本的密钥。请到「松烟」中重新填写该脚本的密钥后再试。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法读取这个脚本的密钥。请到「松烟」中重新填写该脚本的密钥后再试。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このスクリプトのキーを読み取れません。「松煙」でキーを入力し直してから再試行してください。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無法讀取這個指令碼的金鑰。請到「松煙」中重新填寫該指令碼的金鑰後再試。"
           }
         }
       }

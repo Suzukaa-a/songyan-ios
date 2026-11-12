@@ -181,7 +181,7 @@ struct ScriptAddonCenterView: View {
                                 .foregroundStyle(.primary)
                             if center.needsReconfirmation(addon) {
                                 Label {
-                                    Text(String(localized: "声明已变化，需要重新确认"))
+                                    Text(String(localized: "脚本要求有变化，需要重新确认"))
                                 } icon: {
                                     Image(systemName: "exclamationmark.triangle.fill")
                                 }
@@ -204,7 +204,7 @@ struct ScriptAddonCenterView: View {
                 .accessibilityLabel(
                     String(format: String(localized: "打开 %@ 的详情"), title(of: addon))
                 )
-                .accessibilityHint(String(localized: "打开脚本详情"))
+                .accessibilityHint(String(localized: "查看它能读取的内容和会连接的网站"))
                 Toggle(
                     "",
                     isOn: Binding(
@@ -225,7 +225,7 @@ struct ScriptAddonCenterView: View {
                 .disabled(center.availabilityNote(addon) != nil)
                 .accessibilityHint(
                     center.availabilityNote(addon) != nil
-                        ? String(localized: "录音不可用，脚本会在键盘里标为不可用")
+                        ? String(localized: "此脚本需要录音，键盘里会标为不可用")
                         : String(localized: "打开或关闭这个脚本"))
             }
             if center.needsReconfirmation(addon) {
@@ -296,7 +296,7 @@ struct ScriptAddonCenterView: View {
                     pasteText = ScriptAddonCenter.minimalExample()
                 }
                 .font(.footnote)
-                Text(String(localized: "粘贴后先确认声明再添加。"))
+                Text(String(localized: "粘贴后先确认脚本要求，再添加。"))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
@@ -368,7 +368,7 @@ struct ScriptAddonCenterView: View {
         guard let url = URL(string: linkText.trimmingCharacters(in: .whitespacesAndNewlines)),
             ScriptAddonURLValidation.isValidHTTPS(linkText)
         else {
-            center.errorMessage = String(localized: "请输入有效的 https 链接")
+            center.errorMessage = String(localized: "请输入有效的 HTTPS 链接")
             return
         }
         Task {

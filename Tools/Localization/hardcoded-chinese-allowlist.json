@@ -951,7 +951,7 @@
     },
     {
       "path": "Packages/ScriptAddonKit/Sources/ScriptAddonKit/ScriptAddonFailure.swift",
-      "value": "脚本头部有误",
+      "value": "脚本开头格式有误",
       "reason": "Localization key constant resolved by the Host app; not interface copy."
     },
     {
@@ -961,12 +961,7 @@
     },
     {
       "path": "Packages/ScriptAddonKit/Sources/ScriptAddonKit/ScriptAddonFailure.swift",
-      "value": "脚本运行配置无效",
-      "reason": "Localization key constant resolved by the Host app; not interface copy."
-    },
-    {
-      "path": "Packages/ScriptAddonKit/Sources/ScriptAddonKit/ScriptAddonFailure.swift",
-      "value": "脚本运行已取消",
+      "value": "运行已取消",
       "reason": "Localization key constant resolved by the Host app; not interface copy."
     },
     {

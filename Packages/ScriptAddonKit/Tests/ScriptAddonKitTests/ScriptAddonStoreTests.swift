@@ -192,7 +192,7 @@ final class ScriptAddonStoreTests: XCTestCase {
 
     func testFailureClassificationKeepsOnlyTheUserFacingReason() {
         XCTAssertEqual(
-            ScriptAddonFailure.header(line: 3).userMessageKey, "脚本头部有误")
+            ScriptAddonFailure.header(line: 3).userMessageKey, "脚本开头格式有误")
         XCTAssertEqual(ScriptAddonFailure.header(line: 3).line, 3)
         XCTAssertEqual(ScriptAddonFailure.runtime(line: 9).line, 9)
         XCTAssertNil(ScriptAddonFailure.invalidConfiguration.line)

@@ -439,7 +439,7 @@ final class ScriptAddonCenter: ObservableObject {
 
     static let audioUnavailableNote = String(
         localized:
-            "\u{672C}\u{673A}\u{4E0D}\u{63D0}\u{4F9B}\u{5F55}\u{97F3}\u{FF0C}\u{58F0}\u{97F3}\u{811A}\u{672C}\u{53EA}\u{80FD}\u{5BFC}\u{5165}\u{FF0C}\u{952E}\u{76D8}\u{91CC}\u{4F1A}\u{6807}\u{4E3A}\u{4E0D}\u{53EF}\u{7528}"
+            "\u{6B64}\u{8BBE}\u{5907}\u{65E0}\u{6CD5}\u{5F55}\u{97F3}\u{3002}\u{58F0}\u{97F3}\u{811A}\u{672C}\u{53EF}\u{4EE5}\u{5BFC}\u{5165}\u{FF0C}\u{4F46}\u{5728}\u{952E}\u{76D8}\u{91CC}\u{4F1A}\u{6807}\u{4E3A}\u{4E0D}\u{53EF}\u{7528}\u{3002}"
     )
 
     /// Runs the editor's current source (not the saved bytes) off the main thread. A new,
@@ -513,7 +513,9 @@ final class ScriptAddonCenter: ObservableObject {
     }
 
     static let limitsMissing = String(
-        localized: "\u{811A}\u{672C}\u{8FD0}\u{884C}\u{9650}\u{989D}\u{8FD8}\u{6CA1}\u{914D}\u{7F6E}\u{597D}")
+        localized:
+            "\u{811A}\u{672C}\u{529F}\u{80FD}\u{6682}\u{65F6}\u{4E0D}\u{53EF}\u{7528}\u{FF0C}\u{8BF7}\u{7A0D}\u{540E}\u{91CD}\u{8BD5}\u{3002}"
+    )
 }
 
 #if DEBUG

@@ -18,10 +18,10 @@ public enum ScriptAddonFailure: Equatable, Sendable {
     /// Localization key the Host app resolves. These are catalog keys, not user copy.
     public var userMessageKey: String {
         switch self {
-        case .header: "脚本头部有误"
+        case .header: "脚本开头格式有误"
         case .runtime: "脚本运行出错"
-        case .invalidConfiguration: "脚本运行配置无效"
-        case .cancelled: "脚本运行已取消"
+        case .invalidConfiguration: "无法运行脚本，请稍后重试。"
+        case .cancelled: "运行已取消"
         case .unknown: "无法运行脚本，请稍后重试。"
         }
     }

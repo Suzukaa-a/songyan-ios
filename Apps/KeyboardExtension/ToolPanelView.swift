@@ -108,6 +108,9 @@ struct ToolPanelView: View {
     @Environment(\.keyboardAppearance) private var appearance
     let dismiss: () -> Void
     @State private var copied = false
+    /// The result the user chose to write. The session drops its preview after a write, so the
+    /// panel keeps this only to offer "copy result" once the undo window has closed.
+    @State private var lastWrittenResult: String?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -155,7 +158,13 @@ struct ToolPanelView: View {
             // short keyboard panel. The card alone keeps the list visually grouped.
             KeyboardToolsCard {
                 if model.entries.isEmpty {
-                    KeyboardToolsRow(title: String(localized: "还没有可用的工具")) {}.disabled(true)
+                    // Reuses the Host app's existing "add and run a script" wording: no new
+                    // localization key, but the empty panel says what to do next.
+                    KeyboardToolsRow(
+                        title: String(localized: "还没有可用的工具"),
+                        detail: String(localized: "添加并运行你写的脚本")
+                    ) {}
+                    .disabled(true)
                 } else {
                     ForEach(Array(model.entries.enumerated()), id: \.element.id) { index, entry in
                         if index > 0 { KeyboardToolsSeparator() }
@@ -187,7 +196,18 @@ struct ToolPanelView: View {
                 }
             }
             actionSection(presentation.actions)
-        case .wrote, .failed:
+        case .wrote:
+            if let message = presentation.message {
+                messageLine(message.text, icon: "info.circle")
+            }
+            // Until the undo window closes the session offers undo; afterwards the panel keeps
+            // the written result copyable so an expired undo is not a dead end. The title bar's
+            // 完成 is always the way out.
+            actionSection(
+                presentation.actions
+                    + (lastWrittenResult != nil && !presentation.actions.contains(.copy)
+                        ? [.copy] : []))
+        case .failed:
             if let message = presentation.message {
                 messageLine(message.text, icon: "info.circle")
             }
@@ -214,6 +234,12 @@ struct ToolPanelView: View {
         }
     }
 
+    /// Captures the chosen result before the session leaves preview; undo-expired copy uses it.
+    private func rememberSelectedResult() {
+        let rows = model.presentation.resultRows
+        lastWrittenResult = rows.first(where: \.isSelected)?.text ?? rows.first?.text
+    }
+
     private struct ActionRow {
         let icon: String
         let title: String
@@ -226,17 +252,24 @@ struct ToolPanelView: View {
             return nil
         case .copy:
             return ActionRow(icon: "doc.on.doc", title: String(localized: "复制")) {
-                if let text = model.copy() {
+                // A copy during preview consumes the result; after a write the session has no
+                // preview left, so fall back to the text the panel remembered when it wrote.
+                if let text = model.copy() ?? lastWrittenResult {
                     UIPasteboard.general.string = text
                     copied = true
+                    UIAccessibility.post(
+                        notification: .announcement,
+                        argument: String(localized: "已复制到剪贴板"))
                 }
             }
         case .replace:
             return ActionRow(icon: "arrow.left.arrow.right", title: String(localized: "替换原文")) {
+                rememberSelectedResult()
                 model.replace()
             }
         case .insert:
             return ActionRow(icon: "text.insert", title: String(localized: "插入到光标处")) {
+                rememberSelectedResult()
                 model.insert()
             }
         case .undo:
