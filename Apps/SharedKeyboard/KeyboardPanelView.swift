@@ -884,6 +884,7 @@ public struct KeyboardPanelView: View {
                         KeyboardCursorSwipePreferences.isEnabled && !controller.snapshot.isComposing
                             && controller.session.pendingCodes.isEmpty
                     },
+                    isIdle: { !showsCoveringPanel },
                     move: move)
             }
         )

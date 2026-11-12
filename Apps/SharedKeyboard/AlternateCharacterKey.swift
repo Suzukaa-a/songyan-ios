@@ -189,7 +189,13 @@ struct AlternateCharacterKey: UIViewRepresentable {
         private var phoneKey = false
         private var phoneSideKey = false
         private var visualRole: String?
-        var didHold = false
+        var didHold = false {
+            didSet {
+                if didHold && !oldValue {
+                    NotificationCenter.default.post(name: .keyboardKeyInteractionDidEngage, object: self)
+                }
+            }
+        }
         var requiresExplicitAlternateSelection = false
         var showsKeyPreview = false
         /// Scheme language of the current keyboard; the cap face asks CoreText for its glyph forms.
@@ -1027,7 +1033,10 @@ struct AlternateCharacterKey: UIViewRepresentable {
             if let selected { onSelect?(selected) }
         }
 
-        override func cancelTracking(with event: UIEvent?) { cancelPress() }
+        override func cancelTracking(with event: UIEvent?) {
+            keyPreview?.hide(for: self, immediately: true)
+            cancelPress()
+        }
 
         // MARK: - Flick transition
 

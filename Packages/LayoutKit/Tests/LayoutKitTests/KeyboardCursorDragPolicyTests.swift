@@ -33,12 +33,33 @@ final class KeyboardCursorDragPolicyTests: XCTestCase {
         XCTAssertEqual(letter.choice, 1)
     }
 
+    func testIdleKeyboardCanBeginButBusyKeyboardCannot() {
+        XCTAssertTrue(allows(isIdle: true))
+        XCTAssertFalse(allows(isIdle: false))
+    }
+
+    func testNonIdleKeyboardNeverBeginsForAnyOwnershipOrDistance() {
+        for owner in KeyboardCursorDragPolicy.Ownership.allCases {
+            for dx in [-200.0, -14, 14, 200] {
+                XCTAssertFalse(allows(isIdle: false, ownership: owner, dx: dx))
+            }
+        }
+    }
+
+    func testEngagedInteractionPermanentlyOwnsTheTouch() {
+        var attempt = KeyboardCursorDragPolicy.Attempt()
+        XCTAssertTrue(attempt.observe(isIdle: true))
+        XCTAssertFalse(attempt.observe(isIdle: false))
+        XCTAssertFalse(attempt.observe(isIdle: true))
+        XCTAssertFalse(attempt.observe(isIdle: true))
+    }
+
     private func allows(
-        settingOn: Bool = true, isComposing: Bool = false, hasPendingCodes: Bool = false,
+        settingOn: Bool = true, isComposing: Bool = false, hasPendingCodes: Bool = false, isIdle: Bool = true,
         ownership: KeyboardCursorDragPolicy.Ownership = .keyboard, dx: Double = 20, dy: Double = 0
     ) -> Bool {
         KeyboardCursorDragPolicy.canBegin(
-            settingOn: settingOn, isComposing: isComposing, hasPendingCodes: hasPendingCodes,
+            settingOn: settingOn, isComposing: isComposing, hasPendingCodes: hasPendingCodes, isIdle: isIdle,
             ownership: ownership, dx: dx, dy: dy)
     }
 }

@@ -604,6 +604,7 @@ struct CursorSpaceKey: UIViewRepresentable {
             hintTimer?.invalidate()
             hintTimer = nil
             isDragging = true
+            NotificationCenter.default.post(name: .keyboardKeyInteractionDidEngage, object: self)
             if KeyLabelFade.shared.setDragging(true, reduceMotion: UIAccessibility.isReduceMotionEnabled) {
                 KeyboardFeedbackService.shared.caretModeEntered()
             }
@@ -852,6 +853,7 @@ struct RepeatingDeleteKey: UIViewRepresentable {
             guard isEnabled, window != nil else { return }
             // Read live state before the first deletion: it may already remove the final composing code.
             startedWithComposition = hasComposition()
+            NotificationCenter.default.post(name: .keyboardKeyInteractionDidEngage, object: self)
             action?(false)
             scheduleRepeat(after: 0.45)
         }
