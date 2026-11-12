@@ -3,6 +3,10 @@
 # Ad-hoc signing carries the entitlements, so AltStore or Sideloadly can re-sign
 # it under the installer's own team and keep the shared App Group. A Debug build is accepted
 # for the S0 device probe, whose engine archive is already linked into that build.
+#
+# TEAMID must be set (ten uppercase letters/digits): entitlements use
+# $(AppIdentifierPrefix)group.app.songyan.shared for the shared script keychain, and codesign does
+# not expand build settings. A missing TEAMID fails closed instead of shipping a literal.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -32,13 +36,10 @@ mkdir -p "${STAGE}/Payload"
 ditto "${PRODUCT}" "${STAGE}/Payload/HostApp.app"
 APP="${STAGE}/Payload/HostApp.app"
 
-# codesign does not expand build settings, so resolve $(SONGYAN_APP_GROUP) first.
-APP_GROUP_ID="$(sed -n 's/^SONGYAN_APP_GROUP *= *\([^ ]*\) *$/\1/p' "${CI_ROOT}/Config/Identity.xcconfig")"
-[[ -n "${APP_GROUP_ID}" ]] || { echo "SONGYAN_APP_GROUP missing from Config/Identity.xcconfig" >&2; exit 1; }
-for target in HostApp KeyboardExtension; do
-  sed "s/\$(SONGYAN_APP_GROUP)/${APP_GROUP_ID}/g" \
-    "${CI_ROOT}/Apps/${target}/${target}.entitlements" >"${STAGE}/${target}.entitlements"
-done
+# codesign does not expand build settings. Expand App Group and the keychain-access-groups prefix
+# before signing; a missing TEAMID or an unexpanded setting is refused instead of shipping a literal.
+python3 "${SCRIPT_DIR}/expand-device-entitlements.py" \
+  --root "${CI_ROOT}" --output-dir "${STAGE}"
 
 # Inside out: nested frameworks and dylibs (a Debug build keeps its code in *.debug.dylib),
 # then the extension, then the app.

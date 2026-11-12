@@ -13,6 +13,10 @@ final class ScriptAddonCenter: ObservableObject {
         let source: Data
         let sourceURL: URL?
         let declarations: ScriptDeclarations
+        /// Non-nil when the draft updates the script with this id instead of adding a new one.
+        let replacing: String?
+
+        var isReplacement: Bool { replacing != nil }
     }
 
     struct RuntimeUnavailable: Error {}
@@ -100,7 +104,7 @@ final class ScriptAddonCenter: ObservableObject {
 
     /// Pasted text, in-app editor content and imported files all reach this one place.
     @discardableResult
-    func stage(source: Data, sourceURL: URL? = nil) -> Bool {
+    func stage(source: Data, sourceURL: URL? = nil, replacing: String? = nil) -> Bool {
         guard let limits else {
             errorMessage = Self.limitsMissing
             return false
@@ -112,10 +116,13 @@ final class ScriptAddonCenter: ObservableObject {
         do {
             let declarations = try bridge.parseDeclarations(source: source)
             pending = Draft(
-                id: UUID().uuidString, source: source, sourceURL: sourceURL, declarations: declarations)
+                id: replacing ?? UUID().uuidString, source: source, sourceURL: sourceURL,
+                declarations: declarations, replacing: replacing)
             return true
         } catch let ScriptAddonBridge.BridgeError.header(message, line) {
-            errorMessage = line > 0 ? "\(message)\u{FF08}\u{7B2C} \(line) \u{884C}\u{FF09}" : message
+            errorMessage =
+                line > 0
+                ? message + String(format: String(localized: "\u{FF08}\u{7B2C} %lld \u{884C}\u{FF09}"), line) : message
             return false
         } catch {
             errorMessage = error.localizedDescription
@@ -155,25 +162,39 @@ final class ScriptAddonCenter: ObservableObject {
 
     /// Confirms the declarations the page showed, writes the script bytes and stores any
     /// entered secrets in the Keychain. Secrets never enter the script or the JSON state.
-    func confirm(
-        _ draft: Draft, name: String?, settings: [String: String], secretValues: [String: String]
-    ) {
+    /// Confirms the declarations the page showed. A new script is added; a draft that
+    /// updates an existing id keeps that addon's enabled/order/settings/secret keys and only
+    /// moves the bytes and the confirmation digest forward.
+    func confirm(_ draft: Draft, settings: [String: String], secretValues: [String: String]) {
         do {
-            var state = ScriptAddonState(
-                id: draft.id, order: addons.count, sourceURL: draft.sourceURL?.absoluteString,
-                scriptDigest: "", scriptByteCount: 0)
-            state.settings = settings
-            state.secretKeys = draft.declarations.secrets.map(\.key)
-            state.confirmedDigest = try draft.declarations.confirmationDigest()
-            _ = try store.add(
-                id: draft.id, script: draft.source, state: state,
-                maximumSourceBytes: limits?.maximumSourceBytes ?? draft.source.count)
+            let digest = try draft.declarations.confirmationDigest()
+            let maximum = limits?.maximumSourceBytes ?? draft.source.count
+            if let replacing = draft.replacing {
+                _ = try store.replace(
+                    id: replacing, script: draft.source, maximumSourceBytes: maximum,
+                    confirmedDigest: digest, settings: settings,
+                    secretKeys: draft.declarations.secrets.map(\.key))
+            } else {
+                var state = ScriptAddonState(
+                    id: draft.id, order: addons.count,
+                    sourceURL: draft.sourceURL?.absoluteString, scriptDigest: "",
+                    scriptByteCount: 0)
+                state.settings = settings
+                state.secretKeys = draft.declarations.secrets.map(\.key)
+                state.confirmedDigest = digest
+                _ = try store.add(
+                    id: draft.id, script: draft.source, state: state,
+                    maximumSourceBytes: maximum)
+            }
             for (key, value) in secretValues {
                 try secrets.setSecret(value, for: key, scriptID: draft.id)
             }
             pending = nil
             reload()
-            notice = String(localized: "\u{5DF2}\u{6DFB}\u{52A0}\u{811A}\u{672C}")
+            notice =
+                draft.isReplacement
+                ? String(localized: "\u{811A}\u{672C}\u{5DF2}\u{66F4}\u{65B0}")
+                : String(localized: "\u{5DF2}\u{6DFB}\u{52A0}\u{811A}\u{672C}")
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -241,7 +262,7 @@ final class ScriptAddonCenter: ObservableObject {
                 if try store.needsReconfirmation(id: addon.state.id, declarations: declarations) {
                     pending = Draft(
                         id: addon.state.id, source: data, sourceURL: sourceURL,
-                        declarations: declarations)
+                        declarations: declarations, replacing: addon.state.id)
                 } else {
                     _ = try store.replaceScript(
                         id: addon.state.id, script: data,
@@ -255,10 +276,34 @@ final class ScriptAddonCenter: ObservableObject {
         }
     }
 
-    /// In-app editing goes through the confirmation page as well: a changed declaration
-    /// set has to be confirmed again before the new bytes are kept.
+    /// In-app editing replaces the same addon. When the declarations (sites/settings/secrets/
+    /// audio) are unchanged the new bytes are applied immediately; a changed declaration set
+    /// goes through the confirmation page, which keeps the old local state.
     func saveEdited(addon: ScriptAddonStore.Addon, source: Data) {
-        stage(source: source, sourceURL: addon.state.sourceURL.flatMap(URL.init(string:)))
+        do {
+            let declarations = try bridge.parseDeclarations(source: source)
+            let digest = try declarations.confirmationDigest()
+            if digest == addon.state.confirmedDigest,
+                let maximum = limits?.maximumSourceBytes ?? Optional(source.count)
+            {
+                _ = try store.replace(
+                    id: addon.state.id, script: source, maximumSourceBytes: maximum,
+                    confirmedDigest: digest)
+                reload()
+                notice = String(localized: "\u{811A}\u{672C}\u{5DF2}\u{4FDD}\u{5B58}")
+                return
+            }
+            pending = Draft(
+                id: addon.state.id, source: source,
+                sourceURL: addon.state.sourceURL.flatMap(URL.init(string:)),
+                declarations: declarations, replacing: addon.state.id)
+        } catch let ScriptAddonBridge.BridgeError.header(message, line) {
+            errorMessage =
+                line > 0
+                ? message + String(format: String(localized: "\u{FF08}\u{7B2C} %lld \u{884C}\u{FF09}"), line) : message
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 
     // MARK: - Settings and secrets
@@ -313,6 +358,71 @@ final class ScriptAddonCenter: ObservableObject {
                 source: store.scriptBytes(id: addon.state.id), inputText: inputText,
                 settingsJSON: String(decoding: settingsJSON, as: UTF8.self), limits: limits,
                 onLog: { _ in })
+        } catch {
+            errorMessage = error.localizedDescription
+            return nil
+        }
+    }
+
+    func clearNotice() {
+        notice = nil
+    }
+
+    /// iOS cannot record; an audio script is kept (importable, shareable) but the keyboard
+    /// shows it as unavailable, so the Host app says that before the user taps add.
+    func availabilityNote(_ addon: ScriptAddonStore.Addon) -> String? {
+        guard !hostSupportsAudio, (try? declarations(for: addon.state.id).needsAudio) == true
+        else { return nil }
+        return Self.audioUnavailableNote
+    }
+
+    static let audioUnavailableNote = String(
+        localized:
+            "\u{672C}\u{673A}\u{4E0D}\u{63D0}\u{4F9B}\u{5F55}\u{97F3}\u{FF0C}\u{58F0}\u{97F3}\u{811A}\u{672C}\u{53EA}\u{80FD}\u{5BFC}\u{5165}\u{FF0C}\u{952E}\u{76D8}\u{91CC}\u{4F1A}\u{6807}\u{4E3A}\u{4E0D}\u{53EF}\u{7528}"
+    )
+
+    /// Runs the editor's current source (not the saved bytes) off the main thread. A new,
+    /// unsaved script runs with no settings; an existing addon contributes its settings and
+    /// Keychain secrets. Cancelling stops the engine loop and returns nil without an error.
+    func tryRun(
+        source: Data, addon: ScriptAddonStore.Addon?, inputText: String
+    ) async -> ScriptAddonBridge.TryRunResult? {
+        guard let limits, limits.isRunnable else {
+            errorMessage = Self.limitsMissing
+            return nil
+        }
+        do {
+            let declarations = try bridge.parseDeclarations(source: source)
+            var settings = addon?.state.settings ?? [:]
+            if let id = addon?.state.id {
+                for secret in declarations.secrets {
+                    if let value = try? secrets.secret(for: secret.key, scriptID: id) {
+                        settings[secret.key] = value
+                    }
+                }
+            }
+            var settingsJSON: String?
+            if !settings.isEmpty {
+                let data = try JSONSerialization.data(withJSONObject: settings, options: [.sortedKeys])
+                settingsJSON = String(decoding: data, as: UTF8.self)
+            }
+            let cancellation = ScriptAddonBridge.RunCancellation()
+            let bridge = self.bridge
+            let text = inputText
+            let payload = settingsJSON
+            return try await withTaskCancellationHandler {
+                try await Task.detached(priority: .userInitiated) {
+                    try bridge.tryRun(
+                        source: source, inputText: text, settingsJSON: payload,
+                        limits: limits, cancellation: cancellation, onLog: { _ in })
+                }.value
+            } onCancel: {
+                cancellation.cancel()
+            }
+        } catch is CancellationError {
+            return nil
+        } catch ScriptAddonBridge.BridgeError.cancelled {
+            return nil
         } catch {
             errorMessage = error.localizedDescription
             return nil
@@ -409,7 +519,7 @@ final class ScriptAddonCenter: ObservableObject {
                 return writeCenterSelfTest(lines)
             }
             lines.append("draft id=\(draft.id) name=\(draft.declarations.name)")
-            center.confirm(draft, name: nil, settings: [:], secretValues: [:])
+            center.confirm(draft, settings: [:], secretValues: [:])
             lines.append("addons=\(center.addons.count) pending=\(center.pending != nil)")
             guard let addon = center.addons.first else {
                 lines.append("error: no addon after confirming")

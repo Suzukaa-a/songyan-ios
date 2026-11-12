@@ -133,11 +133,13 @@ Keychain values. Results are `s0Probe ...` lines on the `DebugProbe` category an
   default-group account (expected to miss, since the two processes' default groups are their two
   different app IDs), the App Group account with the attribute, and the same account without it;
   it also writes and reads back its own App Group item. Only `OSStatus`, byte counts and whether
-  the marker came back are recorded, never the item contents. The App Group path needs no keychain
-  entitlement: Apple counts the application groups among a process's keychain access groups, so
-  the existing App Group is already shared and a probe build measures it without changing any
-  production entitlement. A dedicated keychain access group (the Keychain Sharing capability) is
-  not measured, and no keychain result here comes from a device or from a locked screen.
+  the marker came back are recorded, never the item contents. Since the script addons arrived,
+  both entitlements declare `keychain-access-groups = $(AppIdentifierPrefix)group.app.songyan.shared`
+  so the extension reads the Host app's script secrets; ad-hoc packaging expands that prefix
+  fail-closed. Whether an App Group alone was enough (the earlier theory that Apple counts
+  application groups among keychain access groups) was never verified, and no keychain result here
+  comes from a device or from a locked screen. The Keychain Sharing capability's real-device
+  provisioning profile and the shared-group read path remain unmeasured.
   `probeVersion` 3 marks these keychain fields and the engine measurements; earlier versions gave
   both sides the same account and are not comparable.
 - Network: the same plaintext LAN URL and HTTPS URL are fetched from the host app as a control

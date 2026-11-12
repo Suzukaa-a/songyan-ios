@@ -27,6 +27,7 @@ PACKAGES=(
   LayoutKit
   PackageManager
   QuickContentKit
+  ScriptAddonKit
   SkinKit
   ToolKit
 )

@@ -243,6 +243,65 @@ final class ScriptAddonCatalogTests: XCTestCase {
             .failed(.unavailable(.missingCapabilities([.audio]))))
     }
 
+    func testToolFingerprintTracksSettingsSourceAndSecretEdits() async throws {
+        let source = """
+            // @api 1
+            // @name 刷新
+            // @setting prefix text 前缀
+            export default async ({ text, settings }) => settings.prefix + text;
+            """
+        try addScript(id: "r", source: source, settings: ["prefix": "旧"])
+        let first = catalog().load()
+        XCTAssertEqual(first.tools.count, 1)
+        let firstFingerprint = ScriptAddonCatalog.fingerprint(of: first.tools)
+        let firstOutputs = try await first.tools[0].run(
+            input: ToolInput(text: "文字", scope: .precedingSegment, isTruncated: false))
+        XCTAssertEqual(firstOutputs, ["旧文字"])
+
+        // A settings edit changes the fingerprint: the keyboard rebuilds on the next appearance.
+        try store.updateSetting(key: "prefix", value: "新", id: "r")
+        let second = catalog().load()
+        let secondFingerprint = ScriptAddonCatalog.fingerprint(of: second.tools)
+        XCTAssertNotEqual(secondFingerprint, firstFingerprint)
+        let secondOutputs = try await second.tools[0].run(
+            input: ToolInput(text: "文字", scope: .precedingSegment, isTruncated: false))
+        XCTAssertEqual(secondOutputs, ["新文字"])
+
+        // A source edit (with the matching re-confirmation) changes it again and the new bytes run.
+        let changed = source.replacingOccurrences(
+            of: "settings.prefix + text", with: "settings.prefix + text + \"!\"")
+        try Data(changed.utf8).write(to: root.appendingPathComponent("r/script.js"))
+        let parser = try ScriptTextTool(source: changed, id: "fixture.r", limits: runtimeLimits)
+        var state = try store.load(id: "r").state
+        state.confirmedDigest = try parser.declarations.confirmationDigest()
+        try store.updateState(state)
+        let third = catalog().load()
+        XCTAssertNotEqual(
+            ScriptAddonCatalog.fingerprint(of: third.tools), secondFingerprint)
+        let thirdOutputs = try await third.tools[0].run(
+            input: ToolInput(text: "文字", scope: .precedingSegment, isTruncated: false))
+        XCTAssertEqual(thirdOutputs, ["新文字!"])
+
+        // A secret value is part of the same fingerprint.
+        let secretSource = """
+            // @api 1
+            // @name 刷新密钥
+            // @secret token 令牌
+            export default async ({ text, settings }) => settings.token + text;
+            """
+        try addScript(id: "s", source: secretSource, order: 1, secretKeys: ["token"])
+        try secrets.setSecret("一", for: "token", scriptID: "s")
+        let withFirstSecret = catalog().load()
+        let firstSecretFingerprint = ScriptAddonCatalog.fingerprint(of: withFirstSecret.tools)
+        try secrets.setSecret("二", for: "token", scriptID: "s")
+        let withSecondSecret = catalog().load()
+        let secondSecretFingerprint = ScriptAddonCatalog.fingerprint(of: withSecondSecret.tools)
+        XCTAssertNotEqual(secondSecretFingerprint, firstSecretFingerprint)
+        let secretOutputs = try await withSecondSecret.tools[1].run(
+            input: ToolInput(text: "文字", scope: .precedingSegment, isTruncated: false))
+        XCTAssertEqual(secretOutputs, ["二文字"])
+    }
+
     func testUnreadableSecretIsVisibleInsteadOfSilentlyRunning() async throws {
         let source = """
             // @api 1

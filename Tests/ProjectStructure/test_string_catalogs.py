@@ -82,6 +82,10 @@ SHARED_REPLACEMENTS = frozenset(
         ("准備", "準備"),
         ("輕點", "點一下"),
         ("完全訪問", "完整取用"),
+        ("覆制", "複製"),
+        ("版本里", "版本裡"),
+        ("許可權", "權限"),
+        ("擴充套件", "擴充功能"),
     }
 )
 
@@ -243,6 +247,58 @@ class JapaneseWordingTests(unittest.TestCase):
             if value != _source_text(matches[0], key):
                 unused.append(f"{catalog}: {key} is translated now")
         self.assertEqual(unused, [], "stale Japanese exemptions")
+
+
+class ScriptAddonCopyTests(unittest.TestCase):
+    """The Host app's script screens are younger than the catalogs: hold their copy to the same
+    contract. Every user-visible string must go through String(localized:) and exist as a key in
+    Resources/Localizable.xcstrings, so a new screen cannot ship Simplified Chinese to ja/zh-Hant.
+    """
+
+    FILES = (
+        ROOT / "Apps/HostApp/ScriptAddonCenter.swift",
+        ROOT / "Apps/HostApp/ScriptAddonCenterView.swift",
+        ROOT / "Apps/HostApp/ScriptAddonViews.swift",
+    )
+    SWIFT_UNICODE_ESCAPE = re.compile(r"\\u\{([0-9A-Fa-f]+)\}")
+    STRING_LITERAL = re.compile(r'"((?:[^"\\]|\\.)*)"')
+
+    def setUp(self):
+        self.catalog = json.loads(
+            (ROOT / "Resources/Localizable.xcstrings").read_text(encoding="utf-8"))["strings"]
+
+    def _decoded(self, path: Path) -> str:
+        return self.SWIFT_UNICODE_ESCAPE.sub(
+            lambda match: chr(int(match.group(1), 16)), path.read_text(encoding="utf-8"))
+
+    def test_every_localized_script_string_exists_in_the_catalog(self):
+        for path in self.FILES:
+            source = self._decoded(path)
+            for match in self.STRING_LITERAL.finditer(source):
+                value = match.group(1)
+                if not any("\u4e00" <= char <= "\u9fff" for char in value):
+                    continue
+                line_start = source.rfind("\n", 0, match.start()) + 1
+                prefix = source[line_start : match.start()]
+                if "//" in prefix:
+                    continue
+                with self.subTest(file=path.name, value=value):
+                    self.assertIn(value, self.catalog)
+
+    def test_script_sources_have_no_raw_chinese_literal(self):
+        for path in self.FILES:
+            source = self._decoded(path)
+            for match in self.STRING_LITERAL.finditer(source):
+                value = match.group(1)
+                if not any("\u4e00" <= char <= "\u9fff" for char in value):
+                    continue
+                line_start = source.rfind("\n", 0, match.start()) + 1
+                prefix = source[line_start : match.start()]
+                # A wrapped String(localized:) call puts the label on an earlier line.
+                call_prefix = source[max(0, match.start() - 120) : match.start()]
+                if "//" in prefix or re.search(r"localized:\s*$", call_prefix):
+                    continue
+                self.fail(f"{path.name}: raw Chinese literal not passed through String(localized:): {value!r}")
 
 
 class GenerationTests(unittest.TestCase):

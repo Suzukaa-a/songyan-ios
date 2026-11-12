@@ -52,7 +52,7 @@ jobs:
   tests:
     name: Tests (${{ matrix.part }})
     runs-on: xcode-27
-    timeout-minutes: 30
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -82,6 +82,9 @@ jobs:
         run: bash Tools/CI/scripts/build-localization-opencc.sh
       - name: Run tests
         run: Tools/CI/ci.sh ${{ matrix.part }}
+      - name: Run shared script cases in a simulator
+        if: matrix.part == 'probes'
+        run: Tools/CI/scripts/script-tests.sh
       - name: Save Swift build caches
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -133,6 +136,10 @@ jobs:
       # unsigned products check compiling and linking only; they cannot run.
       - name: Build host app and keyboard extension
         run: Tools/CI/scripts/build-app.sh "${{ matrix.configuration }}" "${{ matrix.platform }}"
+      - name: Check the device bundle
+        run: >-
+          Tools/CI/scripts/check-device-app.sh
+          ".local/ci/app-builds/${{ matrix.configuration }}-device/DerivedData/Build/Products/${{ matrix.configuration }}-iphoneos/HostApp.app"
       - name: Save Xcode build caches
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0

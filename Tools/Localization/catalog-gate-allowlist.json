@@ -45,6 +45,11 @@
     },
     {
       "catalog": "Resources/Localizable.xcstrings",
+      "key": "文字",
+      "value": "文字"
+    },
+    {
+      "catalog": "Resources/Localizable.xcstrings",
       "key": "位置",
       "value": "位置"
     },

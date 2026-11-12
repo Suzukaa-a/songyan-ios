@@ -154,6 +154,42 @@ final class ScriptAddonStoreTests: XCTestCase {
             try store.replaceScript(id: "missing", script: Data("x".utf8), maximumSourceBytes: 10))
     }
 
+    /// Editing or updating a script must keep the state the user already chose: the new
+    /// bytes and confirmation digest replace the old ones without resetting enable, order,
+    /// settings or the secret-key list.
+    func testReplacePreservesEnabledOrderSettingsAndSecretKeys() throws {
+        var state = ScriptAddonState(
+            id: "keep", enabled: false, order: 7, sourceURL: "https://example.com/s.js",
+            scriptDigest: "", scriptByteCount: 0)
+        state.settings = ["mode": "fast"]
+        state.secretKeys = ["token"]
+        _ = try store.add(
+            id: "keep", script: Data("// @api 1\n// @name Old\n".utf8), state: state,
+            maximumSourceBytes: 1_000)
+        let updated = try store.replace(
+            id: "keep", script: Data("// @api 1\n// @name New\n".utf8),
+            maximumSourceBytes: 1_000, confirmedDigest: "digest-new",
+            settings: ["mode": "slow", "other": "x"], secretKeys: ["token", "second"])
+        XCTAssertFalse(updated.state.enabled)
+        XCTAssertEqual(updated.state.order, 7)
+        XCTAssertEqual(updated.state.settings, ["mode": "slow", "other": "x"])
+        XCTAssertEqual(updated.state.secretKeys, ["second", "token"])
+        XCTAssertEqual(updated.state.confirmedDigest, "digest-new")
+        XCTAssertEqual(updated.state.sourceURL, "https://example.com/s.js")
+        XCTAssertEqual(updated.state.scriptDigest, ScriptAddonStore.digest(Data("// @api 1\n// @name New\n".utf8)))
+        XCTAssertEqual(try store.scriptBytes(id: "keep"), Data("// @api 1\n// @name New\n".utf8))
+    }
+
+    func testReplaceKeepsTheOldDigestWhenNoneIsGiven() throws {
+        _ = try addon(id: "digest", script: Data("// @api 1\n".utf8))
+        try store.confirm(declarations: declarations(), id: "digest")
+        let before = try store.load(id: "digest").state.confirmedDigest
+        let updated = try store.replace(
+            id: "digest", script: Data("// @api 1\nreturn 1;\n".utf8), maximumSourceBytes: 100,
+            confirmedDigest: nil)
+        XCTAssertEqual(updated.state.confirmedDigest, before)
+    }
+
     func testSettingsUpdateDoesNotTouchStoredScriptBytes() throws {
         let original = Data("// @api 1\n// @name Upper\n".utf8)
         _ = try addon(script: original)

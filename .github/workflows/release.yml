@@ -87,7 +87,13 @@ jobs:
           APP_VERSION: ${{ steps.version.outputs.marketing }}
           APP_BUILD: ${{ steps.version.outputs.build }}
         run: Tools/CI/scripts/build-app.sh Release device
+      - name: Check the Release device bundle
+        run: Tools/CI/scripts/check-device-app.sh ".local/ci/app-builds/Release-device/DerivedData/Build/Products/Release-iphoneos/HostApp.app"
       - name: Package IPA
+        env:
+          # Ad-hoc signing needs the Team ID prefix for keychain-access-groups; configure the
+          # repository variable TEAMID (missing fails closed instead of shipping a literal).
+          TEAMID: ${{ vars.TEAMID }}
         run: Tools/CI/scripts/package-ipa.sh "dist/Songyan-${{ steps.version.outputs.full }}.ipa"
       - name: Publish GitHub Release
         env:

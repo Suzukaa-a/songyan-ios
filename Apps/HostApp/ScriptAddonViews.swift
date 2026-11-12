@@ -8,37 +8,35 @@ struct ScriptAddonConfirmationView: View {
     @ObservedObject var center: ScriptAddonCenter
     let draft: ScriptAddonCenter.Draft
     @Environment(\.dismiss) private var dismiss
-    @State private var name: String
     @State private var settings: [String: String] = [:]
     @State private var secrets: [String: String] = [:]
-
-    init(center: ScriptAddonCenter, draft: ScriptAddonCenter.Draft) {
-        self.center = center
-        self.draft = draft
-        _name = State(initialValue: draft.declarations.name)
-    }
 
     var body: some View {
         NavigationStack {
             Form {
-                Section("\u{540D}\u{5B57}") {
-                    TextField("\u{811A}\u{672C}\u{540D}\u{5B57}", text: $name)
+                Section(String(localized: "\u{540D}\u{5B57}")) {
+                    // The name is a script declaration, not a local label: renaming it here
+                    // would disagree with the header the keyboard runs.
+                    LabeledContent(String(localized: "\u{540D}\u{5B57}"), value: draft.declarations.name)
                 }
-                Section("\u{5B83}\u{80FD}\u{8BFB}\u{5230}\u{4EC0}\u{4E48}") {
+                Section(String(localized: "\u{5B83}\u{80FD}\u{8BFB}\u{5230}\u{4EC0}\u{4E48}")) {
                     LabeledContent(
-                        "\u{6587}\u{5B57}",
+                        String(localized: "\u{6587}\u{5B57}"),
                         value:
-                            "\u{9009}\u{4E2D}\u{7684}\u{6587}\u{5B57}\u{FF0C}\u{6CA1}\u{6709}\u{9009}\u{4E2D}\u{65F6}\u{662F}\u{5149}\u{6807}\u{524D}\u{7684}\u{4E00}\u{6BB5}"
+                            String(
+                                localized:
+                                    "\u{9009}\u{4E2D}\u{7684}\u{6587}\u{5B57}\u{FF0C}\u{6CA1}\u{6709}\u{9009}\u{4E2D}\u{65F6}\u{662F}\u{5149}\u{6807}\u{524D}\u{7684}\u{4E00}\u{6BB5}"
+                            )
                     )
                     LabeledContent(
-                        "\u{5F55}\u{97F3}",
+                        String(localized: "\u{5F55}\u{97F3}"),
                         value: draft.declarations.needsAudio
-                            ? "\u{9700}\u{8981}\u{9EA6}\u{514B}\u{98CE}"
-                            : "\u{4E0D}\u{4F7F}\u{7528}\u{9EA6}\u{514B}\u{98CE}")
+                            ? ScriptAddonCenter.audioUnavailableNote
+                            : String(localized: "\u{4E0D}\u{4F7F}\u{7528}\u{9EA6}\u{514B}\u{98CE}"))
                 }
-                Section("\u{4F1A}\u{8FDE}\u{8FD9}\u{4E9B}\u{7F51}\u{7AD9}") {
+                Section(String(localized: "\u{4F1A}\u{8FDE}\u{8FD9}\u{4E9B}\u{7F51}\u{7AD9}")) {
                     if draft.declarations.networkHosts.isEmpty {
-                        Text("\u{4E0D}\u{8054}\u{7F51}")
+                        Text(String(localized: "\u{4E0D}\u{8054}\u{7F51}"))
                     } else {
                         ForEach(draft.declarations.networkHosts, id: \.self) { host in
                             Text(host).font(.system(.body, design: .monospaced))
@@ -46,7 +44,7 @@ struct ScriptAddonConfirmationView: View {
                     }
                 }
                 if !draft.declarations.settings.isEmpty {
-                    Section("\u{8BBE}\u{7F6E}") {
+                    Section(String(localized: "\u{8BBE}\u{7F6E}")) {
                         ForEach(draft.declarations.settings, id: \.key) { setting in
                             TextField(
                                 setting.label,
@@ -57,7 +55,7 @@ struct ScriptAddonConfirmationView: View {
                     }
                 }
                 if !draft.declarations.secrets.isEmpty {
-                    Section("\u{5BC6}\u{94A5}") {
+                    Section(String(localized: "\u{5BC6}\u{94A5}")) {
                         ForEach(draft.declarations.secrets, id: \.key) { secret in
                             SecureField(
                                 secret.label,
@@ -66,24 +64,46 @@ struct ScriptAddonConfirmationView: View {
                                     set: { secrets[secret.key] = $0 }))
                         }
                         Text(
-                            "\u{5BC6}\u{94A5}\u{4FDD}\u{5B58}\u{5230}\u{94A5}\u{5319}\u{4E32}\u{FF0C}\u{4E0D}\u{5199}\u{8FDB}\u{811A}\u{672C}\u{6587}\u{4EF6}"
+                            String(
+                                localized:
+                                    "\u{5BC6}\u{94A5}\u{4FDD}\u{5B58}\u{5230}\u{94A5}\u{5319}\u{4E32}\u{FF0C}\u{4E0D}\u{5199}\u{8FDB}\u{811A}\u{672C}\u{6587}\u{4EF6}"
+                            )
                         )
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                     }
                 }
             }
-            .navigationTitle(Text("\u{786E}\u{8BA4}\u{6DFB}\u{52A0}"))
+            .navigationTitle(
+                Text(
+                    draft.isReplacement
+                        ? String(localized: "\u{786E}\u{8BA4}\u{66F4}\u{65B0}")
+                        : String(localized: "\u{786E}\u{8BA4}\u{6DFB}\u{52A0}"))
+            )
+            .onAppear {
+                // An update shows the settings/secrets the addon already has; confirming
+                // merges them over the preserved state instead of replacing it.
+                guard draft.isReplacement,
+                    let addon = center.addons.first(where: { $0.state.id == draft.id })
+                else { return }
+                settings = addon.state.settings
+                for secret in draft.declarations.secrets {
+                    secrets[secret.key] = center.secretValue(secret.key, addon: addon)
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("\u{53D6}\u{6D88}") {
+                    Button(String(localized: "\u{53D6}\u{6D88}")) {
                         center.cancelPending()
                         dismiss()
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("\u{6DFB}\u{52A0}") {
-                        center.confirm(draft, name: name, settings: settings, secretValues: secrets)
+                    Button(
+                        draft.isReplacement
+                            ? String(localized: "\u{66F4}\u{65B0}") : String(localized: "\u{6DFB}\u{52A0}")
+                    ) {
+                        center.confirm(draft, settings: settings, secretValues: secrets)
                         dismiss()
                     }
                 }
@@ -107,7 +127,7 @@ struct ScriptAddonSettingsView: View {
             Form {
                 if let declarations {
                     if !declarations.settings.isEmpty {
-                        Section("\u{8BBE}\u{7F6E}") {
+                        Section(String(localized: "\u{8BBE}\u{7F6E}")) {
                             ForEach(declarations.settings, id: \.key) { setting in
                                 TextField(
                                     setting.label,
@@ -118,7 +138,7 @@ struct ScriptAddonSettingsView: View {
                         }
                     }
                     if !declarations.secrets.isEmpty {
-                        Section("\u{5BC6}\u{94A5}") {
+                        Section(String(localized: "\u{5BC6}\u{94A5}")) {
                             ForEach(declarations.secrets, id: \.key) { secret in
                                 SecureField(
                                     secret.label,
@@ -130,13 +150,13 @@ struct ScriptAddonSettingsView: View {
                     }
                 }
             }
-            .navigationTitle(Text("\u{8BBE}\u{7F6E}"))
+            .navigationTitle(Text(String(localized: "\u{8BBE}\u{7F6E}")))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("\u{5B8C}\u{6210}") { dismiss() }
+                    Button(String(localized: "\u{5B8C}\u{6210}")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("\u{4FDD}\u{5B58}") {
+                    Button(String(localized: "\u{4FDD}\u{5B58}")) {
                         center.saveSettings(addon: addon, settings: settings, secrets: secrets)
                         dismiss()
                     }
@@ -163,6 +183,8 @@ struct ScriptAddonEditorView: View {
     @State private var inputText = ""
     @State private var result: ScriptAddonBridge.TryRunResult?
     @State private var error: String?
+    @State private var running = false
+    @State private var runTask: Task<Void, Never>?
 
     var body: some View {
         NavigationStack {
@@ -174,14 +196,17 @@ struct ScriptAddonEditorView: View {
                 tryBox
             }
             .navigationTitle(
-                Text(addon == nil ? "\u{65B0}\u{5EFA}\u{811A}\u{672C}" : "\u{7F16}\u{8F91}\u{811A}\u{672C}")
+                Text(
+                    addon == nil
+                        ? String(localized: "\u{65B0}\u{5EFA}\u{811A}\u{672C}")
+                        : String(localized: "\u{7F16}\u{8F91}\u{811A}\u{672C}"))
             )
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("\u{53D6}\u{6D88}") { dismiss() }
+                    Button(String(localized: "\u{53D6}\u{6D88}")) { dismiss() }
                 }
                 ToolbarItem(placement: .primaryAction) {
-                    Button("\u{4FDD}\u{5B58}") {
+                    Button(String(localized: "\u{4FDD}\u{5B58}")) {
                         let data = Data(source.utf8)
                         if let addon {
                             center.saveEdited(addon: addon, source: data)
@@ -193,15 +218,21 @@ struct ScriptAddonEditorView: View {
                 }
             }
             .onAppear { load() }
+            .onDisappear { runTask?.cancel() }
         }
     }
 
     private var tryBox: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                TextField("\u{8BD5}\u{6253}\u{6587}\u{5B57}", text: $inputText)
+                TextField(String(localized: "\u{8BD5}\u{6253}\u{6587}\u{5B57}"), text: $inputText)
                     .textFieldStyle(.roundedBorder)
-                Button("\u{8BD5}\u{8FD0}\u{884C}") { run() }
+                if running {
+                    ProgressView()
+                    Button(String(localized: "\u{53D6}\u{6D88}")) { cancelRun() }
+                } else {
+                    Button(String(localized: "\u{8BD5}\u{8FD0}\u{884C}")) { run() }
+                }
             }
             if let result {
                 ScrollView {
@@ -210,14 +241,20 @@ struct ScriptAddonEditorView: View {
                             Text(line).font(.system(.caption, design: .monospaced))
                         }
                         ForEach(result.outputs, id: \.self) { output in
-                            Text("\u{8F93}\u{51FA}\u{FF1A}" + output).font(.system(.caption, design: .monospaced))
+                            Text(String(localized: "\u{8F93}\u{51FA}\u{FF1A}") + output).font(
+                                .system(.caption, design: .monospaced))
                         }
                         if let message = result.errorMessage {
                             Text(message).font(.system(.caption, design: .monospaced))
                                 .foregroundStyle(.red)
                         }
                         if let line = result.errorLine {
-                            Text("\u{51FA}\u{9519}\u{884C}\u{53F7}\u{FF1A}\(line)").font(.caption).foregroundStyle(.red)
+                            Text(
+                                String(
+                                    format: String(localized: "\u{51FA}\u{9519}\u{884C}\u{53F7}\u{FF1A}%lld"),
+                                    line)
+                            )
+                            .font(.caption).foregroundStyle(.red)
                         }
                     }
                 }
@@ -235,13 +272,33 @@ struct ScriptAddonEditorView: View {
         source = center.addonSource(addon)
     }
 
+    /// Runs the text currently in the editor, not the saved copy, so a new script can be
+    /// tried before it is added and an edited body is tested as written. The engine runs off
+    /// the main thread; the cancel button stops it between engine steps.
     private func run() {
-        guard let addon else {
-            error = "\u{5148}\u{4FDD}\u{5B58}\u{5E76}\u{786E}\u{8BA4}\u{8FD9}\u{4E2A}\u{811A}\u{672C}"
-            return
+        guard !running else { return }
+        running = true
+        result = nil
+        error = nil
+        let source = Data(self.source.utf8)
+        let addon = self.addon
+        let input = inputText
+        runTask = Task {
+            let outcome = await center.tryRun(source: source, addon: addon, inputText: input)
+            if Task.isCancelled {
+                running = false
+                return
+            }
+            result = outcome
+            error = outcome == nil ? center.errorMessage : nil
+            running = false
         }
-        result = center.tryRun(addon: addon, inputText: inputText)
-        error = center.errorMessage
+    }
+
+    private func cancelRun() {
+        runTask?.cancel()
+        runTask = nil
+        running = false
     }
 }
 

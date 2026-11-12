@@ -16,7 +16,10 @@
 	      shared resources/publications.
 	  Reason codes follow Apple's published list for each category:
 	    https://developer.apple.com/documentation/bundleresources/describing-use-of-required-reason-api
-	  The extension has no network code, collects no data and does not track the user.
+	  The extension has no networking of its own. A user-installed script runtime performs a
+	  script's fetch() through URLSession inside the extension process, on the user's behalf and
+	  only for the @connect hosts the user confirmed when importing the script. The keyboard
+	  collects no data and does not track the user.
 	-->
 	<key>NSPrivacyTracking</key>
 	<false/>

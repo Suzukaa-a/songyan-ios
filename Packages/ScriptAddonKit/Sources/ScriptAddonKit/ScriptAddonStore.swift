@@ -134,6 +134,34 @@ public final class ScriptAddonStore: @unchecked Sendable {
         return addon
     }
 
+    /// Replaces a script and keeps the local state the user already has: enabled, order,
+    /// settings and secret keys survive an edit or a link update, while the bytes and the
+    /// confirmed declaration digest move to the new version. Entered settings/secret keys
+    /// are merged over the preserved ones; a nil digest keeps the old confirmation.
+    @discardableResult
+    public func replace(
+        id: String, script: Data, maximumSourceBytes: Int, confirmedDigest: String?,
+        settings: [String: String] = [:], secretKeys: [String] = []
+    ) throws -> Addon {
+        try validate(id)
+        guard script.count <= maximumSourceBytes else {
+            throw StoreError.scriptTooLarge(limit: maximumSourceBytes)
+        }
+        let existing = try load(id: id)
+        var state = existing.state
+        if let confirmedDigest { state.confirmedDigest = confirmedDigest }
+        for (key, value) in settings where !value.isEmpty {
+            state.settings[key] = value
+        }
+        state.secretKeys = Array(Set(state.secretKeys).union(secretKeys)).sorted()
+        state.scriptDigest = Self.digest(script)
+        state.scriptByteCount = script.count
+        state.updatedAt = Date()
+        try writeScript(script, for: id)
+        try writeState(state, to: stateURL(id: id))
+        return try load(id: id)
+    }
+
     public func updateState(_ state: ScriptAddonState) throws {
         try validate(state.id)
         try writeState(state, to: stateURL(id: state.id))

@@ -33,6 +33,17 @@ struct ScriptAddonCatalog {
     /// Test seam: production leaves this empty and the tool uses the system URL loader.
     var urlSessionProtocolClasses: [AnyClass] = []
 
+    /// Stable fingerprint of a tool list: identity plus the script/settings/Full-Access revision.
+    /// The keyboard compares this on every appearance; a different list means rebuild the tools.
+    static func fingerprint(of tools: [any TextTool]) -> [String] {
+        tools.map { tool in
+            if let script = tool as? ScriptTextTool {
+                return "\(tool.identity.id):\(script.revision)"
+            }
+            return "\(tool.identity.id):-"
+        }
+    }
+
     /// Tools in the store's order, plus why each other addon was left out.
     func load() -> LoadResult {
         var result = LoadResult(tools: [], skipped: [])

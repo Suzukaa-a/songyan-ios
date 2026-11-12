@@ -44,7 +44,10 @@
         /// The panel is only rebuilt when the effective tool list (or Full Access) changed.
         func refreshScriptToolRuntimeIfNeeded() {
             let desired = scriptToolConfiguration()
-            if toolFingerprint(desired) == toolFingerprint(toolConfiguration) { return }
+            let desiredFingerprint = ScriptAddonCatalog.fingerprint(of: desired?.provider.tools ?? [])
+            let currentFingerprint = ScriptAddonCatalog.fingerprint(
+                of: toolConfiguration?.provider.tools ?? [])
+            if desiredFingerprint == currentFingerprint { return }
             applyToolConfiguration(desired)
         }
 
@@ -52,11 +55,5 @@
             ScriptToolRuntime.storeConfiguration(isFullAccess: hasFullAccess)
         }
 
-        private func toolFingerprint(_ configuration: ToolConfiguration?) -> [String] {
-            configuration?.provider.tools.map { tool in
-                let access = (tool as? ScriptTextTool)?.allowsNetworking ?? false
-                return "\(tool.identity.id):\(access ? "net" : "local")"
-            } ?? []
-        }
     }
 #endif

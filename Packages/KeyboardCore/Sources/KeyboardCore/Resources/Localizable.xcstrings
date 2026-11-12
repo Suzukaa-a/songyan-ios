@@ -2036,7 +2036,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "備份不是由鍵盤擴充套件生成的，無法匯入。"
+            "value": "備份不是由鍵盤擴充功能生成的，無法匯入。"
           }
         },
         "ja": {

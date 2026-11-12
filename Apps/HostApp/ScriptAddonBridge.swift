@@ -5,11 +5,31 @@ import ScriptAddonKit
 /// parser and the same pinned QuickJS build the keyboard extension uses. Nothing here
 /// parses JavaScript or runs an engine of its own. HostApp links those C sources and
 /// includes their headers in its bridging header (project registration pending).
-struct ScriptAddonBridge {
+struct ScriptAddonBridge: Sendable {
     enum BridgeError: Error, Equatable {
         case invalidConfiguration
         case header(message: String, line: Int)
         case runtime(message: String, line: Int)
+        case cancelled
+    }
+
+    /// Cancels a try run from the UI. The engine loop reads this flag between steps and calls
+    /// the shared runtime's own cancel; the C API is never called from two threads.
+    final class RunCancellation: @unchecked Sendable {
+        private let lock = NSLock()
+        private var cancelled = false
+
+        func cancel() {
+            lock.lock()
+            cancelled = true
+            lock.unlock()
+        }
+
+        var isCancelled: Bool {
+            lock.lock()
+            defer { lock.unlock() }
+            return cancelled
+        }
     }
 
     struct TryRunResult: Equatable {
@@ -45,7 +65,7 @@ struct ScriptAddonBridge {
     /// and the thrown error's line comes from the shared result.
     func tryRun(
         source: Data, inputText: String?, settingsJSON: String?, limits: ScriptAddonLimits,
-        onLog: (String) -> Void
+        cancellation: RunCancellation? = nil, onLog: @Sendable (String) -> Void
     ) throws -> TryRunResult {
         guard limits.isRunnable else { throw BridgeError.invalidConfiguration }
         let declarations = try parseDeclarations(source: source)
@@ -69,6 +89,9 @@ struct ScriptAddonBridge {
         else { throw BridgeError.invalidConfiguration }
         defer { songyan_script_run_destroy(run) }
         for _ in 0..<100_000 {
+            if cancellation?.isCancelled == true {
+                songyan_script_run_cancel(run)
+            }
             switch songyan_script_run_step(run) {
             case SONGYAN_SCRIPT_STEP_RUNNING:
                 continue
@@ -90,7 +113,7 @@ struct ScriptAddonBridge {
                     message: failure.message.map { String(cString: $0) } ?? "script failed",
                     line: Int(failure.line))
             case SONGYAN_SCRIPT_STEP_CANCELLED:
-                throw BridgeError.runtime(message: "cancelled", line: 0)
+                throw BridgeError.cancelled
             default:
                 throw BridgeError.runtime(
                     message: "network access is not available in the try box", line: 0)

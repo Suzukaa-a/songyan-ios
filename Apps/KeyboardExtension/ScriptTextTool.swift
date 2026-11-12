@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 import ScriptAddonKit
 import ToolKit
@@ -215,6 +216,10 @@ final class ScriptTextTool: TextTool, @unchecked Sendable {
     /// Whether this tool instance may use the network; the runtime fingerprint uses it so a Full
     /// Access change rebuilds the tools.
     var allowsNetworking: Bool { !allowedHosts.isEmpty && isFullAccess }
+    /// Digest of everything that changes what this tool runs: the script bytes, the resolved
+    /// settings (including secret values, hashed only), and the Full Access decision. The keyboard
+    /// compares revisions on each appearance and rebuilds its tools when one changed.
+    let revision: String
     private let settingsJSON: String?
     /// Set when a declared secret could not be read; the run then fails with the fixed prompt
     /// instead of silently running without the value the user filled in.
@@ -278,6 +283,15 @@ final class ScriptTextTool: TextTool, @unchecked Sendable {
         self.settingsUnavailable = settingsUnavailable
         self.urlSessionProtocolClasses = urlSessionProtocolClasses
         self.declarations = Self.declarations(from: header)
+        var hasher = SHA256()
+        hasher.update(data: Data(source.utf8))
+        hasher.update(data: Data("\u{0}".utf8))
+        hasher.update(data: Data((settingsJSON ?? "{}").utf8))
+        hasher.update(data: Data("\u{0}".utf8))
+        hasher.update(data: Data((isFullAccess ? "network" : "offline").utf8))
+        hasher.update(data: Data("\u{0}".utf8))
+        hasher.update(data: Data(id.utf8))
+        self.revision = hasher.finalize().map { String(format: "%02x", $0) }.joined()
         var hosts: Set<String> = []
         for index in 0..<Int(header.connect_count) {
             if let connect = header.connects?[index] {
@@ -346,7 +360,8 @@ final class ScriptTextTool: TextTool, @unchecked Sendable {
             responseLimit: limits.responseBytes, cancellation: cancellation,
             protocolClasses: urlSessionProtocolClasses)
         defer { hostContext.releaseAllocations() }
-        let settingsBytes = Array((settingsJSON ?? "{}").utf8)
+        // config.settings_json carries no length: the bridge reads it as a NUL-terminated string.
+        let settingsBytes = Array((settingsJSON ?? "{}").utf8) + [0]
         return try sourceBytes.withUnsafeBytes { sourceRaw in
             try textBytes.withUnsafeBytes { textRaw in
                 var limits = self.limits.cLimits
