@@ -75,6 +75,10 @@ struct ExtensionKeyboardPanel: View {
     /// Opens the host app; the extension itself has no application object to send a URL to.
     let openHostApp: (URL, @escaping @MainActor (Bool) -> Void) -> Void
     let dismissKeyboard: () -> Void
+    /// Host-built tool panel content and toolbar entry; nil when the extension has
+    /// no injected tool runtime, no tools, no editable field or a password field.
+    let toolPanel: ((@escaping () -> Void) -> AnyView)?
+    let toolPanelEntry: ((@escaping () -> Void) -> AnyView)?
     @State private var showsRouteDetails = false
 
     var body: some View {
@@ -94,7 +98,9 @@ struct ExtensionKeyboardPanel: View {
             presentedHeight: presentation.presentedHeight,
             presentationBudget: presentation.budget,
             openHostApp: openHostApp,
-            dismissKeyboard: dismissKeyboard
+            dismissKeyboard: dismissKeyboard,
+            toolPanel: toolPanel,
+            toolPanelEntry: toolPanelEntry
         )
         .environment(\.colorScheme, route.systemColorScheme)
         .environment(\.keyboardPanelHostLifetime, panelHostLifetime)

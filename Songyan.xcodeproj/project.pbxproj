@@ -70,6 +70,16 @@
 		G20200000000000000000008 = {isa = PBXBuildFile; productRef = G20200000000000000000004 /* QuickContentKit */; };
         E90000000000000000000210 = {isa = PBXBuildFile; productRef = E90000000000000000000012; };
 		A0000000000000000000000027 /* HostApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000000026 /* HostApp.swift */; };
+		HE2611180000000000000011 /* ScriptAddonBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = HE2611180000000000000001 /* ScriptAddonBridge.swift */; };
+		HE2611180000000000000012 /* ScriptAddonCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = HE2611180000000000000002 /* ScriptAddonCenter.swift */; };
+		HE2611180000000000000013 /* ScriptAddonCenterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = HE2611180000000000000003 /* ScriptAddonCenterView.swift */; };
+		HE2611180000000000000014 /* ScriptAddonViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = HE2611180000000000000004 /* ScriptAddonViews.swift */; };
+		HE2611180000000000000015 /* contract.c in Sources */ = {isa = PBXBuildFile; fileRef = SC2611180000000000000001 /* contract.c */; };
+		HE2611180000000000000016 /* run.c in Sources */ = {isa = PBXBuildFile; fileRef = SC2611180000000000000002 /* run.c */; };
+		HE2611180000000000000017 /* fetch.c in Sources */ = {isa = PBXBuildFile; fileRef = SC2611180000000000000003 /* fetch.c */; };
+		HE2611180000000000000018 /* ai-guide.txt in Resources */ = {isa = PBXBuildFile; fileRef = HE2611180000000000000005 /* ai-guide.txt */; };
+		HE2611180000000000000019 /* minimal.js in Resources */ = {isa = PBXBuildFile; fileRef = HE2611180000000000000006 /* minimal.js */; };
+		HE261118000000000000001A /* ScriptAddonKit in Frameworks */ = {isa = PBXBuildFile; productRef = HE2611180000000000000021 /* ScriptAddonKit */; };
 		A0000000000000000000000029 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000000028 /* MainTabView.swift */; };
 		A000000000000000000000002B /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000000002A /* OnboardingView.swift */; };
 		A000000000000000000000002D /* TryInputView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000000002C /* TryInputView.swift */; };
@@ -182,6 +192,14 @@
 		HS2610230000000000000041 /* EngineOpQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = HS2610230000000000000039 /* EngineOpQueue.swift */; };
 		HS2610230000000000000043 /* KeyboardPresenceStamp.swift in Sources */ = {isa = PBXBuildFile; fileRef = HS2610230000000000000042 /* KeyboardPresenceStamp.swift */; };
 		HS2610230000000000000044 /* KeyboardPresenceStamp.swift in Sources */ = {isa = PBXBuildFile; fileRef = HS2610230000000000000042 /* KeyboardPresenceStamp.swift */; };
+		S0P2611030000000000000043 /* S0Probe.swift in Sources */ = {isa = PBXBuildFile; fileRef = S0P2611030000000000000042 /* S0Probe.swift */; };
+		S0P2611030000000000000044 /* S0Probe.swift in Sources */ = {isa = PBXBuildFile; fileRef = S0P2611030000000000000042 /* S0Probe.swift */; };
+		D1A000000000000000000003 /* ToolDocumentProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A000000000000000000001 /* ToolDocumentProxy.swift */; };
+		D1A000000000000000000009 /* ToolDocumentController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A000000000000000000008 /* ToolDocumentController.swift */; };
+		D1A000000000000000000004 /* ToolDocumentGateway.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A000000000000000000002 /* ToolDocumentGateway.swift */; };
+		TP2611180000000000000001 /* ToolPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = TP2611180000000000000003 /* ToolPanelView.swift */; };
+		TP2611180000000000000002 /* ToolPanelPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = TP2611180000000000000004 /* ToolPanelPresentation.swift */; };
+		D1A000000000000000000005 /* ToolKit in Frameworks */ = {isa = PBXBuildFile; productRef = D1A000000000000000000007 /* ToolKit */; };
 		HS2610230000000000000046 /* KeyboardResourceReadQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = HS2610230000000000000045 /* KeyboardResourceReadQueue.swift */; };
 		HS2610230000000000000047 /* KeyboardResourceReadQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = HS2610230000000000000045 /* KeyboardResourceReadQueue.swift */; };
 		A0000000000000000000000048 /* BuiltinPackages in Resources */ = {isa = PBXBuildFile; fileRef = A0000000000000000000000024 /* BuiltinPackages */; };
@@ -235,6 +253,7 @@
 		91447F0DFACEDA6EA76F3DA5 /* KeyboardSystemRequirements.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1A992B99E56ED8915138994; };
 		5CBED1F7984DA89294D01903 /* KeyboardSystemRequirements.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1A992B99E56ED8915138994; };
 		C0F000000000000000000002 = {isa = PBXBuildFile; fileRef = C0F000000000000000000003; };
+		D1A00000000000000000000B /* ToolDocumentDeleteGranularityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A00000000000000000000A /* ToolDocumentDeleteGranularityTests.swift */; };
 		KA2611070000000000000011 /* Kana12KeyboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = KA2611070000000000000001 /* Kana12KeyboardView.swift */; };
 		KA2611070000000000000012 /* KeyboardController+Kana12.swift in Sources */ = {isa = PBXBuildFile; fileRef = KA2611070000000000000002 /* KeyboardController+Kana12.swift */; };
 		KA2611070000000000000013 /* KeyboardPanelView+Kana12.swift in Sources */ = {isa = PBXBuildFile; fileRef = KA2611070000000000000003 /* KeyboardPanelView+Kana12.swift */; };
@@ -249,6 +268,36 @@
 		CB2611000000000000001004 /* ConfigurationBackupDependencies.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB2611000000000000000004 /* ConfigurationBackupDependencies.swift */; };
 		CB2611000000000000001005 /* ConfigurationDependencyRestorer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB2611000000000000000005 /* ConfigurationDependencyRestorer.swift */; };
 		CB2611000000000000001003 /* ConfigurationBackupSections.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB2611000000000000000003 /* ConfigurationBackupSections.swift */; };
+		SC2611180000000000000011 /* contract.c in Sources */ = {isa = PBXBuildFile; fileRef = SC2611180000000000000001 /* contract.c */; };
+		SC2611180000000000000012 /* run.c in Sources */ = {isa = PBXBuildFile; fileRef = SC2611180000000000000002 /* run.c */; };
+		SC2611180000000000000013 /* fetch.c in Sources */ = {isa = PBXBuildFile; fileRef = SC2611180000000000000003 /* fetch.c */; };
+		SC2611180000000000000014 /* run_cli.c in Sources */ = {isa = PBXBuildFile; fileRef = SC2611180000000000000004 /* run_cli.c */; };
+		SC2611180000000000000015 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = SC2611180000000000000005 /* main.c */; settings = {COMPILER_FLAGS = "-Dmain=songyan_script_cli_main"; }; };
+		SC2611180000000000000016 /* ScriptContractTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = SC2611180000000000000006 /* ScriptContractTests.swift */; };
+		SC2611180000000000000017 /* tests in Resources */ = {isa = PBXBuildFile; fileRef = SC2611180000000000000007 /* tests */; };
+		SC2611180000000000000018 /* examples in Resources */ = {isa = PBXBuildFile; fileRef = SC2611180000000000000008 /* examples */; };
+		ST2611180000000000000011 /* contract.c in Sources */ = {isa = PBXBuildFile; fileRef = SC2611180000000000000001 /* contract.c */; };
+		ST2611180000000000000012 /* run.c in Sources */ = {isa = PBXBuildFile; fileRef = SC2611180000000000000002 /* run.c */; };
+		ST2611180000000000000013 /* fetch.c in Sources */ = {isa = PBXBuildFile; fileRef = SC2611180000000000000003 /* fetch.c */; };
+		ST2611180000000000000014 /* ScriptTextTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = ST2611180000000000000001 /* ScriptTextTool.swift */; };
+		ST2611180000000000000015 /* ScriptToolRuntimeExtension.swift in Sources */ = {isa = PBXBuildFile; fileRef = ST2611180000000000000002 /* ScriptToolRuntimeExtension.swift */; };
+		ST2611180000000000000016 /* examples in Resources */ = {isa = PBXBuildFile; fileRef = SC2611180000000000000008 /* examples */; };
+		ST2611180000000000000017 /* ScriptTextTool.swift in Sources */ = {isa = PBXBuildFile; fileRef = ST2611180000000000000001 /* ScriptTextTool.swift */; };
+		ST2611180000000000000018 /* ToolDocumentGateway.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A000000000000000000002 /* ToolDocumentGateway.swift */; };
+		ST2611180000000000000019 /* ToolDocumentProxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1A000000000000000000001 /* ToolDocumentProxy.swift */; };
+		ST2611180000000000000020 /* ScriptToolTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ST2611180000000000000004 /* ScriptToolTests.swift */; };
+		ST2611180000000000000021 /* ToolKit in Frameworks */ = {isa = PBXBuildFile; productRef = D1A000000000000000000007 /* ToolKit */; };
+		ST2611180000000000000022 /* ToolPanelPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = TP2611180000000000000004 /* ToolPanelPresentation.swift */; };
+		ST2611180000000000000025 /* ToolPanelDriverStub.swift in Sources */ = {isa = PBXBuildFile; fileRef = ST2611180000000000000024 /* ToolPanelDriverStub.swift */; };
+		ST2611180000000000000027 /* ScriptNetworkingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ST2611180000000000000026 /* ScriptNetworkingTests.swift */; };
+		ST2611180000000000000029 /* ScriptFetchHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = ST2611180000000000000028 /* ScriptFetchHost.swift */; };
+		ST2611180000000000000030 /* ScriptFetchHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = ST2611180000000000000028 /* ScriptFetchHost.swift */; };
+		SA2611180000000000000011 /* ScriptAddonCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = SA2611180000000000000001 /* ScriptAddonCatalog.swift */; };
+		SA2611180000000000000012 /* ScriptAddonDirectory.swift in Sources */ = {isa = PBXBuildFile; fileRef = SA2611180000000000000002 /* ScriptAddonDirectory.swift */; };
+		SA2611180000000000000013 /* ScriptAddonCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = SA2611180000000000000001 /* ScriptAddonCatalog.swift */; };
+		SA2611180000000000000014 /* ScriptAddonCatalogTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = SA2611180000000000000003 /* ScriptAddonCatalogTests.swift */; };
+		SA2611180000000000000015 /* ScriptAddonKit in Frameworks */ = {isa = PBXBuildFile; productRef = HE2611180000000000000021 /* ScriptAddonKit */; };
+		SA2611180000000000000016 /* ScriptAddonKit in Frameworks */ = {isa = PBXBuildFile; productRef = HE2611180000000000000021 /* ScriptAddonKit */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -266,6 +315,13 @@
             remoteGlobalIDString = A000000000000000000000000B;
             remoteInfo = HostApp;
         };
+		SC2611180000000000000062 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A0000000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A000000000000000000000000B;
+			remoteInfo = HostApp;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -329,6 +385,12 @@
 		G21000000000000000000004 /* HostStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HostStorage.swift; sourceTree = "<group>"; };
 		G21100000000000000000002 /* AppliedSelectionLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppliedSelectionLoader.swift; sourceTree = "<group>"; };
 		A0000000000000000000000026 /* HostApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HostApp.swift; sourceTree = "<group>"; };
+		HE2611180000000000000001 /* ScriptAddonBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScriptAddonBridge.swift; sourceTree = "<group>"; };
+		HE2611180000000000000002 /* ScriptAddonCenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScriptAddonCenter.swift; sourceTree = "<group>"; };
+		HE2611180000000000000003 /* ScriptAddonCenterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScriptAddonCenterView.swift; sourceTree = "<group>"; };
+		HE2611180000000000000004 /* ScriptAddonViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScriptAddonViews.swift; sourceTree = "<group>"; };
+		HE2611180000000000000005 /* ai-guide.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = Resources/ScriptAddons/ai-guide.txt; sourceTree = SOURCE_ROOT; };
+		HE2611180000000000000006 /* minimal.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = Resources/ScriptAddons/minimal.js; sourceTree = SOURCE_ROOT; };
 		A0000000000000000000000028 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		A000000000000000000000002A /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		A000000000000000000000002C /* TryInputView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TryInputView.swift; sourceTree = "<group>"; };
@@ -390,6 +452,12 @@
 		HS2610230000000000000036 /* GrammarRuntimeReceiptStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GrammarRuntimeReceiptStore.swift; sourceTree = "<group>"; };
 		HS2610230000000000000039 /* EngineOpQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EngineOpQueue.swift; sourceTree = "<group>"; };
 		HS2610230000000000000042 /* KeyboardPresenceStamp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardPresenceStamp.swift; sourceTree = "<group>"; };
+		S0P2611030000000000000042 /* S0Probe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = S0Probe.swift; sourceTree = "<group>"; };
+		D1A000000000000000000001 /* ToolDocumentProxy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolDocumentProxy.swift; sourceTree = "<group>"; };
+		D1A000000000000000000008 /* ToolDocumentController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolDocumentController.swift; sourceTree = "<group>"; };
+		D1A000000000000000000002 /* ToolDocumentGateway.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolDocumentGateway.swift; sourceTree = "<group>"; };
+		TP2611180000000000000003 /* ToolPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolPanelView.swift; sourceTree = "<group>"; };
+		TP2611180000000000000004 /* ToolPanelPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolPanelPresentation.swift; sourceTree = "<group>"; };
 		HS2610230000000000000045 /* KeyboardResourceReadQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardResourceReadQueue.swift; sourceTree = "<group>"; };
 		A0000000000000000000000024 /* BuiltinPackages */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "Resources/BuiltinPackages"; sourceTree = "<group>"; };
 		A000000000000000000000001A /* HostApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HostApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -435,6 +503,7 @@
 		DAC31C39A89A7272F4308B91 /* KeyboardAuthoredPageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "KeyboardAuthoredPageView.swift"; sourceTree = "<group>"; };
 		B1A992B99E56ED8915138994 /* KeyboardSystemRequirements.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "KeyboardSystemRequirements.swift"; sourceTree = "<group>"; };
 		C0F000000000000000000003 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardPerformanceTests.swift; sourceTree = "<group>"; };
+		D1A00000000000000000000A /* ToolDocumentDeleteGranularityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolDocumentDeleteGranularityTests.swift; sourceTree = "<group>"; };
 		C0F000000000000000000004 = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KeyboardPerformanceTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CC3EFB1CF07BF63385C710C1 /* opencc */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "Resources/EngineResources/opencc"; sourceTree = "<group>"; };
 		2DFFEF6499DCB78987817CB2 /* HostApp InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
@@ -444,6 +513,25 @@
 		CB2611000000000000000004 /* ConfigurationBackupDependencies.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigurationBackupDependencies.swift; sourceTree = "<group>"; };
 		CB2611000000000000000005 /* ConfigurationDependencyRestorer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigurationDependencyRestorer.swift; sourceTree = "<group>"; };
 		CB2611000000000000000003 /* ConfigurationBackupSections.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigurationBackupSections.swift; sourceTree = "<group>"; };
+		SC2611180000000000000001 /* contract.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = Tools/Script/src/contract.c; sourceTree = SOURCE_ROOT; };
+		SC2611180000000000000002 /* run.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = Tools/Script/src/run.c; sourceTree = SOURCE_ROOT; };
+		SC2611180000000000000003 /* fetch.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = Tools/Script/src/fetch.c; sourceTree = SOURCE_ROOT; };
+		SC2611180000000000000004 /* run_cli.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = Tools/Script/src/run_cli.c; sourceTree = SOURCE_ROOT; };
+		SC2611180000000000000005 /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = Tools/Script/src/main.c; sourceTree = SOURCE_ROOT; };
+		SC2611180000000000000006 /* ScriptContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tests/ScriptContract/ScriptContractTests.swift; sourceTree = SOURCE_ROOT; };
+		SC2611180000000000000007 /* tests */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Tools/Script/tests; sourceTree = SOURCE_ROOT; };
+		SC2611180000000000000008 /* examples */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Tools/Script/examples; sourceTree = SOURCE_ROOT; };
+		SC2611180000000000000009 /* ScriptContractTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ScriptContractTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		ST2611180000000000000001 /* ScriptTextTool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScriptTextTool.swift; sourceTree = "<group>"; };
+		ST2611180000000000000002 /* ScriptToolRuntimeExtension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScriptToolRuntimeExtension.swift; sourceTree = "<group>"; };
+		ST2611180000000000000003 /* ScriptCoreBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ScriptCoreBridge.h; sourceTree = "<group>"; };
+		ST2611180000000000000004 /* ScriptToolTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tests/ScriptTool/ScriptToolTests.swift; sourceTree = SOURCE_ROOT; };
+		ST2611180000000000000024 /* ToolPanelDriverStub.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tests/ScriptTool/ToolPanelDriverStub.swift; sourceTree = SOURCE_ROOT; };
+		ST2611180000000000000026 /* ScriptNetworkingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tests/ScriptTool/ScriptNetworkingTests.swift; sourceTree = SOURCE_ROOT; };
+		ST2611180000000000000028 /* ScriptFetchHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScriptFetchHost.swift; sourceTree = "<group>"; };
+		SA2611180000000000000001 /* ScriptAddonCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScriptAddonCatalog.swift; sourceTree = "<group>"; };
+		SA2611180000000000000002 /* ScriptAddonDirectory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScriptAddonDirectory.swift; sourceTree = "<group>"; };
+		SA2611180000000000000003 /* ScriptAddonCatalogTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tests/ScriptTool/ScriptAddonCatalogTests.swift; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -451,6 +539,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				HE261118000000000000001A /* ScriptAddonKit in Frameworks */,
 				A000000000000000000000001F /* KeyboardCore in Frameworks */,
 				A000000000000000000000004C /* RimeBridge in Frameworks */,
 				A000000000000000000000005B /* PackageManager in Frameworks */,
@@ -467,6 +556,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				A0000000000000000000000020 /* KeyboardCore in Frameworks */,
+				D1A000000000000000000005 /* ToolKit in Frameworks */,
+				SA2611180000000000000015 /* ScriptAddonKit in Frameworks */,
 				A000000000000000000000004D /* RimeBridge in Frameworks */,
 				A0000000000000000000000068 /* LayoutKit in Frameworks */,
                 E90000000000000000000210 /* SkinKit in Frameworks */,
@@ -477,6 +568,10 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		C0F00000000000000000000A = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		SC2611180000000000000023 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (
+				ST2611180000000000000021 /* ToolKit in Frameworks */,
+				SA2611180000000000000016 /* ScriptAddonKit in Frameworks */,
+			); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -511,6 +606,12 @@
 			children = (
 				2DFFEF6499DCB78987817CB2 /* HostApp InfoPlist.xcstrings */,
 				A0000000000000000000000026 /* HostApp.swift */,
+				HE2611180000000000000001 /* ScriptAddonBridge.swift */,
+				HE2611180000000000000002 /* ScriptAddonCenter.swift */,
+				HE2611180000000000000003 /* ScriptAddonCenterView.swift */,
+				HE2611180000000000000004 /* ScriptAddonViews.swift */,
+				HE2611180000000000000005 /* ai-guide.txt */,
+				HE2611180000000000000006 /* minimal.js */,
 				A0000000000000000000000028 /* MainTabView.swift */,
 				A000000000000000000000002A /* OnboardingView.swift */,
 				A000000000000000000000002C /* TryInputView.swift */,
@@ -592,6 +693,17 @@
 			children = (
 				0F2FC0A0553F94C13B2A5191 /* KeyboardExtension InfoPlist.xcstrings */,
 				A0000000000000000000000032 /* KeyboardViewController.swift */,
+				D1A000000000000000000001 /* ToolDocumentProxy.swift */,
+				D1A000000000000000000008 /* ToolDocumentController.swift */,
+				D1A000000000000000000002 /* ToolDocumentGateway.swift */,
+				ST2611180000000000000001 /* ScriptTextTool.swift */,
+				ST2611180000000000000002 /* ScriptToolRuntimeExtension.swift */,
+				ST2611180000000000000003 /* ScriptCoreBridge.h */,
+				ST2611180000000000000028 /* ScriptFetchHost.swift */,
+				SA2611180000000000000001 /* ScriptAddonCatalog.swift */,
+				SA2611180000000000000002 /* ScriptAddonDirectory.swift */,
+				TP2611180000000000000003 /* ToolPanelView.swift */,
+				TP2611180000000000000004 /* ToolPanelPresentation.swift */,
 				A5D0358994F742F9A970331C /* KeyboardViewController+HostDocument.swift */,
 				265D31AF51C54918BA753435 /* KeyboardViewController+TimingProbe.swift */,
 				47A9310A7B5247FB98F59874 /* KeyboardViewController+Presentation.swift */,
@@ -659,6 +771,7 @@
 				HS2610230000000000000036 /* GrammarRuntimeReceiptStore.swift */,
 				HS2610230000000000000039 /* EngineOpQueue.swift */,
 				HS2610230000000000000042 /* KeyboardPresenceStamp.swift */,
+				S0P2611030000000000000042 /* S0Probe.swift */,
 				HS2610230000000000000045 /* KeyboardResourceReadQueue.swift */,
                 E90000000000000000000001 /* KeyboardAppearance.swift */,
                 E90000000000000000000002 /* KeyboardPreviewView.swift */,
@@ -683,13 +796,25 @@
 				A000000000000000000000001A /* HostApp.app */,
 				A000000000000000000000001B /* KeyboardExtension.appex */,
 				C0F000000000000000000004 /* KeyboardPerformanceTests.xctest */,
+				SC2611180000000000000009 /* ScriptContractTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
 		C0F000000000000000000005 = {isa = PBXGroup; children = (
                 C0F000000000000000000003,
+                D1A00000000000000000000A,
             ); path = Tests/Performance; sourceTree = "<group>"; };
+		SC2611180000000000000031 /* ScriptContractTests */ = {isa = PBXGroup; children = (
+			SC2611180000000000000006 /* ScriptContractTests.swift */,
+			SC2611180000000000000001 /* contract.c */,
+			SC2611180000000000000002 /* run.c */,
+			SC2611180000000000000003 /* fetch.c */,
+			SC2611180000000000000004 /* run_cli.c */,
+			SC2611180000000000000005 /* main.c */,
+			SC2611180000000000000007 /* tests */,
+			SC2611180000000000000008 /* examples */,
+		); name = ScriptContractTests; sourceTree = "<group>"; };
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -697,6 +822,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = A000000000000000000000000C /* Build configuration list for PBXNativeTarget "HostApp" */;
 			buildPhases = (
+				ST2611180000000000000031 /* Build pinned QuickJS for the extension */,
 				A000000000000000000000000F /* Sources */,
 				A0000000000000000000000010 /* Frameworks */,
 				A0000000000000000000000011 /* Resources */,
@@ -717,6 +843,7 @@
 				G20200000000000000000003 /* QuickContentKit */,
                 F10000000000000000000201 /* CandidateKit */,
                 AB0000000000000000000011 /* AppearanceKit */,
+				HE2611180000000000000021 /* ScriptAddonKit */,
 			);
 			productName = HostApp;
 			productReference = A000000000000000000000001A /* HostApp.app */;
@@ -726,6 +853,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = A0000000000000000000000014 /* Build configuration list for PBXNativeTarget "KeyboardExtension" */;
 			buildPhases = (
+				ST2611180000000000000031 /* Build pinned QuickJS for the extension */,
 				A0000000000000000000000017 /* Sources */,
 				A0000000000000000000000018 /* Frameworks */,
 				A0000000000000000000000019 /* Resources */,
@@ -743,6 +871,8 @@
 				G20200000000000000000004 /* QuickContentKit */,
                 F10000000000000000000202 /* CandidateKit */,
                 AB0000000000000000000012 /* AppearanceKit */,
+				D1A000000000000000000007 /* ToolKit */,
+				HE2611180000000000000021 /* ScriptAddonKit */,
 			);
 			productName = KeyboardExtension;
 			productReference = A000000000000000000000001B /* KeyboardExtension.appex */;
@@ -765,6 +895,29 @@
             productReference = C0F000000000000000000004;
             productType = "com.apple.product-type.bundle.ui-testing";
         };
+		SC2611180000000000000041 /* ScriptContractTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = SC2611180000000000000051 /* Build configuration list for PBXNativeTarget "ScriptContractTests" */;
+			buildPhases = (
+				SC2611180000000000000021 /* Build pinned QuickJS for the simulator */,
+				SC2611180000000000000022 /* Sources */,
+				SC2611180000000000000023 /* Frameworks */,
+				SC2611180000000000000024 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				SC2611180000000000000061 /* PBXTargetDependency */,
+			);
+			name = ScriptContractTests;
+			packageProductDependencies = (
+				D1A000000000000000000007 /* ToolKit */,
+				HE2611180000000000000021 /* ScriptAddonKit */,
+			);
+			productName = ScriptContractTests;
+			productReference = SC2611180000000000000009 /* ScriptContractTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -776,6 +929,7 @@
 				LastUpgradeCheck = 2600;
 				TargetAttributes = {
                     C0F000000000000000000001 = {CreatedOnToolsVersion = 27.0; TestTargetID = A000000000000000000000000B; };
+                    SC2611180000000000000041 = {CreatedOnToolsVersion = 27.0; TestTargetID = A000000000000000000000000B; };
 					A000000000000000000000000B = {
 						CreatedOnToolsVersion = 26.0;
 						SystemCapabilities = {
@@ -813,6 +967,8 @@
 				A0000000000000000000000064 /* XCLocalSwiftPackageReference "Packages/LayoutKit" */,
                 E90000000000000000000010 /* XCLocalSwiftPackageReference "Packages/SkinKit" */,
 				G20200000000000000000006 /* XCLocalSwiftPackageReference "Packages/QuickContentKit" */,
+				D1A000000000000000000006 /* XCLocalSwiftPackageReference "Packages/ToolKit" */,
+				HE2611180000000000000020 /* XCLocalSwiftPackageReference "Packages/ScriptAddonKit" */,
                 F10000000000000000000200 /* XCLocalSwiftPackageReference "Packages/CandidateKit" */,
                 AB0000000000000000000010 /* XCLocalSwiftPackageReference "Packages/AppearanceKit" */,
 			);
@@ -823,15 +979,74 @@
 				A000000000000000000000000B /* HostApp */,
 				A0000000000000000000000013 /* KeyboardExtension */,
 				C0F000000000000000000001 /* KeyboardPerformanceTests */,
+				SC2611180000000000000041 /* ScriptContractTests */,
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		SC2611180000000000000021 /* Build pinned QuickJS for the simulator */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 0;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/Tools/BuildRimeIOS/QUICKJS-VERSIONS.env",
+				"$(SRCROOT)/Tools/Script/scripts/fetch-quickjs.sh",
+				"$(SRCROOT)/Tools/Script/scripts/build-quickjs-ios.sh",
+				"$(SRCROOT)/Tools/Script/src/bootstrap.js",
+			);
+			name = "Build pinned QuickJS for the simulator";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/quickjs/$(PLATFORM_NAME)/libquickjs.a",
+				"$(DERIVED_FILE_DIR)/script-generated/songyan_script_bootstrap.inc",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${SRCROOT}/Tools/Script/scripts/build-quickjs-ios.sh\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		ST2611180000000000000031 /* Build pinned QuickJS for the extension */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 0;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/Tools/BuildRimeIOS/QUICKJS-VERSIONS.env",
+				"$(SRCROOT)/Tools/Script/scripts/fetch-quickjs.sh",
+				"$(SRCROOT)/Tools/Script/scripts/build-quickjs-ios.sh",
+				"$(SRCROOT)/Tools/Script/src/bootstrap.js",
+			);
+			name = "Build pinned QuickJS for the extension";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/quickjs/$(PLATFORM_NAME)/libquickjs.a",
+				"$(DERIVED_FILE_DIR)/script-generated/songyan_script_bootstrap.inc",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${SRCROOT}/Tools/Script/scripts/build-quickjs-ios.sh\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXResourcesBuildPhase section */
 		A0000000000000000000000011 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				HE2611180000000000000018 /* ai-guide.txt in Resources */,
+				HE2611180000000000000019 /* minimal.js in Resources */,
 				2BDC99D24EFD4B36E8669CC2 /* HostApp InfoPlist.xcstrings in Resources */,
 				A0000000000000000000000025 /* BuiltinPackages in Resources */,
                 KF2610160000000000000002 /* KeyFeedback in Resources */,
@@ -853,10 +1068,20 @@
                 KF2610160000000000000003 /* KeyFeedback in Resources */,
 				PRIVE0XTBF00000000000001 /* PrivacyInfo.xcprivacy in Resources */,
 				LC2611050000000000000003 /* Localizable.xcstrings in Resources */,
+				ST2611180000000000000016 /* examples in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		C0F00000000000000000000B = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		SC2611180000000000000024 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				SC2611180000000000000017 /* tests in Resources */,
+				SC2611180000000000000018 /* examples in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -864,6 +1089,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				HE2611180000000000000011 /* ScriptAddonBridge.swift in Sources */,
+				HE2611180000000000000012 /* ScriptAddonCenter.swift in Sources */,
+				HE2611180000000000000013 /* ScriptAddonCenterView.swift in Sources */,
+				HE2611180000000000000014 /* ScriptAddonViews.swift in Sources */,
+				HE2611180000000000000015 /* contract.c in Sources */,
+				HE2611180000000000000016 /* run.c in Sources */,
+				HE2611180000000000000017 /* fetch.c in Sources */,
 				A0000000000000000000000027 /* HostApp.swift in Sources */,
 				A0000000000000000000000029 /* MainTabView.swift in Sources */,
 				A000000000000000000000002B /* OnboardingView.swift in Sources */,
@@ -957,6 +1189,7 @@
 				HS2610230000000000000037 /* GrammarRuntimeReceiptStore.swift in Sources */,
 				HS2610230000000000000040 /* EngineOpQueue.swift in Sources */,
 				HS2610230000000000000043 /* KeyboardPresenceStamp.swift in Sources */,
+				S0P2611030000000000000043 /* S0Probe.swift in Sources */,
 				HS2610230000000000000046 /* KeyboardResourceReadQueue.swift in Sources */,
 				A0000000000000000000000051 /* KeyboardSelectionCenter.swift in Sources */,
 				D10000000000000000000001 /* DictionaryImportCenter.swift in Sources */,
@@ -1081,14 +1314,52 @@
 				HS2610230000000000000038 /* GrammarRuntimeReceiptStore.swift in Sources */,
 				HS2610230000000000000041 /* EngineOpQueue.swift in Sources */,
 				HS2610230000000000000044 /* KeyboardPresenceStamp.swift in Sources */,
+				S0P2611030000000000000044 /* S0Probe.swift in Sources */,
+				D1A000000000000000000003 /* ToolDocumentProxy.swift in Sources */,
+				D1A000000000000000000009 /* ToolDocumentController.swift in Sources */,
+				D1A000000000000000000004 /* ToolDocumentGateway.swift in Sources */,
+				TP2611180000000000000001 /* ToolPanelView.swift in Sources */,
+				TP2611180000000000000002 /* ToolPanelPresentation.swift in Sources */,
 				HS2610230000000000000047 /* KeyboardResourceReadQueue.swift in Sources */,
 				LT2600000000000000000004 /* KeyboardLearningTransfer.swift in Sources */,
+				ST2611180000000000000011 /* contract.c in Sources */,
+				ST2611180000000000000012 /* run.c in Sources */,
+				ST2611180000000000000013 /* fetch.c in Sources */,
+				ST2611180000000000000014 /* ScriptTextTool.swift in Sources */,
+				ST2611180000000000000029 /* ScriptFetchHost.swift in Sources */,
+				SA2611180000000000000011 /* ScriptAddonCatalog.swift in Sources */,
+				SA2611180000000000000012 /* ScriptAddonDirectory.swift in Sources */,
+				ST2611180000000000000015 /* ScriptToolRuntimeExtension.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		C0F000000000000000000006 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (
                 C0F000000000000000000002,
+                D1A00000000000000000000B,
             ); runOnlyForDeploymentPostprocessing = 0; };
+		SC2611180000000000000022 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				SC2611180000000000000011 /* contract.c in Sources */,
+				SC2611180000000000000012 /* run.c in Sources */,
+				SC2611180000000000000013 /* fetch.c in Sources */,
+				SC2611180000000000000014 /* run_cli.c in Sources */,
+				SC2611180000000000000015 /* main.c in Sources */,
+				SC2611180000000000000016 /* ScriptContractTests.swift in Sources */,
+				ST2611180000000000000017 /* ScriptTextTool.swift in Sources */,
+				ST2611180000000000000030 /* ScriptFetchHost.swift in Sources */,
+				SA2611180000000000000013 /* ScriptAddonCatalog.swift in Sources */,
+				SA2611180000000000000014 /* ScriptAddonCatalogTests.swift in Sources */,
+				ST2611180000000000000018 /* ToolDocumentGateway.swift in Sources */,
+				ST2611180000000000000022 /* ToolPanelPresentation.swift in Sources */,
+				ST2611180000000000000025 /* ToolPanelDriverStub.swift in Sources */,
+				ST2611180000000000000019 /* ToolDocumentProxy.swift in Sources */,
+				ST2611180000000000000020 /* ScriptToolTests.swift in Sources */,
+				ST2611180000000000000027 /* ScriptNetworkingTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -1098,6 +1369,11 @@
 			targetProxy = A0000000000000000000000022 /* PBXContainerItemProxy */;
 		};
 		C0F000000000000000000007 = {isa = PBXTargetDependency; target = A000000000000000000000000B; targetProxy = C0F000000000000000000008; };
+		SC2611180000000000000061 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A000000000000000000000000B /* HostApp */;
+			targetProxy = SC2611180000000000000062 /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
@@ -1253,9 +1529,22 @@
 					"$(inherited)",
 					"-lc++",
 					"-lc++abi",
+					"-Wl,-force_load,$(DERIVED_FILE_DIR)/quickjs/$(PLATFORM_NAME)/libquickjs.a",
+					"-lm",
+				);
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				SWIFT_OBJC_BRIDGING_HEADER = "Apps/KeyboardExtension/ScriptCoreBridge.h";
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/Tools/Script/include",
+					"$(SRCROOT)/Tools/Script/src",
+					"$(DERIVED_FILE_DIR)/script-generated",
+					"$(DERIVED_FILE_DIR)/quickjs-include",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "$(SONGYAN_BUNDLE_ID)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				S0_PROBE_CONDITIONS = "";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) $(S0_PROBE_CONDITIONS)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -1288,6 +1577,17 @@
 					"$(inherited)",
 					"-lc++",
 					"-lc++abi",
+					"-Wl,-force_load,$(DERIVED_FILE_DIR)/quickjs/$(PLATFORM_NAME)/libquickjs.a",
+					"-lm",
+				);
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				SWIFT_OBJC_BRIDGING_HEADER = "Apps/KeyboardExtension/ScriptCoreBridge.h";
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/Tools/Script/include",
+					"$(SRCROOT)/Tools/Script/src",
+					"$(DERIVED_FILE_DIR)/script-generated",
+					"$(DERIVED_FILE_DIR)/quickjs-include",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "$(SONGYAN_BUNDLE_ID)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1302,7 +1602,15 @@
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = Apps/KeyboardExtension/KeyboardExtension.entitlements;
-				SWIFT_OBJC_BRIDGING_HEADER = Apps/KeyboardExtension/DocumentIdentityBridge.h;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				SWIFT_OBJC_BRIDGING_HEADER = "Apps/KeyboardExtension/ScriptCoreBridge.h";
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/Tools/Script/include",
+					"$(SRCROOT)/Tools/Script/src",
+					"$(DERIVED_FILE_DIR)/script-generated",
+					"$(DERIVED_FILE_DIR)/quickjs-include",
+				);
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -1317,11 +1625,17 @@
 					"$(inherited)",
 					"-lc++",
 					"-lc++abi",
+					"$(S0_QUICKJS_LDFLAGS)",
+					"-Wl,-force_load,$(DERIVED_FILE_DIR)/quickjs/$(PLATFORM_NAME)/libquickjs.a",
+					"-lm",
 				);
 				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "$(SONGYAN_BUNDLE_ID).keyboard";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				S0_PROBE_CONDITIONS = "";
+				S0_QUICKJS_LDFLAGS = "";
 				SKIP_INSTALL = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) $(S0_PROBE_CONDITIONS)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 6.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -1333,7 +1647,15 @@
 			buildSettings = {
 				APPLICATION_EXTENSION_API_ONLY = YES;
 				CODE_SIGN_ENTITLEMENTS = Apps/KeyboardExtension/KeyboardExtension.entitlements;
-				SWIFT_OBJC_BRIDGING_HEADER = Apps/KeyboardExtension/DocumentIdentityBridge.h;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				SWIFT_OBJC_BRIDGING_HEADER = "Apps/KeyboardExtension/ScriptCoreBridge.h";
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/Tools/Script/include",
+					"$(SRCROOT)/Tools/Script/src",
+					"$(DERIVED_FILE_DIR)/script-generated",
+					"$(DERIVED_FILE_DIR)/quickjs-include",
+				);
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = NO;
@@ -1348,6 +1670,8 @@
 					"$(inherited)",
 					"-lc++",
 					"-lc++abi",
+					"-Wl,-force_load,$(DERIVED_FILE_DIR)/quickjs/$(PLATFORM_NAME)/libquickjs.a",
+					"-lm",
 				);
 				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "$(SONGYAN_BUNDLE_ID).keyboard";
@@ -1387,6 +1711,82 @@
             };
             name = Release;
         };
+		SC2611180000000000000052 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				SWIFT_OBJC_BRIDGING_HEADER = "Apps/KeyboardExtension/ScriptCoreBridge.h";
+				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/Tools/Script/include",
+					"$(SRCROOT)/Tools/Script/src",
+					"$(DERIVED_FILE_DIR)/script-generated",
+					"$(DERIVED_FILE_DIR)/quickjs-include",
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-Wl,-force_load,$(DERIVED_FILE_DIR)/quickjs/$(PLATFORM_NAME)/libquickjs.a",
+					"-lm",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(SONGYAN_BUNDLE_ID).scripttests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/HostApp.app/HostApp";
+			};
+			name = Debug;
+		};
+
+		SC2611180000000000000053 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				SWIFT_OBJC_BRIDGING_HEADER = "Apps/KeyboardExtension/ScriptCoreBridge.h";
+				GENERATE_INFOPLIST_FILE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(SRCROOT)/Tools/Script/include",
+					"$(SRCROOT)/Tools/Script/src",
+					"$(DERIVED_FILE_DIR)/script-generated",
+					"$(DERIVED_FILE_DIR)/quickjs-include",
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-Wl,-force_load,$(DERIVED_FILE_DIR)/quickjs/$(PLATFORM_NAME)/libquickjs.a",
+					"-lm",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "$(SONGYAN_BUNDLE_ID).scripttests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/HostApp.app/HostApp";
+			};
+			name = Release;
+		};
+
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1421,6 +1821,15 @@
                 C0F00000000000000000000C,
                 C0F00000000000000000000D,
             ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		SC2611180000000000000051 /* Build configuration list for PBXNativeTarget "ScriptContractTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				SC2611180000000000000052 /* Debug */,
+				SC2611180000000000000053 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
@@ -1443,6 +1852,14 @@
 		A0000000000000000000000064 /* XCLocalSwiftPackageReference "Packages/LayoutKit" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = "Packages/LayoutKit";
+		};
+		D1A000000000000000000006 /* XCLocalSwiftPackageReference "Packages/ToolKit" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/ToolKit;
+		};
+		HE2611180000000000000020 /* XCLocalSwiftPackageReference "Packages/ScriptAddonKit" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/ScriptAddonKit;
 		};
 /* End XCLocalSwiftPackageReference section */
 
@@ -1489,6 +1906,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = A0000000000000000000000064 /* XCLocalSwiftPackageReference "Packages/LayoutKit" */;
 			productName = LayoutKit;
+		};
+		D1A000000000000000000007 /* ToolKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D1A000000000000000000006 /* XCLocalSwiftPackageReference "Packages/ToolKit" */;
+			productName = ToolKit;
+		};
+		HE2611180000000000000021 /* ScriptAddonKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = HE2611180000000000000020 /* XCLocalSwiftPackageReference "Packages/ScriptAddonKit" */;
+			productName = ScriptAddonKit;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

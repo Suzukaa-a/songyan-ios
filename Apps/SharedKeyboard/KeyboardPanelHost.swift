@@ -58,6 +58,10 @@ public struct KeyboardPanelHost: View {
     private let openHostApp: ((URL, @escaping @MainActor (Bool) -> Void) -> Void)?
     /// Extension-only real dismissal for the wide-screen header entry; nil in the app trial.
     private let dismissKeyboard: (() -> Void)?
+    /// Host-built tool panel content and its idle-toolbar entry; nil when the host has
+    /// no tool runtime, so the shared panel shows neither.
+    private let toolPanel: ((@escaping () -> Void) -> AnyView)?
+    private let toolPanelEntry: ((@escaping () -> Void) -> AnyView)?
     private let onAppearanceChange: ((KeyboardAppearance) -> Void)?
     private let systemTraitKnown: Bool
     /// Optional reporting for embedded hosts; the extension adopts its own native budget.
@@ -203,7 +207,9 @@ public struct KeyboardPanelHost: View {
         presentedHeight: CGFloat? = nil,
         presentationBudget: KeyboardPanelPresentationBudget? = nil,
         openHostApp: ((URL, @escaping @MainActor (Bool) -> Void) -> Void)? = nil,
-        dismissKeyboard: (() -> Void)? = nil
+        dismissKeyboard: (() -> Void)? = nil,
+        toolPanel: ((@escaping () -> Void) -> AnyView)? = nil,
+        toolPanelEntry: ((@escaping () -> Void) -> AnyView)? = nil
     ) {
         self.session = session
         self.onRestoreBuiltin = onRestoreBuiltin
@@ -217,6 +223,8 @@ public struct KeyboardPanelHost: View {
         self.onStatusDetails = onStatusDetails
         self.openHostApp = openHostApp
         self.dismissKeyboard = dismissKeyboard
+        self.toolPanel = toolPanel
+        self.toolPanelEntry = toolPanelEntry
         self.onAppearanceChange = onAppearanceChange
         self.systemTraitKnown = systemTraitKnown
         self.hostBindingTick = hostBindingTick
@@ -486,6 +494,8 @@ public struct KeyboardPanelHost: View {
                         if let additionalTools { additionalTools }
                     }),
                 insertTools: AnyView(QuickInsertView(state: session.quickInsert)),
+                toolPanel: toolPanel,
+                toolPanelEntry: toolPanelEntry,
                 openHostApp: openHostApp,
                 dismissKeyboard: dismissKeyboard,
                 candidateBar: appearanceSnapshot.document.candidateBar,

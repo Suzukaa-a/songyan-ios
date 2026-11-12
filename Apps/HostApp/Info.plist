@@ -21,6 +21,10 @@
 	<true/>
 	<key>SongyanAppGroup</key>
 	<string>$(SONGYAN_APP_GROUP)</string>
+	<key>SongyanS0ProbeHTTPURL</key>
+	<string>$(SONGYAN_S0_PROBE_HTTP_URL)</string>
+	<key>SongyanS0ProbeHTTPSURL</key>
+	<string>$(SONGYAN_S0_PROBE_HTTPS_URL)</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

@@ -176,6 +176,18 @@ class KeyboardViewController: UIInputViewController {
     /// the still-bound controller may publish a completion notice.
     var selectionSaveGeneration: UInt64 = 0
     var proxyWriteInProgress = false
+    #if canImport(UIKit)
+        /// Single tool document gateway for this keyboard session; created by the
+        /// tool controller extension once, and dropped with the owned document.
+        var toolDocumentGateway: ToolDocumentGateway?
+        var toolDocumentGatewayDocument: UUID?
+        /// Injected tool runtime (tool list + limits). nil until a script runtime or
+        /// a test supplies it; then the panel and its toolbar entry stay absent.
+        var toolConfiguration: ToolConfiguration?
+        /// Whether the current panel build actually got a tool driver. Used to retry
+        /// the build once the host document is attached, and to stop reinstalling.
+        var toolPanelInstalledAvailable = false
+    #endif
     var expectedContext: ProxyDocumentContext?
     /// Set in `viewWillAppear`; the proxy is first read once the host handoff settles.
     var hostDocumentAttachPending = false
@@ -321,13 +333,46 @@ class KeyboardViewController: UIInputViewController {
             self?.syncSystemSideInsets(on: controller)
         }
         Self.liveControllers.add(self)
-        installPanelHost()
+        // applyToolConfiguration owns installPanelHost; with no configuration (production default)
+        // the tool list stays empty and no toolbar entry appears.
+        installToolRuntime()
     }
 
     /// Builds the SwiftUI panel. Also called by `viewWillAppear` when UIKit shows a
-    /// controller again after `retirePanelHost()`.
-    private func installPanelHost() {
+    /// controller again after `retirePanelHost()`, and by the tool-runtime host when it
+    /// injects a tool configuration after startup.
+    func installPanelHost() {
+        // Reinstalling must never leave an orphan hosting or duplicate observations.
+        retirePanelHost()
+        toolPanelInstalledAvailable = false
         session.otherPackageSwitch = { [weak self] entry in self?.selectOtherPackage(entry) }
+        let toolPanelModel = toolPanelDriver().map { driver -> ToolPanelModel in
+            let model = ToolPanelModel(driver: driver)
+            driver.onChange = { [weak model] in model?.refresh() }
+            return model
+        }
+        toolPanelInstalledAvailable = toolPanelModel != nil
+        let toolPanel: ((@escaping () -> Void) -> AnyView)? = toolPanelModel.map { model in
+            // The panel's own dismiss button/escape must end the run, not only hide
+            // the overlay: model.dismiss() cancels the task and clears the session.
+            { dismiss in
+                AnyView(
+                    ToolPanelView(
+                        model: model,
+                        dismiss: {
+                            model.dismiss()
+                            dismiss()
+                        }))
+            }
+        }
+        let toolPanelEntry: ((@escaping () -> Void) -> AnyView)? = toolPanelModel.map { _ in
+            { [weak self] open in
+                AnyView(
+                    toolPanelToolbarEntry(
+                        open: open,
+                        isAvailable: { [weak self] in self?.toolPanelIsAvailable() ?? false }))
+            }
+        }
         let host = ExtensionKeyboardPanel(
             session: session, route: route, panelHostLifetime: panelHostLifetime,
             selectBuiltin: { [weak self] builtin in
@@ -359,7 +404,7 @@ class KeyboardViewController: UIInputViewController {
             dismissKeyboard: { [weak self] in
                 guard let self, self.isBoundHost else { return }
                 self.dismissKeyboard()
-            })
+            }, toolPanel: toolPanel, toolPanelEntry: toolPanelEntry)
         let hosting = UIHostingController(rootView: host)
         hosting.sizingOptions = []  // the input view owns external height, not phase content
         hosting.view.translatesAutoresizingMaskIntoConstraints = false
@@ -432,6 +477,8 @@ class KeyboardViewController: UIInputViewController {
         preparesNextPresentation = false
         retiresPanelWhenHidden = false
         if hostingController == nil { installPanelHost() }
+        // Re-read the Host app's script store on every appearance; only rebuilds on a real change.
+        refreshScriptToolRuntimeIfNeeded()
         adoptPresentationShell()
         #if DEBUG
             DebugProbe.reportEnvironment(role: "keyboardExtension")
@@ -717,6 +764,9 @@ class KeyboardViewController: UIInputViewController {
             ])
         KeyboardStallReport.appeared()
         pollFullAccess = fullAccess
+        #if DEBUG
+            S0Probe.extensionDidAppear(textDocumentProxy, hasFullAccess: fullAccess)
+        #endif
         Self.diagnosticLogger.debug(
             """
             keyboard appeared hasFullAccess=\(self.pollFullAccess, privacy: .public) \
@@ -747,6 +797,9 @@ class KeyboardViewController: UIInputViewController {
         attachToHostDocument()
         checkDocumentOwnership()
         refreshHostTraits()
+        #if DEBUG && SONGYAN_S0_PROBE
+            S0Probe.contextAfterChange(event: "text") { [weak self] in self?.s0ProbeProxy() }
+        #endif
         // Hosts that clear the field on send may report the change before `hasText`
         // reflects it; read once more on the next turn.
         scheduleHostTraitsRefresh()
@@ -757,6 +810,9 @@ class KeyboardViewController: UIInputViewController {
         attachToHostDocument()
         checkDocumentOwnership()
         refreshHostTraits()
+        #if DEBUG && SONGYAN_S0_PROBE
+            S0Probe.contextAfterChange(event: "selection") { [weak self] in self?.s0ProbeProxy() }
+        #endif
     }
 
     override func viewWillLayoutSubviews() {
@@ -787,3 +843,13 @@ extension KeyboardViewController {
         controller.updateSystemInsetsSides(sceneWidth - width > 1)
     }
 }
+#if DEBUG && SONGYAN_S0_PROBE
+    extension KeyboardViewController {
+        /// The document proxy for a deferred S0 probe sample, or nil once this controller no longer
+        /// owns the host or is off screen: a proxy must never be read after teardown.
+        func s0ProbeProxy() -> UITextDocumentProxy? {
+            guard isOnScreen, isBoundHost, !hostDocumentAttachPending else { return nil }
+            return textDocumentProxy
+        }
+    }
+#endif

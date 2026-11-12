@@ -114,7 +114,7 @@ private struct RimeConfigAlerts: ViewModifier {
         content
             .alert(
                 model.confirmation?.firstTime == true
-                    ? String(localized: "使用你自己的扩展脚本？") : String(localized: "以下扩展脚本有改动。"),
+                    ? String(localized: "使用你自己的 Lua 脚本？") : String(localized: "以下 Lua 脚本有改动。"),
                 isPresented: Binding(get: { model.confirmation != nil }, set: { if !$0 { model.confirmation = nil } })
             ) {
                 Button(String(localized: "使用")) { model.confirmScripts() }
@@ -126,7 +126,7 @@ private struct RimeConfigAlerts: ViewModifier {
                         confirmation.firstTime
                             ? String(
                                 localized:
-                                    "扩展脚本能读取你输入的所有内容。松烟已禁止脚本运行命令、加载外部程序和联网，但脚本引擎自身的漏洞仍可能被利用。只使用你信任来源的脚本。\n\n\(list)")
+                                    "Lua 脚本能读取你输入的所有内容。松烟已禁止脚本运行命令、加载外部程序和联网，但脚本引擎自身的漏洞仍可能被利用。只使用你信任来源的脚本。\n\n\(list)")
                             : list)
                 }
             }
@@ -171,7 +171,7 @@ struct RimeConfigRows: View {
                 Text(result).font(.footnote).foregroundStyle(.secondary)
             }
             if let overview = model.overview, !overview.unusedScripts.isEmpty {
-                Text("你的扩展脚本还没有使用。点「应用更改」并确认后才会使用。")
+                Text("你的 Lua 脚本还没有使用。点「应用更改」并确认后才会使用。")
                     .font(.footnote).foregroundStyle(.secondary)
             }
             if let packageID = model.packageID {
@@ -179,7 +179,7 @@ struct RimeConfigRows: View {
                     RimeInputMethodListView(packageID: packageID, model: model)
                 }
                 NavigationLink(String(localized: "方案文件")) { RimePackageFilesView(packageID: packageID, model: model) }
-                Button(String(localized: "新建扩展脚本")) {
+                Button(String(localized: "新建 Lua 脚本")) {
                     model.scriptName = ""
                     model.newScript = true
                 }
@@ -241,7 +241,7 @@ private struct RimeConfigHost: ViewModifier {
             } message: {
                 Text("你对这个文件的修改会删除。")
             }
-            .alert(String(localized: "新建扩展脚本"), isPresented: $model.newScript) {
+            .alert(String(localized: "新建 Lua 脚本"), isPresented: $model.newScript) {
                 TextField(String(localized: "名字"), text: $model.scriptName)
                     .textInputAutocapitalization(.never).autocorrectionDisabled()
                 Button(String(localized: "新建")) { Task { await model.createScript() } }
@@ -431,7 +431,8 @@ struct RimeFileEditorView: View {
         VStack(spacing: 0) {
             if editor.hasScripts {
                 Label(
-                    String(localized: "这个文件带有扩展脚本。扩展脚本能读取你输入的内容，只在你信任来源时使用。"), systemImage: "exclamationmark.triangle"
+                    String(localized: "这个文件带有 Lua 脚本。Lua 脚本能读取你输入的内容，只在你信任来源时使用。"),
+                    systemImage: "exclamationmark.triangle"
                 )
                 .font(.footnote)
                 .padding(10)

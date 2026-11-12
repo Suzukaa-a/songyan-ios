@@ -80,6 +80,23 @@ class SimulatorDeliveryContractTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 module.entitlement_team(altered, source, bundle)
 
+    def test_simulated_entitlements_expand_app_identifier_prefix(self):
+        spec = importlib.util.spec_from_file_location("simulator_delivery_prefix", SCRIPT)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        team = "ABCDE12345"
+        for name in ("HostApp", "KeyboardExtension"):
+            source = module.entitlement_sources()[name]
+            full = module.simulated_entitlements(
+                source, f"app.songyan.ime{'' if name == 'HostApp' else '.keyboard'}", team)
+            self.assertEqual(
+                full["keychain-access-groups"], [f"{team}.group.app.songyan.shared"])
+            module.require_expanded(full, name)
+        with self.assertRaisesRegex(RuntimeError, "Unexpanded build setting"):
+            module.require_expanded(
+                {"keychain-access-groups": ["$(AppIdentifierPrefix)group.app.songyan.shared"]},
+                "literal placeholder")
+
     def test_signing_requires_explicit_team_before_creating_delivery(self):
         spec = importlib.util.spec_from_file_location("simulator_delivery_cli", SCRIPT)
         module = importlib.util.module_from_spec(spec)

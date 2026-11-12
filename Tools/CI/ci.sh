@@ -77,6 +77,8 @@ extended() {
   "${SCRIPT_DIR}/scripts/run-native-harnesses.sh"
   "${SCRIPT_DIR}/scripts/build-app.sh" Debug simulator
   "${SCRIPT_DIR}/scripts/build-app.sh" Debug device
+  # The shared script cases run in a simulator through XCTest; fast stays offline.
+  "${SCRIPT_DIR}/scripts/script-tests.sh"
 }
 
 # Tracked sources only, so package build directories and vendored engine

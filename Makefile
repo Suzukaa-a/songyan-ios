@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: help fast test extended release structure lint format clean build-simulator build-device prune-scratch sim-stage sim-log sim-state sim-layout sim-probe sim-perf benchmark
+.PHONY: help fast test extended release structure lint format clean build-simulator build-device prune-scratch sim-stage sim-log sim-state sim-layout sim-probe sim-perf s0-probe s0-quickjs benchmark
 
 help:
 	@echo "Targets:"
@@ -19,6 +19,9 @@ help:
 	@echo "  sim-state        Print Debug state snapshots (phase/layout/latency/memory) as JSON"
 	@echo "  sim-layout       Force keyboard layout on the dev simulator: make sim-layout LAYOUT=merged14|merged18|phone9|qwerty26|clear"
 	@echo "  sim-probe        Toggle a Debug keyboard probe: make sim-probe PROBE=touch STATE=on|off"
+	@echo "  s0-probe         Keyboard-extension S0 measurements (context lengths, Keychain, network, memory, in-extension QuickJS cost); S0_STEP=quickjs|device|device-log|serve|setup|launch|drive|fixture|collect|stop"
+	@echo "  s0-quickjs       QuickJS cold start, footprint and memory-limit sweep in a plain simulator process; --library-out builds the archive a probe build links"
+	@echo "  script-tests     Run the shared script contract and execution cases in an iOS simulator (XCTest)"
 	@echo "  benchmark        Release XCTest/XCUITest keyboard performance tests (DEBUG.md)"
 	@echo "  sim-perf         typing runs native performance tests; cold prints engine-ready timings (DEBUG.md)"
 	@echo "  prune-scratch    Remove .scratch entries older than 7 days"
@@ -75,6 +78,15 @@ sim-probe:
 
 sim-perf:
 	Tools/CI/scripts/sim-perf.sh $(or $(MODE),typing) $(ARG)
+
+s0-probe:
+	Tools/CI/scripts/s0-probe.sh $(or $(S0_STEP),run)
+
+s0-quickjs:
+	Tools/CI/scripts/s0-quickjs-probe.py
+
+script-tests:
+	Tools/CI/scripts/script-tests.sh
 
 benchmark:
 	Tools/CI/scripts/sim-benchmark.sh

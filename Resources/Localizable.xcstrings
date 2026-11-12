@@ -8229,50 +8229,6 @@
         }
       }
     },
-    "使用你自己的扩展脚本？": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "使用你自己的扩展脚本？"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "使用你自己的擴充套件指令碼？"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "自分の拡張スクリプトを使いますか？"
-          }
-        }
-      }
-    },
-    "以下扩展脚本有改动。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "以下扩展脚本有改动。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "以下擴充套件指令碼有改動。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "次の拡張スクリプトが変更されています。"
-          }
-        }
-      }
-    },
     "使用": {
       "localizations": {
         "zh-Hans": {
@@ -8291,28 +8247,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "使う"
-          }
-        }
-      }
-    },
-    "扩展脚本能读取你输入的所有内容。松烟已禁止脚本运行命令、加载外部程序和联网，但脚本引擎自身的漏洞仍可能被利用。只使用你信任来源的脚本。\n\n%@": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "扩展脚本能读取你输入的所有内容。松烟已禁止脚本运行命令、加载外部程序和联网，但脚本引擎自身的漏洞仍可能被利用。只使用你信任来源的脚本。\n\n%@"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "擴充套件指令碼能讀取你輸入的所有內容。松煙已禁止指令碼執行命令、載入外部程式和聯網，但指令碼引擎自身的漏洞仍可能被利用。只使用你信任來源的指令碼。\n\n%@"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "拡張スクリプトは入力したすべての内容を読み取れます。松煙ではスクリプトによるコマンド実行、外部プログラムの読み込み、ネットワーク接続を禁止していますが、スクリプトエンジン自体の脆弱性が悪用される可能性は残ります。信頼できる提供元のスクリプトだけを使ってください。\n\n%@"
           }
         }
       }
@@ -8405,28 +8339,6 @@
         }
       }
     },
-    "你的扩展脚本还没有使用。点「应用更改」并确认后才会使用。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "你的扩展脚本还没有使用。点「应用更改」并确认后才会使用。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "你的擴充套件指令碼還沒有使用。點「應用更改」並確認後才會使用。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "拡張スクリプトはまだ使われていません。「変更を適用」をタップして確認すると使われます。"
-          }
-        }
-      }
-    },
     "修改输入方式": {
       "localizations": {
         "zh-Hans": {
@@ -8467,28 +8379,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "入力パックのファイル"
-          }
-        }
-      }
-    },
-    "新建扩展脚本": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "新建扩展脚本"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "新建擴充套件指令碼"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "拡張スクリプトを作成"
           }
         }
       }
@@ -8841,28 +8731,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "このファイルを開けませんでした。"
-          }
-        }
-      }
-    },
-    "这个文件带有扩展脚本。扩展脚本能读取你输入的内容，只在你信任来源时使用。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "这个文件带有扩展脚本。扩展脚本能读取你输入的内容，只在你信任来源时使用。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "這個檔案帶有擴充套件指令碼。擴充套件指令碼能讀取你輸入的內容，只在你信任來源時使用。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "このファイルには拡張スクリプトが含まれています。拡張スクリプトは入力した内容を読み取れるため、信頼できる提供元のときだけ使ってください。"
           }
         }
       }
@@ -34625,6 +34493,710 @@
           "stringUnit": {
             "state": "translated",
             "value": "新しい語を学習したら、この頻度でこの端末に保存します。"
+          }
+        }
+      }
+    },
+    "使用你自己的 Lua 脚本？": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用你自己的 Lua 脚本？"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用你自己的 Lua 指令碼？"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自分のLua スクリプトを使いますか？"
+          }
+        }
+      }
+    },
+    "以下 Lua 脚本有改动。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "以下 Lua 脚本有改动。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "以下 Lua 指令碼有改動。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "次のLua スクリプトが変更されています。"
+          }
+        }
+      }
+    },
+    "Lua 脚本能读取你输入的所有内容。松烟已禁止脚本运行命令、加载外部程序和联网，但脚本引擎自身的漏洞仍可能被利用。只使用你信任来源的脚本。\n\n%@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lua 脚本能读取你输入的所有内容。松烟已禁止脚本运行命令、加载外部程序和联网，但脚本引擎自身的漏洞仍可能被利用。只使用你信任来源的脚本。\n\n%@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lua 指令碼能讀取你輸入的所有內容。松煙已禁止指令碼執行命令、載入外部程式和聯網，但指令碼引擎自身的漏洞仍可能被利用。只使用你信任來源的指令碼。\n\n%@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lua スクリプトは入力したすべての内容を読み取れます。松煙ではスクリプトによるコマンド実行、外部プログラムの読み込み、ネットワーク接続を禁止していますが、スクリプトエンジン自体の脆弱性が悪用される可能性は残ります。信頼できる提供元のスクリプトだけを使ってください。\n\n%@"
+          }
+        }
+      }
+    },
+    "你的 Lua 脚本还没有使用。点「应用更改」并确认后才会使用。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的 Lua 脚本还没有使用。点「应用更改」并确认后才会使用。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的 Lua 指令碼還沒有使用。點「應用更改」並確認後才會使用。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lua スクリプトはまだ使われていません。「変更を適用」をタップして確認すると使われます。"
+          }
+        }
+      }
+    },
+    "新建 Lua 脚本": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新建 Lua 脚本"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新建 Lua 指令碼"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lua スクリプトを作成"
+          }
+        }
+      }
+    },
+    "这个文件带有 Lua 脚本。Lua 脚本能读取你输入的内容，只在你信任来源时使用。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这个文件带有 Lua 脚本。Lua 脚本能读取你输入的内容，只在你信任来源时使用。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這個檔案帶有 Lua 指令碼。Lua 指令碼能讀取你輸入的內容，只在你信任來源時使用。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このファイルにはLua スクリプトが含まれています。Lua スクリプトは入力した内容を読み取れるため、信頼できる提供元のときだけ使ってください。"
+          }
+        }
+      }
+    },
+    "这里没有可以交给工具的文字": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ツールに渡せるテキストがありません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这里没有可以交给工具的文字"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這裡沒有可以交給工具的文字"
+          }
+        }
+      }
+    },
+    "密码输入框不能使用工具": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "パスワード入力欄ではツールを使えません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "密码输入框不能使用工具"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "密碼輸入框不能使用工具"
+          }
+        }
+      }
+    },
+    "当前设备缺少这个工具需要的输入能力": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この端末にはこのツールに必要な入力機能がありません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前设备缺少这个工具需要的输入能力"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "當前裝置缺少這個工具需要的輸入能力"
+          }
+        }
+      }
+    },
+    "已取消这次运行": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この実行は中止しました"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已取消这次运行"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已取消這次執行"
+          }
+        }
+      }
+    },
+    "工具运行超时，请重试": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ツールの実行がタイムアウトしました。もう一度お試しください"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "工具运行超时，请重试"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "工具執行超時，請重試"
+          }
+        }
+      }
+    },
+    "工具没有返回可用的结果": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ツールから使える結果が返りませんでした"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "工具没有返回可用的结果"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "工具沒有返回可用的結果"
+          }
+        }
+      }
+    },
+    "工具运行失败": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ツールの実行に失敗しました"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "工具运行失败"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "工具執行失敗"
+          }
+        }
+      }
+    },
+    "输入框已经切换，请重新运行工具": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力欄が切り替わりました。ツールをもう一度実行してください"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入框已经切换，请重新运行工具"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "輸入框已經切換，請重新執行工具"
+          }
+        }
+      }
+    },
+    "这个输入框不能写入": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この入力欄には書き込めません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这个输入框不能写入"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這個輸入框不能寫入"
+          }
+        }
+      }
+    },
+    "这个输入框不支持只替换一部分文字": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この入力欄では一部のテキストだけを置き換えられません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这个输入框不支持只替换一部分文字"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這個輸入框不支援只取代一部分文字"
+          }
+        }
+      }
+    },
+    "有选中文字时不能插入，请先取消选中": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "テキストを選択したままでは挿入できません。選択を解除してください"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有选中文字时不能插入，请先取消选中"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有選中文字時不能插入，請先取消選中"
+          }
+        }
+      }
+    },
+    "写入后内容又被修改，无法撤销": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "書き込み後に内容が変更されたため、元に戻せません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "写入后内容又被修改，无法撤销"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "寫入後內容又被修改，無法撤銷"
+          }
+        }
+      }
+    },
+    "撤销时间已过": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "元に戻せる時間が過ぎました"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "撤销时间已过"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "撤銷時間已過"
+          }
+        }
+      }
+    },
+    "原文已变化，结果已插入到光标处": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "元のテキストが変わったため、結果をカーソル位置に挿入しました"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原文已变化，结果已插入到光标处"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "原文已變化，結果已插入到游標處"
+          }
+        }
+      }
+    },
+    "缺少这个工具需要的输入能力，暂时不能运行": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このツールに必要な入力機能がないため、今は実行できません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "缺少这个工具需要的输入能力，暂时不能运行"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "缺少這個工具需要的輸入能力，暫時不能執行"
+          }
+        }
+      }
+    },
+    "还没有可用的工具": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使えるツールはまだありません"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还没有可用的工具"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "還沒有可用的工具"
+          }
+        }
+      }
+    },
+    "结果": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "結果"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "结果"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "結果"
+          }
+        }
+      }
+    },
+    "操作": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "操作"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "操作"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "操作"
+          }
+        }
+      }
+    },
+    "替换原文": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "元のテキストを置き換え"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "替换原文"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "取代原文"
+          }
+        }
+      }
+    },
+    "插入到光标处": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "カーソル位置に挿入"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "插入到光标处"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "插入到游標處"
+          }
+        }
+      }
+    },
+    "撤销": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "元に戻す"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "撤销"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "撤銷"
+          }
+        }
+      }
+    },
+    "重新运行": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "もう一度実行"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新运行"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新執行"
+          }
+        }
+      }
+    },
+    "正在运行": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "実行中"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在运行"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在執行"
+          }
+        }
+      }
+    },
+    "正在写入": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "書き込み中"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在写入"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在寫入"
+          }
+        }
+      }
+    },
+    "正在撤销": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "元に戻しています"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在撤销"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在撤銷"
+          }
+        }
+      }
+    },
+    "已复制到剪贴板": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "クリップボードにコピーしました"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已复制到剪贴板"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已複製到剪貼簿"
           }
         }
       }

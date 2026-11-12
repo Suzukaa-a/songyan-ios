@@ -51,6 +51,24 @@ if [[ "${CI_SWIFTPM_DISABLE_SANDBOX:-0}" == 1 ]]; then
 else
   defaults write "${BUILD_HOME}/Library/Preferences/.GlobalPreferences" IDEPackageSupportDisableManifestSandbox -bool NO
 fi
+# A probe build is one S0_PROBE_ARCHIVE: it links the probe engine and compiles the probe switch
+# into both targets. Only a Debug build takes it; Release leaves the settings empty.
+S0_SETTINGS=()
+if [[ "${CONFIGURATION}" == Debug && -n "${S0_PROBE_ARCHIVE:-}" ]]; then
+  S0_SETTINGS=(
+    "S0_QUICKJS_LDFLAGS=-Wl,-force_load,${S0_PROBE_ARCHIVE}"
+    "S0_PROBE_CONDITIONS=SONGYAN_S0_PROBE"
+    # The operator gives the LAN URL when building; nothing on a device can write the App Group
+    # defaults the extension reads, so the host app embeds these and seeds them on launch.
+    "SONGYAN_S0_PROBE_HTTP_URL=${S0_PROBE_HTTP_URL:-}"
+    "SONGYAN_S0_PROBE_HTTPS_URL=${S0_PROBE_HTTPS_URL:-}"
+  )
+  # A device Debug IPA is re-signed by an installer that only knows about frameworks, so keep the
+  # code in the target binaries instead of a *.debug.dylib it would leave unsigned.
+  if [[ "${PLATFORM}" == device ]]; then
+    S0_SETTINGS+=("ENABLE_DEBUG_DYLIB=NO")
+  fi
+fi
 # A release build stamps the tag's version; everyday builds keep the project's own.
 VERSION_SETTINGS=()
 [[ -z "${APP_VERSION:-}" ]] || VERSION_SETTINGS+=("MARKETING_VERSION=${APP_VERSION}")
@@ -68,6 +86,7 @@ CFFIXED_USER_HOME="${BUILD_HOME}" \
   CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
   CODE_SIGN_IDENTITY='' DEVELOPMENT_TEAM='' \
   ${SWIFT_SANDBOX_OPTIONS[@]+"${SWIFT_SANDBOX_OPTIONS[@]}"} \
+  ${S0_SETTINGS[@]+"${S0_SETTINGS[@]}"} \
   ${VERSION_SETTINGS[@]+"${VERSION_SETTINGS[@]}"} \
   "${EXTRA[@]}" build | tee "${RUN_DIR}/xcodebuild.log"
 

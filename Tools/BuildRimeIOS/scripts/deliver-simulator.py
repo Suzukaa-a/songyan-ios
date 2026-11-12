@@ -64,7 +64,12 @@ def identity_settings():
 
 def expand(value, settings):
     if isinstance(value, str):
-        return re.sub(r"\$\(([A-Z_][A-Z0-9_]*)\)", lambda m: settings.get(m.group(1), m.group(0)), value)
+        # Xcode build-setting names are mixed case: $(AppIdentifierPrefix) is the one
+        # this script must fill for Keychain sharing, and an uppercase-only character
+        # class left it as literal text in the Simulator entitlements.
+        return re.sub(
+            r"\$\(([A-Za-z_][A-Za-z0-9_]*)\)",
+            lambda m: settings.get(m.group(1), m.group(0)), value)
     if isinstance(value, list):
         return [expand(item, settings) for item in value]
     if isinstance(value, dict):
@@ -72,8 +77,36 @@ def expand(value, settings):
     return value
 
 
-def entitlements_plist(path):
-    return expand(plist(path), identity_settings())
+def expand_settings(team_id=None):
+    """Identity.xcconfig values plus the Xcode-provided Simulator settings.
+
+    $(AppIdentifierPrefix) is a build setting, not an Identity.xcconfig entry: Xcode
+    fills it while signing. The delivery script signs the built app itself, so it has
+    to fill it too, otherwise the literal text ends up in keychain-access-groups and
+    the app and its extension no longer share a Keychain group on the Simulator.
+    """
+    settings = identity_settings()
+    if team_id is not None:
+        settings["AppIdentifierPrefix"] = f"{team_id}."
+    return settings
+
+
+def require_expanded(value, where):
+    if isinstance(value, str):
+        if "$(" in value:
+            raise RuntimeError(f"Unexpanded build setting in {where}: {value}")
+        return
+    if isinstance(value, list):
+        for item in value:
+            require_expanded(item, where)
+        return
+    if isinstance(value, dict):
+        for item in value.values():
+            require_expanded(item, where)
+
+
+def entitlements_plist(path, team_id=None):
+    return expand(plist(path), expand_settings(team_id))
 
 
 def entitlement_sources():
@@ -90,7 +123,8 @@ def entitlement_sources():
 def simulated_entitlements(source, bundle_id, team_id):
     if not isinstance(team_id, str) or not re.fullmatch(r"[A-Z0-9]{10}", team_id):
         raise RuntimeError("Simulator Team ID must be ten uppercase letters/digits")
-    result = dict(entitlements_plist(source))
+    result = dict(entitlements_plist(source, team_id))
+    require_expanded(result, f"Simulator entitlements for {bundle_id}")
     if "application-identifier" in result or "com.apple.developer.team-identifier" in result:
         raise RuntimeError("Source entitlements must not override the Simulator Team identity")
     result["application-identifier"] = f"{team_id}.{bundle_id}"

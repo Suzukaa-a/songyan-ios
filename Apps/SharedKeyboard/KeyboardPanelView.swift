@@ -74,6 +74,12 @@ public struct KeyboardPanelView: View {
     let additionalTools: AnyView?
     /// Rows injected by the host into the "Insert" card (repeat last input, date/time).
     let insertTools: AnyView?
+    /// Host-built tool panel content; the closure receives the panel's own dismiss action, so this
+    /// shared view keeps no tool or engine dependency. Nil in builds without tools.
+    let toolPanel: ((@escaping () -> Void) -> AnyView)?
+    /// Host-built toolbar entry that opens `toolPanel`; receives the open action. Styled by the
+    /// host so the shared view never learns what a tool is.
+    let toolPanelEntry: ((@escaping () -> Void) -> AnyView)?
     /// Injected by the extension; nil in the app's own trial area (there the app is already open).
     let openHostApp: ((URL, @escaping @MainActor (Bool) -> Void) -> Void)?
     /// Extension-only real dismissal for the wide-screen header button. Nil in the app trial.
@@ -84,6 +90,7 @@ public struct KeyboardPanelView: View {
     @State private var popupSurface = UIView()
     @State var showsUtilitiesMenu = false
     @State var showsSymbolLibrary = false
+    @State var showsToolPanel = false
     @State var quickContentSection = "symbols"
     @State var quickContentCategory: String?
     @State private var idleToolbarEnabled = KeyboardIdleToolbarPreferences.defaultEnabled
@@ -195,6 +202,8 @@ public struct KeyboardPanelView: View {
         allowsCursorMovement: Bool = false, statusMessage: String? = nil,
         onStatusDetails: (() -> Void)? = nil, additionalTools: AnyView? = nil,
         insertTools: AnyView? = nil,
+        toolPanel: ((@escaping () -> Void) -> AnyView)? = nil,
+        toolPanelEntry: ((@escaping () -> Void) -> AnyView)? = nil,
         openHostApp: ((URL, @escaping @MainActor (Bool) -> Void) -> Void)? = nil,
         dismissKeyboard: (() -> Void)? = nil,
         candidateBar candidateBarDefinition: CandidateBarDefinition = .systemDefault,
@@ -236,6 +245,8 @@ public struct KeyboardPanelView: View {
         self.onStatusDetails = onStatusDetails
         self.additionalTools = additionalTools
         self.insertTools = insertTools
+        self.toolPanel = toolPanel
+        self.toolPanelEntry = toolPanelEntry
         self.openHostApp = openHostApp
         self.dismissKeyboard = dismissKeyboard
         self.candidateBarDefinition = candidateBarDefinition
@@ -326,6 +337,12 @@ public struct KeyboardPanelView: View {
                             .frame(width: contentWidth, height: geometry.size.height)
                             .background(Color.black.opacity(0.001))
                             .clipped()
+                    } else if showsToolPanel, let toolPanel {
+                        toolPanel { showsToolPanel = false }
+                            .frame(width: contentWidth, height: geometry.size.height)
+                            .background(Color.black.opacity(0.001))
+                            .clipped()
+                            .accessibilityAction(.escape) { showsToolPanel = false }
                     }
                 }
                 // The covering overlay (utilities / symbol library) swaps in immediately: no
@@ -767,7 +784,7 @@ public struct KeyboardPanelView: View {
     /// Any panel that covers the keys; while one is open the key area takes no touches and is
     /// hidden from VoiceOver, and the idle toolbar treats the panel as covered.
     private var showsCoveringPanel: Bool {
-        showsUtilitiesMenu || showsSymbolLibrary
+        showsUtilitiesMenu || showsSymbolLibrary || showsToolPanel
     }
 
     private func idleTool(
@@ -807,11 +824,14 @@ public struct KeyboardPanelView: View {
     }
 
     /// The idle toolbar in the user's order, cut to what the real toolbar width holds.
-    private func idleToolbar(width: CGFloat, fixedSlots: Int, trailingInset: CGFloat) -> some View {
+    private func idleToolbar(
+        width: CGFloat, fixedSlots: Int, trailingInset: CGFloat, leadingSlot: AnyView? = nil
+    ) -> some View {
         let chosen = IdleToolbarAssembly.slots(
             layout: idleToolbarLayout, hidden: false, oneHandAvailable: oneHand != nil)
         let slots = IdleToolbarAssembly.fitting(chosen, width: Double(width), fixedSlots: fixedSlots)
         return HStack(spacing: 4) {
+            if let leadingSlot { leadingSlot }
             ForEach(Array(slots.enumerated()), id: \.offset) { _, slot in
                 switch slot {
                 case .emoji:
@@ -870,8 +890,13 @@ public struct KeyboardPanelView: View {
                         if idleToolbarEnabled, idle, plan.headerHeight >= 32 {
                             GeometryReader { proxy in
                                 idleToolbar(
-                                    width: proxy.size.width - 16, fixedSlots: showsWideDismiss ? 1 : 0,
-                                    trailingInset: showsWideDismiss ? 44 : 0
+                                    width: proxy.size.width - 16,
+                                    fixedSlots: (showsWideDismiss ? 1 : 0)
+                                        + (toolPanelEntry == nil ? 0 : 1),
+                                    trailingInset: showsWideDismiss ? 44 : 0,
+                                    leadingSlot: toolPanelEntry.map { entry in
+                                        entry { showsToolPanel = true }
+                                    }
                                 )
                                 .frame(width: proxy.size.width, height: proxy.size.height)
                             }

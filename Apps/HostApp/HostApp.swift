@@ -6,8 +6,10 @@ import SwiftUI
     import Darwin
     import Dispatch
     import Foundation
+    import OSLog
     import RimeBridge
     import SkinKit
+    import UIKit
 #endif
 
 /// Host app preference keys (shared via AppStorage), persisted in the HostApp sandbox UserDefaults.
@@ -26,6 +28,10 @@ struct HostApp: App {
         ConfigurationBackupModel.registerBackgroundTask()
         #if DEBUG
             DebugProbe.reportEnvironment(role: "hostApp")
+            S0Probe.hostDidLaunch()
+            if ProcessInfo.processInfo.environment["SONGYAN_SCRIPT_ADDON_SELFTEST"] == "1" {
+                _ = ScriptAddonCenter.runTryRunSelfTest()
+            }
         #endif
     }
 
@@ -33,7 +39,9 @@ struct HostApp: App {
         WindowGroup {
             Group {
                 #if DEBUG
-                    if DeploymentProbe.enabled {
+                    if S0InputProbe.enabled {
+                        S0InputProbeView()
+                    } else if DeploymentProbe.enabled {
                         ProbeLaunchView()
                     } else if GlyphProbe.enabled {
                         GlyphProbeView()
@@ -594,6 +602,154 @@ struct HostApp: App {
                 typography: CandidateTypography(candidateSize: 24, secondarySize: 12),
                 isExpanded: expanded, inputLanguage: language)
         }
+    }
+
+    // MARK: - S0 input-context fixture (Debug only)
+
+    /// Selects a fixed text field driven through known text and selection states with
+    /// 'SONGYAN_S0_INPUT_PROBE=1', so the S0 probe can compare the extension's
+    /// documentContext lengths against expected values. The text is a fixed fixture, never user
+    /// input, and the fixture exists only in the S0 probe build's workflow: an ordinary Debug
+    /// build never sets the variable, and Release does not compile this file's debug section.
+    enum S0InputProbe {
+        /// Only the S0 probe build honours the variable; an ordinary Debug build always takes the
+        /// normal UI, so the fixture cannot be reached there.
+        static var enabled: Bool {
+            #if SONGYAN_S0_PROBE
+                return ProcessInfo.processInfo.environment["SONGYAN_S0_INPUT_PROBE"] == "1"
+            #else
+                return false
+            #endif
+        }
+    }
+
+    private struct S0InputProbeView: View {
+        /// Known states: the extension should report these lengths around the caret and for the
+        /// selected range. The marker line states the expected facts, not recorded context.
+        /// Each step changes the document or the selection, so a callback is guaranteed even for
+        /// the empty state (it clears text that an earlier step wrote).
+        private static let steps: [(id: String, text: String, selection: NSRange)] = [
+            ("ascii-end", "abcdef", NSRange(location: 6, length: 0)),
+            ("ascii-middle", "abcdef", NSRange(location: 3, length: 0)),
+            ("ascii-selection", "abcdef", NSRange(location: 2, length: 3)),
+            ("empty", "", NSRange(location: 0, length: 0)),
+            // Five CJK characters as escapes: user-visible Chinese belongs in String Catalogs,
+            // and this fixed fixture string is test data, not UI text.
+            ("cjk-end", "\u{677E}\u{70DF}\u{8F93}\u{5165}\u{6CD5}", NSRange(location: 5, length: 0)),
+        ]
+
+        @State private var text = ""
+        @State private var selection = NSRange(location: 0, length: 0)
+        @State private var stepIndex = -1
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("输入上下文检查：固定文本与选区，不读取用户内容")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                S0FixtureTextView(text: $text, selection: $selection)
+                    .frame(minHeight: 160)
+                    .border(Color.secondary.opacity(0.3))
+                Text(verbatim: "step \(stepIndex + 1)/\(Self.steps.count)")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(16)
+            .task { await runSteps() }
+        }
+
+        private func runSteps() async {
+            // Give the keyboard time to appear before the first state, then walk the fixture.
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            for (index, step) in Self.steps.enumerated() {
+                stepIndex = index
+                text = step.text
+                selection = step.selection
+                Logger.debugProbe.notice(
+                    """
+                    s0Probe inputFixture step=\(step.id, privacy: .public) \
+                    chars=\(step.text.count, privacy: .public) \
+                    selection=\(step.selection.location, privacy: .public),\(step.selection.length, privacy: .public)
+                    """)
+                try? await Task.sleep(nanoseconds: 1_500_000_000)
+            }
+        }
+    }
+
+    /// A text view whose text and selection are set from state, so each step is one deterministic
+    /// document edit plus one selection change.
+    private struct S0FixtureTextView: UIViewRepresentable {
+        @Binding var text: String
+        @Binding var selection: NSRange
+
+        func makeUIView(context: Context) -> UITextView {
+            let view = UITextView()
+            view.font = UIFont.systemFont(ofSize: 20)
+            view.autocorrectionType = .no
+            view.autocapitalizationType = .none
+            view.smartQuotesType = .no
+            view.smartDashesType = .no
+            view.smartInsertDeleteType = .no
+            view.delegate = context.coordinator
+            return view
+        }
+
+        func updateUIView(_ view: UITextView, context: Context) {
+            if view.text != text {
+                view.text = text
+            }
+            if view.selectedRange != selection {
+                view.selectedRange = selection
+            }
+            if !context.coordinator.focused {
+                context.coordinator.focused = true
+                // The first attempt can run before the window is key; retry briefly so the
+                // keyboard (and the extension under test) really comes up.
+                for delay in [0.2, 1.0, 2.0] {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                        if !view.isFirstResponder { view.becomeFirstResponder() }
+                    }
+                }
+            }
+        }
+
+        func makeCoordinator() -> Coordinator { Coordinator() }
+
+        final class Coordinator: NSObject, UITextViewDelegate {
+            var focused = false
+        }
+    }
+
+    /// Kept out of the fixture on purpose: iOS shows the system keyboard for secure and password
+    /// content-type fields, so no custom keyboard runs there and a skip log cannot be observed.
+    private struct S0FixturePasswordContentTypeFieldUnused: UIViewRepresentable {
+        @Binding var text: String
+        @Binding var focused: Bool
+
+        func makeUIView(context: Context) -> UITextField {
+            let view = UITextField()
+            view.isSecureTextEntry = false
+            view.textContentType = .password
+            view.placeholder = "Password content type"
+            view.font = UIFont.systemFont(ofSize: 20)
+            view.autocorrectionType = .no
+            view.autocapitalizationType = .none
+            view.delegate = context.coordinator
+            return view
+        }
+
+        func updateUIView(_ view: UITextField, context: Context) {
+            if view.text != text {
+                view.text = text
+            }
+            if focused, !view.isFirstResponder {
+                DispatchQueue.main.async { view.becomeFirstResponder() }
+            }
+        }
+
+        func makeCoordinator() -> Coordinator { Coordinator() }
+
+        final class Coordinator: NSObject, UITextFieldDelegate {}
     }
 
 #endif

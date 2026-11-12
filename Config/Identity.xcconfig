@@ -3,5 +3,9 @@
 SONGYAN_BUNDLE_ID = app.songyan.ime
 SONGYAN_APP_GROUP = group.app.songyan.shared
 DEVELOPMENT_TEAM =
+// S0 probe only: a probe build overrides these with the LAN and HTTPS targets embedded in both
+// Info.plists. Every other build leaves them empty, and only probe-build code reads them.
+SONGYAN_S0_PROBE_HTTP_URL =
+SONGYAN_S0_PROBE_HTTPS_URL =
 
 #include? "Local.xcconfig"

@@ -127,17 +127,31 @@ class PBXObjectGraphTests(unittest.TestCase):
                     names.append(file_references[file_reference])
             target_sources[target_name] = collections.Counter(names)
 
-        self.assertEqual(set(target_sources), {"HostApp", "KeyboardExtension", "KeyboardPerformanceTests"})
+        self.assertEqual(set(target_sources),
+                         {"HostApp", "KeyboardExtension", "KeyboardPerformanceTests",
+                          "ScriptContractTests"})
         for target_name in ("HostApp", "KeyboardExtension"):
             sources = target_sources[target_name]
             for shared_name in shared_names:
                 self.assertEqual(sources[shared_name], 1, f"{target_name}: {shared_name}")
         extension_names = {path.name for path in (ROOT / "Apps/KeyboardExtension").glob("*.swift")}
         self.assertIn("KeyboardViewController.swift", extension_names)
+        # Swift membership is what this gate has always checked; the extension also compiles the
+        # shared C script bridge, which is asserted separately below.
+        extension_swift_sources = {
+            name for name in target_sources["KeyboardExtension"] if name.endswith(".swift")
+        }
         self.assertEqual(
-            set(target_sources["KeyboardExtension"]),
+            extension_swift_sources,
             shared_names | extension_names,
         )
+        for shared_bridge_name in ("contract.c", "run.c", "fetch.c"):
+            count = sum(
+                occurrences
+                for name, occurrences in target_sources["KeyboardExtension"].items()
+                if name.rsplit("/", 1)[-1] == shared_bridge_name)
+            self.assertEqual(
+                count, 1, f"KeyboardExtension: {shared_bridge_name}")
         for extension_name in extension_names:
             self.assertEqual(target_sources["KeyboardExtension"][extension_name], 1, extension_name)
             self.assertEqual(target_sources["HostApp"][extension_name], 0, extension_name)

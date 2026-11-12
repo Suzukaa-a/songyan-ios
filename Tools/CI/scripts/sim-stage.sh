@@ -10,7 +10,8 @@
 # Usage: sim-stage.sh [--no-build] [--no-launch]
 # Env:   SIM_NAME (default Songyan-Dev; give parallel runs distinct names), SIM_RUNTIME (default: newest iOS),
 #        SIM_DEVICE_TYPE (default iPhone-17-Pro), DEVELOPER_DIR, SOURCE_PACKAGES_DIR (optional cache),
-#        CONFIGURATION (default Debug), PERF_MEASUREMENT=1 (Release-only timing intervals).
+#        CONFIGURATION (default Debug), PERF_MEASUREMENT=1 (Release-only timing intervals),
+#        S0_PROBE_ARCHIVE (a probe build's engine archive; empty means no probe build).
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -64,6 +65,17 @@ if ((BUILD)); then
   if [[ "${PERF_MEASUREMENT:-0}" == 1 || "${CI_SWIFTPM_DISABLE_SANDBOX:-0}" == 1 ]]; then
     SWIFT_OPTIONS=("OTHER_SWIFT_FLAGS=${SWIFT_FLAGS}")
   fi
+  # A probe build is one S0_PROBE_ARCHIVE: it links the engine and compiles the probe switch into
+  # the app. Every other run leaves it unset, so the staged binary is unchanged.
+  S0_SETTINGS=()
+  if [[ -n "${S0_PROBE_ARCHIVE:-}" ]]; then
+    S0_SETTINGS=(
+      "S0_QUICKJS_LDFLAGS=-Wl,-force_load,${S0_PROBE_ARCHIVE}"
+      "S0_PROBE_CONDITIONS=SONGYAN_S0_PROBE"
+      "SONGYAN_S0_PROBE_HTTP_URL=${S0_PROBE_HTTP_URL:-}"
+      "SONGYAN_S0_PROBE_HTTPS_URL=${S0_PROBE_HTTPS_URL:-}"
+    )
+  fi
   CFFIXED_USER_HOME="${BUILD_HOME}" \
   "${DEVELOPER_DIR}/usr/bin/xcodebuild" \
     -project "${CI_ROOT}/Songyan.xcodeproj" -scheme HostApp -configuration "${CONFIGURATION}" \
@@ -74,6 +86,7 @@ if ((BUILD)); then
     -clonedSourcePackagesDirPath "${SOURCE_PACKAGES_DIR:-${DERIVED}/SourcePackages}" \
     CODE_SIGN_IDENTITY=- CODE_SIGNING_ALLOWED=YES CODE_SIGNING_REQUIRED=NO \
     ${SWIFT_OPTIONS[@]+"${SWIFT_OPTIONS[@]}"} \
+    ${S0_SETTINGS[@]+"${S0_SETTINGS[@]}"} \
     DEVELOPMENT_TEAM='' ARCHS=arm64 ONLY_ACTIVE_ARCH=YES build \
     > "${DERIVED}/xcodebuild.log" 2>&1 || { tail -40 "${DERIVED}/xcodebuild.log" >&2; exit 1; }
 fi

@@ -35,6 +35,9 @@ extension KeyboardViewController {
 
     /// Touches only process-local state: never `textDocumentProxy`, never the engine.
     private func forgetLocalDocumentState() {
+        #if canImport(UIKit)
+            resetToolDocumentGateway()
+        #endif
         activeDocumentID = nil
         markedDocument = nil
         pendingMarked = nil
@@ -360,6 +363,9 @@ extension KeyboardViewController {
         // A ready session (nothing to resume) can clean up now; otherwise the resume does.
         cancelOrphanedMarked()
         refreshHostTraits()
+        // The tool runtime may have been injected during viewDidLoad, before the
+        // proxy attached; now the panel can build its driver and toolbar entry.
+        reapplyToolPanelIfNeeded()
     }
 
     /// Unbinds the shared proxy/session. Only the still-bound controller may call this.

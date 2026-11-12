@@ -56,6 +56,15 @@ public enum UserTerminology: Sendable {
     /// The key that opens the system keyboard list.
     public static var globeKey: String { String(localized: "core.term.globeKey", bundle: .module) }
 
+    // MARK: - Scripts
+
+    /// A script addon the user installs and runs (the shared Tool contract).
+    public static var script: String { String(localized: "core.term.script", bundle: .module) }
+
+    /// A Rime Lua script. The interface used to call these "扩展脚本"; that wording is retired so
+    /// a Lua script is not confused with the script addons The Tool panel runs.
+    public static var luaScript: String { String(localized: "core.term.luaScript", bundle: .module) }
+
     /// Shown where a layout or page cannot be deleted because a keyboard's 页面搭配 uses it.
     /// `keyboards` are display names; with more than one only the first is named.
     public static func usedByKeyboards(_ keyboards: [String]) -> String? {

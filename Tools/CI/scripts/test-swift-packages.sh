@@ -28,6 +28,7 @@ PACKAGES=(
   PackageManager
   QuickContentKit
   SkinKit
+  ToolKit
 )
 
 for package in "${PACKAGES[@]}"; do

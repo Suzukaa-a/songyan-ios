@@ -117,6 +117,11 @@
       "catalog": "Packages/AppearanceKit/Sources/AppearanceKit/Resources/Localizable.xcstrings",
       "key": "appearance.name.dusk",
       "value": "薄暮"
+    },
+    {
+      "catalog": "Resources/Localizable.xcstrings",
+      "key": "操作",
+      "value": "操作"
     }
   ]
 }

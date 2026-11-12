@@ -26,6 +26,13 @@ in "ios/licenses/" next to this file.
     - Role: C YAML parser underneath Yams, compiled into HostApp.
     - Full text: ios/licenses/libyaml-LICENSE.txt
 
+Script runtime
+--------------
+QuickJS-ng 0.18.0 (the JavaScript engine behind the shared script runtime) is
+compiled into the keyboard extension and the Host app's in-app try box. Its
+notice is item 21 in ThirdPartyNotices.txt and its license text is bundled as
+licenses/quickjs-ng-0.18.0-LICENSE.txt.
+
 Bundle layout
 -------------
 In the iOS app the license files named in ThirdPartyNotices.txt are bundled in
