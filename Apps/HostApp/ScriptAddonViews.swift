@@ -232,7 +232,7 @@ struct ScriptAddonEditorView: View {
 
     private func load() {
         guard let addon else { return }
-        source = (try? center.addonSource(addon)) ?? ""
+        source = center.addonSource(addon)
     }
 
     private func run() {
@@ -249,8 +249,4 @@ struct ScriptAddonEditorView: View {
 struct EditorTarget: Identifiable {
     let addon: ScriptAddonStore.Addon?
     var id: String { addon?.state.id ?? "new" }
-}
-
-extension ScriptAddonStore.Addon: Identifiable {
-    public var id: String { state.id }
 }

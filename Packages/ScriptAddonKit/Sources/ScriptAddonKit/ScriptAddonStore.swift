@@ -17,9 +17,10 @@ public final class ScriptAddonStore: @unchecked Sendable {
         case duplicateID
     }
 
-    public struct Addon: Equatable, Sendable {
+    public struct Addon: Equatable, Sendable, Identifiable {
         public let state: ScriptAddonState
         public let scriptURL: URL
+        public var id: String { state.id }
         public init(state: ScriptAddonState, scriptURL: URL) {
             self.state = state
             self.scriptURL = scriptURL

@@ -335,7 +335,7 @@ private func scriptHostFetch(
         return SONGYAN_SCRIPT_FETCH_REJECTED
     }
     let context = Unmanaged<ScriptFetchHostContext>.fromOpaque(userdata).takeUnretainedValue()
-    var requestValue = request.pointee
+    let requestValue = request.pointee
     var responseValue = songyan_script_fetch_response()
     var message: UnsafePointer<CChar>?
     let millisecondsLeft = run.map { songyan_script_run_ms_left($0) } ?? 0
