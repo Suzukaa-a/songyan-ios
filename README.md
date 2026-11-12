@@ -46,6 +46,25 @@ never goes online. The app connects to the internet only when you ask it to: dow
 updating an input scheme, or downloading a dictionary or model file. What you type and the words it
 learns stay on your device.
 
+## Privacy
+
+- **Songyan itself does not collect data.** There are no accounts, no analytics,
+  no advertising and no tracking, and nothing you type is sent to a Songyan
+  server.
+- **Your scripts can send text off the device.** A script you choose to add and
+  run may send the text it processes to the sites listed on its confirmation
+  page, where that script or its service handles it; that transfer does not go
+  through a Songyan server. The App Store privacy disclosure says so: Songyan
+  collects no data itself, while user content can leave the app when you run
+  such a script.
+- **Network.** The host app opens a connection only when you import or update a
+  scheme, download a dictionary or model, or add/update a script from a link.
+  The keyboard extension itself makes no network requests; only the scripts you
+  run can contact the sites listed on their confirmation pages, and nothing else
+  in the extension goes online.
+- **Full Access** is used only to share files and settings with the host app
+  through the App Group.
+
 ## Known issues
 
 - **Extra 17 pt gap above the keyboard (iOS 26 and 27).** After switching apps with the keyboard

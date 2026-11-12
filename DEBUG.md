@@ -33,6 +33,8 @@ Options: `--no-build`, `--no-launch` (run the script directly). `CONFIGURATION=R
 | `make sim-state` | Print the extension and host state snapshots as JSON |
 | `make sim-layout LAYOUT=<qwerty26\|merged14\|merged18\|phone9\|clear>` | Force the layout the extension starts with (Debug only) |
 | `make sim-probe PROBE=touch [STATE=on\|off]` | Toggle the touch-routing probe |
+| `make s0-probe [S0_STEP=quickjs\|device\|device-log\|serve\|setup\|launch\|drive\|fixture\|collect\|stop]` | Run the S0 extension measurements, including the in-extension QuickJS cost, the device build/log collection, and the fixed input fixture whose recorded lengths are verified (section 7) |
+| `make s0-quickjs` | Measure QuickJS cost in a plain simulator process, or build the archive a probe build links (`--library-out`; section 7) |
 | `make benchmark` | Run Release XCTest/XCUITest keyboard performance tests |
 | `make sim-perf [MODE=typing\|cold] [ARG=...]` | Native performance tests or cold-start diagnostics, see section 8 |
 
@@ -92,6 +94,191 @@ The host app appends install, import and selection results to `Library/Applicati
 ## 7. Adding a probe
 
 Add probes to `DebugProbe` in [KeyboardLifecycleDiagnostics.swift](Apps/SharedKeyboard/KeyboardLifecycleDiagnostics.swift) under `#if DEBUG`. On hot paths (key handling, candidate refresh) emit only signposts and counters: no disk writes and no string building. A switch read once at extension start (like `DebugProbe.touchRoutingEnabled`) is fine; register it in [sim-probe.sh](Tools/CI/scripts/sim-probe.sh). Keep probe code in separate Debug-only functions and never log user input.
+
+### S0 measurements
+
+The script and extension work is planned from five facts about the keyboard extension, and
+`S0Probe` ([S0Probe.swift](Apps/SharedKeyboard/S0Probe.swift)) is the Debug-only probe that
+records them: lengths, status codes and byte sizes only, never input text, candidate text or
+Keychain values. Results are `s0Probe ...` lines on the `DebugProbe` category and
+`Library/Caches/s0-probe-<role>.json` in the App Group container.
+
+- Input context: `selectedText` and `documentContextBeforeInput`/`AfterInput` lengths in
+  characters and UTF-16 units, field type and Full Access. The keyboard's appearance is sampled
+  directly. Only in the S0 probe build (`SONGYAN_S0_PROBE`) do the text and selection callbacks
+  also arm one debounced sample: the callback itself only counts, and the sample runs on the main
+  queue 0.25 s after the burst and is logged without a file write, so typing never costs per-key
+  disk IO. That also means the artifact's counters are the values at its last write while the
+  per-burst samples exist only in the log. Secure-entry fields (`isSecureTextEntry`), password
+  and one-time-code fields are never sampled; a skipped field logs a fixed marker only, no field
+  type and no value. An ordinary Debug build samples the appearance and nothing else. Known input
+  can replace driving the keyboard: `make s0-probe S0_STEP=fixture` starts the probe build with
+  `SONGYAN_S0_INPUT_PROBE=1`, which opens a fixed text field that steps through ASCII at the end,
+  ASCII in the middle, an ASCII selection, an empty field and a CJK caret, logging one
+  `s0Probe inputFixture step=...` marker per step. The run calls
+  [s0-verify-fixture.py](Tools/CI/scripts/s0-verify-fixture.py), which connects each marker to the
+  next extension sample by log order (no assumed delay) and compares the recorded lengths with
+  the step's expected values. It fails with distinct codes for an unreadable or empty log, no
+  fixture markers (not a probe build, or the fixture never started), a step without a sample, or a
+  length mismatch; the driver also fails before collecting when the keyboard never started for the
+  fixture. The fixture has no password step: on this simulator, focusing a field with
+  `isSecureTextEntry` or the password content type made iOS show the system keyboard, so the
+  extension did not run and its sensitive-field guard could not be observed. That is a simulator
+  observation only; whether a device or a particular host routes such a field to a custom keyboard,
+  and what it would then expose, is not verified here. The guard stays in code as a defensive
+  check, and a skipped field would log a fixed marker without any type or value.
+- Keychain: the host app writes a fixed non-secret marker in the AfterFirstUnlock and
+  WhenUnlocked classes twice — once without an access group, which is the process's default group
+  and the control, and once with the App Group both targets already carry. The extension reads the
+  default-group account (expected to miss, since the two processes' default groups are their two
+  different app IDs), the App Group account with the attribute, and the same account without it;
+  it also writes and reads back its own App Group item. Only `OSStatus`, byte counts and whether
+  the marker came back are recorded, never the item contents. The App Group path needs no keychain
+  entitlement: Apple counts the application groups among a process's keychain access groups, so
+  the existing App Group is already shared and a probe build measures it without changing any
+  production entitlement. A dedicated keychain access group (the Keychain Sharing capability) is
+  not measured, and no keychain result here comes from a device or from a locked screen.
+  `probeVersion` 3 marks these keychain fields and the engine measurements; earlier versions gave
+  both sides the same account and are not comparable.
+- Network: the same plaintext LAN URL and HTTPS URL are fetched from the host app as a control
+  and from the extension, recording the HTTP status or URL error code and Full Access.
+- App Group write: one small file is written and removed, recording whether the OS allowed it.
+  This is a permission test of its own; Full Access is reported separately and is never inferred
+  from it.
+- Memory: `phys_footprint` and `os_proc_available_memory()` (`0` means the value is unavailable).
+- Engine: what a QuickJS runtime costs the extension process itself. The engine is not part of
+  the product: `make s0-probe S0_STEP=quickjs` (also the first step of `make s0-probe run`)
+  builds a static archive from the tag and digest that `s0-quickjs-probe.py` records and stages
+  a Debug build whose extension links it. A probe build is a single switch, `S0_PROBE_ARCHIVE`:
+  the build scripts resolve it into the `S0_QUICKJS_LDFLAGS` linker setting and the
+  `S0_PROBE_CONDITIONS=SONGYAN_S0_PROBE` compilation condition, which both targets compile in, so
+  a probe build samples without the App Group default or a launch environment. Every other build
+  leaves both settings empty: no normal build links an engine, no engine version is pinned in the
+  repository, and Release contains none of this code. The archive is linked into the extension
+  binary, so the code is covered by the extension's own signature; nothing is loaded from outside
+  the bundle, which a device would refuse. Measurements (`engine` in the artifact, one
+  `s0Probe engine ...` line per run):
+  - cold start = the first `JS_NewRuntime` + `JS_NewContext` + bootstrap eval in a freshly
+    launched extension process, reported as `coldStartMs` and, per run, as `runtimeMs`,
+    `bootstrapMs` and `workloadMs`;
+  - `phys_footprint` around each run, and the kernel-tracked `ledger_phys_footprint_peak`
+    growth. Both describe this process, not the engine alone: the peak is the process's lifetime
+    peak, so its growth is a lower bound once an earlier phase already peaked higher, and a run
+    after another one reuses memory that the earlier runtime freed, so a per-run figure is not
+    comparable with a fresh-process number. These figures are the engine's cost in this process,
+    read against the extension's own limit, not a process-independent engine size;
+  - `os_proc_available_memory()` before and after a run.
+
+  The two carriers (this process and the spawned plain process) share the small and large
+  workloads and the limit sweep, but only the sweep is compared across them: it records whether a
+  workload still runs under a given limit, which memory reuse between runtimes or between fresh
+  processes does not change. It does not choose a final limit.
+
+`make s0-probe run` runs the whole cycle: it builds the probe engine archive and stages the
+probe-linked build, writes `debug.s0Probe`, `debug.s0ProbeHTTPURL` and `debug.s0ProbeHTTPSURL`
+into the App Group defaults through the simulator's `cfprefsd`, serves the plaintext URL from
+the Mac's LAN address, launches the host app (which also accepts `SONGYAN_S0_PROBE=1` in its
+launch environment), opens 试打 with `axe`, and copies the artifacts and matching log lines
+into `.local/s0-probe/<timestamp>/`. Drive other hosts by
+hand and run `make s0-probe S0_STEP=collect` afterwards. `make s0-probe S0_STEP=stop` removes
+the switches and stops the server.
+
+`make s0-probe S0_STEP=device` covers the device side: it builds the same archive for the device
+slice, builds a Debug device app from the same `S0_PROBE_ARCHIVE` switch (so sampling is compiled
+in and an installed build needs no switch), and packages that app with the existing ad-hoc signing
+step (`package-ipa.sh --configuration Debug`) into
+`.local/s0-probe/s0-probe-debug-<timestamp>.ipa`. That device build also sets
+`ENABLE_DEBUG_DYLIB=NO`: the code stays in `HostApp` and `KeyboardExtension` themselves, so a
+re-signer that only walks frameworks (AltStore, Sideloadly) cannot leave a `*.debug.dylib`
+unsigned. Re-signing and installing that IPA works the same way as the Release IPA: import it into
+the installer, let it re-sign under your team, install.
+
+A device install cannot be handed an App Group default or a launch environment, so the two network
+addresses are embedded at build time in both Info.plists: each target reads its own copy, and the
+extension therefore does not have to read the shared container to know where to fetch. The report
+still leaves the device through the app:
+
+1. Name the LAN address when building (otherwise the build uses this Mac's LAN address):
+   `S0_PROBE_HTTP_URL=http://192.168.1.20:8765/plain.txt make s0-probe S0_STEP=device`.
+   `S0_PROBE_HTTPS_URL` overrides the HTTPS target (default `HTTPS_URL`, i.e. example.com). The
+   build entry passes them as `SONGYAN_S0_PROBE_HTTP_URL` / `_HTTPS_URL`, so both Info.plists
+   carry them. The script starts the plaintext server and prints the embedded URLs;
+   `S0_STEP=serve` starts it on its own, `S0_STEP=stop` stops it. The Mac has to stay reachable
+   at that address.
+2. Install the IPA and set 允许完全访问 as the round needs: on for the network and export items,
+   off for the round that measures what an extension without it can still do.
+3. Use the keyboard (试打 or any text field), so the extension records its appearance.
+4. Open 松烟: it copies `s0-probe-*.json` from the shared container into its own Documents
+   `S0Probe` folder, if the extension could write the container. The host app already exposes
+   Documents through file sharing (it is where the keyboard's files live), so artifacts leave the
+   device through Files → 松烟 → S0Probe, or through Xcode's Devices window → Download Container.
+
+A round with 允许完全访问 off is a separate S0 fact. Turn it off under Settings → 通用 → 键盘 →
+键盘 → 松烟 → 允许完全访问 and use the keyboard again. What such a round can do is what the
+device run has to record, so the probe writes down what actually happened instead of assuming it:
+`s0Probe appGroupWrite ... ok=0|1`, `s0Probe artifact ... wrote=0 reason=noContainer` when the
+container write is refused, and `s0Probe network ...` with the fetch outcome, or
+`skipped=noURL` only if neither the defaults nor the extension's own Info.plist offered an
+address. If the container cannot be written, that round has no artifact JSON and the log is its
+only evidence; Files export then covers only rounds whose artifacts reached the container, and
+the network item is still attempted because the address is embedded in the extension.
+The unified log keeps the probe's notice-level `s0Probe ...` lines. Run
+`UDID=<device udid> make s0-probe S0_STEP=device-log` from a terminal (device collection needs
+root, so it asks for sudo) and it keeps the matching lines in
+`.local/s0-probe/<timestamp>-device/probe-device.log`. It runs:
+
+  ```sh
+  sudo /usr/bin/log collect --device-udid <udid> --last 15m --output .scratch/s0-probe/device.logarchive
+  /usr/bin/log show --archive .scratch/s0-probe/device.logarchive \
+    --predicate 'subsystem == "app.songyan.ime" AND category == "DebugProbe"' \
+    --info --debug --style compact | grep s0Probe
+  ```
+
+  `DEVICE_LOG_LAST` widens the window (for example `DEVICE_LOG_LAST=2h`) and
+  `xcrun devicectl list devices` prints device UDIDs. Those flags and the predicate were checked
+  against this Mac's `log` help, and the predicate was run against a real log archive; collecting
+  from a paired device itself needs the device and was not run here. This Mac's
+  `xcrun devicectl device info files --help` lists the domain types `temporary`,
+  `appDataContainer`, `appGroupDataContainer` and `systemCrashLogs` (the container domains need
+  their domain identifier, for example the bundle ID); reading any of them from an actual device
+  was not run here, so how a device's shared container is collected stays unverified.
+
+Only a probe build fills those Info.plist keys; `Identity.xcconfig` defaults both to empty, so
+Release and ordinary Debug describe nothing and no code reads them (the whole probe file is
+Debug-only and the sampling switch is a probe-build condition). What this checkout can check is
+compiling, linking, embedding, packaging, signing and re-signing, plus the address lookup and
+export code paths in the simulator; whether a device samples, reaches the network without Full
+Access, writes the container without it, or exports, still needs the device, so no device
+measurement exists. Release builds never link the archive.
+
+This staging does not reproduce the device's Full Access boundary: with Full Access reported
+off, the probe recorded a successful extension fetch and a successful App Group write, while
+the platform requires Full Access for both ([ARCHITECTURE.md](ARCHITECTURE.md) section 11). A
+simulator run therefore describes the code path only; the boundary itself needs a device. The
+engine numbers have the same limit: a simulator app extension has no device extension memory
+limit, so its footprint deltas describe cost and its `availableBytes` (`0`, unavailable) is not
+a budget. The Keychain probe uses each process's default access group, so a shared Keychain
+access group is untested; the extension saw the host's item as not found on the simulator.
+Peak and headroom figures stay what they measure — a cost in this process — and are not a
+device limit until a signed device run reproduces them.
+
+`make s0-quickjs` ([s0-quickjs-probe.py](Tools/CI/scripts/s0-quickjs-probe.py)) answers the
+running-cost half without touching the app: it builds a pinned QuickJS-ng for arm64 iOS
+simulator in `.scratch/s0-quickjs/`, runs it through `xcrun simctl spawn` and writes
+`.local/ci/s0-quickjs/report.json`. Every measured run is a fresh process, so its footprint
+difference belongs to that process; the memory-limit sweeps create several runtimes inside one
+process on purpose and therefore report only whether the script runs and the exception text —
+an out-of-memory failure and a script error stay distinguishable — and report no footprint. The
+archive digest is checked against the recorded one and a mismatch is refused. A spawned process
+is not an app extension, so the numbers are engine-cost evidence rather than an extension budget,
+and the tag is a probe input, not a product version pin.
+
+The same engine source and workloads also feed the in-extension measurement: add
+`--library-out <path>` and the script compiles the engine plus its probe entry points into a
+static archive for that platform (`--platform simulator` or `device`) instead of running the
+plain-process driver. It does not add a product version: only a probe build links the archive,
+through `S0_QUICKJS_LDFLAGS`. The archive is rebuilt only when the tag, digest or probe source
+changes, so repeated probe runs reuse it.
 
 ## 8. Performance
 
