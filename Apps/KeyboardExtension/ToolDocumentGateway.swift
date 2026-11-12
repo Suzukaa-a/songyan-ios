@@ -240,7 +240,6 @@ final class ToolDocumentGateway {
     }
 }
 
-
 // MARK: - Tool panel driver
 
 /// Where the keyboard gets its tools from. Built-in tools, user scripts and

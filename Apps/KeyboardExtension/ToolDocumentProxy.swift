@@ -14,23 +14,23 @@ protocol ToolTextDocumentProxy: AnyObject {
 }
 
 #if canImport(UIKit)
-import UIKit
+    import UIKit
 
-/// The live proxy, mapped onto the gateway surface without adding operations the
-/// system proxy does not have.
-final class LiveToolTextDocumentProxy: ToolTextDocumentProxy {
-    private let proxy: UITextDocumentProxy
+    /// The live proxy, mapped onto the gateway surface without adding operations the
+    /// system proxy does not have.
+    final class LiveToolTextDocumentProxy: ToolTextDocumentProxy {
+        private let proxy: UITextDocumentProxy
 
-    init(proxy: UITextDocumentProxy) {
-        self.proxy = proxy
+        init(proxy: UITextDocumentProxy) {
+            self.proxy = proxy
+        }
+
+        var documentIdentity: UUID? { RimeDocumentIdentifier(proxy) }
+        var textBeforeCaret: String? { proxy.documentContextBeforeInput }
+        var textAfterCaret: String? { proxy.documentContextAfterInput }
+        var selectedText: String? { proxy.selectedText }
+        var isSecureTextEntry: Bool? { proxy.isSecureTextEntry }
+        func insertText(_ text: String) { proxy.insertText(text) }
+        func deleteBackward() { proxy.deleteBackward() }
     }
-
-    var documentIdentity: UUID? { RimeDocumentIdentifier(proxy) }
-    var textBeforeCaret: String? { proxy.documentContextBeforeInput }
-    var textAfterCaret: String? { proxy.documentContextAfterInput }
-    var selectedText: String? { proxy.selectedText }
-    var isSecureTextEntry: Bool? { proxy.isSecureTextEntry }
-    func insertText(_ text: String) { proxy.insertText(text) }
-    func deleteBackward() { proxy.deleteBackward() }
-}
 #endif
