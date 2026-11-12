@@ -77,8 +77,8 @@ final class KeyboardPageChromeTests: XCTestCase {
 
         let bottom = try XCTUnwrap(page.chrome?.bottom)
         XCTAssertEqual(bottom.count, 6)
-        XCTAssertEqual(bottom[0].action.type, .globe, "the default footer puts the low-frequency globe first")
-        XCTAssertEqual(bottom[1].action.pageSwitchTarget, .numeric)
+        XCTAssertEqual(bottom[1].action.type, .globe, "the globe sits between the page key and the space bar")
+        XCTAssertEqual(bottom[0].action.pageSwitchTarget, .numeric)
         XCTAssertEqual(bottom[2].action.type, .languageSwitch)
         XCTAssertEqual(bottom[3].action.type, .space)
         XCTAssertEqual(bottom[3].width, 4)
@@ -130,14 +130,14 @@ final class KeyboardPageChromeTests: XCTestCase {
         XCTAssertEqual(delete.width, 1.5, "Delete is a side key as wide as on the ABC page")
         XCTAssertEqual(delete.titleMode, .automatic)
         XCTAssertNil(chinese.defaultSymbolMarks)
-        // Frozen default footer: globe, 返回, 中英, space, comma, Return.
+        // Frozen default footer: 返回, globe, 中英, space, comma, Return.
         let bottom = try XCTUnwrap(chinese.chrome?.bottom)
         XCTAssertEqual(bottom.count, 6)
-        XCTAssertEqual(bottom.map(\.action.type), [.globe, .pageSwitch, .languageSwitch, .space, .literal, .enter])
+        XCTAssertEqual(bottom.map(\.action.type), [.pageSwitch, .globe, .languageSwitch, .space, .literal, .enter])
         XCTAssertEqual(bottom[4].action.value, "，")
-        XCTAssertEqual(bottom[1].label, "返回")
-        XCTAssertEqual(bottom[1].action.pageSwitchTarget, .letters)
-        XCTAssertEqual(bottom[1].titleMode, .automatic)
+        XCTAssertEqual(bottom[0].label, "返回")
+        XCTAssertEqual(bottom[0].action.pageSwitchTarget, .letters)
+        XCTAssertEqual(bottom[0].titleMode, .automatic)
         XCTAssertNil(bottom[2].action.languageSwitchBehavior)
         // The marks are an explicit bilingual pair: Chinese value, ASCII counterpart, and the
         // stored label follows the initial branch.
@@ -175,7 +175,7 @@ final class KeyboardPageChromeTests: XCTestCase {
         XCTAssertEqual(page.rows[2].keys.first?.action.pageSwitchTarget, .numeric)
         XCTAssertEqual(page.rows[2].keys.last?.action.type, .backspace)
         XCTAssertEqual(page.chrome?.bottom.count, 6)
-        XCTAssertEqual(page.chrome?.bottom[1].action.pageSwitchTarget, .letters)
+        XCTAssertEqual(page.chrome?.bottom[0].action.pageSwitchTarget, .letters)
         try page.validate()
     }
 
@@ -186,9 +186,9 @@ final class KeyboardPageChromeTests: XCTestCase {
         XCTAssertTrue(page.rows.isEmpty)
         let chrome = try XCTUnwrap(page.chrome)
         XCTAssertEqual(chrome.bottom.count, 5)
-        XCTAssertEqual(chrome.bottom.map(\.action.type), [.globe, .languageSwitch, .pageSwitch, .space, .symbolLock])
-        XCTAssertEqual(chrome.bottom[1].label, "返回")
-        XCTAssertEqual(chrome.bottom[1].action.languageSwitchBehavior, .letters)
+        XCTAssertEqual(chrome.bottom.map(\.action.type), [.languageSwitch, .globe, .pageSwitch, .space, .symbolLock])
+        XCTAssertEqual(chrome.bottom[0].label, "返回")
+        XCTAssertEqual(chrome.bottom[0].action.languageSwitchBehavior, .letters)
         XCTAssertEqual(chrome.bottom[2].action.pageSwitchTarget, .numeric)
         XCTAssertEqual(chrome.trailing.map(\.action.type), [.backspace, .clearInput, .enter])
         XCTAssertEqual(chrome.trailing.map(\.widthWeight), [1, 1, 2])
@@ -214,7 +214,7 @@ final class KeyboardPageChromeTests: XCTestCase {
         XCTAssertEqual(keypad.rows.flatMap(\.keys).map(\.label), ["1", "2", "3", "4", "5", "6", "7", "8", "9"])
         XCTAssertTrue(keypad.rows.flatMap(\.keys).allSatisfy { $0.action.type == .literal })
         XCTAssertEqual(keypad.chrome?.leading.count, 3)
-        XCTAssertEqual(keypad.chrome?.bottom.map(\.label), ["🌐", "返回", "中英", "空格", "符号", "⏎"])
+        XCTAssertEqual(keypad.chrome?.bottom.map(\.label), ["返回", "🌐", "中英", "空格", "符号", "⏎"])
         XCTAssertEqual(keypad.chrome?.bottom[4].action.pageSwitchTarget, .symbols)
         XCTAssertEqual(keypad.chrome?.trailing.map(\.label), ["⌫", "0", "，"])
         XCTAssertEqual(keypad.chrome?.trailing.map(\.action.type), [.backspace, .literal, .literal])

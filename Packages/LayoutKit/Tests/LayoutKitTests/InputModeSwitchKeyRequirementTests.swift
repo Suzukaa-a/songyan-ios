@@ -88,8 +88,8 @@ final class InputModeSwitchKeyRequirementTests: XCTestCase {
     func testPageFakeGlyphOrLongPressGlobeDoesNotCount() throws {
         var page = KeyboardPagePresets.numericRowsPage(ascii: false).materialized()
         var bottom = page.chrome?.bottom ?? []
-        bottom[0] = LayoutKey(label: "🌐", action: .init(.space))
-        bottom[1] = bottom[1].settingLongPress([LayoutOption(label: "🌐", action: .init(.globe))])
+        bottom[1] = LayoutKey(label: "🌐", action: .init(.space))
+        bottom[0] = bottom[0].settingLongPress([LayoutOption(label: "🌐", action: .init(.globe))])
         page.chrome?.bottom = bottom
         XCTAssertFalse(page.hasInputModeSwitchKey)
         XCTAssertThrowsError(try page.validateRequiredInputModeSwitchKey(true))

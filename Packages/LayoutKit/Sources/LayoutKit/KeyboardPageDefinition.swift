@@ -441,13 +441,13 @@ public struct KeyboardPageDefinition: Codable, Equatable, Identifiable, Sendable
     private static func rowsChrome(kind: KeyboardPageKind) -> KeyboardPageChrome {
         switch kind {
         case .english:
-            // globe, 123, 中英, space, comma, Return
+            // 123, globe, 中英, space, comma, Return
             return KeyboardPageChrome(
-                bottom: [globeKey, pageSwitchKey(.numeric), languageSwitchKey, spaceKey, commaKey, enterKey])
+                bottom: [pageSwitchKey(.numeric), globeKey, languageSwitchKey, spaceKey, commaKey, enterKey])
         case .numeric, .symbols:
-            // globe, 返回, 中英, space, comma, Return; the 123/symbol switch opens the third row.
+            // 返回, globe, 中英, space, comma, Return; the 123/symbol switch opens the third row.
             return KeyboardPageChrome(
-                bottom: [globeKey, pageSwitchKey(.letters), languageSwitchKey, spaceKey, commaKey, enterKey])
+                bottom: [pageSwitchKey(.letters), globeKey, languageSwitchKey, spaceKey, commaKey, enterKey])
         }
     }
 
@@ -457,7 +457,7 @@ public struct KeyboardPageDefinition: Codable, Equatable, Identifiable, Sendable
         KeyboardPageChrome(
             bottom: [
                 // The categorized default return keeps the native language/tools menu.
-                globeKey, returnToLettersLanguageKey, pageSwitchKey(.numeric), spaceKey, symbolLockKey,
+                returnToLettersLanguageKey, globeKey, pageSwitchKey(.numeric), spaceKey, symbolLockKey,
             ],
             trailing: [
                 railKey("⌫", .init(.backspace), span: 1), railKey("重输", .init(.clearInput), span: 1),
@@ -483,7 +483,7 @@ public struct KeyboardPageDefinition: Codable, Equatable, Identifiable, Sendable
     static func keypadChrome(marks: KeyboardNumericMarks) -> KeyboardPageChrome {
         KeyboardPageChrome(
             bottom: [
-                globeKey, pageSwitchKey(.letters), languageSwitchKey,
+                pageSwitchKey(.letters), globeKey, languageSwitchKey,
                 // One digit column wide, not the control row's wide space bar.
                 functionKey("空格", .init(.space)),
                 // A letter layout paired with this pad has no other way to the symbol page.

@@ -206,9 +206,9 @@ final class KeyboardControlPolicyTests: XCTestCase {
     /// Slot widths stay position-based.
     func testNonLetterPagesLeadWithTheirSwitchKey() {
         let expectations: [KeyboardControlPolicy.Page: [KeyboardControlPolicy.Slot]] = [
-            .letters: [.globe, .page, .language, .space, .utility, .enter],
-            .numeric: [.globe, .returnToLetters, .language, .space, .utility, .enter],
-            .symbols: [.globe, .returnToLetters, .language, .space, .utility, .enter],
+            .letters: [.page, .globe, .language, .space, .utility, .enter],
+            .numeric: [.returnToLetters, .globe, .language, .space, .utility, .enter],
+            .symbols: [.returnToLetters, .globe, .language, .space, .utility, .enter],
         ]
         for (page, expected) in expectations {
             let policy = KeyboardControlPolicy(
@@ -253,7 +253,7 @@ final class KeyboardControlPolicyTests: XCTestCase {
             page: .letters, isEnglishMode: false, hasGlobe: true,
             isPhoneLayout: false, usesASCIIPunctuation: false, numericPageReachesSymbols: false)
         XCTAssertEqual(policy.key(at: .utility), .symbolPage)
-        XCTAssertEqual(policy.slots.map(policy.key(at:)), [.globe, .page, .language, .space, .symbolPage, .enter])
+        XCTAssertEqual(policy.slots.map(policy.key(at:)), [.page, .globe, .language, .space, .symbolPage, .enter])
     }
 
     /// Bundled 9-key: 123 | 中/英 | 空格 | 符 on letters, so 123 and the language key stay where every layout
@@ -268,7 +268,7 @@ final class KeyboardControlPolicyTests: XCTestCase {
         XCTAssertEqual(keys(.letters), [.page, .language, .space, .symbolPage])
         XCTAssertEqual(keys(.numeric), [.returnToLetters, .language, .space, .utility])
         XCTAssertEqual(keys(.symbols), [.language, .page, .space, .symbolLock])
-        XCTAssertEqual(keys(.letters, globe: true), [.globe, .page, .language, .space, .symbolPage])
+        XCTAssertEqual(keys(.letters, globe: true), [.page, .globe, .language, .space, .symbolPage])
         let letters = KeyboardControlPolicy(
             page: .letters, isEnglishMode: false, hasGlobe: false, isPhoneLayout: true,
             usesASCIIPunctuation: false, includesBottomEnter: false)
@@ -554,7 +554,7 @@ final class KeyboardControlPolicyTests: XCTestCase {
             [.returnToLetters, .language, .space, .symbolPage, .enter])
         XCTAssertEqual(
             digitPad(globe: true).slots.map(digitPad(globe: true).key(at:)),
-            [.globe, .returnToLetters, .language, .space, .symbolPage, .enter])
+            [.returnToLetters, .globe, .language, .space, .symbolPage, .enter])
         let imported = KeyboardControlPolicy(
             page: .numeric, isEnglishMode: false, hasGlobe: true,
             isPhoneLayout: true, usesASCIIPunctuation: false, includesBottomEnter: false)
@@ -568,7 +568,7 @@ final class KeyboardControlPolicyTests: XCTestCase {
     }
 
     /// One cell under the rail, three digit cells and one under the right column, with the right
-    /// cell as wide as the rail; the globe takes the rail's cell and 返回 and 中/英 split the next.
+    /// cell as wide as the rail; 返回 keeps the rail's cell and the globe and 中/英 split the next.
     func testDigitPadMetricsFollowTheShellColumns() {
         let rail = 54.0
         for width in [320.0, 382.0, 432.0] {
@@ -581,9 +581,10 @@ final class KeyboardControlPolicyTests: XCTestCase {
                 XCTAssertEqual(m[.enter], rail, accuracy: 0.001)
                 let widths = policy.slots.map { m[$0] }
                 XCTAssertEqual(widths.reduce(0, +) + 4 * Double(widths.count - 1), width, accuracy: 0.001)
+                XCTAssertEqual(m[.returnToLetters], rail, accuracy: 0.001)
                 if globe {
-                    XCTAssertEqual(m[.globe], rail, accuracy: 0.001)
-                    XCTAssertEqual(m[.returnToLetters] + 4 + m[.language], cell, accuracy: 0.001)
+                    XCTAssertEqual(m[.globe] + 4 + m[.language], cell, accuracy: 0.001)
+                    XCTAssertEqual(m[.globe], m[.language], accuracy: 0.001)
                 } else {
                     XCTAssertEqual(m[.returnToLetters], rail, accuracy: 0.001)
                     XCTAssertEqual(m[.language], cell, accuracy: 0.001)
@@ -692,7 +693,7 @@ final class KeyboardControlPolicyTests: XCTestCase {
             XCTAssertEqual(policy.languageAction, .toggleSymbols)
             XCTAssertEqual(policy.languageTitle, "中/英")
             XCTAssertEqual(policy.languageCurrentSideIsFirst(for: nil), !english)
-            XCTAssertEqual(Array(policy.slots.map(policy.key(at:)).prefix(3)), [.globe, .returnToLetters, .language])
+            XCTAssertEqual(Array(policy.slots.map(policy.key(at:)).prefix(3)), [.returnToLetters, .globe, .language])
         }
         let grid = KeyboardControlPolicy(
             page: .symbols, isEnglishMode: false, hasGlobe: true,
@@ -788,9 +789,9 @@ final class KeyboardControlPolicyTests: XCTestCase {
                     usesASCIIPunctuation: false, usesCategorySymbolPage: false,
                     showsSpaceSideMarks: marks, offersSymbolLibrary: true)
                 let footer = symbols.slots.map { symbols.key(at: $0) }
-                var expected: [KeyboardControlPolicy.Slot] =
-                    globe ? [.globe] : []
-                expected += [.returnToLetters, .language]
+                var expected: [KeyboardControlPolicy.Slot] = [.returnToLetters]
+                expected += globe ? [.globe] : []
+                expected += [.language]
                 expected += marks ? [.markLeft] : []
                 expected += [.space, .symbolLibrary, .enter]
                 XCTAssertEqual(footer, expected, "globe \(globe) marks \(marks)")

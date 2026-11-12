@@ -43,8 +43,7 @@ public struct KeyboardPageFooterGeometry: Equatable, Sendable {
             usesControlRowBudget = false
             return
         }
-        let slots = policy.slots
-        if keys.count == slots.count, Self.isDefaultFooter(keys: keys, policy: policy) {
+        if let slots = Self.defaultFooterSlots(keys: keys, policy: policy) {
             keyWidths = slots.map { metrics[$0] }
             usesControlRowBudget = true
             return
@@ -84,10 +83,21 @@ public struct KeyboardPageFooterGeometry: Equatable, Sendable {
         return (lead.map { [$0] } ?? []) + shares + (trail.map { [$0] } ?? [])
     }
 
-    /// The frozen default footer shape: globe first, then the control row's slots in order, with
-    /// the default space weight and every other default key at nil (= native budget width).
-    private static func isDefaultFooter(keys: [LayoutKey], policy: KeyboardControlPolicy) -> Bool {
+    /// The slots of a default footer: the control row's slots in order, or the order pages were
+    /// saved with while the globe sat first, so a stored copy keeps its native widths.
+    static func defaultFooterSlots(keys: [LayoutKey], policy: KeyboardControlPolicy) -> [KeyboardControlPolicy.Slot]? {
         let slots = policy.slots
+        if isDefaultFooter(keys: keys, slots: slots, policy: policy) { return slots }
+        let globeFirst = slots.filter { $0 == .globe } + slots.filter { $0 != .globe }
+        if globeFirst != slots, isDefaultFooter(keys: keys, slots: globeFirst, policy: policy) { return globeFirst }
+        return nil
+    }
+
+    /// The frozen default footer shape: the given slots in order, with the default space weight
+    /// and every other default key at nil (= native budget width).
+    private static func isDefaultFooter(
+        keys: [LayoutKey], slots: [KeyboardControlPolicy.Slot], policy: KeyboardControlPolicy
+    ) -> Bool {
         guard keys.count == slots.count else { return false }
         for (key, slot) in zip(keys, slots) {
             // The digit pad's space bar is one digit column, not the control row's wide one.
@@ -136,5 +146,54 @@ public struct KeyboardPageFooterGeometry: Equatable, Sendable {
         case .markRight:
             return action.type == .literal && action.value == policy.fullStopText
         }
+    }
+}
+
+public extension KeyboardPageFooterGeometry {
+    /// A layout's own bottom row with keys added or removed, sized like the built-in row: keys
+    /// without a chosen width start at the built-in size for their kind. An added key first takes
+    /// up to a fifth of the space bar, then the other keys narrow toward the 44 pt touch size
+    /// (Return toward 60 pt), and only then does the space bar give up more. Nil when the author
+    /// chose a width or there is no space bar; the row then sizes by its weights.
+    static func builtInSizedWidths(
+        width: Double, keys: [LayoutKey], policy: KeyboardControlPolicy
+    ) -> (widths: [Double], spacing: Double)? {
+        let metrics = policy.metrics(width: width)
+        let spaces = keys.indices.filter { keys[$0].action.type == .space }
+        guard !spaces.isEmpty,
+            spaces.allSatisfy({ keys[$0].width == nil || keys[$0].width == KeyboardPageDefaultShape.footerSpaceWidth }),
+            keys.allSatisfy({ $0.action.type == .space || $0.width == nil })
+        else { return nil }
+        let natural = keys.map { key -> Double in
+            switch key.action.type {
+            case .space: return 0
+            case .pageSwitch: return key.action.pageSwitchTarget == .symbols ? metrics.symbolPage : metrics.page
+            case .languageSwitch, .modeSwitch: return metrics.language
+            case .globe: return metrics.globe > 0 ? metrics.globe : metrics.page
+            case .enter: return metrics.enter > 0 ? metrics.enter : metrics.page
+            default: return metrics.utility > 0 ? metrics.utility : metrics.page
+            }
+        }
+        let floors = zip(keys, natural).map { key, natural in
+            key.action.type == .space ? 0 : min(natural, key.action.type == .enter ? 60 : 44)
+        }
+        let content = max(0, width - metrics.spacing * Double(keys.count - 1))
+        let spaceTarget = metrics.space * 0.8 * Double(spaces.count)
+        let free = content - spaceTarget
+        let naturalTotal = natural.reduce(0, +)
+        let floorTotal = floors.reduce(0, +)
+        var widths: [Double]
+        if naturalTotal <= free {
+            widths = natural
+        } else if floorTotal < free {
+            let share = (free - floorTotal) / (naturalTotal - floorTotal)
+            widths = zip(floors, natural).map { floor, natural in floor + share * (natural - floor) }
+        } else {
+            widths = floors
+        }
+        let space = (content - widths.reduce(0, +)) / Double(spaces.count)
+        guard space >= 44 else { return nil }
+        for index in spaces { widths[index] = space }
+        return (widths, metrics.spacing)
     }
 }

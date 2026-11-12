@@ -143,7 +143,7 @@ public enum KeyboardPagePresets {
         }
         var previousKeypad = numericKeypad
         previousKeypad.chrome = KeyboardPageDefinition.previousKeypadChrome(marks: .chinese)
-        return [
+        let pages = [
             // The keypad keeps its id; dropping a stored copy of its earlier arrangement lets the
             // current preset merge back in under the same id.
             previousKeypad,
@@ -152,7 +152,22 @@ public enum KeyboardPagePresets {
             old("page.symbols.chinese", "中文符号", .symbols, ascii: false),
             old("page.symbols.english", "英文符号", .symbols, ascii: true),
         ]
+        // Every preset also shipped with the globe first in its footer.
+        let globeFirst = (pages + [numericKeypad]).compactMap(withGlobeFirst)
+        return pages + globeFirst
     }()
+
+    /// The page as it shipped while the footer's globe came first; nil when that was no different.
+    private static func withGlobeFirst(_ page: KeyboardPageDefinition) -> KeyboardPageDefinition? {
+        guard let bottom = page.chrome?.bottom, let index = bottom.firstIndex(where: { $0.action.type == .globe }),
+            index > 0
+        else { return nil }
+        var moved = bottom
+        moved.insert(moved.remove(at: index), at: 0)
+        var copy = page
+        copy.chrome?.bottom = moved
+        return copy
+    }
 
     /// A loaded catalog with the retired presets resolved: a stored copy the user never edited goes
     /// (the automatic page replaces it in the library), an edited one stays as an ordinary user page

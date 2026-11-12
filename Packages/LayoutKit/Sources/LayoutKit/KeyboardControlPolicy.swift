@@ -131,17 +131,17 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
     /// and row-shaped 123 / #+= pages (or opens symbols where 123 cannot), has no utility slot on the
     /// phone digit pad (the comma sits in its right column) and locks the categorized symbol page.
     ///
-    /// The globe is the leftmost, lowest-frequency control; every other slot keeps its
-    /// relative order after it. A surface without a system-keyboard switch has no globe
-    /// slot, and the freed width goes to space/Return.
+    /// The globe sits between the page key and the space bar, as on the system keyboard: in the
+    /// corner it took the thumb's aim for the page key. A surface without a system-keyboard
+    /// switch has no globe slot, and the freed width goes to space/Return.
     public var slots: [Slot] {
         if isDigitPad {
-            return [.globe, .page, .language, .space, .symbolPage, .enter].filter { $0 != .globe || hasGlobe }
+            return [.page, .globe, .language, .space, .symbolPage, .enter].filter { $0 != .globe || hasGlobe }
         }
         let row: [Slot] =
             showsSpaceSideMarks
-            ? [.globe, .page, .language, .markLeft, .space, .utility, .enter]
-            : [.globe, .page, .language, .space, .utility, .enter]
+            ? [.page, .globe, .language, .markLeft, .space, .utility, .enter]
+            : [.page, .globe, .language, .space, .utility, .enter]
         return row.filter {
             ($0 != .globe || hasGlobe) && ($0 != .enter || includesBottomEnter)
         }
@@ -149,8 +149,8 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
 
     /// The phone digit pad's row is a grid row, not a control row: 返回 under the rail, then 中/英,
     /// the space bar and 符号 under the three digit columns and Return under the trailing column,
-    /// which holds Delete, 0 and the comma above it. The globe, when shown, takes the cell under the
-    /// rail and 返回 and 中/英 share the first column's.
+    /// which holds Delete, 0 and the comma above it. The globe, when shown, shares the first digit
+    /// column with 中/英, so 返回 keeps its whole cell.
     public var isDigitPad: Bool { usesDigitPadRow && isBundledPhonePad && page == .numeric }
 
     /// The row-shaped 123 / #+= page: its third row opens with the 123/symbol switch.
@@ -374,16 +374,16 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
 
         /// The digit pad row: one cell under the rail (`rail` wide, or a fifth of the row without
         /// the shell's columns), three equal cells under the digit columns and one under the
-        /// trailing column, as wide as the rail. With the globe, the globe takes the first cell
-        /// and 返回 and 中/英 split the second.
+        /// trailing column, as wide as the rail. With the globe, 返回 keeps the first cell and the
+        /// globe and 中/英 split the second.
         public init(digitPadWidth width: Double, rail: Double?, hasGlobe: Bool) {
             let width = width.isFinite ? max(0, width) : 0
             let side = min(width / 2, max(0, rail ?? (width - 16) / 5))
             let cell = max(0, (width - 2 * side - 16) / 3)
             let shared = max(0, (cell - 4) / 2)
             self.init(
-                spacing: 4, page: hasGlobe ? shared : side, language: hasGlobe ? shared : cell,
-                globe: hasGlobe ? side : 0, space: cell, utility: 0, enter: side, symbolPage: cell)
+                spacing: 4, page: side, language: hasGlobe ? shared : cell,
+                globe: hasGlobe ? shared : 0, space: cell, utility: 0, enter: side, symbolPage: cell)
         }
 
         /// The rows that also carry the runtime comma/full stop around the space bar.

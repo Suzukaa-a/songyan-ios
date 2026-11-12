@@ -154,6 +154,27 @@ final class KeyboardPageFooterGeometryTests: XCTestCase {
         XCTAssertNotEqual(old.chrome, KeyboardPagePresets.numericKeypad.chrome)
     }
 
+    /// Pages saved while the globe came first keep the native widths, each key its own slot's, and
+    /// an untouched stored copy of a preset in that order still counts as the preset.
+    func testFootersSavedWithTheGlobeFirstKeepTheirWidths() {
+        let policy = lettersPolicy()
+        var keys = footer(KeyboardPagePresets.englishQwerty)
+        let current = KeyboardPageFooterGeometry(width: 382, keys: keys, policy: policy)
+        XCTAssertTrue(current.usesControlRowBudget)
+        keys.insert(keys.remove(at: 1), at: 0)
+        XCTAssertEqual(keys[0].action.type, .globe)
+        let saved = KeyboardPageFooterGeometry(width: 382, keys: keys, policy: policy)
+        XCTAssertTrue(saved.usesControlRowBudget)
+        XCTAssertEqual(saved.keyWidths[0], current.keyWidths[1], accuracy: 0.001)
+        XCTAssertEqual(saved.keyWidths[1], current.keyWidths[0], accuracy: 0.001)
+
+        var keypad = KeyboardPagePresets.numericKeypad
+        var bottom = keypad.chrome?.bottom ?? []
+        bottom.insert(bottom.remove(at: 1), at: 0)
+        keypad.chrome?.bottom = bottom
+        XCTAssertTrue(KeyboardPagePresets.resolvingRetired(pages: [keypad], compositions: [:]).pages.isEmpty)
+    }
+
     func testCustomLabelsAndLongPressDoNotChangeTheGeometry() {
         let policy = lettersPolicy()
         let baseline = KeyboardPageFooterGeometry(
