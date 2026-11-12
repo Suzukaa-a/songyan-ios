@@ -16,15 +16,18 @@ struct ScriptAddonCenterView: View {
     @State private var settingsTarget: ScriptAddonStore.Addon?
     @State private var pendingDeletes: [ScriptAddonStore.Addon] = []
     @State private var showGuide = false
+    @State private var showAddOptions = false
 
     var body: some View {
         List {
             if let notice = center.notice {
                 Section {
                     HStack(alignment: .firstTextBaseline) {
+                        Image(systemName: "checkmark.circle")
+                            .foregroundStyle(.secondary)
                         Text(notice).font(.footnote)
                         Spacer(minLength: 0)
-                        Button(String(localized: "\u{597D}")) { center.clearNotice() }
+                        Button(String(localized: "好")) { center.clearNotice() }
                             .font(.footnote)
                     }
                 }
@@ -33,14 +36,7 @@ struct ScriptAddonCenterView: View {
                 emptyRow
             } else {
                 ForEach(center.addons, id: \.state.id) { addon in
-                    row(addon)
-                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                            Button(role: .destructive) {
-                                pendingDeletes = [addon]
-                            } label: {
-                                Label(String(localized: "\u{5220}\u{9664}"), systemImage: "trash")
-                            }
-                        }
+                    addonRow(addon)
                 }
                 .onMove(perform: center.reorder)
                 .onDelete { indexSet in
@@ -50,21 +46,20 @@ struct ScriptAddonCenterView: View {
                 }
             }
         }
-        .navigationTitle(Text(String(localized: "\u{811A}\u{672C}")))
+        .navigationTitle(Text(String(localized: "脚本")))
         .toolbar {
             if !center.addons.isEmpty {
-                ToolbarItem(placement: .topBarLeading) { EditButton() }
+                ToolbarItem(placement: .topBarLeading) {
+                    EditButton()
+                        .accessibilityHint(String(localized: "拖动排序或删除脚本"))
+                }
             }
             ToolbarItem(placement: .primaryAction) {
                 Menu {
-                    Button(String(localized: "\u{7C98}\u{8D34}\u{811A}\u{672C}\u{6587}\u{5B57}")) { showsPaste = true }
-                    Button(String(localized: "\u{5BFC}\u{5165} .js \u{6587}\u{4EF6}")) { importer = true }
-                    Button(String(localized: "\u{4ECE}\u{94FE}\u{63A5}\u{6DFB}\u{52A0}")) { showsLink = true }
-                    Button(String(localized: "\u{65B0}\u{5EFA}\u{5E76}\u{7F16}\u{8F91}")) {
-                        editorTarget = EditorTarget(addon: nil)
-                    }
+                    addActions
                 } label: {
                     Image(systemName: "plus")
+                        .accessibilityLabel(String(localized: "添加脚本"))
                 }
             }
         }
@@ -72,7 +67,9 @@ struct ScriptAddonCenterView: View {
         .sheet(isPresented: $showsLink) { linkSheet }
         .sheet(isPresented: $showGuide) { guideSheet }
         .sheet(item: $settingsTarget) { addon in
-            ScriptAddonSettingsView(center: center, addon: addon)
+            NavigationStack {
+                ScriptAddonSettingsView(center: center, addon: addon)
+            }
         }
         .sheet(item: $editorTarget) { target in
             ScriptAddonEditorView(center: center, addon: target.addon)
@@ -94,109 +91,185 @@ struct ScriptAddonCenterView: View {
                 get: { center.errorMessage != nil },
                 set: { if !$0 { center.errorMessage = nil } })
         ) {
-            Button(String(localized: "\u{597D}")) { center.errorMessage = nil }
+            Button(String(localized: "好")) { center.errorMessage = nil }
         }
         .confirmationDialog(
-            String(localized: "\u{5220}\u{9664}\u{811A}\u{672C}\u{FF1F}"),
+            String(localized: "添加脚本"),
+            isPresented: $showAddOptions,
+            titleVisibility: .visible
+        ) {
+            addActions
+        }
+        .onAppear {
+            #if DEBUG
+                // Screenshot probe only; Release has no auto-presented sheets.
+                switch ProcessInfo.processInfo.environment["SONGYAN_SCRIPT_VISUAL_SHEET"] {
+                case "paste": showsPaste = true
+                case "link": showsLink = true
+                default: break
+                }
+            #endif
+        }
+        .confirmationDialog(
+            String(localized: "删除脚本？"),
             isPresented: Binding(
                 get: { !pendingDeletes.isEmpty },
                 set: { if !$0 { pendingDeletes = [] } })
         ) {
-            Button(String(localized: "\u{5220}\u{9664}"), role: .destructive) {
+            Button(String(localized: "删除"), role: .destructive) {
                 for addon in pendingDeletes { center.delete(addon: addon) }
                 pendingDeletes = []
             }
-            Button(String(localized: "\u{53D6}\u{6D88}"), role: .cancel) { pendingDeletes = [] }
+            Button(String(localized: "取消"), role: .cancel) { pendingDeletes = [] }
         } message: {
-            Text(pendingDeletes.map { title(of: $0) }.joined(separator: "\u{3001}"))
+            Text(
+                String(
+                    localized: "脚本的设置和密钥也会一起删除，且无法撤销。")
+                    + "\n" + pendingDeletes.map { title(of: $0) }.joined(separator: "、"))
         }
+    }
+
+    @ViewBuilder
+    private var addActions: some View {
+        Button(String(localized: "粘贴脚本文字")) { showsPaste = true }
+        Button(String(localized: "导入 .js 文件")) { importer = true }
+        Button(String(localized: "从链接添加")) { showsLink = true }
+        Button(String(localized: "新建并编辑")) { editorTarget = EditorTarget(addon: nil) }
     }
 
     private var emptyRow: some View {
         Section {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(String(localized: "\u{8FD8}\u{6CA1}\u{6709}\u{811A}\u{672C}"))
-                    .font(.headline)
+            VStack(alignment: .leading, spacing: 10) {
+                Label {
+                    Text(String(localized: "还没有脚本")).font(.headline)
+                } icon: {
+                    Image(systemName: "curlybraces").foregroundStyle(.tint)
+                }
                 Text(
                     String(
                         localized:
-                            "\u{811A}\u{672C}\u{662F}\u{4E00}\u{79CD}\u{5DE5}\u{5177}\u{FF1A}\u{5B83}\u{8BFB}\u{53D6}\u{4F60}\u{9009}\u{4E2D}\u{7684}\u{6587}\u{5B57}\u{FF08}\u{6216}\u{5149}\u{6807}\u{524D}\u{7684}\u{4E00}\u{6BB5}\u{FF09}\u{FF0C}\u{8FD4}\u{56DE}\u{6587}\u{5B57}\u{FF0C}\u{952E}\u{76D8}\u{5148}\u{9884}\u{89C8}\u{518D}\u{7531}\u{4F60}\u{51B3}\u{5B9A}\u{66FF}\u{6362}\u{3001}\u{63D2}\u{5165}\u{6216}\u{590D}\u{5236}\u{3002}"
-                    )
+                            "脚本是一种工具：它读取你选中的文字（或光标前的一段），返回文字，键盘先预览再由你决定替换、插入或复制。")
                 )
                 .font(.footnote)
                 .foregroundStyle(.secondary)
-                Button(String(localized: "\u{590D}\u{5236}\u{7ED9} AI \u{7684}\u{8BF4}\u{660E}")) {
+                Button {
+                    showAddOptions = true
+                } label: {
+                    Label(String(localized: "添加第一个脚本"), systemImage: "plus")
+                }
+                .buttonStyle(.borderedProminent)
+                Button(String(localized: "复制给 AI 的说明")) {
                     UIPasteboard.general.string = ScriptAddonCenter.aiGuide()
                 }
-                Button(
-                    String(
-                        localized: "\u{67E5}\u{770B}\u{4E0D}\u{8054}\u{7F51}\u{7684}\u{6700}\u{5C0F}\u{793A}\u{4F8B}")
-                ) {
-                    showGuide = true
-                }
+                .font(.footnote)
+                Button(String(localized: "查看不联网的最小示例")) { showGuide = true }
+                    .font(.footnote)
             }
             .padding(.vertical, 4)
         }
     }
 
-    private func row(_ addon: ScriptAddonStore.Addon) -> some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title(of: addon))
-                if center.needsReconfirmation(addon) {
-                    Text(
-                        String(
-                            localized:
-                                "\u{58F0}\u{660E}\u{5DF2}\u{53D8}\u{5316}\u{FF0C}\u{9700}\u{8981}\u{91CD}\u{65B0}\u{786E}\u{8BA4}"
-                        )
-                    )
-                    .font(.caption)
-                    .foregroundStyle(.orange)
+    private func addonRow(_ addon: ScriptAddonStore.Addon) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 10) {
+                NavigationLink {
+                    ScriptAddonDetailView(center: center, addon: addon)
+                } label: {
+                    HStack(spacing: 8) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(title(of: addon))
+                                .foregroundStyle(.primary)
+                            if center.needsReconfirmation(addon) {
+                                Label {
+                                    Text(String(localized: "声明已变化，需要重新确认"))
+                                } icon: {
+                                    Image(systemName: "exclamationmark.triangle.fill")
+                                }
+                                .font(.caption)
+                                .foregroundStyle(.orange)
+                            }
+                            if let summary = summaryLine(of: addon) {
+                                Text(summary)
+                                    .font(.caption)
+                                    .foregroundStyle(
+                                        center.availabilityNote(addon) == nil
+                                            ? Color.secondary : Color.orange)
+                            }
+                        }
+                        Spacer(minLength: 0)
+                    }
+                    .contentShape(Rectangle())
                 }
-                if let summary = summary(of: addon) {
-                    Text(summary).font(.caption).foregroundStyle(.secondary)
-                }
-                if let note = center.availabilityNote(addon) {
-                    Text(note)
+                .buttonStyle(.plain)
+                .accessibilityLabel(
+                    String(format: String(localized: "打开 %@ 的详情"), title(of: addon))
+                )
+                .accessibilityHint(String(localized: "打开脚本详情"))
+                Toggle(
+                    "",
+                    isOn: Binding(
+                        get: { addon.state.enabled },
+                        set: { center.setEnabled($0, addon: addon) })
+                )
+                .labelsHidden()
+                .accessibilityLabel(
+                    String(format: String(localized: "启用 %@"), title(of: addon))
+                )
+                .accessibilityValue(
+                    center.availabilityNote(addon) != nil
+                        ? String(localized: "不可用")
+                        : addon.state.enabled
+                            ? String(localized: "已启用") : String(localized: "已停用")
+                )
+                .opacity(center.availabilityNote(addon) == nil ? 1 : 0.35)
+                .disabled(center.availabilityNote(addon) != nil)
+                .accessibilityHint(
+                    center.availabilityNote(addon) != nil
+                        ? String(localized: "录音不可用，脚本会在键盘里标为不可用")
+                        : String(localized: "打开或关闭这个脚本"))
+            }
+            if center.needsReconfirmation(addon) {
+                Button(String(localized: "重新确认")) { center.reconfirm(addon: addon) }
+                    .font(.footnote)
+            }
+            if center.updatingID == addon.state.id {
+                HStack(spacing: 6) {
+                    ProgressView()
+                    Text(String(localized: "检查更新"))
                         .font(.caption)
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(.secondary)
                 }
             }
-            Spacer()
-            Toggle(
-                "",
-                isOn: Binding(
-                    get: { addon.state.enabled },
-                    set: { center.setEnabled($0, addon: addon) })
-            )
-            .labelsHidden()
         }
-        .contentShape(Rectangle())
-        .onTapGesture { settingsTarget = addon }
-        .contextMenu {
-            Button(String(localized: "\u{7F16}\u{8F91}")) { editorTarget = EditorTarget(addon: addon) }
-            Button(String(localized: "\u{8BBE}\u{7F6E}\u{4E0E}\u{5BC6}\u{94A5}")) { settingsTarget = addon }
-            Button(String(localized: "\u{68C0}\u{67E5}\u{66F4}\u{65B0}")) { center.checkForUpdate(addon: addon) }
-            if let data = center.exportData(addon: addon) {
-                ShareLink(item: scriptFile(data, title: title(of: addon)))
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            Button(role: .destructive) {
+                pendingDeletes = [addon]
+            } label: {
+                Label(String(localized: "删除"), systemImage: "trash")
             }
-            Button(String(localized: "\u{5220}\u{9664}"), role: .destructive) { center.delete(addon: addon) }
+        }
+        .contextMenu {
+            Button(String(localized: "编辑")) { editorTarget = EditorTarget(addon: addon) }
+            Button(String(localized: "设置与密钥")) { settingsTarget = addon }
+            Button(String(localized: "检查更新")) { center.checkForUpdate(addon: addon) }
+            if let data = center.exportData(addon: addon) {
+                ShareLink(item: scriptFile(data, title: title(of: addon))) {
+                    Text(String(localized: "导出脚本"))
+                }
+            }
+            Button(String(localized: "删除"), role: .destructive) { pendingDeletes = [addon] }
         }
     }
 
     private func title(of addon: ScriptAddonStore.Addon) -> String {
-        (try? center.declarations(for: addon.state.id).name) ?? addon.state.id
+        (try? center.declarations(for: addon.state.id).name) ?? String(localized: "未命名脚本")
     }
 
-    private func summary(of addon: ScriptAddonStore.Addon) -> String? {
-        (try? center.declarations(for: addon.state.id).summary) ?? nil
-    }
-
-    private func scriptFile(_ data: Data, title: String) -> URL {
-        let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent(title).appendingPathExtension("js")
-        try? data.write(to: url)
-        return url
+    private func summaryLine(of addon: ScriptAddonStore.Addon) -> String? {
+        if center.availabilityNote(addon) != nil {
+            return String(localized: "录音不可用")
+        }
+        return (try? center.declarations(for: addon.state.id).summary) ?? nil
     }
 
     private var pasteSheet: some View {
@@ -207,21 +280,39 @@ struct ScriptAddonCenterView: View {
                         .font(.footnote)
                         .foregroundStyle(.red)
                 }
-                TextEditor(text: $pasteText)
-                    .font(.system(.body, design: .monospaced))
-                    .frame(minHeight: 240)
+                ZStack(alignment: .topLeading) {
+                    TextEditor(text: $pasteText)
+                        .font(.system(.body, design: .monospaced))
+                        .frame(minHeight: 300)
+                    if pasteText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        Text(String(localized: "在这里粘贴或编写脚本"))
+                            .foregroundStyle(.secondary)
+                            .padding(.top, 8)
+                            .padding(.leading, 6)
+                            .allowsHitTesting(false)
+                    }
+                }
+                Button(String(localized: "插入最小示例")) {
+                    pasteText = ScriptAddonCenter.minimalExample()
+                }
+                .font(.footnote)
+                Text(String(localized: "粘贴后先确认声明再添加。"))
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
             }
             .padding()
             .onAppear { center.errorMessage = nil }
-            .navigationTitle(Text(String(localized: "\u{7C98}\u{8D34}\u{811A}\u{672C}")))
+            .navigationTitle(Text(String(localized: "粘贴脚本")))
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(String(localized: "\u{53D6}\u{6D88}")) { showsPaste = false }
+                    Button(String(localized: "取消")) { showsPaste = false }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(String(localized: "\u{7EE7}\u{7EED}")) {
+                    Button(String(localized: "继续")) {
                         if center.stage(source: Data(pasteText.utf8)) { showsPaste = false }
                     }
+                    .disabled(pasteText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
         }
@@ -230,35 +321,58 @@ struct ScriptAddonCenterView: View {
     private var linkSheet: some View {
         NavigationStack {
             Form {
-                TextField(String(localized: "\u{811A}\u{672C}\u{94FE}\u{63A5}\u{FF08}https\u{FF09}"), text: $linkText)
-                    .textInputAutocapitalization(.never)
-                    .keyboardType(.URL)
+                Section {
+                    TextField(String(localized: "脚本链接（https）"), text: $linkText)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .keyboardType(.URL)
+                        .accessibilityLabel(String(localized: "脚本链接（https）"))
+                    Text(
+                        String(
+                            localized:
+                                "只支持 HTTPS 链接；脚本只在这里下载一次，之后可在详情页检查更新。")
+                    )
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                }
+                if center.isDownloading {
+                    HStack(spacing: 8) {
+                        ProgressView()
+                        Text(String(localized: "下载中…"))
+                    }
+                }
                 if let error = center.errorMessage {
-                    Text(error)
-                        .font(.footnote)
-                        .foregroundStyle(.red)
+                    Text(error).font(.footnote).foregroundStyle(.red)
                 }
             }
             .onAppear { center.errorMessage = nil }
-            .navigationTitle(Text(String(localized: "\u{4ECE}\u{94FE}\u{63A5}\u{6DFB}\u{52A0}")))
+            .navigationTitle(Text(String(localized: "从链接添加")))
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(String(localized: "\u{53D6}\u{6D88}")) { showsLink = false }
+                    Button(String(localized: "取消")) { showsLink = false }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(String(localized: "\u{4E0B}\u{8F7D}")) {
-                        guard let url = URL(string: linkText),
-                            url.scheme?.lowercased() == "https"
-                        else {
-                            center.errorMessage = String(
-                                localized: "\u{8BF7}\u{8F93}\u{5165} https \u{94FE}\u{63A5}")
-                            return
-                        }
-                        center.importLink(url)
-                        showsLink = false
+                    if center.isDownloading {
+                        ProgressView()
+                    } else {
+                        Button(String(localized: "下载")) { downloadLinkedScript() }
+                            .disabled(!ScriptAddonURLValidation.isValidHTTPS(linkText))
                     }
                 }
             }
+        }
+    }
+
+    private func downloadLinkedScript() {
+        guard let url = URL(string: linkText.trimmingCharacters(in: .whitespacesAndNewlines)),
+            ScriptAddonURLValidation.isValidHTTPS(linkText)
+        else {
+            center.errorMessage = String(localized: "请输入有效的 https 链接")
+            return
+        }
+        Task {
+            if await center.importLink(url) { showsLink = false }
         }
     }
 
@@ -266,18 +380,13 @@ struct ScriptAddonCenterView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text(
-                        String(
-                            localized:
-                                "\u{628A}\u{8FD9}\u{4E2A}\u{8BF4}\u{660E}\u{590D}\u{5236}\u{7ED9} AI\u{FF0C}\u{8BA9}\u{5B83}\u{751F}\u{6210}\u{4E00}\u{4E2A}\u{811A}\u{672C}"
-                        )
-                    )
-                    .font(.headline)
+                    Text(String(localized: "把这个说明复制给 AI，让它生成一个脚本"))
+                        .font(.headline)
                     Text(ScriptAddonCenter.aiGuide())
                         .font(.system(.footnote, design: .monospaced))
                         .textSelection(.enabled)
                     Divider()
-                    Text(String(localized: "\u{4E0D}\u{8054}\u{7F51}\u{7684}\u{6700}\u{5C0F}\u{793A}\u{4F8B}"))
+                    Text(String(localized: "不联网的最小示例"))
                         .font(.headline)
                     Text(ScriptAddonCenter.minimalExample())
                         .font(.system(.footnote, design: .monospaced))
@@ -285,13 +394,13 @@ struct ScriptAddonCenterView: View {
                 }
                 .padding()
             }
-            .navigationTitle(Text(String(localized: "\u{7ED9} AI \u{7684}\u{8BF4}\u{660E}")))
+            .navigationTitle(Text(String(localized: "给 AI 的说明")))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(String(localized: "\u{5B8C}\u{6210}")) { showGuide = false }
+                    Button(String(localized: "完成")) { showGuide = false }
                 }
                 ToolbarItem(placement: .primaryAction) {
-                    Button(String(localized: "\u{590D}\u{5236}\u{8BF4}\u{660E}")) {
+                    Button(String(localized: "复制说明")) {
                         UIPasteboard.general.string = ScriptAddonCenter.aiGuide()
                     }
                 }

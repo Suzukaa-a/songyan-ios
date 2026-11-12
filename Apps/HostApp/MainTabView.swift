@@ -73,8 +73,6 @@ struct MainTabView: View {
                             subtitle: String(localized: "添加并运行你写的脚本"),
                             systemImage: "curlybraces")
                     }
-                } header: {
-                    Text(UserTerminology.script)
                 }
 
                 Section {

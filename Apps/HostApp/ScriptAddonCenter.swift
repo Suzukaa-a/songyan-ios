@@ -25,6 +25,9 @@ final class ScriptAddonCenter: ObservableObject {
     @Published var pending: Draft?
     @Published var errorMessage: String?
     @Published var notice: String?
+    /// A linked script download or an update check is in flight; rows/sheets show progress.
+    @Published var isDownloading = false
+    @Published var updatingID: String?
 
     private let store: ScriptAddonStore
     private let secrets: any ScriptSecretStore
@@ -119,13 +122,10 @@ final class ScriptAddonCenter: ObservableObject {
                 id: replacing ?? UUID().uuidString, source: source, sourceURL: sourceURL,
                 declarations: declarations, replacing: replacing)
             return true
-        } catch let ScriptAddonBridge.BridgeError.header(message, line) {
-            errorMessage =
-                line > 0
-                ? message + String(format: String(localized: "\u{FF08}\u{7B2C} %lld \u{884C}\u{FF09}"), line) : message
-            return false
         } catch {
-            errorMessage = error.localizedDescription
+            let failure = Self.failure(for: error)
+            if failure == .cancelled { return false }
+            errorMessage = Self.userMessage(for: failure)
             return false
         }
     }
@@ -141,22 +141,28 @@ final class ScriptAddonCenter: ObservableObject {
     }
 
     /// Links are downloaded once at import time; manual update checks reuse the same path.
-    func importLink(_ url: URL) {
+    /// Returns true when a draft is ready, so the link sheet can dismiss itself after the
+    /// loading state instead of leaving the user guessing.
+    @discardableResult
+    func importLink(_ url: URL) async -> Bool {
         guard let download, let limits else {
             errorMessage = Self.limitsMissing
-            return
+            return false
         }
-        Task {
-            do {
-                let data = try await download(url)
-                guard data.count <= limits.maximumSourceBytes else {
-                    errorMessage = String(localized: "\u{811A}\u{672C}\u{6587}\u{4EF6}\u{592A}\u{5927}")
-                    return
-                }
-                stage(source: data, sourceURL: url)
-            } catch {
-                errorMessage = error.localizedDescription
+        isDownloading = true
+        defer { isDownloading = false }
+        do {
+            let data = try await download(url)
+            guard data.count <= limits.maximumSourceBytes else {
+                errorMessage = String(localized: "\u{811A}\u{672C}\u{6587}\u{4EF6}\u{592A}\u{5927}")
+                return false
             }
+            return stage(source: data, sourceURL: url)
+        } catch {
+            let failure = Self.failure(for: error)
+            if failure == .cancelled { return false }
+            errorMessage = Self.userMessage(for: failure)
+            return false
         }
     }
 
@@ -256,6 +262,8 @@ final class ScriptAddonCenter: ObservableObject {
             return
         }
         Task {
+            updatingID = addon.state.id
+            defer { updatingID = nil }
             do {
                 let data = try await download(sourceURL)
                 let declarations = try bridge.parseDeclarations(source: data)
@@ -271,7 +279,9 @@ final class ScriptAddonCenter: ObservableObject {
                     notice = String(localized: "\u{811A}\u{672C}\u{5DF2}\u{66F4}\u{65B0}")
                 }
             } catch {
-                errorMessage = error.localizedDescription
+                let failure = Self.failure(for: error)
+                if failure == .cancelled { return }
+                errorMessage = Self.userMessage(for: failure)
             }
         }
     }
@@ -297,12 +307,10 @@ final class ScriptAddonCenter: ObservableObject {
                 id: addon.state.id, source: source,
                 sourceURL: addon.state.sourceURL.flatMap(URL.init(string:)),
                 declarations: declarations, replacing: addon.state.id)
-        } catch let ScriptAddonBridge.BridgeError.header(message, line) {
-            errorMessage =
-                line > 0
-                ? message + String(format: String(localized: "\u{FF08}\u{7B2C} %lld \u{884C}\u{FF09}"), line) : message
         } catch {
-            errorMessage = error.localizedDescription
+            let failure = Self.failure(for: error)
+            if failure == .cancelled { return }
+            errorMessage = Self.userMessage(for: failure)
         }
     }
 
@@ -359,13 +367,66 @@ final class ScriptAddonCenter: ObservableObject {
                 settingsJSON: String(decoding: settingsJSON, as: UTF8.self), limits: limits,
                 onLog: { _ in })
         } catch {
-            errorMessage = error.localizedDescription
+            let failure = Self.failure(for: error)
+            if failure == .cancelled { return nil }
+            errorMessage = Self.userMessage(for: failure)
             return nil
         }
     }
 
     func clearNotice() {
         notice = nil
+    }
+
+    /// Maps a script failure to user copy. Never returns the Swift type name, an OS status or an
+    /// English engine diagnostic; the line number is the only technical detail shown.
+    nonisolated static func userMessage(
+        for failure: ScriptAddonFailure, scriptName: String? = nil
+    ) -> String {
+        var message = String(
+            localized: String.LocalizationValue(failure.userMessageKey))
+        if let line = failure.line {
+            message += String(
+                format: String(localized: "\u{FF08}\u{7B2C} %lld \u{884C}\u{FF09}"), line)
+        }
+        if let scriptName, !scriptName.isEmpty {
+            return String(
+                format: String(localized: "\u{300C}%@\u{300D}\u{FF1A}%@"), scriptName, message)
+        }
+        return message
+    }
+
+    nonisolated static func failure(for error: Error) -> ScriptAddonFailure {
+        if let bridge = error as? ScriptAddonBridge.BridgeError {
+            switch bridge {
+            case .header(_, let line):
+                return .header(line: line > 0 ? line : nil)
+            case .runtime(_, let line):
+                return .runtime(line: line > 0 ? line : nil)
+            case .invalidConfiguration:
+                return .invalidConfiguration
+            case .cancelled:
+                return .cancelled
+            }
+        }
+        if error is CancellationError { return .cancelled }
+        return .unknown
+    }
+
+    /// Re-confirms the stored script without a network update: used when the declarations
+    /// changed and the keyboard has hidden the addon until the user confirms it again.
+    func reconfirm(addon: ScriptAddonStore.Addon) {
+        do {
+            let data = try store.scriptBytes(id: addon.state.id)
+            let declarations = try bridge.parseDeclarations(source: data)
+            try store.confirm(declarations: declarations, id: addon.state.id)
+            reload()
+            notice = String(localized: "\u{5DF2}\u{91CD}\u{65B0}\u{786E}\u{8BA4}")
+        } catch {
+            let failure = Self.failure(for: error)
+            if failure == .cancelled { return }
+            errorMessage = Self.userMessage(for: failure)
+        }
     }
 
     /// iOS cannot record; an audio script is kept (importable, shareable) but the keyboard
@@ -391,8 +452,10 @@ final class ScriptAddonCenter: ObservableObject {
             errorMessage = Self.limitsMissing
             return nil
         }
+        var scriptName: String?
         do {
             let declarations = try bridge.parseDeclarations(source: source)
+            scriptName = declarations.name
             var settings = addon?.state.settings ?? [:]
             if let id = addon?.state.id {
                 for secret in declarations.secrets {
@@ -424,7 +487,9 @@ final class ScriptAddonCenter: ObservableObject {
         } catch ScriptAddonBridge.BridgeError.cancelled {
             return nil
         } catch {
-            errorMessage = error.localizedDescription
+            let failure = Self.failure(for: error)
+            if failure == .cancelled { return nil }
+            errorMessage = Self.userMessage(for: failure, scriptName: scriptName)
             return nil
         }
     }

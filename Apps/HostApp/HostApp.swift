@@ -8,6 +8,7 @@ import SwiftUI
     import Foundation
     import OSLog
     import RimeBridge
+    import ScriptAddonKit
     import SkinKit
     import UIKit
 #endif
@@ -44,10 +45,8 @@ struct HostApp: App {
                 #if DEBUG
                     if S0InputProbe.enabled {
                         S0InputProbeView()
-                    } else if ScriptCenterProbe.enabled {
-                        NavigationStack {
-                            ScriptAddonCenterView(center: ScriptAddonCenter.shared)
-                        }
+                    } else if let screen = ScriptCenterProbe.screen {
+                        ScriptVisualProbe(screen: screen)
                     } else if DeploymentProbe.enabled {
                         ProbeLaunchView()
                     } else if GlyphProbe.enabled {
@@ -88,11 +87,181 @@ struct HostApp: App {
 
     // MARK: - Deployment probe (Debug only)
 
-    /// Shows the scripts screen directly for a simulator screenshot: the home row is the normal
-    /// entry, this only saves driving the UI for a manual visual check.
+    /// Shows a script screen directly for simulator screenshots. The home row and its sheets are
+    /// the normal entry; this only saves driving the UI for a visual check. Debug-only, opt-in
+    /// through SONGYAN_SCRIPT_CENTER_SCREEN (list, empty, confirm-text, confirm-audio, detail,
+    /// editor, editor-new, tryrun, tryrun-result, tryrun-busy, tryrun-error).
     enum ScriptCenterProbe {
-        static var enabled: Bool {
-            ProcessInfo.processInfo.environment["SONGYAN_SCRIPT_CENTER_SCREEN"] == "1"
+        static var screen: String? {
+            guard let value = ProcessInfo.processInfo.environment["SONGYAN_SCRIPT_CENTER_SCREEN"],
+                !value.isEmpty
+            else { return nil }
+            return value == "1" ? "list" : value
+        }
+    }
+
+    @MainActor
+    final class ScriptVisualProbeModel: ObservableObject {
+        let screen: String
+        let center: ScriptAddonCenter
+        let draft: ScriptAddonCenter.Draft?
+        let addon: ScriptAddonStore.Addon?
+
+        init(screen: String) {
+            self.screen = screen
+            let root = FileManager.default.temporaryDirectory
+                .appendingPathComponent("script-visual-audit/(screen)", isDirectory: true)
+            try? FileManager.default.removeItem(at: root)
+            try? FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+            let store = ScriptAddonStore(root: root)
+            let seeds = Self.seeds(for: screen)
+            for (index, seed) in seeds.enumerated() {
+                Self.seed(seed, order: index, store: store)
+            }
+            let center = ScriptAddonCenter(root: root)
+            self.center = center
+            let wanted = seeds.first?.id
+            self.addon = center.addons.first { $0.state.id == wanted }
+            if let seed = seeds.first,
+                let declarations = try? ScriptAddonBridge().parseDeclarations(source: seed.source)
+            {
+                self.draft = ScriptAddonCenter.Draft(
+                    id: UUID().uuidString, source: seed.source, sourceURL: nil,
+                    declarations: declarations, replacing: nil)
+            } else {
+                self.draft = nil
+            }
+        }
+
+        private struct Seed {
+            let id: String
+            let source: Data
+            let confirmed: Bool
+        }
+
+        private static func seeds(for screen: String) -> [Seed] {
+            let text = header(
+                name: "\u{5927}\u{5199}\u{8F6C}\u{6362}",
+                description: "\u{628A}\u{9009}\u{4E2D}\u{7684}\u{6587}\u{5B57}\u{6362}\u{6210}\u{5927}\u{5199}",
+                connect: "api.example.com",
+                settings: "// @setting mode choice \u{6A21}\u{5F0F}\n// @secret token API \u{5BC6}\u{94A5}\n",
+                code: "export default async ({ text }) => [text.toUpperCase()];")
+            let audio = header(
+                name: "\u{58F0}\u{97F3}\u{8F6C}\u{5199}",
+                description:
+                    "\u{58F0}\u{97F3}\u{811A}\u{672C}\u{FF0C}\u{672C}\u{673A}\u{4E0D}\u{63D0}\u{4F9B}\u{5F55}\u{97F3}",
+                connect: nil,
+                settings: "// @input audio\n", code: "export default () => []")
+            let stale = header(
+                name: "\u{5F85}\u{786E}\u{8BA4}\u{811A}\u{672C}",
+                description: "\u{58F0}\u{660E}\u{53D8}\u{5316}\u{540E}\u{7B49}\u{5F85}\u{91CD}\u{65B0}\u{786E}\u{8BA4}",
+                connect: "cdn.example.com",
+                settings: "", code: "export default ({ text }) => [text]")
+            let result = header(
+                name: "\u{6F14}\u{793A}\u{7ED3}\u{679C}",
+                description: "\u{8BD5}\u{6253}\u{6846}\u{5C55}\u{793A}\u{8F93}\u{51FA}", connect: nil, settings: "",
+                code: "export default async ({ text }) => [\"\u{4F60}\u{597D}\u{FF0C}\u{811A}\u{672C}\u{FF01}\", text];"
+            )
+            let busy = header(
+                name: "\u{6162}\u{811A}\u{672C}",
+                description:
+                    "\u{8FD0}\u{884C}\u{51E0}\u{79D2}\u{4EE5}\u{4FBF}\u{622A}\u{53D6}\u{8FD0}\u{884C}\u{4E2D}\u{72B6}\u{6001}",
+                connect: nil, settings: "",
+                code:
+                    "export default () => { const end = Date.now() + 3200; while (Date.now() < end) {} return [\"\u{5B8C}\u{6210}\"]; }"
+            )
+            let failure = header(
+                name: "\u{51FA}\u{9519}\u{811A}\u{672C}", description: "\u{629B}\u{51FA}\u{9519}\u{8BEF}", connect: nil,
+                settings: "",
+                code: "export default () => { throw new Error(\"\u{6F14}\u{793A}\u{9519}\u{8BEF}\"); }")
+            switch screen {
+            case "empty": return []
+            case "confirm-text": return [Seed(id: "visual-text", source: text, confirmed: true)]
+            case "confirm-audio": return [Seed(id: "visual-audio", source: audio, confirmed: true)]
+            case "detail", "editor": return [Seed(id: "visual-text", source: text, confirmed: true)]
+            case "detail-stale": return [Seed(id: "visual-stale", source: stale, confirmed: false)]
+            case "editor-new": return []
+            case "tryrun-busy": return [Seed(id: "visual-busy", source: busy, confirmed: true)]
+            case "tryrun-error": return [Seed(id: "visual-error", source: failure, confirmed: true)]
+            case "tryrun", "tryrun-result":
+                return [Seed(id: "visual-result", source: result, confirmed: true)]
+            default:
+                return [
+                    Seed(id: "visual-text", source: text, confirmed: true),
+                    Seed(id: "visual-audio", source: audio, confirmed: true),
+                    Seed(id: "visual-stale", source: stale, confirmed: false),
+                ]
+            }
+        }
+
+        private static func header(
+            name: String, description: String, connect: String?, settings: String, code: String
+        ) -> Data {
+            var text = "// @api 1\n// @name \(name)\n// @description \(description)\n"
+            if let connect { text += "// @connect \(connect)\n" }
+            text += settings + code + "\n"
+            return Data(text.utf8)
+        }
+
+        @discardableResult
+        private static func seed(_ seed: Seed, order: Int, store: ScriptAddonStore) -> Bool {
+            guard let declarations = try? ScriptAddonBridge().parseDeclarations(source: seed.source),
+                let digest = try? declarations.confirmationDigest()
+            else { return false }
+            var state = ScriptAddonState(
+                id: seed.id, order: order, scriptDigest: "", scriptByteCount: 0)
+            state.confirmedDigest = seed.confirmed ? digest : "stale-confirmation"
+            do {
+                _ = try store.add(
+                    id: seed.id, script: seed.source, state: state,
+                    maximumSourceBytes: 262_144)
+                return true
+            } catch {
+                return false
+            }
+        }
+    }
+
+    struct ScriptVisualProbe: View {
+        @StateObject private var model: ScriptVisualProbeModel
+
+        init(screen: String) {
+            _model = StateObject(wrappedValue: ScriptVisualProbeModel(screen: screen))
+        }
+
+        var body: some View {
+            switch model.screen {
+            case "empty", "list":
+                NavigationStack { ScriptAddonCenterView(center: model.center) }
+            case "confirm-text", "confirm-audio":
+                if let draft = model.draft {
+                    ScriptAddonConfirmationView(center: model.center, draft: draft)
+                } else {
+                    missing
+                }
+            case "detail", "detail-stale":
+                if let addon = model.addon {
+                    NavigationStack { ScriptAddonDetailView(center: model.center, addon: addon) }
+                } else {
+                    missing
+                }
+            case "settings":
+                if let addon = model.addon {
+                    NavigationStack { ScriptAddonSettingsView(center: model.center, addon: addon) }
+                } else {
+                    missing
+                }
+            case "editor":
+                ScriptAddonEditorView(center: model.center, addon: model.addon)
+            case "editor-new":
+                ScriptAddonEditorView(center: model.center, addon: nil)
+            default:
+                ScriptAddonEditorView(center: model.center, addon: model.addon)
+            }
+        }
+
+        private var missing: some View {
+            Text(verbatim: "visual probe: no seeded data")
         }
     }
 
@@ -176,26 +345,26 @@ struct HostApp: App {
                     checks.append(["name": name, "actual": actual, "expected": expected, "passed": actual == expected])
                 }
                 try await press(.kana(rowId: "ka", direction: .center))
-                check("first kana", keyboard.snapshot.rawInput, "か")
+                check("first kana", keyboard.snapshot.rawInput, "\u{304B}")
                 try await press(.kana(rowId: "ka", direction: .center))
-                check("repeated tap replaces the kana", keyboard.snapshot.rawInput, "き")
+                check("repeated tap replaces the kana", keyboard.snapshot.rawInput, "\u{304D}")
                 try await clear()
                 try await press(.kana(rowId: "sa", direction: .up))
                 try await press(.kana(rowId: "sa", direction: .left))
-                check("flick types sushi", keyboard.snapshot.rawInput, "すし")
+                check("flick types sushi", keyboard.snapshot.rawInput, "\u{3059}\u{3057}")
                 try await press(.enter)
-                check("Return commits raw kana", committed, "すし")
+                check("Return commits raw kana", committed, "\u{3059}\u{3057}")
                 try await clear()
                 try await press(.kana(rowId: "ta", direction: .up))
                 try await press(.modify)
-                check("modifier makes small tsu", keyboard.snapshot.rawInput, "っ")
+                check("modifier makes small tsu", keyboard.snapshot.rawInput, "\u{3063}")
                 try await press(.modify)
-                check("modifier makes voiced tsu", keyboard.snapshot.rawInput, "づ")
+                check("modifier makes voiced tsu", keyboard.snapshot.rawInput, "\u{3065}")
                 try await clear()
                 keyboard.kana12FlickOnly = true
                 try await press(.kana(rowId: "ka", direction: .center))
                 try await press(.kana(rowId: "ka", direction: .center))
-                check("flick only keeps repeated kana", keyboard.snapshot.rawInput, "かか")
+                check("flick only keeps repeated kana", keyboard.snapshot.rawInput, "\u{304B}\u{304B}")
                 let before = keyboard.snapshot.preeditCaretByte
                 try await press(.cursorLeft)
                 checks.append([
@@ -308,9 +477,11 @@ struct HostApp: App {
                 prebuiltEngine.shutdown()
                 report["preedit"] = result.preedit
                 report["candidates"] = result.candidates
-                let found = result.candidates.contains("日本語")
+                let found = result.candidates.contains("\u{65E5}\u{672C}\u{8A9E}")
                 report["success"] = found
-                if !found { report["error"] = "nihongo candidates do not contain 日本語: \(result.candidates)" }
+                if !found {
+                    report["error"] = "nihongo candidates do not contain \u{65E5}\u{672C}\u{8A9E}: \(result.candidates)"
+                }
             } catch {
                 report["success"] = false
                 report["error"] = "\(error)"
@@ -561,16 +732,18 @@ struct HostApp: App {
     /// candidate row and one expanded flow each. Font and colours come from the same skin resolution as
     /// the keyboard, so the screenshot shows exactly what a candidate would draw.
     private struct GlyphProbeView: View {
-        private let texts = ["直", "骨", "海"]
+        private let texts = ["\u{76F4}", "\u{9AA8}", "\u{6D77}"]
         private let languages: [InputLanguage] = [.simplifiedChinese, .traditionalChinese, .japanese]
         private let appearance = KeyboardAppearance(skin: .systemDefault, dark: false)
 
         var body: some View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
-                    Text("字形渲染检查：同样的文字，不同输入语言")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                    Text(
+                        "\u{5B57}\u{5F62}\u{6E32}\u{67D3}\u{68C0}\u{67E5}\u{FF1A}\u{540C}\u{6837}\u{7684}\u{6587}\u{5B57}\u{FF0C}\u{4E0D}\u{540C}\u{8F93}\u{5165}\u{8BED}\u{8A00}"
+                    )
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
                     ForEach(languages, id: \.rawValue) { language in
                         VStack(alignment: .leading, spacing: 4) {
                             Text(verbatim: language.rawValue).font(.caption.weight(.semibold))
@@ -659,9 +832,11 @@ struct HostApp: App {
 
         var body: some View {
             VStack(alignment: .leading, spacing: 12) {
-                Text("输入上下文检查：固定文本与选区，不读取用户内容")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                Text(
+                    "\u{8F93}\u{5165}\u{4E0A}\u{4E0B}\u{6587}\u{68C0}\u{67E5}\u{FF1A}\u{56FA}\u{5B9A}\u{6587}\u{672C}\u{4E0E}\u{9009}\u{533A}\u{FF0C}\u{4E0D}\u{8BFB}\u{53D6}\u{7528}\u{6237}\u{5185}\u{5BB9}"
+                )
+                .font(.footnote)
+                .foregroundStyle(.secondary)
                 S0FixtureTextView(text: $text, selection: $selection)
                     .frame(minHeight: 160)
                     .border(Color.secondary.opacity(0.3))

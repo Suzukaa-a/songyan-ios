@@ -235,7 +235,9 @@ struct KeyboardToolsRow: View {
             .padding(.vertical, 4)
             .frame(maxWidth: .infinity, minHeight: KeyboardToolsStyle.rowMinHeight, alignment: .leading)
             .contentShape(Rectangle())
-            .opacity(isEnabled ? 1 : 0.4)
+            // 0.55 keeps a disabled row's explanatory line readable; 0.4 washed it out on
+            // the light keyboard and failed contrast on the dark one (tool panel unavailable row).
+            .opacity(isEnabled ? 1 : 0.55)
         }
         .buttonStyle(KeyboardToolsRowButtonStyle())
         .accessibilityLabel(accessibilityLabel ?? title)

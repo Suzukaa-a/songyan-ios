@@ -948,6 +948,31 @@
       "path": "Packages/KeyboardCore/Sources/KeyboardCore/Engine/DemoEngine.swift",
       "value": "演示引擎 · 输入方案  · 用户目录 ",
       "reason": "Test/self-check-only demo backend status; production never selects this backend."
+    },
+    {
+      "path": "Packages/ScriptAddonKit/Sources/ScriptAddonKit/ScriptAddonFailure.swift",
+      "value": "脚本头部有误",
+      "reason": "Localization key constant resolved by the Host app; not interface copy."
+    },
+    {
+      "path": "Packages/ScriptAddonKit/Sources/ScriptAddonKit/ScriptAddonFailure.swift",
+      "value": "脚本运行出错",
+      "reason": "Localization key constant resolved by the Host app; not interface copy."
+    },
+    {
+      "path": "Packages/ScriptAddonKit/Sources/ScriptAddonKit/ScriptAddonFailure.swift",
+      "value": "脚本运行配置无效",
+      "reason": "Localization key constant resolved by the Host app; not interface copy."
+    },
+    {
+      "path": "Packages/ScriptAddonKit/Sources/ScriptAddonKit/ScriptAddonFailure.swift",
+      "value": "脚本运行已取消",
+      "reason": "Localization key constant resolved by the Host app; not interface copy."
+    },
+    {
+      "path": "Packages/ScriptAddonKit/Sources/ScriptAddonKit/ScriptAddonFailure.swift",
+      "value": "无法运行脚本，请稍后重试。",
+      "reason": "Localization key constant resolved by the Host app; not interface copy."
     }
   ]
 }

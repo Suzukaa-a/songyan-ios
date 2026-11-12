@@ -127,6 +127,11 @@
       "catalog": "Resources/Localizable.xcstrings",
       "key": "操作",
       "value": "操作"
+    },
+    {
+      "catalog": "Resources/Localizable.xcstrings",
+      "key": "「%@」：%@",
+      "value": "「%@」：%@"
     }
   ]
 }

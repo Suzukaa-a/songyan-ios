@@ -112,27 +112,36 @@ struct ToolPanelView: View {
     var body: some View {
         VStack(spacing: 0) {
             KeyboardToolsTitleBar {
-                KeyboardToolsTitle(text: String(localized: "工具"))
+                // While a run is in flight the title names the script, so a failure or a result
+                // can be attributed without reopening the panel.
+                KeyboardToolsTitle(text: model.presentation.toolTitle ?? String(localized: "工具"))
             } trailing: {
                 KeyboardToolsDismissButton(
                     title: String(localized: "完成"),
-                    accessibilityHint: String(localized: "返回键盘"), minHeight: 40
+                    accessibilityHint: String(localized: "返回键盘")
                 ) { dismiss() }
             }
-            .frame(minHeight: 40)
+            .frame(minHeight: 44)
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    content
                     if copied {
                         messageLine(String(localized: "已复制到剪贴板"), icon: "checkmark.circle")
                     }
+                    content
                 }
-                .padding(.bottom, 12)
+                .padding(.bottom, 24)
             }
             .sharpCandidateScrollEdges()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .dynamicTypeSize(.small ... .accessibility3)
+        .onChange(of: copied) { _, isCopied in
+            guard isCopied else { return }
+            Task {
+                try? await Task.sleep(for: .seconds(2))
+                copied = false
+            }
+        }
         .accessibilityElement(children: .contain)
         .accessibilityAction(.escape) { dismiss() }
     }
@@ -142,7 +151,9 @@ struct ToolPanelView: View {
         let presentation = model.presentation
         switch presentation.status {
         case .tools:
-            KeyboardToolsSection(title: String(localized: "工具")) {
+            // The title bar already says 工具; a second section header would waste a row of the
+            // short keyboard panel. The card alone keeps the list visually grouped.
+            KeyboardToolsCard {
                 if model.entries.isEmpty {
                     KeyboardToolsRow(title: String(localized: "还没有可用的工具")) {}.disabled(true)
                 } else {
@@ -152,6 +163,7 @@ struct ToolPanelView: View {
                             icon: "wand.and.stars",
                             title: entry.identity.title,
                             detail: entry.unavailableText,
+                            accessibilityValue: entry.unavailableText,
                             action: { model.run(entry.identity) }
                         )
                         .disabled(!entry.isAvailable)
@@ -159,6 +171,7 @@ struct ToolPanelView: View {
                     }
                 }
             }
+            .padding(.top, KeyboardToolsStyle.sectionTopPadding)
         case .preview:
             if let message = presentation.message {
                 messageLine(message.text, icon: "info.circle")
@@ -167,6 +180,7 @@ struct ToolPanelView: View {
                 ForEach(presentation.resultRows) { row in
                     KeyboardToolsRow(
                         title: row.text,
+                        titleLineLimit: 6,
                         mark: row.isSelected ? .check(true) : .check(false),
                         isSelected: row.isSelected,
                         action: { model.chooseResult(row.index) })
@@ -251,6 +265,8 @@ struct ToolPanelView: View {
             }
         HStack(spacing: 8) {
             ProgressView()
+                .tint(appearance.accentForeground)
+                .accessibilityHidden(true)
             Text(title)
                 .font(.body)
                 .foregroundStyle(Color(uiColor: appearance.text(on: "key")))
@@ -258,6 +274,7 @@ struct ToolPanelView: View {
         }
         .padding(.horizontal, KeyboardToolsStyle.contentHorizontalInset)
         .frame(maxWidth: .infinity, minHeight: KeyboardToolsStyle.rowMinHeight, alignment: .leading)
+        .accessibilityElement(children: .combine)
     }
 
     private func messageLine(_ text: String, icon: String) -> some View {

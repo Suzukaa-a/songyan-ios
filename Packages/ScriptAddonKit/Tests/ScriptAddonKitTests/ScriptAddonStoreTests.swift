@@ -190,6 +190,18 @@ final class ScriptAddonStoreTests: XCTestCase {
         XCTAssertEqual(updated.state.confirmedDigest, before)
     }
 
+    func testFailureClassificationKeepsOnlyTheUserFacingReason() {
+        XCTAssertEqual(
+            ScriptAddonFailure.header(line: 3).userMessageKey, "脚本头部有误")
+        XCTAssertEqual(ScriptAddonFailure.header(line: 3).line, 3)
+        XCTAssertEqual(ScriptAddonFailure.runtime(line: 9).line, 9)
+        XCTAssertNil(ScriptAddonFailure.invalidConfiguration.line)
+        XCTAssertNil(ScriptAddonFailure.cancelled.line)
+        XCTAssertNil(ScriptAddonFailure.unknown.line)
+        XCTAssertEqual(
+            ScriptAddonFailure.unknown.userMessageKey, "无法运行脚本，请稍后重试。")
+    }
+
     func testSettingsUpdateDoesNotTouchStoredScriptBytes() throws {
         let original = Data("// @api 1\n// @name Upper\n".utf8)
         _ = try addon(script: original)

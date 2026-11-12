@@ -93,8 +93,9 @@
             if isAvailable() {
                 Button(action: open) {
                     Image(systemName: "wand.and.stars")
-                        .font(.system(size: 15, weight: .medium))
-                        .frame(width: 32, height: 28)
+                        .font(.system(size: 19, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 44, height: 44)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)

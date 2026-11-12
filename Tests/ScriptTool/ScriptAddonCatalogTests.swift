@@ -114,8 +114,7 @@ final class ScriptAddonCatalogTests: XCTestCase {
         let result = catalog().load()
         XCTAssertEqual(result.tools.map(\.identity.id), ["script.addon.b", "script.addon.a"])
         XCTAssertEqual(result.tools.map(\.identity.title), ["乙", "甲"])
-        XCTAssertEqual(
-            Set(result.skipped.map(\.reason)), [.disabled, .unconfirmed])
+        XCTAssertEqual(Set(result.skipped.map(\.reason)), [.disabled, .unconfirmed])
     }
 
     func testFilledSettingsAreInjectedIntoTheRun() async throws {
@@ -200,6 +199,27 @@ final class ScriptAddonCatalogTests: XCTestCase {
         XCTAssertTrue(ScriptNetworkingURLProtocol.requests.isEmpty)
     }
 
+    func testUnreadableSecretIsVisibleInsteadOfSilentlyRunning() async throws {
+        let source = """
+            // @api 1
+            // @name 密钥缺失
+            // @secret token 令牌
+            export default async ({ text, settings }) => settings.token + text;
+            """
+        try addScript(id: "missing", source: source, secretKeys: ["token"])
+        secrets.failsReads = true
+        let result = catalog().load()
+        XCTAssertEqual(result.tools.count, 1, "the tool stays listed so the user sees the prompt")
+        do {
+            _ = try await result.tools[0].run(
+                input: ToolInput(text: "文字", scope: .precedingSegment, isTruncated: false))
+            XCTFail("an unreadable secret must not run silently")
+        } catch let error as ScriptToolError {
+            XCTAssertEqual(error, .secretsUnavailable)
+            XCTAssertTrue(error.errorDescription?.contains("密钥") == true)
+        }
+    }
+
     @MainActor
     func testAudioScriptIsListedButUnavailableWhileTextScriptRemainsReady() throws {
         let audio = """
@@ -229,8 +249,6 @@ final class ScriptAddonCatalogTests: XCTestCase {
         XCTAssertTrue(textEntry.isAvailable)
         XCTAssertNil(textEntry.unavailableText)
 
-        // The row exists but the run is refused before any engine work: a text-only host cannot
-        // supply the declared audio input.
         var session = ToolSession(limits: sessionLimits, sessionID: "fixture-session")
         let snapshot = ToolDocumentSnapshot(
             documentID: ToolDocumentID(rawValue: "fixture-document"), privacy: .normal,
@@ -241,6 +259,16 @@ final class ScriptAddonCatalogTests: XCTestCase {
         XCTAssertEqual(
             session.phase,
             .failed(.unavailable(.missingCapabilities([.audio]))))
+    }
+
+    func testStaleConfirmationIsSkippedAfterDeclarationsChange() throws {
+        try addScript(id: "stale", source: offlineSource(name: "甲"))
+        var state = try store.load(id: "stale").state
+        state.confirmedDigest = String(repeating: "0", count: 64)
+        try store.updateState(state)
+        let result = catalog().load()
+        XCTAssertTrue(result.tools.isEmpty)
+        XCTAssertEqual(result.skipped.map(\.reason), [.declarationsChanged])
     }
 
     func testToolFingerprintTracksSettingsSourceAndSecretEdits() async throws {
@@ -258,7 +286,6 @@ final class ScriptAddonCatalogTests: XCTestCase {
             input: ToolInput(text: "文字", scope: .precedingSegment, isTruncated: false))
         XCTAssertEqual(firstOutputs, ["旧文字"])
 
-        // A settings edit changes the fingerprint: the keyboard rebuilds on the next appearance.
         try store.updateSetting(key: "prefix", value: "新", id: "r")
         let second = catalog().load()
         let secondFingerprint = ScriptAddonCatalog.fingerprint(of: second.tools)
@@ -267,7 +294,6 @@ final class ScriptAddonCatalogTests: XCTestCase {
             input: ToolInput(text: "文字", scope: .precedingSegment, isTruncated: false))
         XCTAssertEqual(secondOutputs, ["新文字"])
 
-        // A source edit (with the matching re-confirmation) changes it again and the new bytes run.
         let changed = source.replacingOccurrences(
             of: "settings.prefix + text", with: "settings.prefix + text + \"!\"")
         try Data(changed.utf8).write(to: root.appendingPathComponent("r/script.js"))
@@ -276,13 +302,11 @@ final class ScriptAddonCatalogTests: XCTestCase {
         state.confirmedDigest = try parser.declarations.confirmationDigest()
         try store.updateState(state)
         let third = catalog().load()
-        XCTAssertNotEqual(
-            ScriptAddonCatalog.fingerprint(of: third.tools), secondFingerprint)
+        XCTAssertNotEqual(ScriptAddonCatalog.fingerprint(of: third.tools), secondFingerprint)
         let thirdOutputs = try await third.tools[0].run(
             input: ToolInput(text: "文字", scope: .precedingSegment, isTruncated: false))
         XCTAssertEqual(thirdOutputs, ["新文字!"])
 
-        // A secret value is part of the same fingerprint.
         let secretSource = """
             // @api 1
             // @name 刷新密钥
@@ -300,38 +324,5 @@ final class ScriptAddonCatalogTests: XCTestCase {
         let secretOutputs = try await withSecondSecret.tools[1].run(
             input: ToolInput(text: "文字", scope: .precedingSegment, isTruncated: false))
         XCTAssertEqual(secretOutputs, ["二文字"])
-    }
-
-    func testUnreadableSecretIsVisibleInsteadOfSilentlyRunning() async throws {
-        let source = """
-            // @api 1
-            // @name 密钥缺失
-            // @secret token 令牌
-            export default async ({ text, settings }) => settings.token + text;
-            """
-        try addScript(id: "missing", source: source, secretKeys: ["token"])
-        secrets.failsReads = true
-        let result = catalog().load()
-        XCTAssertEqual(result.tools.count, 1, "the tool stays listed so the user sees the prompt")
-        do {
-            _ = try await result.tools[0].run(
-                input: ToolInput(text: "文字", scope: .precedingSegment, isTruncated: false))
-            XCTFail("an unreadable secret must not run silently")
-        } catch let error as ScriptToolError {
-            XCTAssertEqual(error, .secretsUnavailable)
-            XCTAssertTrue(error.errorDescription?.contains("密钥") == true)
-        }
-    }
-
-    func testStaleConfirmationIsSkippedAfterDeclarationsChange() throws {
-        try addScript(id: "stale", source: offlineSource(name: "甲"))
-        // The script bytes changed or its declarations were edited elsewhere: the confirmed digest
-        // no longer matches what the parser sees, so the catalog must ask for confirmation again.
-        var state = try store.load(id: "stale").state
-        state.confirmedDigest = String(repeating: "0", count: 64)
-        try store.updateState(state)
-        let result = catalog().load()
-        XCTAssertTrue(result.tools.isEmpty)
-        XCTAssertEqual(result.skipped.map(\.reason), [.declarationsChanged])
     }
 }
