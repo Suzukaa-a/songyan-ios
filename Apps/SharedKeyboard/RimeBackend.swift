@@ -150,20 +150,20 @@ public final class RimeBackend: EngineBackend, @unchecked Sendable {
         guard rime == nil else { return }
         let fm = FileManager.default
         guard fm.fileExists(atPath: sharedDirectory.path) else {
-            throw EngineBackendError.setupFailed(String(localized: "方案资源目录不存在: \(sharedDirectory.path)"))
+            throw EngineBackendError.setupFailed(String(localized: "方案资源目录不存在：\(sharedDirectory.path)"))
         }
         // Missing prebuilt resources fail explicitly here (the engine-side check would also catch it; failing early
         // gives a clearer error), never silently degrading to a full deploy.
         if let prebuilt = prebuiltDirectory {
             guard fm.fileExists(atPath: prebuilt.appendingPathComponent("default.yaml").path) else {
                 throw EngineBackendError.setupFailed(
-                    String(localized: "缺少已编译的方案资源: \(prebuilt.path)，请打开「松烟」App 重新构建方案"))
+                    String(localized: "缺少已编译的方案资源：\(prebuilt.path)，请打开「松烟」App 重新构建方案"))
             }
         }
         do {
             try fm.createDirectory(at: userDirectory, withIntermediateDirectories: true)
         } catch {
-            throw EngineBackendError.setupFailed(String(localized: "无法创建用户词库存储目录: \(String(describing: error))"))
+            throw EngineBackendError.setupFailed(String(localized: "无法创建用户词库存储目录：\(String(describing: error))"))
         }
 
         let engine = RimeEngine(
