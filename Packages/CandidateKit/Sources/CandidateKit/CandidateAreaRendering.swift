@@ -409,6 +409,9 @@ private struct DefaultCollapsedCandidateBar: View {
                 .id(CandidateScrollAnchor.content)
             }
             .scrollBounceBehavior(.basedOnSize)
+            // A row that fits has nothing to scroll, so its pan must not take a tap that drifts
+            // sideways: the candidate keeps it while the finger stays on it, as a plain button would.
+            .scrollDisabled(!layout.scrolls)
             .coordinateSpace(name: CandidateScrollAnchor.viewport)
             .sharpCandidateScrollEdges()
             // Native horizontal scrolling is the browsing: no DragGesture triggers engine paging, so nothing is committed and
