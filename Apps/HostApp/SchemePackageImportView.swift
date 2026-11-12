@@ -614,6 +614,7 @@ struct RecommendedInputMethodsView: View {
     var body: some View {
         let sources = RecommendedSchemeSource.ordered(preferredLanguages: Locale.preferredLanguages)
         VStack(alignment: .leading, spacing: 12) {
+            Text("选择一个开始").font(.subheadline).foregroundStyle(.secondary)
             if let featured = sources.first {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("推荐").font(.caption.weight(.semibold)).foregroundStyle(.secondary)

@@ -1,6 +1,28 @@
 {
   "sourceLanguage": "zh-Hans",
   "strings": {
+    "选择一个开始": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择一个开始"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最初に使うものを選んでください"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選擇一個開始"
+          }
+        }
+      }
+    },
     "查看项目主页": {
       "localizations": {
         "zh-Hans": {
@@ -6425,24 +6447,24 @@
         }
       }
     },
-    "下载输入方案": {
+    "下载输入方式": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "下载输入方案"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "下載輸入方案"
+            "value": "下载输入方式"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "入力パックをダウンロード"
+            "value": "入力方式をダウンロード"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下載輸入方式"
           }
         }
       }
@@ -6623,24 +6645,24 @@
         }
       }
     },
-    "浏览并下载输入方案": {
+    "浏览更多输入方式": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "浏览并下载输入方案"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "瀏覽並下載輸入方案"
+            "value": "浏览更多输入方式"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "入力パックを見てダウンロード"
+            "value": "その他の入力方式を見る"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "瀏覽更多輸入方式"
           }
         }
       }
@@ -31703,24 +31725,24 @@
         }
       }
     },
-    "%@\n\n内置拼音已默认启用，可以直接试打。下载完整的输入方案，获得更丰富的词库和输入方式。": {
+    "%@\n\n内置拼音已默认启用，可以直接试打。下载更多输入方式，获得更丰富的词库。": {
       "localizations": {
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@\n\n組み込みのピンインは最初から有効なので、そのまま試し打ちできます。入力パックをダウンロードすると、辞書と入力方式がさらに増えます。"
+            "value": "%@\n\n内蔵のピンインは最初から有効です。そのまま試せます。入力方式を追加すると、より豊富な辞書が使えます。"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@\n\n内置拼音已默认启用，可以直接试打。下载完整的输入方案，获得更丰富的词库和输入方式。"
+            "value": "%@\n\n内置拼音已默认启用，可以直接试打。下载更多输入方式，获得更丰富的词库。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@\n\n內建拼音已預設啟用，可以直接試打。下載完整的輸入方案，獲得更豐富的詞庫和輸入方式。"
+            "value": "%@\n\n內建拼音已預設啟用，可以直接試打。下載更多輸入方式，獲得更豐富的詞庫。"
           }
         }
       }

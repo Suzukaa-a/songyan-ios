@@ -196,8 +196,8 @@ struct OnboardingView: View {
                     localized: "前往系统「设置」，轻点「键盘」并添加「松烟」。\n\n键盘不会连接网络，输入内容仅在设备端处理。开启「允许完全访问」后，才能使用按键声音和常用语，并记住你在键盘里做的切换。")
             ),
             (
-                String(localized: "下载输入方案"),
-                String(localized: "\(statusLine)\n\n内置拼音已默认启用，可以直接试打。下载完整的输入方案，获得更丰富的词库和输入方式。")
+                String(localized: "下载输入方式"),
+                String(localized: "\(statusLine)\n\n内置拼音已默认启用，可以直接试打。下载更多输入方式，获得更丰富的词库。")
             ),
             (
                 String(localized: "试一试"),
@@ -291,7 +291,7 @@ struct OnboardingView: View {
                         NavigationLink {
                             destinationView(.addScheme)
                         } label: {
-                            Label(String(localized: "浏览并下载输入方案"), systemImage: "arrow.down.circle.fill")
+                            Label(String(localized: "浏览更多输入方式"), systemImage: "arrow.down.circle.fill")
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
                         .buttonStyle(.bordered)
