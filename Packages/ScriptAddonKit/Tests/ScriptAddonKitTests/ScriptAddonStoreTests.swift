@@ -41,6 +41,12 @@ final class ScriptAddonStoreTests: XCTestCase {
             id: id, script: script, state: state, maximumSourceBytes: 1_000_000)
     }
 
+    func testListingAMissingRootIsEmpty() throws {
+        let missing = root.appendingPathComponent("missing")
+        let emptyStore = ScriptAddonStore(root: missing)
+        XCTAssertEqual(try emptyStore.list(), [])
+    }
+
     func testScriptBytesAreStoredByteForByte() throws {
         let original = Data([0xEF, 0xBB, 0xBF] + Array("// @api 1\r\n// @name Ünïcode\r\n".utf8))
         _ = try addon(script: original)

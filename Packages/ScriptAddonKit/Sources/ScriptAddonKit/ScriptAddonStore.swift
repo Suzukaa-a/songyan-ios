@@ -38,6 +38,9 @@ public final class ScriptAddonStore: @unchecked Sendable {
     // MARK: - Read
 
     public func list() throws -> [Addon] {
+        // A first run has no directory yet, and an empty list is the right answer; only a
+        // directory that exists but cannot be read is an error.
+        guard fileManager.fileExists(atPath: root.path) else { return [] }
         let directories = try fileManager.contentsOfDirectory(
             at: root, includingPropertiesForKeys: [.isDirectoryKey], options: [.skipsHiddenFiles])
         var addons: [Addon] = []
