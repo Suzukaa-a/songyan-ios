@@ -100,6 +100,7 @@ public struct KeyboardPanelHost: View {
     private let presentationBudget: KeyboardPanelPresentationBudget?
     /// Adopted on every host (re)binding; the in-panel restore turns it off in place.
     @State private var oneHandMode = KeyboardOneHandPreferences.current
+    @State private var oneHandWidthPercent = KeyboardOneHandPreferences.widthPercent
     /// The side the toolbar button turns back on. Starts on the right, like the Android keyboard.
     @State private var lastOneHandSide: KeyboardOneHandMode =
         KeyboardOneHandPreferences.current == .off ? .right : KeyboardOneHandPreferences.current
@@ -303,6 +304,7 @@ public struct KeyboardPanelHost: View {
                 CollapsedCandidateCommentPreferences.refresh()
                 storedCollapsedCandidateComments = CollapsedCandidateCommentPreferences.current
                 oneHandMode = KeyboardOneHandPreferences.current
+                oneHandWidthPercent = KeyboardOneHandPreferences.widthPercent
                 if oneHandMode != .off { lastOneHandSide = oneHandMode }
                 storedHeightPreset = KeyboardHeightPreferences.current
                 readingPlacement = KeyboardReadingPlacementPreferences.current
@@ -436,7 +438,8 @@ public struct KeyboardPanelHost: View {
         let plan = KeyboardOneHandLayoutPolicy.plan(
             mode: oneHandMode,
             panelWidth: Double(panelSize.width),
-            isAvailable: oneHandAvailable)
+            isAvailable: oneHandAvailable,
+            widthPercent: oneHandWidthPercent)
         return FixedPhaseHeight(height: layoutShellHeight) {
             KeyboardPanelView(
                 controller: controller, onSelectLayout: session.selectLayout,
@@ -510,9 +513,12 @@ public struct KeyboardPanelHost: View {
         .frame(maxWidth: .infinity, alignment: plan.gutterOnLeft ? .trailing : .leading)
         .overlay(alignment: plan.gutterOnLeft ? .leading : .trailing) {
             if plan.active {
-                OneHandGutterRepresentable { setOneHandMode(.off) }
-                    .frame(width: CGFloat(plan.gutterWidth), height: layoutShellHeight)
-                    .contentShape(Rectangle())
+                OneHandGutterRepresentable(
+                    swap: { setOneHandMode(oneHandMode == .left ? .right : .left) },
+                    restore: { setOneHandMode(.off) }
+                )
+                .frame(width: CGFloat(plan.gutterWidth), height: layoutShellHeight)
+                .contentShape(Rectangle())
             }
         }
     }
@@ -936,67 +942,67 @@ struct OneHandModeRow: View {
     }
 }
 
-/// SwiftUI bridge for the gutter restore control, framed to the whole gutter.
+/// SwiftUI bridge for the gutter controls, framed to the whole gutter.
 private struct OneHandGutterRepresentable: UIViewRepresentable {
-    let action: () -> Void
+    let swap: () -> Void
+    let restore: () -> Void
     @Environment(\.keyboardAppearance) private var appearance
 
     func makeUIView(context: Context) -> OneHandGutterControl {
-        let control = OneHandGutterControl(action: action)
+        let control = OneHandGutterControl(swap: swap, restore: restore)
         control.affordanceTint = appearance.text(on: "panel", secondary: true)
         return control
     }
 
     func updateUIView(_ uiView: OneHandGutterControl, context: Context) {
-        uiView.action = action
+        uiView.swap = swap
+        uiView.restore = restore
         uiView.affordanceTint = appearance.text(on: "panel", secondary: true)
     }
 }
 
-/// Fills the blank gutter of one-handed mode; any tap restores full width. Being a
-/// UIControl keeps it out of `FeedbackInputView`'s nearest-key gap routing, and it
-/// reports its window frame so the gutter never types a character.
+/// Fills the blank gutter of one-handed mode, with the two controls of the Android keyboard at
+/// its bottom: move the keys to the other side, and restore the full width. The rest of the
+/// gutter swallows touches. Being one UIControl keeps the whole gutter out of
+/// `FeedbackInputView`'s nearest-key gap routing (which returns this control itself, so the
+/// touch picks its button here), and it reports its window frame so the gutter never types.
 final class OneHandGutterControl: UIControl {
-    var action: () -> Void
+    var swap: () -> Void
+    var restore: () -> Void
     var affordanceTint: UIColor = .secondaryLabel {
-        didSet { affordance?.tintColor = affordanceTint }
+        didSet { buttons.forEach { $0.tintColor = affordanceTint } }
     }
-    private(set) var affordance: UIImageView?
+    private let swapButton: GutterButton
+    private let restoreButton: GutterButton
+    private var buttons: [GutterButton] { [swapButton, restoreButton] }
+    static let buttonHeight: CGFloat = 48
 
-    init(action: @escaping () -> Void) {
-        self.action = action
+    init(swap: @escaping () -> Void, restore: @escaping () -> Void) {
+        self.swap = swap
+        self.restore = restore
+        swapButton = GutterButton(
+            symbol: "arrow.left.arrow.right", label: String(localized: "键盘换到另一侧"),
+            identifier: "keyboard.oneHand.swap")
+        restoreButton = GutterButton(
+            symbol: "arrow.left.and.right", label: String(localized: "恢复全宽键盘"),
+            identifier: "keyboard.oneHand.restore")
         super.init(frame: .zero)
-        accessibilityLabel = String(localized: "恢复全宽键盘")
-        accessibilityHint = String(localized: "关闭单手模式")
-        accessibilityTraits = .button
-        isAccessibilityElement = true
-        accessibilityIdentifier = "keyboard.oneHand.restore"
         // Near-transparent so the control still receives touches.
         backgroundColor = UIColor(white: 0, alpha: 0.01)
-        configureAffordance()
-        addTarget(self, action: #selector(restoreFromTouch), for: .touchDown)
+        isAccessibilityElement = false
+        swapButton.onActivate = { [weak self] in self?.perform(.swap) }
+        restoreButton.onActivate = { [weak self] in self?.perform(.restore) }
+        buttons.forEach(addSubview)
+        accessibilityElements = buttons
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) is not supported") }
 
+    private enum Action { case swap, restore }
+
     /// A degenerate layout pass must not claim coverage it cannot deliver.
     private var coversGutter: Bool {
-        window != nil && !isHidden && bounds.width >= 44 && bounds.height >= 44
-    }
-
-    /// Direction-neutral arrow; inert so hit testing keeps returning the control.
-    private func configureAffordance() {
-        let chevron = UIImageView(image: UIImage(systemName: "arrow.left.and.right"))
-        chevron.translatesAutoresizingMaskIntoConstraints = false
-        chevron.isUserInteractionEnabled = false
-        chevron.isAccessibilityElement = false
-        chevron.accessibilityIdentifier = "keyboard.oneHand.restore.affordance"
-        addSubview(chevron)
-        affordance = chevron
-        NSLayoutConstraint.activate([
-            chevron.centerXAnchor.constraint(equalTo: centerXAnchor),
-            chevron.centerYAnchor.constraint(equalTo: centerYAnchor),
-        ])
+        window != nil && !isHidden && bounds.width >= 44 && bounds.height >= 2 * Self.buttonHeight
     }
 
     override func didMoveToWindow() {
@@ -1010,6 +1016,9 @@ final class OneHandGutterControl: UIControl {
 
     override func layoutSubviews() {
         super.layoutSubviews()
+        let height = Self.buttonHeight
+        restoreButton.frame = CGRect(x: 0, y: bounds.maxY - height, width: bounds.width, height: height)
+        swapButton.frame = CGRect(x: 0, y: bounds.maxY - 2 * height, width: bounds.width, height: height)
         updateRoutingRegion()
     }
 
@@ -1018,20 +1027,64 @@ final class OneHandGutterControl: UIControl {
         KeyboardRoutedTouch.registerOneHandGutter(self, frame: frame)
     }
 
-    private func performRestore() {
-        action()
+    private func perform(_ action: Action) {
+        guard isEnabled else { return }
+        switch action {
+        case .swap: swap()
+        case .restore: restore()
+        }
         KeyboardFeedbackService.shared.selectionChanged()
     }
 
-    @objc private func restoreFromTouch() {
-        performRestore()
+    /// Acts on touch-down, as the whole-gutter restore did; a touch outside both buttons does nothing.
+    override func beginTracking(_ touch: UITouch, with event: UIEvent?) -> Bool {
+        let point = touch.location(in: self)
+        if swapButton.frame.contains(point) {
+            perform(.swap)
+        } else if restoreButton.frame.contains(point) {
+            perform(.restore)
+        }
+        return false
+    }
+}
+
+/// One gutter button: an inert glyph for touches (the gutter control resolves them) and a real
+/// button for VoiceOver.
+private final class GutterButton: UIView {
+    var onActivate: () -> Void = {}
+    private let glyph: UIImageView
+
+    init(symbol: String, label: String, identifier: String) {
+        glyph = UIImageView(image: UIImage(systemName: symbol))
+        super.init(frame: .zero)
+        isUserInteractionEnabled = false
+        isAccessibilityElement = true
+        accessibilityLabel = label
+        accessibilityTraits = .button
+        accessibilityIdentifier = identifier
+        glyph.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(glyph)
+        NSLayoutConstraint.activate([
+            glyph.centerXAnchor.constraint(equalTo: centerXAnchor),
+            glyph.centerYAnchor.constraint(equalTo: centerYAnchor),
+        ])
     }
 
-    /// VoiceOver activation does not send `.touchDown`.
+    required init?(coder: NSCoder) { fatalError("init(coder:) is not supported") }
+
+    override var tintColor: UIColor! {
+        didSet { glyph.tintColor = tintColor }
+    }
+
     override func accessibilityActivate() -> Bool {
-        guard isEnabled else { return false }
-        performRestore()
+        onActivate()
         return true
+    }
+
+    // The glyph ignores touches, but VoiceOver still needs the button's own frame.
+    override var accessibilityFrame: CGRect {
+        get { UIAccessibility.convertToScreenCoordinates(bounds, in: self) }
+        set {}
     }
 }
 

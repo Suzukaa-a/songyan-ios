@@ -42,8 +42,8 @@ def production_sources():
     surface = section(split, "public enum KeyboardSurfaceWidth {", "/// A saved split")
 
     routed = section(appearance, "protocol KeyboardKeyHitTarget", "class SkinnedButton")
-    # The restore control is the last declaration of KeyboardPanelHost.swift.
-    gutter = host[host.index("final class OneHandGutterControl: UIControl {"):]
+    # The gutter control and its buttons, up to the next declaration of KeyboardPanelHost.swift.
+    gutter = section(host, "final class OneHandGutterControl: UIControl {", "/// A progress indicator")
     router = strip_imports(feedback)
 
     return strip_imports(routed), gutter, router, surface + strip_imports(policy)

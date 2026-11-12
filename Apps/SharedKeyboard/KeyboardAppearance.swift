@@ -184,6 +184,14 @@ public enum KeyboardOneHandPreferences {
     public static func set(_ mode: KeyboardOneHandMode) {
         SharedPreferences.set(mode.rawValue, forKey: modeKey, in: defaults)
     }
+
+    /// The narrowed keyboard's width in percent of the full width.
+    public static let widthPercentKey = "keyboard.oneHandWidthPercent.v1"
+    public static var widthPercent: Int {
+        let stored = (SharedPreferences.object(forKey: widthPercentKey, in: defaults) as? NSNumber)?.intValue
+        return KeyboardOneHandLayoutPolicy.clampedWidthPercent(
+            stored ?? KeyboardOneHandLayoutPolicy.defaultWidthPercent)
+    }
 }
 
 /// Key feel shared by the app and the keyboard extension: the global long-press delay and the

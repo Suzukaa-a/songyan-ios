@@ -55,6 +55,9 @@ struct InputOptionsView: View {
     private var heightPresetValue = KeyboardHeightPreset.standard.rawValue
     @AppStorage(KeyboardOneHandPreferences.modeKey, store: KeyboardOneHandPreferences.defaults)
     private var oneHandValue = KeyboardOneHandMode.off.rawValue
+    @AppStorage(KeyboardOneHandPreferences.widthPercentKey, store: KeyboardOneHandPreferences.defaults)
+    private var oneHandWidthValue = KeyboardOneHandLayoutPolicy.defaultWidthPercent
+    @State private var oneHandWidthDraft: Double?
     @AppStorage(KeyboardReadingPlacementPreferences.key, store: KeyboardReadingPlacementPreferences.defaults)
     private var readingPlacementValue = ReadingPlacement.row.rawValue
     /// Per-physical wide-screen dock. Read once per visit, written through the same shared
@@ -157,6 +160,25 @@ struct InputOptionsView: View {
                 Text("右手").tag(KeyboardOneHandMode.right)
             }
             .accessibilityIdentifier("inputOptions.oneHandMode")
+            let width = oneHandWidthDraft ?? Double(oneHandWidthValue)
+            widthRow(
+                title: String(localized: "键盘宽度"),
+                subtitle: String(localized: "屏幕宽度的 \(Int(width))%"),
+                value: Binding(get: { width }, set: { oneHandWidthDraft = $0 }),
+                range: Double(
+                    KeyboardOneHandLayoutPolicy.widthPercentRange.lowerBound)...Double(
+                        KeyboardOneHandLayoutPolicy.widthPercentRange.upperBound),
+                step: Double(KeyboardOneHandLayoutPolicy.widthPercentStep),
+                isDefault: Int(width) == KeyboardOneHandLayoutPolicy.defaultWidthPercent,
+                identifier: "inputOptions.oneHandWidth",
+                commit: {
+                    oneHandWidthValue = KeyboardOneHandLayoutPolicy.clampedWidthPercent(Int($0.rounded()))
+                    oneHandWidthDraft = nil
+                },
+                reset: {
+                    oneHandWidthValue = KeyboardOneHandLayoutPolicy.defaultWidthPercent
+                    oneHandWidthDraft = nil
+                })
         } header: {
             Text("单手模式")
         } footer: {

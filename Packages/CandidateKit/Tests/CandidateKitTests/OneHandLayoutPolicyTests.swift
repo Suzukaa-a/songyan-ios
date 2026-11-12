@@ -161,4 +161,21 @@ final class OneHandLayoutPolicyTests: XCTestCase {
             }
         }
     }
+
+    // MARK: The user's width
+
+    func testTheChosenWidthNarrowsWithinTheFloorAndTheGutter() {
+        let narrow = KeyboardOneHandLayoutPolicy.plan(mode: .left, panelWidth: 440, isAvailable: true, widthPercent: 75)
+        XCTAssertEqual(narrow.contentWidth, 330)
+        XCTAssertEqual(narrow.gutterWidth, 110)
+        // Below the content floor the floor wins.
+        let floor = KeyboardOneHandLayoutPolicy.plan(mode: .left, panelWidth: 390, isAvailable: true, widthPercent: 60)
+        XCTAssertEqual(floor.contentWidth, 320)
+        // The widest choice keeps the 44pt gutter rather than leaving the mode.
+        let wide = KeyboardOneHandLayoutPolicy.plan(mode: .right, panelWidth: 440, isAvailable: true, widthPercent: 90)
+        XCTAssertTrue(wide.active)
+        XCTAssertEqual(wide.gutterWidth, 44)
+        XCTAssertEqual(KeyboardOneHandLayoutPolicy.clampedWidthPercent(20), 60)
+        XCTAssertEqual(KeyboardOneHandLayoutPolicy.clampedWidthPercent(99), 90)
+    }
 }

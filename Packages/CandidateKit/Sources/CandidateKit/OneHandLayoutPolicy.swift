@@ -36,8 +36,15 @@ public struct KeyboardOneHandPlan: Equatable, Sendable {
 /// Only narrow, tall phone surfaces offer one-handed narrowing. Device idiom alone
 /// cannot distinguish a folded phone from its expanded or multitasking surface.
 public enum KeyboardOneHandLayoutPolicy {
-    /// Narrowed content keeps this share of the panel width.
-    public static let contentRatio: Double = 0.85
+    /// The narrowed keyboard's width the user can pick, in percent of the panel width, and its step.
+    public static let widthPercentRange = 60...90
+    public static let widthPercentStep = 1
+    public static let defaultWidthPercent = 85
+
+    /// Out-of-range values snap into the offered choices.
+    public static func clampedWidthPercent(_ value: Int) -> Int {
+        min(max(value, widthPercentRange.lowerBound), widthPercentRange.upperBound)
+    }
     /// Lower bound of the narrowed content so alphabetic keys stay usable.
     public static let minimumContentWidth: Double = 320
     /// The gutter carries the restore control, which needs a 44pt target.
@@ -52,14 +59,19 @@ public enum KeyboardOneHandLayoutPolicy {
     }
 
     /// `isAvailable` is the caller's `isAvailable(...)` result for the same surface.
+    /// `widthPercent` is the user's keyboard width in percent of the panel (`clampedWidthPercent`).
     public static func plan(
         mode: KeyboardOneHandMode,
         panelWidth: Double,
-        isAvailable: Bool
+        isAvailable: Bool,
+        widthPercent: Int = defaultWidthPercent
     ) -> KeyboardOneHandPlan {
         // The width is checked again because a resize can land before the availability facts update.
         guard mode != .off, isAvailable, fitsPhoneWidth(panelWidth) else { return .inactive(panelWidth: panelWidth) }
-        let content = max(minimumContentWidth, (panelWidth * contentRatio).rounded(.down))
+        let ratio = Double(clampedWidthPercent(widthPercent)) / 100
+        // A wide choice still leaves the gutter its control's room instead of switching the mode off.
+        let content = min(
+            max(minimumContentWidth, (panelWidth * ratio).rounded(.down)), panelWidth - minimumGutterWidth)
         let gutter = panelWidth - content
         guard gutter >= minimumGutterWidth else { return .inactive(panelWidth: panelWidth) }
         return KeyboardOneHandPlan(

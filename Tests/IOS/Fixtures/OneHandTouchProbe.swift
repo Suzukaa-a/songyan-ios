@@ -116,7 +116,7 @@ final class KeyboardFeedbackService {
         let gutterRect = CGRect(
             x: Self.panelWidth - gutterWidth, y: 0,
             width: gutterWidth, height: Self.panelHeight)
-        let control = OneHandGutterControl {}
+        let control = OneHandGutterControl(swap: {}, restore: {})
         control.frame = gutterRect
         root.addSubview(control)
         // Production layoutSubviews registers the exclusion zone; no hand-set state here.
@@ -214,44 +214,42 @@ final class KeyboardFeedbackService {
             "zoneOnWithStaleRoute=\(zoneOnWithStaleRoute) key=\(describe(keys[1]))")
         KeyboardRoutedTouch.clear()
 
-        // The restore control is one accessibility element whose "activate" runs the
-        // same restore action a tap runs.
-        let axControl = OneHandGutterControl {}
+        // The gutter exposes two accessibility buttons, swap above restore, each running its
+        // own action, as the Android gutter does.
+        var swapRan = false
+        var restoreRan = false
+        let axControl = OneHandGutterControl(swap: { swapRan = true }, restore: { restoreRan = true })
         axControl.frame = gutterRect
         root.addSubview(axControl)
         window.layoutIfNeeded()
+        let elements = (axControl.accessibilityElements as? [UIView]) ?? []
+        let identifiers = elements.map { $0.accessibilityIdentifier ?? "nil" }
         record(
-            "restoreIsAccessibilityElement",
-            axControl.isAccessibilityElement && axControl.accessibilityTraits.contains(.button),
-            "traits=\(axControl.accessibilityTraits.rawValue)")
+            "gutterOffersSwapThenRestore",
+            identifiers == ["keyboard.oneHand.swap", "keyboard.oneHand.restore"]
+                && elements.allSatisfy { $0.isAccessibilityElement && $0.accessibilityTraits.contains(.button) },
+            "identifiers=\(identifiers)")
         record(
-            "restoreHasStableIdentifier",
-            axControl.accessibilityIdentifier == "keyboard.oneHand.restore",
-            "identifier=\(axControl.accessibilityIdentifier ?? "nil")")
+            "buttonsSitAtTheBottomOfTheGutter",
+            elements.count == 2 && elements[1].frame.maxY == axControl.bounds.maxY
+                && elements[0].frame.maxY == elements[1].frame.minY,
+            "frames=\(elements.map(\.frame))")
+        let swapHandled = elements.first?.accessibilityActivate() ?? false
+        record("accessibilitySwapRunsSwapOnly", swapRan && !restoreRan, "handled=\(swapHandled)")
+        let restoreHandled = elements.last?.accessibilityActivate() ?? false
+        record("accessibilityRestoreRunsRestore", restoreRan, "handled=\(restoreHandled)")
 
-        var axActionRan = false
-        let axTap = OneHandGutterControl { axActionRan = true }
-        axTap.frame = gutterRect
-        root.addSubview(axTap)
-        window.layoutIfNeeded()
-        let axHandled = axTap.accessibilityActivate()
-        record(
-            "accessibilityActivateRunsRestore", axActionRan,
-            "accessibilityActivate()=\(axHandled) actionRan=\(axActionRan)")
-        record("accessibilityActivateReportsHandled", axHandled, "returned \(axHandled)")
-
-        // A disabled control must not restore.
+        // A disabled control must not act.
         var disabledRan = false
-        let disabledTap = OneHandGutterControl { disabledRan = true }
+        let disabledTap = OneHandGutterControl(swap: { disabledRan = true }, restore: { disabledRan = true })
         disabledTap.frame = gutterRect
         disabledTap.isEnabled = false
         root.addSubview(disabledTap)
         window.layoutIfNeeded()
-        _ = disabledTap.accessibilityActivate()
-        record("disabledAccessibilityActivateDoesNotRestore", !disabledRan)
+        ((disabledTap.accessibilityElements as? [UIView]) ?? []).forEach { _ = $0.accessibilityActivate() }
+        record("disabledAccessibilityActivateDoesNothing", !disabledRan)
 
         axControl.removeFromSuperview()
-        axTap.removeFromSuperview()
         disabledTap.removeFromSuperview()
         window.layoutIfNeeded()
 
@@ -280,7 +278,7 @@ final class KeyboardFeedbackService {
         // F. SwiftUI may return its own transparent container from UIKit's hit test even
         // though the native control sits right there; the router must return the
         // registered control instead.
-        let maskedControl = OneHandGutterControl {}
+        let maskedControl = OneHandGutterControl(swap: {}, restore: {})
         maskedControl.frame = gutterRect
         root.addSubview(maskedControl)
         let mask = UIView(frame: gutterRect)  // transparent container, above the control
@@ -324,7 +322,7 @@ final class KeyboardFeedbackService {
             "overlappingKeyIsTheRawHit", overlapRawHit === overlapKey,
             "rawHit=\(describe(overlapRawHit)) key=\(describe(overlapKey))")
 
-        let invalidControl = OneHandGutterControl {}
+        let invalidControl = OneHandGutterControl(swap: {}, restore: {})
         invalidControl.frame = gutterRect
         root.addSubview(invalidControl)
         window.layoutIfNeeded()
@@ -364,8 +362,8 @@ final class KeyboardFeedbackService {
 
         // I. Owner-aware registration: a retired (or rebuilt) view must not clear the
         // region its replacement now owns.
-        let ownerA = OneHandGutterControl {}
-        let ownerB = OneHandGutterControl {}
+        let ownerA = OneHandGutterControl(swap: {}, restore: {})
+        let ownerB = OneHandGutterControl(swap: {}, restore: {})
         ownerA.frame = gutterRect
         ownerB.frame = gutterRect
         root.addSubview(ownerA)
