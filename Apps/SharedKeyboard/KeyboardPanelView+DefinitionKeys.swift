@@ -744,6 +744,7 @@ extension KeyboardPanelView {
             },
             supplementShortcuts: KeyboardFooterShortcutPlan.supplements(
                 physicalLayoutID: activeDefinition?.id),
+            footerPolicy: controlPolicy,
             key: { key, id, _ in definitionKey(key, id: id) },
             globe: {
                 if let systemKeyboardSwitch {

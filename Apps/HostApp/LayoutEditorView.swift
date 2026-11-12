@@ -24,9 +24,12 @@ struct LayoutEditorView: View {
     private let onSaved: ((LayoutDefinition) -> Void)?
 
     init(layout: LayoutDefinition, onSaved: ((LayoutDefinition) -> Void)? = nil) {
-        original = layout
+        // The bottom row opens as the keys the keyboard draws, so it can be edited like any row;
+        // saving it unchanged keeps the layout following the keyboard's own row.
+        let editable = LayoutBottomRow.editable(layout)
+        original = editable
         self.onSaved = onSaved
-        _draft = State(initialValue: layout)
+        _draft = State(initialValue: editable)
     }
     private var hasChanges: Bool { draft != original }
 
@@ -141,22 +144,25 @@ struct LayoutEditorView: View {
         if let key = draft.key(at: selected) {
             // The quick-symbol cycle replaces the first key's tap; its face, width and long press still apply.
             let cyclesQuickSymbols = selected == .row(0, key: 0) && BuiltinLayouts.usesPhone9QuickSymbols(draft)
+            // The bottom row types no letters: a letter key there would make it a letter row.
+            let inBottomRow = bottomIndex != nil && selectedRow == bottomIndex
             // Main-layout function keys draw custom titles at runtime too.
-            LayoutKeyFields(key: key, allowsTitleMode: true, editsAction: !cyclesQuickSymbols) { updated in
+            LayoutKeyFields(
+                key: key, allowsCode: !inBottomRow, allowsTitleMode: true, editsAction: !cyclesQuickSymbols
+            ) { updated in
                 draft = draft.replacingKey(at: selected, with: updated)
             }
             .id(selected)
         }
-        SelectedRowKeyActions(rows: rowsBinding, selected: $selected)
-        if !draft.hasInputModeSwitchKey {
-            Section {
-                Button(String(localized: "添加\(UserTerminology.globeKey)"), systemImage: "globe") {
-                    addInputModeSwitchKey()
-                }
-                .disabled((draft.rows.last?.keys.count ?? 0) >= LayoutResourceBudget.keysPerRegion)
-            }
+        SelectedRowKeyActions(rows: rowsBinding, selected: $selected, bottomRow: bottomIndex)
+        KeyboardRowsEditor(rows: letterRowsBinding, selected: $selected)
+        if let bottomIndex {
+            KeyboardBottomRowEditor(
+                keys: Binding(
+                    get: { draft.rows[bottomIndex].keys },
+                    set: { draft = LayoutBottomRow.replacing($0, in: draft) }),
+                row: bottomIndex, selected: $selected)
         }
-        KeyboardRowsEditor(rows: rowsBinding, selected: $selected)
         if draft.hasExplicitSplit && !PhoneKeypadStructure.matches(draft) {
             Section {
                 Text("拆分时的键盘有自己的一套按键，这里的改动不会同步过去。")
@@ -261,6 +267,25 @@ struct LayoutEditorView: View {
         Binding(get: { draft.rows }, set: { draft = replacingRows($0) })
     }
 
+    /// The bottom row has its own section; the nine-key pad keeps its bottom row with the others.
+    private var bottomIndex: Int? {
+        PhoneKeypadStructure.matches(draft) ? nil : LayoutBottomRow.index(draft)
+    }
+
+    private var selectedRow: Int? {
+        if case .row(let row, _) = selected { return row }
+        return nil
+    }
+
+    /// The rows above the bottom row; adding or moving rows never moves the bottom row.
+    private var letterRowsBinding: Binding<[LayoutRow]> {
+        Binding(
+            get: { bottomIndex.map { Array(draft.rows.prefix($0)) } ?? draft.rows },
+            set: { rows in
+                draft = replacingRows(bottomIndex.map { rows + [draft.rows[$0]] } ?? rows)
+            })
+    }
+
     private func save(asCopy: Bool) {
         guard !saving else { return }
         guard !widthValidity.isInvalid else {
@@ -272,7 +297,8 @@ struct LayoutEditorView: View {
         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
         Task { @MainActor in
             await Task.yield()
-            var snapshot = asCopy ? BuiltinLayouts.persistingHandCuts(in: draft).copy() : draft
+            var snapshot = LayoutBottomRow.storable(
+                asCopy ? BuiltinLayouts.persistingHandCuts(in: draft).copy() : draft)
             // Key edits can leave the 9-key shape, which hides the 九键 section; its settings no longer apply.
             if !PhoneKeypadStructure.matches(snapshot) {
                 snapshot = snapshot.settingT9FirstKeyBehavior(nil).settingT9QuickSymbols(nil)
@@ -286,18 +312,6 @@ struct LayoutEditorView: View {
                 manager.clearError()
             }
         }
-    }
-
-    /// Adds the globe key the machine may require. Never automatic: the save gate reports the
-    /// missing key and the author decides.
-    private func addInputModeSwitchKey() {
-        var rows = draft.rows
-        guard !rows.isEmpty else { return }
-        var keys = rows[rows.count - 1].keys
-        guard keys.count < LayoutResourceBudget.keysPerRegion else { return }
-        keys.insert(LayoutKey(label: "🌐", action: LayoutAction(.globe)), at: 0)
-        rows[rows.count - 1] = LayoutRow(keys: keys)
-        draft = replacingRows(rows)
     }
 
     private func replacingRows(_ rows: [LayoutRow]) -> LayoutDefinition {

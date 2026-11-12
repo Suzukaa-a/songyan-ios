@@ -28,8 +28,8 @@ for board in [BuiltinLayouts.zhuyin41, BuiltinLayouts.cangjie26] {
         !plan.addsGlobe(definitionHasGlobe: true, showsGlobe: true),
         "\(board.id) keeps its declared globe key")
     check(
-        !plan.addsGlobe(definitionHasGlobe: false, showsGlobe: true),
-        "\(board.id) never gets an extra globe even when the row's globe is hidden")
+        plan.addsGlobe(definitionHasGlobe: false, showsGlobe: true),
+        "\(board.id) still gets the globe the system needs when the layout has none")
 }
 
 // Both boards end in the same 5-key control row: Zhuyin's Delete closes its fourth letter row and
@@ -41,23 +41,36 @@ check(
     BuiltinLayouts.zhuyin41.rows.last == BuiltinLayouts.cangjie26.rows.last,
     "zhuyin41 and cangjie26 share one control row")
 
-// A generic authored row that declares its own 中英 key with .languageSwitch: the bar must not
-// add a second one, and its other shortcuts stay exactly as before.
-let legacyAuthored = LayoutRow(keys: [
-    LayoutKey(label: "🌐", action: LayoutAction(.globe)),
-    LayoutKey(label: "123", action: LayoutAction.pageSwitch(.numeric)),
-    LayoutKey(label: "中/英", action: LayoutAction.languageSwitch()),
-    LayoutKey(label: "空格", width: 4, action: LayoutAction(.space)),
-    LayoutKey(label: "⏎", action: LayoutAction(.enter)),
-])
-let legacy = KeyboardFooterShortcutPlan(controlRow: legacyAuthored)
-check(legacy.supplementShortcuts, "an authored row keeps the bar's shortcut supplement")
-check(!legacy.addsLayoutSwitch, "a declared languageSwitch key is not duplicated")
-check(!legacy.addsNumericShortcut, "a declared 123 key is not duplicated")
-check(legacy.addsSymbolShortcut, "the symbol shortcut is still added when undeclared")
+// A row that declares its own 123 key is the author's whole bottom row: the bar adds nothing.
+let authored = KeyboardFooterShortcutPlan(
+    controlRow: LayoutRow(keys: [
+        LayoutKey(label: "123", action: LayoutAction.pageSwitch(.numeric)),
+        LayoutKey(label: "中/英", action: LayoutAction.languageSwitch()),
+        LayoutKey(label: "空格", width: 4, action: LayoutAction(.space)),
+        LayoutKey(label: "⏎", action: LayoutAction(.enter)),
+    ]))
+check(!authored.supplementShortcuts, "a row with its own 123 key is drawn as stored")
+check(!authored.addsNumericShortcut, "a declared 123 key is not duplicated")
+check(!authored.addsSymbolShortcut, "no symbol shortcut is added to a row the author completed")
+check(!authored.addsLayoutSwitch, "a declared languageSwitch key is not duplicated")
 check(
-    !legacy.addsGlobe(definitionHasGlobe: true, showsGlobe: true),
+    authored.addsGlobe(definitionHasGlobe: false, showsGlobe: true),
+    "the globe the system needs is still added when the layout has none")
+check(
+    !authored.addsGlobe(definitionHasGlobe: true, showsGlobe: true),
     "a declared globe key is not duplicated")
+
+// An older row without a 123 key keeps the shortcuts it always had.
+let legacy = KeyboardFooterShortcutPlan(
+    controlRow: LayoutRow(keys: [
+        LayoutKey(label: "🌐", action: LayoutAction(.globe)),
+        LayoutKey(label: "中/英", action: LayoutAction.languageSwitch()),
+        LayoutKey(label: "空格", width: 4, action: LayoutAction(.space)),
+        LayoutKey(label: "⏎", action: LayoutAction(.enter)),
+    ]))
+check(legacy.supplementShortcuts, "a row without 123 keeps the bar's shortcut supplement")
+check(legacy.addsNumericShortcut && legacy.addsSymbolShortcut, "it still gets 123 and the symbol page")
+check(!legacy.addsLayoutSwitch, "a declared languageSwitch key is not duplicated")
 
 // The legacy .modeSwitch declaration is still recognized.
 let modeOnly = KeyboardFooterShortcutPlan(

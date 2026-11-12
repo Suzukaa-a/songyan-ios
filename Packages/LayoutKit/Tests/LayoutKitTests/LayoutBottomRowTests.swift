@@ -1,0 +1,86 @@
+import XCTest
+
+@testable import LayoutKit
+
+final class LayoutBottomRowTests: XCTestCase {
+    func testBundledBoardsKeepTheKeyboardsOwnBottomRow() {
+        for layout in [
+            BuiltinLayouts.qwerty26, BuiltinLayouts.merged14, BuiltinLayouts.merged18, BuiltinLayouts.zhuyin41,
+            BuiltinLayouts.cangjie26,
+        ] {
+            XCTAssertEqual(LayoutBottomRow.index(layout), layout.rows.count - 1, layout.id)
+            XCTAssertNil(LayoutBottomRow.authored(layout), layout.id)
+        }
+    }
+
+    func testTheEditorOpensTheKeyboardsRowAndAnUnchangedRowIsStoredAsBefore() {
+        let layout = BuiltinLayouts.qwerty26.copy()
+        let editable = LayoutBottomRow.editable(layout)
+        XCTAssertEqual(editable.rows.last?.keys, LayoutBottomRow.defaultKeys)
+        XCTAssertEqual(editable.rows.dropLast(), layout.rows.dropLast())
+        XCTAssertEqual(LayoutBottomRow.storable(editable), layout)
+    }
+
+    func testTheKeyboardsRowStartsWith123AndTheGlobe() {
+        let actions = LayoutBottomRow.defaultKeys.map(\.action)
+        XCTAssertEqual(actions.first?.pageSwitchTarget, .numeric)
+        XCTAssertEqual(actions.dropFirst().first?.type, .globe)
+        XCTAssertTrue(actions.contains { $0.type == .space })
+    }
+
+    func testAnAddedSymbolKeyIsKeptAsAuthored() {
+        let editable = LayoutBottomRow.editable(BuiltinLayouts.qwerty26.copy())
+        var keys = LayoutBottomRow.defaultKeys
+        keys.insert(LayoutKey(label: "符号", action: .pageSwitch(.symbols), titleMode: .automatic), at: 1)
+        let edited = LayoutBottomRow.storable(LayoutBottomRow.replacing(keys, in: editable))
+        XCTAssertEqual(LayoutBottomRow.authored(edited), keys)
+        XCTAssertEqual(edited.rows.count, BuiltinLayouts.qwerty26.rows.count)
+    }
+
+    func testARowWithoutItsSpaceKeyIsStillTheBottomRow() {
+        var keys = LayoutBottomRow.defaultKeys
+        keys.removeAll { $0.action.type == .space }
+        let edited = LayoutBottomRow.replacing(keys, in: BuiltinLayouts.qwerty26.copy())
+        XCTAssertEqual(LayoutBottomRow.index(edited), edited.rows.count - 1)
+        XCTAssertEqual(LayoutBottomRow.authored(edited), keys)
+    }
+
+    func testALetterRowIsNeverTheBottomRow() {
+        let layout = LayoutDefinition(
+            id: "letters", name: "letters", input: .init(),
+            rows: [LayoutRow(keys: [LayoutKey(label: "a", action: .init(.code, value: "a"))])])
+        XCTAssertNil(LayoutBottomRow.index(layout))
+        XCTAssertNil(LayoutBottomRow.authored(layout))
+        XCTAssertEqual(LayoutBottomRow.editable(layout), layout)
+    }
+
+    func testTheNineKeyPadKeepsItsOwnRows() {
+        let layout = BuiltinLayouts.phone9.copy()
+        XCTAssertEqual(LayoutBottomRow.editable(layout), layout)
+    }
+
+    func testAnAddedKeyTakesItsRoomFromTheSpaceBar() {
+        let policy = KeyboardControlPolicy(
+            page: .letters, isEnglishMode: false, hasGlobe: false, isPhoneLayout: false, usesASCIIPunctuation: false)
+        var keys = LayoutBottomRow.defaultKeys.filter { $0.action.type != .globe }
+        let plain = KeyboardPageFooterGeometry(width: 390, keys: keys, policy: policy)
+        XCTAssertTrue(plain.usesControlRowBudget)
+        keys.insert(LayoutKey(label: "符号", action: .pageSwitch(.symbols), titleMode: .automatic), at: 1)
+        let sized = try! XCTUnwrap(
+            KeyboardPageFooterGeometry.builtInSizedWidths(width: 390, keys: keys, policy: policy))
+        let space = keys.firstIndex { $0.action.type == .space }!
+        // The space bar gives up at most a fifth; the other keys narrow but stay touch-sized.
+        XCTAssertGreaterThanOrEqual(sized.widths[space], plain.keyWidths[space - 1] * 0.8 - 0.001)
+        XCTAssertTrue(sized.widths.allSatisfy { $0 >= 44 })
+        XCTAssertLessThanOrEqual(sized.widths[0], plain.keyWidths[0])
+        XCTAssertEqual(sized.widths.reduce(0, +) + sized.spacing * Double(keys.count - 1), 390, accuracy: 0.001)
+    }
+
+    func testAChosenWidthKeepsTheAuthorsWeights() {
+        let policy = KeyboardControlPolicy(
+            page: .letters, isEnglishMode: false, hasGlobe: false, isPhoneLayout: false, usesASCIIPunctuation: false)
+        var keys = LayoutBottomRow.defaultKeys.filter { $0.action.type != .globe }
+        keys[0].width = 2
+        XCTAssertNil(KeyboardPageFooterGeometry.builtInSizedWidths(width: 390, keys: keys, policy: policy))
+    }
+}

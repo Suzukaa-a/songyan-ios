@@ -254,10 +254,12 @@ extension LayoutAction {
 // MARK: - Authored control-row shortcuts
 
 /// The shortcuts the keyboard bar adds around an authored control row, and which entries that row
-/// already declares. A declared entry is never duplicated: a 中英 key counts under either action
-/// kind an authored row may use for it. Only the bundled boards whose footer declares every
-/// control key turn the supplement off, so both platforms draw the same footer; every other layout
-/// keeps the existing behaviour.
+/// already declares. A row that declares its own 123 key is drawn as the author stored it, as on
+/// Android: the editor starts from the keyboard's whole bottom row, so nothing is missing from it.
+/// An older row without one keeps the shortcuts it always had, so no layout loses its way to the
+/// 123 page. A declared entry is never duplicated: a 中英 key counts under either action kind an
+/// authored row may use for it. The globe is added whenever the system needs one and the layout
+/// has none, since it is the only way to the next keyboard.
 struct KeyboardFooterShortcutPlan: Equatable {
     let supplementShortcuts: Bool
     let declaresNumericShortcut: Bool
@@ -266,8 +268,9 @@ struct KeyboardFooterShortcutPlan: Equatable {
 
     init(controlRow: LayoutRow?, supplementShortcuts: Bool = true) {
         let keys = controlRow?.keys ?? []
-        self.supplementShortcuts = supplementShortcuts
-        declaresNumericShortcut = keys.contains { $0.action.pageSwitchTarget == .numeric }
+        let declaresNumericShortcut = keys.contains { $0.action.pageSwitchTarget == .numeric }
+        self.supplementShortcuts = supplementShortcuts && !declaresNumericShortcut
+        self.declaresNumericShortcut = declaresNumericShortcut
         declaresSymbolShortcut = keys.contains { $0.action.pageSwitchTarget == .symbols }
         declaresLayoutSwitch = keys.contains {
             $0.action.type == .modeSwitch || $0.action.type == .languageSwitch
@@ -285,7 +288,7 @@ struct KeyboardFooterShortcutPlan: Equatable {
 
     /// Whether the bar adds the globe key.
     func addsGlobe(definitionHasGlobe: Bool, showsGlobe: Bool) -> Bool {
-        supplementShortcuts && !definitionHasGlobe && showsGlobe
+        !definitionHasGlobe && showsGlobe
     }
 
     /// Whether the bar supplements this physical layout's authored footer. Only the bundled boards

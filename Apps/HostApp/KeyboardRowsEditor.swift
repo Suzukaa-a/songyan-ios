@@ -1,3 +1,4 @@
+import KeyboardCore
 import LayoutKit
 import SwiftUI
 
@@ -99,6 +100,8 @@ struct KeyboardRowsEditor: View {
 struct SelectedRowKeyActions: View {
     @Binding var rows: [LayoutRow]
     @Binding var selected: LayoutKeyPath
+    /// The bottom row keeps its function keys: no key moves into or out of it.
+    var bottomRow: Int? = nil
     private let rowKeyLimit = LayoutResourceBudget.keysPerRegion
 
     var body: some View {
@@ -115,12 +118,13 @@ struct SelectedRowKeyActions: View {
                 HStack {
                     Button(String(localized: "移到上一行")) { transferKey(row, index, to: row - 1) }
                         .disabled(
-                            row == 0 || rows[row].keys.count == 1
+                            row == 0 || row == bottomRow || rows[row].keys.count == 1
                                 || (row > 0 && rows[row - 1].keys.count >= rowKeyLimit))
                     Spacer()
                     Button(String(localized: "移到下一行")) { transferKey(row, index, to: row + 1) }
                         .disabled(
-                            row == rows.count - 1 || rows[row].keys.count == 1
+                            row == rows.count - 1 || row == bottomRow || row + 1 == bottomRow
+                                || rows[row].keys.count == 1
                                 || (row < rows.count - 1 && rows[row + 1].keys.count >= rowKeyLimit)
                         )
                 }
@@ -158,6 +162,79 @@ struct SelectedRowKeyActions: View {
         rows[row] = LayoutRow(keys: source)
         rows[target] = LayoutRow(keys: destination)
         selected = .row(target, key: destination.count - 1)
+    }
+}
+
+/// The bottom row's keys and the function keys it can take, so a symbol-page key sits one tap
+/// away like on other keyboards. Order, copy and delete live with the selected key's fields.
+struct KeyboardBottomRowEditor: View {
+    @Binding var keys: [LayoutKey]
+    let row: Int
+    @Binding var selected: LayoutKeyPath
+
+    var body: some View {
+        Section(String(localized: "底行按键")) {
+            ScrollView(.horizontal) {
+                HStack(spacing: 6) {
+                    ForEach(keys.indices, id: \.self) { index in
+                        KeyChip(label: keys[index].label, isSelected: selected == .row(row, key: index)) {
+                            selected = .row(row, key: index)
+                        }
+                    }
+                    Menu {
+                        ForEach(Self.choices.indices, id: \.self) { index in
+                            Button(Self.choices[index].title) { add(Self.choices[index].key) }
+                        }
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    .disabled(keys.count >= LayoutResourceBudget.keysPerRegion)
+                    .accessibilityLabel(Text("添加底行按键"))
+                    .accessibilityIdentifier("layoutEditor.bottomRow.add")
+                }
+            }
+        }
+        .buttonStyle(.borderless)
+    }
+
+    private static var choices: [(title: String, key: LayoutKey)] {
+        [
+            (
+                String(localized: "符号页"),
+                functionKey(KeyLabelPolicy.symbolPageTitle(script: .simplifiedChinese), .pageSwitch(.symbols))
+            ),
+            (String(localized: "123 页"), functionKey("123", .pageSwitch(.numeric))),
+            (UserTerminology.languageKey, bundledKey(.languageSwitch) ?? functionKey("", .languageSwitch())),
+            (UserTerminology.globeKey, functionKey("🌐", LayoutAction(.globe))),
+            (String(localized: "空格"), bundledKey(.space) ?? functionKey("", LayoutAction(.space))),
+            (String(localized: "退格"), functionKey("⌫", LayoutAction(.backspace))),
+            (String(localized: "回车"), functionKey("⏎", LayoutAction(.enter))),
+            (String(localized: "输入文字"), LayoutKey(label: "。", action: LayoutAction(.literal, value: "。"))),
+        ]
+    }
+
+    /// The bundled bottom row's own key of a kind, so an added key is stored as the presets store it.
+    private static func bundledKey(_ type: LayoutAction.Kind) -> LayoutKey? {
+        LayoutBottomRow.defaultKeys.first { $0.action.type == type }
+    }
+
+    private static func functionKey(_ label: String, _ action: LayoutAction) -> LayoutKey {
+        LayoutKey(label: label, action: action, titleMode: .automatic)
+    }
+
+    /// A new key goes right after the selected bottom-row key, else at the end.
+    private func add(_ key: LayoutKey) {
+        guard keys.count < LayoutResourceBudget.keysPerRegion else { return }
+        var updated = keys
+        let at: Int
+        if case .row(row, let index) = selected, updated.indices.contains(index) {
+            at = index + 1
+        } else {
+            at = updated.count
+        }
+        updated.insert(key, at: at)
+        keys = updated
+        selected = .row(row, key: at)
     }
 }
 

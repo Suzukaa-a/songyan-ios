@@ -289,10 +289,15 @@ struct KeyboardDefinitionRow<Key: View>: View {
     var fixedKeyWidth: CGFloat? = nil
     var splitGap: CGFloat? = nil
     var isControls = false
+    /// A control row drawn as the author stored it keeps the built-in row's widths, so editing a
+    /// layout does not re-tune the row it started from.
+    var controlPolicy: KeyboardControlPolicy? = nil
     @ViewBuilder var key: (LayoutKey, Int) -> Key
 
     var body: some View {
         GeometryReader { geometry in
+            let budget = builtInBudget(width: Double(geometry.size.width))
+            let spacing = budget.map { CGFloat($0.spacing) } ?? spacing
             let gap = splitGap ?? CGFloat(split?.gap(width: Double(geometry.size.width), keyCount: keys.count) ?? 0)
             let boundary = split?.breakIndex(row: rowIndex, keyCount: keys.count)
             let available = max(0, geometry.size.width - CGFloat(max(0, keys.count - 1)) * spacing - gap)
@@ -306,7 +311,7 @@ struct KeyboardDefinitionRow<Key: View>: View {
                     }
                     key(value, index)
                         .frame(
-                            width: fixedKeyWidth
+                            width: budget.map { CGFloat($0.keyWidths[index]) } ?? fixedKeyWidth
                                 ?? (isControls
                                     ? minimum + remainder * CGFloat(widths.keyFractions[index])
                                     : available * CGFloat(widths.keyFractions[index])),
@@ -317,9 +322,10 @@ struct KeyboardDefinitionRow<Key: View>: View {
                 .horizontal,
                 fixedKeyWidth.map { max(0, (available - $0 * CGFloat(keys.count)) / 2) }
                     ?? (available * CGFloat(widths.insetFraction)))
-            if isControls {
-                // Only an authored control row can exceed the width (44pt minimum
-                // per key), so only it may scroll.
+            if isControls, budget == nil, available < CGFloat(keys.count) * minimum {
+                // Only an authored control row can exceed the width (44pt minimum per key), so
+                // only it may scroll. A row that fits gets no ScrollView: its pan would take a
+                // sideways drag away from the space bar's cursor movement.
                 ScrollView(.horizontal, showsIndicators: false) { row }
                     .sharpCandidateScrollEdges()
             } else {
@@ -330,6 +336,14 @@ struct KeyboardDefinitionRow<Key: View>: View {
             }
         }
         .frame(height: keys.isEmpty ? 0 : keyHeight)
+    }
+
+    private func builtInBudget(width: Double) -> (keyWidths: [Double], spacing: Double)? {
+        guard isControls, split == nil, let controlPolicy else { return nil }
+        let geometry = KeyboardPageFooterGeometry(width: width, keys: keys, policy: controlPolicy)
+        if geometry.usesControlRowBudget { return (geometry.keyWidths, geometry.spacing) }
+        return KeyboardPageFooterGeometry.builtInSizedWidths(width: width, keys: keys, policy: controlPolicy)
+            .map { ($0.widths, $0.spacing) }
     }
 }
 
@@ -390,6 +404,8 @@ struct KeyboardLayoutUtilityBar<Key: View, Globe: View, ModeSwitch: View>: View 
     /// A bundled board whose footer declares every control key turns this off, so both platforms
     /// draw the same footer; every other layout keeps the supplement.
     var supplementShortcuts = true
+    /// The built-in bottom row's policy: a stored copy of that row keeps its widths.
+    var footerPolicy: KeyboardControlPolicy? = nil
     @ViewBuilder var key: (LayoutKey, String, Int) -> Key
     @ViewBuilder var globe: () -> Globe
     @ViewBuilder var modeSwitch: () -> ModeSwitch
@@ -469,7 +485,10 @@ struct KeyboardLayoutUtilityBar<Key: View, Globe: View, ModeSwitch: View>: View 
             if let row = controlRow {
                 let sources = row.keys.indices.filter { showsGlobe || row.keys[$0].action.type != .globe }
                 let shown = showsGlobe ? row.keys : row.keys.withoutGlobe()
-                KeyboardDefinitionRow(keys: shown, isControls: true) { value, index in
+                KeyboardDefinitionRow(
+                    keys: shown, isControls: true,
+                    controlPolicy: plan.supplementShortcuts ? nil : footerPolicy
+                ) { value, index in
                     key(value, "controls-\(index)", sources[index])
                 }
             } else {

@@ -1,6 +1,6 @@
-"""The author bar's own footer shortcuts: a declared control entry is never duplicated (including
-an authored .languageSwitch key), and the bundled traditional boards that declare their whole
-5-key footer get no extra 123 / symbol / globe / 中英 key."""
+"""The author bar's own footer shortcuts: a row with its own 123 key is drawn as stored, an older
+row keeps its shortcuts, a declared entry is never duplicated, and the globe the system needs is
+always reachable."""
 import sys
 import unittest
 

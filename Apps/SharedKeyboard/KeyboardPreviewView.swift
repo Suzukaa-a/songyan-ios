@@ -462,6 +462,7 @@ private struct KeyboardMainLayoutPreview: View {
                 for: .symbols, isBundledPhonePad: controlPolicy.isBundledPhonePad),
             onPage: { _ in },
             supplementShortcuts: KeyboardFooterShortcutPlan.supplements(physicalLayoutID: definition.id),
+            footerPolicy: controlPolicy,
             key: { key, id, index in keyFace(key, path: index < 0 ? nil : .row(rowIndex, key: index), id: id) },
             globe: { NativeInputModeKey(handleEvent: { _, _ in }, accessibilitySwitch: {}) },
             modeSwitch: { KeyboardPreviewModeKey(policy: controlPolicy) })

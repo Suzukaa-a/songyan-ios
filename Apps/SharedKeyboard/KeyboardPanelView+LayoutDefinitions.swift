@@ -482,11 +482,11 @@ final class DefinitionResolutionMemo {
         }
 
         private static func controlRow(of definition: LayoutDefinition?, isBundled: Bool) -> LayoutRow? {
-            guard let last = definition?.rows.last,
-                last.keys.allSatisfy({ $0.action.type != .code && $0.action.type != .literal })
-            else { return nil }
+            // The bottom row is the Android rule: it holds the space bar or types no engine input.
+            guard let definition, let index = LayoutBottomRow.index(definition) else { return nil }
+            let last = definition.rows[index]
             if isBundled {
-                let sideActions = (definition?.auxiliaryAreas ?? [])
+                let sideActions = (definition.auxiliaryAreas ?? [])
                     .filter { !$0.requiresEngineDisambiguation }.flatMap(\.keys).map(\.action.type)
                 return LayoutRow(
                     keys: last.keys.filter { key in
