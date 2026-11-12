@@ -14,7 +14,6 @@ public struct KeyboardPreviewView: View {
     public var candidateBar: CandidateBarDefinition
     public var previewDark: Bool?
     private let onSelectKey: ((LayoutKeyPath) -> Void)?
-    @State private var language = PreviewLanguage.chinese
     @State private var sample = PreviewSample.idle
     @State private var inspected: LayoutKey?
     @State private var preferences = KeyboardPreviewPreferences.cached
@@ -44,10 +43,6 @@ public struct KeyboardPreviewView: View {
         let facts = DefinitionResolutionMemo.Facts(usable: [], active: layout)
         VStack(spacing: 6) {
             if !editing {
-                Picker(String(localized: "示例语言"), selection: $language) {
-                    ForEach(PreviewLanguage.allCases, id: \.self) { Text($0.title).tag($0) }
-                }
-                .pickerStyle(.segmented)
                 Picker(String(localized: "示例状态"), selection: $sample) {
                     ForEach(PreviewSample.allCases, id: \.self) { Text($0.title).tag($0) }
                 }
@@ -59,7 +54,7 @@ public struct KeyboardPreviewView: View {
             ) { widths in
                 KeyboardMainLayoutPreview(
                     definition: layout, facts: facts,
-                    language: editing ? .chinese : language, sample: editing ? .idle : sample,
+                    sample: editing ? .idle : sample,
                     editing: editing, showsGlobe: preferences.showsGlobe(editing: editing), widths: widths,
                     standardKeyHeight: preferences.keyHeight(compact: verticalSizeClass == .compact),
                     quickSymbols: layout.t9QuickSymbols ?? preferences.t9QuickSymbols,
@@ -78,18 +73,6 @@ public struct KeyboardPreviewView: View {
         .environment(\.keyboardKeyHeight, preferences.keyHeight(compact: verticalSizeClass == .compact))
         .onChange(of: layout) { inspected = nil }
         .task { preferences = await KeyboardPreviewPreferences.load() }
-    }
-}
-
-private enum PreviewLanguage: CaseIterable {
-    case chinese, english, numeric
-
-    var title: String {
-        switch self {
-        case .chinese: return String(localized: "中文")
-        case .english: return String(localized: "英文")
-        case .numeric: return String(localized: "数字")
-        }
     }
 }
 
@@ -113,7 +96,6 @@ private struct KeyboardMainLayoutPreview: View {
     @Environment(\.keyboardAppearance) private var appearance
     let definition: LayoutDefinition
     let facts: DefinitionResolutionMemo.Facts
-    let language: PreviewLanguage
     let sample: PreviewSample
     let editing: Bool
     let showsGlobe: Bool
@@ -126,10 +108,12 @@ private struct KeyboardMainLayoutPreview: View {
     let inspected: LayoutKey?
     let onSelect: (LayoutKeyPath, LayoutKey) -> Void
 
-    private var page: KeyboardPage { language == .numeric ? .numeric : .letters }
-    private var isEnglishMode: Bool { language == .english }
-    private var usesASCIIPunctuation: Bool { isEnglishMode }
-    private var composing: Bool { !isEnglishMode && (sample == .composing || sample == .expanded) }
+    /// The main layout's own page, in Chinese: the ABC and 123 pages the user picked have their own
+    /// previews in the page library.
+    private let page = KeyboardPage.letters
+    private let isEnglishMode = false
+    private let usesASCIIPunctuation = false
+    private var composing: Bool { sample == .composing || sample == .expanded }
     private var expanded: Bool { composing && sample == .expanded }
     private var returnTitle: String { composing ? "确认" : "换行" }
     /// A main-layout preview never carries an authored page or the categorised #+= grid.
@@ -274,12 +258,7 @@ private struct KeyboardMainLayoutPreview: View {
                 }
                 auxiliaryColumn(.trailing)
             }
-        case .symbolRows:
-            KeyboardSymbolPageRows(
-                rows: SymbolPageTable.numericRows(ascii: usesASCIIPunctuation), split: split,
-                onTap: { _ in }, pageSwitch: { MarkPageSwitchKey(target: .symbols) {} },
-                delete: { RepeatingDeleteKey {} })
-        case .authoredChromePage, .phoneDigitPad, .categorySymbolPage, .authoredRows, .phonePad:
+        case .symbolRows, .authoredChromePage, .phoneDigitPad, .categorySymbolPage, .authoredRows, .phonePad:
             // Drawn by the body, or never shown by a main-layout preview.
             EmptyView()
         }
@@ -289,13 +268,7 @@ private struct KeyboardMainLayoutPreview: View {
     private func standardQwertyRow(
         _ index: Int, metrics: StandardKeyRowGeometry, split: ActiveLayoutSplit?
     ) -> some View {
-        if isEnglishMode {
-            WeightedKeyRow(
-                caps: KeyboardLayoutTable.englishRows()[index].caps, showsKeyPreview: true,
-                split: split, rowIndex: index,
-                fixedKeyWidth: CGFloat(metrics.keyWidth), splitGap: CGFloat(metrics.gap)
-            ) { _ in }
-        } else if facts.mainRows.indices.contains(index) {
+        if facts.mainRows.indices.contains(index) {
             definitionRow(
                 index, split: split,
                 fixedKeyWidth: facts.usesStandardQwertyColumns ? CGFloat(metrics.keyWidth) : nil,

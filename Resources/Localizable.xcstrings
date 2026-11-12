@@ -25763,28 +25763,6 @@
         }
       }
     },
-    "示例语言": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "サンプルの言語"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "示例语言"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "示例語言"
-          }
-        }
-      }
-    },
     "空闲": {
       "localizations": {
         "ja": {
