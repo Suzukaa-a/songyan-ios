@@ -549,27 +549,23 @@ struct AlternateCharacterKey: UIViewRepresentable {
             alternateHint.frame = CGRect(
                 x: content.minX, y: content.minY, width: content.width,
                 height: CGFloat(KeyHintLayoutPolicy.height(lineHeight: Double(alternateHint.font.lineHeight))))
-            if appearance.isSystemDefault {
-                // Primary labels share one baseline even when a key has no secondary label.
-                if hintHeight > 0 {
-                    let mid = CGFloat(
-                        KeyHintLayoutPolicy.titleMidY(
-                            contentHeight: Double(content.height), lineHeight: Double(referenceTitleFont.lineHeight),
-                            hintHeight: Double(hintHeight), gap: Double(Self.stackedTitleGap)))
-                    // A key whose letter is set smaller than the row's reference font keeps the reference baseline.
-                    let offset =
-                        (referenceTitleFont.ascender + referenceTitleFont.descender) / 2
-                        - (title.font.ascender + title.font.descender) / 2
-                    title.frame = CGRect(
-                        x: content.minX, y: content.minY + mid - content.height / 2 + offset,
-                        width: content.width, height: content.height)
-                } else {
-                    title.frame = content
-                }
-            } else {
+            // Primary labels share one baseline even when a key has no secondary label. Every
+            // appearance goes through the policy: a fixed title box overlapped the hint on short
+            // keys such as landscape rows.
+            if hintHeight > 0 {
+                let mid = CGFloat(
+                    KeyHintLayoutPolicy.titleMidY(
+                        contentHeight: Double(content.height), lineHeight: Double(referenceTitleFont.lineHeight),
+                        hintHeight: Double(hintHeight), gap: Double(Self.stackedTitleGap)))
+                // A key whose letter is set smaller than the row's reference font keeps the reference baseline.
+                let offset =
+                    (referenceTitleFont.ascender + referenceTitleFont.descender) / 2
+                    - (title.font.ascender + title.font.descender) / 2
                 title.frame = CGRect(
-                    x: content.minX, y: hintHeight > 0 ? content.minY + 4 : content.minY,
-                    width: content.width, height: hintHeight > 0 ? 29 : content.height)
+                    x: content.minX, y: content.minY + mid - content.height / 2 + offset,
+                    width: content.width, height: content.height)
+            } else {
+                title.frame = content
             }
             layoutColumnHints(in: content)
             // Bounds and centre, not frame: the press physics may have transformed this layer.
