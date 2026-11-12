@@ -35200,6 +35200,28 @@
           }
         }
       }
+    },
+    "添加并运行你写的脚本": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自分で書いたスクリプトを追加して実行"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加并运行你写的脚本"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新增並執行你寫的指令碼"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

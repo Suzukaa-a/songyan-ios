@@ -31,6 +31,10 @@ final class ScriptAddonCenter: ObservableObject {
     var download: ((URL) async throws -> Data)?
     var hostSupportsAudio = false
 
+    /// The one instance the settings screen shows. The limits are the measured provisional
+    /// contract values from the shared runtime, the same ones the extension uses.
+    static let shared = ScriptAddonCenter()
+
     init(
         root: URL? = ScriptAddonCenter.sharedRoot(),
         secrets: any ScriptSecretStore = KeychainScriptSecretStore(
@@ -38,7 +42,22 @@ final class ScriptAddonCenter: ObservableObject {
     ) {
         self.store = ScriptAddonStore(root: root ?? Self.fallbackRoot())
         self.secrets = secrets
+        limits = ScriptAddonLimits(
+            maximumSourceBytes: 262_144, maximumInputTextBytes: 65_536, sourceBytes: 262_144,
+            heapBytes: 8_388_608, durationMilliseconds: 4_000, requestCount: 1,
+            responseBytes: 65_536)
+        download = Self.downloadOverHTTPS
         reload()
+    }
+
+    /// A linked script comes from the user's own HTTPS URL; nothing else is fetched.
+    private static func downloadOverHTTPS(_ url: URL) async throws -> Data {
+        guard url.scheme?.lowercased() == "https" else { throw URLError(.unsupportedURL) }
+        let (data, response) = try await URLSession.shared.data(from: url)
+        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+            throw URLError(.badServerResponse)
+        }
+        return data
     }
 
     // MARK: - Storage location
