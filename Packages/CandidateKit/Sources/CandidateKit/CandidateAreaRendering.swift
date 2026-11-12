@@ -302,6 +302,10 @@ private struct DefaultCollapsedCandidateBar: View {
             CandidateBarDefinition.Collapsed.effectiveHeight(
                 stripDefinition.height, candidateSize: context.typography.candidateSize))
     }
+    /// The band the host seats the strip in, never shorter than the strip's own budget: every cell
+    /// and control answers to all of it, while the drawing keeps the budget's size in its middle.
+    private var hitHeight: CGFloat { max(effectiveHeaderHeight, CGFloat(context.rowHeight ?? 0)) }
+    private var bandSlack: CGFloat { (hitHeight - effectiveHeaderHeight) / 2 }
 
     var body: some View {
         HStack(spacing: 0) {
@@ -322,7 +326,7 @@ private struct DefaultCollapsedCandidateBar: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .accessibilityAddTraits(.isHeader)
                 if let backspaceControl {
-                    backspaceControl.frame(width: 44, height: effectiveHeaderHeight)
+                    backspaceControl.frame(width: 44, height: hitHeight)
                 } else {
                     pageButton(
                         "delete.left", label: String(localized: "candidate.control.backspace", bundle: .module),
@@ -336,7 +340,7 @@ private struct DefaultCollapsedCandidateBar: View {
                     Text("candidate.header.composingHint", bundle: .module)
                         .font(.caption)
                         .foregroundStyle(skin.secondaryColor)
-                        .frame(maxWidth: .infinity, minHeight: effectiveHeaderHeight, alignment: .leading)
+                        .frame(maxWidth: .infinity, minHeight: hitHeight, alignment: .leading)
                         .padding(.horizontal, 8)
                 } else if !entries.isEmpty {
                     GeometryReader { geometry in
@@ -360,7 +364,7 @@ private struct DefaultCollapsedCandidateBar: View {
                     disabled: false, action: context.isExpanded ? .collapse : .expand)
             }
         }
-        .frame(height: effectiveHeaderHeight)
+        .frame(height: hitHeight)
         // Same fixed header budget, immediate replacement: never retain the old
         // horizontal candidates alongside the expanded browser during a transition.
         // The candidate strip deliberately owns NO transition of its own: it stays
@@ -445,6 +449,10 @@ struct CollapsedCandidateRow: View {
             CandidateBarDefinition.Collapsed.effectiveHeight(
                 stripDefinition.height, candidateSize: context.typography.candidateSize))
     }
+    /// The band the host seats the strip in, never shorter than the strip's own budget: every cell
+    /// and control answers to all of it, while the drawing keeps the budget's size in its middle.
+    private var hitHeight: CGFloat { max(effectiveHeaderHeight, CGFloat(context.rowHeight ?? 0)) }
+    private var bandSlack: CGFloat { (hitHeight - effectiveHeaderHeight) / 2 }
 
     /// Cells per lazy child. One lazy child per cell makes every appended page re-place
     /// hundreds of children mid-fling; chunks keep that count small, as the expanded rows do.
@@ -572,7 +580,7 @@ struct CollapsedCandidateRow: View {
             .padding(.horizontal, padX)
             .frame(width: width)
             // The hit target keeps the 44pt horizontal minimum while matching the exact header height.
-            .frame(minWidth: 44, minHeight: effectiveHeaderHeight)
+            .frame(minWidth: 44, minHeight: hitHeight)
             .padding(.horizontal, spacing / 2)
             .contentShape(Rectangle())
         }
@@ -581,7 +589,7 @@ struct CollapsedCandidateRow: View {
         .buttonStyle(
             CandidateTapStyle(
                 tint: skin.candidateColor, horizontalInset: CandidateTouchMetrics.horizontalInset + spacing / 2,
-                extraBottomInset: lift * 2)
+                extraTopInset: bandSlack, extraBottomInset: lift * 2 + bandSlack)
         )
         .candidateAccessibility(entry, highlighted: highlighted)
     }
@@ -630,7 +638,7 @@ private extension DefaultCollapsedCandidateBar {
                         .fill(skin.candidateColor.opacity(disabled ? 0.03 : 0.05))
                 )
                 .padding(.bottom, lift * 2)
-                .frame(width: 44, height: effectiveHeaderHeight)
+                .frame(width: 44, height: hitHeight)
                 .contentShape(Rectangle())
         }
         // The press backing coincides with the visible chip.
@@ -638,7 +646,7 @@ private extension DefaultCollapsedCandidateBar {
             CandidateTapStyle(
                 tint: skin.candidateColor,
                 horizontalInset: CandidateTouchMetrics.controlHorizontalInset,
-                extraBottomInset: lift * 2)
+                extraTopInset: bandSlack, extraBottomInset: lift * 2 + bandSlack)
         )
         .disabled(disabled)
         .accessibilityLabel(label)

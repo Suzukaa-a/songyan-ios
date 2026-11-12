@@ -175,6 +175,10 @@ public struct CandidateAreaContext {
     /// Whether the collapsed strip draws each candidate's comment (and counts it in the cell width). The
     /// expanded panel and the accessibility value always carry the comment.
     public let showsCollapsedComments: Bool
+    /// The height of the band the collapsed strip sits in, when the host gives it more than the
+    /// strip's own budget. Every candidate and control answers to the whole band, so a tap above or
+    /// below the glyphs still lands; the drawing keeps the budget's size, centred in the band.
+    public let rowHeight: Double?
     public init(
         state: CandidatePresentationState, bar: CandidateBarDefinition,
         actions: CandidateAreaActionSink, typography: CandidateTypography,
@@ -182,9 +186,10 @@ public struct CandidateAreaContext {
         visibleEntries: [BrowserCandidate]? = nil,
         visibleHasMore: Bool? = nil, visibleFrontier: Int? = nil,
         contentLift: Double = 0, inputLanguage: InputLanguage = .simplifiedChinese,
-        showsCollapsedComments: Bool = true
+        showsCollapsedComments: Bool = true, rowHeight: Double? = nil
     ) {
         self.showsCollapsedComments = showsCollapsedComments
+        self.rowHeight = rowHeight
         self.contentLift = contentLift
         self.state = state
         self.browser = browser

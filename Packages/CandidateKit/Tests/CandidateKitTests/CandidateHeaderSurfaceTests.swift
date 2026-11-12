@@ -799,4 +799,28 @@ final class CandidateHeaderSurfaceTests: XCTestCase {
             try render(largeSurface, width: 120, height: 80).h, 41,
             "the height needed for a larger candidate font size must fully fit the header budget")
     }
+
+    /// A band taller than the strip's budget (the shell's spare height) is touch area too: the strip
+    /// fills it instead of floating in its middle with dead space above and below the candidates.
+    @MainActor
+    func testCollapsedStripFillsATallerBand() throws {
+        let state = CandidatePresentationState(
+            candidates: [Candidate(index: 0, text: "候选")], isComposing: true)
+        func strip(rowHeight: Double?) -> some View {
+            DefaultCandidateAreaRenderer().collapsedView(
+                context: CandidateAreaContext(
+                    state: state, bar: .systemDefault, actions: CandidateAreaActionSink { _ in },
+                    typography: CandidateTypography(candidateSize: 17, secondarySize: 10),
+                    rowHeight: rowHeight)
+            )
+            .fixedSize(horizontal: false, vertical: true)
+        }
+        let budget = CandidateBarDefinition.Collapsed.effectiveHeight(
+            CandidateBarDefinition.systemDefault.collapsed.height, candidateSize: 17)
+        XCTAssertEqual(try render(strip(rowHeight: nil), width: 200, height: 200).h, Int(budget))
+        XCTAssertEqual(try render(strip(rowHeight: budget + 30), width: 200, height: 200).h, Int(budget) + 30)
+        XCTAssertEqual(
+            try render(strip(rowHeight: budget - 10), width: 200, height: 200).h, Int(budget),
+            "a smaller band never squeezes the strip below its own budget")
+    }
 }
