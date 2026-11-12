@@ -454,10 +454,13 @@ struct CollapsedCandidateRow: View {
         let count = entries.count
         let prefetch = context.prefetchIndex(entryCount: count)
         let prefetchX = prefetch.map { cellWidths.prefix($0).reduce(0, +) + CGFloat($0) * spacing }
-        LazyHStack(spacing: spacing) {
+        // The gap between candidates belongs to the cells on either side, half each, so a tap that
+        // lands between two candidates still picks the nearer one. The row is pulled out by the
+        // same half gap at both ends, so every candidate stays where the spacing puts it.
+        LazyHStack(spacing: 0) {
             ForEach(Array(stride(from: 0, to: count, by: Self.chunkSize)), id: \.self) { start in
                 let chunk = start..<min(start + Self.chunkSize, count)
-                HStack(spacing: spacing) {
+                HStack(spacing: 0) {
                     ForEach(chunk, id: \.self) { index in
                         cell(entries[index], width: cellWidths.indices.contains(index) ? cellWidths[index] : 44)
                     }
@@ -465,6 +468,7 @@ struct CollapsedCandidateRow: View {
             }
             tailSentinel
         }
+        .padding(.horizontal, -spacing / 2)
         .background {
             GeometryReader { geometry in
                 let x = geometry.frame(in: .named(CandidateScrollAnchor.viewport)).minX
@@ -569,10 +573,16 @@ struct CollapsedCandidateRow: View {
             .frame(width: width)
             // The hit target keeps the 44pt horizontal minimum while matching the exact header height.
             .frame(minWidth: 44, minHeight: effectiveHeaderHeight)
+            .padding(.horizontal, spacing / 2)
             .contentShape(Rectangle())
         }
-        // Touch-down paints an inset backing *under* the glyphs; the glyphs never move or fade.
-        .buttonStyle(CandidateTapStyle(tint: skin.candidateColor, extraBottomInset: lift * 2))
+        // Touch-down paints an inset backing *under* the glyphs; the glyphs never move or fade. The
+        // backing stays inside the candidate's own width, not the half gaps it also answers to.
+        .buttonStyle(
+            CandidateTapStyle(
+                tint: skin.candidateColor, horizontalInset: CandidateTouchMetrics.horizontalInset + spacing / 2,
+                extraBottomInset: lift * 2)
+        )
         .candidateAccessibility(entry, highlighted: highlighted)
     }
 
