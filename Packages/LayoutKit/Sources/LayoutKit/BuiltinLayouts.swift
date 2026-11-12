@@ -599,14 +599,13 @@ public extension BuiltinLayouts {
         let preset = preset(for: layout)
         let count = PhoneKeypadMetrics.mainRowCount
         guard definition.input == preset.input, definition.auxiliaryAreas == preset.auxiliaryAreas,
-            definition.rows.count == count || definition.rows.count == count + 1,
             definition.rows.prefix(count).allSatisfy({ !$0.keys.isEmpty })
         else { return false }
-        // The shells draw only the main rows. A fourth row must still be a non-encoding control
-        // row; an encoding row would be silently dropped by the shell, so fall back instead.
-        return definition.rows.dropFirst(count).allSatisfy { row in
-            row.keys.allSatisfy { $0.action.type != .code && $0.action.type != .literal }
-        }
+        // The shells draw only the main rows. A fourth row must be the bottom row by the same rule
+        // the footer is drawn by (it may type a mark such as "，"); a fourth encoding row would be
+        // silently dropped by the shell, so fall back instead.
+        return definition.rows.count == count
+            || (definition.rows.count == count + 1 && LayoutBottomRow.index(definition) == count)
     }
 
     /// The main shell whose rows still have the preset's key counts and widths, so the 26-key

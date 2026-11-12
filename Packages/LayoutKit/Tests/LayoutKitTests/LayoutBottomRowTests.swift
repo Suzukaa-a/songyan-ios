@@ -21,6 +21,28 @@ final class LayoutBottomRowTests: XCTestCase {
         XCTAssertEqual(LayoutBottomRow.storable(editable), layout)
     }
 
+    /// The keyboard's own row types "，"; opening it in the editor, or storing an edit of it, must not
+    /// cost the 26/14/18-key frame its Shift, Delete and separator.
+    func testAnEditableOrEditedBottomRowKeepsTheShell() {
+        for (layout, kind) in [
+            (BuiltinLayouts.qwerty26, LayoutInput.Builtin.qwerty26), (BuiltinLayouts.merged14, .merged14),
+            (BuiltinLayouts.merged18, .merged18),
+        ] {
+            let editable = LayoutBottomRow.editable(layout.copy())
+            XCTAssertTrue(editable.rows.last!.keys.contains { $0.action.type == .literal }, layout.id)
+            XCTAssertTrue(BuiltinLayouts.matchesMainShell(editable, as: kind), layout.id)
+            var keys = LayoutBottomRow.defaultKeys
+            keys.removeAll { $0.action.type == .globe }
+            let edited = LayoutBottomRow.storable(LayoutBottomRow.replacing(keys, in: editable))
+            XCTAssertNotNil(LayoutBottomRow.authored(edited), layout.id)
+            XCTAssertTrue(BuiltinLayouts.matchesMainShell(edited, as: kind), layout.id)
+        }
+        // A fourth row that types engine input is not a bottom row: the shell would drop it.
+        var encoding = BuiltinLayouts.qwerty26.copy()
+        encoding.rows[3] = encoding.rows[0]
+        XCTAssertFalse(BuiltinLayouts.matchesMainShell(encoding, as: .qwerty26))
+    }
+
     func testTheKeyboardsRowStartsWith123AndTheGlobe() {
         let actions = LayoutBottomRow.defaultKeys.map(\.action)
         XCTAssertEqual(actions.first?.pageSwitchTarget, .numeric)

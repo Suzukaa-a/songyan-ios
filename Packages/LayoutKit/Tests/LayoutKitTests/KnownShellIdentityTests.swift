@@ -109,10 +109,17 @@ final class KnownShellIdentityTests: XCTestCase {
 
     // MARK: Row shape guards
 
-    func testFourthRowMustStayNonEncoding() {
+    /// The fourth row must be the bottom row by the footer's own rule: one that holds the space bar
+    /// is drawn as the footer whatever else it types; one that types engine input without it would
+    /// be dropped by the shell, so the layout leaves the shell instead.
+    func testFourthRowMustBeTheBottomRow() {
+        let code = LayoutKey(label: "x", action: .init(.code, value: "x"))
         for preset in [qwerty, merged14, merged18] {
             var rows = preset.rows
-            rows[3] = LayoutRow(keys: rows[3].keys + [LayoutKey(label: "x", action: .init(.code, value: "x"))])
+            rows[3] = LayoutRow(keys: rows[3].keys + [code])
+            XCTAssertTrue(expectedMain(clone(preset, rows: rows)))
+            XCTAssertFalse(expectedControl(clone(preset, rows: rows)))
+            rows[3] = LayoutRow(keys: rows[3].keys.filter { $0.action.type != .space })
             XCTAssertFalse(expectedMain(clone(preset, rows: rows)))
             XCTAssertFalse(expectedControl(clone(preset, rows: rows)))
         }
