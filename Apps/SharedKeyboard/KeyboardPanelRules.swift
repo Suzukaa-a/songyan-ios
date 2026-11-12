@@ -22,9 +22,14 @@ enum KeyboardPanelRules {
     }
 
     /// The blank margin on each side of a keyboard `panelWidth` wide under the user's width settings.
-    static func sideMargin(panelWidth: Double, settings: KeyboardWidthSettings) -> Double {
+    /// `systemInsetsSides`: the system already keeps room beside the keyboard (iPhone landscape).
+    static func sideMargin(
+        panelWidth: Double, settings: KeyboardWidthSettings, systemInsetsSides: Bool = false
+    ) -> Double {
         KeyboardWideContentPolicy.sideMargin(
-            panelWidth: panelWidth, percent: settings.sideMarginPercent, largeAbove: Double(settings.splitWidth))
+            panelWidth: panelWidth,
+            percent: settings.effectiveSideMarginPercent(systemInsetsSides: systemInsetsSides),
+            largeAbove: Double(settings.splitWidth))
     }
 
     /// The width cap a physical layout uses on a wide surface. A main split that really splits at the

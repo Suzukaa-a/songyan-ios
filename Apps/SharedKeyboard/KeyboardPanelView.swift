@@ -239,7 +239,9 @@ public struct KeyboardPanelView: View {
             // The split is decided on the full width, so a margin never undoes it. The margin comes
             // off the surface before the cap and dock, which see the width the keys really get.
             // The panel itself (candidate bar included) keeps the margins' width.
-            let sideMargin = KeyboardPanelRules.sideMargin(panelWidth: Double(rawWidth), settings: widthSettings)
+            let sideMargin = KeyboardPanelRules.sideMargin(
+                panelWidth: Double(rawWidth), settings: widthSettings,
+                systemInsetsSides: controller.systemInsetsSides)
             let keyAreaSurface = Double(rawWidth) - 2 * sideMargin
             let widePlan = KeyboardWideContentPolicy.plan(
                 panelWidth: Double(rawWidth),

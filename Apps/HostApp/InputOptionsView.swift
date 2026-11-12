@@ -311,7 +311,7 @@ struct InputOptionsView: View {
                 commit: { KeyboardWidthPreferences.set(sideMarginPercent: $0) },
                 reset: {
                     sideMarginPercentDraft = KeyboardWidthSettings.defaultSideMarginPercent
-                    KeyboardWidthPreferences.set(sideMarginPercent: KeyboardWidthSettings.defaultSideMarginPercent)
+                    KeyboardWidthPreferences.resetSideMargin()
                 })
         } footer: {
             Text("下次打开键盘时生效。")

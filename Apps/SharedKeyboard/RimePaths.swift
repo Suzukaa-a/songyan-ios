@@ -203,6 +203,12 @@ public enum SharedPreferences {
         session.withLockUnchecked { $0[key] = nil }
         store.set(value, forKey: key)
     }
+
+    public static func remove(forKey key: String, in store: UserDefaults) {
+        session.withLockUnchecked { $0[key] = nil }
+        guard KeyboardRecipeStore.canWriteSharedContainer else { return }
+        store.removeObject(forKey: key)
+    }
 }
 
 // MARK: - DIY keyboard layout storage (LayoutKit)

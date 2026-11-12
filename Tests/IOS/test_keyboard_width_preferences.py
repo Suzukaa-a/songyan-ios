@@ -29,7 +29,8 @@ let domain = KeyboardRecipeStore.groupID
 let store = UserDefaults(suiteName: domain)!
 defer { store.removePersistentDomain(forName: domain) }
 // Nothing stored: a large screen starts at the phone limit with a 2.5 % margin.
-precondition(KeyboardWidthPreferences.read(from: store) == KeyboardWidthSettings(splitWidth: 600, sideMarginPercent: 2.5))
+precondition(KeyboardWidthPreferences.read(from: store) == KeyboardWidthSettings(splitWidth: 600))
+precondition(!KeyboardWidthPreferences.read(from: store).sideMarginIsChosen)
 precondition(KeyboardWidthPreferences.current == KeyboardWidthSettings.standard)
 precondition(KeyboardWidthSettings.standard.sideMarginPercent == 2.5)
 // A stored choice is read by the other process and snaps into the offered steps.
@@ -39,6 +40,12 @@ precondition(KeyboardWidthPreferences.current == KeyboardWidthSettings(splitWidt
 precondition(KeyboardWidthPreferences.read(from: UserDefaults(suiteName: domain)!) == KeyboardWidthSettings(splitWidth: 800, sideMarginPercent: 4))
 KeyboardWidthPreferences.set(sideMarginPercent: 0)
 precondition(KeyboardWidthPreferences.current.sideMarginPercent == 0)
+precondition(KeyboardWidthPreferences.current.sideMarginIsChosen)
+// Resetting forgets the choice, so the default can give way to a system inset again.
+KeyboardWidthPreferences.resetSideMargin()
+precondition(!KeyboardWidthPreferences.current.sideMarginIsChosen)
+precondition(KeyboardWidthPreferences.current.effectiveSideMarginPercent(systemInsetsSides: true) == 0)
+precondition(KeyboardWidthPreferences.current.effectiveSideMarginPercent(systemInsetsSides: false) == 2.5)
 // A stored value outside the range snaps to the nearest choice; a non-numeric one is the default.
 store.set(5000, forKey: KeyboardWidthPreferences.splitWidthKey)
 store.set(40, forKey: KeyboardWidthPreferences.sideMarginPercentKey)

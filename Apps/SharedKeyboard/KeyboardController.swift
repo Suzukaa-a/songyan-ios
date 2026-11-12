@@ -272,6 +272,14 @@ public final class KeyboardController: ObservableObject {
 
     /// Word suggestions for the English word being typed (at most three slots).
     @Published public internal(set) var englishSuggestions: [String] = []
+    /// The system keeps blank room beside the keyboard (an iPhone in landscape puts the globe and
+    /// dictation there), so the default side margin is not added on top.
+    @Published public private(set) var systemInsetsSides = false
+
+    /// Called from layout passes; publishes only a change.
+    public func updateSystemInsetsSides(_ value: Bool) {
+        if systemInsetsSides != value { systemInsetsSides = value }
+    }
     /// nil = not probed for the current scheme yet; false = the scheme mounts no
     /// English translator, so the ABC page reserves no candidate row.
     @Published public internal(set) var englishSuggestionsSupported: Bool?

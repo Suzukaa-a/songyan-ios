@@ -125,13 +125,23 @@ public struct KeyboardWidthSettings: Equatable, Sendable {
     public let splitWidth: Int
     /// Each side's blank margin on a large screen, in percent of the keyboard's full width.
     public let sideMarginPercent: Double
+    /// Whether the user picked the margin; an untouched setting gives way to a system inset.
+    public let sideMarginIsChosen: Bool
 
     public static let standard = KeyboardWidthSettings()
 
-    /// Out-of-range or off-step values snap into the offered choices.
-    public init(splitWidth: Int = defaultSplitWidth, sideMarginPercent: Double = defaultSideMarginPercent) {
+    /// Out-of-range or off-step values snap into the offered choices. A nil margin is the default.
+    public init(splitWidth: Int = defaultSplitWidth, sideMarginPercent: Double? = nil) {
         self.splitWidth = Self.clampedSplitWidth(splitWidth)
-        self.sideMarginPercent = Self.clampedSideMarginPercent(sideMarginPercent)
+        self.sideMarginPercent = Self.clampedSideMarginPercent(sideMarginPercent ?? Self.defaultSideMarginPercent)
+        self.sideMarginIsChosen = sideMarginPercent != nil
+    }
+
+    /// The margin to draw. When the system already keeps blank room beside the keyboard (an iPhone
+    /// in landscape, where the globe and dictation sit on either side), the default margin would
+    /// only push the keys further in than the system keyboard's; a margin the user chose still applies.
+    public func effectiveSideMarginPercent(systemInsetsSides: Bool) -> Double {
+        systemInsetsSides && !sideMarginIsChosen ? 0 : sideMarginPercent
     }
 
     public static func clampedSplitWidth(_ value: Int) -> Int {

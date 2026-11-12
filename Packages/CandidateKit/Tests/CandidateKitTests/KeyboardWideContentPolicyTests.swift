@@ -220,4 +220,14 @@ final class KeyboardWideContentPolicyTests: XCTestCase {
         XCTAssertEqual(KeyboardWidthSettings(sideMarginPercent: .nan).sideMarginPercent, 2.5)
         XCTAssertEqual(KeyboardWidthSettings.defaultSplitWidth, Int(KeyboardSurfaceWidth.phoneMaximum))
     }
+
+    func testTheDefaultMarginGivesWayToASystemInsetButAChosenOneStays() {
+        let untouched = KeyboardWidthSettings()
+        XCTAssertFalse(untouched.sideMarginIsChosen)
+        XCTAssertEqual(untouched.effectiveSideMarginPercent(systemInsetsSides: false), 2.5)
+        XCTAssertEqual(untouched.effectiveSideMarginPercent(systemInsetsSides: true), 0)
+        let chosen = KeyboardWidthSettings(sideMarginPercent: 2.5)
+        XCTAssertTrue(chosen.sideMarginIsChosen)
+        XCTAssertEqual(chosen.effectiveSideMarginPercent(systemInsetsSides: true), 2.5)
+    }
 }

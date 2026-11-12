@@ -316,6 +316,7 @@ class KeyboardViewController: UIInputViewController {
             // @Published emits before assignment: use the new controller directly.
             // Session publishes on MainActor, including after retry/resource recovery.
             self?.updateHostTraits(on: controller)
+            self?.syncSystemSideInsets(on: controller)
         }
         Self.liveControllers.add(self)
         installPanelHost()
@@ -766,6 +767,20 @@ class KeyboardViewController: UIInputViewController {
         super.viewDidLayoutSubviews()
         syncPresentedHeight()
         placeHostingView()
+        syncSystemSideInsets()
         logPanelGeometry("didLayout", deduplicate: true)
+    }
+}
+
+extension KeyboardViewController {
+    /// A keyboard narrower than its scene sits between room the system keeps for itself (the
+    /// globe and dictation of an iPhone in landscape).
+    func syncSystemSideInsets(on given: KeyboardController? = nil) {
+        guard let controller = given ?? session?.controller, isViewLoaded, let scene = view.window?.windowScene
+        else { return }
+        let sceneWidth = scene.coordinateSpace.bounds.width
+        let width = view.bounds.width
+        guard width > 0, sceneWidth > 0 else { return }
+        controller.updateSystemInsetsSides(sceneWidth - width > 1)
     }
 }

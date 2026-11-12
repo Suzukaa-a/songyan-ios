@@ -109,8 +109,7 @@ public enum KeyboardWidthPreferences {
         }
         return KeyboardWidthSettings(
             splitWidth: stored(splitWidthKey)?.intValue ?? KeyboardWidthSettings.defaultSplitWidth,
-            sideMarginPercent: stored(sideMarginPercentKey)?.doubleValue
-                ?? KeyboardWidthSettings.defaultSideMarginPercent)
+            sideMarginPercent: stored(sideMarginPercentKey)?.doubleValue)
     }
 
     public static var current: KeyboardWidthSettings {
@@ -135,6 +134,13 @@ public enum KeyboardWidthPreferences {
 
     public static func set(sideMarginPercent: Double) {
         write(KeyboardWidthSettings.clampedSideMarginPercent(sideMarginPercent), key: sideMarginPercentKey)
+    }
+
+    /// Back to the default margin, which gives way to a system inset (`effectiveSideMarginPercent`).
+    public static func resetSideMargin() {
+        SharedPreferences.remove(forKey: sideMarginPercentKey, in: defaults)
+        refresh()
+        NotificationCenter.default.post(name: .keyboardWidthChanged, object: nil)
     }
 
     private static func write(_ value: Any, key: String) {
