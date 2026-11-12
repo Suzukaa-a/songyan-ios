@@ -415,7 +415,11 @@ struct Kana12KeyboardView: View {
             textSize: textSize,
             accessibilityLabel: description?.label ?? title,
             accessibilityHint: description?.hint,
-            action: { onAction(Self.viewAction(for: key)) })
+            action: { onAction(Self.viewAction(for: key)) }
+        )
+        .background {
+            if key == .space || key == .backspace { KeyboardSidewaysGestureOwner() }
+        }
     }
 
     @ViewBuilder
@@ -573,6 +577,7 @@ private struct Kana12KanaKey: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(SkinKeyBackground(role: "key"))
             .contentShape(Rectangle())
+            .background { KeyboardSidewaysGestureOwner() }
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { onChanged($0.translation) }

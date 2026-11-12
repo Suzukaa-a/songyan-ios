@@ -39,7 +39,6 @@ struct AlternateCharacterKey: UIViewRepresentable {
     @Environment(\.keyboardInputLanguage) private var inputLanguage
     @Environment(\.isEnabled) private var isEnabled
     @Environment(\.keyboardPopupSurface) private var popupSurface
-    @Environment(\.keyboardCursorSwipe) private var cursorSwipe
     let cap: KeyCap
     let alternates: [KeyCap]
     var longPressDelay: TimeInterval = 0.35
@@ -92,7 +91,6 @@ struct AlternateCharacterKey: UIViewRepresentable {
         let button = CharacterButton(frame: .zero)
         button.appearance = appearance
         button.popupSurface = popupSurface
-        button.cursorSwipe = cursorSwipe
         button.hostLifetime = hostLifetime
         button.accessibilityIdentifier = accessibilityID
         button.configure(
@@ -114,7 +112,6 @@ struct AlternateCharacterKey: UIViewRepresentable {
     func updateUIView(_ button: CharacterButton, context: Context) {
         button.appearance = appearance
         button.popupSurface = popupSurface
-        button.cursorSwipe = cursorSwipe
         button.hostLifetime = hostLifetime
         button.accessibilityIdentifier = accessibilityID
         button.configure(
@@ -202,6 +199,7 @@ struct AlternateCharacterKey: UIViewRepresentable {
         private var letterGroup: [String] = []
         private var groupHints: [String?] = []
         private var letterSwipe: [KeyCap] = []
+        var ownsSidewaysGesture: Bool { !letterSwipe.isEmpty }
         /// Per-letter hint labels of a merged cap, one per letter while any hint shows.
         private var columnHints: [UILabel] = []
         /// Least space between the title's line and a bottom hint on a short key (a landscape row).
@@ -261,10 +259,6 @@ struct AlternateCharacterKey: UIViewRepresentable {
         /// The finger left the key before a hold completed. Like the system
         /// keyboard, the character key under the finger at lift types instead.
         var slidOff = false
-        var cursorSwipe: KeyboardCursorSwipe?
-        /// The press turned into a cursor drag; `cursorSteppedX` is where the last step landed.
-        var isCursorSwiping = false
-        private var cursorSteppedX: CGFloat = 0
         /// This press was already typed by a rollover; the rest of its touch is inert.
         var consumed = false
         /// A flick key's touch rose out of the key without becoming its swipe-up.
@@ -879,10 +873,6 @@ struct AlternateCharacterKey: UIViewRepresentable {
 
         override func continueTracking(_ touch: UITouch, with event: UIEvent?) -> Bool {
             lastLocation = touch.location(in: window)
-            if isCursorSwiping || startsCursorSwipe() {
-                stepCursorSwipe()
-                return true
-            }
             if slidOff || consumed { return true }
             // A merged key picks a letter sideways and flicks vertically, whichever way the finger
             // first goes clearly: a swipe that locked ignores vertical travel, and a flick past the
@@ -964,37 +954,6 @@ struct AlternateCharacterKey: UIViewRepresentable {
             return true
         }
 
-        /// With the user's choice on and nothing being typed, a mostly sideways slide on a character
-        /// key becomes a caret drag, as on the space bar. A key already holding, flicking or picking
-        /// one of its two letters keeps its gesture.
-        private func startsCursorSwipe() -> Bool {
-            let dx = lastLocation.x - touchOrigin.x
-            guard let cursorSwipe, typesCharacter, popup == nil, !didHold, !didSwipeUp, !didLetterSwipe,
-                letterTracker == nil, !slidOff, !consumed, abs(dx) >= 14,
-                abs(dx) > abs(lastLocation.y - touchOrigin.y), cursorSwipe.isActive()
-            else { return false }
-            holdTimer?.invalidate()
-            holdTimer = nil
-            keyPreview?.hide(for: self, immediately: true)
-            keyPreview = nil
-            KeyRollover.release(self)
-            isHighlighted = false
-            isCursorSwiping = true
-            cursorSteppedX = touchOrigin.x
-            if KeyLabelFade.shared.setDragging(true, reduceMotion: UIAccessibility.isReduceMotionEnabled) {
-                KeyboardFeedbackService.shared.caretModeEntered()
-            }
-            return true
-        }
-
-        /// One character per 12 pt of travel, the space bar's step.
-        private func stepCursorSwipe() {
-            let offset = Int((lastLocation.x - cursorSteppedX) / 12)
-            guard offset != 0 else { return }
-            cursorSteppedX += CGFloat(offset) * 12
-            cursorSwipe?.move(offset)
-        }
-
         /// The enabled character key under a window point (gaps route through
         /// `FeedbackInputView.hitTest`); overlays and non-character keys yield nil.
         private func characterKey(at point: CGPoint) -> CharacterButton? {
@@ -1008,11 +967,7 @@ struct AlternateCharacterKey: UIViewRepresentable {
 
         override func endTracking(_ touch: UITouch?, with event: UIEvent?) {
             let selected: KeyCap?
-            if isCursorSwiping {
-                // A slide that moved the caret types nothing, wherever it ends.
-                cancelPress()
-                return
-            } else if consumed {
+            if consumed {
                 consumed = false
                 cancelPress()
                 return

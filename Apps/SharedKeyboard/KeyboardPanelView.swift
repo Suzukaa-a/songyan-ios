@@ -860,6 +860,7 @@ public struct KeyboardPanelView: View {
             .padding(.horizontal, widthBox.sideMargin)
             .id(keyAreaGeneration)
             .background(Color.black.opacity(0.001))
+            .background { KeyboardCursorDragSurface() }
             .opacity(switchFade)
             // Switch pages in place; a switch of input method or layout only fades the keys in. A
             // keyframeAnimator/visualEffect around this

@@ -3,14 +3,14 @@ import Combine
 import KeyboardCore
 import LayoutKit
 import SwiftUI
+import UIKit.UIGestureRecognizerSubclass
 
 // MARK: - Main key row (letters / numbers / symbols, full width)
 
 private struct KeyboardKeyHeightKey: EnvironmentKey { static let defaultValue: CGFloat = 50 }
 private struct KeyboardPopupSurfaceKey: EnvironmentKey { static let defaultValue: UIView? = nil }
 
-/// A sideways slide over a character key that moves the cursor instead, when the user turned it
-/// on and nothing is being typed. `isActive` is asked as the slide starts, never per render.
+/// The live gate is checked at touch-down and takeover so pending input keeps its keys.
 struct KeyboardCursorSwipe {
     let isActive: () -> Bool
     let move: (Int) -> Void
@@ -164,5 +164,172 @@ struct WeightedKeyRow: View {
                     ?? (available * edgeUnits / total))
         }
         .frame(height: keyHeight)
+    }
+}
+
+/// A background anchor keeps the candidate band outside the recognizer's input region.
+struct KeyboardCursorDragSurface: UIViewRepresentable {
+    @Environment(\.keyboardCursorSwipe) private var cursorSwipe
+    @Environment(\.isEnabled) private var isEnabled
+
+    func makeUIView(context: Context) -> KeyboardCursorDragAnchor { KeyboardCursorDragAnchor() }
+    func updateUIView(_ view: KeyboardCursorDragAnchor, context: Context) {
+        view.cursorSwipe = isEnabled ? cursorSwipe : nil
+    }
+    static func dismantleUIView(_ view: KeyboardCursorDragAnchor, coordinator: ()) { view.detach() }
+}
+
+/// SwiftUI flick keys have no UIControl ancestor, so their backgrounds declare ownership.
+struct KeyboardSidewaysGestureOwner: UIViewRepresentable {
+    func makeUIView(context: Context) -> KeyboardSidewaysOwnerView { KeyboardSidewaysOwnerView() }
+    func updateUIView(_ view: KeyboardSidewaysOwnerView, context: Context) {}
+}
+
+final class KeyboardSidewaysOwnerView: UIView {
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        isUserInteractionEnabled = false
+    }
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+}
+
+final class KeyboardCursorDragAnchor: UIView, UIGestureRecognizerDelegate {
+    var cursorSwipe: KeyboardCursorSwipe?
+    private weak var pressedKey: AlternateCharacterKey.CharacterButton?
+    private var steppedX: CGFloat = 0
+    private var dragging = false
+    private lazy var drag = KeyboardCursorDragRecognizer(target: self, action: #selector(trackDrag))
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        isUserInteractionEnabled = false
+        drag.delegate = self
+        drag.cancelsTouchesInView = true
+        drag.delaysTouchesBegan = false
+        drag.delaysTouchesEnded = false
+        drag.canStart = { [weak self] delta in
+            self?.cursorSwipe?.isActive() == true
+                && KeyboardCursorDragPolicy.canBegin(
+                    settingOn: true, isComposing: false, hasPendingCodes: false,
+                    ownership: .keyboard, dx: Double(delta.x), dy: Double(delta.y))
+        }
+        drag.willStart = { [weak self] in
+            // Cancel before recognition so neither a delayed callout nor rollover survives takeover.
+            guard let key = self?.pressedKey else { return }
+            key.keyPreview?.hide(for: key, immediately: true)
+            key.abandonPress()
+        }
+    }
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        detach()
+        guard window != nil else { return }
+        // The recognizer must be an ancestor of represented keys to receive their touches.
+        // The extension has a routing input view; embedded keyboards use their hosting root.
+        var root: UIView = self
+        while let parent = root.superview, !(parent is UIWindow), !(root is FeedbackInputView) { root = parent }
+        root.addGestureRecognizer(drag)
+    }
+
+    func detach() {
+        drag.view?.removeGestureRecognizer(drag)
+        finishDragging()
+    }
+
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+        guard cursorSwipe?.isActive() == true, bounds.contains(touch.location(in: self)) else { return false }
+        pressedKey = nil
+        // FeedbackInputView routes gaps to nearby keys. Delete already acts on touch-down,
+        // before a 14 pt drag can begin, so a touch that deletes must never also move the caret.
+        // Gaps routed to dual-letter, kana, Space or Delete owners keep their gesture; gaps
+        // routed to ordinary keys can drag the caret. Ownership follows the routed hit.
+        var ancestor = touch.view
+        while let view = ancestor {
+            if view is UIScrollView { return false }
+            if view is CursorSpaceKey.SpaceButton || view is RepeatingDeleteKey.DeleteButton { return false }
+            if let key = view as? AlternateCharacterKey.CharacterButton {
+                guard !key.ownsSidewaysGesture else { return false }
+                pressedKey = key
+            }
+            if view === drag.view { break }
+            ancestor = view.superview
+        }
+        return !ownsSidewaysGesture(in: drag.view, touch: touch)
+    }
+
+    private func ownsSidewaysGesture(in view: UIView?, touch: UITouch) -> Bool {
+        guard let view, !view.isHidden, view.alpha > 0 else { return false }
+        if view is KeyboardSidewaysOwnerView, view.bounds.contains(touch.location(in: view)) { return true }
+        return view.subviews.contains { ownsSidewaysGesture(in: $0, touch: touch) }
+    }
+
+    @objc private func trackDrag() {
+        switch drag.state {
+        case .began:
+            steppedX = 0
+            dragging = true
+            if KeyLabelFade.shared.setDragging(true, reduceMotion: UIAccessibility.isReduceMotionEnabled) {
+                KeyboardFeedbackService.shared.caretModeEntered()
+            }
+            step()
+        case .changed:
+            step()
+        case .ended, .cancelled, .failed:
+            finishDragging()
+        default: break
+        }
+    }
+
+    private func step() {
+        let offset = Int((drag.translation.x - steppedX) / 12)
+        guard offset != 0 else { return }
+        steppedX += CGFloat(offset) * 12
+        cursorSwipe?.move(offset)
+    }
+
+    private func finishDragging() {
+        guard dragging else { return }
+        dragging = false
+        KeyLabelFade.shared.setDragging(false, reduceMotion: UIAccessibility.isReduceMotionEnabled)
+    }
+}
+
+final class KeyboardCursorDragRecognizer: UIGestureRecognizer {
+    var canStart: ((CGPoint) -> Bool)?
+    var willStart: (() -> Void)?
+    private var origin: CGPoint = .zero
+    private(set) var translation: CGPoint = .zero
+
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent) {
+        guard touches.count == 1, numberOfTouches == 1, let touch = touches.first else {
+            state = state == .possible ? .failed : .cancelled
+            return
+        }
+        origin = touch.location(in: view)
+    }
+
+    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent) {
+        guard let touch = touches.first else { return }
+        let point = touch.location(in: view)
+        translation = CGPoint(x: point.x - origin.x, y: point.y - origin.y)
+        if state == .possible {
+            if canStart?(translation) == true {
+                willStart?()
+                state = .began
+            }
+        } else if state == .began || state == .changed {
+            state = .changed
+        }
+    }
+
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent) {
+        state = state == .possible ? .failed : .ended
+    }
+    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent) { state = .cancelled }
+    override func reset() {
+        super.reset()
+        translation = .zero
     }
 }

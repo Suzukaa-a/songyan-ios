@@ -104,7 +104,7 @@ struct InputOptionsView: View {
                 Toggle(isOn: $cursorSwipeEnabled) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("横滑移动光标")
-                        Text("没在打字时，在按键上左右滑动来移动光标。")
+                        Text("没在打字时，在键盘上左右拖动来移动光标；双字母键上左右滑仍然是选字母。")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }

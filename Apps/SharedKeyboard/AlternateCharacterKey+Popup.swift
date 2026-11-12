@@ -94,10 +94,6 @@ extension AlternateCharacterKey.CharacterButton {
         exitedDownward = false
         flickDirection = nil
         resetLetterSwipe()
-        if isCursorSwiping {
-            isCursorSwiping = false
-            KeyLabelFade.shared.setDragging(false, reduceMotion: UIAccessibility.isReduceMotionEnabled)
-        }
         KeyRollover.release(self)
         isHighlighted = false
     }
