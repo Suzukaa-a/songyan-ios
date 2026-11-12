@@ -162,8 +162,9 @@ private struct KeyboardMainLayoutPreview: View {
             candidateSize: appearance.candidateFontSize)
     }
 
+    /// The keyboard's own footer, marks either side of the space bar included, by the keyboard's rule.
     private var controlPolicy: KeyboardControlPolicy {
-        KeyboardPanelRules.controlPolicy(
+        let policy = KeyboardPanelRules.controlPolicy(
             page: page, isEnglishMode: isEnglishMode, hasGlobe: showsGlobe,
             usesASCIIPunctuation: usesASCIIPunctuation,
             phoneShellVisible: KeyboardPanelRules.phoneShellVisible(
@@ -171,7 +172,9 @@ private struct KeyboardMainLayoutPreview: View {
                 mainIsPhoneKeypad: facts.isPhone, showsCategorySymbolPage: false),
             usesFixedEditingRail: showsBundledPhoneShell,
             declaredTrailingReturn: railEntries(.trailing).contains { $0.key.action.type == .enter },
-            showsCategorySymbolPage: false, numericPageReachesSymbols: !facts.isPhone)
+            showsCategorySymbolPage: false, numericPageReachesSymbols: !facts.isPhone,
+            showsSpaceSideMarks: !facts.isPhone && !showsBundledPhoneShell)
+        return KeyboardPanelRules.fittingSpaceSideMarks(policy, contentWidth: widths.content)
     }
 
     var body: some View {

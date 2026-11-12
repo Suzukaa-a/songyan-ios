@@ -130,6 +130,14 @@ enum KeyboardPanelRules {
             showsSpaceSideMarks: showsSpaceSideMarks, offersSymbolLibrary: offersSymbolLibrary)
     }
 
+    /// A row too narrow to keep a usable space bar falls back to the single mark; the layout
+    /// decides, not a key branch of its own. The keyboard and its previews share this rule.
+    static func fittingSpaceSideMarks(_ policy: KeyboardControlPolicy, contentWidth: Double) -> KeyboardControlPolicy {
+        guard policy.showsSpaceSideMarks, policy.metrics(width: contentWidth).space >= 44
+        else { return policy.withSpaceSideMarks(false) }
+        return policy
+    }
+
     /// The known bundled main-shell preset (26 or merged 14/18) whose main rows still provide the
     /// native geometry. Footer/aux sheets are not part of this identity.
     static func knownMainShellPreset(_ facts: DefinitionResolutionMemo.Facts) -> LayoutDefinition? {

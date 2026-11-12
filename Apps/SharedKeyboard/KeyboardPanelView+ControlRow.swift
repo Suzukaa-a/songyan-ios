@@ -312,11 +312,6 @@ extension KeyboardPanelView {
             script: controller.inputLanguageScript,
             showsSpaceSideMarks: showsSpaceSideMarks, offersSymbolLibrary: pageDefinition == nil
         ).withFieldMarks(controller.hostFieldMarks)
-        // A row too narrow to keep a usable space bar falls back to the single mark; the layout
-        // decides, not a key branch of its own.
-        guard policy.showsSpaceSideMarks,
-            policy.metrics(width: widthBox.contentWidth).space >= 44
-        else { return policy.withSpaceSideMarks(false) }
-        return policy
+        return KeyboardPanelRules.fittingSpaceSideMarks(policy, contentWidth: widthBox.contentWidth)
     }
 }
