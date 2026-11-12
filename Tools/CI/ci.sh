@@ -77,8 +77,17 @@ extended() {
   "${SCRIPT_DIR}/scripts/run-native-harnesses.sh"
   "${SCRIPT_DIR}/scripts/build-app.sh" Debug simulator
   "${SCRIPT_DIR}/scripts/build-app.sh" Debug device
+  check_device_app Debug
   # The shared script cases run in a simulator through XCTest; fast stays offline.
   "${SCRIPT_DIR}/scripts/script-tests.sh"
+}
+
+# The unsigned device product is what ships; a simulator slice or a missing script engine would
+# only fail on a device, so check the bundle itself after each device build.
+check_device_app() {
+  local configuration="$1"
+  "${SCRIPT_DIR}/scripts/check-device-app.sh" \
+    "${CI_OUTPUT_ROOT:-${ROOT}/.local/ci}/app-builds/${configuration}-device/DerivedData/Build/Products/${configuration}-iphoneos/HostApp.app"
 }
 
 # Tracked sources only, so package build directories and vendored engine
@@ -154,6 +163,7 @@ case "$1" in
     python3 "${ROOT}/Tools/BuildRimeIOS/scripts/export-rimekit.py" --check
     "${SCRIPT_DIR}/scripts/build-app.sh" Release simulator
     "${SCRIPT_DIR}/scripts/build-app.sh" Release device
+    check_device_app Release
     ;;
   *)
     usage >&2
