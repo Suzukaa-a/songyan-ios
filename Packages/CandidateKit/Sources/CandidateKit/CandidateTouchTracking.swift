@@ -1,24 +1,27 @@
 import Foundation
 
-/// A tap may drift slightly, including across a cell edge, but never selects after a drag or cancellation.
+/// A press holds while the finger stays on its word: the cell it landed on, grown by the tolerance,
+/// the way a button keeps a touch inside its bounds. A drift near the touch-down point always holds,
+/// so an edge tap is as forgiving as a central one. A scroll cancels the press separately.
 /// There is no minimum press duration: a down/up pair in the same frame is still a tap.
 struct CandidateTouchTracking {
     static let movementTolerance: CGFloat = 10
     private var origin: CGPoint?
+    private var area: CGRect = .null
     var isPressed: Bool { origin != nil }
 
-    mutating func begin(at point: CGPoint) {
+    /// `cell` is captured at touch-down: a later reflow is not finger movement.
+    mutating func begin(at point: CGPoint, cell: CGRect = .null) {
         origin = point
+        area = cell.isNull ? .null : cell.insetBy(dx: -Self.movementTolerance, dy: -Self.movementTolerance)
     }
 
     mutating func move(to point: CGPoint) {
         guard let origin else { return }
         let dx = point.x - origin.x
         let dy = point.y - origin.y
-        // Hit testing already chose the cell at touch-down. Measuring against its
-        // edges gives an edge tap virtually no tolerance (even 1pt could cancel it).
-        // Every tap gets the same travel allowance, independent of where it lands.
-        if dx * dx + dy * dy >= Self.movementTolerance * Self.movementTolerance {
+        let nearOrigin = dx * dx + dy * dy < Self.movementTolerance * Self.movementTolerance
+        if !nearOrigin && !area.contains(point) {
             cancel()
         }
     }
@@ -32,6 +35,7 @@ struct CandidateTouchTracking {
 
     mutating func cancel() {
         origin = nil
+        area = .null
     }
 }
 
@@ -178,7 +182,7 @@ struct CandidateTouchTracking {
             trackedTouch = touch
             pressedCell = cell
             touchWindow = window
-            tracking.begin(at: touch.location(in: window))
+            tracking.begin(at: touch.location(in: window), cell: cell.convert(cell.bounds, to: window))
             // This may synchronously land the final code key and replace cells.
             // Check for re-entrant cancellation before arming/highlighting again.
             guard let action = cell.prepareTap?(), state == .possible,

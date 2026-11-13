@@ -98,4 +98,24 @@ final class CandidateTouchTrackingTests: XCTestCase {
             XCTAssertTrue(touch.end(at: start))
         }
     }
+
+    func testADriftThatStaysOnTheWordStillSelects() {
+        // An 80 x 40 cell: drifting 14 pt down or 30 pt sideways keeps the finger on the word.
+        let cell = CGRect(x: 0, y: 0, width: 80, height: 40)
+        for end in [CGPoint(x: 40, y: 34), CGPoint(x: 70, y: 20), CGPoint(x: 10, y: 20), CGPoint(x: 86, y: 46)] {
+            var touch = CandidateTouchTracking()
+            touch.begin(at: CGPoint(x: 40, y: 20), cell: cell)
+            touch.move(to: end)
+            XCTAssertTrue(touch.end(at: end), "\(end)")
+        }
+    }
+
+    func testLeavingTheWordCancelsEvenIfTheFingerComesBack() {
+        let cell = CGRect(x: 0, y: 0, width: 80, height: 40)
+        var touch = CandidateTouchTracking()
+        touch.begin(at: CGPoint(x: 40, y: 20), cell: cell)
+        touch.move(to: CGPoint(x: 100, y: 20))
+        touch.move(to: CGPoint(x: 40, y: 20))
+        XCTAssertFalse(touch.end(at: CGPoint(x: 40, y: 20)))
+    }
 }
