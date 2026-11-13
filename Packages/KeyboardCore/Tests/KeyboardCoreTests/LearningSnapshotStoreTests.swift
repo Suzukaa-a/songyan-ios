@@ -72,7 +72,7 @@ final class LearningSnapshotStoreTests: XCTestCase {
     /// the learning data changed; with no learning data there is nothing to take.
     func testAutomaticSnapshotsAreDailyAndOnlyAfterLearningChanged() throws {
         let now = Date()
-        let day = LearningSnapshotStore.automaticInterval
+        let day: TimeInterval = 24 * 60 * 60
         func due(_ at: Date, modified: Date?) throws -> Bool {
             try store.shouldAutomaticallyExport(
                 sourceID: "scheme:a", revision: "r", now: at, learningModifiedAt: modified)
@@ -160,5 +160,70 @@ final class LearningSnapshotStoreTests: XCTestCase {
         XCTAssertTrue(LearningSnapshotStore.automaticICloudBackupEnabled(defaults))
         defaults.set(false, forKey: LearningSnapshotStore.automaticICloudBackupKey)
         XCTAssertFalse(LearningSnapshotStore.automaticICloudBackupEnabled(defaults))
+    }
+
+    /// The user's interval: a week waits seven days, off never snapshots, an unknown value is daily.
+    func testTheUserPicksTheSnapshotInterval() throws {
+        let now = Date()
+        let changed = now.addingTimeInterval(60)
+        try store.markAutomaticAttempt(sourceID: "scheme:a", revision: "r", date: now)
+        func due(after days: Double, every interval: Int) throws -> Bool {
+            try store.shouldAutomaticallyExport(
+                sourceID: "scheme:a", revision: "r", now: now.addingTimeInterval(days * 86_400),
+                learningModifiedAt: changed, days: interval)
+        }
+        XCTAssertTrue(try due(after: 1, every: 1))
+        XCTAssertFalse(try due(after: 6, every: 7))
+        XCTAssertTrue(try due(after: 7, every: 7))
+        XCTAssertFalse(try due(after: 30, every: 0))
+
+        let suite = "LearningSnapshotStoreTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        XCTAssertEqual(LearningSnapshotStore.automaticDays(defaults), 1)
+        defaults.set(7, forKey: LearningSnapshotStore.automaticIntervalKey)
+        XCTAssertEqual(LearningSnapshotStore.automaticDays(defaults), 7)
+        defaults.set(5, forKey: LearningSnapshotStore.automaticIntervalKey)
+        XCTAssertEqual(LearningSnapshotStore.automaticDays(defaults), 1)
+    }
+
+    /// The keyboard copies its learning databases instead of setting its engine aside; the copy
+    /// lands whole (or not at all) and a newer copy replaces the older one.
+    func testRawCopiesHoldTheDatabasesAndReplaceEachOther() throws {
+        let user = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: user) }
+        let database = user.appendingPathComponent("luna_pinyin.userdb")
+        try FileManager.default.createDirectory(at: database, withIntermediateDirectories: true)
+        try Data("first".utf8).write(to: database.appendingPathComponent("000003.log"))
+        try Data("x".utf8).write(to: user.appendingPathComponent("installation.yaml"))
+
+        try store.saveRawCopy(
+            sourceID: "scheme:a", revision: "r", sourceName: "A", userDirectory: user,
+            now: Date(timeIntervalSince1970: 1))
+        try Data("second".utf8).write(to: database.appendingPathComponent("000003.log"))
+        try store.saveRawCopy(
+            sourceID: "scheme:a", revision: "r", sourceName: "A", userDirectory: user,
+            now: Date(timeIntervalSince1970: 2))
+
+        let copies = try store.rawCopies()
+        XCTAssertEqual(copies.count, 1)
+        let copy = try XCTUnwrap(copies.first)
+        XCTAssertEqual(copy.copiedAt, Date(timeIntervalSince1970: 2))
+        XCTAssertEqual(
+            try String(
+                contentsOf: copy.directory.appendingPathComponent("luna_pinyin.userdb/000003.log"), encoding: .utf8),
+            "second")
+        XCTAssertFalse(
+            FileManager.default.fileExists(atPath: copy.directory.appendingPathComponent("installation.yaml").path))
+        try store.discardRawCopy(copy)
+        XCTAssertEqual(try store.rawCopies(), [])
+    }
+
+    func testNoDatabasesMeansNoCopy() throws {
+        let user = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: user, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: user) }
+        try store.saveRawCopy(sourceID: "scheme:a", revision: "r", sourceName: "A", userDirectory: user, now: Date())
+        XCTAssertEqual(try store.rawCopies(), [])
     }
 }

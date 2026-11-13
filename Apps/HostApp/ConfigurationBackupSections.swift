@@ -6,6 +6,8 @@ struct ConfigurationBackupSections: View {
     @ObservedObject private var model = ConfigurationBackupModel.shared
     @State private var importing = false
     @State private var deleting: ConfigurationBackupItem?
+    @State private var showsOlderCloud = false
+    @State private var showsOlderLocal = false
 
     var body: some View {
         Group {
@@ -33,7 +35,7 @@ struct ConfigurationBackupSections: View {
                     if model.cloudItems.isEmpty {
                         Text(String(localized: "还没有备份")).foregroundStyle(.secondary)
                     }
-                    ForEach(model.cloudItems) { item in backupRow(item) }
+                    backupRows(model.cloudItems, showsOlder: $showsOlderCloud)
                 } header: {
                     Text(verbatim: "iCloud")
                 } footer: {
@@ -41,7 +43,7 @@ struct ConfigurationBackupSections: View {
                 }
             }
             Section {
-                ForEach(model.localItems) { item in backupRow(item) }
+                backupRows(model.localItems, showsOlder: $showsOlderLocal)
                 Button(String(localized: "从文件恢复…")) { importing = true }.disabled(model.busy)
             } header: {
                 Text(String(localized: "本机"))
@@ -116,6 +118,23 @@ struct ConfigurationBackupSections: View {
         }
     }
 
+    /// The newest backup, then the older ones behind one row: restoring is almost always from the
+    /// latest, and the list stays short.
+    @ViewBuilder
+    private func backupRows(_ items: [ConfigurationBackupItem], showsOlder: Binding<Bool>) -> some View {
+        if let newest = items.first { backupRow(newest) }
+        let older = items.dropFirst()
+        if !older.isEmpty {
+            if showsOlder.wrappedValue {
+                ForEach(Array(older)) { item in backupRow(item) }
+            } else {
+                Button(String(localized: "更早的备份（\(older.count)）")) {
+                    withAnimation { showsOlder.wrappedValue = true }
+                }
+            }
+        }
+    }
+
     private func backupRow(_ item: ConfigurationBackupItem) -> some View {
         Button {
             Task { await model.prepareRestore(item) }
@@ -158,7 +177,6 @@ struct BackupReadyView: View {
 
     @Environment(\.scenePhase) private var phase
     @ObservedObject private var model = ConfigurationBackupModel.shared
-    @State private var slow = false
     var body: some View {
         Group {
             if model.ready {
@@ -168,11 +186,8 @@ struct BackupReadyView: View {
                     Text(error)
                     Button(String(localized: "重试")) { Task { await model.start() } }
                 }.padding()
-            } else if slow {
-                ProgressView(String(localized: "正在准备…"))
             } else {
-                // Starting is usually instant; a spinner flashing on every launch reads as a delay.
-                Color(uiColor: .systemBackground).ignoresSafeArea()
+                DelayedSpinner().frame(maxHeight: .infinity)
             }
         }
         .task {
@@ -183,10 +198,7 @@ struct BackupReadyView: View {
             await model.start()
             model.sceneChanged(phase)
         }
-        .task {
-            try? await Task.sleep(for: .milliseconds(500))
-            slow = true
-        }
+
         .onChange(of: phase) { _, phase in model.sceneChanged(phase) }
     }
 }

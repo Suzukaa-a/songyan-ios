@@ -105,6 +105,7 @@ final class ConfigurationBackupModel: NSObject, ObservableObject {
             }
             ready = true
             startupError = nil
+            Task { await ConfigurationBackupStorage.convertLearningCopies() }
             deletedCloudArchives = try await ConfigurationBackupIO.run {
                 let url = ConfigurationBackupStorage.root.appendingPathComponent("deleted-cloud-archives.json")
                 guard FileManager.default.fileExists(atPath: url.path) else { return [] }
@@ -237,6 +238,8 @@ final class ConfigurationBackupModel: NSObject, ObservableObject {
             busy = false
             progress = ""
         }
+        // The keyboard's latest learning copy goes into this backup as an archive.
+        await ConfigurationBackupStorage.convertLearningCopies()
         do {
             let stamp = try await ConfigurationBackupIO.run { try ConfigurationBackupStorage.changeStamp() }
             guard manual || stamp != nil else { return }

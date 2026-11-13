@@ -3,6 +3,7 @@ import Foundation
 import KeyboardCore
 import LayoutKit
 import PackageManager
+import RimeBridge
 
 /// Blocking file work, called only from ConfigurationBackupIO. No cloud account or live engine
 /// database is part of a backup. Scheme installations are represented by portable dependencies.
@@ -35,6 +36,10 @@ enum ConfigurationBackupStorage {
 
     static func include(_ domain: ConfigurationBackupDomain, _ path: String) -> Bool {
         guard ![.schemes, .dictionaries, .recipes].contains(domain) else { return false }
+        // The keyboard's database copies become archives before a backup; the raw files never travel.
+        if domain == .learning, path.split(separator: "/").first == Substring(LearningSnapshotStore.rawDirectoryName) {
+            return false
+        }
         if domain == .rimeConfig {
             let parts = path.lowercased().split(separator: "/")
             if parts.contains("build") || RecipeResourceBudget.isModel(path.lowercased())
@@ -93,6 +98,43 @@ enum ConfigurationBackupStorage {
         guard hasConfiguration else { return nil }
         try ConfigurationBackupDependencies.capture(locations: locations)
         return try ConfigurationBackupArchive.changeStamp(sources: portableSources(locations), include: include)
+    }
+
+    /// Turns the keyboard's copies of its learning databases into archives with the app's own
+    /// engine, so the keyboard never sets its engine aside for a snapshot. A copy that cannot be
+    /// read is dropped; the keyboard takes a new one the next time it has learned something.
+    static func convertLearningCopies() async {
+        guard let root = try? sources()[.learning] else { return }
+        let store = LearningSnapshotStore(root: root)
+        guard let copies = try? await ConfigurationBackupIO.run({ try store.rawCopies() }), !copies.isEmpty,
+            let published = try? await KeyboardResourceReadQueue.async({ () -> (URL, URL)? in
+                try KeyboardRecipeStore.snapshot(selectedOnly: true).map { ($0.resources, $0.build) }
+            }) ?? nil
+        else { return }
+        let (resources, build) = published
+        for copy in copies {
+            let archive = try? await EngineOwnershipCoordinator.shared.withExclusive {
+                try await EngineOpQueue.async { () -> LearningBackupArchive? in
+                    let engine = RimeEngine(
+                        configuration: .init(
+                            sharedDirectory: resources, userDirectory: copy.directory, prebuiltDirectory: build))
+                    defer { engine.shutdown() }
+                    try engine.start()
+                    let snapshots = try engine.backupLearningData()
+                    guard !snapshots.isEmpty else { return nil }
+                    return try LearningBackupArchive(
+                        sourceID: copy.sourceID, resourceRevision: copy.revision, sourceName: copy.sourceName,
+                        engineVersion: engine.engineVersion, createdAt: copy.copiedAt,
+                        dictionaries: try snapshots.map {
+                            try LearningBackupArchive.DictionarySnapshot(name: $0.name, data: $0.data)
+                        })
+                }
+            }
+            try? await ConfigurationBackupIO.run {
+                if let archive = archive ?? nil { try store.save(archive) }
+                try store.discardRawCopy(copy)
+            }
+        }
     }
 
     static func create(safety: Bool = false) throws -> (URL, ConfigurationBackupManifest) {

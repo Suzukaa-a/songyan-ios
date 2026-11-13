@@ -435,11 +435,16 @@ public enum KeyboardLearningTransfer {
         guard current?.status != .pending, current?.status != .running,
             try snapshots.shouldAutomaticallyExport(
                 sourceID: source, revision: activation.revision, now: Date(),
-                learningModifiedAt: LearningSnapshotStore.learningModifiedAt(userDirectory: resources.userDirectory))
+                learningModifiedAt: LearningSnapshotStore.learningModifiedAt(userDirectory: resources.userDirectory),
+                days: LearningSnapshotStore.automaticDays(KeyboardRecipeStore.sharedDefaults()))
         else { return }
-        try snapshots.markAutomaticAttempt(sourceID: source, revision: activation.revision, date: Date())
-        _ = try store.submitBackup(
-            sourceID: source, resourceRevision: activation.revision, sourceName: activation.dictionaryName ?? source)
+        // A copy of the databases, not an export: the engine keeps running and the app turns the
+        // copy into an archive with its own engine.
+        let now = Date()
+        try snapshots.markAutomaticAttempt(sourceID: source, revision: activation.revision, date: now)
+        try snapshots.saveRawCopy(
+            sourceID: source, revision: activation.revision, sourceName: activation.dictionaryName ?? source,
+            userDirectory: resources.userDirectory, now: now)
     }
 
     /// The receipt line of an import: what was merged, and how many of the picked files were left out.

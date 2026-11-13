@@ -35,6 +35,7 @@ struct LearningBackupView: View {
     @StateObject private var model = LearningBackupModel()
     /// Only used to bring up the system keyboard: a temporary field; its content is not persisted, recorded or shown.
     @State private var activationField = ""
+    @State private var automaticDays = LearningSnapshotStore.automaticDays(KeyboardRecipeStore.sharedDefaults())
     @FocusState private var activationFocused: Bool
 
     var body: some View {
@@ -43,6 +44,7 @@ struct LearningBackupView: View {
             sourceSection
             statusSection
             actionSection
+            automaticSection
             if model.showsKeyboardActivation { keyboardActivationSection }
             exportSection
             if let notice = model.notice {
@@ -106,11 +108,7 @@ struct LearningBackupView: View {
         Section {
             switch model.sourceState {
             case .loading:
-                HStack {
-                    Text("正在读取当前输入方案…")
-                    Spacer()
-                    ProgressView()
-                }
+                DelayedSpinner()
             case .ready(let source):
                 Text("当前来源：\(source.sourceName)")
                 Text("只包含正在使用的输入方案。")
@@ -182,6 +180,31 @@ struct LearningBackupView: View {
             Text("学习数据")
         } footer: {
             Text("可以选松烟的学习备份，也可以选其他 Rime 输入法的词库文件、压缩包或文件夹。需要开启「允许完全访问」，合并后无法撤销。")
+        }
+    }
+
+    private var automaticSection: some View {
+        Section {
+            Picker(String(localized: "自动保存"), selection: $automaticDays) {
+                ForEach(LearningSnapshotStore.automaticIntervalChoices, id: \.self) { days in
+                    Text(Self.intervalTitle(days)).tag(days)
+                }
+            }
+            .onChange(of: automaticDays) {
+                KeyboardRecipeStore.sharedDefaults()?.set(
+                    automaticDays, forKey: LearningSnapshotStore.automaticIntervalKey)
+            }
+        } footer: {
+            Text("学到新词后，按这个频率在本机存一份。")
+        }
+    }
+
+    private static func intervalTitle(_ days: Int) -> String {
+        switch days {
+        case 0: return String(localized: "关闭")
+        case 1: return String(localized: "每天")
+        case 7: return String(localized: "每周")
+        default: return String(localized: "每 \(days) 天")
         }
     }
 

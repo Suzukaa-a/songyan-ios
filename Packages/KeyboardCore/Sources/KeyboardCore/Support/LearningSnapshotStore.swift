@@ -40,6 +40,103 @@ public struct LearningSnapshotStore: Sendable {
             options: .atomic)
     }
 
+    // MARK: Raw copies
+
+    /// Where the keyboard leaves its copies of the learning databases. The app turns each into an
+    /// archive with its own engine, so the keyboard never sets its engine aside for a snapshot.
+    public static let rawDirectoryName = "raw"
+
+    /// One copy of a source's learning databases, as the keyboard took it.
+    public struct RawCopy: Codable, Equatable, Sendable {
+        public let sourceID: String
+        public let revision: String
+        public let sourceName: String
+        public let copiedAt: Date
+        /// The user directory to point a temporary engine at; holds only the copied databases.
+        public var directory: URL = URL(fileURLWithPath: "/")
+
+        enum CodingKeys: String, CodingKey { case sourceID, revision, sourceName, copiedAt }
+    }
+
+    /// Copies the learning databases in `userDirectory` (its `*.userdb` folders) for the app to
+    /// convert. The engine keeps running: a learning database only appends and adds files, and a
+    /// copy whose tail was mid-write opens without that last record. A copy taken while the
+    /// database rewrote its files (the listing changed under it) is taken again.
+    public func saveRawCopy(sourceID: String, revision: String, sourceName: String, userDirectory: URL, now: Date)
+        throws
+    {
+        let fm = FileManager.default
+        let raw = root.appendingPathComponent(Self.rawDirectoryName)
+        try fm.createDirectory(at: raw, withIntermediateDirectories: true)
+        let name = (Self.filename(sourceID, revision) as NSString).deletingPathExtension
+        for _ in 0..<3 {
+            let before = try Self.databaseListing(userDirectory)
+            guard !before.isEmpty else { return }
+            let staging = raw.appendingPathComponent(".copy-\(UUID().uuidString)")
+            do {
+                try fm.createDirectory(at: staging, withIntermediateDirectories: true)
+                for database in Set(before.keys.map { $0.components(separatedBy: "/")[0] }) {
+                    try fm.copyItem(
+                        at: userDirectory.appendingPathComponent(database), to: staging.appendingPathComponent(database)
+                    )
+                }
+                guard
+                    try Self.databaseListing(userDirectory).filter({ !$0.key.hasSuffix(".log") })
+                        == before.filter({ !$0.key.hasSuffix(".log") })
+                else {
+                    try? fm.removeItem(at: staging)
+                    continue
+                }
+                let copy = RawCopy(sourceID: sourceID, revision: revision, sourceName: sourceName, copiedAt: now)
+                try JSONEncoder().encode(copy).write(to: staging.appendingPathComponent("copy.json"), options: .atomic)
+                let target = raw.appendingPathComponent(name)
+                if fm.fileExists(atPath: target.path) { try fm.removeItem(at: target) }
+                try fm.moveItem(at: staging, to: target)
+                return
+            } catch {
+                try? fm.removeItem(at: staging)
+                throw error
+            }
+        }
+    }
+
+    /// The copies waiting to be turned into archives.
+    public func rawCopies() throws -> [RawCopy] {
+        let raw = root.appendingPathComponent(Self.rawDirectoryName)
+        guard FileManager.default.fileExists(atPath: raw.path) else { return [] }
+        return try FileManager.default.contentsOfDirectory(at: raw, includingPropertiesForKeys: nil)
+            .filter { !$0.lastPathComponent.hasPrefix(".") }
+            .compactMap { directory in
+                guard let data = try? Data(contentsOf: directory.appendingPathComponent("copy.json")),
+                    var copy = try? JSONDecoder().decode(RawCopy.self, from: data)
+                else { return nil }
+                copy.directory = directory
+                return copy
+            }
+    }
+
+    public func discardRawCopy(_ copy: RawCopy) throws {
+        guard
+            copy.directory.deletingLastPathComponent().standardizedFileURL
+                == root.appendingPathComponent(Self.rawDirectoryName).standardizedFileURL
+        else { return }
+        try FileManager.default.removeItem(at: copy.directory)
+    }
+
+    /// Every file of the `*.userdb` folders with its size, keyed by `folder/file`.
+    private static func databaseListing(_ userDirectory: URL) throws -> [String: Int] {
+        let fm = FileManager.default
+        var listing: [String: Int] = [:]
+        let folders = (try? fm.contentsOfDirectory(at: userDirectory, includingPropertiesForKeys: nil)) ?? []
+        for folder in folders where folder.pathExtension == "userdb" {
+            for file in try fm.contentsOfDirectory(at: folder, includingPropertiesForKeys: [.fileSizeKey]) {
+                let size = try file.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0
+                listing[folder.lastPathComponent + "/" + file.lastPathComponent] = size
+            }
+        }
+        return listing
+    }
+
     public func saveSafety(_ archive: LearningBackupArchive) throws {
         let directory = root.appendingPathComponent("safety")
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -166,18 +263,27 @@ public struct LearningSnapshotStore: Sendable {
             to: directory.appendingPathComponent(Self.filename(sourceID, revision)), options: .atomic)
     }
 
-    /// Taking a snapshot sets the keyboard's engine aside, so it is rare: at most one a day, and only
-    /// when the learning data changed after the last attempt (the Android keyboard's rule).
-    public static let automaticInterval: TimeInterval = 24 * 60 * 60
+    /// Taking a snapshot sets the keyboard's engine aside, so it is rare: by default at most one a
+    /// day, and only when the learning data changed after the last attempt (the Android keyboard's
+    /// rule). The user picks the interval in days; 0 turns automatic snapshots off.
+    public static let automaticIntervalKey = "learning.automaticSnapshotDays.v1"
+    public static let automaticIntervalChoices = [1, 3, 7, 0]
+    public static let defaultAutomaticDays = 1
+
+    public static func automaticDays(_ defaults: UserDefaults?) -> Int {
+        let stored = defaults?.object(forKey: automaticIntervalKey) as? Int
+        return stored.flatMap { automaticIntervalChoices.contains($0) ? $0 : nil } ?? defaultAutomaticDays
+    }
 
     public func shouldAutomaticallyExport(
-        sourceID: String, revision: String, now: Date, learningModifiedAt: Date?
+        sourceID: String, revision: String, now: Date, learningModifiedAt: Date?, days: Int = defaultAutomaticDays
     ) throws -> Bool {
-        guard let learningModifiedAt else { return false }
+        guard days > 0, let learningModifiedAt else { return false }
+        let interval = TimeInterval(days) * 24 * 60 * 60
         let file = root.appendingPathComponent("attempts").appendingPathComponent(Self.filename(sourceID, revision))
         guard FileManager.default.fileExists(atPath: file.path) else { return true }
         let date = try JSONDecoder().decode(Date.self, from: Data(contentsOf: file))
-        return now.timeIntervalSince(date) >= Self.automaticInterval && learningModifiedAt > date
+        return now.timeIntervalSince(date) >= interval && learningModifiedAt > date
     }
 
     /// When the learning databases in `userDirectory` were last written; nil when there are none.
