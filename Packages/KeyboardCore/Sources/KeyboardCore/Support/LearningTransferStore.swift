@@ -203,7 +203,10 @@ public struct LearningTransferStore: Sendable {
 
     /// Reads the latest safety backup kept across requests; nil if none.
     public func readLatestSafetyBackup() throws -> LearningBackupArchive? {
-        try readEnvelopeIfPresent(slot: .safetyBackup)?.archive
+        if FileManager.default.fileExists(atPath: directory.appendingPathComponent("empty-safety-backup.json").path) {
+            return nil
+        }
+        return try readEnvelopeIfPresent(slot: .safetyBackup)?.archive
     }
 
     /// Reads the input archive of an import request. The caller must be the request's running executor (`lease`),
@@ -371,6 +374,24 @@ public struct LearningTransferStore: Sendable {
 
     // MARK: - Worker writes (all CAS: current UUID + running + lease identity)
 
+    /// A successful engine export can prove that a fresh installation has no learning data.
+    /// Persist that fact before merging; an export error must never take this path.
+    public func saveEmptySafetyBackup(requestID: UUID, lease: WorkerLease) throws {
+        try withWorkerLease(lease) {
+            try withLock {
+                let current = try self.runningOwner(requestID: requestID, owner: lease.id)
+                let marker = self.directory.appendingPathComponent("empty-safety-backup.json")
+                try JSONEncoder().encode(current.id).write(to: marker, options: .atomic)
+                let updated = try State(
+                    id: current.id, operation: current.operation, status: .running,
+                    sourceID: current.sourceID, resourceRevision: current.resourceRevision,
+                    sourceName: current.sourceName, createdAt: current.createdAt,
+                    processID: current.processID, message: nil, hasSafetyBackup: true)
+                try self.writeState(updated)
+            }
+        }
+    }
+
     /// Persists the safety backup: writes the full artifact first, and sets hasSafetyBackup to true only after that succeeds.
     public func saveSafetyBackup(
         requestID: UUID, lease: WorkerLease,
@@ -382,6 +403,10 @@ public struct LearningTransferStore: Sendable {
                 try self.writeEnvelope(
                     ArtifactEnvelope(requestID: current.id, archive: archive),
                     slot: .safetyBackup)
+                let emptyMarker = self.directory.appendingPathComponent("empty-safety-backup.json")
+                if FileManager.default.fileExists(atPath: emptyMarker.path) {
+                    try FileManager.default.removeItem(at: emptyMarker)
+                }
                 guard !current.hasSafetyBackup else { return }
                 let updated = try State(
                     id: current.id, operation: current.operation,
