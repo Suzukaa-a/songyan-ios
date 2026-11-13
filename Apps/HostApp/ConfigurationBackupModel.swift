@@ -22,10 +22,12 @@ final class ConfigurationBackupModel: NSObject, ObservableObject {
     static let backgroundTaskID = "app.songyan.ime.configuration-backup"
     private static var backgroundRegistered = false
 
-    @Published var automatic = true {
+    /// Local backups run on their own; this only decides whether they also go to iCloud.
+    @Published var automaticICloud = false {
         didSet {
-            KeyboardRecipeStore.sharedDefaults()?.set(automatic, forKey: LearningSnapshotStore.automaticBackupKey)
-            if automatic {
+            KeyboardRecipeStore.sharedDefaults()?.set(
+                automaticICloud, forKey: LearningSnapshotStore.automaticICloudBackupKey)
+            if automaticICloud {
                 scheduleBackgroundBackup()
             } else {
                 BGTaskScheduler.shared.cancel(taskRequestWithIdentifier: Self.backgroundTaskID)
@@ -38,7 +40,6 @@ final class ConfigurationBackupModel: NSObject, ObservableObject {
     @Published private(set) var cloudAvailable = false
     @Published private(set) var cloudItems: [ConfigurationBackupItem] = []
     @Published private(set) var localItems: [ConfigurationBackupItem] = []
-    @Published private(set) var learningSummary = String(localized: "尚未收集学习快照。使用松烟键盘后会自动收集。")
     @Published private(set) var busy = false
     @Published private(set) var restoring = false
     @Published private(set) var progress = ""
@@ -65,14 +66,14 @@ final class ConfigurationBackupModel: NSObject, ObservableObject {
 
     override private init() {
         super.init()
-        automatic =
-            KeyboardRecipeStore.sharedDefaults()?.object(forKey: LearningSnapshotStore.automaticBackupKey) as? Bool
-            ?? true
+        automaticICloud = LearningSnapshotStore.automaticICloudBackupEnabled(KeyboardRecipeStore.sharedDefaults())
     }
 
     static func registerBackgroundTask() {
         guard !backgroundRegistered else { return }
-        backgroundRegistered = BGTaskScheduler.shared.register(forTaskWithIdentifier: backgroundTaskID, using: nil) {
+        // The handler is main-actor code: with a nil queue the system calls it on a background queue
+        // and Swift's isolation check traps. The expiration handler may come from any queue.
+        backgroundRegistered = BGTaskScheduler.shared.register(forTaskWithIdentifier: backgroundTaskID, using: .main) {
             task in
             let work = Task { @MainActor in
                 let model = ConfigurationBackupModel.shared
@@ -82,7 +83,7 @@ final class ConfigurationBackupModel: NSObject, ObservableObject {
                 model.scheduleBackgroundBackup()
                 task.setTaskCompleted(success: model.notice == nil)
             }
-            task.expirationHandler = { work.cancel() }
+            task.expirationHandler = { @Sendable in work.cancel() }
         }
     }
 
@@ -112,7 +113,7 @@ final class ConfigurationBackupModel: NSObject, ObservableObject {
             await refreshPendingDependencies()
             await refreshCloud()
             await refreshLocal()
-        } catch { startupError = String(localized: "未完成的恢复暂时无法回滚，已暂停加载配置：\(error.localizedDescription)") }
+        } catch { startupError = String(localized: "上次恢复没有完成，松烟暂时无法打开：\(error.localizedDescription)") }
     }
 
     func sceneChanged(_ phase: ScenePhase) {
@@ -133,7 +134,7 @@ final class ConfigurationBackupModel: NSObject, ObservableObject {
     }
 
     func scheduleBackgroundBackup() {
-        guard automatic, Self.backgroundRegistered else { return }
+        guard automaticICloud, Self.backgroundRegistered else { return }
         let request = BGProcessingTaskRequest(identifier: Self.backgroundTaskID)
         request.requiresNetworkConnectivity = true
         request.earliestBeginDate = Date(timeIntervalSinceNow: 15 * 60)
@@ -157,11 +158,11 @@ final class ConfigurationBackupModel: NSObject, ObservableObject {
                 cloudItems = []
                 cloudDirectory = nil
                 cloudAvailable = false
-                cloudStatus = String(localized: "iCloud 不可用。请登录 Apple 账户并开启 iCloud 云盘和松烟的 iCloud 权限。")
+                cloudStatus = String(localized: "iCloud 不可用，备份只存在本机。要用 iCloud，请在系统设置中登录 Apple 账户并打开 iCloud 云盘。")
                 return
             }
             cloudAvailable = true
-            cloudStatus = String(localized: "已连接 iCloud。只有显示“已上传”的备份才能在重装后取回。")
+            cloudStatus = String(localized: "备份包括我的键盘、键盘布局、页面搭配、符号库、词库、设置和学习数据。输入方案和语法模型在恢复时重新下载。")
             if query == nil || cloudDirectory != directory {
                 query?.stop()
                 NotificationCenter.default.removeObserver(self, name: .NSMetadataQueryDidFinishGathering, object: query)
@@ -209,42 +210,29 @@ final class ConfigurationBackupModel: NSObject, ObservableObject {
 
     func refreshLocal() async {
         do {
-            let result = try await ConfigurationBackupIO.run { () -> ([ConfigurationBackupItem], String) in
+            localItems = try await ConfigurationBackupIO.run { () -> [ConfigurationBackupItem] in
                 let directory = ConfigurationBackupStorage.localArchives
                 let files =
                     FileManager.default.fileExists(atPath: directory.path)
                     ? try FileManager.default.contentsOfDirectory(
                         at: directory, includingPropertiesForKeys: [.creationDateKey, .fileSizeKey]) : []
-                let items = try files.filter { $0.pathExtension == "songyanbackup" }.map { url in
+                return try files.filter { $0.pathExtension == "songyanbackup" }.map { url in
                     let values = try url.resourceValues(forKeys: [.creationDateKey, .fileSizeKey])
                     return ConfigurationBackupItem(
                         url: url, date: values.creationDate ?? .distantPast, bytes: Int64(values.fileSize ?? 0),
                         cloud: false, uploaded: false, downloaded: true, error: nil)
                 }.sorted { $0.date > $1.date }
-                let learning = try LearningSnapshotStore(root: ConfigurationBackupStorage.sources()[.learning]!)
-                    .snapshots()
-                let summary: String
-                if learning.isEmpty {
-                    summary = String(localized: "尚未收集学习快照。使用松烟键盘后会自动收集，也可以在下方立即备份当前方案的学习数据。")
-                } else {
-                    summary = learning.sorted { $0.sourceName < $1.sourceName }.map {
-                        "\($0.sourceName)：\($0.createdAt.formatted(date: .abbreviated, time: .shortened))"
-                    }.joined(separator: "\n")
-                }
-                return (items, summary)
             }
-            localItems = result.0
-            learningSummary = result.1
         } catch { notice = error.localizedDescription }
     }
 
     func backUp(manual: Bool) async {
-        guard ready, !busy, prepared == nil, manual || automatic,
+        guard ready, !busy, prepared == nil,
             !SchemeImportCenter.shared.busy, !DictionaryImportCenter.shared.busy
         else { return }
         busy = true
         notice = nil
-        progress = String(localized: "正在检查配置…")
+        progress = String(localized: "正在准备…")
         defer {
             busy = false
             progress = ""
@@ -254,8 +242,12 @@ final class ConfigurationBackupModel: NSObject, ObservableObject {
             guard manual || stamp != nil else { return }
             if manual || stamp != lastStamp || lastArchive == nil {
                 if !manual && Date().timeIntervalSince(lastAutomaticBackup) < 5 * 60 { return }
-                progress = String(localized: "正在生成完整备份…")
-                let result = try await ConfigurationBackupIO.run { try ConfigurationBackupStorage.create() }
+                progress = String(localized: "正在备份…")
+                let result = try await ConfigurationBackupIO.run {
+                    let result = try ConfigurationBackupStorage.create()
+                    try ConfigurationBackupStorage.prune(ConfigurationBackupStorage.localArchives)
+                    return result
+                }
                 // Keep the stamp from before capture: edits made while the ZIP is being
                 // compressed must still trigger the next backup.
                 lastStamp = stamp
@@ -269,14 +261,15 @@ final class ConfigurationBackupModel: NSObject, ObservableObject {
                         options: .atomic)
                 }
             }
-            if let lastArchive, let cloudDirectory, !deletedCloudArchives.contains(lastArchive.lastPathComponent),
+            if manual || automaticICloud, let lastArchive, let cloudDirectory,
+                !deletedCloudArchives.contains(lastArchive.lastPathComponent),
                 FileManager.default.fileExists(atPath: lastArchive.path)
             {
-                progress = String(localized: "正在交给 iCloud 上传…")
-                try await ConfigurationBackupIO.run { try Self.upload(lastArchive, directory: cloudDirectory) }
-                if manual { notice = String(localized: "完整备份已生成。iCloud 会继续上传，请在列表中确认“已上传”状态。") }
-            } else if manual {
-                notice = String(localized: "完整备份已保存在本机。iCloud 恢复连接后会继续上传；也可以导出文件自行保管。")
+                progress = String(localized: "正在上传到 iCloud…")
+                try await ConfigurationBackupIO.run {
+                    try Self.upload(lastArchive, directory: cloudDirectory)
+                    try ConfigurationBackupStorage.prune(cloudDirectory)
+                }
             }
             await refreshLocal()
         } catch is CancellationError {} catch { notice = error.localizedDescription }
@@ -297,7 +290,7 @@ final class ConfigurationBackupModel: NSObject, ObservableObject {
         discardPrepared()
         busy = true
         notice = nil
-        progress = item.cloud ? String(localized: "正在从 iCloud 下载并校验…") : String(localized: "正在校验完整备份…")
+        progress = item.cloud ? String(localized: "正在从 iCloud 下载…") : String(localized: "正在读取备份…")
         defer {
             busy = false
             progress = ""
@@ -321,7 +314,7 @@ final class ConfigurationBackupModel: NSObject, ObservableObject {
                     if complete { break }
                     try await Task.sleep(for: .seconds(1))
                 }
-                guard complete else { throw BackupFailure.message(String(localized: "下载尚未完成，请检查网络后重试。")) }
+                guard complete else { throw BackupFailure.message(String(localized: "还没下载完，请检查网络后重试。")) }
             }
             prepared = try await ConfigurationBackupIO.run {
                 var coordinationError: NSError?
@@ -349,7 +342,7 @@ final class ConfigurationBackupModel: NSObject, ObservableObject {
     func restorePrepared() async {
         guard let prepared, !busy else { return }
         guard !SchemeImportCenter.shared.busy, !DictionaryImportCenter.shared.busy else {
-            notice = String(localized: "输入方案正在更新，请等待完成后再恢复。")
+            notice = String(localized: "输入方案正在更新，完成后再恢复。")
             return
         }
         busy = true
@@ -358,15 +351,18 @@ final class ConfigurationBackupModel: NSObject, ObservableObject {
         notice = nil
         let activity = ProcessActivityAssertion(reason: "Songyan configuration restore")
         defer { activity.end() }
-        progress = String(localized: "正在保存恢复前备份…")
+        progress = String(localized: "正在备份现在的内容…")
         defer {
             busy = false
             restoring = false
             progress = ""
         }
         do {
-            _ = try await ConfigurationBackupIO.run { try ConfigurationBackupStorage.create(safety: true) }
-            progress = String(localized: "正在恢复配置…")
+            _ = try await ConfigurationBackupIO.run {
+                _ = try ConfigurationBackupStorage.create(safety: true)
+                try ConfigurationBackupStorage.prune(ConfigurationBackupStorage.localArchives)
+            }
+            progress = String(localized: "正在恢复…")
             try await EngineOwnershipCoordinator.shared.withExclusive {
                 try await ConfigurationBackupIO.run { try ConfigurationBackupStorage.restore(prepared) }
             }
@@ -388,8 +384,8 @@ final class ConfigurationBackupModel: NSObject, ObservableObject {
             NotificationCenter.default.post(name: .keyboardAppearanceChanged, object: nil)
             notice =
                 pendingDependencies
-                ? String(localized: "布局和设置已恢复，部分依赖尚未完成。请查看下方原因并继续恢复；记录和学习快照已保留。")
-                : String(localized: "配置和依赖已恢复。下次使用对应键盘时会合并学习快照。恢复前的配置备份保留在本机列表中。")
+                ? String(localized: "布局和设置已恢复，还有一些内容没下载完。请查看下方原因后继续下载。")
+                : String(localized: "已恢复。学习数据会在下次使用键盘时合并，恢复前的内容在本机备份里。")
             revision = UUID()
             await refreshLocal()
         } catch {
@@ -424,9 +420,9 @@ final class ConfigurationBackupModel: NSObject, ObservableObject {
             await SchemeImportCenter.shared.refresh()
             await DictionaryImportCenter.shared.refresh()
             await KeyboardSelectionCenter.shared.refresh()
-            notice = pendingDependencies ? String(localized: "仍有依赖未完成，请查看原因后重试。") : String(localized: "依赖和键盘启用项已恢复。")
+            notice = pendingDependencies ? String(localized: "还有内容没下载完，请查看原因后重试。") : String(localized: "已全部下载完成。")
             revision = UUID()
-        } catch { notice = String(localized: "依赖恢复未完成：\(error.localizedDescription)") }
+        } catch { notice = String(localized: "下载未完成：\(error.localizedDescription)") }
     }
 
     /// Deletes exactly the chosen copy. A cloud tombstone prevents the foreground backup loop
@@ -458,7 +454,7 @@ final class ConfigurationBackupModel: NSObject, ObservableObject {
             if item.cloud { cloudItems.removeAll { $0.id == item.id } } else { await refreshLocal() }
             notice =
                 item.cloud
-                ? String(localized: "已删除这份 iCloud 备份。本机副本不受影响。") : String(localized: "已删除这份本机备份。iCloud 副本不受影响。")
+                ? String(localized: "已从 iCloud 删除这份备份。") : String(localized: "已删除这份本机备份。")
         } catch { notice = String(localized: "删除未完成：\(error.localizedDescription)") }
     }
 }

@@ -30,7 +30,7 @@ extension SchemeImportCenter {
             }
             try JSONEncoder().encode(records).write(to: file, options: .atomic)
         } catch {
-            userNotice = String(localized: "方案已安装，但未能记录模型下载地址。请稍后重新保存模型设置，以便备份后自动下载。")
+            userNotice = String(localized: "输入方案已安装，但没能记住模型的下载地址。恢复备份时需要重新添加这个模型。")
         }
     }
 

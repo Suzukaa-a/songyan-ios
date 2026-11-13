@@ -6,7 +6,12 @@ import Foundation
 /// Only exported text archives live here; live Rime databases are never copied between processes.
 public struct LearningSnapshotStore: Sendable {
     public static let directoryName = "LearningSnapshots"
-    public static let automaticBackupKey = "backup.automaticICloud.v1"
+    public static let automaticICloudBackupKey = "backup.automaticICloud.v1"
+    /// Uploading backups to iCloud on its own is opt-in: handing the user's data to Apple is their
+    /// choice. Local backups and snapshots never leave the device and do not depend on it.
+    public static func automaticICloudBackupEnabled(_ defaults: UserDefaults?) -> Bool {
+        defaults?.object(forKey: automaticICloudBackupKey) as? Bool == true
+    }
     public let root: URL
     public init(root: URL) { self.root = root }
 
@@ -161,11 +166,27 @@ public struct LearningSnapshotStore: Sendable {
             to: directory.appendingPathComponent(Self.filename(sourceID, revision)), options: .atomic)
     }
 
-    public func shouldAutomaticallyExport(sourceID: String, revision: String, now: Date) throws -> Bool {
+    /// Taking a snapshot sets the keyboard's engine aside, so it is rare: at most one a day, and only
+    /// when the learning data changed after the last attempt (the Android keyboard's rule).
+    public static let automaticInterval: TimeInterval = 24 * 60 * 60
+
+    public func shouldAutomaticallyExport(
+        sourceID: String, revision: String, now: Date, learningModifiedAt: Date?
+    ) throws -> Bool {
+        guard let learningModifiedAt else { return false }
         let file = root.appendingPathComponent("attempts").appendingPathComponent(Self.filename(sourceID, revision))
         guard FileManager.default.fileExists(atPath: file.path) else { return true }
         let date = try JSONDecoder().decode(Date.self, from: Data(contentsOf: file))
-        return now.timeIntervalSince(date) >= 15 * 60
+        return now.timeIntervalSince(date) >= Self.automaticInterval && learningModifiedAt > date
+    }
+
+    /// When the learning databases in `userDirectory` were last written; nil when there are none.
+    public static func learningModifiedAt(userDirectory: URL) -> Date? {
+        let fm = FileManager.default
+        let databases = (try? fm.contentsOfDirectory(at: userDirectory, includingPropertiesForKeys: nil)) ?? []
+        return databases.filter { $0.pathExtension == "userdb" }.flatMap { database in
+            (try? fm.contentsOfDirectory(at: database, includingPropertiesForKeys: [.contentModificationDateKey])) ?? []
+        }.compactMap { try? $0.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate }.max()
     }
 
     private func read(_ file: URL) throws -> LearningBackupArchive {

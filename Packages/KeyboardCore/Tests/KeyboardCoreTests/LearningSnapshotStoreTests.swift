@@ -68,14 +68,35 @@ final class LearningSnapshotStoreTests: XCTestCase {
         XCTAssertEqual(try transfer.read()?.id, request.id)
     }
 
-    func testAutomaticExportIsThrottledEvenWhenNoLearningExists() throws {
+    /// Each snapshot sets the keyboard's engine aside, so it is taken at most once a day and only after
+    /// the learning data changed; with no learning data there is nothing to take.
+    func testAutomaticSnapshotsAreDailyAndOnlyAfterLearningChanged() throws {
         let now = Date()
-        XCTAssertTrue(try store.shouldAutomaticallyExport(sourceID: "scheme:a", revision: "r", now: now))
+        let day = LearningSnapshotStore.automaticInterval
+        func due(_ at: Date, modified: Date?) throws -> Bool {
+            try store.shouldAutomaticallyExport(
+                sourceID: "scheme:a", revision: "r", now: at, learningModifiedAt: modified)
+        }
+        XCTAssertFalse(try due(now, modified: nil))
+        XCTAssertTrue(try due(now, modified: now.addingTimeInterval(-60)))
         try store.markAutomaticAttempt(sourceID: "scheme:a", revision: "r", date: now)
-        XCTAssertFalse(
-            try store.shouldAutomaticallyExport(sourceID: "scheme:a", revision: "r", now: now.addingTimeInterval(2)))
-        XCTAssertTrue(
-            try store.shouldAutomaticallyExport(sourceID: "scheme:a", revision: "r", now: now.addingTimeInterval(901)))
+        XCTAssertFalse(try due(now.addingTimeInterval(15 * 60), modified: now.addingTimeInterval(60)))
+        XCTAssertFalse(try due(now.addingTimeInterval(day), modified: now.addingTimeInterval(-60)))
+        XCTAssertTrue(try due(now.addingTimeInterval(day), modified: now.addingTimeInterval(60)))
+    }
+
+    func testLearningModifiedAtReadsOnlyTheLearningDatabases() throws {
+        let user = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: user) }
+        XCTAssertNil(LearningSnapshotStore.learningModifiedAt(userDirectory: user))
+        let database = user.appendingPathComponent("luna_pinyin.userdb")
+        try FileManager.default.createDirectory(at: database, withIntermediateDirectories: true)
+        let written = Date(timeIntervalSince1970: 1_800_000_000)
+        let log = database.appendingPathComponent("000003.log")
+        try Data("x".utf8).write(to: log)
+        try FileManager.default.setAttributes([.modificationDate: written], ofItemAtPath: log.path)
+        try Data("y".utf8).write(to: user.appendingPathComponent("installation.yaml"))
+        XCTAssertEqual(LearningSnapshotStore.learningModifiedAt(userDirectory: user), written)
     }
 
     func testUnchangedLearningDoesNotCreateRepeatedFullBackups() throws {
@@ -127,5 +148,17 @@ final class LearningSnapshotStoreTests: XCTestCase {
         XCTAssertEqual(restored.resourceRevision, "rebuilt")
         XCTAssertEqual(restored.dictionaries, original.dictionaries)
         XCTAssertEqual(try store.snapshot(sourceID: "scheme:a", revision: "rebuilt"), fresh)
+    }
+
+    func testAutomaticICloudBackupIsOffUntilTheUserTurnsItOn() throws {
+        let suite = "LearningSnapshotStoreTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        XCTAssertFalse(LearningSnapshotStore.automaticICloudBackupEnabled(nil))
+        XCTAssertFalse(LearningSnapshotStore.automaticICloudBackupEnabled(defaults))
+        defaults.set(true, forKey: LearningSnapshotStore.automaticICloudBackupKey)
+        XCTAssertTrue(LearningSnapshotStore.automaticICloudBackupEnabled(defaults))
+        defaults.set(false, forKey: LearningSnapshotStore.automaticICloudBackupKey)
+        XCTAssertFalse(LearningSnapshotStore.automaticICloudBackupEnabled(defaults))
     }
 }

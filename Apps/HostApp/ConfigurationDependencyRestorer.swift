@@ -31,7 +31,7 @@ enum ConfigurationDependencyRestorer {
         for scheme in schemes {
             let key = "scheme:" + scheme.id
             guard !state.completed.contains(key) else { continue }
-            update(String(localized: "正在恢复依赖：\(scheme.name)…"))
+            update(String(localized: "正在下载 \(scheme.name)…"))
             do {
                 try Task.checkCancellation()
                 try await restoreScheme(scheme)
@@ -45,7 +45,7 @@ enum ConfigurationDependencyRestorer {
             try await ConfigurationBackupIO.run { try ConfigurationBackupDependencies.saveProgress(saved) }
         }
         if let dictionary = dependencies.dictionary, !state.completed.contains("dictionary") {
-            update(String(localized: "正在恢复词库：\(dictionary.name)…"))
+            update(String(localized: "正在下载词库 \(dictionary.name)…"))
             do {
                 try await restoreDictionary(dictionary, selection: dependencies.selection)
                 state.completed.insert("dictionary")
@@ -64,14 +64,14 @@ enum ConfigurationDependencyRestorer {
                 switch selection.kind {
                 case .userScheme:
                     guard let scheme = schemes.first(where: { $0.id == selectedID }) else {
-                        throw failure(String(localized: "备份缺少当前键盘的方案来源记录。"))
+                        throw failure(String(localized: "备份里没有这个输入方案的下载地址，请重新导入它。"))
                     }
                     if state.completed.contains("scheme:" + scheme.id) {
                         try await publish(scheme, selection: selection)
                     }
                 case .userDictionary:
                     guard let dictionary = dependencies.dictionary else {
-                        throw failure(String(localized: "备份缺少当前键盘的词库来源记录。"))
+                        throw failure(String(localized: "备份里没有这个词库的下载地址，请重新导入它。"))
                     }
                     if state.completed.contains("dictionary") {
                         try await publishDictionary(dictionary, selection: selection)
@@ -82,7 +82,7 @@ enum ConfigurationDependencyRestorer {
                 try await EngineOpQueue.async { try KeyboardRecipeStore.setEnabled(false) }
             }
         } catch is CancellationError { throw CancellationError() } catch {
-            state.failures["selection"] = String(localized: "键盘启用项：\(error.localizedDescription)")
+            state.failures["selection"] = String(localized: "我的键盘：\(error.localizedDescription)")
         }
         let saved = state
         try await ConfigurationBackupIO.run { try ConfigurationBackupDependencies.saveProgress(saved) }
@@ -135,7 +135,9 @@ enum ConfigurationDependencyRestorer {
                 let prepared: PreparedSchemeImport
                 var download: SchemeURLDownloadService.Result?
                 if scheme.builtin {
-                    guard let bundled = RimePaths.builtinPackage() else { throw failure(String(localized: "内置方案不可用。")) }
+                    guard let bundled = RimePaths.builtinPackage() else {
+                        throw failure(String(localized: "松烟自带的输入方案读取失败，请重新安装松烟。"))
+                    }
                     prepared = try await Task.detached { try manager.prepareBundledPackage(directory: bundled) }.value
                 } else if let url = scheme.url {
                     let value = try await SchemeURLDownloadService.shared.download(address: url.absoluteString)
@@ -147,12 +149,12 @@ enum ConfigurationDependencyRestorer {
                             }
                             ?? manager.prepareSync(value.localFileURLs)
                         guard imported.schemaIDs.contains(scheme.entry) else {
-                            throw failure(String(localized: "下载内容不包含备份记录的输入方式。"))
+                            throw failure(String(localized: "下载的输入方案里没有备份中的输入方式。"))
                         }
                         return try imported.updatingInstallation(id: scheme.id, name: scheme.name)
                     }.value
                 } else {
-                    throw failure(String(localized: "没有可下载的来源，请先重新导入原方案文件，再点“继续恢复依赖”。"))
+                    throw failure(String(localized: "没有下载地址。请重新导入这个输入方案，再轻点「继续下载」。"))
                 }
                 defer { withExtendedLifetime(download) {} }
                 models.merge(prepared.fileResources.filter { RecipeResourceBudget.isModel($0.key) }) { _, new in new }
@@ -179,7 +181,7 @@ enum ConfigurationDependencyRestorer {
         let suppliedModels = models
         try await EngineOwnershipCoordinator.shared.withExclusive {
             guard let installed = try await manager.activeInstallation() else {
-                throw failure(String(localized: "方案尚未安装。"))
+                throw failure(String(localized: "输入方案还没装好，请稍后重试。"))
             }
             let snapshot = try await centerSnapshot(installed)
             let sources = try await SchemeImportCenter.readInstalledSources(resources: installed.resourceURL)
@@ -261,7 +263,7 @@ enum ConfigurationDependencyRestorer {
     }
 
     nonisolated private static func failure(_ message: String?) -> BackupFailure {
-        .message(message ?? String(localized: "依赖未能恢复，请检查网络或重新导入来源后重试。"))
+        .message(message ?? String(localized: "没能下载，请检查网络后重试。"))
     }
 
     private static func centerSnapshot(_ active: ActiveRecipe) async throws -> RecipeWorkspaceSnapshot {
@@ -276,7 +278,7 @@ enum ConfigurationDependencyRestorer {
         var result = available
         for model in records {
             if let file = result[model.path], file.sha256 == model.sha256, file.size == model.bytes { continue }
-            guard let url = model.url else { throw failure(String(localized: "\(model.path) 没有下载地址，请在方案中重新添加该模型后重试。")) }
+            guard let url = model.url else { throw failure(String(localized: "\(model.path) 没有下载地址，请重新添加这个模型后重试。")) }
             let file: RecipeFileResource
             if let download {
                 file = try await download(url)
@@ -286,7 +288,7 @@ enum ConfigurationDependencyRestorer {
                     maximumBytes: RecipeResourceBudget.modelFile)
             }
             guard file.sha256 == model.sha256, file.size == model.bytes else {
-                throw failure(String(localized: "\(model.path) 的下载内容与备份记录不同，已停止使用。"))
+                throw failure(String(localized: "\(model.path) 下载到的文件和备份里的不同，没有使用。"))
             }
             result[model.path] = file
         }
@@ -326,13 +328,13 @@ enum ConfigurationDependencyRestorer {
             )
         }
         guard let first = sources.first, let builtin = RimePaths.builtinPackage() else {
-            throw failure(String(localized: "词库来源不可用。"))
+            throw failure(String(localized: "没找到词库的下载地址，请重新导入这个词库。"))
         }
         let prepared = try await manager.prepareDictionaryImport(
             root: first, dependencies: Array(sources.dropFirst()), builtinResources: builtin)
         for source in dictionary.sources {
             guard prepared.sources.first(where: { $0.path == source.path })?.sha256 == source.sha256 else {
-                throw failure(String(localized: "下载的词库内容与备份记录不同。"))
+                throw failure(String(localized: "下载到的词库和备份里的不同，没有使用。"))
             }
         }
         try await EngineOwnershipCoordinator.shared.withExclusive {
@@ -352,7 +354,9 @@ enum ConfigurationDependencyRestorer {
         _ dictionary: ConfigurationBackupDependencies.Dictionary, selection: KeyboardRecipeStore.Activation?
     ) async throws {
         let manager = RecipePackageManager(rootURL: DictionaryImportCenter.storeRoot)
-        guard let active = try await manager.activeInstallation() else { throw failure(String(localized: "词库尚未安装。")) }
+        guard let active = try await manager.activeInstallation() else {
+            throw failure(String(localized: "词库还没装好，请稍后重试。"))
+        }
         try await EngineOwnershipCoordinator.shared.withExclusive {
             let key = KeyboardRecipeStore.rosterKey(kind: .userDictionary, packageID: nil)!
             let selected = selection?.kind == .userDictionary

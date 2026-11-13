@@ -51,6 +51,10 @@ struct LearningBackupView: View {
                 }
             }
         }
+        .refreshable {
+            await ConfigurationBackupModel.shared.refreshCloud()
+            await ConfigurationBackupModel.shared.refreshLocal()
+        }
         .navigationTitle(String(localized: "备份与恢复"))
         .navigationBarTitleDisplayMode(.inline)
         .task { model.refreshSource() }
@@ -125,7 +129,7 @@ struct LearningBackupView: View {
                 Button(String(localized: "重试")) { model.refreshSource() }
             }
         } header: {
-            Text("单独备份学习数据 · 当前来源")
+            Text("学习备份")
         }
     }
 

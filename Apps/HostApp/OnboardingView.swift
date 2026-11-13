@@ -27,6 +27,7 @@ struct OnboardingView: View {
     var onSkip: (() -> Void)? = nil
 
     @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var backups = ConfigurationBackupModel.shared
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @AppStorage(AppSettings.onboardingCompletedKey) private var onboardingCompleted = false
@@ -88,7 +89,8 @@ struct OnboardingView: View {
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
 
-            if presentation == .standalone && step == 0 {
+            // Only someone who already has a backup in iCloud has anything to restore.
+            if presentation == .standalone && step == 0 && !backups.cloudItems.isEmpty {
                 NavigationLink(String(localized: "已有备份？从 iCloud 恢复")) { LearningBackupView() }
                     .padding(.top, 8)
             }

@@ -32913,138 +32913,6 @@
         }
       }
     },
-    "iCloud 历史备份": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "iCloud 历史备份"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "iCloud 歷史備份"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "iCloud バックアップ履歴"
-          }
-        }
-      }
-    },
-    "iCloud 完整配置备份与学习数据": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "iCloud 完整配置备份与学习数据"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "iCloud 完整配置備份與學習資料"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "iCloud 設定全体と学習データのバックアップ"
-          }
-        }
-      }
-    },
-    "从文件恢复完整备份": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "从文件恢复完整备份"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "從檔案恢復完整備份"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ファイルから全体を復元"
-          }
-        }
-      }
-    },
-    "保存当前配置并恢复": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "保存当前配置并恢复"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "儲存當前配置並恢復"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "現在の設定を保存して復元"
-          }
-        }
-      }
-    },
-    "刷新备份列表": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "刷新备份列表"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "重新整理備份列表"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "バックアップ一覧を更新"
-          }
-        }
-      }
-    },
-    "单独备份学习数据 · 当前来源": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "单独备份学习数据 · 当前来源"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "單獨備份學習資料 · 當前來源"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "学習データの個別バックアップ・現在の入力方式"
-          }
-        }
-      }
-    },
     "备份与恢复": {
       "localizations": {
         "zh-Hans": {
@@ -33063,50 +32931,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "バックアップと復元"
-          }
-        }
-      }
-    },
-    "完整备份中的学习快照": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "完整备份中的学习快照"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "完整備份中的學習快照"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "全体バックアップの学習データ"
-          }
-        }
-      }
-    },
-    "完整配置备份": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "完整配置备份"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "完整配置備份"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "設定全体のバックアップ"
           }
         }
       }
@@ -33155,94 +32979,6 @@
         }
       }
     },
-    "恢复这份完整备份？": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "恢复这份完整备份？"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "恢復這份完整備份？"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "この全体バックアップを復元しますか？"
-          }
-        }
-      }
-    },
-    "本机完整备份": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "本机完整备份"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "本機完整備份"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "このデバイスの全体バックアップ"
-          }
-        }
-      }
-    },
-    "立即完整备份": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "立即完整备份"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "立即完整備份"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "今すぐ全体をバックアップ"
-          }
-        }
-      }
-    },
-    "等待上传或上传中": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "等待上传或上传中"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "等待上傳或上傳中"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "アップロード待ち、または転送中"
-          }
-        }
-      }
-    },
     "自动备份到 iCloud": {
       "localizations": {
         "zh-Hans": {
@@ -33261,28 +32997,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "iCloud に自動バックアップ"
-          }
-        }
-      }
-    },
-    "下载并恢复": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "下载并恢复"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "下載並恢復"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ダウンロードして復元"
           }
         }
       }
@@ -33309,512 +33023,6 @@
         }
       }
     },
-    "删除 iCloud 备份": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "删除 iCloud 备份"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "刪除 iCloud 備份"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "iCloud バックアップを削除"
-          }
-        }
-      }
-    },
-    "删除本机备份": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "删除本机备份"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "刪除本機備份"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "この端末のバックアップを削除"
-          }
-        }
-      }
-    },
-    "继续恢复依赖": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "继续恢复依赖"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "繼續恢復依賴"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "必要なデータの復元を続ける"
-          }
-        }
-      }
-    },
-    "尚未完成的依赖": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "尚未完成的依赖"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "尚未完成的依賴"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "未復元のデータ"
-          }
-        }
-      }
-    },
-    "联网后可继续下载。有些本地导入的方案或模型没有来源地址，需要先重新导入；布局、页面搭配和学习快照会保留。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "联网后可继续下载。有些本地导入的方案或模型没有来源地址，需要先重新导入；布局、页面搭配和学习快照会保留。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "聯網後可繼續下載。有些本地匯入的方案或模型沒有來源地址，需要先重新匯入；佈局、頁面搭配和學習快照會保留。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "接続後にダウンロードを続けられます。ローカルから読み込んだ入力方式やモデルに取得元がない場合は、再度読み込んでください。レイアウト、ページの組み合わせ、学習データは保持されます。"
-          }
-        }
-      }
-    },
-    "保存方案来源、所选配置、我的键盘及启用项、布局和页面搭配、符号库、个人词库、设置及学习快照。输入方案本体、可下载词库和语法模型只记录依赖，恢复时重新下载。自动备份间隔至少 5 分钟，后台执行和上传时机由系统安排。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "保存方案来源、所选配置、我的键盘及启用项、布局和页面搭配、符号库、个人词库、设置及学习快照。输入方案本体、可下载词库和语法模型只记录依赖，恢复时重新下载。自动备份间隔至少 5 分钟，后台执行和上传时机由系统安排。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "儲存方案來源、所選配置、我的鍵盤及啟用項、佈局和頁面搭配、符號庫、個人詞庫、設定及學習快照。輸入方案本體、可下載詞庫和語法模型只記錄依賴，恢復時重新下載。自動備份間隔至少 5 分鐘，後臺執行和上傳時機由系統安排。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "入力方式の取得元と選択した設定、マイキーボードと使用する項目、レイアウトとページ、記号、個人辞書、設定、学習データを保存します。入力方式本体、ダウンロード可能な辞書、言語モデルは取得元のみを記録し、復元時に再取得します。自動バックアップの間隔は最低 5 分で、バックグラウンド実行とアップロードのタイミングはシステムが決定します。"
-          }
-        }
-      }
-    },
-    "正在恢复依赖：%@…": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "正在恢复依赖：%@…"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "正在恢復依賴：%@…"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "依存ファイルを復元中：%@…"
-          }
-        }
-      }
-    },
-    "正在恢复词库：%@…": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "正在恢复词库：%@…"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "正在恢復詞庫：%@…"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "辞書を復元中：%@…"
-          }
-        }
-      }
-    },
-    "备份缺少当前键盘的方案来源记录。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "备份缺少当前键盘的方案来源记录。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "備份缺少當前鍵盤的方案來源記錄。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "現在のキーボードの入力方式の取得元がバックアップに記録されていません。"
-          }
-        }
-      }
-    },
-    "备份缺少当前键盘的词库来源记录。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "备份缺少当前键盘的词库来源记录。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "備份缺少當前鍵盤的詞庫來源記錄。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "現在のキーボードの辞書の取得元がバックアップに記録されていません。"
-          }
-        }
-      }
-    },
-    "键盘启用项：%@": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "键盘启用项：%@"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "鍵盤啟用項：%@"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "使用するキーボード：%@"
-          }
-        }
-      }
-    },
-    "内置方案不可用。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "内置方案不可用。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "內建方案不可用。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "内蔵の入力方式を利用できません。"
-          }
-        }
-      }
-    },
-    "下载内容不包含备份记录的输入方式。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "下载内容不包含备份记录的输入方式。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "下載內容不包含備份記錄的輸入方式。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ダウンロードした内容に、バックアップに記録された入力方式が含まれていません。"
-          }
-        }
-      }
-    },
-    "没有可下载的来源，请先重新导入原方案文件，再点“继续恢复依赖”。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "没有可下载的来源，请先重新导入原方案文件，再点“继续恢复依赖”。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "沒有可下載的來源，請先重新匯入原方案檔案，再點“繼續恢復依賴”。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ダウンロード元がありません。元の入力方式ファイルを再度読み込んでから「依存ファイルの復元を続ける」をタップしてください。"
-          }
-        }
-      }
-    },
-    "方案尚未安装。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "方案尚未安装。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "方案尚未安裝。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "入力方式がまだインストールされていません。"
-          }
-        }
-      }
-    },
-    "依赖未能恢复，请检查网络或重新导入来源后重试。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "依赖未能恢复，请检查网络或重新导入来源后重试。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "依賴未能恢復，請檢查網路或重新匯入來源後重試。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "依存ファイルを復元できませんでした。ネットワークを確認するか、元のファイルを再度読み込んでからやり直してください。"
-          }
-        }
-      }
-    },
-    "%@ 没有下载地址，请在方案中重新添加该模型后重试。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ 没有下载地址，请在方案中重新添加该模型后重试。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ 沒有下載地址，請在方案中重新新增該模型後重試。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ のダウンロード先がありません。入力方式にこのモデルを再度追加してからやり直してください。"
-          }
-        }
-      }
-    },
-    "%@ 的下载内容与备份记录不同，已停止使用。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ 的下载内容与备份记录不同，已停止使用。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ 的下載內容與備份記錄不同，已停止使用。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ のダウンロード内容がバックアップの記録と一致しないため、使用を中止しました。"
-          }
-        }
-      }
-    },
-    "词库来源不可用。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "词库来源不可用。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "詞庫來源不可用。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "辞書の取得元を利用できません。"
-          }
-        }
-      }
-    },
-    "下载的词库内容与备份记录不同。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "下载的词库内容与备份记录不同。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "下載的詞庫內容與備份記錄不同。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ダウンロードした辞書の内容がバックアップの記録と一致しません。"
-          }
-        }
-      }
-    },
-    "词库尚未安装。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "词库尚未安装。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "詞庫尚未安裝。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "辞書がまだインストールされていません。"
-          }
-        }
-      }
-    },
-    "无法访问键盘共享配置。请稍后重试。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "无法访问键盘共享配置。请稍后重试。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "無法訪問鍵盤共享配置。請稍後重試。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "キーボードの共有設定にアクセスできません。しばらくしてからやり直してください。"
-          }
-        }
-      }
-    },
-    "键盘设置暂时无法读取。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "键盘设置暂时无法读取。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "鍵盤設定暫時無法讀取。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "現在、キーボード設定を読み込めません。"
-          }
-        }
-      }
-    },
     "恢复前": {
       "localizations": {
         "zh-Hans": {
@@ -33833,72 +33041,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "復元前"
-          }
-        }
-      }
-    },
-    "键盘正在备份或合并学习数据，请完成后再恢复。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "键盘正在备份或合并学习数据，请完成后再恢复。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "鍵盤正在備份或合併學習資料，請完成後再恢復。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "キーボードが学習データをバックアップまたは統合しています。完了後に復元してください。"
-          }
-        }
-      }
-    },
-    "现有方案版本与备份中的同名版本不一致，已停止恢复。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "现有方案版本与备份中的同名版本不一致，已停止恢复。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "現有方案版本與備份中的同名版本不一致，已停止恢復。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "既存の入力方式とバックアップ内の同名バージョンが一致しないため、復元を中止しました。"
-          }
-        }
-      }
-    },
-    "键盘设置暂时无法写入。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "键盘设置暂时无法写入。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "鍵盤設定暫時無法寫入。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "現在、キーボード設定を保存できません。"
           }
         }
       }
@@ -33925,94 +33067,6 @@
         }
       }
     },
-    "尚未收集学习快照。使用松烟键盘后会自动收集。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "尚未收集学习快照。使用松烟键盘后会自动收集。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "尚未收集學習快照。使用松煙鍵盤後會自動收集。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "学習データのスナップショットはまだありません。松煙キーボードを使用すると自動的に収集されます。"
-          }
-        }
-      }
-    },
-    "未完成的恢复暂时无法回滚，已暂停加载配置：%@": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "未完成的恢复暂时无法回滚，已暂停加载配置：%@"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "未完成的恢復暫時無法回滾，已暫停載入配置：%@"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "未完了の復元を元に戻せないため、設定の読み込みを停止しました：%@"
-          }
-        }
-      }
-    },
-    "iCloud 不可用。请登录 Apple 账户并开启 iCloud 云盘和松烟的 iCloud 权限。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "iCloud 不可用。请登录 Apple 账户并开启 iCloud 云盘和松烟的 iCloud 权限。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "iCloud 不可用。請登入 Apple 賬戶並開啟 iCloud 雲盤和松煙的 iCloud 許可權。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "iCloud を利用できません。Apple Account にサインインし、iCloud Drive と松煙の iCloud アクセスを有効にしてください。"
-          }
-        }
-      }
-    },
-    "已连接 iCloud。只有显示“已上传”的备份才能在重装后取回。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "已连接 iCloud。只有显示“已上传”的备份才能在重装后取回。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "已連線 iCloud。只有顯示“已上傳”的備份才能在重灌後取回。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "iCloud に接続しました。「アップロード済み」と表示されたバックアップのみ、再インストール後に取得できます。"
-          }
-        }
-      }
-    },
     "iCloud 暂时不可用：%@": {
       "localizations": {
         "zh-Hans": {
@@ -34035,314 +33089,6 @@
         }
       }
     },
-    "尚未收集学习快照。使用松烟键盘后会自动收集，也可以在下方立即备份当前方案的学习数据。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "尚未收集学习快照。使用松烟键盘后会自动收集，也可以在下方立即备份当前方案的学习数据。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "尚未收集學習快照。使用松煙鍵盤後會自動收集，也可以在下方立即備份當前方案的學習資料。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "学習データのスナップショットはまだありません。松煙キーボードを使用すると自動的に収集されます。下の操作で現在の入力方式の学習データをすぐにバックアップすることもできます。"
-          }
-        }
-      }
-    },
-    "正在检查配置…": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "正在检查配置…"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "正在檢查配置…"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "設定を確認中…"
-          }
-        }
-      }
-    },
-    "正在生成完整备份…": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "正在生成完整备份…"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "正在生成完整備份…"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "完全バックアップを作成中…"
-          }
-        }
-      }
-    },
-    "正在交给 iCloud 上传…": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "正在交给 iCloud 上传…"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "正在交給 iCloud 上傳…"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "iCloud にアップロードを依頼中…"
-          }
-        }
-      }
-    },
-    "完整备份已生成。iCloud 会继续上传，请在列表中确认“已上传”状态。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "完整备份已生成。iCloud 会继续上传，请在列表中确认“已上传”状态。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "完整備份已生成。iCloud 會繼續上傳，請在列表中確認“已上傳”狀態。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "完全バックアップを作成しました。iCloud がアップロードを続行します。一覧で「アップロード済み」になったことを確認してください。"
-          }
-        }
-      }
-    },
-    "完整备份已保存在本机。iCloud 恢复连接后会继续上传；也可以导出文件自行保管。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "完整备份已保存在本机。iCloud 恢复连接后会继续上传；也可以导出文件自行保管。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "完整備份已儲存在本機。iCloud 恢復連線後會繼續上傳；也可以匯出檔案自行保管。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "完全バックアップをこの端末に保存しました。iCloud に再接続するとアップロードを続行します。ファイルを書き出して保管することもできます。"
-          }
-        }
-      }
-    },
-    "正在从 iCloud 下载并校验…": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "正在从 iCloud 下载并校验…"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "正在從 iCloud 下載並校驗…"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "iCloud からダウンロードして検証中…"
-          }
-        }
-      }
-    },
-    "正在校验完整备份…": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "正在校验完整备份…"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "正在校驗完整備份…"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "完全バックアップを検証中…"
-          }
-        }
-      }
-    },
-    "下载尚未完成，请检查网络后重试。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "下载尚未完成，请检查网络后重试。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "下載尚未完成，請檢查網路後重試。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ダウンロードが完了していません。ネットワークを確認してからやり直してください。"
-          }
-        }
-      }
-    },
-    "输入方案正在更新，请等待完成后再恢复。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "输入方案正在更新，请等待完成后再恢复。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "輸入方案正在更新，請等待完成後再恢復。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "入力方式を更新中です。完了後に復元してください。"
-          }
-        }
-      }
-    },
-    "正在保存恢复前备份…": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "正在保存恢复前备份…"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "正在儲存恢復前備份…"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "復元前のバックアップを保存中…"
-          }
-        }
-      }
-    },
-    "正在恢复配置…": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "正在恢复配置…"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "正在恢復配置…"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "設定を復元中…"
-          }
-        }
-      }
-    },
-    "布局和设置已恢复，部分依赖尚未完成。请查看下方原因并继续恢复；记录和学习快照已保留。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "布局和设置已恢复，部分依赖尚未完成。请查看下方原因并继续恢复；记录和学习快照已保留。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "佈局和設定已恢復，部分依賴尚未完成。請檢視下方原因並繼續恢復；記錄和學習快照已保留。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "レイアウトと設定を復元しました。一部の依存ファイルは未完了です。下の理由を確認して復元を続けてください。記録と学習データのスナップショットは保持されています。"
-          }
-        }
-      }
-    },
-    "配置和依赖已恢复。下次使用对应键盘时会合并学习快照。恢复前的配置备份保留在本机列表中。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "配置和依赖已恢复。下次使用对应键盘时会合并学习快照。恢复前的配置备份保留在本机列表中。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "配置和依賴已恢復。下次使用對應鍵盤時會合並學習快照。恢復前的配置備份保留在本機列表中。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "設定と依存ファイルを復元しました。次回、対応するキーボードを使用すると学習データを統合します。復元前の設定のバックアップは、この端末の一覧に残されています。"
-          }
-        }
-      }
-    },
     "恢复未完成：%@": {
       "localizations": {
         "zh-Hans": {
@@ -34361,72 +33107,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "復元が完了していません：%@"
-          }
-        }
-      }
-    },
-    "仍有依赖未完成，请查看原因后重试。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "仍有依赖未完成，请查看原因后重试。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "仍有依賴未完成，請檢視原因後重試。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "未完了の依存ファイルがあります。理由を確認してからやり直してください。"
-          }
-        }
-      }
-    },
-    "依赖和键盘启用项已恢复。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "依赖和键盘启用项已恢复。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "依賴和鍵盤啟用項已恢復。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "依存ファイルと使用するキーボードを復元しました。"
-          }
-        }
-      }
-    },
-    "依赖恢复未完成：%@": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "依赖恢复未完成：%@"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "依賴恢復未完成：%@"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "依存ファイルの復元が完了していません：%@"
           }
         }
       }
@@ -34475,50 +33155,6 @@
         }
       }
     },
-    "已删除这份 iCloud 备份。本机副本不受影响。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "已删除这份 iCloud 备份。本机副本不受影响。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "已刪除這份 iCloud 備份。本機副本不受影響。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "この iCloud バックアップを削除しました。この端末のコピーは保持されています。"
-          }
-        }
-      }
-    },
-    "已删除这份本机备份。iCloud 副本不受影响。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "已删除这份本机备份。iCloud 副本不受影响。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "已刪除這份本機備份。iCloud 副本不受影響。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "この端末のバックアップを削除しました。iCloud のコピーは保持されています。"
-          }
-        }
-      }
-    },
     "删除未完成：%@": {
       "localizations": {
         "zh-Hans": {
@@ -34541,200 +33177,1168 @@
         }
       }
     },
-    "暂未发现 iCloud 备份": {
+    "%@ 下载到的文件和备份里的不同，没有使用。": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "暂未发现 iCloud 备份"
+            "value": "%@ 下载到的文件和备份里的不同，没有使用。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "暫未發現 iCloud 備份"
+            "value": "%@ 下載到的檔案和備份裡的不同，沒有使用。"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "iCloud バックアップはまだありません"
+            "value": "ダウンロードした %@ がバックアップと異なるため、使用していません。"
           }
         }
       }
     },
-    "连接 iCloud 后显示历史备份": {
+    "%@ 没有下载地址，请重新添加这个模型后重试。": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "连接 iCloud 后显示历史备份"
+            "value": "%@ 没有下载地址，请重新添加这个模型后重试。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "連線 iCloud 後顯示歷史備份"
+            "value": "%@ 沒有下載地址，請重新新增這個模型後重試。"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "iCloud に接続すると過去のバックアップを表示します"
+            "value": "%@ にダウンロード先がありません。このモデルをもう一度追加してからお試しください。"
           }
         }
       }
     },
-    "重装后登录同一 Apple 账户，在这里选择备份下载并恢复。恢复前会校验全部文件，并保存当前配置的完整备份。历史备份不会自动删除。": {
+    "iCloud 不可用，备份只存在本机。要用 iCloud，请在系统设置中登录 Apple 账户并打开 iCloud 云盘。": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "重装后登录同一 Apple 账户，在这里选择备份下载并恢复。恢复前会校验全部文件，并保存当前配置的完整备份。历史备份不会自动删除。"
+            "value": "iCloud 不可用，备份只存在本机。要用 iCloud，请在系统设置中登录 Apple 账户并打开 iCloud 云盘。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "重灌後登入同一 Apple 賬戶，在這裡選擇備份下載並恢復。恢復前會校驗全部檔案，並儲存當前配置的完整備份。歷史備份不會自動刪除。"
+            "value": "iCloud 不可用，備份只存在本機。要用 iCloud，請在系統設定中登入 Apple 賬戶並開啟 iCloud 雲盤。"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "再インストール後に同じ Apple Account にサインインし、ここでバックアップを選んでダウンロード・復元できます。復元前にすべてのファイルを検証し、現在の設定の完全バックアップを保存します。過去のバックアップは自動削除されません。"
+            "value": "iCloud を利用できないため、バックアップはこの端末にだけ保存されます。iCloud を使うには、設定で Apple アカウントにサインインし、iCloud Drive をオンにしてください。"
           }
         }
       }
     },
-    "本机备份可能随卸载一并删除。请确认 iCloud 显示“已上传”，或导出到其他位置。": {
+    "上次恢复没有完成，松烟暂时无法打开：%@": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "本机备份可能随卸载一并删除。请确认 iCloud 显示“已上传”，或导出到其他位置。"
+            "value": "上次恢复没有完成，松烟暂时无法打开：%@"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "本機備份可能隨解除安裝一併刪除。請確認 iCloud 顯示“已上傳”，或匯出到其他位置。"
+            "value": "上次恢復沒有完成，松煙暫時無法開啟：%@"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "この端末のバックアップは、アプリの削除時に消える場合があります。iCloud に「アップロード済み」と表示されていることを確認するか、別の場所に書き出してください。"
+            "value": "前回の復元が完了していないため、松煙を開けません：%@"
           }
         }
       }
     },
-    "键盘在空闲时按方案收集学习数据，最多每 15 分钟一次，需要允许完全访问。未使用或未收集的方案不会虚报为已备份。下方仍可单独备份、导入和合并当前方案的学习数据。": {
+    "下载到的词库和备份里的不同，没有使用。": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "键盘在空闲时按方案收集学习数据，最多每 15 分钟一次，需要允许完全访问。未使用或未收集的方案不会虚报为已备份。下方仍可单独备份、导入和合并当前方案的学习数据。"
+            "value": "下载到的词库和备份里的不同，没有使用。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "鍵盤在空閒時按方案收集學習資料，最多每 15 分鐘一次，需要允許完整取用。未使用或未收集的方案不會虛報為已備份。下方仍可單獨備份、匯入和合並當前方案的學習資料。"
+            "value": "下載到的詞庫和備份裡的不同，沒有使用。"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "キーボードは待機中に入力方式ごとの学習データを収集します。実行間隔は最短で 15 分で、フルアクセスの許可が必要です。未使用や未収集の入力方式はバックアップ済みとして扱いません。下では引き続き、現在の入力方式の学習データを個別にバックアップ・読み込み・統合できます。"
+            "value": "ダウンロードした辞書がバックアップと異なるため、使用していません。"
           }
         }
       }
     },
-    "备份时间：%@。键盘页面搭配、符号库和设置将替换为备份内容，方案和模型按记录下载并恢复启用项，下载可能较大。学习数据会在使用对应键盘时安全合并。": {
+    "下载的输入方案里没有备份中的输入方式。": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "备份时间：%@。键盘页面搭配、符号库和设置将替换为备份内容，方案和模型按记录下载并恢复启用项，下载可能较大。学习数据会在使用对应键盘时安全合并。"
+            "value": "下载的输入方案里没有备份中的输入方式。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "備份時間：%@。鍵盤頁面搭配、符號庫和設定將取代為備份內容，方案和模型按記錄下載並恢復啟用項，下載可能較大。學習資料會在使用對應鍵盤時安全合併。"
+            "value": "下載的輸入方案裡沒有備份中的輸入方式。"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "バックアップ日時：%@。キーボードのページ組み合わせ、記号ライブラリ、設定をバックアップの内容に置き換えます。記録に従って入力方式とモデルをダウンロードし、使用するキーボードを復元します。ダウンロード容量が大きくなる場合があります。学習データは対応するキーボードの使用時に安全に統合されます。"
+            "value": "ダウンロードした入力パックに、バックアップの入力方式がありません。"
           }
         }
       }
     },
-    "将删除 iCloud 中的这份备份，并同步到使用同一账户的设备。本机副本会保留。此操作不能撤销。\n%@": {
+    "从文件恢复…": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "将删除 iCloud 中的这份备份，并同步到使用同一账户的设备。本机副本会保留。此操作不能撤销。\n%@"
+            "value": "从文件恢复…"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "將刪除 iCloud 中的這份備份，並同步到使用同一賬戶的裝置。本機副本會保留。此操作不能撤銷。\n%@"
+            "value": "從檔案恢復…"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "iCloud 内のこのバックアップを削除し、同じアカウントの端末にも同期します。この端末のコピーは保持されます。この操作は取り消せません。\n%@"
+            "value": "ファイルから復元…"
           }
         }
       }
     },
-    "仅删除本机的这份备份，iCloud 副本会保留。此操作不能撤销。\n%@": {
+    "保留最近 10 份。重装松烟后，用同一个 Apple 账户登录就能恢复。": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "仅删除本机的这份备份，iCloud 副本会保留。此操作不能撤销。\n%@"
+            "value": "保留最近 10 份。重装松烟后，用同一个 Apple 账户登录就能恢复。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "僅刪除本機的這份備份，iCloud 副本會保留。此操作不能撤銷。\n%@"
+            "value": "保留最近 10 份。重灌松煙後，用同一個 Apple 賬戶登入就能恢復。"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "この端末のバックアップのみを削除します。iCloud のコピーは保持されます。この操作は取り消せません。\n%@"
+            "value": "最新の 10 件を残します。松煙を再インストールしたら、同じ Apple アカウントでサインインすれば復元できます。"
           }
         }
       }
     },
-    "方案已安装，但未能记录模型下载地址。请稍后重新保存模型设置，以便备份后自动下载。": {
+    "只删除本机的这份备份。": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "方案已安装，但未能记录模型下载地址。请稍后重新保存模型设置，以便备份后自动下载。"
+            "value": "只删除本机的这份备份。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "方案已安裝，但未能記錄模型下載地址。請稍後重新儲存模型設定，以便備份後自動下載。"
+            "value": "只刪除本機的這份備份。"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "入力方式をインストールしましたが、モデルのダウンロード先を記録できませんでした。バックアップから自動取得できるよう、後ほどモデル設定を再度保存してください。"
+            "value": "この端末のバックアップだけを削除します。"
+          }
+        }
+      }
+    },
+    "备份包括我的键盘、键盘布局、页面搭配、符号库、词库、设置和学习数据。输入方案和语法模型在恢复时重新下载。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "备份包括我的键盘、键盘布局、页面搭配、符号库、词库、设置和学习数据。输入方案和语法模型在恢复时重新下载。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "備份包括我的鍵盤、鍵盤配置、頁面搭配、符號庫、詞庫、設定和學習資料。輸入方案和語法模型在恢復時重新下載。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "マイキーボード、キー配列、ページの組み合わせ、記号ライブラリ、辞書、設定、学習データをバックアップします。入力パックと文法モデルは復元時にダウンロードし直します。"
+          }
+        }
+      }
+    },
+    "备份时间：%@。现在的键盘和设置会换成备份里的内容，输入方案和语法模型会重新下载。恢复前会先备份现在的内容。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "备份时间：%@。现在的键盘和设置会换成备份里的内容，输入方案和语法模型会重新下载。恢复前会先备份现在的内容。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "備份時間：%@。現在的鍵盤和設定會換成備份裡的內容，輸入方案和語法模型會重新下載。恢復前會先備份現在的內容。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "バックアップ日時：%@。現在のキーボードと設定がバックアップの内容に置き換わり、入力パックと文法モデルはダウンロードし直します。復元の前に現在の内容をバックアップします。"
+          }
+        }
+      }
+    },
+    "备份里没有这个词库的下载地址，请重新导入它。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "备份里没有这个词库的下载地址，请重新导入它。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "備份裡沒有這個詞庫的下載地址，請重新匯入它。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "バックアップにこの辞書のダウンロード先がありません。もう一度読み込んでください。"
+          }
+        }
+      }
+    },
+    "备份里没有这个输入方案的下载地址，请重新导入它。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "备份里没有这个输入方案的下载地址，请重新导入它。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "備份裡沒有這個輸入方案的下載地址，請重新匯入它。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "バックアップにこの入力パックのダウンロード先がありません。もう一度読み込んでください。"
+          }
+        }
+      }
+    },
+    "备份键盘和学习数据": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "备份键盘和学习数据"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "備份鍵盤和學習資料"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーボードと学習データのバックアップ"
+          }
+        }
+      }
+    },
+    "已从 iCloud 删除这份备份。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已从 iCloud 删除这份备份。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已從 iCloud 刪除這份備份。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このバックアップを iCloud から削除しました。"
+          }
+        }
+      }
+    },
+    "已全部下载完成。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已全部下载完成。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已全部下載完成。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "すべてダウンロードしました。"
+          }
+        }
+      }
+    },
+    "已删除这份本机备份。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已删除这份本机备份。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已刪除這份本機備份。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この端末のバックアップを削除しました。"
+          }
+        }
+      }
+    },
+    "已安装的输入方案和备份里的版本不同，没有恢复。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已安装的输入方案和备份里的版本不同，没有恢复。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已安裝的輸入方案和備份裡的版本不同，沒有恢復。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インストール済みの入力パックとバックアップの版が異なるため、復元しませんでした。"
+          }
+        }
+      }
+    },
+    "已恢复。学习数据会在下次使用键盘时合并，恢复前的内容在本机备份里。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已恢复。学习数据会在下次使用键盘时合并，恢复前的内容在本机备份里。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已恢復。學習資料會在下次使用鍵盤時合併，恢復前的內容在本機備份裡。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "復元しました。学習データは次にキーボードを使うときに統合されます。復元前の内容はこの端末のバックアップにあります。"
+          }
+        }
+      }
+    },
+    "布局和设置已恢复，还有一些内容没下载完。请查看下方原因后继续下载。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "布局和设置已恢复，还有一些内容没下载完。请查看下方原因后继续下载。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "佈局和設定已恢復，還有一些內容沒下載完。請檢視下方原因後繼續下載。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キー配列と設定を復元しました。まだダウンロードが終わっていないものがあります。下の理由を確認して続けてください。"
+          }
+        }
+      }
+    },
+    "恢复前的备份": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "恢复前的备份"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "恢復前的備份"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "復元前のバックアップ"
+          }
+        }
+      }
+    },
+    "恢复这份备份？": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "恢复这份备份？"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "恢復這份備份？"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このバックアップを復元しますか？"
+          }
+        }
+      }
+    },
+    "我的键盘：%@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "我的键盘：%@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "我的鍵盤：%@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "マイキーボード：%@"
+          }
+        }
+      }
+    },
+    "改动后会自动在本机备份，保留最近 10 份。删除松烟时，本机备份也会被删除。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "改动后会自动在本机备份，保留最近 10 份。删除松烟时，本机备份也会被删除。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "改動後會自動在本機備份，保留最近 10 份。刪除松煙時，本機備份也會被刪除。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "変更すると、この端末に自動でバックアップします。最新の 10 件を残します。松煙を削除すると、この端末のバックアップも削除されます。"
+          }
+        }
+      }
+    },
+    "暂时无法保存键盘设置，请稍后重试。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂时无法保存键盘设置，请稍后重试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暫時無法儲存鍵盤設定，請稍後重試。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーボードの設定を保存できません。しばらくしてからもう一度お試しください。"
+          }
+        }
+      }
+    },
+    "暂时无法读取键盘设置，请稍后重试。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂时无法读取键盘设置，请稍后重试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暫時無法讀取鍵盤設定，請稍後重試。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーボードの設定を読み込めません。しばらくしてからもう一度お試しください。"
+          }
+        }
+      }
+    },
+    "本机": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本机"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本機"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この端末"
+          }
+        }
+      }
+    },
+    "松烟自带的输入方案读取失败，请重新安装松烟。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "松烟自带的输入方案读取失败，请重新安装松烟。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "松煙自帶的輸入方案讀取失敗，請重新安裝松煙。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "松煙に付属の入力パックを読み込めませんでした。松煙を再インストールしてください。"
+          }
+        }
+      }
+    },
+    "正在上传": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在上传"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在上傳"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "アップロード中"
+          }
+        }
+      }
+    },
+    "正在上传到 iCloud…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在上传到 iCloud…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在上傳到 iCloud…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud にアップロード中…"
+          }
+        }
+      }
+    },
+    "正在下载 %@…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在下载 %@…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在下載 %@…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ をダウンロード中…"
+          }
+        }
+      }
+    },
+    "正在下载词库 %@…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在下载词库 %@…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在下載詞庫 %@…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "辞書 %@ をダウンロード中…"
+          }
+        }
+      }
+    },
+    "正在从 iCloud 下载…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在从 iCloud 下载…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在從 iCloud 下載…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud からダウンロード中…"
+          }
+        }
+      }
+    },
+    "正在准备…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在准备…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在準備…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "準備中…"
+          }
+        }
+      }
+    },
+    "正在备份…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在备份…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在備份…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "バックアップ中…"
+          }
+        }
+      }
+    },
+    "正在备份现在的内容…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在备份现在的内容…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在備份現在的內容…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在の内容をバックアップ中…"
+          }
+        }
+      }
+    },
+    "正在恢复…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在恢复…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在恢復…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "復元中…"
+          }
+        }
+      }
+    },
+    "正在读取备份…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在读取备份…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在讀取備份…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "バックアップを読み込み中…"
+          }
+        }
+      }
+    },
+    "没找到词库的下载地址，请重新导入这个词库。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没找到词库的下载地址，请重新导入这个词库。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "沒找到詞庫的下載地址，請重新匯入這個詞庫。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "辞書のダウンロード先が見つかりません。この辞書をもう一度読み込んでください。"
+          }
+        }
+      }
+    },
+    "没有下载地址。请重新导入这个输入方案，再轻点「继续下载」。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有下载地址。请重新导入这个输入方案，再轻点「继续下载」。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "沒有下載地址。請重新匯入這個輸入方案，再點一下「繼續下載」。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ダウンロード先がありません。この入力パックをもう一度読み込んでから「ダウンロードを続ける」をタップしてください。"
+          }
+        }
+      }
+    },
+    "没能下载，请检查网络后重试。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没能下载，请检查网络后重试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "沒能下載，請檢查網路後重試。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ダウンロードできませんでした。ネットワークを確認してもう一度お試しください。"
+          }
+        }
+      }
+    },
+    "立即备份": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "立即备份"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "立即備份"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今すぐバックアップ"
+          }
+        }
+      }
+    },
+    "继续下载": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "继续下载"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "繼續下載"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ダウンロードを続ける"
+          }
+        }
+      }
+    },
+    "词库还没装好，请稍后重试。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "词库还没装好，请稍后重试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "詞庫還沒裝好，請稍後重試。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "辞書がまだインストールされていません。しばらくしてからもう一度お試しください。"
+          }
+        }
+      }
+    },
+    "输入方案已安装，但没能记住模型的下载地址。恢复备份时需要重新添加这个模型。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入方案已安装，但没能记住模型的下载地址。恢复备份时需要重新添加这个模型。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "輸入方案已安裝，但沒能記住模型的下載地址。恢復備份時需要重新新增這個模型。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力パックはインストールされましたが、モデルのダウンロード先を記録できませんでした。バックアップの復元時にこのモデルをもう一度追加してください。"
+          }
+        }
+      }
+    },
+    "输入方案正在更新，完成后再恢复。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入方案正在更新，完成后再恢复。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "輸入方案正在更新，完成後再恢復。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力パックを更新中です。終わってから復元してください。"
+          }
+        }
+      }
+    },
+    "输入方案还没装好，请稍后重试。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入方案还没装好，请稍后重试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "輸入方案還沒裝好，請稍後重試。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力パックがまだインストールされていません。しばらくしてからもう一度お試しください。"
+          }
+        }
+      }
+    },
+    "还有内容没下载完，请查看原因后重试。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还有内容没下载完，请查看原因后重试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "還有內容沒下載完，請檢視原因後重試。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "まだダウンロードが終わっていないものがあります。理由を確認してもう一度お試しください。"
+          }
+        }
+      }
+    },
+    "还没下载完": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还没下载完"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "還沒下載完"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未完了のダウンロード"
+          }
+        }
+      }
+    },
+    "还没下载完，请检查网络后重试。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还没下载完，请检查网络后重试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "還沒下載完，請檢查網路後重試。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ダウンロードが終わっていません。ネットワークを確認してもう一度お試しください。"
+          }
+        }
+      }
+    },
+    "还没有备份": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "还没有备份"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "還沒有備份"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "バックアップはまだありません"
+          }
+        }
+      }
+    },
+    "这份备份会从 iCloud 中删除，本机的备份会保留。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这份备份会从 iCloud 中删除，本机的备份会保留。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這份備份會從 iCloud 中刪除，本機的備份會保留。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このバックアップを iCloud から削除します。この端末のバックアップは残ります。"
+          }
+        }
+      }
+    },
+    "键盘正在处理学习数据，请稍后再恢复。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "键盘正在处理学习数据，请稍后再恢复。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "鍵盤正在處理學習資料，請稍後再恢復。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーボードが学習データを処理中です。しばらくしてから復元してください。"
           }
         }
       }

@@ -90,6 +90,15 @@ public enum KeyboardLearningTransfer {
     /// The single in-process execution task. Cancelling the caller's polling does not affect it.
     private static var worker: Task<Void, Never>?
 
+    /// When the poll next looks for automatic work (a pending restore, a due snapshot). Kept in
+    /// memory so the 2 s poll stays free of Full Access checks and disk reads in between.
+    private static var nextAutomaticCheck = Date.distantPast
+    private static let automaticCheckInterval: TimeInterval = 10 * 60
+
+    /// A new appearance looks for automatic work at its first idle poll, so a restore prepared in
+    /// the app is merged the next time the keyboard is used.
+    public static func keyboardAppeared() { nextAutomaticCheck = .distantPast }
+
     /// Only the keyboard extension drives transfers; the host app is not an `.appex`.
     private static let isExtensionProcess = Bundle.main.bundleURL.pathExtension == "appex"
 
@@ -127,7 +136,10 @@ public enum KeyboardLearningTransfer {
         // Container resolution and store construction happen on the dedicated file queue; the main thread does no disk access.
         guard let store = await store() else { return }
 
-        if canYieldEngine(session), isFullAccessGranted(), let resources = session.resourceSet {
+        if Date() >= nextAutomaticCheck, canYieldEngine(session), let resources = session.resourceSet,
+            isFullAccessGranted()
+        {
+            nextAutomaticCheck = Date().addingTimeInterval(automaticCheckInterval)
             try? await LearningTransferIO.async {
                 try prepareAutomaticTransfer(store: store, resources: resources)
             }
@@ -419,13 +431,11 @@ public enum KeyboardLearningTransfer {
         else { return }
         let snapshots = snapshotStore(store)
         if try snapshots.advanceRestore(sourceID: source, revision: activation.revision, transfer: store) { return }
-        guard
-            KeyboardRecipeStore.sharedDefaults()?.object(forKey: LearningSnapshotStore.automaticBackupKey) as? Bool
-                != false
-        else { return }
         let current = try store.read()
         guard current?.status != .pending, current?.status != .running,
-            try snapshots.shouldAutomaticallyExport(sourceID: source, revision: activation.revision, now: Date())
+            try snapshots.shouldAutomaticallyExport(
+                sourceID: source, revision: activation.revision, now: Date(),
+                learningModifiedAt: LearningSnapshotStore.learningModifiedAt(userDirectory: resources.userDirectory))
         else { return }
         try snapshots.markAutomaticAttempt(sourceID: source, revision: activation.revision, date: Date())
         _ = try store.submitBackup(

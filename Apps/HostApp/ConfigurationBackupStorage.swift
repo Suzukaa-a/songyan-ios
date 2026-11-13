@@ -13,7 +13,7 @@ enum ConfigurationBackupStorage {
 
     static func sources() throws -> [ConfigurationBackupDomain: URL] {
         guard let group = KeyboardRecipeStore.sharedContainerURL() else {
-            throw BackupFailure.message(String(localized: "无法访问键盘共享配置。请稍后重试。"))
+            throw BackupFailure.message(String(localized: "暂时无法读取键盘设置，请稍后重试。"))
         }
         return [
             .schemes: HostStorePaths.applicationSupport.appendingPathComponent("SchemePackages"),
@@ -60,7 +60,7 @@ enum ConfigurationBackupStorage {
 
     static func capturePreferences() throws {
         guard let defaults = KeyboardRecipeStore.sharedDefaults() else {
-            throw BackupFailure.message(String(localized: "键盘设置暂时无法读取。"))
+            throw BackupFailure.message(String(localized: "暂时无法读取键盘设置，请稍后重试。"))
         }
         let values = defaults.dictionaryRepresentation().filter { isPreference($0.key) }
         let data = try PropertyListSerialization.data(fromPropertyList: values, format: .binary, options: 0)
@@ -117,13 +117,26 @@ enum ConfigurationBackupStorage {
             .iso8601.year().month().day().dateSeparator(.dash).time(includingFractionalSeconds: false).timeSeparator(
                 .omitted))
         let file = localArchives.appendingPathComponent(
-            "\(safety ? String(localized: "恢复前") : String(localized: "松烟"))-\(date)-\(UUID().uuidString.prefix(8)).songyanbackup"
-        )
+            "\(safety ? String(localized: "恢复前") : String(localized: "松烟"))-\(date)-\(UUID().uuidString.prefix(8))"
+                + (safety ? safetySuffix : ".songyanbackup"))
         let version =
             "\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "") (\(Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? ""))"
         let manifest = try ConfigurationBackupArchive.create(
             sources: portableSources(locations), destination: file, appVersion: version, include: include, version: 2)
         return (file, manifest)
+    }
+
+    static let safetySuffix = ConfigurationBackupRetention.safetySuffix
+
+    static func isSafety(_ file: URL) -> Bool { ConfigurationBackupRetention.isSafety(file) }
+
+    static func prune(_ directory: URL) throws {
+        let files = try FileManager.default.contentsOfDirectory(
+            at: directory, includingPropertiesForKeys: [.creationDateKey])
+        let surplus = ConfigurationBackupRetention.surplus(files) {
+            (try? $0.resourceValues(forKeys: [.creationDateKey]).creationDate) ?? .distantPast
+        }
+        for file in surplus { try deleteArchive(file, from: directory) }
     }
 
     private static func portableSources(_ locations: [ConfigurationBackupDomain: URL]) -> [ConfigurationBackupDomain:
@@ -213,7 +226,7 @@ enum ConfigurationBackupStorage {
         try FileManager.default.createDirectory(at: transferRoot, withIntermediateDirectories: true)
         let transfers = LearningTransferStore(directory: transferRoot)
         guard let lease = try transfers.acquireWorkerLease() else {
-            throw BackupFailure.message(String(localized: "键盘正在备份或合并学习数据，请完成后再恢复。"))
+            throw BackupFailure.message(String(localized: "键盘正在处理学习数据，请稍后再恢复。"))
         }
         defer { lease.release() }
         if let current = try transfers.read(), current.status == .pending {
@@ -228,7 +241,7 @@ enum ConfigurationBackupStorage {
             let target = recipeRoot.appendingPathComponent(file.path)
             if FileManager.default.fileExists(atPath: target.path) {
                 guard FileManager.default.contentsEqual(atPath: source.path, andPath: target.path) else {
-                    throw BackupFailure.message(String(localized: "现有方案版本与备份中的同名版本不一致，已停止恢复。"))
+                    throw BackupFailure.message(String(localized: "已安装的输入方案和备份里的版本不同，没有恢复。"))
                 }
             } else {
                 try FileManager.default.createDirectory(
@@ -295,7 +308,7 @@ enum ConfigurationBackupStorage {
         let file = directory.appendingPathComponent("settings.plist")
         guard FileManager.default.fileExists(atPath: file.path) else { return }
         guard let defaults = KeyboardRecipeStore.sharedDefaults() else {
-            throw BackupFailure.message(String(localized: "键盘设置暂时无法写入。"))
+            throw BackupFailure.message(String(localized: "暂时无法保存键盘设置，请稍后重试。"))
         }
         let values = try preferenceValues(file)
         for key in defaults.dictionaryRepresentation().keys where isPreference(key) {

@@ -10,100 +10,52 @@ struct ConfigurationBackupSections: View {
     var body: some View {
         Group {
             Section {
-                Toggle(String(localized: "自动备份到 iCloud"), isOn: $model.automatic)
-                    .accessibilityIdentifier("backup.automatic")
-                Text(model.cloudStatus).font(.footnote).foregroundStyle(.secondary)
-                Button(String(localized: "立即完整备份")) { Task { await model.backUp(manual: true) } }
-                    .disabled(model.busy)
-                    .accessibilityIdentifier("backup.create")
-                Button(String(localized: "刷新备份列表")) {
-                    Task {
-                        await model.refreshCloud()
-                        await model.refreshLocal()
-                    }
-                }
-                if model.busy {
+                Button {
+                    Task { await model.backUp(manual: true) }
+                } label: {
                     HStack {
-                        ProgressView()
-                        Text(model.progress).font(.footnote)
+                        Text(String(localized: "立即备份"))
+                        if model.busy {
+                            Spacer()
+                            ProgressView()
+                        }
                     }
                 }
-            } header: {
-                Text(String(localized: "完整配置备份"))
+                .disabled(model.busy)
+                .accessibilityIdentifier("backup.create")
             } footer: {
-                Text(
-                    String(
-                        localized:
-                            "保存方案来源、所选配置、我的键盘及启用项、布局和页面搭配、符号库、个人词库、设置及学习快照。输入方案本体、可下载词库和语法模型只记录依赖，恢复时重新下载。自动备份间隔至少 5 分钟，后台执行和上传时机由系统安排。"
-                    )
-                )
+                Text(model.busy && !model.progress.isEmpty ? model.progress : model.cloudStatus)
             }
-            Section {
-                if model.cloudItems.isEmpty {
-                    Text(
-                        model.cloudAvailable
-                            ? String(localized: "暂未发现 iCloud 备份") : String(localized: "连接 iCloud 后显示历史备份")
-                    )
-                    .foregroundStyle(.secondary)
-                }
-                ForEach(model.cloudItems) { item in
-                    VStack(alignment: .leading, spacing: 8) {
-                        backupRow(item)
-                        HStack {
-                            Button(String(localized: "下载并恢复")) { Task { await model.prepareRestore(item) } }
-                            Spacer()
-                            Button(String(localized: "删除"), role: .destructive) { deleting = item }
-                                .accessibilityIdentifier("backup.delete.cloud")
-                        }.buttonStyle(.borderless)
-                    }.disabled(model.busy)
-                }
-            } header: {
-                Text(String(localized: "iCloud 历史备份"))
-            } footer: {
-                Text(String(localized: "重装后登录同一 Apple 账户，在这里选择备份下载并恢复。恢复前会校验全部文件，并保存当前配置的完整备份。历史备份不会自动删除。"))
-            }
-            Section {
-                Button(String(localized: "从文件恢复完整备份")) { importing = true }.disabled(model.busy)
-                ForEach(model.localItems) { item in
-                    VStack(alignment: .leading, spacing: 8) {
-                        backupRow(item)
-                        HStack {
-                            Button(String(localized: "恢复")) { Task { await model.prepareRestore(item) } }.disabled(
-                                model.busy)
-                            Spacer()
-                            ShareLink(item: item.url) {
-                                Label(String(localized: "导出"), systemImage: "square.and.arrow.up")
-                            }
-                            Button(String(localized: "删除"), role: .destructive) { deleting = item }
-                                .disabled(model.busy)
-                                .accessibilityIdentifier("backup.delete.local")
-                        }.buttonStyle(.borderless)
+            if model.cloudAvailable {
+                Section {
+                    Toggle(String(localized: "自动备份到 iCloud"), isOn: $model.automaticICloud)
+                        .accessibilityIdentifier("backup.automaticICloud")
+                    if model.cloudItems.isEmpty {
+                        Text(String(localized: "还没有备份")).foregroundStyle(.secondary)
                     }
+                    ForEach(model.cloudItems) { item in backupRow(item) }
+                } header: {
+                    Text(verbatim: "iCloud")
+                } footer: {
+                    Text(String(localized: "保留最近 10 份。重装松烟后，用同一个 Apple 账户登录就能恢复。"))
                 }
+            }
+            Section {
+                ForEach(model.localItems) { item in backupRow(item) }
+                Button(String(localized: "从文件恢复…")) { importing = true }.disabled(model.busy)
             } header: {
-                Text(String(localized: "本机完整备份"))
+                Text(String(localized: "本机"))
             } footer: {
-                Text(String(localized: "本机备份可能随卸载一并删除。请确认 iCloud 显示“已上传”，或导出到其他位置。"))
+                Text(String(localized: "改动后会自动在本机备份，保留最近 10 份。删除松烟时，本机备份也会被删除。"))
             }
             if model.pendingDependencies {
                 Section {
                     ForEach(model.dependencyFailures, id: \.self) { Text($0).font(.footnote) }
-                    Button(String(localized: "继续恢复依赖")) { Task { await model.resumeDependencies() } }.disabled(
-                        model.busy)
+                    Button(String(localized: "继续下载")) { Task { await model.resumeDependencies() } }
+                        .disabled(model.busy)
                 } header: {
-                    Text(String(localized: "尚未完成的依赖"))
-                } footer: {
-                    Text(String(localized: "联网后可继续下载。有些本地导入的方案或模型没有来源地址，需要先重新导入；布局、页面搭配和学习快照会保留。"))
+                    Text(String(localized: "还没下载完"))
                 }
-            }
-            Section {
-                Text(model.learningSummary).font(.footnote)
-            } header: {
-                Text(String(localized: "完整备份中的学习快照"))
-            } footer: {
-                Text(
-                    String(
-                        localized: "键盘在空闲时按方案收集学习数据，最多每 15 分钟一次，需要允许完全访问。未使用或未收集的方案不会虚报为已备份。下方仍可单独备份、导入和合并当前方案的学习数据。"))
             }
             if let notice = model.notice {
                 Section { Text(notice).font(.footnote).textSelection(.enabled) }
@@ -128,27 +80,27 @@ struct ConfigurationBackupSections: View {
             }
         }
         .confirmationDialog(
-            String(localized: "恢复这份完整备份？"), isPresented: $model.confirmingRestore, titleVisibility: .visible
+            String(localized: "恢复这份备份？"), isPresented: $model.confirmingRestore, titleVisibility: .visible
         ) {
-            Button(String(localized: "保存当前配置并恢复"), role: .destructive) { Task { await model.restorePrepared() } }
+            Button(String(localized: "恢复"), role: .destructive) { Task { await model.restorePrepared() } }
             Button(String(localized: "取消"), role: .cancel) { model.discardPrepared() }
         } message: {
             if let backup = model.prepared {
                 Text(
                     String(
                         localized:
-                            "备份时间：\(backup.manifest.createdAt.formatted(date: .abbreviated, time: .shortened))。键盘页面搭配、符号库和设置将替换为备份内容，方案和模型按记录下载并恢复启用项，下载可能较大。学习数据会在使用对应键盘时安全合并。"
+                            "备份时间：\(backup.manifest.createdAt.formatted(date: .abbreviated, time: .shortened))。现在的键盘和设置会换成备份里的内容，输入方案和语法模型会重新下载。恢复前会先备份现在的内容。"
                     )
                 )
             }
         }
-        .alert(
+        .confirmationDialog(
             String(localized: "删除这份备份？"),
-            isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } })
+            isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }),
+            titleVisibility: .visible
         ) {
             if let item = deleting {
-                Button(item.cloud ? String(localized: "删除 iCloud 备份") : String(localized: "删除本机备份"), role: .destructive)
-                {
+                Button(String(localized: "删除"), role: .destructive) {
                     deleting = nil
                     Task { await model.delete(item) }
                 }
@@ -158,30 +110,55 @@ struct ConfigurationBackupSections: View {
             if let item = deleting {
                 Text(
                     item.cloud
-                        ? String(
-                            localized: "将删除 iCloud 中的这份备份，并同步到使用同一账户的设备。本机副本会保留。此操作不能撤销。\n\(item.url.lastPathComponent)"
-                        )
-                        : String(localized: "仅删除本机的这份备份，iCloud 副本会保留。此操作不能撤销。\n\(item.url.lastPathComponent)"))
+                        ? String(localized: "这份备份会从 iCloud 中删除，本机的备份会保留。")
+                        : String(localized: "只删除本机的这份备份。"))
             }
         }
     }
 
     private func backupRow(_ item: ConfigurationBackupItem) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(item.date.formatted(date: .abbreviated, time: .shortened)).foregroundStyle(.primary)
-            Text(item.url.lastPathComponent).font(.caption).foregroundStyle(.secondary).lineLimit(2)
-            HStack {
-                Text(HostStorePaths.fileSizeText(item.bytes))
-                if item.cloud { Text(item.uploaded ? String(localized: "已上传") : String(localized: "等待上传或上传中")) }
-            }.font(.caption).foregroundStyle(.secondary)
-            if let error = item.error { Text(error).font(.caption).foregroundStyle(.red) }
+        Button {
+            Task { await model.prepareRestore(item) }
+        } label: {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.date.formatted(date: .abbreviated, time: .shortened)).foregroundStyle(.primary)
+                Text(details(item)).font(.footnote).foregroundStyle(.secondary)
+                if let error = item.error { Text(error).font(.footnote).foregroundStyle(.red) }
+            }
         }
+        .disabled(model.busy)
+        .swipeActions {
+            Button(String(localized: "删除"), role: .destructive) { deleting = item }
+        }
+        .contextMenu {
+            if !item.cloud {
+                ShareLink(item: item.url) { Label(String(localized: "导出"), systemImage: "square.and.arrow.up") }
+            }
+            Button(String(localized: "删除"), systemImage: "trash", role: .destructive) { deleting = item }
+        }
+        .accessibilityIdentifier(item.cloud ? "backup.cloud" : "backup.local")
+    }
+
+    private func details(_ item: ConfigurationBackupItem) -> String {
+        var parts = [HostStorePaths.fileSizeText(item.bytes)]
+        if item.cloud { parts.append(item.uploaded ? String(localized: "已上传") : String(localized: "正在上传")) }
+        if ConfigurationBackupStorage.isSafety(item.url) { parts.append(String(localized: "恢复前的备份")) }
+        return parts.joined(separator: " · ")
     }
 }
 
 struct BackupReadyView: View {
+    /// iPhones with a Home button and iPads need a globe key; on other iPhones the system draws its
+    /// own below the keyboard, which leaves a bottom safe area on the screen.
+    @MainActor private static var deviceNeedsGlobe: Bool {
+        guard UIDevice.current.userInterfaceIdiom == .phone else { return true }
+        let window = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.flatMap(\.windows).first
+        return (window?.safeAreaInsets.bottom ?? 0) == 0
+    }
+
     @Environment(\.scenePhase) private var phase
     @ObservedObject private var model = ConfigurationBackupModel.shared
+    @State private var slow = false
     var body: some View {
         Group {
             if model.ready {
@@ -191,13 +168,24 @@ struct BackupReadyView: View {
                     Text(error)
                     Button(String(localized: "重试")) { Task { await model.start() } }
                 }.padding()
+            } else if slow {
+                ProgressView(String(localized: "正在准备…"))
             } else {
-                ProgressView(String(localized: "正在检查配置…"))
+                // Starting is usually instant; a spinner flashing on every launch reads as a delay.
+                Color(uiColor: .systemBackground).ignoresSafeArea()
             }
         }
         .task {
+            // Editors open in this machine's shape, so whether it needs a globe key is settled first.
+            let needed = Self.deviceNeedsGlobe
+            await Task.detached { KeyboardSystemRequirements.seedNeedsInputModeSwitchKey(needed) }.value
+            _ = await KeyboardPreviewPreferences.load()
             await model.start()
             model.sceneChanged(phase)
+        }
+        .task {
+            try? await Task.sleep(for: .milliseconds(500))
+            slow = true
         }
         .onChange(of: phase) { _, phase in model.sceneChanged(phase) }
     }

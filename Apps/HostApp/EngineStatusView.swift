@@ -99,7 +99,7 @@ struct SettingsAndAboutView: View {
             case .userKeyboards: return String(localized: "我的键盘 输入方式 键盘布局 全拼 双拼 九键 26键 14键")
             case .appearance: return String(localized: "键盘外观 皮肤 颜色 主题")
             case .dictionary: return String(localized: "词库 词典 词汇")
-            case .learningBackup: return String(localized: "iCloud 备份与恢复 学习备份 词频 配置 换机")
+            case .learningBackup: return String(localized: "iCloud 备份 恢复 学习数据 词频 设置 换机")
             }
         }
     }

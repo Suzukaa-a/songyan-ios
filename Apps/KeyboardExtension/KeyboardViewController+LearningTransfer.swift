@@ -24,6 +24,7 @@ extension KeyboardViewController {
     ///     pending until the next round.
     func startLearningTransferPolling() {
         guard learningTransferPollTask == nil else { return }
+        KeyboardLearningTransfer.keyboardAppeared()
         learningTransferPollTask = Task { @MainActor [weak self] in
             while !Task.isCancelled {
                 do { try await Task.sleep(for: .seconds(2)) } catch { return }

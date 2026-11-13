@@ -86,7 +86,7 @@ struct MainTabView: View {
                     } label: {
                         HomeRow(
                             title: String(localized: "备份与恢复"),
-                            subtitle: String(localized: "iCloud 完整配置备份与学习数据"),
+                            subtitle: String(localized: "备份键盘和学习数据"),
                             systemImage: "tray.and.arrow.up")
                     }
                 } header: {
