@@ -189,7 +189,7 @@ final class KeyboardPageFooterGeometryTests: XCTestCase {
         XCTAssertEqual(geometry.keyWidths, baseline.keyWidths)
     }
 
-    func testAnyWidthOrStructureChangeFallsBackToAuthoredRelativeWidths() {
+    func testExplicitWidthsUseWeightsWhileAutomaticKeyChangesKeepTheControlBudget() {
         let policy = lettersPolicy()
         let defaults = footer(KeyboardPagePresets.englishQwerty)
         var spaceWider = defaults
@@ -208,19 +208,19 @@ final class KeyboardPageFooterGeometryTests: XCTestCase {
             KeyboardPageFooterGeometry(width: 382, keys: letterExplicit, policy: policy).usesControlRowBudget)
 
         let reordered = [defaults[0], defaults[2], defaults[1], defaults[3], defaults[4], defaults[5]]
-        XCTAssertFalse(
+        XCTAssertTrue(
             KeyboardPageFooterGeometry(width: 382, keys: reordered, policy: policy).usesControlRowBudget)
 
         let fewer = Array(defaults.dropLast())
-        XCTAssertFalse(
+        XCTAssertTrue(
             KeyboardPageFooterGeometry(width: 382, keys: fewer, policy: policy).usesControlRowBudget)
         let more = defaults + [LayoutKey(label: "×", action: .init(.clearInput))]
-        XCTAssertFalse(
+        XCTAssertTrue(
             KeyboardPageFooterGeometry(width: 382, keys: more, policy: policy).usesControlRowBudget)
 
-        // Author deletes the globe but the live system does offer one: no auto-repair, generic.
+        // An omitted key is never added back; the remaining keys keep automatic sizing.
         let globeDeleted = Array(defaults.dropFirst())
-        XCTAssertFalse(
+        XCTAssertTrue(
             KeyboardPageFooterGeometry(width: 382, keys: globeDeleted, policy: policy).usesControlRowBudget)
     }
 
@@ -249,6 +249,24 @@ final class KeyboardPageFooterGeometryTests: XCTestCase {
         XCTAssertEqual(geometry.keyWidths[0], geometry.keyWidths[2], accuracy: 0.001)
         XCTAssertLessThan(geometry.keyWidths[1], geometry.keyWidths[0])
         assertFillsWidth(geometry, width: 402)
+    }
+
+    func testWeightedSixKeyFooterFitsWithoutClippingTheReturnKey() {
+        let weights = [1.0, 1, 1, 3, 1, 2]
+        let keys = zip(footer(KeyboardPagePresets.englishQwerty), weights).map { $0.settingWidth($1) }
+        for width in [320.0, 374, 394, 592] {
+            let geometry = KeyboardPageFooterGeometry(width: width, keys: keys, policy: lettersPolicy())
+            XCTAssertFalse(geometry.usesControlRowBudget)
+            XCTAssertNil(geometry.scrollWidths(availableWidth: width))
+            XCTAssertTrue(geometry.keyWidths.allSatisfy { $0 >= 44 })
+            assertFillsWidth(geometry, width: width)
+            XCTAssertEqual(geometry.keyWidths[3] / geometry.keyWidths[5], 1.5, accuracy: 0.001)
+        }
+        let wide = KeyboardPageFooterGeometry(width: 592, keys: keys, policy: lettersPolicy())
+        XCTAssertEqual(wide.keyWidths[3] / wide.keyWidths[0], 3, accuracy: 0.001)
+        XCTAssertEqual(wide.keyWidths[5] / wide.keyWidths[0], 2, accuracy: 0.001)
+        let narrow = KeyboardPageFooterGeometry(width: 240, keys: keys, policy: lettersPolicy())
+        XCTAssertTrue(narrow.scrollWidths(availableWidth: 240)?.allSatisfy { $0 >= 44 } == true)
     }
 
     func testEmptyAndInvalidFootersStayFinite() {

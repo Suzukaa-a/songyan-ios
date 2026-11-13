@@ -386,8 +386,8 @@ struct KeyboardAuthoredPageRail: View {
 /// The authored bottom row. Split spaces are duplicated only from one declared space; a second or
 /// missing author space stays exactly as authored, and a footer without a space inserts none.
 ///
-/// Widths come from the one LayoutKit footer geometry: a structural default keeps the built-in
-/// control-row budget, any real author change falls back to relative weights. A forced split too
+/// Widths come from the same LayoutKit footer geometry as main-layout rows: automatic controls
+/// keep stable sizes, and explicit widths use relative weights. A forced split too
 /// narrow for two usable spaces scrolls instead of dropping one of them.
 struct KeyboardAuthoredPageFooter: View {
     @Environment(\.keyboardKeyHeight) private var keyHeight
@@ -446,7 +446,7 @@ struct KeyboardAuthoredPageFooter: View {
     @ViewBuilder private func plainRow(width: Double) -> some View {
         let geometry = footerGeometry(width, rails: rails)
         let spacing = CGFloat(geometry.spacing)
-        if let floored = minimumScrollWidths(geometry) {
+        if let floored = geometry.scrollWidths(availableWidth: width, minimumKeyWidth: minimumWidth) {
             // Generic authored data floors every key to a usable width first; if the floored row is
             // wider than the viewport it scrolls instead of producing untappable slivers.
             ScrollView(.horizontal, showsIndicators: false) {
@@ -466,15 +466,6 @@ struct KeyboardAuthoredPageFooter: View {
                 }
             }
         }
-    }
-
-    /// Generic authored widths only: floor each key to a usable touch width; when a real weight
-    /// makes any key narrower than that, the caller scrolls the floored row. The built-in budget
-    /// keeps the built-in control row's scaling rules.
-    private func minimumScrollWidths(_ geometry: KeyboardPageFooterGeometry) -> [Double]? {
-        guard !geometry.usesControlRowBudget, !keys.isEmpty else { return nil }
-        guard geometry.keyWidths.contains(where: { $0 < minimumWidth }) else { return nil }
-        return geometry.keyWidths.map { max(minimumWidth, $0) }
     }
 
     @ViewBuilder private func splitRow(width: Double, split: ActiveLayoutSplit) -> some View {
@@ -506,7 +497,7 @@ struct KeyboardAuthoredPageFooter: View {
             leftWidths: leftKeys.map { max(minimumWidth, controlWidths[$0]) },
             rightWidths: rightKeys.map { max(minimumWidth, controlWidths[$0]) }, split: split,
             // Space prefers three letter widths, like the built-in split row.
-            spaceWidthMultiplier: 3 * keys[space].widthWeight / 4,
+            spaceWidthMultiplier: footer.usesControlRowBudget ? 3 : 3 * keys[space].widthWeight / 4,
             requestedGap: split.gap(width: Double(rootWidth), keyCount: keys.count + 1),
             spacing: footer.spacing,
             key: { index in keyView(index: index, keyValue: keys[index]) },
@@ -553,7 +544,7 @@ struct KeyboardAuthoredPageFooter: View {
         let gap = split.gap(width: Double(rootWidth), keyCount: keys.count)
         let footer = footerGeometry(max(0, width - gap))
         let spacing = CGFloat(footer.spacing)
-        let floored = minimumScrollWidths(footer)
+        let floored = footer.scrollWidths(availableWidth: max(0, width - gap), minimumKeyWidth: minimumWidth)
         let keyWidths = floored ?? footer.keyWidths
         let content = HStack(spacing: spacing) {
             ForEach(Array(left.enumerated()), id: \.offset) { _, index in

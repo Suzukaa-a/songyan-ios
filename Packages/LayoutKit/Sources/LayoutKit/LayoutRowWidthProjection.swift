@@ -28,13 +28,14 @@ public struct LayoutRowWidthProjection: Equatable, Sendable {
 }
 
 extension Array where Element == LayoutKey {
-    /// A key row as it draws when the system keyboard switch is not shown. The globe's width goes
-    /// to the row's Return key, so the space bar keeps its width and Return does not stay narrow.
+    /// Automatic footers keep their automatic widths when the system switch is hidden. In an
+    /// explicitly weighted footer, the removed globe's weight goes to Return as before.
     /// A row without a space key just loses the globe.
     public func withoutGlobe() -> [LayoutKey] {
         let freed = filter { $0.action.type == .globe }.reduce(0) { $0 + $1.widthWeight }
         guard freed > 0 else { return self }
         let rest = filter { $0.action.type != .globe }
+        if KeyboardPageFooterGeometry.hasAutomaticWidths(self) { return rest }
         guard rest.contains(where: { $0.action.type == .space }) else { return rest }
         return rest.map { $0.action.type == .enter ? $0.settingWidth($0.widthWeight + freed) : $0 }
     }

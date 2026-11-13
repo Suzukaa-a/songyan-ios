@@ -1,12 +1,11 @@
 import Foundation
 
-/// Footer widths for an authored page, shared by the runtime and the preview.
+/// Footer widths for main layouts and authored pages, shared by the runtime and the preview.
 ///
-/// A materialized default footer is the same key set the built-in control row draws. Recognizing
-/// that structure (actions/targets and the frozen default widths — never an ID or label) keeps the
-/// built-in control-row budget, so copying a page does not immediately squeeze the bottom row that
-/// was tuned for it. Any changed width or structure falls back to the real authored relative
-/// weights; a custom title, secondary label or long-press list does not change the geometry.
+/// Automatic row footers share one budget based on their visible keys: ordinary keys keep the
+/// same width, Return stays wider, and space absorbs the remaining room. Replacing a globe with
+/// punctuation or switching pages does not move the other keys. Explicit widths use authored
+/// relative weights. Keypad and railed pages retain their column alignment.
 ///
 /// Pass only the visible keys: the host removes globe keys when the system has no keyboard switch
 /// and passes a policy with `hasGlobe == false`, so the filtered default still matches the same
@@ -15,8 +14,7 @@ public struct KeyboardPageFooterGeometry: Equatable, Sendable {
     /// One width per `keys` element.
     public let keyWidths: [Double]
     public let spacing: Double
-    /// True when the keys are exactly the live default footer and the shared control-row budget
-    /// applies. False means `keyWidths` came from the authored relative weights.
+    /// True for automatic control sizing or a native keypad budget; false for authored weights.
     public let usesControlRowBudget: Bool
 
     /// The widths of the rails beside the page's rows that the footer runs under. Absent for a page
@@ -36,8 +34,16 @@ public struct KeyboardPageFooterGeometry: Equatable, Sendable {
             policy.isDigitPad && (rails?.leading ?? 0) > 0
             ? policy.aligned(to: .init(rail: rails?.leading ?? 0, digit: 0)) : policy
         let metrics = policy.metrics(width: width)
-        spacing = metrics.spacing
         let resolvedWidth = width.isFinite ? max(0, width) : 0
+        if !policy.isPhoneLayout, rails == nil,
+            let automatic = Self.automaticWidths(width: resolvedWidth, keys: keys, spacing: 4)
+        {
+            keyWidths = automatic
+            spacing = 4
+            usesControlRowBudget = true
+            return
+        }
+        spacing = metrics.spacing
         guard !keys.isEmpty else {
             keyWidths = []
             usesControlRowBudget = false
@@ -58,11 +64,46 @@ public struct KeyboardPageFooterGeometry: Equatable, Sendable {
         // the sum or the per-key multiplication into NaN frames.
         let projection = LayoutRowWidthProjection(weights: keys.map(\.widthWeight))
         if projection.keyFractions.contains(where: { $0 > 0 }) {
-            keyWidths = projection.keyFractions.map { available * $0 }
+            keyWidths = Self.fittedAuthoredWidths(available: available, fractions: projection.keyFractions)
         } else {
             keyWidths = Array(repeating: available / Double(keys.count), count: keys.count)
         }
         usesControlRowBudget = false
+    }
+
+    /// Both renderers scroll the same widths when the row cannot fit. Automatic rows never
+    /// shrink their controls below usable sizes; weighted rows retain their authored proportions
+    /// until a key needs the minimum touch width.
+    public func scrollWidths(availableWidth: Double, minimumKeyWidth: Double = 44) -> [Double]? {
+        guard !keyWidths.isEmpty else { return nil }
+        let widths = usesControlRowBudget ? keyWidths : keyWidths.map { max(minimumKeyWidth, $0) }
+        let content = widths.reduce(0, +) + spacing * Double(widths.count - 1)
+        return content > max(0, availableWidth) + 0.001 ? widths : nil
+    }
+
+    /// Keep authored proportions until a small key needs its touch minimum. Take that room
+    /// from the larger keys before introducing scrolling; main and page footers use this alike.
+    private static func fittedAuthoredWidths(available: Double, fractions: [Double]) -> [Double] {
+        let minimum = 44.0
+        guard available >= Double(fractions.count) * minimum else {
+            return fractions.map { available * $0 }
+        }
+        var widths = Array(repeating: 0.0, count: fractions.count)
+        var remaining = Array(fractions.indices)
+        var room = available
+        while !remaining.isEmpty {
+            let total = remaining.reduce(0.0) { $0 + fractions[$1] }
+            let proposed = remaining.map { total > 0 ? room * (fractions[$0] / total) : room / Double(remaining.count) }
+            let small = zip(remaining, proposed).filter { $0.1 < minimum }.map(\.0)
+            if small.isEmpty {
+                for (index, width) in zip(remaining, proposed) { widths[index] = width }
+                break
+            }
+            for index in small { widths[index] = minimum }
+            room -= Double(small.count) * minimum
+            remaining.removeAll { small.contains($0) }
+        }
+        return widths
     }
 
     /// A footer under rails: the first key sits under the leading rail, the last under the trailing
@@ -149,51 +190,36 @@ public struct KeyboardPageFooterGeometry: Equatable, Sendable {
     }
 }
 
-public extension KeyboardPageFooterGeometry {
-    /// A layout's own bottom row with keys added or removed, sized like the built-in row: keys
-    /// without a chosen width start at the built-in size for their kind. An added key first takes
-    /// up to a fifth of the space bar, then the other keys narrow toward the 44 pt touch size
-    /// (Return toward 60 pt), and only then does the space bar give up more. Nil when the author
-    /// chose a width or there is no space bar; the row then sizes by its weights.
-    static func builtInSizedWidths(
-        width: Double, keys: [LayoutKey], policy: KeyboardControlPolicy
-    ) -> (widths: [Double], spacing: Double)? {
-        let metrics = policy.metrics(width: width)
+extension KeyboardPageFooterGeometry {
+    static func hasAutomaticWidths(_ keys: [LayoutKey]) -> Bool {
+        keys.contains { $0.action.type == .space }
+            && keys.allSatisfy {
+                $0.width == nil
+                    || ($0.action.type == .space && $0.width == KeyboardPageDefaultShape.footerSpaceWidth)
+            }
+    }
+
+    /// Width selection depends only on the visible row, never on the page, language, system
+    /// globe availability or the main layout's optional punctuation slots. The stored default
+    /// space weight (4) predates automatic sizing and keeps the same automatic behavior as nil.
+    private static func automaticWidths(width: Double, keys: [LayoutKey], spacing: Double) -> [Double]? {
         let spaces = keys.indices.filter { keys[$0].action.type == .space }
-        guard !spaces.isEmpty,
-            spaces.allSatisfy({ keys[$0].width == nil || keys[$0].width == KeyboardPageDefaultShape.footerSpaceWidth }),
-            keys.allSatisfy({ $0.action.type == .space || $0.width == nil })
-        else { return nil }
-        let natural = keys.map { key -> Double in
+        guard hasAutomaticWidths(keys) else { return nil }
+        // Keep the familiar six-key Return size, independently of the current page's policy.
+        let preferredReturn = max(60, KeyboardControlPolicy.Metrics(width: width, hasGlobe: true).enter)
+        let returns = keys.filter { $0.action.type == .enter }.count
+        let controls = keys.count - spaces.count - returns
+        let content = max(0, width - spacing * Double(keys.count - 1))
+        let returnRoom = content - Double(controls + spaces.count) * 44
+        let returnWidth = returns > 0 ? max(60, min(preferredReturn, returnRoom / Double(returns))) : 0
+        let spaceWidth = max(
+            44, (content - Double(controls) * 44 - Double(returns) * returnWidth) / Double(spaces.count))
+        return keys.map { key in
             switch key.action.type {
-            case .space: return 0
-            case .pageSwitch: return key.action.pageSwitchTarget == .symbols ? metrics.symbolPage : metrics.page
-            case .languageSwitch, .modeSwitch: return metrics.language
-            case .globe: return metrics.globe > 0 ? metrics.globe : metrics.page
-            case .enter: return metrics.enter > 0 ? metrics.enter : metrics.page
-            default: return metrics.utility > 0 ? metrics.utility : metrics.page
+            case .space: return spaceWidth
+            case .enter: return returnWidth
+            default: return 44
             }
         }
-        let floors = zip(keys, natural).map { key, natural in
-            key.action.type == .space ? 0 : min(natural, key.action.type == .enter ? 60 : 44)
-        }
-        let content = max(0, width - metrics.spacing * Double(keys.count - 1))
-        let spaceTarget = metrics.space * 0.8 * Double(spaces.count)
-        let free = content - spaceTarget
-        let naturalTotal = natural.reduce(0, +)
-        let floorTotal = floors.reduce(0, +)
-        var widths: [Double]
-        if naturalTotal <= free {
-            widths = natural
-        } else if floorTotal < free {
-            let share = (free - floorTotal) / (naturalTotal - floorTotal)
-            widths = zip(floors, natural).map { floor, natural in floor + share * (natural - floor) }
-        } else {
-            widths = floors
-        }
-        let space = (content - widths.reduce(0, +)) / Double(spaces.count)
-        guard space >= 44 else { return nil }
-        for index in spaces { widths[index] = space }
-        return (widths, metrics.spacing)
     }
 }
