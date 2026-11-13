@@ -20,10 +20,10 @@ final class SkinKitTests: XCTestCase {
         }
     }
 
-    /// The default keys leave the same gaps as the Android keyboard: 5.5 pt across, 8 pt between rows.
+    /// The default keys leave the same gaps as the Android keyboard: 5.5 pt across, 9 pt between rows.
     func testSystemDefaultKeyGapsMatchAndroid() {
         let spacing = SkinDefinition.systemDefault.spacing
         XCTAssertEqual(4 + 2 * spacing.visualInsetX, 5.5)
-        XCTAssertEqual(4 + 2 * spacing.visualInsetY, 8)
+        XCTAssertEqual(4 + 2 * spacing.visualInsetY, 9)
     }
 }
