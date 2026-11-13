@@ -302,6 +302,7 @@ extension SchemeImportCenter {
                             return verification.receipt
                         })
                 }
+                recordModelSources(packageID: prepared.declaration.id, models: planned.plan.fileResources)
                 self.prepared = nil
                 self.plannedRecipe = nil
                 preparedSourceURL = nil
@@ -319,6 +320,7 @@ extension SchemeImportCenter {
                     sourceWarning = nil
                 }
                 providedDownloadFiles = [:]
+                providedResourceURLs = [:]
                 providedOrdinaryResources = [:]
                 diagnostics = []
                 message = sourceWarning
@@ -470,6 +472,7 @@ extension SchemeImportCenter {
             recipes = found
             plannedRecipe = nil
             providedDownloadFiles = [:]
+            providedResourceURLs = [:]
             providedOrdinaryResources = [:]
             message = nil
         } catch {
@@ -642,12 +645,14 @@ extension SchemeImportCenter {
                             return verification.receipt
                         })
                 }
+                recordModelSources(packageID: workspace.packageID, models: planned.plan.fileResources)
                 self.plannedRecipe = nil
                 installedWorkspace = nil
                 lastInstalledPackageID = workspace.packageID
                 retryState.succeeded()
                 recipes = []
                 providedDownloadFiles = [:]
+                providedResourceURLs = [:]
                 providedOrdinaryResources = [:]
                 diagnostics = []
                 userNotice = String(localized: "输入习惯已保留。")

@@ -9,6 +9,31 @@ import SwiftUI
 extension SchemeImportCenter {
     // MARK: - Externally supplied resources (models etc.)
 
+    struct DownloadedModelSource: Codable, Sendable {
+        let sha256: String
+        let url: URL
+    }
+
+    /// Keep provenance across a plain ZIP install as well as recipe installs. A URL belongs to
+    /// the exact downloaded bytes, so replacing a model cannot inherit a stale download address.
+    func recordModelSources(packageID: String, models: [String: RecipeFileResource]) {
+        let file = Self.storeRoot.appendingPathComponent(packageID).appendingPathComponent("model-sources.json")
+        do {
+            var records =
+                FileManager.default.fileExists(atPath: file.path)
+                ? try JSONDecoder().decode([String: DownloadedModelSource].self, from: Data(contentsOf: file)) : [:]
+            records = records.filter { models[$0.key]?.sha256 == $0.value.sha256 }
+            for (path, model) in models {
+                if let url = providedResourceURLs[path] {
+                    records[path] = DownloadedModelSource(sha256: model.sha256, url: url)
+                }
+            }
+            try JSONEncoder().encode(records).write(to: file, options: .atomic)
+        } catch {
+            userNotice = String(localized: "方案已安装，但未能记录模型下载地址。请稍后重新保存模型设置，以便备份后自动下载。")
+        }
+    }
+
     /// Private staging for captured/downloaded external resources. Snapshots live here until
     /// the plan's install copies them into a generation; never inside a package store slot.
     static var modelStagingDirectory: URL {
@@ -58,6 +83,7 @@ extension SchemeImportCenter {
                     try Task.checkCancellation()
                     providedOrdinaryResources[requirementPath] = nil
                     providedDownloadFiles[requirementPath] = asset
+                    providedResourceURLs[requirementPath] = nil
                     message = String(localized: "已添加文件（\(HostStorePaths.fileSizeText(asset.size))）。")
                 } else {
                     // Ordinary resources are read as bounded immutable bytes on a background task; the SHA/size identity
@@ -91,6 +117,7 @@ extension SchemeImportCenter {
                     try Task.checkCancellation()
                     providedDownloadFiles[requirementPath] = nil
                     providedOrdinaryResources[requirementPath] = resource
+                    providedResourceURLs[requirementPath] = nil
                     message = String(localized: "已添加文件（\(HostStorePaths.fileSizeText(resource.size))）。")
                 }
             } catch is CancellationError {
@@ -132,6 +159,7 @@ extension SchemeImportCenter {
                     try Task.checkCancellation()
                     providedOrdinaryResources[requirement.path] = nil
                     providedDownloadFiles[requirement.path] = asset
+                    providedResourceURLs[requirement.path] = requirement.url
                     message = String(localized: "已下载（\(HostStorePaths.fileSizeText(asset.size))）。")
                 } else {
                     let resource = try await RecipePackageManager.fetchOrdinaryResource(
@@ -143,6 +171,7 @@ extension SchemeImportCenter {
                     try Task.checkCancellation()
                     providedDownloadFiles[requirement.path] = nil
                     providedOrdinaryResources[requirement.path] = resource
+                    providedResourceURLs[requirement.path] = requirement.url
                     message = String(localized: "已下载（\(HostStorePaths.fileSizeText(resource.size))）。")
                 }
             } catch is CancellationError {
@@ -163,6 +192,7 @@ extension SchemeImportCenter {
         invalidatePlannedRecipeForResourceEdit()
         providedOrdinaryResources[requirementPath] = nil
         providedDownloadFiles[requirementPath] = nil
+        providedResourceURLs[requirementPath] = nil
     }
 
     /// Any external resource add/remove/replace immediately revokes the current plan.
@@ -191,6 +221,7 @@ extension SchemeImportCenter {
         recipes = []
         recipeDiscoveryErrors = []
         providedDownloadFiles = [:]
+        providedResourceURLs = [:]
         providedOrdinaryResources = [:]
     }
 }

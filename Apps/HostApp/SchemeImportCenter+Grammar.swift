@@ -49,6 +49,7 @@ extension SchemeImportCenter {
         plannedRecipe = nil
         message = String(localized: "正在检查…")
         let provided = providedDownloadFiles
+        let sourceURL = sourceURL ?? providedResourceURLs[modelPath]
         let modelDisplayName =
             displayName
             ?? GrammarModelRecipe.displayName(
