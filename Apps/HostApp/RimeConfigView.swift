@@ -307,10 +307,9 @@ struct RimePackageFilesView: View {
                     NavigationLink(path) { RimePackageFileView(packageID: packageID, path: path, model: model) }
                         .font(.body.monospaced())
                 }
-            } else {
-                ProgressView()
             }
         }
+        .loadingOverlay(paths == nil)
         .navigationTitle(String(localized: "方案文件"))
         .navigationBarTitleDisplayMode(.inline)
         .task { paths = (try? await center.manager(packageID).rimeConfigPackageFiles()) ?? [] }
@@ -440,7 +439,7 @@ struct RimeFileEditorView: View {
                 .background(Color.orange.opacity(0.15))
             }
             if editor.loading {
-                ProgressView().frame(maxHeight: .infinity)
+                DelayedSpinner().frame(maxHeight: .infinity)
             } else if let failure = editor.loadFailure {
                 Text(failure).foregroundStyle(.secondary).padding().frame(maxHeight: .infinity)
             } else {

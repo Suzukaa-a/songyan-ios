@@ -192,7 +192,7 @@ struct KeyboardCategoryEditorView: View {
     private func recentPreview(_ category: KeyboardPageCategory) -> some View {
         return Section(String(localized: "最近使用")) {
             if loadingRecents {
-                ProgressView(String(localized: "正在读取最近使用…"))
+                DelayedSpinner()
             } else if let recentError {
                 Text(recentError).font(.footnote).foregroundStyle(.secondary)
                 Button(String(localized: "重新读取")) { Task { await loadRecents() } }

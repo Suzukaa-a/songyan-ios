@@ -214,7 +214,6 @@ struct KeyboardCompositionView: View {
                 if let libraryNotice {
                     Label(libraryNotice, systemImage: "checkmark.circle").font(.footnote)
                 }
-                if !initialized { ProgressView(String(localized: "正在读取布局…")) }
                 if let message = manager.lastError { Text(message).foregroundStyle(.orange) }
             }
             if keyboardIsAvailable {
@@ -277,6 +276,7 @@ struct KeyboardCompositionView: View {
             baseline = composition
             initialized = true
         }
+        .loadingOverlay(!initialized)
         .navigationTitle(UserTerminology.pageComposition)
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden(draft != baseline || saving)

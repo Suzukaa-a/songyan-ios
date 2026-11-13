@@ -91,6 +91,7 @@ struct UserKeyboardManagementView: View {
                 }
             }
         }
+        .loadingOverlay(isLoading)
         .navigationTitle(UserTerminology.userKeyboard)
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(
@@ -145,11 +146,16 @@ struct UserKeyboardManagementView: View {
         }
     }
 
+    private var isLoading: Bool {
+        if case .loading = center.phase { return true }
+        return false
+    }
+
     @ViewBuilder
     private var statusSection: some View {
         switch center.phase {
         case .loading:
-            Section { ProgressView(String(localized: "正在读取键盘…")) }
+            EmptyView()
         case .failed(let message):
             Section {
                 Label(message, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)

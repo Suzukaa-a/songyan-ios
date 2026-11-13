@@ -74,8 +74,9 @@ final class UserKeyboardCenter: ObservableObject {
     }
 
     /// One structured refresh: reads the published list; when manageable, also reads the authoritative addable combinations.
+    /// Re-reading keeps what is on screen until the new lists arrive; only the first read starts
+    /// from `.loading`.
     func refresh() async {
-        phase = .loading
         errorMessage = nil
         do {
             let viewed = try await (listProvider as? SourcePublishedKeyboardProvider)?.snapshot()

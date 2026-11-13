@@ -59,7 +59,7 @@ struct HostRootView: View {
             case .probe, .onboarding:
                 switch probeRoute {
                 case .none:
-                    ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
+                    DelayedSpinner().frame(maxHeight: .infinity)
                 case .some(.main), .some(.probe):
                     MainTabView()
                 case .some(.onboarding):
@@ -92,5 +92,36 @@ struct HostRootView: View {
     /// Skipped: enter the home screen this time without writing the flag (the next launch re-decides from the real configuration).
     private func skipOnboarding() {
         probeRoute = .main
+    }
+}
+
+// MARK: - Loading
+
+/// The one way a page shows it is still reading. Reads are usually done within a frame or two, so
+/// nothing shows at first; a slow read then gets a quiet spinner that fades in. No caption: what the
+/// page is reading is already in its title.
+struct DelayedSpinner: View {
+    @State private var visible = false
+
+    var body: some View {
+        ProgressView()
+            .frame(maxWidth: .infinity)
+            .opacity(visible ? 1 : 0)
+            .accessibilityHidden(!visible)
+            .task {
+                try? await Task.sleep(for: .milliseconds(400))
+                guard !Task.isCancelled else { return }
+                withAnimation(.easeIn(duration: 0.2)) { visible = true }
+            }
+    }
+}
+
+extension View {
+    /// Covers a page that has nothing to show yet with `DelayedSpinner`, instead of a loading row
+    /// that the content replaces a moment later.
+    func loadingOverlay(_ loading: Bool) -> some View {
+        overlay {
+            if loading { DelayedSpinner().frame(maxHeight: .infinity) }
+        }
     }
 }

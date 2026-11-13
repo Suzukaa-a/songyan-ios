@@ -44,7 +44,7 @@ struct GrammarModelSettingsView: View {
                             .font(.footnote).foregroundStyle(.secondary)
                         NavigationLink(String(localized: "添加输入方案")) { SchemePackageImportView() }
                     } else {
-                        ProgressView(String(localized: "正在读取输入方案…"))
+                        DelayedSpinner()
                     }
                 }
             } footer: {
