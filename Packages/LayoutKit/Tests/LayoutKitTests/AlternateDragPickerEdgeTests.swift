@@ -454,4 +454,18 @@ extension AlternateDragPickerTests {
         XCTAssertEqual(
             AlternateDragPicker.releaseResolution(highlighted: 0, point: o, geometry: g, drop: 72), .none)
     }
+
+    /// A popup list scrolls smoothly: faster the deeper the finger goes into an edge, and still
+    /// moving (faster) once it is past the edge; nothing moves in the middle.
+    func testEdgeScrollSpeedGrowsWithDepthAndContinuesPastTheEdge() {
+        func speed(_ y: Double) -> Double { AlternateDragPicker.edgeScrollSpeed(y: y, minY: 100, height: 220) }
+        XCTAssertEqual(speed(210), 0)
+        XCTAssertLessThan(speed(130), 0)
+        XCTAssertLessThan(speed(110), speed(130))
+        XCTAssertLessThan(speed(60), speed(110))
+        XCTAssertEqual(speed(-500), speed(56), "capped at twice the edge speed")
+        XCTAssertGreaterThan(speed(300), 0)
+        XCTAssertGreaterThan(speed(360), speed(300))
+        XCTAssertEqual(speed(320 + 44), -speed(56), accuracy: 0.001)
+    }
 }

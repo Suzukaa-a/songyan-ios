@@ -303,18 +303,12 @@ extension AlternateCharacterKey.CharacterButton {
             x: Double(lastLocation.x), y: Double(lastLocation.y),
             overlappingItem: popupItem(at: lastLocation))
         scroll.flashScrollIndicators()
-        // Leaving the window cancels the press, which invalidates this timer;
-        // a timer that outlives its key stops itself.
-        let timer = Timer(timeInterval: 0.06, repeats: true) { [weak self] timer in
-            let alive = MainActor.assumeIsolated { () -> Bool in
-                guard let self else { return false }
-                self.advancePopupScroll()
-                return true
-            }
-            if !alive { timer.invalidate() }
-        }
-        scrollTimer = timer
-        RunLoop.main.add(timer, forMode: .common)
+        // Scrolls once per frame by the time elapsed, so the list glides instead of stepping.
+        // Leaving the window cancels the press, which invalidates the link; a link that outlives
+        // its key stops itself (the proxy holds the key weakly).
+        let link = CADisplayLink(target: PopupScrollTicker(key: self), selector: #selector(PopupScrollTicker.tick(_:)))
+        scrollTimer = link
+        link.add(to: .main, forMode: .common)
         updateSelection(at: lastLocation)
     }
 
@@ -351,7 +345,7 @@ extension AlternateCharacterKey.CharacterButton {
             safe: host.bounds.insetBy(dx: 4, dy: 4))
     }
 
-    private func advancePopupScroll() {
+    func advancePopupScroll(elapsed: CFTimeInterval) {
         guard let popup, let window, let host = popupHost else {
             cancelPress()
             return
@@ -371,14 +365,17 @@ extension AlternateCharacterKey.CharacterButton {
         {
             return
         }
-        guard popup.bounds.contains(point) else {
+        // Past the top or bottom the list keeps moving; beside it nothing scrolls.
+        guard point.x >= popup.bounds.minX, point.x <= popup.bounds.maxX else {
             updateSelection(at: lastLocation)
             return
         }
-        let edgeY = point.y - popup.bounds.minY
-        let direction: CGFloat = edgeY < 20 ? -1 : (edgeY > popup.bounds.height - 20 ? 1 : 0)
+        let speed = AlternateDragPicker.edgeScrollSpeed(
+            y: Double(point.y), minY: Double(popup.bounds.minY), height: Double(popup.bounds.height))
+        guard speed != 0 else { return }
         let limit = max(0, popup.contentSize.height - popup.bounds.height)
-        popup.contentOffset.y = min(limit, max(0, popup.contentOffset.y + direction * 8))
+        let step = CGFloat(speed * min(elapsed, 1.0 / 30))
+        popup.contentOffset.y = min(limit, max(0, popup.contentOffset.y + step))
         updateSelection(at: lastLocation)
     }
 
@@ -500,4 +497,20 @@ extension KeyCap {
 
     /// The text the keyboard menu draws for the item, used to size the menu.
     var menuText: String { menuPackageName.map { title + "  " + $0 } ?? title }
+}
+
+/// The display link's target: holds the key weakly, so a link that outlives its key stops itself.
+@MainActor
+private final class PopupScrollTicker: NSObject {
+    weak var key: AlternateCharacterKey.CharacterButton?
+
+    init(key: AlternateCharacterKey.CharacterButton) { self.key = key }
+
+    @objc func tick(_ link: CADisplayLink) {
+        guard let key else {
+            link.invalidate()
+            return
+        }
+        key.advancePopupScroll(elapsed: link.targetTimestamp - link.timestamp)
+    }
 }

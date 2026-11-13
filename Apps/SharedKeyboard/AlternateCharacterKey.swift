@@ -164,7 +164,7 @@ struct AlternateCharacterKey: UIViewRepresentable {
         var popupLabels: [UILabel] = []
         /// Trailing checkmark of the current keyboard in the language-key menu.
         var layoutCheckmarks: [Int: UIImageView] = [:]
-        var scrollTimer: Timer?
+        var scrollTimer: CADisplayLink?
         weak var popupSurface: UIView?
         var popupHostSize = CGSize.zero
         weak var popupHost: UIView?

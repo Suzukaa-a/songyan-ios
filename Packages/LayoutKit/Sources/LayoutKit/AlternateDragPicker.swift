@@ -61,6 +61,18 @@ import Foundation
 /// the panel handles without this type. The panel wires it; this type never
 /// dispatches.
 public enum AlternateDragPicker {
+    /// How fast a scrolling popup moves (points per second, negative upward) with the finger at `y`
+    /// in a viewport spanning `minY ..< minY + height`. Within one row of an edge the speed grows
+    /// with depth; past the edge it keeps growing up to twice the edge speed, so dragging beyond
+    /// the list keeps it moving instead of stopping it.
+    public static func edgeScrollSpeed(y: Double, minY: Double, height: Double, zone: Double = 44) -> Double {
+        guard height > 0, zone > 0 else { return 0 }
+        let maxY = minY + height
+        let edgeSpeed = 480.0
+        if y < minY + zone { return -edgeSpeed * min(2, (minY + zone - y) / zone) }
+        if y > maxY - zone { return edgeSpeed * min(2, (y - (maxY - zone)) / zone) }
+        return 0
+    }
 
     /// Static geometry of the option grid, in the popup's content coordinates
     /// (the same space `UIScrollView.convert(_:from:)` produces, so vertical
