@@ -92,6 +92,39 @@ public enum CollapsedCandidateCommentPreferences {
     }
 }
 
+/// Whether wide boards (landscape, unfolded or tablet screens) widen the skin's key gaps with their
+/// columns (`StandardKeyRowGeometry.keyGapScale`). On by default; cached like the comment switch.
+public enum KeyGapScalingPreferences {
+    public static let key = "keyboard.keyGapScaling.v1"
+    public static var defaults: UserDefaults { KeyboardRecipeStore.sharedDefaults() ?? .standard }
+
+    private static let cache = OSAllocatedUnfairLock<Bool?>(uncheckedState: nil)
+
+    public static func read(from defaults: UserDefaults) -> Bool {
+        SharedPreferences.object(forKey: key, in: defaults) as? Bool ?? true
+    }
+
+    public static var current: Bool {
+        get {
+            cache.withLockUnchecked { state in
+                if let state { return state }
+                let loaded = read(from: defaults)
+                state = loaded
+                return loaded
+            }
+        }
+        set {
+            SharedPreferences.set(newValue, forKey: key, in: defaults)
+            cache.withLockUnchecked { $0 = newValue }
+        }
+    }
+
+    public static func refresh() {
+        let loaded = read(from: defaults)
+        cache.withLockUnchecked { $0 = loaded }
+    }
+}
+
 /// Where a large screen starts and the blank margin beside the key area on one. Shared by the app
 /// and the keyboard extension; the keyboard reads the in-process copy while it draws and re-reads
 /// the stored values at presentation (`refresh`), never per key.
@@ -501,6 +534,8 @@ public struct KeyboardAppearance: Equatable, Sendable {
     /// the skin's horizontal gap grows in proportion. Only the painted cap narrows; touch areas
     /// still meet, so no tap lands in a dead gap.
     public var keyGapScale = 1.0
+    /// Device-level choice to widen gaps on wide boards at all; read when the appearance is built.
+    public var scalesKeyGaps = KeyGapScalingPreferences.current
     /// Device-level candidate text scale; read from the cached preference when the appearance is built.
     public var candidateTextSize = CandidateTextSizePreferences.current
     /// Device-level choice to draw engine comments in the collapsed candidate row.
@@ -522,6 +557,7 @@ public struct KeyboardAppearance: Equatable, Sendable {
     /// an identical appearance.
     public static func == (lhs: KeyboardAppearance, rhs: KeyboardAppearance) -> Bool {
         lhs.dark == rhs.dark && lhs.skin == rhs.skin && lhs.keyGapScale == rhs.keyGapScale
+            && lhs.scalesKeyGaps == rhs.scalesKeyGaps
             && lhs.candidateTextSize == rhs.candidateTextSize
             && lhs.showsCollapsedCandidateComments == rhs.showsCollapsedCandidateComments
     }
@@ -568,7 +604,7 @@ public struct KeyboardAppearance: Equatable, Sendable {
     /// This appearance on a board whose letter rows are `width` wide.
     public func scalingKeyGaps(width: Double, split: ActiveLayoutSplit?) -> Self {
         var scaled = self
-        scaled.keyGapScale = StandardKeyRowGeometry(width: width, split: split).keyGapScale()
+        scaled.keyGapScale = scalesKeyGaps ? StandardKeyRowGeometry(width: width, split: split).keyGapScale() : 1
         return scaled
     }
 

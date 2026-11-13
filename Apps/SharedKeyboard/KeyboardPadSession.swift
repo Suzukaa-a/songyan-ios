@@ -64,7 +64,18 @@ public final class KeyboardPadSession: ObservableObject {
         case failed(String)
     }
 
-    @Published public private(set) var phase: Phase = .starting
+    @Published public private(set) var phase: Phase = .starting {
+        didSet { if case .failed = phase { startupKeys = [] } }
+    }
+    /// Keys typed on the keys drawn while the engine starts (see `KeyboardStartingKeys`), in order.
+    /// The engine decodes them as soon as it is ready; a failed start drops them.
+    private var startupKeys: [KeyAction] = []
+    private static let startupKeyLimit = 64
+
+    public func bufferStartupKey(_ action: KeyAction) {
+        guard phase == .starting, startupKeys.count < Self.startupKeyLimit else { return }
+        startupKeys.append(action)
+    }
     @Published public private(set) var controller: KeyboardController?
     /// Nonfatal transition failure: keep the ready keyboard and composition visible.
     @Published public private(set) var transitionError: String?
@@ -954,6 +965,11 @@ public final class KeyboardPadSession: ObservableObject {
         lastReadySelection = (ctrl.selectedSchemaID, ctrl.layout, ctrl.selectedBoard)
         if ctrl.snapshot.isComposing {
             refreshCompositionPresentation()
+        }
+        let typed = startupKeys
+        startupKeys = []
+        for action in typed {
+            if case .literal(let text) = action { _ = ctrl.insertLiteral(text) } else { ctrl.handle(action) }
         }
         // Once ready the user can switch schemas; after the await returns, do not write this boot's selection back to state.
         await refreshPublishedKeyboards()

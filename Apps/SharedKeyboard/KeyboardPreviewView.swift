@@ -16,6 +16,7 @@ public struct KeyboardPreviewView: View {
     private let onSelectKey: ((LayoutKeyPath) -> Void)?
     @State private var sample = PreviewSample.idle
     @State private var inspected: LayoutKey?
+    @State private var selectedPath: LayoutKeyPath?
     @State private var preferences = KeyboardPreviewPreferences.cached
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.verticalSizeClass) private var verticalSizeClass
@@ -58,9 +59,10 @@ public struct KeyboardPreviewView: View {
                     editing: editing, showsGlobe: preferences.showsGlobe, widths: widths,
                     standardKeyHeight: preferences.keyHeight(compact: verticalSizeClass == .compact),
                     quickSymbols: layout.t9QuickSymbols ?? preferences.t9QuickSymbols,
-                    candidateBar: candidateBar, inspected: inspected,
+                    candidateBar: candidateBar, inspected: inspected, selectedPath: selectedPath,
                     onSelect: { path, key in
                         inspected = key
+                        selectedPath = path
                         onSelectKey?(path)
                     })
             }
@@ -76,7 +78,7 @@ public struct KeyboardPreviewView: View {
     }
 }
 
-private enum PreviewSample: CaseIterable {
+enum PreviewSample: CaseIterable {
     case idle, composing, expanded, longPress
 
     var title: String {
@@ -92,7 +94,7 @@ private enum PreviewSample: CaseIterable {
 /// The key area the panel draws for a main layout, in one sample state. Shell and footer choices,
 /// splits and geometry come from the panel's own facts, rules and views; only the per-key face is
 /// local, because the panel's key builder reads the live session.
-private struct KeyboardMainLayoutPreview: View {
+struct KeyboardMainLayoutPreview: View {
     @Environment(\.keyboardAppearance) private var appearance
     let definition: LayoutDefinition
     let facts: DefinitionResolutionMemo.Facts
@@ -106,6 +108,11 @@ private struct KeyboardMainLayoutPreview: View {
     let quickSymbols: String
     let candidateBar: CandidateBarDefinition
     let inspected: LayoutKey?
+    let selectedPath: LayoutKeyPath?
+    /// False on the keyboard itself (`KeyboardStartingKeys`): no preview card around the keys.
+    var framed = true
+    /// False on the keyboard itself: the keyboard's own candidate band is above the keys.
+    var showsHeader = true
     let onSelect: (LayoutKeyPath, LayoutKey) -> Void
 
     /// The main layout's own page, in Chinese: the ABC and 123 pages the user picked have their own
@@ -181,35 +188,17 @@ private struct KeyboardMainLayoutPreview: View {
         let split = activeSplit
         let geometry = geometry
         VStack(spacing: 0) {
-            Group {
-                if composing { candidateArea(expanded: false) } else { Color.clear }
+            if showsHeader {
+                Group {
+                    if composing { candidateArea(expanded: false) } else { Color.clear }
+                }
+                .frame(height: CGFloat(geometry.headerHeight))
             }
-            .frame(height: CGFloat(geometry.headerHeight))
             VStack(spacing: 4) {
-                switch renderer {
-                case .phonePad:
-                    phonePad(split: split)
-                case .phoneDigitPad:
-                    phoneDigitPad(split: split)
-                default:
-                    let mainAreaHeight = CGFloat(geometry.mainAreaHeight)
-                    VStack(spacing: 4) {
-                        if expanded {
-                            candidateArea(expanded: true)
-                        } else if CGFloat(mainRowCount) * (pageKeyHeight + 4) - 4 > mainAreaHeight + 1 {
-                            ScrollView { VStack(spacing: 4) { keyRows(split: split) } }
-                                .sharpCandidateScrollEdges()
-                        } else {
-                            VStack(spacing: 4) { keyRows(split: split) }
-                        }
-                    }
-                    .frame(height: mainAreaHeight, alignment: .top)
-                    // The editor shows the bottom row the keyboard draws, decided by the same rule.
-                    if usesConfiguredLayout && !facts.isBundledControlRowPolicy {
-                        layoutUtilityBar(split: split)
-                    } else {
-                        controlRow(split: split, columns: nil)
-                    }
+                if usesConfiguredLayout, let board = Kana12Board.of(definition) {
+                    kana12Surface(board, height: CGFloat(geometry.mainAreaHeight) + 4 + pageKeyHeight)
+                } else {
+                    keyArea(split: split, geometry: geometry)
                 }
             }
             if sample == .longPress {
@@ -217,13 +206,57 @@ private struct KeyboardMainLayoutPreview: View {
             }
         }
         .padding(4)
-        .background(appearance.previewSurface)
-        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .background(framed ? appearance.previewSurface : .clear)
+        .clipShape(RoundedRectangle(cornerRadius: framed ? 8 : 0))
         // The rows draw at the height the keyboard actually uses for this page: the preset on a
         // three-row page, the redistributed height on a four-row board.
         .environment(\.keyboardKeyHeight, pageKeyHeight)
         // The key gaps scale with the columns, as on the keyboard.
         .environment(\.keyboardAppearance, appearance.scalingKeyGaps(width: widths.content, split: split))
+    }
+
+    /// The twelve-key board draws as the keyboard draws it, edited or not; in the editor a tap
+    /// selects the key's stored address.
+    private func kana12Surface(_ board: Kana12Board, height: CGFloat) -> some View {
+        Kana12KeyboardView(
+            board: board, compositing: composing,
+            labels: Kana12Labels.japanese(intent: .lineBreak, isEnglishMode: false, usesASCIIPunctuation: false),
+            onAction: { _ in },
+            onSelectKey: editing
+                ? { path in if let key = definition.key(at: path) { onSelect(path, key) } } : nil,
+            selectedKey: selectedPath
+        )
+        .environment(\.keyboardKeyHeight, max(32, pageKeyHeight - 2))
+        .frame(height: height, alignment: .top)
+    }
+
+    @ViewBuilder
+    private func keyArea(split: ActiveLayoutSplit?, geometry: KeyboardPanelGeometry) -> some View {
+        switch renderer {
+        case .phonePad:
+            phonePad(split: split)
+        case .phoneDigitPad:
+            phoneDigitPad(split: split)
+        default:
+            let mainAreaHeight = CGFloat(geometry.mainAreaHeight)
+            VStack(spacing: 4) {
+                if expanded {
+                    candidateArea(expanded: true)
+                } else if CGFloat(mainRowCount) * (pageKeyHeight + 4) - 4 > mainAreaHeight + 1 {
+                    ScrollView { VStack(spacing: 4) { keyRows(split: split) } }
+                        .sharpCandidateScrollEdges()
+                } else {
+                    VStack(spacing: 4) { keyRows(split: split) }
+                }
+            }
+            .frame(height: mainAreaHeight, alignment: .top)
+            // The editor shows the bottom row the keyboard draws, decided by the same rule.
+            if usesConfiguredLayout && !facts.isBundledControlRowPolicy {
+                layoutUtilityBar(split: split)
+            } else {
+                controlRow(split: split, columns: nil)
+            }
+        }
     }
 
     // MARK: Key area
@@ -602,4 +635,39 @@ private struct KeyboardMainLayoutPreview: View {
                 accentColor: appearance.accentForeground, panelColor: appearance.color("panel"),
                 fontFamily: appearance.skin.typography.family, fontWeight: appearance.skin.typography.weight))
     }
+}
+
+/// The keys of the layout the keyboard last drew, shown while the engine starts so a cold start
+/// is never a blank panel or a spinner: they look and press like the keyboard, and each tap goes
+/// to `onKey` in order for the engine to decode once it is ready.
+struct KeyboardStartingKeys: View {
+    let layout: LayoutDefinition
+    let candidateBar: CandidateBarDefinition
+    let keyHeight: CGFloat
+    let showsGlobe: Bool
+    let widthSettings: KeyboardWidthSettings
+    let onKey: (LayoutKey) -> Void
+
+    private var layoutKind: KeyboardLayoutKind? {
+        layout.input.builtinLayout.flatMap { KeyboardLayoutKind(rawValue: $0.rawValue) }
+    }
+
+    var body: some View {
+        KeyboardPreviewFrame(
+            layout: layoutKind, mainSplit: layout.split,
+            dock: layoutKind.map(KeyboardContentDockPreferences.dock(for:)) ?? .center, widthSettings: widthSettings
+        ) { widths in
+            KeyboardMainLayoutPreview(
+                definition: layout, facts: DefinitionResolutionMemo.Facts(usable: [], active: layout),
+                sample: .idle, editing: false, showsGlobe: showsGlobe, widths: widths,
+                standardKeyHeight: keyHeight,
+                quickSymbols: layout.t9QuickSymbols ?? T9QuickSymbolStore.defaultSymbols,
+                candidateBar: candidateBar, inspected: nil, selectedPath: nil, framed: false, showsHeader: false,
+                onSelect: { _, key in onKey(key) })
+        }
+    }
+
+    /// Where the keyboard records the layout it drew, read back at the next cold start. Kept in the
+    /// extension's own defaults: it describes this keyboard process, not a setting.
+    static let lastLayoutKey = "keyboard.lastDrawnLayoutID"
 }

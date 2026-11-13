@@ -6843,28 +6843,6 @@
         }
       }
     },
-    "正在读取当前输入方案…": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "正在读取当前输入方案…"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "正在讀取當前輸入方案…"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "現在の入力パックを読み込んでいます…"
-          }
-        }
-      }
-    },
     "当前来源：%@": {
       "localizations": {
         "zh-Hans": {
@@ -12405,28 +12383,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "入力パックを追加"
-          }
-        }
-      }
-    },
-    "正在读取输入方案…": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "正在读取输入方案…"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "正在讀取輸入方案…"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "入力パックを読み込んでいます…"
           }
         }
       }
@@ -19313,28 +19269,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "キーを削除"
-          }
-        }
-      }
-    },
-    "正在读取最近使用…": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "正在读取最近使用…"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "正在讀取最近使用…"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "最近使ったものを読み込んでいます…"
           }
         }
       }
@@ -29965,28 +29899,6 @@
         }
       }
     },
-    "正在读取键盘…": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "キーボードを読み取っています…"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "正在读取键盘…"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "正在讀取鍵盤…"
-          }
-        }
-      }
-    },
     "试打当前键盘": {
       "localizations": {
         "ja": {
@@ -34339,6 +34251,182 @@
           "stringUnit": {
             "state": "translated",
             "value": "キーボードが学習データを処理中です。しばらくしてから復元してください。"
+          }
+        }
+      }
+    },
+    "大屏时加宽按键间距": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "大屏时加宽按键间距"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "大屏時加寬按鍵間距"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "大きな画面でキーの間隔を広げる"
+          }
+        }
+      }
+    },
+    "横屏、展开的折叠屏和 iPad 上，按键间距随按键一起变宽。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "横屏、展开的折叠屏和 iPad 上，按键间距随按键一起变宽。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "橫屏、展開的摺疊屏和 iPad 上，按鍵間距隨按鍵一起變寬。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "横向き、開いた折りたたみ端末、iPad では、キーの間隔がキーと一緒に広がります。"
+          }
+        }
+      }
+    },
+    "自动保存": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动保存"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自動儲存"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自動保存"
+          }
+        }
+      }
+    },
+    "每天": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每天"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每天"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "毎日"
+          }
+        }
+      }
+    },
+    "每周": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每周"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每週"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "毎週"
+          }
+        }
+      }
+    },
+    "每 %lld 天": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每 %lld 天"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每 %lld 天"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld 日ごと"
+          }
+        }
+      }
+    },
+    "更早的备份（%lld）": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更早的备份（%lld）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更早的備份（%lld）"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "以前のバックアップ（%lld）"
+          }
+        }
+      }
+    },
+    "学到新词后，按这个频率在本机存一份。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "学到新词后，按这个频率在本机存一份。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "學到新詞後，按這個頻率在本機存一份。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新しい語を学習したら、この頻度でこの端末に保存します。"
           }
         }
       }

@@ -1051,6 +1051,10 @@ public struct KeyboardPanelView: View {
             // Reading-row eligibility report (fact): the host grants/revokes height from it and records it as a cold-start hint.
             .onAppear { onReadingRowReport?(readingRowReport) }
             .onChange(of: readingRowReport) { onReadingRowReport?(readingRowReport) }
+            // The next cold start draws these keys while the engine starts (`KeyboardStartingKeys`).
+            .onChange(of: activeDefinition?.id, initial: true) { _, id in
+                if let id { UserDefaults.standard.set(id, forKey: KeyboardStartingKeys.lastLayoutKey) }
+            }
             // Definition/physical-structure change: observe **content** (LayoutDefinition is Equatable). An in-place
             // registry update under the same id must also go through the transaction, rather than flipping a Bool and leaving a stale lock usable across definitions.
             .onChange(of: activeDefinition) { old, new in

@@ -50,6 +50,7 @@ struct SkinManagementView: View {
     @State private var importError: String?
     @State private var savedDestination: AppearanceDocument?
     @State private var showsSaved = false
+    @State private var scalesKeyGaps = KeyGapScalingPreferences.current
     var body: some View {
         List {
             Section {
@@ -117,6 +118,12 @@ struct SkinManagementView: View {
                 Label(String(localized: "导入外观文件"), systemImage: "square.and.arrow.down")
             }
             WebEditLink()
+            Section {
+                Toggle(String(localized: "大屏时加宽按键间距"), isOn: $scalesKeyGaps)
+                    .onChange(of: scalesKeyGaps) { KeyGapScalingPreferences.current = scalesKeyGaps }
+            } footer: {
+                Text(String(localized: "横屏、展开的折叠屏和 iPad 上，按键间距随按键一起变宽。"))
+            }
             NavigationLink {
                 CandidateBarStyleView()
             } label: {
@@ -272,7 +279,7 @@ struct AppearanceDetailView: View {
     var body: some View {
         Form {
             Section(String(localized: "预览")) {
-                if layouts.isEmpty { ProgressView(String(localized: "正在读取布局…")) }
+                if layouts.isEmpty { DelayedSpinner() }
                 Picker(String(localized: "键盘布局"), selection: $layoutID) {
                     ForEach(layouts) { Text($0.name).tag($0.id) }
                 }

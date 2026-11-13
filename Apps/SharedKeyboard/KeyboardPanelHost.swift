@@ -40,6 +40,7 @@ public struct KeyboardPanelHost: View {
         var resolved = KeyboardAppearance(skin: appearanceSnapshot.document.skin, dark: dark)
         resolved.candidateTextSize = storedCandidateTextSize
         resolved.showsCollapsedCandidateComments = storedCollapsedCandidateComments
+        resolved.scalesKeyGaps = storedScalesKeyGaps
         return resolved
     }
     /// Runtime-only rescue; implementations must not require a shared selection write.
@@ -76,6 +77,7 @@ public struct KeyboardPanelHost: View {
     @State private var storedHeightPreset = KeyboardHeightPreferences.current
     @State private var storedCandidateTextSize = CandidateTextSizePreferences.current
     @State private var storedCollapsedCandidateComments = CollapsedCandidateCommentPreferences.current
+    @State private var storedScalesKeyGaps = KeyGapScalingPreferences.current
     private var keyHeight: CGFloat {
         CGFloat(presentationBudget?.keyHeight ?? heightPreset.keyHeight(compact: compactReadingRow))
     }
@@ -252,6 +254,8 @@ public struct KeyboardPanelHost: View {
                 storedCandidateTextSize = CandidateTextSizePreferences.current
                 CollapsedCandidateCommentPreferences.refresh()
                 storedCollapsedCandidateComments = CollapsedCandidateCommentPreferences.current
+                KeyGapScalingPreferences.refresh()
+                storedScalesKeyGaps = KeyGapScalingPreferences.current
                 storedHeightPreset = KeyboardHeightPreferences.current
                 if presentationBudget == nil {
                     readingPlacement = KeyboardReadingPlacementPreferences.current
@@ -302,6 +306,8 @@ public struct KeyboardPanelHost: View {
                 storedCandidateTextSize = CandidateTextSizePreferences.current
                 CollapsedCandidateCommentPreferences.refresh()
                 storedCollapsedCandidateComments = CollapsedCandidateCommentPreferences.current
+                KeyGapScalingPreferences.refresh()
+                storedScalesKeyGaps = KeyGapScalingPreferences.current
                 oneHandMode = KeyboardOneHandPreferences.current
                 oneHandWidthPercent = KeyboardOneHandPreferences.widthPercent
                 if oneHandMode != .off { lastOneHandSide = oneHandMode }
@@ -337,7 +343,11 @@ public struct KeyboardPanelHost: View {
         } else {
             switch session.phase {
             case .starting:
-                loadingSurface { startingSurface }
+                if let layout = startingLayout {
+                    startingKeys(layout)
+                } else {
+                    loadingSurface { startingSurface }
+                }
             case .failed:
                 loadingSurface { failureSurface }
             case .ready:
@@ -592,6 +602,41 @@ public struct KeyboardPanelHost: View {
     /// A slow boot remains observable and accessible through the progress indicator;
     /// only a real `.failed` phase exposes retry and error details, so an in-flight
     /// boot is never interrupted by a misleading retry action.
+    /// The layout the keyboard last drew, once the stored layouts are read; nil before the first
+    /// ready keyboard, when the starting panel shows instead.
+    private var startingLayout: LayoutDefinition? {
+        // The user's skin first: keys in the default look would change colour when it arrives.
+        guard hasValidAppearance,
+            let id = UserDefaults.standard.string(forKey: KeyboardStartingKeys.lastLayoutKey)
+        else { return nil }
+        if let stored = (layoutRegistry ?? storedRegistry)?.resolvedLayout(id: id) { return stored }
+        guard resolvedLayoutSourceSettled else { return nil }
+        return BuiltinLayouts.all.first { $0.id == id }
+    }
+
+    /// While the engine starts the keyboard already shows its keys; what is typed is decoded, in
+    /// order, as soon as the engine is ready. Keys that need the engine's state (pages, shift,
+    /// menus) wait for it.
+    private func startingKeys(_ layout: LayoutDefinition) -> some View {
+        FixedPhaseHeight(height: layoutShellHeight) {
+            KeyboardStartingKeys(
+                layout: layout, candidateBar: appearanceSnapshot.document.candidateBar,
+                // The rows the keyboard will draw in this shell, so nothing moves when it takes over.
+                keyHeight: CGFloat(layoutFit.keyHeight), showsGlobe: systemKeyboardSwitch != nil,
+                widthSettings: KeyboardWidthPreferences.read(from: KeyboardWidthPreferences.defaults),
+                onKey: { key in
+                    switch key.action.type {
+                    case .code, .literal, .space, .backspace, .enter:
+                        session.bufferStartupKey(key.action.keyAction(usesASCIIPunctuation: false))
+                    default:
+                        break
+                    }
+                }
+            )
+            .frame(maxHeight: .infinity, alignment: .bottom)
+        }
+    }
+
     private var startingSurface: some View {
         // A keyboard picked from the menu is usually up within this; its spinner would only flash.
         DelayedProgressView(delay: session.announcesNextKeyboard ? .milliseconds(300) : .zero)

@@ -59,6 +59,7 @@ extension KeyboardViewController {
     /// host document content, and changes no engine/lifecycle state.
     func noteEnginePhase(_ phase: KeyboardPadSession.Phase) {
         let label = phaseLabel(phase)
+        coverRestart(from: lastObservedPhaseLabel, to: phase)
         #if DEBUG
             DebugProbe.writeSnapshot(
                 role: "keyboardExtension",
@@ -304,6 +305,56 @@ extension KeyboardViewController {
                     "windowAttached": view.window == nil ? "0" : "1",
                     "vertical": "\(traitCollection.verticalSizeClass.rawValue)",
                 ])
+        }
+    }
+}
+
+// MARK: - Restart cover
+
+extension KeyboardViewController {
+    /// An engine restart (a learning export or merge, another input method) drops the keys for a
+    /// moment. Instead of a blank panel the last frame stays on screen, takes no touches, and fades
+    /// into the new keys once they are drawn. A failure shows its message at once; a restart that
+    /// runs long hands over to the starting panel so the wait is visible.
+    /// `@Published` reports a phase before the view changes, so on `.starting` the keys are still
+    /// on screen to be captured.
+    func coverRestart(from previous: String?, to phase: KeyboardPadSession.Phase) {
+        switch phase {
+        case .starting:
+            guard previous == "ready", restartCover == nil, isOnScreen,
+                let panel = hostingController?.view, let container = panel.superview,
+                let cover = panel.snapshotView(afterScreenUpdates: false)
+            else { return }
+            cover.frame = panel.frame
+            cover.isUserInteractionEnabled = true
+            cover.isAccessibilityElement = false
+            container.addSubview(cover)
+            restartCover = cover
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self, weak cover] in
+                guard let self, let cover, self.restartCover === cover else { return }
+                self.liftRestartCover(animated: true)
+            }
+        case .ready:
+            // Let the new keys draw first, then fade the old frame away over them.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+                self?.liftRestartCover(animated: true)
+            }
+        case .failed:
+            liftRestartCover(animated: false)
+        }
+    }
+
+    func liftRestartCover(animated: Bool) {
+        guard let cover = restartCover else { return }
+        restartCover = nil
+        guard animated else {
+            cover.removeFromSuperview()
+            return
+        }
+        UIView.animate(withDuration: 0.2, delay: 0, options: [.curveEaseOut, .beginFromCurrentState]) {
+            cover.alpha = 0
+        } completion: { _ in
+            cover.removeFromSuperview()
         }
     }
 }

@@ -68,7 +68,7 @@ class KeyboardViewController: UIInputViewController {
     private var retiresPanelWhenHidden = false
     /// From `viewWillAppear` to `viewDidDisappear`. A window alone is not proof: a host
     /// can keep a dismissed controller's view attached.
-    private var isOnScreen = false
+    private(set) var isOnScreen = false
     /// From `viewDidAppear` to `viewWillDisappear`: the panel is fully shown, so a light/dark
     /// change is a live system toggle and may fade. Before that, the shared route may still
     /// hold the previous host app's scheme and must be corrected without animation.
@@ -91,6 +91,8 @@ class KeyboardViewController: UIInputViewController {
     private var fullAccessAtWillAppear: Bool?
     private var controllerObservation: AnyCancellable?
     private var phaseObservation: AnyCancellable?
+    /// The last frame of the keys, shown while the engine restarts (see `coverRestart`).
+    var restartCover: UIView?
     /// Classification and entry time of this appearance, used to log warm/cold start duration at `.ready`.
     var appearanceBootClassification: KeyboardBootClassification?
     var appearanceEntryMonotonic: CFTimeInterval?
@@ -612,6 +614,7 @@ class KeyboardViewController: UIInputViewController {
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
+        liftRestartCover(animated: false)
         isPresentationSettled = false
         hostDocumentAttachPending = false
         preparesNextPresentation = isBoundHost
