@@ -238,6 +238,7 @@ private struct KeyboardMainLayoutPreview: View {
         case .standardQwerty:
             KeyboardStandardQwertyPad(
                 split: split,
+                usesStandardColumns: facts.usesStandardQwertyColumns,
                 row: { index, metrics in standardQwertyRow(index, metrics: metrics, split: split) },
                 shift: { ShiftKey(state: .off, isEnglishMode: isEnglishMode, tap: {}, doubleTap: {}) },
                 delete: { RepeatingDeleteKey {} })

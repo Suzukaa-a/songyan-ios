@@ -324,7 +324,9 @@ struct KeyboardAuthoredPageRows: View {
                                         height: keyHeight)
                             }
                             keyView(row: rowIndex, key: source, keyValue: row.keys[source])
-                                .frame(width: CGFloat(geometry.keyWidths[position]), height: keyHeight)
+                                .keyboardRowKeyFrame(
+                                    width: CGFloat(geometry.keyWidths[position]), height: keyHeight,
+                                    standard: geometry.usesStandardAlphabet)
                         }
                     }
                     .padding(.horizontal, CGFloat(geometry.inset))

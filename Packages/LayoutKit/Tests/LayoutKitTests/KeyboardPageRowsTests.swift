@@ -8,6 +8,30 @@ import XCTest
 final class KeyboardPageRowsTests: XCTestCase {
     private let spacing = 4.0
 
+    func testAutomaticCapsLeaveOneFifthOfTheirWidthBetweenLetters() {
+        for width in [320.0, 394, 458, 600, 834] {
+            let columns = StandardKeyRowGeometry(width: width)
+            let cap = StandardKeyRowGeometry.keyCapWidth(columnWidth: columns.keyWidth)
+            let visibleGap = columns.keyWidth + spacing - cap
+            XCTAssertLessThan(cap, columns.keyWidth)
+            XCTAssertEqual(visibleGap / cap, 0.2, accuracy: 0.001)
+            // The inset cap still has the same centre as its original slot.
+            XCTAssertEqual((columns.keyWidth - cap) / 2 + cap / 2, columns.keyWidth / 2, accuracy: 0.001)
+        }
+    }
+
+    func testCompactCapsKeepTheirHeightAndNarrowColumnsDoNotGrow() {
+        for height in [34.0, 38, 40] {
+            XCTAssertEqual(StandardKeyRowGeometry.keyCapHeight(rowHeight: height), height)
+        }
+        for height in [48.0, 54, 60] {
+            XCTAssertEqual(StandardKeyRowGeometry.keyCapHeight(rowHeight: height), height - 6)
+        }
+        for width in [0.0, 10, 20] {
+            XCTAssertEqual(StandardKeyRowGeometry.keyCapWidth(columnWidth: width), width)
+        }
+    }
+
     func testBothPagesKeepTenColumnRowsWithASevenMarkThirdRow() {
         for ascii in [false, true] {
             for rows in [

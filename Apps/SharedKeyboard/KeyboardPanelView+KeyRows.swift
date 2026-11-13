@@ -245,6 +245,7 @@ extension KeyboardPanelView {
     private var standardQwertyKeypad: some View {
         KeyboardStandardQwertyPad(
             split: activeSplit,
+            usesStandardColumns: controller.isEnglishMode || definitionFacts.usesStandardQwertyColumns,
             row: { index, metrics in standardQwertyRow(index, metrics: metrics) },
             shift: {
                 ShiftKey(

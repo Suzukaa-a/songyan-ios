@@ -156,7 +156,9 @@ struct WeightedKeyRow: View {
                     )
                     .disabled(!isEnabled(cap))
                     .opacity(isEnabled(cap) ? 1 : 0.45)
-                    .frame(width: fixedKeyWidth ?? (available * CGFloat(cap.width) / total), height: keyHeight)
+                    .keyboardRowKeyFrame(
+                        width: fixedKeyWidth ?? (available * CGFloat(cap.width) / total), height: keyHeight,
+                        standard: fixedKeyWidth != nil)
                 }
             }
             .padding(

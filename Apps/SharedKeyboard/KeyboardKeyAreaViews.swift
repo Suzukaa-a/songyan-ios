@@ -7,6 +7,18 @@ import UIKit
 // Key-area views the live panel and the host previews both draw. Each takes plain values and
 // action closures; the panel passes live state, a preview passes its sample state.
 
+extension View {
+    /// Size the native key itself, then centre it in its existing grid slot. Preview and runtime
+    /// use the same cap bounds; custom weighted rows keep their explicitly allocated dimensions.
+    func keyboardRowKeyFrame(width: CGFloat, height: CGFloat, standard: Bool = true) -> some View {
+        frame(
+            width: standard ? CGFloat(StandardKeyRowGeometry.keyCapWidth(columnWidth: Double(width))) : width,
+            height: standard ? CGFloat(StandardKeyRowGeometry.keyCapHeight(rowHeight: Double(height))) : height
+        )
+        .frame(width: width, height: height)
+    }
+}
+
 /// The rows of a page without authored chrome, with the native Shift and Delete around them.
 struct KeyboardPageRows<Key: View, Leading: View, Delete: View>: View {
     @Environment(\.keyboardKeyHeight) private var keyHeight
@@ -25,7 +37,8 @@ struct KeyboardPageRows<Key: View, Leading: View, Delete: View>: View {
                     width: Double(proxy.size.width), page: page, row: row, split: split, showsGlobe: showsGlobe)
                 HStack(spacing: 4) {
                     if geometry.showsLeadingControl {
-                        leading().frame(width: geometry.sideWidth, height: keyHeight)
+                        leading().keyboardRowKeyFrame(
+                            width: geometry.sideWidth, height: keyHeight, standard: geometry.usesStandardAlphabet)
                     }
                     HStack(spacing: 4) {
                         ForEach(Array(geometry.keyIndices.enumerated()), id: \.element) { index, source in
@@ -33,10 +46,15 @@ struct KeyboardPageRows<Key: View, Leading: View, Delete: View>: View {
                                 KeyboardSplitGap().frame(width: geometry.gap - 4, height: keyHeight)
                             }
                             key(page.rows[row].keys[source], row, source)
-                                .frame(width: geometry.keyWidths[index], height: keyHeight)
+                                .keyboardRowKeyFrame(
+                                    width: geometry.keyWidths[index], height: keyHeight,
+                                    standard: geometry.usesStandardAlphabet)
                         }
                     }.padding(.horizontal, geometry.inset).frame(width: geometry.rowWidth)
-                    if geometry.showsDelete { delete().frame(width: geometry.sideWidth, height: keyHeight) }
+                    if geometry.showsDelete {
+                        delete().keyboardRowKeyFrame(
+                            width: geometry.sideWidth, height: keyHeight, standard: geometry.usesStandardAlphabet)
+                    }
                 }
             }.frame(height: keyHeight)
         }
@@ -110,7 +128,7 @@ struct KeyboardSymbolPageRows<PageSwitch: View, Delete: View>: View {
                 let metrics = StandardKeyRowGeometry(width: Double(geometry.size.width), split: split)
                 HStack(spacing: 4) {
                     if index == 2 {
-                        pageSwitch().frame(width: CGFloat(metrics.thirdRowSideWidth), height: keyHeight)
+                        pageSwitch().keyboardRowKeyFrame(width: CGFloat(metrics.thirdRowSideWidth), height: keyHeight)
                     }
                     WeightedKeyRow(
                         caps: row.caps, alternates: alternates, showsKeyPreview: true,
@@ -119,7 +137,7 @@ struct KeyboardSymbolPageRows<PageSwitch: View, Delete: View>: View {
                         onTap: onTap
                     )
                     if index == 2 {
-                        delete().frame(width: CGFloat(metrics.thirdRowSideWidth), height: keyHeight)
+                        delete().keyboardRowKeyFrame(width: CGFloat(metrics.thirdRowSideWidth), height: keyHeight)
                     }
                 }
             }.frame(height: keyHeight)
@@ -132,6 +150,7 @@ struct KeyboardSymbolPageRows<PageSwitch: View, Delete: View>: View {
 struct KeyboardStandardQwertyPad<Row: View, Shift: View, Delete: View>: View {
     @Environment(\.keyboardKeyHeight) private var keyHeight
     let split: ActiveLayoutSplit?
+    var usesStandardColumns = true
     @ViewBuilder var row: (Int, StandardKeyRowGeometry) -> Row
     @ViewBuilder var shift: () -> Shift
     @ViewBuilder var delete: () -> Delete
@@ -143,9 +162,13 @@ struct KeyboardStandardQwertyPad<Row: View, Shift: View, Delete: View>: View {
                 ForEach(0..<3, id: \.self) { index in
                     if index == 2 {
                         HStack(spacing: 4) {
-                            shift().frame(width: CGFloat(metrics.thirdRowSideWidth), height: keyHeight)
+                            shift().keyboardRowKeyFrame(
+                                width: CGFloat(metrics.thirdRowSideWidth), height: keyHeight,
+                                standard: usesStandardColumns)
                             row(index, metrics)
-                            delete().frame(width: CGFloat(metrics.thirdRowSideWidth), height: keyHeight)
+                            delete().keyboardRowKeyFrame(
+                                width: CGFloat(metrics.thirdRowSideWidth), height: keyHeight,
+                                standard: usesStandardColumns)
                         }
                     } else {
                         row(index, metrics)
@@ -310,12 +333,12 @@ struct KeyboardDefinitionRow<Key: View>: View {
                         KeyboardSplitGap().frame(width: gap - spacing, height: keyHeight)
                     }
                     key(value, index)
-                        .frame(
+                        .keyboardRowKeyFrame(
                             width: (scrollWidths ?? budget?.keyWidths).map { CGFloat($0[index]) } ?? fixedKeyWidth
                                 ?? (isControls
                                     ? minimum + remainder * CGFloat(widths.keyFractions[index])
                                     : available * CGFloat(widths.keyFractions[index])),
-                            height: keyHeight)
+                            height: keyHeight, standard: fixedKeyWidth != nil && !isControls)
                 }
             }
             .padding(
