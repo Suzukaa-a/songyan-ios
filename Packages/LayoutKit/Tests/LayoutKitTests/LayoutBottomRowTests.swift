@@ -88,14 +88,12 @@ final class LayoutBottomRowTests: XCTestCase {
         let plain = KeyboardPageFooterGeometry(width: 390, keys: keys, policy: policy)
         XCTAssertTrue(plain.usesControlRowBudget)
         keys.insert(LayoutKey(label: "符号", action: .pageSwitch(.symbols), titleMode: .automatic), at: 1)
-        let sized = try! XCTUnwrap(
-            KeyboardPageFooterGeometry.builtInSizedWidths(width: 390, keys: keys, policy: policy))
+        let sized = KeyboardPageFooterGeometry(width: 390, keys: keys, policy: policy)
         let space = keys.firstIndex { $0.action.type == .space }!
-        // The space bar gives up at most a fifth; the other keys narrow but stay touch-sized.
-        XCTAssertGreaterThanOrEqual(sized.widths[space], plain.keyWidths[space - 1] * 0.8 - 0.001)
-        XCTAssertTrue(sized.widths.allSatisfy { $0 >= 44 })
-        XCTAssertLessThanOrEqual(sized.widths[0], plain.keyWidths[0])
-        XCTAssertEqual(sized.widths.reduce(0, +) + sized.spacing * Double(keys.count - 1), 390, accuracy: 0.001)
+        XCTAssertEqual(sized.keyWidths[space] + sized.keyWidths[1] + sized.spacing, plain.keyWidths[space - 1])
+        XCTAssertTrue(sized.keyWidths.allSatisfy { $0 >= 44 })
+        XCTAssertEqual(sized.keyWidths[0], plain.keyWidths[0])
+        XCTAssertEqual(sized.keyWidths.reduce(0, +) + sized.spacing * Double(keys.count - 1), 390, accuracy: 0.001)
     }
 
     func testAChosenWidthKeepsTheAuthorsWeights() {
@@ -103,6 +101,6 @@ final class LayoutBottomRowTests: XCTestCase {
             page: .letters, isEnglishMode: false, hasGlobe: false, isPhoneLayout: false, usesASCIIPunctuation: false)
         var keys = LayoutBottomRow.defaultKeys.filter { $0.action.type != .globe }
         keys[0].width = 2
-        XCTAssertNil(KeyboardPageFooterGeometry.builtInSizedWidths(width: 390, keys: keys, policy: policy))
+        XCTAssertFalse(KeyboardPageFooterGeometry(width: 390, keys: keys, policy: policy).usesControlRowBudget)
     }
 }

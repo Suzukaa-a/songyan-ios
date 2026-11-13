@@ -289,14 +289,14 @@ struct KeyboardDefinitionRow<Key: View>: View {
     var fixedKeyWidth: CGFloat? = nil
     var splitGap: CGFloat? = nil
     var isControls = false
-    /// A control row drawn as the author stored it keeps the built-in row's widths, so editing a
-    /// layout does not re-tune the row it started from.
+    /// Main-layout and page footers share the same automatic width budget.
     var controlPolicy: KeyboardControlPolicy? = nil
     @ViewBuilder var key: (LayoutKey, Int) -> Key
 
     var body: some View {
         GeometryReader { geometry in
             let budget = builtInBudget(width: Double(geometry.size.width))
+            let scrollWidths = budget?.scrollWidths(availableWidth: Double(geometry.size.width))
             let spacing = budget.map { CGFloat($0.spacing) } ?? spacing
             let gap = splitGap ?? CGFloat(split?.gap(width: Double(geometry.size.width), keyCount: keys.count) ?? 0)
             let boundary = split?.breakIndex(row: rowIndex, keyCount: keys.count)
@@ -311,7 +311,7 @@ struct KeyboardDefinitionRow<Key: View>: View {
                     }
                     key(value, index)
                         .frame(
-                            width: budget.map { CGFloat($0.keyWidths[index]) } ?? fixedKeyWidth
+                            width: (scrollWidths ?? budget?.keyWidths).map { CGFloat($0[index]) } ?? fixedKeyWidth
                                 ?? (isControls
                                     ? minimum + remainder * CGFloat(widths.keyFractions[index])
                                     : available * CGFloat(widths.keyFractions[index])),
@@ -322,7 +322,7 @@ struct KeyboardDefinitionRow<Key: View>: View {
                 .horizontal,
                 fixedKeyWidth.map { max(0, (available - $0 * CGFloat(keys.count)) / 2) }
                     ?? (available * CGFloat(widths.insetFraction)))
-            if isControls, budget == nil, available < CGFloat(keys.count) * minimum {
+            if scrollWidths != nil || (isControls && budget == nil && available < CGFloat(keys.count) * minimum) {
                 // Only an authored control row can exceed the width (44pt minimum per key), so
                 // only it may scroll. A row that fits gets no ScrollView: its pan would take a
                 // sideways drag away from the space bar's cursor movement.
@@ -338,12 +338,9 @@ struct KeyboardDefinitionRow<Key: View>: View {
         .frame(height: keys.isEmpty ? 0 : keyHeight)
     }
 
-    private func builtInBudget(width: Double) -> (keyWidths: [Double], spacing: Double)? {
+    private func builtInBudget(width: Double) -> KeyboardPageFooterGeometry? {
         guard isControls, split == nil, let controlPolicy else { return nil }
-        let geometry = KeyboardPageFooterGeometry(width: width, keys: keys, policy: controlPolicy)
-        if geometry.usesControlRowBudget { return (geometry.keyWidths, geometry.spacing) }
-        return KeyboardPageFooterGeometry.builtInSizedWidths(width: width, keys: keys, policy: controlPolicy)
-            .map { ($0.widths, $0.spacing) }
+        return KeyboardPageFooterGeometry(width: width, keys: keys, policy: controlPolicy)
     }
 }
 
@@ -376,10 +373,10 @@ enum LayoutFooterItem: Hashable {
     case layoutSwitch
     case key(Int)
 
-    /// `weights` holds one width weight per declared key.
-    func width(weights: [Double]) -> Double {
+    /// `widths` holds one resolved width per declared key.
+    func width(widths: [Double]) -> Double {
         guard case .key(let index) = self else { return 44 }
-        return max(44, weights[index] * 44)
+        return widths[index]
     }
 }
 
@@ -423,7 +420,7 @@ struct KeyboardLayoutUtilityBar<Key: View, Globe: View, ModeSwitch: View>: View 
             let boundary = split.breakIndex(row: rowIndex, keyCount: keys.count)
             let shown = keys.indices.filter { showsGlobe || keys[$0].action.type != .globe }
             let visible = shown.filter { keys[$0].action.type != .space }
-            let weights = footerWeights(keys, shown: shown)
+            let widths = footerWidths(keys, shown: shown)
             let plan = shortcutPlan
             let shortcuts: [LayoutFooterItem] =
                 (plan.addsNumericShortcut ? [.numericShortcut] : [])
@@ -437,9 +434,9 @@ struct KeyboardLayoutUtilityBar<Key: View, Globe: View, ModeSwitch: View>: View 
             let space = spaceIndex.map { keys[$0] } ?? LayoutKey(label: "空格", width: 4, action: .init(.space))
             SplitSpaceKeyboardRow(
                 leftKeys: left, rightKeys: right,
-                leftWidths: left.map { $0.width(weights: weights) },
-                rightWidths: right.map { $0.width(weights: weights) }, split: split,
-                spaceWidthMultiplier: 3 * space.widthWeight / 4,
+                leftWidths: left.map { $0.width(widths: widths.values) },
+                rightWidths: right.map { $0.width(widths: widths.values) }, split: split,
+                spaceWidthMultiplier: widths.automatic ? 3 : 3 * space.widthWeight / 4,
                 key: { footerKey($0, keys: keys) },
                 space: { key(space, "controls-space", spaceIndex ?? -1) },
                 fallback: { singleSpaceBar })
@@ -448,13 +445,21 @@ struct KeyboardLayoutUtilityBar<Key: View, Globe: View, ModeSwitch: View>: View 
         }
     }
 
-    /// Each declared key's width. A hidden globe's width goes to Return; declared indices stay
-    /// stable for the key callbacks.
-    private func footerWeights(_ keys: [LayoutKey], shown: [Int]) -> [Double] {
-        var weights = keys.map(\.widthWeight)
-        guard !showsGlobe else { return weights }
-        for (index, key) in zip(shown, keys.withoutGlobe()) { weights[index] = key.widthWeight }
-        return weights
+    /// Split main rows use the same compact control budget as split authored pages, while
+    /// declared indices stay stable for key callbacks.
+    private func footerWidths(_ keys: [LayoutKey], shown: [Int]) -> (values: [Double], automatic: Bool) {
+        let visible = showsGlobe ? keys : keys.withoutGlobe()
+        var widths = keys.map { max(44, $0.widthWeight * 44) }
+        for (index, key) in zip(shown, visible) { widths[index] = max(44, key.widthWeight * 44) }
+        if !shortcutPlan.supplementShortcuts, let footerPolicy {
+            let geometry = KeyboardPageFooterGeometry(
+                width: SplitSpaceRowBudget.controlRowWidth, keys: visible, policy: footerPolicy)
+            if geometry.usesControlRowBudget {
+                for (index, width) in zip(shown, geometry.keyWidths) { widths[index] = max(44, width) }
+                return (widths, true)
+            }
+        }
+        return (widths, false)
     }
 
     @ViewBuilder
