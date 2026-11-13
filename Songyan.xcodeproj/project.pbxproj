@@ -244,6 +244,9 @@
 		35121828CEFFDA148EDF25D6 /* opencc in Resources */ = {isa = PBXBuildFile; fileRef = CC3EFB1CF07BF63385C710C1 /* opencc */; };
 		2BDC99D24EFD4B36E8669CC2 /* HostApp InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 2DFFEF6499DCB78987817CB2 /* HostApp InfoPlist.xcstrings */; };
 		9E0742B3BFBAE4C056120EF7 /* KeyboardExtension InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 0F2FC0A0553F94C13B2A5191 /* KeyboardExtension InfoPlist.xcstrings */; };
+		CB2611000000000000001001 /* ConfigurationBackupStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB2611000000000000000001 /* ConfigurationBackupStorage.swift */; };
+		CB2611000000000000001004 /* ConfigurationBackupDependencies.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB2611000000000000000004 /* ConfigurationBackupDependencies.swift */; };
+		CB2611000000000000001005 /* ConfigurationDependencyRestorer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB2611000000000000000005 /* ConfigurationDependencyRestorer.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -434,6 +437,9 @@
 		CC3EFB1CF07BF63385C710C1 /* opencc */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "Resources/EngineResources/opencc"; sourceTree = "<group>"; };
 		2DFFEF6499DCB78987817CB2 /* HostApp InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		0F2FC0A0553F94C13B2A5191 /* KeyboardExtension InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
+		CB2611000000000000000001 /* ConfigurationBackupStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigurationBackupStorage.swift; sourceTree = "<group>"; };
+		CB2611000000000000000004 /* ConfigurationBackupDependencies.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigurationBackupDependencies.swift; sourceTree = "<group>"; };
+		CB2611000000000000000005 /* ConfigurationDependencyRestorer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigurationDependencyRestorer.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -553,6 +559,9 @@
 				G20600000000000000000002 /* SchemeURLImportView.swift */,
 				G20700000000000000000002 /* SchemeURLDownloadService.swift */,
 				G20800000000000000000002 /* InstalledSchemeDetailView.swift */,
+				CB2611000000000000000001 /* ConfigurationBackupStorage.swift */,
+				CB2611000000000000000004 /* ConfigurationBackupDependencies.swift */,
+				CB2611000000000000000005 /* ConfigurationDependencyRestorer.swift */,
 				LT2600000000000000000002 /* LearningBackupView.swift */,
                 E90000000000000000000003 /* SkinManager.swift */,
                 E90000000000000000000004 /* SkinManagementView.swift */,
@@ -981,6 +990,9 @@
 				G20700000000000000000001 /* SchemeURLDownloadService.swift in Sources */,
 				G20800000000000000000001 /* InstalledSchemeDetailView.swift in Sources */,
 				LT2600000000000000000003 /* KeyboardLearningTransfer.swift in Sources */,
+				CB2611000000000000001001 /* ConfigurationBackupStorage.swift in Sources */,
+				CB2611000000000000001004 /* ConfigurationBackupDependencies.swift in Sources */,
+				CB2611000000000000001005 /* ConfigurationDependencyRestorer.swift in Sources */,
 				LT2600000000000000000005 /* LearningBackupView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

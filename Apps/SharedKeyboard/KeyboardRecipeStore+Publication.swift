@@ -4,6 +4,13 @@ import KeyboardCore
 import OSLog
 
 extension KeyboardRecipeStore {
+    /// Keeps the selection file stable while a user-confirmed full restore commits its
+    /// configuration roots. The lock file itself is never moved or replaced.
+    public static func withConfigurationRestoreLock<T>(_ body: () throws -> T) throws -> T {
+        let lock = try ActiveLock(root: root())
+        defer { lock.unlock() }
+        return try body()
+    }
     /// Replaces keyboards whose scheme family does not allow their shape with the 26-key of the same
     /// scheme, keeping order and never duplicating an existing entry.
     static func droppingRestrictedShapes(
