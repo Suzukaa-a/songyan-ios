@@ -41,14 +41,16 @@ struct Kana12NavigationBindings {
 extension KeyboardPanelView {
     // MARK: Surface eligibility
 
-    /// Whether the canonical Japanese board draws its own four-row surface. Only the bundled,
-    /// unedited kana12 definition qualifies; an edited board falls back to the ordinary configured
-    /// rows, so the author's own faces stay visible. Chinese input keeps its normal rendering even
-    /// when the pairing happens to be the kana board.
+    /// The twelve-key board the selected layout describes (`Kana12Board`), edited or not; nil for
+    /// any other shape, which keeps the ordinary configured rows.
+    var kana12Board: Kana12Board? { Kana12Board.of(activeDefinition) }
+
+    /// Whether the Japanese board draws its own four-row surface. Chinese input keeps its normal
+    /// rendering even when the pairing happens to be the kana board.
     var showsKana12Surface: Bool {
         page == .letters && !controller.isEnglishMode
             && controller.inputLanguage.language == .japanese
-            && KeyboardPanelRules.isCanonicalKana12(activeDefinition)
+            && kana12Board != nil
     }
 
     /// The whole key area the kana surface takes: the three letter-row bands plus the control row's
@@ -74,14 +76,23 @@ extension KeyboardPanelView {
     }
 
     /// Presentation only: the surface owns no composition, toggle-cycle, settings or engine state.
+    @ViewBuilder
     private var kana12Surface: some View {
+        if let board = kana12Board {
+            kana12Surface(board)
+        }
+    }
+
+    private func kana12Surface(_ board: Kana12Board) -> some View {
         Kana12KeyboardView(
+            board: board,
             compositing: controller.snapshot.isComposing,
             labels: kana12Labels,
             systemSwitchKey: kana12SystemSwitchKey,
             languageKey: kana12LanguageKey,
             deleteKey: kana12DeleteKey,
-            onAction: performKana12ViewAction
+            onAction: performKana12ViewAction,
+            keyFace: { key, id in AnyView(definitionKey(key, id: id)) }
         )
         // The surface's fixed height already includes its own 4pt top/bottom inset, so its rows are
         // two points shorter than the panel's key rows to land exactly on the four bands above.
@@ -137,64 +148,10 @@ extension KeyboardPanelView {
 
     // MARK: Labels
 
-    /// Every face follows the scheme's input language (Japanese), never the app UI language: the
-    /// space and Return keys keep their live conversion titles, and the language key names its
-    /// target exactly like the shared control row.
     private var kana12Labels: Kana12Labels {
-        let script = KeyLabelScript.japanese
-        let intent = controller.returnKeyIntent
-        return Kana12Labels(
-            cursorLeft: "←",
-            modify: "小゛゜",
-            symbols: KeyLabelPolicy.symbolPageTitle(script: script),
-            numbers: KeyLabelPolicy.numericPageTitle,
-            language: KeyLabelPolicy.languageTitle(
-                script: script, action: .toggleLanguage,
-                isEnglishMode: controller.isEnglishMode,
-                usesASCIIPunctuation: effectiveUsesASCIIPunctuation),
-            backspace: "⌫",
-            space: KeyLabelPolicy.spaceTitle(script: script, isComposing: false),
-            convert: KeyLabelPolicy.spaceTitle(script: script, isComposing: true),
-            confirm: KeyLabelPolicy.returnTitle(script: script, isComposing: true, intent: intent),
-            newline: KeyLabelPolicy.returnTitle(script: script, isComposing: false, intent: intent),
-            rowNames: Kana12RowNames.rows,
-            controlAccessibility: kana12ControlAccessibility,
-            composingControlAccessibility: kana12ComposingControlAccessibility,
-            kanaFlickHint: Kana12Wording.flickHint)
-    }
-
-    private var kana12ControlAccessibility: [Kana12FunctionKey: Kana12FunctionKeyAccessibility] {
-        let script = KeyLabelScript.japanese
-        let intent = controller.returnKeyIntent
-        return [
-            .cursorLeft: Kana12FunctionKeyAccessibility(label: Kana12Wording.cursorLeft),
-            .modify: Kana12FunctionKeyAccessibility(label: Kana12Wording.modify),
-            .symbols: Kana12FunctionKeyAccessibility(
-                label: KeyLabelPolicy.pageSwitchAccessibilityLabel(target: .symbols, isBundledPhonePad: false)),
-            .numbers: Kana12FunctionKeyAccessibility(
-                label: KeyLabelPolicy.pageSwitchAccessibilityLabel(target: .numeric, isBundledPhonePad: false)),
-            .language: Kana12FunctionKeyAccessibility(
-                label: KeyLabelPolicy.languageAccessibilityLabel(
-                    script: script, action: .toggleLanguage,
-                    isEnglishMode: controller.isEnglishMode,
-                    usesASCIIPunctuation: effectiveUsesASCIIPunctuation)),
-            .backspace: Kana12FunctionKeyAccessibility(label: Kana12Wording.backspace),
-            .space: Kana12FunctionKeyAccessibility(
-                label: KeyLabelPolicy.spaceAccessibilityLabel(script: script, isComposing: false)),
-            .enter: Kana12FunctionKeyAccessibility(
-                label: KeyLabelPolicy.returnAccessibilityLabel(isComposing: false, intent: intent)),
-        ]
-    }
-
-    private var kana12ComposingControlAccessibility: [Kana12FunctionKey: Kana12FunctionKeyAccessibility] {
-        let script = KeyLabelScript.japanese
-        return [
-            .space: Kana12FunctionKeyAccessibility(
-                label: KeyLabelPolicy.spaceAccessibilityLabel(script: script, isComposing: true)),
-            .enter: Kana12FunctionKeyAccessibility(
-                label: KeyLabelPolicy.returnAccessibilityLabel(
-                    isComposing: true, intent: controller.returnKeyIntent)),
-        ]
+        Kana12Labels.japanese(
+            intent: controller.returnKeyIntent, isEnglishMode: controller.isEnglishMode,
+            usesASCIIPunctuation: effectiveUsesASCIIPunctuation)
     }
 
     // MARK: Dispatch
@@ -266,5 +223,55 @@ extension KeyboardPanelView {
     func clearKana12PanelBinding() {
         controller.onKana12Navigation = nil
         controller.resetKana12State()
+    }
+}
+
+extension Kana12Labels {
+    /// Every face follows the scheme's input language (Japanese), never the app UI language: the
+    /// space and Return keys keep their live conversion titles, and the language key names its
+    /// target exactly like the shared control row. The keyboard and the editor's preview share it.
+    static func japanese(
+        intent: KeyLabelPolicy.ReturnIntent, isEnglishMode: Bool, usesASCIIPunctuation: Bool
+    ) -> Kana12Labels {
+        let script = KeyLabelScript.japanese
+        let language = KeyLabelPolicy.languageTitle(
+            script: script, action: .toggleLanguage, isEnglishMode: isEnglishMode,
+            usesASCIIPunctuation: usesASCIIPunctuation)
+        return Kana12Labels(
+            cursorLeft: "←",
+            modify: "小゛゜",
+            symbols: KeyLabelPolicy.symbolPageTitle(script: script),
+            numbers: KeyLabelPolicy.numericPageTitle,
+            language: language,
+            backspace: "⌫",
+            space: KeyLabelPolicy.spaceTitle(script: script, isComposing: false),
+            convert: KeyLabelPolicy.spaceTitle(script: script, isComposing: true),
+            confirm: KeyLabelPolicy.returnTitle(script: script, isComposing: true, intent: intent),
+            newline: KeyLabelPolicy.returnTitle(script: script, isComposing: false, intent: intent),
+            rowNames: Kana12RowNames.rows,
+            controlAccessibility: [
+                .cursorLeft: Kana12FunctionKeyAccessibility(label: Kana12Wording.cursorLeft),
+                .modify: Kana12FunctionKeyAccessibility(label: Kana12Wording.modify),
+                .symbols: Kana12FunctionKeyAccessibility(
+                    label: KeyLabelPolicy.pageSwitchAccessibilityLabel(target: .symbols, isBundledPhonePad: false)),
+                .numbers: Kana12FunctionKeyAccessibility(
+                    label: KeyLabelPolicy.pageSwitchAccessibilityLabel(target: .numeric, isBundledPhonePad: false)),
+                .language: Kana12FunctionKeyAccessibility(
+                    label: KeyLabelPolicy.languageAccessibilityLabel(
+                        script: script, action: .toggleLanguage, isEnglishMode: isEnglishMode,
+                        usesASCIIPunctuation: usesASCIIPunctuation)),
+                .backspace: Kana12FunctionKeyAccessibility(label: Kana12Wording.backspace),
+                .space: Kana12FunctionKeyAccessibility(
+                    label: KeyLabelPolicy.spaceAccessibilityLabel(script: script, isComposing: false)),
+                .enter: Kana12FunctionKeyAccessibility(
+                    label: KeyLabelPolicy.returnAccessibilityLabel(isComposing: false, intent: intent)),
+            ],
+            composingControlAccessibility: [
+                .space: Kana12FunctionKeyAccessibility(
+                    label: KeyLabelPolicy.spaceAccessibilityLabel(script: script, isComposing: true)),
+                .enter: Kana12FunctionKeyAccessibility(
+                    label: KeyLabelPolicy.returnAccessibilityLabel(isComposing: true, intent: intent)),
+            ],
+            kanaFlickHint: Kana12Wording.flickHint)
     }
 }

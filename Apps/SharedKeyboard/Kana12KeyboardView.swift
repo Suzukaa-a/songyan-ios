@@ -1,5 +1,6 @@
 import CandidateKit
 import KeyboardCore
+import LayoutKit
 import SkinKit
 import SwiftUI
 
@@ -105,20 +106,6 @@ enum Kana12KanaRows {
 
     static func row(id: String) -> Kana12Row? {
         all.first { $0.id == id }
-    }
-
-    /// The centre block position of a row, used only to place the cross preview over the
-    /// key being pressed.
-    static func gridPosition(ofRowID id: String) -> (row: Int, column: Int)? {
-        for (rowIndex, rows) in letterRows.enumerated() {
-            if let column = rows.firstIndex(where: { $0.id == id }) {
-                return (row: rowIndex, column: column)
-            }
-        }
-        if let column = bottomRow.firstIndex(where: { $0.id == id }) {
-            return (row: 3, column: column + 1)
-        }
-        return nil
     }
 }
 
@@ -233,12 +220,12 @@ struct Kana12Labels: Equatable, Sendable {
 
 // MARK: - Surface
 
-/// The standalone kana12 (Japanese twelve-key) key surface.
-///
-/// Layout is fixed: a 4x3 centre block (あ か さ / た な は / ま や ら / 小゛゜ わ 、。?!)
-/// between a left rail (cursor left, 記号, あ/A, system switch or 123) and a right rail (delete,
-/// space, return). The return key spans the lower two rows; the host supplies its existing
-/// system switch so its input-mode menu and accessibility behavior stay shared.
+/// The kana12 (Japanese twelve-key) key surface, drawn from the layout's `Kana12Board`: a 4x3
+/// centre block (あ か さ / た な は / ま や ら / 小゛゜ わ 、。?! on the bundled board) between the
+/// leading and trailing side keys. Grid keys show their authored labels while the kana model owns
+/// their flicks; side keys keep the live behaviour of their action (the system switch, the
+/// language menu, repeating delete, the space and return titles). An editor passes
+/// `onSelectKey`: taps then select a key's stored address instead of typing.
 ///
 /// The view is presentation only. It owns no composition, toggle-cycle, settings or engine
 /// state; the owner maps `Kana12ViewAction` onto the real keyboard controller.
@@ -246,6 +233,7 @@ struct Kana12KeyboardView: View {
     @Environment(\.keyboardAppearance) private var appearance
     @Environment(\.keyboardKeyHeight) private var keyHeight
 
+    let board: Kana12Board
     let compositing: Bool
     let labels: Kana12Labels
     let systemSwitchKey: AnyView?
@@ -254,6 +242,11 @@ struct Kana12KeyboardView: View {
     /// The panel's repeating delete, so holding it keeps deleting like every other board.
     let deleteKey: AnyView?
     let onAction: (Kana12ViewAction) -> Void
+    var onSelectKey: ((LayoutKeyPath) -> Void)?
+    var selectedKey: LayoutKeyPath?
+    /// Draws a key the surface has no kana or control meaning for (an author's own key), with the
+    /// panel's ordinary behaviour; nil in a preview, which draws a plain face.
+    var keyFace: ((LayoutKey, String) -> AnyView)?
 
     @State private var presses = Kana12Presses()
 
@@ -261,13 +254,21 @@ struct Kana12KeyboardView: View {
     private static let padding: CGFloat = 4
 
     init(
+        board: Kana12Board,
         compositing: Bool,
         labels: Kana12Labels,
         systemSwitchKey: AnyView? = nil,
         languageKey: AnyView? = nil,
         deleteKey: AnyView? = nil,
-        onAction: @escaping (Kana12ViewAction) -> Void
+        onAction: @escaping (Kana12ViewAction) -> Void,
+        onSelectKey: ((LayoutKeyPath) -> Void)? = nil,
+        selectedKey: LayoutKeyPath? = nil,
+        keyFace: ((LayoutKey, String) -> AnyView)? = nil
     ) {
+        self.board = board
+        self.keyFace = keyFace
+        self.onSelectKey = onSelectKey
+        self.selectedKey = selectedKey
         self.compositing = compositing
         self.labels = labels
         self.systemSwitchKey = systemSwitchKey
@@ -310,78 +311,123 @@ struct Kana12KeyboardView: View {
     }
 
     private func leadingRail(metrics: Kana12LayoutMetrics) -> some View {
-        VStack(spacing: metrics.spacing) {
-            functionKey(.cursorLeft, role: "control").frame(height: metrics.rowHeight)
-            functionKey(.symbols, role: "control").frame(height: metrics.rowHeight)
-            Group {
-                if let languageKey {
-                    languageKey
-                } else {
-                    functionKey(.language, role: "control")
-                }
+        rail(board.leading, area: board.leadingArea, metrics: metrics)
+    }
+
+    private func trailingRail(metrics: Kana12LayoutMetrics) -> some View {
+        rail(board.trailing, area: board.trailingArea, metrics: metrics)
+    }
+
+    private func rail(_ keys: [LayoutKey], area: Int?, metrics: Kana12LayoutMetrics) -> some View {
+        let spans = Kana12Board.railSpans(count: keys.count)
+        return VStack(spacing: metrics.spacing) {
+            ForEach(Array(keys.enumerated()), id: \.offset) { index, key in
+                selectable(sideKey(key), path: area.map { .auxiliary($0, key: index) })
+                    .frame(height: metrics.rowHeight * spans[index] + metrics.spacing * (spans[index] - 1))
             }
-            .frame(height: metrics.rowHeight)
-            Group {
-                if let systemSwitchKey {
-                    systemSwitchKey
-                } else {
-                    // The kana board has no digits, so the slot the system switch leaves empty
-                    // opens the numeric page instead of a hole.
-                    functionKey(.numbers, role: "control")
-                }
-            }
-            .frame(height: metrics.rowHeight)
         }
         .frame(width: metrics.keyWidth)
+    }
+
+    /// A side key keeps the live behaviour of its action; one the surface does not know runs
+    /// through the panel's ordinary dispatcher.
+    @ViewBuilder
+    private func sideKey(_ key: LayoutKey) -> some View {
+        switch key.action.type {
+        case .cursorLeft:
+            functionKey(.cursorLeft, role: "control", title: key.label)
+        case .pageSwitch:
+            functionKey(
+                key.action.pageSwitchTarget == .numeric ? .numbers : .symbols, role: "control", title: key.label)
+        case .languageSwitch:
+            if let languageKey { languageKey } else { functionKey(.language, role: "control") }
+        case .globe:
+            // The kana board has no digits, so the slot the system switch leaves empty opens the
+            // numeric page instead of a hole.
+            if let systemSwitchKey { systemSwitchKey } else { functionKey(.numbers, role: "control") }
+        case .backspace:
+            if let deleteKey { deleteKey } else { functionKey(.backspace, role: "control") }
+        case .space:
+            functionKey(.space, role: "key")
+        case .enter:
+            functionKey(.enter, role: "accent")
+        default:
+            authoredKey(key, role: "control", id: "kana12-side-\(key.label)")
+        }
     }
 
     private func centreGrid(metrics: Kana12LayoutMetrics) -> some View {
         VStack(spacing: metrics.spacing) {
-            ForEach(0..<Kana12KanaRows.letterRows.count, id: \.self) { index in
-                kanaRow(Kana12KanaRows.letterRows[index], metrics: metrics)
-            }
-            HStack(spacing: metrics.spacing) {
-                functionKey(.modify, role: "key")
-                    .frame(width: metrics.keyWidth, height: metrics.rowHeight)
-                ForEach(Kana12KanaRows.bottomRow, id: \.id) { row in
-                    kanaKey(row, metrics: metrics)
-                        .frame(width: metrics.keyWidth, height: metrics.rowHeight)
+            ForEach(Array(board.grid.enumerated()), id: \.offset) { rowIndex, keys in
+                HStack(spacing: metrics.spacing) {
+                    ForEach(Array(keys.enumerated()), id: \.offset) { column, key in
+                        selectable(gridKey(key, metrics: metrics), path: .row(rowIndex, key: column))
+                            .frame(width: metrics.keyWidth, height: metrics.rowHeight)
+                    }
                 }
             }
         }
     }
 
-    private func kanaRow(_ rows: [Kana12Row], metrics: Kana12LayoutMetrics) -> some View {
-        HStack(spacing: metrics.spacing) {
-            ForEach(rows, id: \.id) { row in
-                kanaKey(row, metrics: metrics)
-                    .frame(width: metrics.keyWidth, height: metrics.rowHeight)
-            }
+    @ViewBuilder
+    private func gridKey(_ key: LayoutKey, metrics: Kana12LayoutMetrics) -> some View {
+        if let row = Self.kanaRow(of: key) {
+            kanaKey(row, label: key.label, metrics: metrics)
+        } else if key.action.type == .kanaModifier {
+            functionKey(.modify, role: "key", title: key.label)
+        } else {
+            authoredKey(key, role: "key", id: "kana12-grid-\(key.label)")
         }
     }
 
-    private func trailingRail(metrics: Kana12LayoutMetrics) -> some View {
-        VStack(spacing: metrics.spacing) {
-            Group {
-                if let deleteKey {
-                    deleteKey
-                } else {
-                    functionKey(.backspace, role: "control")
-                }
-            }
-            .frame(height: metrics.rowHeight)
-            functionKey(.space, role: "key").frame(height: metrics.rowHeight)
-            functionKey(.enter, role: "accent")
-                .frame(height: metrics.rowHeight * 2 + metrics.spacing)
+    /// The kana row a grid key types: its stored row, or the punctuation row for the bundled
+    /// punctuation literal. Any other literal is a plain key.
+    static func kanaRow(of key: LayoutKey) -> Kana12Row? {
+        switch key.action.type {
+        case .kana: return key.action.value.flatMap(Kana12KanaRows.row(id:))
+        case .literal:
+            return key.action.value == Kana12KanaRows.rowPunctuation.center ? Kana12KanaRows.rowPunctuation : nil
+        default: return nil
         }
-        .frame(width: metrics.keyWidth)
+    }
+
+    /// In an editor every key is a selectable target and types nothing.
+    @ViewBuilder
+    private func selectable<Content: View>(_ content: Content, path: LayoutKeyPath?) -> some View {
+        if let onSelectKey {
+            content
+                .allowsHitTesting(false)
+                .overlay {
+                    RoundedRectangle(cornerRadius: appearance.skin.keycap.cornerRadius)
+                        .strokeBorder(Color.accentColor, lineWidth: path != nil && path == selectedKey ? 2 : 0)
+                        .padding(.horizontal, appearance.keyInsetX)
+                        .padding(.vertical, appearance.keyInsetY)
+                }
+                .contentShape(Rectangle())
+                .onTapGesture { if let path { onSelectKey(path) } }
+        } else {
+            content
+        }
+    }
+
+    @ViewBuilder
+    private func authoredKey(_ key: LayoutKey, role: String, id: String) -> some View {
+        if let keyFace {
+            keyFace(key, id)
+        } else {
+            Kana12FunctionKeyButton(
+                title: key.label, role: role,
+                textSize: role == "key" ? appearance.keyTextSize : appearance.controlTextSize,
+                accessibilityLabel: key.label, accessibilityHint: nil, action: {})
+        }
     }
 
     // MARK: Keys
 
-    private func kanaKey(_ row: Kana12Row, metrics: Kana12LayoutMetrics) -> some View {
+    private func kanaKey(_ row: Kana12Row, label: String, metrics: Kana12LayoutMetrics) -> some View {
         Kana12KanaKey(
             row: row,
+            label: label,
             rowName: labels.rowNames[row.id] ?? row.center,
             flickHint: labels.kanaFlickHint,
             isPressed: presses.isPressed(row.id),
@@ -401,8 +447,8 @@ struct Kana12KeyboardView: View {
             })
     }
 
-    private func functionKey(_ key: Kana12FunctionKey, role: String) -> some View {
-        let title = labels.title(for: key, compositing: compositing)
+    private func functionKey(_ key: Kana12FunctionKey, role: String, title authored: String? = nil) -> some View {
+        let title = authored ?? labels.title(for: key, compositing: compositing)
         let description = labels.accessibility(for: key, compositing: compositing)
         // Symbol-only function keys read at the icon size; word labels follow their cap role.
         let textSize =
@@ -426,7 +472,7 @@ struct Kana12KeyboardView: View {
     private func flickPreview(metrics: Kana12LayoutMetrics) -> some View {
         if let press = presses.preview, !press.isCancelled,
             let row = Kana12KanaRows.row(id: press.rowID),
-            let rect = metrics.rect(forRowID: press.rowID)
+            let rect = metrics.rect(forRowID: press.rowID, in: board)
         {
             Kana12FlickPreview(
                 row: row,
@@ -533,11 +579,16 @@ private struct Kana12LayoutMetrics {
     var keyWidth: CGFloat { max(24, (size.width - padding * 2 - spacing * 4) / 5) }
     var previewCell: CGFloat { min(keyWidth, rowHeight) }
 
-    func rect(forRowID id: String) -> CGRect? {
-        guard let position = Kana12KanaRows.gridPosition(ofRowID: id) else { return nil }
-        let x = padding + CGFloat(position.column + 1) * (keyWidth + spacing)
-        let y = padding + CGFloat(position.row) * (rowHeight + spacing)
-        return CGRect(x: x, y: y, width: keyWidth, height: rowHeight)
+    func rect(forRowID id: String, in board: Kana12Board) -> CGRect? {
+        for (row, keys) in board.grid.enumerated() {
+            guard let column = keys.firstIndex(where: { Kana12KeyboardView.kanaRow(of: $0)?.id == id }) else {
+                continue
+            }
+            let x = padding + CGFloat(column + 1) * (keyWidth + spacing)
+            let y = padding + CGFloat(row) * (rowHeight + spacing)
+            return CGRect(x: x, y: y, width: keyWidth, height: rowHeight)
+        }
+        return nil
     }
 
     /// Centre the three-cell-wide cross on the pressed key, but keep the whole cross inside
@@ -560,6 +611,7 @@ private struct Kana12KanaKey: View {
     @Environment(\.keyboardAppearance) private var appearance
 
     let row: Kana12Row
+    let label: String
     let rowName: String
     let flickHint: String?
     let isPressed: Bool
@@ -569,7 +621,7 @@ private struct Kana12KanaKey: View {
     let onAccessibilityDirection: (Kana12Direction) -> Void
 
     var body: some View {
-        Text(row.center)
+        Text(label)
             .font(appearance.font(appearance.keyTextSize))
             .lineLimit(1)
             .minimumScaleFactor(0.55)
