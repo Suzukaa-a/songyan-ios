@@ -6116,6 +6116,94 @@
           }
         }
       }
+    },
+    "backup.error.invalidArchive": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "备份格式不支持、文件不完整或校验失败，未恢复任何配置。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "備份格式不支援、檔案不完整或校驗失敗，未恢復任何配置。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "バックアップ形式が未対応、ファイルが不完全、または検証に失敗したため、設定は復元されませんでした。"
+          }
+        }
+      }
+    },
+    "backup.error.limitExceeded": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "备份超出文件数量或大小限制。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "備份超出檔案數量或大小限制。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "バックアップのファイル数または容量が上限を超えています。"
+          }
+        }
+      }
+    },
+    "backup.error.changedDuringBackup": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "配置正在变化，稍后会重新备份。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "配置正在變化，稍後會重新備份。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定が変更されています。しばらくしてから再度バックアップします。"
+          }
+        }
+      }
+    },
+    "backup.error.unsafeFile": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "配置中包含无法安全备份的文件。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "配置中包含無法安全備份的檔案。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定に安全にバックアップできないファイルが含まれています。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
