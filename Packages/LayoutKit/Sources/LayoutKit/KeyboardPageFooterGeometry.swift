@@ -35,6 +35,22 @@ public struct KeyboardPageFooterGeometry: Equatable, Sendable {
             ? policy.aligned(to: .init(rail: rails?.leading ?? 0, digit: 0)) : policy
         let metrics = policy.metrics(width: width)
         let resolvedWidth = width.isFinite ? max(0, width) : 0
+        // A materialized native symbol footer keeps the running keyboard's seven-slot budget.
+        // Once its structure or widths are edited, it follows the ordinary authored rules below.
+        if policy.page == .symbols, !policy.isPhoneLayout, rails == nil {
+            let native = KeyboardControlPolicy(
+                page: .symbols, isEnglishMode: policy.isEnglishMode, hasGlobe: policy.hasGlobe,
+                isPhoneLayout: false, usesASCIIPunctuation: policy.usesASCIIPunctuation,
+                usesCategorySymbolPage: false, script: policy.script, showsSpaceSideMarks: true,
+                offersSymbolLibrary: keys.contains { $0.action.type == .symbolLibrary })
+            if let slots = Self.defaultFooterSlots(keys: keys, policy: native) {
+                let nativeMetrics = native.metrics(width: resolvedWidth)
+                keyWidths = slots.map { nativeMetrics[$0] }
+                spacing = nativeMetrics.spacing
+                usesControlRowBudget = true
+                return
+            }
+        }
         if !policy.isPhoneLayout, rails == nil,
             let automatic = Self.automaticWidths(width: resolvedWidth, keys: keys, spacing: 4)
         {
@@ -177,15 +193,14 @@ public struct KeyboardPageFooterGeometry: Equatable, Sendable {
         case .symbolLock:
             return action.type == .symbolLock
         case .symbolLibrary:
-            // Authored footers have no symbol-library action, so none is the live default.
-            return false
+            return action.type == .symbolLibrary
         case .utility:
             // The ABC page's comma, or the runtime footer's full stop beside the space bar.
             return action.type == .literal
         case .markLeft:
-            return action.type == .literal && action.value == policy.utilityText
+            return action.literalValue(usesASCIIPunctuation: policy.usesASCIIPunctuation) == policy.markLeftText
         case .markRight:
-            return action.type == .literal && action.value == policy.fullStopText
+            return action.literalValue(usesASCIIPunctuation: policy.usesASCIIPunctuation) == policy.fullStopText
         }
     }
 }

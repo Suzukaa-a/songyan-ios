@@ -57,8 +57,8 @@ enum KeyboardPanelRules {
         mainIsPhoneKeypad: @autoclosure () -> Bool
     ) -> Bool {
         guard page == .symbols else { return false }
-        if let authored = authoredPage() { return authored.symbolPresentation == .categorized }
-        return mainIsPhoneKeypad()
+        return KeyboardPageResolver.symbolPresentation(
+            page: authoredPage(), mainLayoutIsPhoneKeypad: mainIsPhoneKeypad()) == .categorized
     }
 
     /// The bundled 9-key, and every categorised symbol page except an imported phone keypad's
@@ -254,7 +254,7 @@ extension LayoutAction {
         case .enter: return .enter
         case .globe: return .switchKeyboard
         case .modeSwitch: return .cycleLayout
-        case .shift, .pageSwitch, .languageSwitch, .symbolLock, .clearInput, .layoutPageSwitch,
+        case .shift, .pageSwitch, .languageSwitch, .symbolLock, .symbolLibrary, .clearInput, .layoutPageSwitch,
             // The kana kinds are dispatched by the kana renderer/handler, never as one engine key:
             // a whole kana row or a caret move has no single Latin codeword, and an edited board's
             // stored kana action must not be flattened into one.

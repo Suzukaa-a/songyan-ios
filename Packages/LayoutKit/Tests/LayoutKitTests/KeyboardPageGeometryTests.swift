@@ -192,4 +192,28 @@ final class KeyboardPageGeometryTests: XCTestCase {
             }
         }
     }
+
+    func testStaggeredSymbolRowsKeepLetterColumnWidthsAndAuthorWeights() {
+        func key(_ value: String) -> LayoutKey { .init(label: value, action: .init(.literal, value: value)) }
+        var page = KeyboardPageDefinition(
+            id: "staggered-symbols", name: "Symbols", kind: .symbols,
+            rows: [
+                .init(keys: Array("1234567890").map { key(String($0)) }),
+                .init(keys: Array("~/:;()@\"'").map { key(String($0)) }),
+                .init(
+                    keys: [.init(label: "More", width: 1.5, action: .init(.symbolLibrary))]
+                        + Array("-_#?!,…").map { key(String($0)) }
+                        + [.init(label: "Delete", width: 1.5, action: .init(.backspace))]),
+            ], chrome: .init())
+        let top = KeyboardPageRowGeometry(width: 390, page: page, row: 0, split: nil)
+        let middle = KeyboardPageRowGeometry(width: 390, page: page, row: 1, split: nil)
+        let bottom = KeyboardPageRowGeometry(width: 390, page: page, row: 2, split: nil)
+        XCTAssertTrue(middle.usesStandardAlphabet)
+        XCTAssertGreaterThan(middle.inset, 0)
+        XCTAssertEqual(top.keyWidths[0], middle.keyWidths[0])
+        XCTAssertEqual(top.keyWidths[0], bottom.keyWidths[1])
+        page.rows[1] = .init(
+            keys: page.rows[1].keys.enumerated().map { $0.offset == 0 ? $0.element.settingWidth(2) : $0.element })
+        XCTAssertFalse(KeyboardPageRowGeometry(width: 390, page: page, row: 1, split: nil).usesStandardAlphabet)
+    }
 }

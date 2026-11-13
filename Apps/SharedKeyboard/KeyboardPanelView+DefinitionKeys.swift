@@ -758,6 +758,11 @@ extension KeyboardPanelView {
 
     func alternates(for cap: KeyCap) -> [KeyCap] {
         if let keyAlternates { return keyAlternates(cap) }
+        if page != .letters, case .literal = cap.action {
+            return SymbolPageTable.alternates(
+                for: cap, page: page, rows: symbolRows, isEnglishMode: controller.isEnglishMode,
+                usesASCIIPunctuation: controller.usesASCIIPunctuation, script: controller.inputLanguageScript)
+        }
         let mergedGroup: String?
         let secondaryLiterals: [String]
         let keyLabel: String

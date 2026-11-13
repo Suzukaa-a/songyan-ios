@@ -509,6 +509,7 @@ private struct LayoutActionFields: View {
         case .layoutPageSwitch: return String(localized: "跳转到…")
         case .languageSwitch: return UserTerminology.languageKey
         case .symbolLock: return String(localized: "符号锁定")
+        case .symbolLibrary: return KeyLabelPolicy.symbolLibraryAccessibilityLabel()
         case .clearInput: return String(localized: "重输")
         // Kana gestures only come from the Japanese twelve-key board; the editor shows a stored
         // one when an edited copy is opened, it never offers them for an ordinary key.

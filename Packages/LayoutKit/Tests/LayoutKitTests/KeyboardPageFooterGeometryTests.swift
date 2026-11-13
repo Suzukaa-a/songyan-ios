@@ -3,6 +3,31 @@ import XCTest
 @testable import LayoutKit
 
 final class KeyboardPageFooterGeometryTests: XCTestCase {
+    func testCopiedSymbolFooterKeepsNativeKeysAndGeometry() throws {
+        for automatic in [false, true] {
+            let source =
+                automatic ? KeyboardPagePresets.symbolsSystem : KeyboardPagePresets.symbolRowsPage(ascii: false)
+            for globe in [false, true] {
+                let keys = try XCTUnwrap(source.materialized().chrome?.bottom).filter {
+                    globe || $0.action.type != .globe
+                }
+                for ascii in [false, true] {
+                    let policy = KeyboardControlPolicy(
+                        page: .symbols, isEnglishMode: false, hasGlobe: globe, isPhoneLayout: false,
+                        usesASCIIPunctuation: ascii, usesCategorySymbolPage: false,
+                        showsSpaceSideMarks: true, offersSymbolLibrary: automatic)
+                    for width in [375.0, 402, 600, 834] {
+                        let geometry = KeyboardPageFooterGeometry(width: width, keys: keys, policy: policy)
+                        let native = policy.metrics(width: width)
+                        XCTAssertEqual(geometry.keyWidths, policy.slots.map { native[$0] })
+                        XCTAssertEqual(geometry.spacing, native.spacing)
+                        XCTAssertTrue(geometry.usesControlRowBudget)
+                    }
+                }
+            }
+        }
+    }
+
     private func lettersPolicy(globe: Bool = true) -> KeyboardControlPolicy {
         KeyboardControlPolicy(
             page: .letters, isEnglishMode: false, hasGlobe: globe,

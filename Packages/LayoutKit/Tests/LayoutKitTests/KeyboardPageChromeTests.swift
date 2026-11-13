@@ -104,7 +104,9 @@ final class KeyboardPageChromeTests: XCTestCase {
             KeyboardPagePresets.symbolRowsPage(ascii: false),
         ] {
             let materialized = page.materialized()
-            XCTAssertEqual(materialized.chrome?.bottom.map(\.widthWeight), [1, 1, 1, 4, 1, 1])
+            XCTAssertEqual(
+                materialized.chrome?.bottom.map(\.widthWeight),
+                page.kind == .symbols ? [1, 1, 1, 1, 4, 1, 1] : [1, 1, 1, 4, 1, 1])
         }
         let categorized = KeyboardPagePresets.symbolsCategorized.materialized()
         XCTAssertEqual(categorized.chrome?.bottom.map(\.widthWeight), [1, 1, 1, 4, 1])
@@ -165,7 +167,7 @@ final class KeyboardPageChromeTests: XCTestCase {
         XCTAssertEqual(symbolSwitch.width, 1.5)
         XCTAssertEqual(symbolSwitch.titleMode, .automatic)
         XCTAssertEqual(symbols.rows[2].keys.last?.action.type, .backspace)
-        XCTAssertEqual(symbols.chrome?.bottom.count, 6)
+        XCTAssertEqual(symbols.chrome?.bottom.count, 7)
     }
 
     func testMaterializedAutomaticSymbolPageBecomesAuthoredRows() throws {
@@ -174,8 +176,11 @@ final class KeyboardPageChromeTests: XCTestCase {
         XCTAssertEqual(page.rows.map { $0.keys.count }, [10, 10, 9])
         XCTAssertEqual(page.rows[2].keys.first?.action.pageSwitchTarget, .numeric)
         XCTAssertEqual(page.rows[2].keys.last?.action.type, .backspace)
-        XCTAssertEqual(page.chrome?.bottom.count, 6)
+        XCTAssertEqual(page.chrome?.bottom.count, 7)
         XCTAssertEqual(page.chrome?.bottom[0].action.pageSwitchTarget, .letters)
+        XCTAssertEqual(page.chrome?.bottom[3].action.value, "，")
+        XCTAssertEqual(page.chrome?.bottom[4].action.type, .space)
+        XCTAssertEqual(page.chrome?.bottom[5].action.type, .symbolLibrary)
         try page.validate()
     }
 

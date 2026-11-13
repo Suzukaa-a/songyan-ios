@@ -54,11 +54,11 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
     /// The scheme's input language for automatic faces; author labels never read it.
     public let script: KeyLabelScript
     /// The row-shaped symbol page already types every mark, so its utility position opens the
-    /// symbol library (更多) instead of typing one. Only the live panel's built-in footer sets it;
-    /// authored and previewed footers are data and keep their marks.
+    /// symbol library (更多) instead of typing one. The native panel, its preview and an
+    /// unchanged materialized copy use the same choice; authored keys keep their own actions.
     public let offersSymbolLibrary: Bool
     /// The native footer puts a comma left of the space bar and a full stop right of it. Off for
-    /// authored pages, previews and narrow rows, which keep the single comma key.
+    /// authored pages and narrow native rows, which keep their declared or single comma key.
     public private(set) var showsSpaceSideMarks: Bool
     /// Which marks sit beside the space bar: the sentence marks, or the address marks a URL or
     /// email field types most. The keys stay where they are; only their marks change.

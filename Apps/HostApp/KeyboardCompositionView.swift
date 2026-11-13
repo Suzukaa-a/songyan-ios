@@ -188,8 +188,7 @@ struct KeyboardCompositionView: View {
     private var mainLayout: LayoutDefinition? {
         guard keyboardIsAvailable else { return nil }
         return manager.registry.resolvedLayout(
-            id: manager.registry.usableMainLayoutID(
-                for: keyboard.compositionKey, board: keyboard.board, availability: availability))
+            id: keyboard.board ?? draft.mainLayoutID)
     }
 
     /// The hand cuts the selected main layout is drawn with, as the keyboard resolves them.
@@ -350,7 +349,9 @@ struct KeyboardCompositionView: View {
                         page: page, inheritedSplit: mainHandSplit ?? mainLayout?.split,
                         usesHandCuts: mainHandSplit != nil,
                         isPhoneLayout: mainLayoutIsPhoneKeypad,
-                        mainLayout: keyboard.layout, skin: AppearanceManager.shared.applied.skin)
+                        mainLayout: keyboard.layout, skin: AppearanceManager.shared.applied.skin,
+                        mainDefinition: mainLayout,
+                        numericPage: manager.registry.page(id: draft.numericPageID))
                 }
                 if let usage = keyboardNames.usage(manager.registry.keyboards(usingPage: page.id)) {
                     Text(usage).font(.footnote).foregroundStyle(.secondary)

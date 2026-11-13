@@ -72,9 +72,14 @@ struct KeyboardPreviewFrame<Content: View>: View {
     var widthSettings = KeyboardWidthSettings.standard
     @ViewBuilder var content: (KeyboardPreviewWidths) -> Content
     @State private var width: CGFloat = 0
+    @State private var windowWidth: CGFloat = 0
 
     var body: some View {
-        let raw = Double(width)
+        // A Form cell is narrower than the keyboard's window. Resolve at the real surface
+        // width first, then scale the complete result; otherwise a preview can drop native
+        // footer slots or choose a different split merely because it sits in a padded card.
+        let raw = Double(max(width, windowWidth))
+        let scale = raw > 0 ? min(1, width / CGFloat(raw)) : 1
         let splitAbove = Double(widthSettings.splitWidth)
         let margin = KeyboardPanelRules.sideMargin(panelWidth: raw, settings: widthSettings)
         let plan = KeyboardWideContentPolicy.plan(
@@ -84,13 +89,17 @@ struct KeyboardPreviewFrame<Content: View>: View {
             ),
             dock: dock, sideMargin: margin)
         let contentWidth = plan.contentWidth
-        content(
-            KeyboardPreviewWidths(
-                content: max(0, contentWidth + 2 * margin - 8), mainSplit: raw, splitAbove: splitAbove)
-        )
-        .frame(width: CGFloat(contentWidth))
-        .padding(.leading, margin > 0 ? CGFloat(plan.leadingInset) : 0)
-        .frame(maxWidth: .infinity, alignment: margin > 0 ? .leading : alignment)
+        KeyboardPreviewScaleLayout(surfaceWidth: CGFloat(raw), scale: scale) {
+            content(
+                KeyboardPreviewWidths(
+                    content: max(0, contentWidth + 2 * margin - 8), mainSplit: raw, splitAbove: splitAbove)
+            )
+            .frame(width: CGFloat(contentWidth))
+            .padding(.leading, margin > 0 ? CGFloat(plan.leadingInset) : 0)
+            .frame(width: CGFloat(raw), alignment: margin > 0 ? .leading : alignment)
+            .scaleEffect(scale, anchor: .topLeading)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .opacity(width > 0 ? 1 : 0)
         .background {
             GeometryReader { proxy in
@@ -98,6 +107,7 @@ struct KeyboardPreviewFrame<Content: View>: View {
                     .onAppear { width = proxy.size.width }
                     .onChange(of: proxy.size.width) { _, newWidth in width = newWidth }
             }
+            KeyboardPreviewWindowWidth { windowWidth = $0 }
         }
     }
 
@@ -106,6 +116,57 @@ struct KeyboardPreviewFrame<Content: View>: View {
         case .left: return .leading
         case .center: return .center
         case .right: return .trailing
+        }
+    }
+}
+
+/// Scale the layout height along with the drawn keys, so previews leave no unscaled blank area.
+private struct KeyboardPreviewScaleLayout: Layout {
+    let surfaceWidth: CGFloat
+    let scale: CGFloat
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let size = subviews.first?.sizeThatFits(.init(width: surfaceWidth, height: nil)) ?? .zero
+        return CGSize(width: surfaceWidth * scale, height: size.height * scale)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        subviews.first?.place(at: bounds.origin, anchor: .topLeading, proposal: .init(width: surfaceWidth, height: nil))
+    }
+}
+
+/// Use the hosting window, not the screen: iPad multitasking and rotation change the keyboard's
+/// surface without necessarily changing the screen bounds.
+private struct KeyboardPreviewWindowWidth: UIViewRepresentable {
+    let onChange: (CGFloat) -> Void
+
+    func makeUIView(context: Context) -> WidthView { WidthView(onChange: onChange) }
+    func updateUIView(_ view: WidthView, context: Context) { view.reportWidth() }
+
+    final class WidthView: UIView {
+        private let onChange: (CGFloat) -> Void
+        private var reported: CGFloat = 0
+
+        init(onChange: @escaping (CGFloat) -> Void) {
+            self.onChange = onChange
+            super.init(frame: .zero)
+            isUserInteractionEnabled = false
+        }
+
+        required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+        override func didMoveToWindow() {
+            super.didMoveToWindow()
+            reportWidth()
+        }
+        override func layoutSubviews() {
+            super.layoutSubviews()
+            reportWidth()
+        }
+
+        func reportWidth() {
+            guard let width = window?.bounds.width, width > 0, width != reported else { return }
+            reported = width
+            DispatchQueue.main.async { [weak self] in self?.onChange(width) }
         }
     }
 }
@@ -181,12 +242,16 @@ public struct KeyboardPagePreviewView: View {
     /// Draws this branch instead of the page's own default, so an editor can show both faces of a
     /// bilingual page without changing it.
     public var previewMarks: KeyboardNumericMarks?
+    /// The pairing's actual pages, used by the runtime to fill missing everyday marks.
+    public var mainDefinition: LayoutDefinition?
+    public var numericPage: KeyboardPageDefinition?
     private let onSelectKey: ((KeyboardPageKeyPath) -> Void)?
     private let onSelectCategoryKey: ((String, Int) -> Void)?
     private let selectedCategoryKey: (String, Int)?
     private let selectedPageKey: KeyboardPageKeyPath?
     @StateObject private var symbolLibrary = SymbolLibraryModel(onInsert: { _ in false }, loadsImmediately: false)
     @State private var openCategoryID: String?
+    @State private var showsEverydayMarksPage = true
     @State private var preferences = KeyboardPreviewPreferences.cached
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.verticalSizeClass) private var verticalSizeClass
@@ -195,6 +260,7 @@ public struct KeyboardPagePreviewView: View {
         page: KeyboardPageDefinition, inheritedSplit: LayoutSplitConfiguration? = nil,
         usesHandCuts: Bool = false, isPhoneLayout: Bool = false, mainLayout: KeyboardLayoutKind? = nil,
         skin: SkinDefinition = .systemDefault, previewDark: Bool? = nil, previewMarks: KeyboardNumericMarks? = nil,
+        mainDefinition: LayoutDefinition? = nil, numericPage: KeyboardPageDefinition? = nil,
         onSelectKey: ((KeyboardPageKeyPath) -> Void)? = nil,
         onSelectCategoryKey: ((String, Int) -> Void)? = nil, selectedCategoryKey: (String, Int)? = nil,
         selectedPageKey: KeyboardPageKeyPath? = nil
@@ -207,6 +273,8 @@ public struct KeyboardPagePreviewView: View {
         self.skin = skin
         self.previewDark = previewDark
         self.previewMarks = previewMarks
+        self.mainDefinition = mainDefinition
+        self.numericPage = numericPage
         self.onSelectKey = onSelectKey
         self.onSelectCategoryKey = onSelectCategoryKey
         self.selectedCategoryKey = selectedCategoryKey
@@ -253,7 +321,9 @@ public struct KeyboardPagePreviewView: View {
     private func showsCategories(_ resolution: KeyboardPageResolution) -> Bool {
         switch resolution {
         case .authored(let authored): return authored.symbolPresentation == .categorized
-        case .automaticSymbolPage: return isPhoneLayout
+        case .automaticSymbolPage:
+            return KeyboardPageResolver.symbolPresentation(page: page, mainLayoutIsPhoneKeypad: isPhoneLayout)
+                == .categorized
         case .automaticNumeric, .builtIn: return false
         }
     }
@@ -269,7 +339,7 @@ public struct KeyboardPagePreviewView: View {
             } else if authored.kind == .symbols && authored.symbolPresentation == .categorized {
                 categoryPad(authored, split: split, widths: widths)
             } else {
-                rowsPage(authored, split: split)
+                rowsPage(authored, split: split, widths: widths)
             }
         } else if case .automaticNumeric(let form, let marks) = resolution {
             let split = pageSplit(nil, widths: widths)
@@ -278,14 +348,14 @@ public struct KeyboardPagePreviewView: View {
             } else {
                 builtInRows(
                     SymbolPageTable.numericRows(ascii: marks == .ascii), page: .numeric,
-                    usesASCIIPunctuation: marks == .ascii, split: split)
+                    usesASCIIPunctuation: marks == .ascii, split: split, widths: widths)
             }
         } else if isPhoneLayout {
             categoryPad(nil, split: pageSplit(nil, widths: widths), widths: widths)
         } else {
             builtInRows(
-                SymbolPageTable.symbolRows(ascii: usesASCIIPunctuation), page: .symbols,
-                usesASCIIPunctuation: usesASCIIPunctuation, split: pageSplit(nil, widths: widths))
+                symbolRows, page: .symbols,
+                usesASCIIPunctuation: usesASCIIPunctuation, split: pageSplit(nil, widths: widths), widths: widths)
         }
     }
 
@@ -314,11 +384,32 @@ public struct KeyboardPagePreviewView: View {
         }
     }
 
-    private func rowPolicy(_ page: KeyboardPage, usesASCIIPunctuation: Bool) -> KeyboardControlPolicy {
-        KeyboardPanelRules.controlPolicy(
+    private func rowPolicy(
+        _ page: KeyboardPage, usesASCIIPunctuation: Bool, width: Double, offersSymbolLibrary: Bool
+    ) -> KeyboardControlPolicy {
+        let policy = KeyboardPanelRules.controlPolicy(
             page: page, isEnglishMode: self.page.kind == .english, hasGlobe: showsGlobe,
             usesASCIIPunctuation: usesASCIIPunctuation, phoneShellVisible: false,
-            usesFixedEditingRail: false, declaredTrailingReturn: false, showsCategorySymbolPage: false)
+            usesFixedEditingRail: false, declaredTrailingReturn: false, showsCategorySymbolPage: false,
+            showsSpaceSideMarks: !isPhoneLayout, offersSymbolLibrary: offersSymbolLibrary)
+        return KeyboardPanelRules.fittingSpaceSideMarks(policy, contentWidth: width)
+    }
+
+    private func missingMarks(ascii: Bool) -> [String] {
+        KeyboardPageMarkCoverage.missingMarks(
+            letters: mainDefinition, numeric: numericPage, symbols: page,
+            mainLayoutIsPhoneKeypad: isPhoneLayout, ascii: ascii)
+    }
+
+    private var everydayRows: [KeyboardRow] {
+        SymbolPageTable.everydayRows(
+            KeyboardPageMarkCoverage.extraSymbolPageRows(
+                missing: missingMarks(ascii: usesASCIIPunctuation), ascii: usesASCIIPunctuation))
+    }
+
+    private var symbolRows: [KeyboardRow] {
+        showsEverydayMarksPage && !everydayRows.isEmpty
+            ? everydayRows : SymbolPageTable.symbolRows(ascii: usesASCIIPunctuation)
     }
 
     private func state(_ page: KeyboardPageDefinition) -> KeyboardPageAuthoredState {
@@ -358,7 +449,9 @@ public struct KeyboardPagePreviewView: View {
 
     private func categories(_ page: KeyboardPageDefinition?) -> [SymbolPageTable.PhoneSymbolCategory] {
         // Category content follows the input language; a preview shows Chinese input.
-        symbolLibrary.pageCategories(authored: page?.categories, ascii: false, showsGlobe: showsGlobe)
+        symbolLibrary.pageCategories(
+            authored: page?.categories, ascii: false, showsGlobe: showsGlobe,
+            leadingMarks: page?.categories == nil ? missingMarks(ascii: false) : [])
     }
 
     @ViewBuilder
@@ -440,7 +533,9 @@ public struct KeyboardPagePreviewView: View {
         }
     }
 
-    private func rowsPage(_ page: KeyboardPageDefinition, split: ActiveLayoutSplit?) -> some View {
+    private func rowsPage(
+        _ page: KeyboardPageDefinition, split: ActiveLayoutSplit?, widths: KeyboardPreviewWidths
+    ) -> some View {
         let keyHeight = preferences.keyHeight(compact: verticalSizeClass == .compact)
         let overflows = CGFloat(page.rows.count) * (keyHeight + 4) - 4 > mainAreaHeight + 1
         let rows = KeyboardPageRows(
@@ -466,7 +561,9 @@ public struct KeyboardPagePreviewView: View {
             }
             .frame(height: mainAreaHeight, alignment: .top)
             KeyboardPreviewControlRow(
-                policy: rowPolicy(panelPage(page.kind), usesASCIIPunctuation: usesASCIIPunctuation),
+                policy: rowPolicy(
+                    panelPage(page.kind), usesASCIIPunctuation: usesASCIIPunctuation,
+                    width: widths.content, offersSymbolLibrary: false),
                 showsGlobe: showsGlobe, split: split, splitRowIndex: page.rows.count)
         }
     }
@@ -474,18 +571,34 @@ public struct KeyboardPagePreviewView: View {
     // MARK: Built-in pages
 
     private func builtInRows(
-        _ rows: [KeyboardRow], page: KeyboardPage, usesASCIIPunctuation: Bool, split: ActiveLayoutSplit?
+        _ rows: [KeyboardRow], page: KeyboardPage, usesASCIIPunctuation: Bool, split: ActiveLayoutSplit?,
+        widths: KeyboardPreviewWidths
     ) -> some View {
-        VStack(spacing: 4) {
+        let hasExtraPage = page == .symbols && !everydayRows.isEmpty
+        return VStack(spacing: 4) {
             VStack(spacing: 4) {
                 KeyboardSymbolPageRows(
-                    rows: rows, split: split, onTap: { _ in },
-                    pageSwitch: { MarkPageSwitchKey(target: page == .numeric ? .symbols : .numeric) {} },
+                    rows: rows, split: split,
+                    alternates: {
+                        SymbolPageTable.alternates(
+                            for: $0, page: page, rows: rows, isEnglishMode: false, usesASCIIPunctuation: false)
+                    }, onTap: { _ in },
+                    pageSwitch: {
+                        MarkPageSwitchKey(
+                            target: page == .numeric || hasExtraPage ? .symbols : .numeric,
+                            title: hasExtraPage ? "#+=" : nil,
+                            accessibilityText: hasExtraPage ? String(localized: "打开更多符号") : nil
+                        ) {
+                            if hasExtraPage { showsEverydayMarksPage.toggle() }
+                        }
+                    },
                     delete: { RepeatingDeleteKey {} })
             }
             .frame(height: mainAreaHeight, alignment: .top)
             KeyboardPreviewControlRow(
-                policy: rowPolicy(page, usesASCIIPunctuation: usesASCIIPunctuation),
+                policy: rowPolicy(
+                    page, usesASCIIPunctuation: usesASCIIPunctuation,
+                    width: widths.content, offersSymbolLibrary: true),
                 showsGlobe: showsGlobe, split: split, splitRowIndex: rows.count)
         }
     }
