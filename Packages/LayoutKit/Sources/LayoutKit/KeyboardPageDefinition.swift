@@ -84,6 +84,17 @@ public struct KeyboardPageResolutionInput: Equatable, Sendable {
 
 /// Resolves the page a pairing selects into what the key area (or a preview) draws.
 public enum KeyboardPageResolver {
+    /// One shape decision for the running page, previews and editable snapshots.
+    public static func symbolPresentation(
+        page: KeyboardPageDefinition?, mainLayoutIsPhoneKeypad: Bool
+    ) -> KeyboardSymbolPresentation {
+        if let page, page.kind == .symbols, let presentation = page.symbolPresentation, presentation != .automatic {
+            return presentation
+        }
+        if let page, page.kind == .symbols, page.symbolPresentation != .automatic { return .rows }
+        return mainLayoutIsPhoneKeypad ? .categorized : .rows
+    }
+
     /// The single resolution rule. `page` is nil when the pairing has no page for this kind; such a
     /// pairing keeps the built-in page.
     public static func resolve(
@@ -325,14 +336,14 @@ public struct KeyboardPageDefinition: Codable, Equatable, Identifiable, Sendable
                 if canonical { page.rows = KeyboardPagePresets.symbolRowsPage(ascii: numericMarks == .ascii).rows }
                 page.categories = nil
                 page.rows = Self.rowsInsertingNativeControls(rows: page.rows, kind: .symbols, split: &page.split)
-                page.chrome = Self.rowsChrome(kind: .symbols)
+                page.chrome = Self.rowsChrome(kind: .symbols, offersSymbolLibrary: true, marks: numericMarks)
                 page.defaultSymbolMarks = numericMarks
             } else if symbolPresentation == .categorized || categories != nil {
                 page.symbolPresentation = .categorized
                 page.chrome = Self.categoryChrome
             } else {
                 page.rows = Self.rowsInsertingNativeControls(rows: page.rows, kind: page.kind, split: &page.split)
-                page.chrome = Self.rowsChrome(kind: page.kind)
+                page.chrome = Self.rowsChrome(kind: page.kind, marks: numericMarks)
             }
         }
         return page
@@ -438,17 +449,54 @@ public struct KeyboardPageDefinition: Codable, Equatable, Identifiable, Sendable
     /// control row already budgets — so materializing a page never re-tunes the bottom row.
     /// Authored chrome is data and is never rebuilt here; only a nil chrome (native controls) is
     /// materialized by this factory.
-    private static func rowsChrome(kind: KeyboardPageKind) -> KeyboardPageChrome {
+    private static func rowsChrome(
+        kind: KeyboardPageKind, offersSymbolLibrary: Bool = false, marks: KeyboardNumericMarks = .chinese
+    ) -> KeyboardPageChrome {
         switch kind {
         case .english:
             // 123, globe, 中英, space, comma, Return
             return KeyboardPageChrome(
                 bottom: [pageSwitchKey(.numeric), globeKey, languageSwitchKey, spaceKey, commaKey, enterKey])
-        case .numeric, .symbols:
+        case .numeric:
             // 返回, globe, 中英, space, comma, Return; the 123/symbol switch opens the third row.
             return KeyboardPageChrome(
                 bottom: [pageSwitchKey(.letters), globeKey, languageSwitchKey, spaceKey, commaKey, enterKey])
+        case .symbols:
+            // Mirror the native symbol footer, including its comma before space and the
+            // library entry on an automatic page. An authored row page keeps the full stop.
+            let utility =
+                offersSymbolLibrary
+                ? functionKey(KeyLabelPolicy.symbolLibraryTitle(script: .simplifiedChinese), .init(.symbolLibrary))
+                : symbolFooterMark(fullStop: true, marks: marks)
+            return KeyboardPageChrome(
+                bottom: [
+                    pageSwitchKey(.letters), globeKey, languageSwitchKey,
+                    symbolFooterMark(fullStop: false, marks: marks), spaceKey, utility, enterKey,
+                ])
         }
+    }
+
+    /// Snapshot the same punctuation menus as the native footer, including their corner hints.
+    private static func symbolFooterMark(fullStop: Bool, marks: KeyboardNumericMarks) -> LayoutKey {
+        func policy(ascii: Bool) -> KeyboardControlPolicy {
+            KeyboardControlPolicy(
+                page: .symbols, isEnglishMode: false, hasGlobe: true, isPhoneLayout: false,
+                usesASCIIPunctuation: ascii, showsSpaceSideMarks: true)
+        }
+        let chinese = policy(ascii: false)
+        let ascii = policy(ascii: true)
+        let chineseOptions = fullStop ? chinese.fullStopAlternates : chinese.markLeftAlternates
+        let asciiOptions = fullStop ? ascii.fullStopAlternates : ascii.markLeftAlternates
+        return LayoutKey(
+            label: fullStop ? "." : ",",
+            action: .init(
+                .literal, value: fullStop ? chinese.fullStopText : chinese.markLeftText,
+                asciiValue: fullStop ? ascii.fullStopText : ascii.markLeftText),
+            longPress: zip(chineseOptions, asciiOptions).map { chinese, ascii in
+                LayoutOption(
+                    label: marks == .ascii ? ascii : chinese,
+                    action: .init(.literal, value: chinese, asciiValue: ascii))
+            }, titleMode: .automatic)
     }
 
     /// The categorized symbol page keeps its category navigation as metadata; the authored chrome
@@ -593,12 +641,14 @@ enum KeyboardPageDefaultShape {
     }
 
     /// Authored ABC rows (10 / 9 / Shift + 7 letters + Delete) or 123 / symbol rows
-    /// (10 / 10 / switch + 7 marks + Delete), with the default side weights.
+    /// (10 / 9-or-10 / switch-or-library + 7 marks + Delete), with the default side weights.
     static func isAuthoredStandardRows(_ page: KeyboardPageDefinition) -> Bool {
         let english = page.kind == .english
-        guard page.rows.map(\.keys.count) == [10, english ? 9 : 10, 9] else { return false }
+        let counts = page.rows.map(\.keys.count)
+        guard counts == [10, english ? 9 : 10, 9] || (!english && counts == [10, 9, 9]) else { return false }
         let last = page.rows[2].keys
-        guard last.first?.action.type == (english ? .shift : .pageSwitch),
+        let leadingControl = last.first?.action.type
+        guard english ? leadingControl == .shift : (leadingControl == .pageSwitch || leadingControl == .symbolLibrary),
             last.last?.action.type == .backspace,
             last.first?.widthWeight == alphabetSideWidth, last.last?.widthWeight == alphabetSideWidth
         else { return false }

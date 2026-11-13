@@ -39,6 +39,29 @@ enum SymbolPageTable {
         rows(BuiltinLayouts.numericPageRows(ascii: ascii), prefix: "num", capPrefix: "n")
     }
 
+    /// The native row page and its preview share long-press menus and corner hints.
+    static func alternates(
+        for cap: KeyCap, page: KeyboardControlPolicy.Page, rows: [KeyboardRow], isEnglishMode: Bool,
+        usesASCIIPunctuation: Bool, script: KeyLabelScript = .simplifiedChinese
+    ) -> [KeyCap] {
+        guard case .literal(let value) = cap.action else { return [] }
+        let request = AlternateKeyPolicy.Request(
+            keyLabel: value, secondaryLiterals: [], page: page == .numeric ? .numeric : .symbols,
+            language: isEnglishMode ? .english : .chinese, script: script,
+            usesASCIIPunctuation: usesASCIIPunctuation,
+            visibleKeys: Set(rows.flatMap { $0.caps.map(\.title) }))
+        return AlternateKeyPolicy.options(for: request).enumerated().map { index, option in
+            let action: KeyAction =
+                switch option.payload {
+                case .code(let value): .code(value)
+                case .literal(let value):
+                    isEnglishMode && value.count == 1 && value.first?.isLetter == true
+                        ? .letterVariant(value.lowercased()) : .literal(value)
+                }
+            return KeyCap(id: "\(cap.id)-alternate-\(index)", title: option.label, action: action)
+        }
+    }
+
     /// A phone keypad's 123 grid: 1–9 from the 123 row in three rows of three; 0 sits in the
     /// bottom row.
     static func phoneDigitRows(ascii: Bool) -> [[KeyCap]] {

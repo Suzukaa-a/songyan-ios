@@ -6,7 +6,7 @@ public struct LayoutAction: Codable, Equatable, Sendable {
         case code, literal, space, backspace, enter, globe, modeSwitch
         /// Page-level controls. The host dispatches them itself; they never become an engine
         /// key action, so no engine case is added for a new kind.
-        case shift, pageSwitch, languageSwitch, symbolLock, clearInput
+        case shift, pageSwitch, languageSwitch, symbolLock, symbolLibrary, clearInput
         /// Opens a non-letter page of another keyboard layout and makes that layout the running one.
         /// A kind of its own (not a `pageSwitch` value) so a decoder that predates it rejects the
         /// file instead of opening a page of the wrong layout.
@@ -203,7 +203,7 @@ public struct LayoutAction: Codable, Equatable, Sendable {
             guard let value, Self.kanaRowIDs.contains(value) else {
                 throw LayoutError.invalid(String(localized: "layout.error.kanaRow", bundle: .module))
             }
-        case .shift, .symbolLock, .clearInput, .space, .backspace, .enter, .globe, .kanaModifier,
+        case .shift, .symbolLock, .symbolLibrary, .clearInput, .space, .backspace, .enter, .globe, .kanaModifier,
             .cursorLeft:
             guard value == nil else {
                 throw LayoutError.invalid(

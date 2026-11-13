@@ -3,11 +3,16 @@ import Foundation
 import KeyboardCore
 import LayoutKit
 
-/// The exercised rows copy path never reads categories: only the categorised branch calls this
-/// seam. Keeping the stub here lets the real production copy function below compile unchanged.
+/// Deterministic library snapshot at the factory's I/O boundary.
 enum KeyboardPageDraftProbe {
     static func authoredCategories() async throws -> [KeyboardPageCategory] {
-        throw LayoutError.invalid("分类快照不应在 rows 复制里读取")
+        [
+            KeyboardPageCategory(
+                id: "common", name: "常用",
+                keys: [
+                    LayoutKey(label: "，", action: .init(.literal, value: "，"))
+                ])
+        ]
     }
 
     static func numericCopyName(marks: KeyboardNumericMarks, form: KeyboardNumericForm) -> String {
@@ -100,6 +105,15 @@ struct Probe {
         check(symbolsDraft.defaultSymbolMarks == .ascii, "editing keeps an explicit symbol branch")
         let followDraft = try await KeyboardPageDraftProbe.editableDraft(KeyboardPagePresets.numericAutomatic)
         check(followDraft.defaultSymbolMarks == nil, "editing a follow-input page keeps nil")
+        let phoneSymbols = try await KeyboardPageDraftProbe.editableDraft(
+            KeyboardPagePresets.symbolsSystem, numericForm: .phoneDigitPad)
+        check(phoneSymbols.symbolPresentation == .categorized, "phone symbol editor matches the live category grid")
+        check(phoneSymbols.categories?.first?.id == "common", "phone editor takes the displayed library categories")
+        check(phoneSymbols.chrome?.trailingSpansBottom == true, "phone editor keeps the live full-height editing rail")
+        let rowSymbols = try await KeyboardPageDraftProbe.editableDraft(KeyboardPagePresets.symbolsSystem)
+        check(
+            rowSymbols.chrome?.bottom.contains { $0.action.type == .symbolLibrary } == true,
+            "the native More key stays editable instead of becoming a comma")
 
         if failures.isEmpty {
             print("keyboard-page-drafts: ok")

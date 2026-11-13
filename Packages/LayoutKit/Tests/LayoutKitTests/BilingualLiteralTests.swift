@@ -272,7 +272,8 @@ final class BilingualLiteralTests: XCTestCase {
         XCTAssertEqual(numeric[0].action.pageSwitchTarget, .letters)
 
         let symbols = footer(KeyboardPagePresets.symbolRowsPage(ascii: false))
-        XCTAssertEqual(symbols.map(\.action.type), [.pageSwitch, .globe, .languageSwitch, .space, .literal, .enter])
+        XCTAssertEqual(
+            symbols.map(\.action.type), [.pageSwitch, .globe, .languageSwitch, .literal, .space, .literal, .enter])
         XCTAssertEqual(symbols[0].action.pageSwitchTarget, .letters)
 
         let categorized = try XCTUnwrap(KeyboardPagePresets.symbolsCategorized.materialized().chrome?.bottom)

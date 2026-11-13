@@ -23,6 +23,13 @@ enum KeyboardPageDraftFactory {
         numericMarks: KeyboardNumericMarks = .chinese
     ) async throws -> KeyboardPageDefinition {
         var resolved = page
+        if resolved.symbolPresentation == .automatic,
+            KeyboardPageResolver.symbolPresentation(
+                page: resolved, mainLayoutIsPhoneKeypad: numericForm == .phoneDigitPad) == .categorized
+        {
+            // The running phone layout opens categories, not the automatic page's backup rows.
+            resolved.symbolPresentation = .categorized
+        }
         if resolved.symbolPresentation == .categorized && resolved.categories == nil {
             // Legacy browser rows stay in the draft: resolving the category snapshot must not
             // delete content the stored page still carries.
@@ -97,8 +104,8 @@ enum KeyboardPageDraftFactory {
         }
     }
 
-    /// The category snapshot the keyboard draws: the user's symbol library, recent symbols and
-    /// quick symbols, in display order. Reads on the serial configuration queue, never the main thread.
+    /// The category snapshot the keyboard draws: common symbols, recents and the user's library
+    /// in display order. Reads on the serial configuration queue, never the main thread.
     private static func authoredCategories() async throws -> [KeyboardPageCategory] {
         try await HostConfigIOQueue.async {
             let directory = SymbolLibraryStorage.defaultStoreDirectory()
@@ -107,14 +114,6 @@ enum KeyboardPageDraftFactory {
             if let readError { throw readError }
             let recents = RecentSymbolStore(directory: directory).read { readError = $0 }
             if let readError { throw readError }
-            let quick: String
-            if let shared = KeyboardRecipeStore.sharedContainerURL() {
-                quick = try T9QuickSymbolStore(
-                    directory: shared.appendingPathComponent(T9QuickSymbolStore.directoryName, isDirectory: true)
-                ).load().symbols
-            } else {
-                quick = T9QuickSymbolStore.defaultSymbols
-            }
             let displayed = SymbolPageTable.phoneSymbolCategories(
                 ascii: false, recents: recents,
                 library: catalog.orderedCategories.map {
@@ -130,13 +129,6 @@ enum KeyboardPageDraftFactory {
                 let recent = KeyboardPageCategory(
                     id: SymbolPageTable.recentCategoryID, name: String(localized: "最近"), keys: [], source: .recent)
                 result.insert(recent, at: 1)
-            }
-            // Preserve the user's quick symbols even when the current common tab does not contain them.
-            if let common = result.firstIndex(where: { $0.id == SymbolPageTable.commonCategoryID }) {
-                let existing = Set(result[common].keys.compactMap { $0.action.value })
-                result[common].keys += BuiltinLayouts.t9QuickSymbolValues(saved: quick, ascii: false)
-                    .filter { !existing.contains($0) }
-                    .map { .init(label: $0, action: .init(.literal, value: $0)) }
             }
             return result
         }

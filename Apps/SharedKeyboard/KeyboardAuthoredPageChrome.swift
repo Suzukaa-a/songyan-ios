@@ -67,6 +67,14 @@ struct KeyboardAuthoredPageMetrics: Equatable {
         totalHeight = rowsHeight + (hasBottom ? spacing + bottomHeight : 0)
     }
 
+    /// A keypad can fit four operators beside its three digit rows, including compact heights.
+    /// Longer rails still scroll instead of shrinking every extra key into the same space.
+    func railMinimumKeyHeight(keyCount: Int, isKeypad: Bool) -> Double {
+        guard isKeypad else { return Self.minimumKeyHeight }
+        let slots = Double(max(3, min(4, keyCount)))
+        return min(Self.minimumKeyHeight, max(0, (rowsHeight + Self.spacing) / slots - Self.spacing))
+    }
+
     private static func railWidth(_ value: Double, rootWidth: Double) -> Double {
         let finite = value.isFinite ? value : 0
         return min(max(0, finite), rootWidth)
@@ -253,6 +261,7 @@ enum KeyboardPageControlFace {
         case .layoutPageSwitch: return key.action.layoutPageJump?.pageLabel ?? key.label
         case .languageSwitch: return policy.languageTitle(for: key.action.languageSwitchBehavior)
         case .symbolLock: return KeyLabelPolicy.symbolLockTitle(script: policy.script)
+        case .symbolLibrary: return policy.symbolLibraryTitle
         case .clearInput: return KeyLabelPolicy.clearInputTitle(script: policy.script)
         case .shift: return KeyLabelPolicy.shiftTitle(script: policy.script)
         default: return nil
@@ -278,6 +287,7 @@ enum KeyboardPageControlFace {
             return String(localized: "切换到\(name)并打开\(pageName)")
         case .languageSwitch: return policy.languageAccessibilityLabel(for: key.action.languageSwitchBehavior)
         case .symbolLock: return String(localized: "锁定符号页")
+        case .symbolLibrary: return KeyLabelPolicy.symbolLibraryAccessibilityLabel()
         case .shift: return String(localized: "上档键")
         default: return title(for: key, policy: policy)
         }
@@ -316,7 +326,7 @@ extension LayoutAction.Kind {
     /// page/definition dispatcher instead of needing a fake engine codeword.
     var isPageUI: Bool {
         switch self {
-        case .shift, .pageSwitch, .languageSwitch, .symbolLock, .clearInput, .layoutPageSwitch,
+        case .shift, .pageSwitch, .languageSwitch, .symbolLock, .symbolLibrary, .clearInput, .layoutPageSwitch,
             .kana, .kanaModifier, .cursorLeft:
             return true
         default: return false

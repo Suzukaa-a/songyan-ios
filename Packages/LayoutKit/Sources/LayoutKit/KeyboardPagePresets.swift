@@ -34,6 +34,10 @@ public enum KeyboardPagePresets {
     ) -> [LayoutRow] {
         let policyPage: AlternateKeyPolicy.Page = kind == .numeric ? .numeric : .symbols
         let visible = Set(marks.flatMap { $0.map { ascii ? $0.ascii : $0.chinese } })
+        // Choosing English symbols does not switch the input session to English. Symbol
+        // copies start in the same idle Chinese state as the editor and native preview,
+        // where long-press hints may still contain non-ASCII symbols (·, ≤, ≥).
+        let asciiInput = kind == .symbols ? false : ascii
         return marks.map { row in
             LayoutRow(
                 keys: row.map { mark in
@@ -41,7 +45,7 @@ public enum KeyboardPagePresets {
                     let options = AlternateKeyPolicy.options(
                         for: .init(
                             keyLabel: initial, secondaryLiterals: [], page: policyPage,
-                            language: ascii ? .english : .chinese, usesASCIIPunctuation: ascii,
+                            language: asciiInput ? .english : .chinese, usesASCIIPunctuation: asciiInput,
                             visibleKeys: visible)
                     )
                     .map { option -> LayoutOption in

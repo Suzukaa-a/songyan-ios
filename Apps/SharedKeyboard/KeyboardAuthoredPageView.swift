@@ -150,7 +150,7 @@ struct KeyboardAuthoredPageKey: View {
             onSelect: { cap in select(cap) }
         )
         .disabled(!state.isEnabled(key) && !editorSelection)
-        .opacity((!state.isEnabled(key) && !editorSelection) || shiftDimmed ? 0.4 : 1)
+        .opacity(!state.isEnabled(key) || shiftDimmed ? 0.4 : 1)
         .accessibilityLabel(accessibilityLabel)
         .accessibilityValue(state.accessibilityValue(for: key) ?? "")
         .accessibilityHint(accessibilityHint)
@@ -277,7 +277,7 @@ struct KeyboardAuthoredPageKey: View {
         case .globe: return .switchKeyboard
         case .modeSwitch: return .cycleLayout
         case .code: return .code(action.value ?? "")
-        case .shift, .pageSwitch, .languageSwitch, .symbolLock, .clearInput, .layoutPageSwitch,
+        case .shift, .pageSwitch, .languageSwitch, .symbolLock, .symbolLibrary, .clearInput, .layoutPageSwitch,
             .kana, .kanaModifier, .cursorLeft:
             // A page-level action has no engine face; the tap is routed through the action table
             // (the kana gestures reach the kana handler there), so the face only picks the tone.
@@ -357,12 +357,13 @@ struct KeyboardAuthoredPageRail: View {
     let actionTable: KeyboardPageAuthoredActionTable
     var selectedPath: KeyboardPageKeyPath? = nil
     var editorSelection = false
+    var minimumKeyHeight = KeyboardAuthoredPageMetrics.minimumKeyHeight
 
     var body: some View {
         let geometry = KeyboardPageRailGeometry(
             height: Double(height), weights: keys.map(\.widthWeight),
             spacing: KeyboardAuthoredPageMetrics.spacing,
-            minimumKeyHeight: KeyboardAuthoredPageMetrics.minimumKeyHeight)
+            minimumKeyHeight: minimumKeyHeight)
         let content = VStack(spacing: CGFloat(KeyboardAuthoredPageMetrics.spacing)) {
             ForEach(Array(keys.enumerated()), id: \.offset) { index, key in
                 keyView(index: index, keyValue: key)
@@ -704,11 +705,15 @@ struct KeyboardAuthoredPageView<CategoryMain: View, CategoryLeading: View>: View
                 if rendered.isCategoryPage {
                     categoryLeading(metrics)
                 } else {
+                    // A digit pad can put four compact operator keys beside three digit rows.
+                    // Keep them visible together under the same compact height as the digits.
                     KeyboardAuthoredPageRail(
                         keys: rendered.chrome?.leading ?? [], sourceIndices: rendered.leadingSourceIndices,
                         region: .leading, height: CGFloat(metrics.leadingRailHeight), state: state,
                         actions: actions, actionTable: rendered.actionTable, selectedPath: selectedPath,
-                        editorSelection: editorSelection)
+                        editorSelection: editorSelection,
+                        minimumKeyHeight: metrics.railMinimumKeyHeight(
+                            keyCount: rendered.chrome?.leading.count ?? 0, isKeypad: page.isKeypad))
                 }
             }
             .frame(width: CGFloat(metrics.leadingWidth), height: CGFloat(metrics.leadingRailHeight), alignment: .top)
@@ -719,11 +724,21 @@ struct KeyboardAuthoredPageView<CategoryMain: View, CategoryLeading: View>: View
         metrics: KeyboardAuthoredPageMetrics, rendered: KeyboardAuthoredRenderedPage
     ) -> some View {
         if metrics.trailingWidth > 0 {
+            let keys = rendered.chrome?.trailing ?? []
+            // An unchanged copy of the native editing rail keeps its row alignment even
+            // under a compact height preset. Other keypad rails fit up to four keys beside digits.
+            let nativeEditingRail =
+                rendered.chrome?.trailingSpansBottom == true
+                && keys.map(\.action.type) == [.backspace, .clearInput, .enter]
+                && keys.map(\.widthWeight) == PhoneKeypadRailPolicy.bundledTrailingSpans.map(Double.init)
             KeyboardAuthoredPageRail(
-                keys: rendered.chrome?.trailing ?? [], sourceIndices: rendered.trailingSourceIndices,
+                keys: keys, sourceIndices: rendered.trailingSourceIndices,
                 region: .trailing, height: CGFloat(metrics.trailingRailHeight), state: state,
                 actions: actions, actionTable: rendered.actionTable, selectedPath: selectedPath,
-                editorSelection: editorSelection
+                editorSelection: editorSelection,
+                minimumKeyHeight: nativeEditingRail
+                    ? min(metrics.keyHeight, KeyboardAuthoredPageMetrics.minimumKeyHeight)
+                    : metrics.railMinimumKeyHeight(keyCount: keys.count, isKeypad: page.isKeypad)
             )
             .frame(width: CGFloat(metrics.trailingWidth), height: CGFloat(metrics.trailingRailHeight), alignment: .top)
         }

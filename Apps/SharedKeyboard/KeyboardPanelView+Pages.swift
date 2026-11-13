@@ -411,6 +411,9 @@ extension KeyboardPanelView {
         case .symbolLock:
             emitKeyFeedback()
             symbolPageLocked.toggle()
+        case .symbolLibrary:
+            emitKeyFeedback()
+            openQuickContent(section: "symbols")
         case .clearInput:
             keyFeedbackAfterEffect { _ = controller.discardComposition() }
         case .modeSwitch:
@@ -570,7 +573,7 @@ extension KeyboardPanelView {
         switch action.type {
         case .shift:
             keyFeedbackAfterEffect { controller.handleShiftTap() }
-        case .pageSwitch, .languageSwitch, .symbolLock, .clearInput, .layoutPageSwitch:
+        case .pageSwitch, .languageSwitch, .symbolLock, .symbolLibrary, .clearInput, .layoutPageSwitch:
             performAuthoredPageAction(action, isAlternate: isAlternate)
         case .modeSwitch:
             recordCategoryAction(.cycleLayout)

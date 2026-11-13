@@ -81,7 +81,7 @@ public extension LayoutAction.Kind {
         if allowsFunctionActions {
             kinds += [
                 .space, .enter, .backspace, .globe, .modeSwitch, .shift, .pageSwitch, .languageSwitch, .symbolLock,
-                .clearInput,
+                .symbolLibrary, .clearInput,
             ]
             if allowsJump { kinds.append(.layoutPageSwitch) }
         }
