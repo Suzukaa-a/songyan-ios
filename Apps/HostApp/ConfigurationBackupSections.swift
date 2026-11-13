@@ -5,6 +5,7 @@ import UniformTypeIdentifiers
 struct ConfigurationBackupSections: View {
     @ObservedObject private var model = ConfigurationBackupModel.shared
     @State private var importing = false
+    @State private var deleting: ConfigurationBackupItem?
 
     var body: some View {
         Group {
@@ -51,6 +52,8 @@ struct ConfigurationBackupSections: View {
                         HStack {
                             Button(String(localized: "下载并恢复")) { Task { await model.prepareRestore(item) } }
                             Spacer()
+                            Button(String(localized: "删除"), role: .destructive) { deleting = item }
+                                .accessibilityIdentifier("backup.delete.cloud")
                         }.buttonStyle(.borderless)
                     }.disabled(model.busy)
                 }
@@ -71,6 +74,9 @@ struct ConfigurationBackupSections: View {
                             ShareLink(item: item.url) {
                                 Label(String(localized: "导出"), systemImage: "square.and.arrow.up")
                             }
+                            Button(String(localized: "删除"), role: .destructive) { deleting = item }
+                                .disabled(model.busy)
+                                .accessibilityIdentifier("backup.delete.local")
                         }.buttonStyle(.borderless)
                     }
                 }
@@ -136,7 +142,28 @@ struct ConfigurationBackupSections: View {
                 )
             }
         }
-
+        .alert(
+            String(localized: "删除这份备份？"),
+            isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } })
+        ) {
+            if let item = deleting {
+                Button(item.cloud ? String(localized: "删除 iCloud 备份") : String(localized: "删除本机备份"), role: .destructive)
+                {
+                    deleting = nil
+                    Task { await model.delete(item) }
+                }
+            }
+            Button(String(localized: "取消"), role: .cancel) { deleting = nil }
+        } message: {
+            if let item = deleting {
+                Text(
+                    item.cloud
+                        ? String(
+                            localized: "将删除 iCloud 中的这份备份，并同步到使用同一账户的设备。本机副本会保留。此操作不能撤销。\n\(item.url.lastPathComponent)"
+                        )
+                        : String(localized: "仅删除本机的这份备份，iCloud 副本会保留。此操作不能撤销。\n\(item.url.lastPathComponent)"))
+            }
+        }
     }
 
     private func backupRow(_ item: ConfigurationBackupItem) -> some View {

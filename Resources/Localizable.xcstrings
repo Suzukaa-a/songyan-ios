@@ -33287,6 +33287,72 @@
         }
       }
     },
+    "删除这份备份？": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除这份备份？"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刪除這份備份？"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このバックアップを削除しますか？"
+          }
+        }
+      }
+    },
+    "删除 iCloud 备份": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除 iCloud 备份"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刪除 iCloud 備份"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud バックアップを削除"
+          }
+        }
+      }
+    },
+    "删除本机备份": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除本机备份"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刪除本機備份"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この端末のバックアップを削除"
+          }
+        }
+      }
+    },
     "继续恢复依赖": {
       "localizations": {
         "zh-Hans": {
@@ -34365,6 +34431,116 @@
         }
       }
     },
+    "正在删除 iCloud 备份…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在删除 iCloud 备份…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在刪除 iCloud 備份…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud バックアップを削除中…"
+          }
+        }
+      }
+    },
+    "正在删除本机备份…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在删除本机备份…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在刪除本機備份…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この端末のバックアップを削除中…"
+          }
+        }
+      }
+    },
+    "已删除这份 iCloud 备份。本机副本不受影响。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已删除这份 iCloud 备份。本机副本不受影响。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已刪除這份 iCloud 備份。本機副本不受影響。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この iCloud バックアップを削除しました。この端末のコピーは保持されています。"
+          }
+        }
+      }
+    },
+    "已删除这份本机备份。iCloud 副本不受影响。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已删除这份本机备份。iCloud 副本不受影响。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已刪除這份本機備份。iCloud 副本不受影響。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この端末のバックアップを削除しました。iCloud のコピーは保持されています。"
+          }
+        }
+      }
+    },
+    "删除未完成：%@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "删除未完成：%@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "刪除未完成：%@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "削除が完了していません：%@"
+          }
+        }
+      }
+    },
     "暂未发现 iCloud 备份": {
       "localizations": {
         "zh-Hans": {
@@ -34493,6 +34669,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "バックアップ日時：%@。キーボードのページ組み合わせ、記号ライブラリ、設定をバックアップの内容に置き換えます。記録に従って入力方式とモデルをダウンロードし、使用するキーボードを復元します。ダウンロード容量が大きくなる場合があります。学習データは対応するキーボードの使用時に安全に統合されます。"
+          }
+        }
+      }
+    },
+    "将删除 iCloud 中的这份备份，并同步到使用同一账户的设备。本机副本会保留。此操作不能撤销。\n%@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将删除 iCloud 中的这份备份，并同步到使用同一账户的设备。本机副本会保留。此操作不能撤销。\n%@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "將刪除 iCloud 中的這份備份，並同步到使用同一賬戶的裝置。本機副本會保留。此操作不能撤銷。\n%@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud 内のこのバックアップを削除し、同じアカウントの端末にも同期します。この端末のコピーは保持されます。この操作は取り消せません。\n%@"
+          }
+        }
+      }
+    },
+    "仅删除本机的这份备份，iCloud 副本会保留。此操作不能撤销。\n%@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "仅删除本机的这份备份，iCloud 副本会保留。此操作不能撤销。\n%@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "僅刪除本機的這份備份，iCloud 副本會保留。此操作不能撤銷。\n%@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この端末のバックアップのみを削除します。iCloud のコピーは保持されます。この操作は取り消せません。\n%@"
           }
         }
       }

@@ -55,6 +55,7 @@ final class ConfigurationBackupModel: NSObject, ObservableObject {
     private var lastStamp: String?
     private var lastArchive: URL?
     private var lastAutomaticBackup = Date.distantPast
+    private var deletedCloudArchives: Set<String> = []
     private struct AutomaticState: Codable, Sendable {
         let stamp: String
         let filename: String
@@ -103,6 +104,11 @@ final class ConfigurationBackupModel: NSObject, ObservableObject {
             }
             ready = true
             startupError = nil
+            deletedCloudArchives = try await ConfigurationBackupIO.run {
+                let url = ConfigurationBackupStorage.root.appendingPathComponent("deleted-cloud-archives.json")
+                guard FileManager.default.fileExists(atPath: url.path) else { return [] }
+                return try JSONDecoder().decode(Set<String>.self, from: Data(contentsOf: url))
+            }
             await refreshPendingDependencies()
             await refreshCloud()
             await refreshLocal()
@@ -263,7 +269,7 @@ final class ConfigurationBackupModel: NSObject, ObservableObject {
                         options: .atomic)
                 }
             }
-            if let lastArchive, let cloudDirectory,
+            if let lastArchive, let cloudDirectory, !deletedCloudArchives.contains(lastArchive.lastPathComponent),
                 FileManager.default.fileExists(atPath: lastArchive.path)
             {
                 progress = String(localized: "正在交给 iCloud 上传…")
@@ -423,4 +429,36 @@ final class ConfigurationBackupModel: NSObject, ObservableObject {
         } catch { notice = String(localized: "依赖恢复未完成：\(error.localizedDescription)") }
     }
 
+    /// Deletes exactly the chosen copy. A cloud tombstone prevents the foreground backup loop
+    /// from immediately uploading the same local archive again; a new backup still uploads normally.
+    func delete(_ item: ConfigurationBackupItem) async {
+        guard !busy, prepared == nil else { return }
+        let parent = item.cloud ? cloudDirectory : ConfigurationBackupStorage.localArchives
+        guard let parent, (item.cloud ? cloudItems : localItems).contains(where: { $0.id == item.id }) else { return }
+        busy = true
+        progress = item.cloud ? String(localized: "正在删除 iCloud 备份…") : String(localized: "正在删除本机备份…")
+        defer {
+            busy = false
+            progress = ""
+        }
+        do {
+            if item.cloud {
+                // Save intent before deletion, so process termination cannot resurrect the file.
+                let names = deletedCloudArchives.union([item.url.lastPathComponent])
+                try await ConfigurationBackupIO.run {
+                    try FileManager.default.createDirectory(
+                        at: ConfigurationBackupStorage.root, withIntermediateDirectories: true)
+                    try JSONEncoder().encode(names).write(
+                        to: ConfigurationBackupStorage.root.appendingPathComponent("deleted-cloud-archives.json"),
+                        options: .atomic)
+                }
+                deletedCloudArchives = names
+            }
+            try await ConfigurationBackupIO.run { try ConfigurationBackupStorage.deleteArchive(item.url, from: parent) }
+            if item.cloud { cloudItems.removeAll { $0.id == item.id } } else { await refreshLocal() }
+            notice =
+                item.cloud
+                ? String(localized: "已删除这份 iCloud 备份。本机副本不受影响。") : String(localized: "已删除这份本机备份。iCloud 副本不受影响。")
+        } catch { notice = String(localized: "删除未完成：\(error.localizedDescription)") }
+    }
 }
