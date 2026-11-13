@@ -38,6 +38,9 @@ public struct RecommendedSchemeSource: Identifiable, Equatable, Sendable {
         case "ja":
             priority = sources.filter { $0.languageTag == "ja" }.map(\.id)
         case "zh":
+            // Region picks the traditional-script methods, but a user who chose Simplified Chinese
+            // there still types pinyin: only the script they read decides.
+            if locale.language.script?.identifier == "Hans" { return sources }
             switch locale.region?.identifier {
             case "TW": priority = ["rime-bopomofo", "rime-cangjie"]
             case "HK", "MO": priority = ["rime-cangjie", "rime-quick", "rime-cantonese"]

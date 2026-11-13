@@ -19,7 +19,7 @@ final class RecommendedSchemeOrderTests: XCTestCase {
     }
 
     func testOtherPrimaryLanguagesKeepTheExistingCatalogOrder() {
-        for languages in [[String](), ["en-US"], ["fr-FR", "zh-TW"], ["zh-Hant"]] {
+        for languages in [[String](), ["en-US"], ["fr-FR", "zh-TW"], ["zh-Hant"], ["zh-Hans-HK"], ["zh-Hans-TW"]] {
             XCTAssertEqual(
                 RecommendedSchemeSource.ordered(preferredLanguages: languages), RecommendedSchemeSource.catalog)
         }
