@@ -23,6 +23,7 @@ struct HostApp: App {
     init() {
         // Candidate renderer registration (source-level extension point; the default renderer is the production rendering path).
         CandidateRenders.installDefault()
+        ConfigurationBackupModel.registerBackgroundTask()
         #if DEBUG
             DebugProbe.reportEnvironment(role: "hostApp")
         #endif
@@ -37,10 +38,10 @@ struct HostApp: App {
                     } else if GlyphProbe.enabled {
                         GlyphProbeView()
                     } else {
-                        HostRootView()
+                        BackupReadyView()
                     }
                 #else
-                    HostRootView()
+                    BackupReadyView()
                 #endif
             }
             .onOpenURL { url in

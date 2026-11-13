@@ -66,7 +66,7 @@ extension SchemeImportCenter {
                 submit: { archive in _ = try await LearningBackupIO.withStore { try $0.submitRestore(archive) } })
             try await flow.accept()
             learningOffer = nil
-            learningOfferNotice = String(localized: "已安排并入。请调出「松烟」键盘一次，进度可在「学习备份」查看。")
+            learningOfferNotice = String(localized: "已安排并入。请调出「松烟」键盘一次，进度可在「备份与恢复」查看。")
         } catch {
             HostLog.append("package learning merge failed: \(error.localizedDescription)")
             learningOfferNotice = Self.packageLearningMessage(for: error)
