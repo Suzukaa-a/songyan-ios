@@ -50,12 +50,13 @@ extension CandidateAreaActionSink {
     static func live(
         controller: KeyboardController,
         onExpand: @escaping () -> Void,
-        onCollapse: @escaping () -> Void
+        onCollapse: @escaping () -> Void,
+        onPrepareSelection: @escaping @MainActor () -> Void = {}
     ) -> CandidateAreaActionSink {
         // The engine can publish before SwiftUI rebuilds this view. Retained candidate indices
         // belong to the composition shown when this sink was created.
         let revision = controller.session.compositionRevision
-        return CandidateAreaActionSink { action in
+        let handler: CandidateAreaActionSink.Handler = { action in
             MainActor.assumeIsolated {
                 switch action {
                 case .select(let index):
@@ -74,5 +75,24 @@ extension CandidateAreaActionSink {
                 }
             }
         }
+        return CandidateAreaActionSink(
+            prepare: { action in
+                let selection: PreparedCandidateSelection?
+                switch action {
+                case .select(let index):
+                    onPrepareSelection()
+                    selection = controller.prepareCandidateSelection(index)
+                case .selectOnPage(let page, let index):
+                    onPrepareSelection()
+                    selection = controller.prepareCandidateSelection(index, onPage: page)
+                default:
+                    return {
+                        handler(action)
+                        return true
+                    }
+                }
+                guard let selection else { return nil }
+                return { controller.selectCandidate(selection) }
+            }, handler: handler)
     }
 }

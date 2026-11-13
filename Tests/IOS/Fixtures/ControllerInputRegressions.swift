@@ -178,7 +178,9 @@ final class SelectionEngine: EngineBackend {
     private var candidates: [String]
     private let pageSize: Int
     private var pageIndex = 0
+    private var rawInput = "x"
     private var state = EngineSnapshot()
+    var nextCandidatesOnCode: [String]?
 
     init(candidates: [String], pageSize: Int = 2) {
         self.candidates = candidates
@@ -197,7 +199,12 @@ final class SelectionEngine: EngineBackend {
 
     func setup(sharedDirectory: URL, userDirectory: URL) throws {}
     func selectSchema(_ schemaID: String) throws {}
-    func processKey(_ keyValue: String) throws -> EngineSnapshot { state }
+    func processKey(_ keyValue: String) throws -> EngineSnapshot {
+        rawInput += keyValue
+        if let nextCandidatesOnCode { candidates = nextCandidatesOnCode }
+        publish()
+        return state
+    }
 
     func selectCandidate(_ index: Int) throws -> EngineSnapshot {
         try commit(absolute: pageIndex * pageSize + index)
@@ -238,7 +245,7 @@ final class SelectionEngine: EngineBackend {
         let page = start < candidates.count ? Array(candidates[start..<min(candidates.count, start + pageSize)]) : []
         state = EngineSnapshot(
             candidates: page.enumerated().map { Candidate(index: $0.offset, text: $0.element) },
-            preedit: "x", rawInput: "x", isComposing: !page.isEmpty,
+            preedit: rawInput, rawInput: rawInput, isComposing: !page.isEmpty,
             highlightedIndex: page.isEmpty ? -1 : 0,
             pageIndex: pageIndex, pageSize: pageSize,
             isLastPage: start + pageSize >= candidates.count)
@@ -730,10 +737,26 @@ final class ManualQueue: EngineWorkQueue {
     }
 
     /// A renderer action captured by one render can arrive after the engine published a new
-    /// result but before SwiftUI rebuilds the view: the retained sink still carries the old
-    /// render's indices. Those two selection cases must then be rejected, while everything that
-    /// re-reads the engine's current state (paging, read-only loading) stays allowed.
+    /// result but before SwiftUI rebuilds the view. Physical presses bind their word
+    /// at touch-down; legacy immediate callbacks retain the original revision guard.
     @MainActor static func staleCandidateSink() async {
+        // A harmless refresh can land between touch-down and touch-up. The rendered
+        // candidate still exists, so its selection must reach the document.
+        let refreshed = KeyboardController(engine: SelectionEngine(candidates: ["alpha", "beta"]))
+        var refreshedDocument = ""
+        refreshed.onDispatchCommit = { text in
+            refreshedDocument += text
+            return true
+        }
+        let refreshedSink = CandidateAreaActionSink.live(controller: refreshed, onExpand: {}, onCollapse: {})
+        guard let refreshedRelease = refreshedSink.prepare(.select(1)) else {
+            preconditionFailure("a current press must bind its candidate")
+        }
+        refreshed.session.refresh()
+        precondition(refreshedRelease())
+        precondition(refreshedDocument == "beta", "a refresh must not swallow a visible candidate tap")
+        refreshed.retire()
+
         let engine = SelectionEngine(candidates: ["alpha", "beta", "gamma", "delta"])
         let controller = KeyboardController(engine: engine)
         var document = ""
@@ -802,6 +825,117 @@ final class ManualQueue: EngineWorkQueue {
             browsedDocument == "three",
             "a read-only append keeps the same revision, so the older sink must still select: \(browsedDocument)")
         browsed.retire()
+    }
+
+    @MainActor static func candidateSinkDuringDecode() async {
+        // Two fingers overlap: the last letter is still held when the candidate
+        // goes down. The real rollover coordinator must feed it to the real
+        // preparation bridge first; preparing alone never selects a candidate.
+        final class HeldLetter: KeyboardRolloverPress {
+            var calls = 0
+            let type: () -> Void
+            init(type: @escaping () -> Void) { self.type = type }
+            func commitRolloverPress() {
+                calls += 1
+                type()
+            }
+        }
+        do {
+            let engine = SelectionEngine(candidates: ["旧A", "另A"])
+            let controller = KeyboardController(engine: engine)
+            let queue = ManualQueue()
+            controller.session.codeKeyQueue = queue
+            var document = ""
+            controller.onDispatchCommit = {
+                document += $0
+                return true
+            }
+            engine.nextCandidatesOnCode = ["目标B", "另B"]
+            let key = HeldLetter { controller.handle(.code("o")) }
+            KeyRollover.hold(key)
+            let sink = CandidateAreaActionSink.live(
+                controller: controller, onExpand: {}, onCollapse: {},
+                onPrepareSelection: { KeyRollover.commitPendingPress() })
+            guard let release = sink.prepare(.selectOnPage(page: 0, index: 0)) else {
+                preconditionFailure("held final letter must be processed before binding the candidate")
+            }
+            precondition(key.calls == 1 && document.isEmpty, "a held letter precedes selection without committing")
+            KeyRollover.commitPendingPress()
+            precondition(key.calls == 1, "the previous finger must not type its letter twice")
+            precondition(release(), "successful selection must acknowledge the UI")
+            precondition(document == "目标B", "a candidate following a held final letter must select B")
+            controller.retire()
+            queue.runAll()
+        }
+        // The UI retains an A render while the final letter completely replaces
+        // its menu with B. Binding a fresh press must use B at every completion
+        // timing, but preparing a press alone must not commit (it may be a drag).
+        for phase in 0...2 {
+            let engine = SelectionEngine(candidates: ["旧A", "另A"])
+            let controller = KeyboardController(engine: engine)
+            let queue = ManualQueue()
+            controller.session.codeKeyQueue = queue
+            var document = ""
+            controller.onDispatchCommit = {
+                document += $0
+                return true
+            }
+            let sink = CandidateAreaActionSink.live(controller: controller, onExpand: {}, onCollapse: {})
+            engine.nextCandidatesOnCode = ["目标B", "另B"]
+            controller.session.tap(.code("o"))
+            if phase >= 1 { queue.runAll() }
+            if phase == 2 {
+                await eventually("the B menu did not land") { controller.session.pendingCodes.isEmpty }
+            }
+            guard let release = sink.prepare(.selectOnPage(page: 0, index: 0)) else {
+                preconditionFailure("a fresh press from the retained render must bind the B candidate")
+            }
+            precondition(document.isEmpty, "preparing a scroll must not commit")
+            precondition(release(), "successful selection must acknowledge the UI")
+            precondition(document == "目标B", "release must select B after the final letter: \(document)")
+            precondition(!release(), "a stale release must not acknowledge a second selection")
+            precondition(document == "目标B", "a prepared press must never commit twice")
+            controller.retire()
+            queue.runAll()
+        }
+        do {
+            let engine = SelectionEngine(candidates: ["你好", "拟好"])
+            let controller = KeyboardController(engine: engine)
+            controller.onDispatchCommit = { _ in false }
+            let sink = CandidateAreaActionSink.live(controller: controller, onExpand: {}, onCollapse: {})
+            guard let release = sink.prepare(.selectOnPage(page: 0, index: 0)) else {
+                preconditionFailure("current candidate must prepare")
+            }
+            precondition(!release(), "host refusal must reach the UI without success feedback")
+            controller.retire()
+        }
+        for finishesBeforeRelease in [false, true] {
+            let engine = SelectionEngine(candidates: ["你好", "拟好"])
+            let controller = KeyboardController(engine: engine)
+            let queue = ManualQueue()
+            controller.session.codeKeyQueue = queue
+            var document = ""
+            controller.onDispatchCommit = { text in
+                document += text
+                return true
+            }
+            let sink = CandidateAreaActionSink.live(controller: controller, onExpand: {}, onCollapse: {})
+            guard let release = sink.prepare(.selectOnPage(page: 0, index: 0)) else {
+                preconditionFailure("a current press must bind before the following decode")
+            }
+            engine.nextCandidatesOnCode = ["新词", "另一词", "你好"]
+            controller.session.tap(.code("o"))
+            if finishesBeforeRelease {
+                queue.runAll()
+                await eventually("the pending code did not finish") { controller.session.pendingCodes.isEmpty }
+            }
+            precondition(release())
+            precondition(document == "你好", "release must select the touched word after decoding: \(document)")
+            precondition(!release())
+            precondition(document == "你好", "a retained action must never commit twice")
+            controller.retire()
+            queue.runAll()
+        }
     }
 
     /// For the built-in nine-key digits 2-9, long-press and tap must be two distinct semantic paths:
@@ -915,6 +1049,7 @@ final class ManualQueue: EngineWorkQueue {
         await probeAfterLeavingABC()
         await predictionPaging()
         await staleCandidateSink()
+        await candidateSinkDuringDecode()
         await firstKeyDeferred()
         await pendingFirstKeyFallback()
         print("controller input regression checks passed")

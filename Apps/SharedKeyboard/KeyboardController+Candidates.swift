@@ -30,6 +30,17 @@ extension KeyboardController {
         session.selectCandidate(index)
     }
 
+    func prepareCandidateSelection(_ index: Int, onPage page: Int? = nil) -> PreparedCandidateSelection? {
+        session.prepareCandidateSelection(index, onPage: page)
+    }
+
+    @discardableResult
+    func selectCandidate(_ selection: PreparedCandidateSelection) -> Bool {
+        let endStallWatch = KeyboardStallReport.begin("select")
+        defer { endStallWatch() }
+        return session.selectCandidate(selection)
+    }
+
     /// Real commit for cross-page accumulated candidates: page number + in-page index → engine absolute index.
     /// With an unpaged engine (pageSize == 0) it degrades to in-page selection on the current page, never guessing.
     public func selectCandidate(pageIndex: Int, pageLocalIndex: Int) {

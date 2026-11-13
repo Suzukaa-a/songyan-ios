@@ -142,8 +142,8 @@ extension View {
 // MARK: - Tap confirmation flash (independent of content lifetime)
 //
 // Committing a candidate, advancing to the next segment or narrowing readings usually replaces the
-// tapped cell in the same pass, and the scroll container delays the pressed state, so a quick tap
-// may never show the press fill. The flash is drawn on the panel's own non-interactive overlay at
+// tapped cell in the same pass, so a quick tap may never show the press fill. The flash is drawn on
+// the panel's own non-interactive overlay at
 // the tapped cell's press-fill geometry and fades out by itself; layout and hit regions are untouched.
 
 private struct KeyboardFlashSurfaceKey: EnvironmentKey {
@@ -162,18 +162,21 @@ public extension EnvironmentValues {
 @available(iOS 17.0, macOS 14.0, *)
 public struct CandidateTapStyle: PrimitiveButtonStyle {
     public var press: CandidatePressStyle
+    private let prepareAction: (@MainActor () -> CandidateAreaActionSink.PreparedAction?)?
 
     public init(
         tint: Color, horizontalInset: CGFloat = CandidateTouchMetrics.horizontalInset,
-        extraTopInset: CGFloat = 0, extraBottomInset: CGFloat = 0
+        extraTopInset: CGFloat = 0, extraBottomInset: CGFloat = 0,
+        prepareAction: (@MainActor () -> CandidateAreaActionSink.PreparedAction?)? = nil
     ) {
         press = CandidatePressStyle(
             tint: tint, horizontalInset: horizontalInset,
             extraTopInset: extraTopInset, extraBottomInset: extraBottomInset)
+        self.prepareAction = prepareAction
     }
 
     public func makeBody(configuration: Configuration) -> some View {
-        CandidateTapBody(configuration: configuration, press: press)
+        CandidateTapBody(configuration: configuration, press: press, prepareAction: prepareAction)
     }
 }
 
@@ -181,25 +184,75 @@ public struct CandidateTapStyle: PrimitiveButtonStyle {
 private struct CandidateTapBody: View {
     let configuration: PrimitiveButtonStyleConfiguration
     let press: CandidatePressStyle
+    let prepareAction: (@MainActor () -> CandidateAreaActionSink.PreparedAction?)?
     @Environment(\.keyboardFlashSurface) private var surface
     @Environment(\.colorSchemeContrast) private var contrast
+    @Environment(\.isEnabled) private var isEnabled
     @State private var anchor = KeyboardTapFlash.Anchor()
+    @State private var isPressed = false
 
     var body: some View {
-        Button {
-            anchor.flash(
-                on: surface, tint: press.tint,
-                opacity: KeyboardTapFlash.opacity(increasedContrast: contrast == .increased),
-                insets: .init(
-                    top: CandidateTouchMetrics.verticalInset + max(0, press.extraTopInset),
-                    leading: max(0, press.horizontalInset),
-                    bottom: CandidateTouchMetrics.verticalInset + max(0, press.extraBottomInset),
-                    trailing: max(0, press.horizontalInset)))
-            configuration.trigger()
-        } label: {
-            configuration.label.background(KeyboardTapFlash.AnchorView(anchor: anchor))
+        #if canImport(UIKit)
+            configuration.label
+                .candidatePressHighlight(
+                    isPressed: isPressed && isEnabled, tint: press.tint,
+                    horizontalInset: press.horizontalInset,
+                    extraTopInset: press.extraTopInset, extraBottomInset: press.extraBottomInset
+                )
+                .background(KeyboardTapFlash.AnchorView(anchor: anchor))
+                .overlay {
+                    CandidateTouchSurface(
+                        isEnabled: isEnabled,
+                        onPressChanged: { isPressed = $0 }, prepareTap: prepareSelection
+                    )
+                    .accessibilityHidden(true)
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityAddTraits(.isButton)
+                .accessibilityAction { select() }
+        #else
+            Button(action: select) {
+                configuration.label.background(KeyboardTapFlash.AnchorView(anchor: anchor))
+            }
+            .buttonStyle(press)
+        #endif
+    }
+
+    private func select() {
+        _ = prepareSelection()?()
+    }
+
+    private func prepareSelection() -> CandidateAreaActionSink.PreparedAction? {
+        guard isEnabled else { return nil }
+        // Capture geometry before preparation can reflow/remove the cell, but
+        // paint nothing until the action acknowledges an actual selection.
+        let confirmation = prepareFlash()
+        let action: CandidateAreaActionSink.PreparedAction
+        if let prepareAction {
+            guard let prepared = prepareAction() else { return nil }
+            action = prepared
+        } else {
+            action = {
+                configuration.trigger()
+                return true
+            }
         }
-        .buttonStyle(press)
+        return {
+            guard action() else { return false }
+            confirmation()
+            return true
+        }
+    }
+
+    private func prepareFlash() -> @MainActor () -> Void {
+        anchor.prepareFlash(
+            on: surface, tint: press.tint,
+            opacity: KeyboardTapFlash.opacity(increasedContrast: contrast == .increased),
+            insets: .init(
+                top: CandidateTouchMetrics.verticalInset + max(0, press.extraTopInset),
+                leading: max(0, press.horizontalInset),
+                bottom: CandidateTouchMetrics.verticalInset + max(0, press.extraBottomInset),
+                trailing: max(0, press.horizontalInset)))
     }
 }
 
@@ -222,15 +275,23 @@ public enum KeyboardTapFlash {
         public init() {}
 
         func flash(on surface: AnyObject?, tint: Color, opacity: Double, insets: EdgeInsets) {
+            prepareFlash(on: surface, tint: tint, opacity: opacity, insets: insets)()
+        }
+
+        func prepareFlash(on surface: AnyObject?, tint: Color, opacity: Double, insets: EdgeInsets)
+            -> @MainActor () -> Void
+        {
             #if canImport(UIKit)
-                guard let view else { return }
+                guard let view else { return {} }
                 let bounds = view.bounds.inset(
                     by: UIEdgeInsets(
                         top: insets.top, left: insets.leading,
                         bottom: insets.bottom, right: insets.trailing))
-                KeyboardTapFlash.flash(
+                return KeyboardTapFlash.prepareFlash(
                     bounds, from: view, on: surface as? UIView,
                     color: UIColor(tint).withAlphaComponent(CGFloat(opacity)))
+            #else
+                return {}
             #endif
         }
     }
@@ -255,23 +316,35 @@ public enum KeyboardTapFlash {
             _ rect: CGRect, from source: UIView, on surface: UIView?, color: UIColor,
             cornerRadius: CGFloat = CandidateTouchMetrics.cornerRadius
         ) {
+            prepareFlash(rect, from: source, on: surface, color: color, cornerRadius: cornerRadius)()
+        }
+
+        @MainActor
+        static func prepareFlash(
+            _ rect: CGRect, from source: UIView, on surface: UIView?, color: UIColor,
+            cornerRadius: CGFloat = CandidateTouchMetrics.cornerRadius
+        ) -> @MainActor () -> Void {
             guard let surface, let window = surface.window, source.window === window,
                 rect.width > 0, rect.height > 0
-            else { return }
-            let flash = UIView(frame: source.convert(rect, to: surface))
-            flash.isUserInteractionEnabled = false
-            flash.isAccessibilityElement = false
-            flash.backgroundColor = color
-            flash.layer.cornerRadius = cornerRadius
-            flash.layer.cornerCurve = .continuous
-            surface.addSubview(flash)
-            UIView.animate(
-                withDuration: fadeDuration, delay: holdDuration,
-                options: [.curveEaseOut, .allowUserInteraction]
-            ) {
-                flash.alpha = 0
-            } completion: { _ in
-                flash.removeFromSuperview()
+            else { return {} }
+            let frame = source.convert(rect, to: surface)
+            return { [weak surface, weak window] in
+                guard let surface, let window, surface.window === window else { return }
+                let flash = UIView(frame: frame)
+                flash.isUserInteractionEnabled = false
+                flash.isAccessibilityElement = false
+                flash.backgroundColor = color
+                flash.layer.cornerRadius = cornerRadius
+                flash.layer.cornerCurve = .continuous
+                surface.addSubview(flash)
+                UIView.animate(
+                    withDuration: fadeDuration, delay: holdDuration,
+                    options: [.curveEaseOut, .allowUserInteraction]
+                ) {
+                    flash.alpha = 0
+                } completion: { _ in
+                    flash.removeFromSuperview()
+                }
             }
         }
     #else
