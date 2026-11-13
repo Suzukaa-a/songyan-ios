@@ -32934,6 +32934,468 @@
           }
         }
       }
+    },
+    "无法访问键盘共享配置。请稍后重试。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法访问键盘共享配置。请稍后重试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無法訪問鍵盤共享配置。請稍後重試。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーボードの共有設定にアクセスできません。しばらくしてからやり直してください。"
+          }
+        }
+      }
+    },
+    "键盘设置暂时无法读取。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "键盘设置暂时无法读取。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "鍵盤設定暫時無法讀取。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在、キーボード設定を読み込めません。"
+          }
+        }
+      }
+    },
+    "恢复前": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "恢复前"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "恢復前"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "復元前"
+          }
+        }
+      }
+    },
+    "键盘正在备份或合并学习数据，请完成后再恢复。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "键盘正在备份或合并学习数据，请完成后再恢复。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "鍵盤正在備份或合併學習資料，請完成後再恢復。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーボードが学習データをバックアップまたは統合しています。完了後に復元してください。"
+          }
+        }
+      }
+    },
+    "现有方案版本与备份中的同名版本不一致，已停止恢复。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "现有方案版本与备份中的同名版本不一致，已停止恢复。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現有方案版本與備份中的同名版本不一致，已停止恢復。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "既存の入力方式とバックアップ内の同名バージョンが一致しないため、復元を中止しました。"
+          }
+        }
+      }
+    },
+    "键盘设置暂时无法写入。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "键盘设置暂时无法写入。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "鍵盤設定暫時無法寫入。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在、キーボード設定を保存できません。"
+          }
+        }
+      }
+    },
+    "正在恢复依赖：%@…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在恢复依赖：%@…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在恢復依賴：%@…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "依存ファイルを復元中：%@…"
+          }
+        }
+      }
+    },
+    "正在恢复词库：%@…": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在恢复词库：%@…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在恢復詞庫：%@…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "辞書を復元中：%@…"
+          }
+        }
+      }
+    },
+    "备份缺少当前键盘的方案来源记录。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "备份缺少当前键盘的方案来源记录。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "備份缺少當前鍵盤的方案來源記錄。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在のキーボードの入力方式の取得元がバックアップに記録されていません。"
+          }
+        }
+      }
+    },
+    "备份缺少当前键盘的词库来源记录。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "备份缺少当前键盘的词库来源记录。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "備份缺少當前鍵盤的詞庫來源記錄。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在のキーボードの辞書の取得元がバックアップに記録されていません。"
+          }
+        }
+      }
+    },
+    "键盘启用项：%@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "键盘启用项：%@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "鍵盤啟用項：%@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使用するキーボード：%@"
+          }
+        }
+      }
+    },
+    "内置方案不可用。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内置方案不可用。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "內建方案不可用。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "内蔵の入力方式を利用できません。"
+          }
+        }
+      }
+    },
+    "下载内容不包含备份记录的输入方式。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下载内容不包含备份记录的输入方式。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下載內容不包含備份記錄的輸入方式。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ダウンロードした内容に、バックアップに記録された入力方式が含まれていません。"
+          }
+        }
+      }
+    },
+    "没有可下载的来源，请先重新导入原方案文件，再点“继续恢复依赖”。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没有可下载的来源，请先重新导入原方案文件，再点“继续恢复依赖”。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "沒有可下載的來源，請先重新匯入原方案檔案，再點“繼續恢復依賴”。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ダウンロード元がありません。元の入力方式ファイルを再度読み込んでから「依存ファイルの復元を続ける」をタップしてください。"
+          }
+        }
+      }
+    },
+    "方案尚未安装。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "方案尚未安装。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "方案尚未安裝。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力方式がまだインストールされていません。"
+          }
+        }
+      }
+    },
+    "依赖未能恢复，请检查网络或重新导入来源后重试。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "依赖未能恢复，请检查网络或重新导入来源后重试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "依賴未能恢復，請檢查網路或重新匯入來源後重試。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "依存ファイルを復元できませんでした。ネットワークを確認するか、元のファイルを再度読み込んでからやり直してください。"
+          }
+        }
+      }
+    },
+    "%@ 没有下载地址，请在方案中重新添加该模型后重试。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 没有下载地址，请在方案中重新添加该模型后重试。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 沒有下載地址，請在方案中重新新增該模型後重試。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ のダウンロード先がありません。入力方式にこのモデルを再度追加してからやり直してください。"
+          }
+        }
+      }
+    },
+    "%@ 的下载内容与备份记录不同，已停止使用。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 的下载内容与备份记录不同，已停止使用。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 的下載內容與備份記錄不同，已停止使用。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ のダウンロード内容がバックアップの記録と一致しないため、使用を中止しました。"
+          }
+        }
+      }
+    },
+    "词库来源不可用。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "词库来源不可用。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "詞庫來源不可用。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "辞書の取得元を利用できません。"
+          }
+        }
+      }
+    },
+    "下载的词库内容与备份记录不同。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下载的词库内容与备份记录不同。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下載的詞庫內容與備份記錄不同。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ダウンロードした辞書の内容がバックアップの記録と一致しません。"
+          }
+        }
+      }
+    },
+    "词库尚未安装。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "词库尚未安装。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "詞庫尚未安裝。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "辞書がまだインストールされていません。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
