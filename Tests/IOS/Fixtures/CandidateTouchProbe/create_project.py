@@ -1,6 +1,6 @@
-from pathlib import Path
 import json
 import sys
+from pathlib import Path
 
 root = Path(sys.argv[1]).resolve()
 repo = Path(__file__).resolve().parents[4]
@@ -43,5 +43,6 @@ proj = add(f'isa = PBXProject; attributes = {{LastUpgradeCheck = 2700;}}; buildC
 (project / 'project.pbxproj').write_text('// !$*UTF8*$!\n{ archiveVersion = 1; classes = {}; objectVersion = 56; objects = {\n' + '\n'.join(f'{k} = {{ {v} }};' for k,v in objects.items()) + f'\n}}; rootObject = {proj}; }}\n')
 scheme = project / 'xcshareddata/xcschemes'
 scheme.mkdir(parents=True, exist_ok=True)
-ref = lambda ident,name: f'<BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="{ident}" BuildableName="{name}" BlueprintName="{name.split(".")[0]}" ReferencedContainer="container:CandidateProbe.xcodeproj"/>'
+def ref(ident, name):
+    return f'<BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="{ident}" BuildableName="{name}" BlueprintName="{name.split(".")[0]}" ReferencedContainer="container:CandidateProbe.xcodeproj"/>'
 (scheme / 'CandidateProbe.xcscheme').write_text(f'''<?xml version="1.0" encoding="UTF-8"?><Scheme LastUpgradeVersion="2700" version="1.3"><BuildAction parallelizeBuildables="YES" buildImplicitDependencies="YES"><BuildActionEntries><BuildActionEntry buildForTesting="YES" buildForRunning="YES" buildForProfiling="NO" buildForArchiving="NO" buildForAnalyzing="YES">{ref(app,'CandidateProbe.app')}</BuildActionEntry></BuildActionEntries></BuildAction><TestAction buildConfiguration="Debug" shouldUseLaunchSchemeArgsEnv="YES"><Testables><TestableReference skipped="NO">{ref(target,'CandidateProbeTests.xctest')}</TestableReference></Testables></TestAction><LaunchAction buildConfiguration="Debug"><BuildableProductRunnable runnableDebuggingMode="0">{ref(app,'CandidateProbe.app')}</BuildableProductRunnable></LaunchAction></Scheme>''')

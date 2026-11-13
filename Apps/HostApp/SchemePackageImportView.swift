@@ -759,7 +759,8 @@ private struct RecommendedSchemeRow: View {
     static func sizeAndLicenses(_ source: RecommendedSchemeSource) -> String {
         var seen = Set<String>()
         let licenses = source.archives.flatMap(\.licenses).map(\.name).filter { seen.insert($0).inserted }
-        return "\(ByteCountFormatter.string(fromByteCount: source.byteCountHint, countStyle: .file)) · \(licenses.joined(separator: ", "))"
+        return
+            "\(ByteCountFormatter.string(fromByteCount: source.byteCountHint, countStyle: .file)) · \(licenses.joined(separator: ", "))"
     }
 
     private var isDownloading: Bool { model.downloadingSourceID == source.id && downloadService.isDownloading }
