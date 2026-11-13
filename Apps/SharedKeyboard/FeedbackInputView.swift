@@ -25,7 +25,7 @@ public final class FeedbackInputView: KeyboardPanelInputView {
 
     // MARK: Touches in the gaps between keys
 
-    /// Adjacent keys have 4pt of visual spacing; a touch in that gap must still reach a key.
+    /// Adjacent key slots leave a gap, widened by automatic rows' inset caps; gap touches still reach a key.
     /// As on the system keyboard, a gap touch with keys on both sides (left/right or above/below) goes to the nearer key.
     private static let keyGapReach: CGFloat = 6
     /// At outer edges with a key on one side only: left/right margins and row indents (the ASDF row's half-key insets) go to the nearest key in the same row;

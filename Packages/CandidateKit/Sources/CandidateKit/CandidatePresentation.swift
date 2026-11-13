@@ -219,9 +219,27 @@ public struct CandidateTypography: Equatable, Sendable {
 /// the remaining actions are forwarded to the session. Preview implementations only echo and produce no input.
 public final class CandidateAreaActionSink {
     public typealias Handler = (CandidateAreaAction) -> Void
+    /// True only when the prepared action took effect; selection feedback must
+    /// not treat a rejected/stale command as a successful commit.
+    public typealias PreparedAction = @MainActor () -> Bool
+    public typealias Preparation = @MainActor (CandidateAreaAction) -> PreparedAction?
     private let handler: Handler
-    public init(handler: @escaping Handler) { self.handler = handler }
+    private let preparation: Preparation?
+    public init(prepare: Preparation? = nil, handler: @escaping Handler) {
+        self.preparation = prepare
+        self.handler = handler
+    }
     public func perform(_ action: CandidateAreaAction) { handler(action) }
+
+    /// Bind a fresh physical press to the current input state. This must not
+    /// perform the action: the returned command is only called on a valid release.
+    @MainActor public func prepare(_ action: CandidateAreaAction) -> PreparedAction? {
+        if let preparation { return preparation(action) }
+        return {
+            self.handler(action)
+            return true
+        }
+    }
 }
 
 // MARK: - Renderer extension point (source-level; user JSON can only choose parameters within the schema)

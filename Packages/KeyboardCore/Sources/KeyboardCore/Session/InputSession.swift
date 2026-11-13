@@ -43,6 +43,9 @@ public final class InputSession {
     /// code is invalidated when options/reconversion/learning/session change. Read-only
     /// browsing (readCandidatePage) does not increment it.
     public private(set) var compositionRevision = 0
+    /// A touch may outlive a decode/refresh, but must not cross a selection, clear,
+    /// configuration change or a new composition.
+    private(set) var candidateSelectionGeneration = 0
     /// Whether the current physical definition is proven to support compact spelling
     /// (composition disambiguation / read-only reading browse).
     ///
@@ -630,14 +633,14 @@ public final class InputSession {
                     // (key_binder/options remain authoritative) while applying
                     // the keyboard's visible Shift state to the emitted key.
                     let output = englishOutput(for: value)
-                    apply(try engine.processKey(output.text))
+                    apply(try engine.processKey(output.text), continuingCandidateSelection: true)
                     if output.shiftChanged { onUpdate?() }
                 } else {
                     // An armed Shift hands the capital to the engine too: the schema decides what
                     // it means (rime_ice reads `V` as the start of its symbol input). A schema
                     // that does not read capitals hands the letter back, and it is typed as itself.
                     let output = englishOutput(for: value)
-                    apply(try engine.processKey(output.text))
+                    apply(try engine.processKey(output.text), continuingCandidateSelection: true)
                     if output.shiftChanged { onUpdate?() }
                 }
             case .literal(let text), .letterVariant(let text):
@@ -776,7 +779,7 @@ public final class InputSession {
     public func refresh() {
         drainPendingCodes()
         guard !retired else { return }
-        apply(engine.currentSnapshot())
+        apply(engine.currentSnapshot(), continuingCandidateSelection: true)
     }
 
     // MARK: Background code-key decoding (doesn't block the main thread during composition)
@@ -874,7 +877,17 @@ public final class InputSession {
     /// Folds an engine snapshot into session state: only `committed` is cleared (it is dispatched
     /// separately); all other engine state, including paging metadata and candidate indices, must be kept as is.
     @discardableResult
-    func apply(_ newSnapshot: EngineSnapshot) -> Bool {
+    func apply(_ newSnapshot: EngineSnapshot, continuingCandidateSelection: Bool = false) -> Bool {
+        let sameComposition =
+            snapshot.isComposing && newSnapshot.isComposing
+            && newSnapshot.rawInput.hasPrefix(snapshot.rawInput)
+            && newSnapshot.preeditSelStart == snapshot.preeditSelStart
+        let samePrediction = snapshot.isPrediction && newSnapshot.isPrediction
+        if !continuingCandidateSelection || !(sameComposition || samePrediction)
+            || snapshot.schemaID != newSnapshot.schemaID || !newSnapshot.committed.isEmpty
+        {
+            candidateSelectionGeneration &+= 1
+        }
         compositionRevision &+= 1
         let committed = newSnapshot.committed
         snapshot = newSnapshot

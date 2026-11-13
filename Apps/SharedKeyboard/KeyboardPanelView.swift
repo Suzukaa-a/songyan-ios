@@ -431,14 +431,15 @@ public struct KeyboardPanelView: View {
         let live = CandidateAreaActionSink.live(
             controller: controller,
             onExpand: { showsAllCandidates = true },
-            onCollapse: { showsAllCandidates = false })
+            onCollapse: { showsAllCandidates = false },
+            onPrepareSelection: { KeyRollover.commitPendingPress() })
         // Both compact reading surfaces (the phone rail and the separate 14-key
         // reading row) filter the same real candidates; the filter only exists
         // on a verified compact structure.
         let filteringReadings =
             controller.usesAmbiguityPickerUI
             && controller.readingFilter.isFiltering && controller.snapshot.pageSize > 0
-        let sink = CandidateAreaActionSink { action in
+        let handleAction: CandidateAreaActionSink.Handler = { action in
             switch action {
             case .loadMore where filteringReadings:
                 controller.loadMoreReadings()
@@ -450,6 +451,23 @@ public struct KeyboardPanelView: View {
                 live.perform(action)
             }
         }
+        let sink = CandidateAreaActionSink(
+            prepare: { action in
+                switch action {
+                case .select, .selectOnPage:
+                    guard let prepared = live.prepare(action) else { return nil }
+                    return {
+                        let selected = prepared()
+                        if selected { emitSelectionFeedback() }
+                        return selected
+                    }
+                default:
+                    return {
+                        handleAction(action)
+                        return true
+                    }
+                }
+            }, handler: handleAction)
         let readingEntries: [BrowserCandidate]? =
             filteringReadings
             ? controller.readingFilter.matches.map { entry in

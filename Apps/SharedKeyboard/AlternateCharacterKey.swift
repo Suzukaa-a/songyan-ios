@@ -19,6 +19,13 @@ import SwiftUI
     /// A key went down: the press still held on another key is typed first.
     static func keyDown(_ key: AnyObject) {
         guard let held = pending, held !== key else { return }
+        commitPendingPress()
+    }
+
+    /// Candidate presses also follow a held letter, even though their touch
+    /// surface is not a native key. Settle that letter before binding a candidate.
+    static func commitPendingPress() {
+        guard let held = pending else { return }
         pending = nil
         held.commitRolloverPress()
     }

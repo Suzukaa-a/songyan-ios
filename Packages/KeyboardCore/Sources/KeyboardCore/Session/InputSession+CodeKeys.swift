@@ -150,7 +150,7 @@ extension InputSession {
         pendingCodesRevision &+= 1
         if let snapshot = landed.snapshot {
             candidateLookahead = landed.lookahead.map { (snapshot.rawInput, snapshot.pageSize, $0) }
-            apply(snapshot)
+            apply(snapshot, continuingCandidateSelection: true)
             candidateLookahead = nil
         }
         if let error = landed.error {
@@ -190,7 +190,7 @@ extension InputSession {
     /// refreshes once.
     private func processSynchronously(_ keys: [String]) {
         let result = engine.processKeys(keys, gate: OpenKeyGate())
-        if let final = result.snapshot { apply(final) }
+        if let final = result.snapshot { apply(final, continuingCandidateSelection: true) }
         if let failure = result.error { onError?(failure) }
     }
 

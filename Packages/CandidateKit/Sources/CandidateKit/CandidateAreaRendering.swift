@@ -592,7 +592,8 @@ struct CollapsedCandidateRow: View {
         .buttonStyle(
             CandidateTapStyle(
                 tint: skin.candidateColor, horizontalInset: CandidateTouchMetrics.horizontalInset + spacing / 2,
-                extraTopInset: bandSlack, extraBottomInset: lift * 2 + bandSlack)
+                extraTopInset: bandSlack, extraBottomInset: lift * 2 + bandSlack,
+                prepareAction: { context.actions.prepare(context.selectAction(entry)) })
         )
         .candidateAccessibility(entry, highlighted: highlighted)
     }
@@ -963,7 +964,11 @@ struct ExpandedCandidateRows: View {
         }
         // Same inset backing as the collapsed strip: each cell shows its own
         // boundary on touch-down while the glyphs stay native and opaque.
-        .buttonStyle(CandidateTapStyle(tint: skin.candidateColor))
+        .buttonStyle(
+            CandidateTapStyle(
+                tint: skin.candidateColor,
+                prepareAction: { context.actions.prepare(context.selectAction(entry)) })
+        )
         .candidateAccessibility(entry, highlighted: highlighted)
     }
 }
