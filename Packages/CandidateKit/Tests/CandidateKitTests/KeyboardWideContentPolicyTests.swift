@@ -210,21 +210,25 @@ final class KeyboardWideContentPolicyTests: XCTestCase {
 
     func testWidthSettingsSnapIntoTheOfferedChoices() {
         XCTAssertEqual(KeyboardWidthSettings.standard.splitWidth, 600)
-        XCTAssertEqual(KeyboardWidthSettings.standard.sideMarginPercent, 7.5)
+        XCTAssertEqual(KeyboardWidthSettings.standard.sideMarginPercent, 5)
+        // The margin has its own width; a margin width never chosen follows the split width.
+        XCTAssertEqual(KeyboardWidthSettings.standard.marginWidth, KeyboardWidthSettings.defaultSplitWidth)
+        XCTAssertEqual(KeyboardWidthSettings(splitWidth: 800, marginWidth: 700).marginWidth, 700)
+        XCTAssertEqual(KeyboardWidthSettings(splitWidth: 800, marginWidth: 701).marginWidth, 700)
         XCTAssertEqual(KeyboardWidthSettings(splitWidth: 100, sideMarginPercent: -5).splitWidth, 400)
         XCTAssertEqual(KeyboardWidthSettings(splitWidth: 100, sideMarginPercent: -5).sideMarginPercent, 0)
         XCTAssertEqual(KeyboardWidthSettings(splitWidth: 5000, sideMarginPercent: 50).splitWidth, 1200)
         XCTAssertEqual(KeyboardWidthSettings(splitWidth: 5000, sideMarginPercent: 50).sideMarginPercent, 10)
         XCTAssertEqual(KeyboardWidthSettings(splitWidth: 619, sideMarginPercent: 3.2).splitWidth, 600)
         XCTAssertEqual(KeyboardWidthSettings(splitWidth: 619, sideMarginPercent: 3.2).sideMarginPercent, 3)
-        XCTAssertEqual(KeyboardWidthSettings(sideMarginPercent: .nan).sideMarginPercent, 7.5)
+        XCTAssertEqual(KeyboardWidthSettings(sideMarginPercent: .nan).sideMarginPercent, 5)
         XCTAssertEqual(KeyboardWidthSettings.defaultSplitWidth, Int(KeyboardSurfaceWidth.phoneMaximum))
     }
 
     func testTheDefaultMarginGivesWayToASystemInsetButAChosenOneStays() {
         let untouched = KeyboardWidthSettings()
         XCTAssertFalse(untouched.sideMarginIsChosen)
-        XCTAssertEqual(untouched.effectiveSideMarginPercent(systemInsetsSides: false), 7.5)
+        XCTAssertEqual(untouched.effectiveSideMarginPercent(systemInsetsSides: false), 5)
         XCTAssertEqual(untouched.effectiveSideMarginPercent(systemInsetsSides: true), 0)
         let chosen = KeyboardWidthSettings(sideMarginPercent: 2.5)
         XCTAssertTrue(chosen.sideMarginIsChosen)

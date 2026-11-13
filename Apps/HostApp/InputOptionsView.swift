@@ -76,6 +76,7 @@ struct InputOptionsView: View {
     /// The split width and side margin being dragged; stored once the finger lifts, so the panel
     /// does not rebuild its keys on every tick.
     @State private var splitWidthDraft = Double(KeyboardWidthSettings.defaultSplitWidth)
+    @State private var marginWidthDraft = Double(KeyboardWidthSettings.defaultSplitWidth)
     @State private var sideMarginPercentDraft = KeyboardWidthSettings.defaultSideMarginPercent
     @StateObject private var typoCorrection = TypoCorrectionCenter.shared
     @StateObject private var prediction = PredictionCenter.shared
@@ -282,8 +283,8 @@ struct InputOptionsView: View {
     private var keyboardWidthSection: some View {
         Section {
             widthRow(
-                title: String(localized: "大屏宽度"),
-                subtitle: String(localized: "键盘宽度超过 \(Int(splitWidthDraft)) pt 时视为大屏"),
+                title: String(localized: "拆分判定宽度"),
+                subtitle: String(localized: "键盘宽度超过 \(Int(splitWidthDraft)) pt 时自动拆分"),
                 value: $splitWidthDraft,
                 range: Double(
                     KeyboardWidthSettings.splitWidthRange.lowerBound)...Double(
@@ -295,6 +296,21 @@ struct InputOptionsView: View {
                 reset: {
                     splitWidthDraft = Double(KeyboardWidthSettings.defaultSplitWidth)
                     KeyboardWidthPreferences.set(splitWidth: KeyboardWidthSettings.defaultSplitWidth)
+                })
+            widthRow(
+                title: String(localized: "留白判定宽度"),
+                subtitle: String(localized: "键盘宽度超过 \(Int(marginWidthDraft)) pt 时两侧留白"),
+                value: $marginWidthDraft,
+                range: Double(
+                    KeyboardWidthSettings.splitWidthRange.lowerBound)...Double(
+                        KeyboardWidthSettings.splitWidthRange.upperBound),
+                step: Double(KeyboardWidthSettings.splitWidthStep),
+                isDefault: Int(marginWidthDraft) == KeyboardWidthSettings.defaultSplitWidth,
+                identifier: "inputOptions.marginWidth",
+                commit: { KeyboardWidthPreferences.set(marginWidth: Int($0)) },
+                reset: {
+                    marginWidthDraft = Double(KeyboardWidthSettings.defaultSplitWidth)
+                    KeyboardWidthPreferences.set(marginWidth: KeyboardWidthSettings.defaultSplitWidth)
                 })
             widthRow(
                 title: String(localized: "大屏两侧留白"),
@@ -349,6 +365,7 @@ struct InputOptionsView: View {
     private func reloadWidthSettings() {
         let stored = KeyboardWidthPreferences.read(from: KeyboardWidthPreferences.defaults)
         splitWidthDraft = Double(stored.splitWidth)
+        marginWidthDraft = Double(stored.marginWidth)
         sideMarginPercentDraft = stored.sideMarginPercent
     }
 

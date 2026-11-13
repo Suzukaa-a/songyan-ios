@@ -119,10 +119,12 @@ public struct KeyboardWidthSettings: Equatable, Sendable {
     public static let defaultSplitWidth = Int(KeyboardSurfaceWidth.phoneMaximum)
     public static let sideMarginPercentRange = 0.0...10.0
     public static let sideMarginPercentStep = 0.5
-    public static let defaultSideMarginPercent = 7.5
+    public static let defaultSideMarginPercent = 5.0
 
-    /// A keyboard wider than this is a large screen.
+    /// A keyboard wider than this splits automatically.
     public let splitWidth: Int
+    /// A keyboard wider than this gets the side margin; the same range and step as `splitWidth`.
+    public let marginWidth: Int
     /// Each side's blank margin on a large screen, in percent of the keyboard's full width.
     public let sideMarginPercent: Double
     /// Whether the user picked the margin; an untouched setting gives way to a system inset.
@@ -131,8 +133,9 @@ public struct KeyboardWidthSettings: Equatable, Sendable {
     public static let standard = KeyboardWidthSettings()
 
     /// Out-of-range or off-step values snap into the offered choices. A nil margin is the default.
-    public init(splitWidth: Int = defaultSplitWidth, sideMarginPercent: Double? = nil) {
+    public init(splitWidth: Int = defaultSplitWidth, marginWidth: Int? = nil, sideMarginPercent: Double? = nil) {
         self.splitWidth = Self.clampedSplitWidth(splitWidth)
+        self.marginWidth = Self.clampedSplitWidth(marginWidth ?? Self.defaultSplitWidth)
         self.sideMarginPercent = Self.clampedSideMarginPercent(sideMarginPercent ?? Self.defaultSideMarginPercent)
         self.sideMarginIsChosen = sideMarginPercent != nil
     }

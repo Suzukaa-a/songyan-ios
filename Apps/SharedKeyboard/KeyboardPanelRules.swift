@@ -29,7 +29,7 @@ enum KeyboardPanelRules {
         KeyboardWideContentPolicy.sideMargin(
             panelWidth: panelWidth,
             percent: settings.effectiveSideMarginPercent(systemInsetsSides: systemInsetsSides),
-            largeAbove: Double(settings.splitWidth))
+            largeAbove: Double(settings.marginWidth))
     }
 
     /// The width cap a physical layout uses on a wide surface. A main split that really splits at the

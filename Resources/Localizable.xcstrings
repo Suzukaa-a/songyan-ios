@@ -32495,46 +32495,90 @@
         }
       }
     },
-    "大屏宽度": {
+    "拆分判定宽度": {
       "localizations": {
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "大画面とみなす幅"
+            "value": "分割を始める幅"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "大屏宽度"
+            "value": "拆分判定宽度"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "大螢幕寬度"
+            "value": "拆分判定寬度"
           }
         }
       }
     },
-    "键盘宽度超过 %lld pt 时视为大屏": {
+    "键盘宽度超过 %lld pt 时自动拆分": {
       "localizations": {
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "キーボードの幅が %lld pt を超えると大画面とみなします"
+            "value": "キーボードの幅が %lld pt を超えると自動で分割します"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "键盘宽度超过 %lld pt 时视为大屏"
+            "value": "键盘宽度超过 %lld pt 时自动拆分"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "鍵盤寬度超過 %lld pt 時視為大螢幕"
+            "value": "鍵盤寬度超過 %lld pt 時自動拆分"
+          }
+        }
+      }
+    },
+    "留白判定宽度": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "余白を付け始める幅"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "留白判定宽度"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "留白判定寬度"
+          }
+        }
+      }
+    },
+    "键盘宽度超过 %lld pt 时两侧留白": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーボードの幅が %lld pt を超えると左右に余白を付けます"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "键盘宽度超过 %lld pt 时两侧留白"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "鍵盤寬度超過 %lld pt 時兩側留白"
           }
         }
       }

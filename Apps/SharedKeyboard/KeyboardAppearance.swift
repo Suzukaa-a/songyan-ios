@@ -125,11 +125,13 @@ public enum KeyGapScalingPreferences {
     }
 }
 
-/// Where a large screen starts and the blank margin beside the key area on one. Shared by the app
+/// Where a keyboard starts splitting, where it starts getting a blank margin beside the key area, and
+/// how wide that margin is. Shared by the app
 /// and the keyboard extension; the keyboard reads the in-process copy while it draws and re-reads
 /// the stored values at presentation (`refresh`), never per key.
 public enum KeyboardWidthPreferences {
     public static let splitWidthKey = "keyboard.splitWidth.v1"
+    public static let marginWidthKey = "keyboard.marginWidth.v1"
     public static let sideMarginPercentKey = "keyboard.sideMarginPercent.v1"
     public static var defaults: UserDefaults { KeyboardRecipeStore.sharedDefaults() ?? .standard }
 
@@ -140,8 +142,10 @@ public enum KeyboardWidthPreferences {
         func stored(_ key: String) -> NSNumber? {
             SharedPreferences.object(forKey: key, in: defaults) as? NSNumber
         }
+        let splitWidth = stored(splitWidthKey)?.intValue ?? KeyboardWidthSettings.defaultSplitWidth
+        // One width once decided both; a margin width never chosen keeps following that choice.
         return KeyboardWidthSettings(
-            splitWidth: stored(splitWidthKey)?.intValue ?? KeyboardWidthSettings.defaultSplitWidth,
+            splitWidth: splitWidth, marginWidth: stored(marginWidthKey)?.intValue ?? splitWidth,
             sideMarginPercent: stored(sideMarginPercentKey)?.doubleValue)
     }
 
@@ -163,6 +167,10 @@ public enum KeyboardWidthPreferences {
 
     public static func set(splitWidth: Int) {
         write(KeyboardWidthSettings.clampedSplitWidth(splitWidth), key: splitWidthKey)
+    }
+
+    public static func set(marginWidth: Int) {
+        write(KeyboardWidthSettings.clampedSplitWidth(marginWidth), key: marginWidthKey)
     }
 
     public static func set(sideMarginPercent: Double) {
