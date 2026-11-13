@@ -49,11 +49,13 @@ final class AutomaticFooterWidthTests: XCTestCase {
         let expanded = KeyboardPageFooterGeometry(width: 443, keys: added, policy: policy())
         XCTAssertEqual(Array(expanded.keyWidths.prefix(3)), Array(baseline.keyWidths.prefix(3)))
         XCTAssertEqual(Array(expanded.keyWidths.suffix(2)), Array(baseline.keyWidths.suffix(2)))
-        XCTAssertEqual(expanded.keyWidths[4] + expanded.keyWidths[3] + expanded.spacing, baseline.keyWidths[3])
+        XCTAssertEqual(
+            expanded.keyWidths[4] + expanded.keyWidths[3] + expanded.spacing, baseline.keyWidths[3], accuracy: 1e-9)
 
         let removed = KeyboardPageFooterGeometry(width: 443, keys: Array(main.dropFirst()), policy: policy())
         XCTAssertEqual(Array(removed.keyWidths.suffix(2)), Array(baseline.keyWidths.suffix(2)))
-        XCTAssertEqual(removed.keyWidths[2], baseline.keyWidths[3] + baseline.keyWidths[0] + baseline.spacing)
+        XCTAssertEqual(
+            removed.keyWidths[2], baseline.keyWidths[3] + baseline.keyWidths[0] + baseline.spacing, accuracy: 1e-9)
     }
 
     func testAutomaticSpaceAndUnrelatedPresentationFlagsDoNotChangeWidths() {

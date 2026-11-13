@@ -52,7 +52,9 @@ final class KeyboardPageFooterGeometryTests: XCTestCase {
             let geometry = KeyboardPageFooterGeometry(width: width, keys: keys, policy: policy)
             XCTAssertTrue(geometry.usesControlRowBudget)
             let metrics = policy.metrics(width: width)
-            XCTAssertEqual(geometry.keyWidths, policy.slots.map { metrics[$0] })
+            for (width, expected) in zip(geometry.keyWidths, policy.slots.map({ metrics[$0] })) {
+                XCTAssertEqual(width, expected, accuracy: 1e-9)
+            }
             // The tuned default bottom row is not squeezed by a fresh copy.
             XCTAssertEqual(geometry.keyWidths[3], metrics[.space], accuracy: 0.001)
             assertFillsWidth(geometry, width: width)

@@ -167,7 +167,7 @@ public struct SymbolLibraryView: View {
         .sharpCandidateScrollEdges()
         .frame(width: layout.railWidth)
         .background {
-            RoundedRectangle(cornerRadius: appearance.skin.keycap.cornerRadius)
+            RoundedRectangle(cornerRadius: appearance.keyCornerRadius)
                 .fill(appearance.color("control"))
                 .padding(.horizontal, appearance.keyInsetX)
                 .padding(.vertical, appearance.keyInsetY)
@@ -201,7 +201,7 @@ public struct SymbolLibraryView: View {
                 .padding(.top, item.startsNewGroup ? 6 : 0)
                 .background {
                     if item.isSelected {
-                        RoundedRectangle(cornerRadius: appearance.skin.keycap.cornerRadius)
+                        RoundedRectangle(cornerRadius: appearance.keyCornerRadius)
                             .fill(appearance.color("key"))
                             .padding(.horizontal, appearance.keyInsetX + 2)
                             .padding(.vertical, appearance.keyInsetY + 2)
@@ -614,7 +614,7 @@ private struct SymbolPanelPressStyle: ButtonStyle {
         configuration.label
             .keyboardPressHighlight(
                 isPressed: configuration.isPressed,
-                cornerRadius: cornerRadius ?? appearance.skin.keycap.cornerRadius,
+                cornerRadius: cornerRadius ?? appearance.keyCornerRadius,
                 style: appearance.color("pressed")
             )
             .keyboardChromePressTiming(isPressed: configuration.isPressed)
@@ -627,7 +627,7 @@ private struct SymbolPanelKeyStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .overlay {
-                RoundedRectangle(cornerRadius: appearance.skin.keycap.cornerRadius)
+                RoundedRectangle(cornerRadius: appearance.keyCornerRadius)
                     .fill(
                         appearance.color("pressed").opacity(
                             configuration.isPressed ? KeyboardPressPhysics.overlayOpacity : 0)

@@ -531,8 +531,8 @@ public struct KeyboardAppearance: Equatable, Sendable {
     }
     private var palette: KeyboardPalette
     /// How much wider the board's columns are than a phone's (`StandardKeyRowGeometry.keyGapScale`):
-    /// the skin's horizontal gap grows in proportion. Only the painted cap narrows; touch areas
-    /// still meet, so no tap lands in a dead gap.
+    /// the skin's gaps grow with it. Only the painted cap shrinks; touch areas still meet, so no
+    /// tap lands in a dead gap.
     public var keyGapScale = 1.0
     /// Device-level choice to widen gaps on wide boards at all; read when the appearance is built.
     public var scalesKeyGaps = KeyGapScalingPreferences.current
@@ -580,12 +580,20 @@ public struct KeyboardAppearance: Equatable, Sendable {
     /// Every skin's key size sits on one scale: the default 22 draws the system keyboard's sizes, so
     /// the built-in appearances (and copies) match the system default, and an edited size scales
     /// smoothly instead of jumping to a literal point size.
-    private var keyScale: Double { skin.typography.keySize / SkinDefinition.systemDefault.typography.keySize }
+    private var keyScale: Double {
+        skin.typography.keySize / SkinDefinition.systemDefault.typography.keySize * labelScale
+    }
+    /// Labels on a wide board grow with its columns (`StandardKeyRowGeometry.labelScale`).
+    private var labelScale: Double { StandardKeyRowGeometry.labelScale(keyGapScale) }
+    /// The skin's corner radius on this board (`StandardKeyRowGeometry.cornerScale`).
+    public var keyCornerRadius: Double {
+        skin.keycap.cornerRadius * StandardKeyRowGeometry.cornerScale(keyGapScale)
+    }
     public var controlTextSize: Double { 14 * keyScale }
     public var keyTextSize: Double { 18 * keyScale }
     /// Letters on the 9-key phone pad, a step smaller than single-letter keys.
     public var phoneKeyTextSize: Double { 17 * keyScale }
-    public var controlIconSize: Double { min(20, skin.typography.keySize) }
+    public var controlIconSize: Double { min(20, skin.typography.keySize) * labelScale }
     /// Scales font size to the available key width: long labels (merged keys, nine-key letter clusters,
     /// function words) shrink to the measured width, single letters keep the familiar system key size; the
     /// lower bound is 55% so narrow keys do not turn into tiny text.
@@ -596,10 +604,15 @@ public struct KeyboardAppearance: Equatable, Sendable {
         guard width > availableWidth else { return base }
         return max(base * 0.55, base * availableWidth / width)
     }
-    /// Each side of a cap inside its slot. Rows keep their height on a wide board, so only the
-    /// horizontal gap scales.
-    public var keyInsetX: Double { StandardKeyRowGeometry.capInset(skin.spacing.visualInsetX, scale: keyGapScale) }
-    public var keyInsetY: Double { skin.spacing.visualInsetY }
+    /// Each side of a cap inside its slot, widened on a wide board.
+    public var keyInsetX: Double {
+        StandardKeyRowGeometry.capInset(
+            skin.spacing.visualInsetX, scale: StandardKeyRowGeometry.horizontalGapScale(keyGapScale))
+    }
+    public var keyInsetY: Double {
+        StandardKeyRowGeometry.capInset(
+            skin.spacing.visualInsetY, scale: StandardKeyRowGeometry.verticalGapScale(keyGapScale))
+    }
 
     /// This appearance on a board whose letter rows are `width` wide.
     public func scalingKeyGaps(width: Double, split: ActiveLayoutSplit?) -> Self {
@@ -781,10 +794,10 @@ struct SkinKeyBackground: View {
     @Environment(\.keyboardKeyPressed) private var pressed
     var role = "key"
     var body: some View {
-        RoundedRectangle(cornerRadius: appearance.skin.keycap.cornerRadius)
+        RoundedRectangle(cornerRadius: appearance.keyCornerRadius)
             .fill(appearance.color(role))
             .overlay(
-                RoundedRectangle(cornerRadius: appearance.skin.keycap.cornerRadius).stroke(
+                RoundedRectangle(cornerRadius: appearance.keyCornerRadius).stroke(
                     appearance.color("border"), lineWidth: appearance.borderWidth(for: role))
             )
             .shadow(
@@ -792,8 +805,8 @@ struct SkinKeyBackground: View {
                 radius: 0,
                 y: pressed ? KeyboardPressPhysics.shadowOffsetY(from: 1) : 1
             )
-            .padding(.horizontal, appearance.skin.spacing.visualInsetX)
-            .padding(.vertical, appearance.skin.spacing.visualInsetY)
+            .padding(.horizontal, appearance.keyInsetX)
+            .padding(.vertical, appearance.keyInsetY)
             .allowsHitTesting(false)
     }
 
@@ -819,7 +832,7 @@ final class SkinCapLayer: CALayer {
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         frame = appearance.visualRect(in: view.bounds)
-        cornerRadius = appearance.skin.keycap.cornerRadius
+        cornerRadius = appearance.keyCornerRadius
         backgroundColor = appearance.uiColor(role).cgColor
         borderWidth = appearance.borderWidth(for: role)
         borderColor = appearance.uiColor("border").cgColor

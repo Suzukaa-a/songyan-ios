@@ -49,10 +49,10 @@ public struct SkinDefinition: Codable, Equatable, Identifiable, Sendable {
         skin.typography.secondarySize = 10
         skin.typography.candidateSize = 21
         skin.keycap.shadow = "none"
-        // The visible gap is 4 plus twice the inset: 5 pt between keys and 6.5 pt between rows,
+        // The visible gap is 4 plus twice the inset: 5.5 pt between keys and 8 pt between rows,
         // the same as the Android keyboard.
-        skin.spacing.visualInsetX = 0.5
-        skin.spacing.visualInsetY = 1.25
+        skin.spacing.visualInsetX = 0.75
+        skin.spacing.visualInsetY = 2
         var light = Variant()
         light.colors = [
             "panel": "#DFE2E7", "key": "#FFFFFF", "control": "#CBD0D8",

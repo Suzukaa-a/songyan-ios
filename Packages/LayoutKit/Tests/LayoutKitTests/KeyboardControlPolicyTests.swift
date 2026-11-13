@@ -118,11 +118,14 @@ final class KeyboardControlPolicyTests: XCTestCase {
                     let label = "globe \(globe) width \(width) \(page)"
                     XCTAssertGreaterThanOrEqual(m.enter, 60, label)
                     XCTAssertGreaterThanOrEqual(m.space, 44, label)
+                    // A wide board's controls grow with its letter columns; a phone's stay put.
+                    let growth = KeyboardControlPolicy.Metrics.columnGrowth(width: width)
+                    XCTAssertEqual(growth == 1, width <= 436, label)
                     if globe {
-                        XCTAssertEqual(m.page, 44, label)
-                        XCTAssertEqual(m.utility, 44, label)
+                        XCTAssertEqual(m.page, 44 * growth, accuracy: 0.0001, label)
+                        XCTAssertEqual(m.utility, 44 * growth, accuracy: 0.0001, label)
                         XCTAssertGreaterThan(left, right, label)
-                        XCTAssertLessThan(m.enter, 92, label)
+                        XCTAssertLessThan(m.enter, 92 * growth, label)
                     } else {
                         XCTAssertEqual(left, right, accuracy: 0.0001, label)
                     }

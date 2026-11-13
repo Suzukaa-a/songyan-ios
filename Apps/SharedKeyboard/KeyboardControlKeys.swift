@@ -258,7 +258,7 @@ struct KeyboardPressStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .overlay {
-                RoundedRectangle(cornerRadius: appearance.skin.keycap.cornerRadius)
+                RoundedRectangle(cornerRadius: appearance.keyCornerRadius)
                     .fill(Color.primary.opacity(configuration.isPressed ? KeyboardPressPhysics.overlayOpacity : 0))
                     .padding(.horizontal, appearance.keyInsetX)
                     .padding(.vertical, appearance.keyInsetY)

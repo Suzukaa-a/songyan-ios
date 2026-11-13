@@ -419,25 +419,26 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
             let minimumTotal = minimumContent + Double(count - 1) * 4
             let scale = min(1, width / minimumTotal)
             spacing = 4 * scale
+            let unit = scale * Self.columnGrowth(width: width)
             let content = max(0, width - Double(count - 1) * spacing)
-            let extra = max(0, content - minimumContent * scale)
+            let extra = max(0, content - minimumContent * unit)
             if hasGlobe {
                 // The globe already takes a slot; keeping both switches at the 44pt target
                 // hands their old base + growth to space instead of widening the switches.
-                page = 44 * scale
+                page = 44 * unit
                 language = page
             } else {
                 // The centred base budget is 52 + 52 + 44 + 44 + 60; the switches grow a little
                 // and Return follows them, the rest goes to space.
-                page = (centred ? 52 : 50) * scale + min(12, extra * 0.10)
+                page = (centred ? 52 : 50) * unit + min(12, extra * 0.10)
                 language = page
             }
-            globe = hasGlobe ? 44 * scale : 0
-            utility = includesUtility ? 44 * scale : 0
+            globe = hasGlobe ? 44 * unit : 0
+            utility = includesUtility ? 44 * unit : 0
             if centred {
                 enter = page + language - utility
             } else {
-                enter = includesEnter ? 60 * scale + min(20, extra * 0.16) : 0
+                enter = includesEnter ? 60 * unit + min(20, extra * 0.16) : 0
             }
             space = max(0, content - page - language - globe - utility - enter)
             symbolPage = page
@@ -482,18 +483,26 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
             let minimumTotal = minimumContent + Double(count - 1) * 4
             let scale = min(1, width / minimumTotal)
             let spacing = 4 * scale
+            let unit = scale * columnGrowth(width: width)
             let content = max(0, width - Double(count - 1) * spacing)
-            let page = 40 * scale
+            let page = 40 * unit
             let language = page
-            let mark = 40 * scale
+            let mark = 40 * unit
             let markLeft = hasGlobe ? 0 : mark
             let utility = mark
             let globe = hasGlobe ? mark : 0
-            let enter = includesEnter ? 80 * scale : 0
+            let enter = includesEnter ? 80 * unit : 0
             let space = max(0, content - page - language - mark - utility - enter)
             return Metrics(
                 spacing: spacing, page: page, language: language, globe: globe, space: space,
                 utility: utility, enter: enter, markLeft: markLeft, markRight: utility)
+        }
+
+        /// How much wider the letter columns above a `width` wide row are than a phone's: the keys
+        /// beside the space bar grow with them, so a wide board's space bar does not take all the
+        /// extra room and squeeze its neighbours. 1 on every phone.
+        public static func columnGrowth(width: Double) -> Double {
+            StandardKeyRowGeometry(width: width).keyGapScale()
         }
 
         private init(

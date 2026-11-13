@@ -119,10 +119,10 @@ struct SkinManagementView: View {
             }
             WebEditLink()
             Section {
-                Toggle(String(localized: "大屏时加宽按键间距"), isOn: $scalesKeyGaps)
+                Toggle(String(localized: "大屏时放大间距和字号"), isOn: $scalesKeyGaps)
                     .onChange(of: scalesKeyGaps) { KeyGapScalingPreferences.current = scalesKeyGaps }
             } footer: {
-                Text(String(localized: "横屏、展开的折叠屏和 iPad 上，按键间距随按键一起变宽。"))
+                Text(String(localized: "横屏、展开的折叠屏和 iPad 上，按键间距、字号和圆角随按键一起变大。"))
             }
             NavigationLink {
                 CandidateBarStyleView()

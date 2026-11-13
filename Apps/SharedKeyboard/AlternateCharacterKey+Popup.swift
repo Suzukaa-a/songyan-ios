@@ -190,8 +190,8 @@ extension AlternateCharacterKey.CharacterButton {
         scroll.backgroundColor = layoutPicker ? appearance.uiColor("key") : .clear
         scroll.layer.cornerRadius =
             layoutPicker
-            ? max(12, appearance.skin.keycap.cornerRadius)
-            : max(10, appearance.skin.keycap.cornerRadius)
+            ? max(12, appearance.keyCornerRadius)
+            : max(10, appearance.keyCornerRadius)
         scroll.layer.borderWidth = layoutPicker ? appearance.skin.keycap.borderWidth : 0
         scroll.layer.borderColor = appearance.uiColor("border").cgColor
         scroll.isUserInteractionEnabled = false
@@ -271,7 +271,7 @@ extension AlternateCharacterKey.CharacterButton {
             host.addSubview(callout)
             callout.show(
                 "", bubble: scroll.frame, key: convert(appearance.visualRect(in: bounds), to: host),
-                keyRadius: appearance.skin.keycap.cornerRadius,
+                keyRadius: appearance.keyCornerRadius,
                 fill: appearance.uiColor("key"), textColor: appearance.text(on: "key"),
                 border: appearance.uiColor("border"), borderWidth: appearance.skin.keycap.borderWidth,
                 font: font, for: self, expandingFrom: keyPreview)
@@ -332,7 +332,7 @@ extension AlternateCharacterKey.CharacterButton {
         let callout = KeyCalloutView.shared(in: host)
         callout.show(
             text, bubble: keyPreviewFrame(in: host), key: keyRect,
-            keyRadius: appearance.skin.keycap.cornerRadius,
+            keyRadius: appearance.keyCornerRadius,
             fill: appearance.uiColor("key"), textColor: appearance.text(on: "key"),
             border: appearance.uiColor("border"), borderWidth: appearance.skin.keycap.borderWidth,
             font: appearance.uiFont(max(appearance.keyTextSize + 8, 28)), for: self)

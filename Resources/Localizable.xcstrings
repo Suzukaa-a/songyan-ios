@@ -34255,46 +34255,46 @@
         }
       }
     },
-    "大屏时加宽按键间距": {
+    "大屏时放大间距和字号": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "大屏时加宽按键间距"
+            "value": "大屏时放大间距和字号"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "大屏時加寬按鍵間距"
+            "value": "大屏時放大間距和字號"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "大きな画面でキーの間隔を広げる"
+            "value": "大きな画面で間隔と文字を大きくする"
           }
         }
       }
     },
-    "横屏、展开的折叠屏和 iPad 上，按键间距随按键一起变宽。": {
+    "横屏、展开的折叠屏和 iPad 上，按键间距、字号和圆角随按键一起变大。": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "横屏、展开的折叠屏和 iPad 上，按键间距随按键一起变宽。"
+            "value": "横屏、展开的折叠屏和 iPad 上，按键间距、字号和圆角随按键一起变大。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "橫屏、展開的摺疊屏和 iPad 上，按鍵間距隨按鍵一起變寬。"
+            "value": "橫屏、展開的摺疊屏和 iPad 上，按鍵間距、字號和圓角隨按鍵一起變大。"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "横向き、開いた折りたたみ端末、iPad では、キーの間隔がキーと一緒に広がります。"
+            "value": "横向き、開いた折りたたみ端末、iPad では、キーの間隔・文字・角の丸みがキーと一緒に大きくなります。"
           }
         }
       }

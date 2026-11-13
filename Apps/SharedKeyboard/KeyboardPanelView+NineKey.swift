@@ -72,7 +72,7 @@ extension KeyboardPanelView {
         // choices on a side-key surface instead of keys with an empty hole below.
         .background {
             if showsReadingChoices {
-                RoundedRectangle(cornerRadius: appearance.skin.keycap.cornerRadius)
+                RoundedRectangle(cornerRadius: appearance.keyCornerRadius)
                     .fill(appearance.color("control"))
                     .padding(.horizontal, keyAppearance.keyInsetX)
                     .padding(.vertical, appearance.keyInsetY)

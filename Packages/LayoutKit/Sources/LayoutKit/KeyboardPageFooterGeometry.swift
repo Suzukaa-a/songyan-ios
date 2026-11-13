@@ -229,16 +229,18 @@ extension KeyboardPageFooterGeometry {
         let preferredReturn = max(60, KeyboardControlPolicy.Metrics(width: width, hasGlobe: true).enter)
         let returns = keys.filter { $0.action.type == .enter }.count
         let controls = keys.count - spaces.count - returns
+        // A wide board's controls grow with its letter columns, as the main footer's do.
+        let control = 44 * KeyboardControlPolicy.Metrics.columnGrowth(width: width)
         let content = max(0, width - spacing * Double(keys.count - 1))
-        let returnRoom = content - Double(controls + spaces.count) * 44
+        let returnRoom = content - Double(controls + spaces.count) * control
         let returnWidth = returns > 0 ? max(60, min(preferredReturn, returnRoom / Double(returns))) : 0
         let spaceWidth = max(
-            44, (content - Double(controls) * 44 - Double(returns) * returnWidth) / Double(spaces.count))
+            44, (content - Double(controls) * control - Double(returns) * returnWidth) / Double(spaces.count))
         return keys.map { key in
             switch key.action.type {
             case .space: return spaceWidth
             case .enter: return returnWidth
-            default: return 44
+            default: return control
             }
         }
     }

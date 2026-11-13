@@ -398,7 +398,7 @@ struct Kana12KeyboardView: View {
             content
                 .allowsHitTesting(false)
                 .overlay {
-                    RoundedRectangle(cornerRadius: appearance.skin.keycap.cornerRadius)
+                    RoundedRectangle(cornerRadius: appearance.keyCornerRadius)
                         .strokeBorder(Color.accentColor, lineWidth: path != nil && path == selectedKey ? 2 : 0)
                         .padding(.horizontal, appearance.keyInsetX)
                         .padding(.vertical, appearance.keyInsetY)
@@ -636,7 +636,7 @@ private struct Kana12KanaKey: View {
                     .onEnded { onEnded($0.translation) }
             )
             .overlay {
-                RoundedRectangle(cornerRadius: appearance.skin.keycap.cornerRadius)
+                RoundedRectangle(cornerRadius: appearance.keyCornerRadius)
                     .fill(Color.primary.opacity(isPressed ? KeyboardPressPhysics.overlayOpacity : 0))
                     .padding(.horizontal, appearance.keyInsetX)
                     .padding(.vertical, appearance.keyInsetY)

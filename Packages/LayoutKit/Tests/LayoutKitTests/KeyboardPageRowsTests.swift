@@ -8,20 +8,37 @@ import XCTest
 final class KeyboardPageRowsTests: XCTestCase {
     private let spacing = 4.0
 
-    /// Every phone draws a skin's key gaps exactly; wider columns grow them in proportion, so the
-    /// gap keeps the share of the key its author drew.
+    /// Every phone draws a skin's key gaps exactly; wider columns widen them.
     func testSkinKeyGapsStayOnPhonesAndScaleWithWiderColumns() {
         for width in [312.0, 382, 432] {
             XCTAssertEqual(StandardKeyRowGeometry(width: width).keyGapScale(), 1, "width \(width)")
-            XCTAssertEqual(StandardKeyRowGeometry.capInset(0.5, scale: 1), 0.5)
+            XCTAssertEqual(StandardKeyRowGeometry.capInset(0.75, scale: 1), 0.75)
         }
         let wide = StandardKeyRowGeometry(width: 800)
         let scale = wide.keyGapScale()
         XCTAssertEqual(scale, (wide.keyWidth + spacing) / 44, accuracy: 0.0001)
-        for inset in [0.0, 0.5, 2, 6] {
-            let gap = spacing + 2 * StandardKeyRowGeometry.capInset(inset, scale: scale)
-            XCTAssertEqual(gap / (wide.keyWidth + spacing), (spacing + 2 * inset) / 44, accuracy: 0.0001)
+        for inset in [0.0, 0.75, 2, 6] {
+            let phoneGap = spacing + 2 * inset
+            let across = StandardKeyRowGeometry.horizontalGapScale(scale)
+            let between = StandardKeyRowGeometry.verticalGapScale(scale)
+            // Wide keys stay visibly apart: the gap across grows faster than the column, and the
+            // gap between rows (whose height does not grow) slower.
+            XCTAssertGreaterThan(across, scale)
+            XCTAssertGreaterThan(between, 1)
+            XCTAssertLessThan(between, scale)
+            XCTAssertEqual(
+                spacing + 2 * StandardKeyRowGeometry.capInset(inset, scale: across), phoneGap * across, accuracy: 0.0001
+            )
         }
+        XCTAssertEqual(StandardKeyRowGeometry.horizontalGapScale(1), 1)
+        XCTAssertEqual(StandardKeyRowGeometry.verticalGapScale(1), 1)
+        // Labels and corners grow too, but slower than the columns: rows keep their height.
+        for face in [StandardKeyRowGeometry.labelScale, StandardKeyRowGeometry.cornerScale] {
+            XCTAssertEqual(face(1), 1)
+            XCTAssertGreaterThan(face(scale), 1)
+            XCTAssertLessThan(face(scale), scale)
+        }
+        XCTAssertLessThan(StandardKeyRowGeometry.labelScale(scale), StandardKeyRowGeometry.cornerScale(scale))
     }
 
     /// A split board's columns are its halves', so its gaps follow those narrower keys.

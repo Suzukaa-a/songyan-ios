@@ -872,7 +872,7 @@ struct KeyboardAuthoredCategoryRail: View {
                                 .frame(height: slot)
                                 .background {
                                     if selected {
-                                        RoundedRectangle(cornerRadius: appearance.skin.keycap.cornerRadius)
+                                        RoundedRectangle(cornerRadius: appearance.keyCornerRadius)
                                             .fill(appearance.color("key"))
                                             .padding(.horizontal, appearance.keyInsetX + 2)
                                             .padding(.vertical, appearance.keyInsetY + 2)
@@ -894,7 +894,7 @@ struct KeyboardAuthoredCategoryRail: View {
         }
         .sharpCandidateScrollEdges()
         .background {
-            RoundedRectangle(cornerRadius: appearance.skin.keycap.cornerRadius)
+            RoundedRectangle(cornerRadius: appearance.keyCornerRadius)
                 .fill(appearance.color("control"))
                 .padding(.horizontal, appearance.keyInsetX)
                 .padding(.vertical, appearance.keyInsetY)

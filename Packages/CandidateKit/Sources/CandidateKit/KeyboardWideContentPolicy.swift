@@ -119,7 +119,7 @@ public struct KeyboardWidthSettings: Equatable, Sendable {
     public static let defaultSplitWidth = Int(KeyboardSurfaceWidth.phoneMaximum)
     public static let sideMarginPercentRange = 0.0...10.0
     public static let sideMarginPercentStep = 0.5
-    public static let defaultSideMarginPercent = 2.5
+    public static let defaultSideMarginPercent = 7.5
 
     /// A keyboard wider than this is a large screen.
     public let splitWidth: Int
