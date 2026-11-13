@@ -28,20 +28,15 @@ extension KeyboardPanelView {
 
     private var pairedPageMemoKey: PageResolutionMemo.PairedKey {
         PageResolutionMemo.PairedKey(
-            composition: compositionMemoKey, kind: pairedPageKind,
-            needsSwitchEntry: systemKeyboardSwitch != nil)
+            composition: compositionMemoKey, kind: pairedPageKind)
     }
 
     private func pairedPage(for key: PageResolutionMemo.PairedKey) -> PageResolutionMemo.Paired {
         pageMemo.paired(for: key) {
             guard let kind = key.kind, let composition = selectedComposition,
                 let page = layoutRegistry?.page(id: composition.pageID(for: kind))
-            else { return PageResolutionMemo.Paired(page: nil, missingSwitchEntry: false) }
-            // An authored page without a reachable system-switch entry would hide the only way to
-            // another keyboard when the host needs one.
-            return PageResolutionMemo.Paired(
-                page: page,
-                missingSwitchEntry: key.needsSwitchEntry && page.chrome != nil && !page.hasInputModeSwitchKey)
+            else { return PageResolutionMemo.Paired(page: nil) }
+            return PageResolutionMemo.Paired(page: page)
         }
     }
 
@@ -90,15 +85,11 @@ extension KeyboardPanelView {
                 return PageResolutionMemo.Resolution(resolution: .builtIn, readsComposition: false)
             }
             let paired = pairedPage(for: pairedKey)
-            // The stored page and pairing stay untouched; the editor is where a globe key gets added.
-            let resolution =
-                paired.missingSwitchEntry
-                ? .builtIn
-                : KeyboardPageResolver.resolve(
-                    page: paired.page, kind: kind,
-                    input: .init(
-                        usesASCIIPunctuation: key.usesASCIIPunctuation,
-                        mainLayoutIsPhoneKeypad: key.mainLayoutIsPhoneKeypad))
+            let resolution = KeyboardPageResolver.resolve(
+                page: paired.page, kind: kind,
+                input: .init(
+                    usesASCIIPunctuation: key.usesASCIIPunctuation,
+                    mainLayoutIsPhoneKeypad: key.mainLayoutIsPhoneKeypad))
             return PageResolutionMemo.Resolution(
                 resolution: resolution,
                 readsComposition: resolution.page.map(Self.pageReadsComposition) ?? false)
@@ -111,14 +102,10 @@ extension KeyboardPanelView {
     /// letter page keeps its direct symbol key. Memoized: the control row asks on every render.
     var numericPageReachesSymbols: Bool {
         let key = PageResolutionMemo.NumericReachKey(
-            composition: compositionMemoKey, needsSwitchEntry: systemKeyboardSwitch != nil,
+            composition: compositionMemoKey,
             mainLayoutIsPhoneKeypad: usesPhoneDefinition)
         return pageMemo.numericReachesSymbols(for: key) {
-            var page = selectedComposition.flatMap { layoutRegistry?.page(id: $0.pageID(for: .numeric)) }
-            // A page skipped for a missing system-switch entry is replaced by the built-in one.
-            if let authored = page, key.needsSwitchEntry, authored.chrome != nil, !authored.hasInputModeSwitchKey {
-                page = nil
-            }
+            let page = selectedComposition.flatMap { layoutRegistry?.page(id: $0.pageID(for: .numeric)) }
             return KeyboardPageResolver.numericPageReachesSymbols(
                 page: page, mainLayoutIsPhoneKeypad: key.mainLayoutIsPhoneKeypad)
         }
@@ -128,19 +115,12 @@ extension KeyboardPanelView {
     /// built-in symbol page takes them over. Memoized: the key area asks on every render.
     func pairingMissingMarks(ascii: Bool) -> [String] {
         let key = PageResolutionMemo.MissingMarksKey(
-            composition: compositionMemoKey, needsSwitchEntry: systemKeyboardSwitch != nil,
+            composition: compositionMemoKey,
             mainLayoutIsPhoneKeypad: usesPhoneDefinition, mainLayoutID: activeDefinition?.id, ascii: ascii)
         return pageMemo.missingMarks(for: key) {
             let composition = selectedComposition
-            var numeric = composition.flatMap { layoutRegistry?.page(id: $0.pageID(for: .numeric)) }
-            var symbols = composition.flatMap { layoutRegistry?.page(id: $0.pageID(for: .symbols)) }
-            // A page skipped for a missing system-switch entry is replaced by the built-in one.
-            for page in [numeric, symbols] {
-                guard let authored = page, key.needsSwitchEntry, authored.chrome != nil,
-                    !authored.hasInputModeSwitchKey
-                else { continue }
-                if authored.kind == .numeric { numeric = nil } else { symbols = nil }
-            }
+            let numeric = composition.flatMap { layoutRegistry?.page(id: $0.pageID(for: .numeric)) }
+            let symbols = composition.flatMap { layoutRegistry?.page(id: $0.pageID(for: .symbols)) }
             return KeyboardPageMarkCoverage.missingMarks(
                 letters: activeDefinition, numeric: numeric, symbols: symbols,
                 mainLayoutIsPhoneKeypad: key.mainLayoutIsPhoneKeypad, ascii: ascii)
@@ -171,13 +151,6 @@ extension KeyboardPanelView {
 
     /// Whether the authored page draws a live Return title or clear-input enabled state.
     var pageDefinitionReadsComposition: Bool { pageFacts.readsComposition }
-
-    /// True when the paired authored page is skipped for this visit because it has no reachable
-    /// system-switch entry while the host needs one. The saved pairing is untouched; this only
-    /// lets the panel tell the user why a built-in page appeared.
-    var authoredPageMissingInputModeSwitchFallback: Bool {
-        pairedPage(for: pairedPageMemoKey).missingSwitchEntry
-    }
 
     /// The saved pairing's main layout, else the same default the host app shows for this keyboard.
     /// Memoized like `selectedComposition`: it reads nothing outside that key, and the
@@ -220,18 +193,6 @@ extension KeyboardPanelView {
             showsEnglishLetters: page == .letters && controller.isEnglishMode
                 && definitionFacts.handSplit != nil,
             authoredPage: pageDefinition, splitAbove: Double(widthSettings.splitWidth))
-    }
-
-    /// Tells the user why the built-in page replaced their authored one for this visit: the page
-    /// still lacks the system-switch entry the host requires. Reuses the transient key hint.
-    func showAuthoredPageNeedsGlobeHint() {
-        let token = UUID()
-        layoutHintToken = token
-        layoutHintName = String(localized: "这一页缺少地球键，先显示默认页面")
-        Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 2_500_000_000)
-            if layoutHintToken == token { layoutHintName = nil }
-        }
     }
 
     /// A category grid carries its own split; settle it against the same real keyboard width so
@@ -655,25 +616,19 @@ final class PageResolutionMemo {
     struct PairedKey: Equatable {
         let composition: CompositionKey
         let kind: KeyboardPageKind?
-        let needsSwitchEntry: Bool
     }
 
     struct Paired {
         let page: KeyboardPageDefinition?
-        /// The authored page lacks the system-switch entry the host requires, so the built-in
-        /// page stands in for this visit.
-        let missingSwitchEntry: Bool
     }
 
     struct NumericReachKey: Equatable {
         let composition: CompositionKey
-        let needsSwitchEntry: Bool
         let mainLayoutIsPhoneKeypad: Bool
     }
 
     struct MissingMarksKey: Equatable {
         let composition: CompositionKey
-        let needsSwitchEntry: Bool
         let mainLayoutIsPhoneKeypad: Bool
         let mainLayoutID: String?
         let ascii: Bool

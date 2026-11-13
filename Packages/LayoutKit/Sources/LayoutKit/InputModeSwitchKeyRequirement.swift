@@ -4,7 +4,8 @@ import Foundation
 /// switch key when the host reports that it needs one. The data package never reads UIKit, so the
 /// caller passes the host flag. This is deliberately separate from `validate()`: a catalog saved on
 /// a device without the requirement must stay readable, and only the explicit save/import entry
-/// point applies the local requirement.
+/// point applies the local requirement to the main layout. Auxiliary English, numeric and symbol
+/// pages may omit the switch key.
 public extension LayoutDefinition {
     /// True when a primary `.globe` key is actually renderable. Long-press alternates never count,
     /// and an engine-owned disambiguation area is not an entry point the user can tap. The filter
@@ -30,7 +31,7 @@ public extension KeyboardPageDefinition {
     /// True when the page really offers a globe entry point.
     ///
     /// A native-control page (`chrome == nil`) draws the built-in footer's globe, so it counts.
-    /// Authored pages must carry the globe as data: rows on a row page, or the permanent function
+    /// An optional globe on an authored page is data: rows on a row page, or the permanent function
     /// area. A categorized page's categories (and their recent
     /// snapshot) are content backups, not the fixed entry point, so only its chrome counts.
     var hasInputModeSwitchKey: Bool {
@@ -44,8 +45,4 @@ public extension KeyboardPageDefinition {
         return (rows.flatMap(\.keys) + chrome.allKeys).contains { $0.action.type == .globe }
     }
 
-    func validateRequiredInputModeSwitchKey(_ required: Bool) throws {
-        guard required, !hasInputModeSwitchKey else { return }
-        throw LayoutError.invalid(String(localized: "layout.error.missingGlobeKey", bundle: .module))
-    }
 }

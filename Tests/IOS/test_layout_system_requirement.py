@@ -132,6 +132,8 @@ enum RimePaths {
         newNoGlobePage.name = "新无地球页"
         let noGlobeComposition = KeyboardComposition(
             mainLayoutID: BuiltinLayouts.qwerty26.id, numericPageID: noGlobePage.id)
+        let noGlobeMainComposition = KeyboardComposition(
+            mainLayoutID: noGlobeLayout.id, numericPageID: noGlobePage.id)
 
         @MainActor
         func rejected(_ name: String, _ operation: () async -> Bool) async {
@@ -168,27 +170,51 @@ enum RimePaths {
                   "\(name): a rejected import must leave the registry untouched")
         }
 
-        // Required: every public entry point rejects a missing primary globe, and a copy/install
-        // is rejected before it can touch the file.
+        // Required: main-layout save/import/pairing rejects a missing primary globe before writing.
         KeyboardSystemRequirementsProbe.setRequired(true)
         await rejected("draft replace") { await manager.saveDraft(editedNoGlobe) }
         await rejected("draft install") { await manager.saveDraft(newNoGlobe) }
         await rejected("draft copy") { await manager.saveDraft(noGlobeLayout, asCopy: true) }
-        await rejected("page replace") { await manager.savePage(editedNoGlobePage) }
-        await rejected("page install") { await manager.savePage(newNoGlobePage) }
-        await rejected("composition using an existing no-globe page") {
-            await manager.saveComposition(noGlobeComposition, for: "probe_method:qwerty26")
+        await rejected("composition using an existing no-globe main layout") {
+            await manager.saveComposition(noGlobeMainComposition, for: "probe_method:qwerty26")
         }
         await rejectedImport("import no-globe layout", noGlobeImport)
+
+        // Every auxiliary page kind may omit the globe; saving and pairing keep the authored data.
+        check(await manager.savePage(editedNoGlobePage), "required: page replacement needs no globe")
+        check(await manager.savePage(newNoGlobePage), "required: page installation needs no globe")
+        var auxiliaryComposition = noGlobeComposition
+        for kind in KeyboardPageKind.allCases {
+            var page = newNoGlobePage
+            page.id = "probe.no.globe.\(kind.rawValue)"
+            page.kind = kind
+            check(await manager.savePage(page), "required: \(kind.rawValue) page needs no globe")
+            switch kind {
+            case .english: auxiliaryComposition.englishPageID = page.id
+            case .numeric: auxiliaryComposition.numericPageID = page.id
+            case .symbols: auxiliaryComposition.symbolPageID = page.id
+            }
+        }
+        check(await manager.saveComposition(auxiliaryComposition, for: "probe_auxiliary:qwerty26"),
+              "required: all auxiliary pages can be paired without globes")
+        let auxiliaryStored = try LayoutStore(directoryURL: catalog).load()
+        check(auxiliaryStored.compositions["probe_auxiliary:qwerty26"] == auxiliaryComposition,
+              "the pairing with globe-free auxiliary pages must persist")
+        for kind in KeyboardPageKind.allCases {
+            check(auxiliaryStored.page(id: auxiliaryComposition.pageID(for: kind))?.hasInputModeSwitchKey == false,
+                  "saving must not insert a globe into the \(kind.rawValue) page")
+        }
 
         // Unknown: before a keyboard ever appears the requirement must count as required.
         KeyboardSystemRequirementsProbe.setRequired(nil)
         check(KeyboardSystemRequirements.requiresKeyboardSwitchEntry(),
               "an unknown requirement must count as required")
         await rejected("draft replace (unknown)") { await manager.saveDraft(editedNoGlobe) }
-        await rejected("page replace (unknown)") { await manager.savePage(editedNoGlobePage) }
+        check(await manager.savePage(editedNoGlobePage), "unknown: page replacement needs no globe")
+        check(await manager.saveComposition(noGlobeComposition, for: "probe_method:qwerty26"),
+              "unknown: auxiliary pages can be paired without globes")
         await rejected("composition (unknown)") {
-            await manager.saveComposition(noGlobeComposition, for: "probe_method:qwerty26")
+            await manager.saveComposition(noGlobeMainComposition, for: "probe_method:qwerty26")
         }
         await rejectedImport("import (unknown)", noGlobeImport)
 
@@ -203,8 +229,8 @@ enum RimePaths {
               "not required: an authored page without a globe must save")
         check(await manager.saveDraft(noGlobeLayout, asCopy: true),
               "not required: copying a layout without a globe must save")
-        check(await manager.saveComposition(noGlobeComposition, for: "probe_method:qwerty26"),
-              "not required: pairing an existing no-globe page must save")
+        check(await manager.saveComposition(noGlobeMainComposition, for: "probe_method:qwerty26"),
+              "not required: pairing an existing no-globe main layout must save")
         check(try await manager.readImport(noGlobeImport) == noGlobeLayout,
               "not required: the no-globe layout must import")
         check((try? Data(contentsOf: noGlobeImport)) == initialNoGlobeImport,
@@ -219,8 +245,7 @@ enum RimePaths {
         check(afterNotRequired.layouts.count == seed.layouts.count + 1,
               "not required: the copy path must add exactly one layout")
 
-        // Required again, but now with real data: a primary globe passes, and fixing the missing
-        // globe really saves the same content.
+        // Required again: adding a primary globe fixes the main layout. Pages can optionally add one.
         KeyboardSystemRequirementsProbe.setRequired(true)
         let editedGlobe = globeLayout.renamed("改过的有地球布局")
         var editedGlobePage = globePage
@@ -251,7 +276,7 @@ enum RimePaths {
         fixedPage.rows[0] = LayoutRow(
             keys: [LayoutKey(label: "🌐", action: .init(.globe))] + fixedPage.rows[0].keys)
         check(await manager.savePage(fixedPage),
-              "required: adding the missing primary globe lets the same page save")
+              "required: an auxiliary page can still add an optional globe")
 
         let final = try LayoutStore(directoryURL: catalog).load()
         check(final.layout(id: noGlobeLayout.id)?.hasInputModeSwitchKey == true,

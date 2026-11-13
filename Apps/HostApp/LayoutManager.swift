@@ -338,12 +338,7 @@ final class LayoutManager: ObservableObject {
 
     @discardableResult
     func savePage(_ page: KeyboardPageDefinition) async -> Bool {
-        await persist(
-            context: .page,
-            requiredInputModeSwitchKeyValidation: { _, required in
-                try page.validateRequiredInputModeSwitchKey(required)
-            }
-        ) { try $0.savePage(page) }
+        await persist(context: .page) { try $0.savePage(page) }
     }
 
     @discardableResult
@@ -353,16 +348,13 @@ final class LayoutManager: ObservableObject {
 
     @discardableResult
     func saveComposition(_ composition: KeyboardComposition, for keyboardID: String) async -> Bool {
-        // Pairing an old page saved on a machine without the requirement must not strand this one:
-        // validate the pages the pairing will really use from the registry being written.
+        // Only the main layout needs a system-switch entry. Check the actual registry being
+        // written, including layouts saved on a machine that did not require the switch.
         await persist(
             context: .composition,
             requiredInputModeSwitchKeyValidation: { latest, required in
-                guard required else { return }
-                for kind in KeyboardPageKind.allCases {
-                    guard let page = latest.page(id: composition.pageID(for: kind)) else { continue }
-                    try page.validateRequiredInputModeSwitchKey(true)
-                }
+                try latest.resolvedLayout(id: composition.mainLayoutID)?
+                    .validateRequiredInputModeSwitchKey(required)
             }
         ) { registry in
             try registry.setComposition(composition, for: keyboardID)

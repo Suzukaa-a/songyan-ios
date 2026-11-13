@@ -980,9 +980,6 @@ public struct KeyboardPanelView: View {
             .onChange(of: controller.snapshot.candidates.isEmpty) {
                 if controller.snapshot.candidates.isEmpty { showsAllCandidates = false }
             }
-            .onChange(of: authoredPageMissingInputModeSwitchFallback) { _, missing in
-                if missing { showAuthoredPageNeedsGlobeHint() }
-            }
     }
 
     private func observePageChanges<Content: View>(_ content: Content) -> some View {
@@ -999,7 +996,6 @@ public struct KeyboardPanelView: View {
                 } else {
                     leaveLayoutJumpVisit(for: page)
                 }
-                if authoredPageMissingInputModeSwitchFallback { showAuthoredPageNeedsGlobeHint() }
                 // Decided once per visit: committing the composition with the first symbol
                 // must not resize every key row under the finger.
                 symbolPageKeepsCandidates = page != .letters && controller.snapshot.isComposing
