@@ -169,8 +169,8 @@ public struct SymbolLibraryView: View {
         .background {
             RoundedRectangle(cornerRadius: appearance.skin.keycap.cornerRadius)
                 .fill(appearance.color("control"))
-                .padding(.horizontal, appearance.skin.spacing.visualInsetX)
-                .padding(.vertical, appearance.skin.spacing.visualInsetY)
+                .padding(.horizontal, appearance.keyInsetX)
+                .padding(.vertical, appearance.keyInsetY)
         }
         .padding(.horizontal, 4)
         .padding(.vertical, 4)
@@ -203,8 +203,8 @@ public struct SymbolLibraryView: View {
                     if item.isSelected {
                         RoundedRectangle(cornerRadius: appearance.skin.keycap.cornerRadius)
                             .fill(appearance.color("key"))
-                            .padding(.horizontal, appearance.skin.spacing.visualInsetX + 2)
-                            .padding(.vertical, appearance.skin.spacing.visualInsetY + 2)
+                            .padding(.horizontal, appearance.keyInsetX + 2)
+                            .padding(.vertical, appearance.keyInsetY + 2)
                     }
                 }
                 .contentShape(Rectangle())
@@ -632,8 +632,8 @@ private struct SymbolPanelKeyStyle: ButtonStyle {
                         appearance.color("pressed").opacity(
                             configuration.isPressed ? KeyboardPressPhysics.overlayOpacity : 0)
                     )
-                    .padding(.horizontal, appearance.skin.spacing.visualInsetX)
-                    .padding(.vertical, appearance.skin.spacing.visualInsetY)
+                    .padding(.horizontal, appearance.keyInsetX)
+                    .padding(.vertical, appearance.keyInsetY)
                     .allowsHitTesting(false)
             }
             .animation(

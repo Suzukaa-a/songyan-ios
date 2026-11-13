@@ -795,14 +795,22 @@ struct KeyboardAuthoredRenderedPage {
             (hasGlobe || key.action.type != .globe) && key.action.isUsableJump(among: jumpLayouts)
         }
         let drawsEverything = hasGlobe && jumpLayouts.count == LayoutInput.Builtin.allCases.count
+        // Without the system's globe its slot beside the space bar types the comma
+        // (`forSystemSwitch(shown:)`); the stand-ins keep the stored addresses, so taps resolve to
+        // the key drawn there.
+        var resolved = source
+        resolved.rows = source.rows.map { LayoutRow(keys: $0.keys.systemSwitchKeysBySource(shown: hasGlobe)) }
+        resolved.chrome?.bottom = (source.chrome?.bottom ?? []).systemSwitchKeysBySource(shown: hasGlobe)
         func visible(_ keys: [LayoutKey]) -> [Int] {
-            drawsEverything ? Array(keys.indices) : keys.indices.filter { drawn(keys[$0]) }
+            guard !drawsEverything else { return Array(keys.indices) }
+            return zip(keys.systemSwitchSources(shown: hasGlobe), keys.forSystemSwitch(shown: hasGlobe))
+                .filter { drawn($0.1) }.map(\.0)
         }
         rowSourceIndices = source.rows.map { visible($0.keys) }
         leadingSourceIndices = visible(source.chrome?.leading ?? [])
         trailingSourceIndices = visible(source.chrome?.trailing ?? [])
         bottomSourceIndices = visible(source.chrome?.bottom ?? [])
-        actionTable = KeyboardPageAuthoredActionTable(page: source)
+        actionTable = KeyboardPageAuthoredActionTable(page: resolved)
         isCategoryPage = source.symbolPresentation == .categorized
         guard !drawsEverything else {
             page = source
@@ -811,13 +819,13 @@ struct KeyboardAuthoredRenderedPage {
         // Rows are filtered like their source indices, so the two can never disagree.
         var copy = source
         func shown(_ keys: [LayoutKey]) -> [LayoutKey] {
-            (hasGlobe ? keys : keys.withoutGlobe()).filter(drawn)
+            keys.forSystemSwitch(shown: hasGlobe).filter(drawn)
         }
         copy.rows = source.rows.map { LayoutRow(keys: shown($0.keys)) }
         if var chrome = source.chrome {
             chrome.bottom = shown(chrome.bottom)
-            chrome.leading = chrome.leading.filter(drawn)
-            chrome.trailing = chrome.trailing.filter(drawn)
+            chrome.leading = shown(chrome.leading)
+            chrome.trailing = shown(chrome.trailing)
             copy.chrome = chrome
         }
         page = copy
@@ -866,8 +874,8 @@ struct KeyboardAuthoredCategoryRail: View {
                                     if selected {
                                         RoundedRectangle(cornerRadius: appearance.skin.keycap.cornerRadius)
                                             .fill(appearance.color("key"))
-                                            .padding(.horizontal, appearance.skin.spacing.visualInsetX + 2)
-                                            .padding(.vertical, appearance.skin.spacing.visualInsetY + 2)
+                                            .padding(.horizontal, appearance.keyInsetX + 2)
+                                            .padding(.vertical, appearance.keyInsetY + 2)
                                     }
                                 }
                                 .contentShape(Rectangle())
@@ -888,8 +896,8 @@ struct KeyboardAuthoredCategoryRail: View {
         .background {
             RoundedRectangle(cornerRadius: appearance.skin.keycap.cornerRadius)
                 .fill(appearance.color("control"))
-                .padding(.horizontal, appearance.skin.spacing.visualInsetX)
-                .padding(.vertical, appearance.skin.spacing.visualInsetY)
+                .padding(.horizontal, appearance.keyInsetX)
+                .padding(.vertical, appearance.keyInsetY)
         }
     }
 }

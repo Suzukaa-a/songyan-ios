@@ -75,7 +75,7 @@ final class AutomaticFooterWidthTests: XCTestCase {
     }
 
     func testHiddenGlobeDoesNotTurnAutomaticReturnIntoAManualWidth() {
-        let visible = main.withoutGlobe()
+        let visible = main.forSystemSwitch(shown: false)
         XCTAssertNil(visible.last?.width)
         let geometry = KeyboardPageFooterGeometry(width: 443, keys: visible, policy: policy(globe: false))
         let authored = KeyboardPageFooterGeometry(

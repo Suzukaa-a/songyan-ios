@@ -35,10 +35,11 @@ public enum LayoutBottomRow {
         return replacing(defaultKeys, in: layout)
     }
 
-    /// The layout to store: an unchanged default bottom row goes back to the bundled stand-in, so
-    /// the layout keeps following the keyboard's own row.
+    /// The layout to store: an unchanged default bottom row, as either machine shows it, goes back
+    /// to the bundled stand-in, so the layout keeps following the keyboard's own row.
     public static func storable(_ layout: LayoutDefinition) -> LayoutDefinition {
-        guard let index = index(layout), layout.rows[index].keys == defaultKeys,
+        guard let index = index(layout),
+            [defaultKeys, defaultKeys.forSystemSwitch(shown: false)].contains(layout.rows[index].keys),
             let standIn = standIn(for: layout)
         else { return layout }
         return replacing(standIn, in: layout)

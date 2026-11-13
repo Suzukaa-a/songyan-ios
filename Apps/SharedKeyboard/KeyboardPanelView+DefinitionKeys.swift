@@ -33,7 +33,7 @@ extension KeyboardPanelView {
         fixedKeyWidth: CGFloat? = nil, splitGap: CGFloat? = nil
     ) -> some View {
         KeyboardDefinitionRow(
-            keys: visibleKeys(systemKeyboardSwitch == nil ? row.keys.withoutGlobe() : row.keys), inset: inset,
+            keys: visibleKeys(row.keys.forSystemSwitch(shown: systemKeyboardSwitch != nil)), inset: inset,
             spacing: spacing, split: split, rowIndex: rowIndex,
             fixedKeyWidth: fixedKeyWidth, splitGap: splitGap, isControls: id == "controls"
         ) { key, index in

@@ -19,4 +19,11 @@ final class SkinKitTests: XCTestCase {
             XCTAssertThrowsError(try SkinDefinition.decode(Data(json.utf8)))
         }
     }
+
+    /// The default keys leave the same gaps as the Android keyboard: 5 pt across, 6.5 pt between rows.
+    func testSystemDefaultKeyGapsMatchAndroid() {
+        let spacing = SkinDefinition.systemDefault.spacing
+        XCTAssertEqual(4 + 2 * spacing.visualInsetX, 5)
+        XCTAssertEqual(4 + 2 * spacing.visualInsetY, 6.5)
+    }
 }

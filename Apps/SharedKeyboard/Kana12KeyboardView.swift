@@ -586,8 +586,8 @@ private struct Kana12KanaKey: View {
             .overlay {
                 RoundedRectangle(cornerRadius: appearance.skin.keycap.cornerRadius)
                     .fill(Color.primary.opacity(isPressed ? KeyboardPressPhysics.overlayOpacity : 0))
-                    .padding(.horizontal, appearance.skin.spacing.visualInsetX)
-                    .padding(.vertical, appearance.skin.spacing.visualInsetY)
+                    .padding(.horizontal, appearance.keyInsetX)
+                    .padding(.vertical, appearance.keyInsetY)
                     .allowsHitTesting(false)
             }
             .keyboardPressMovement(isPressed: isPressed)

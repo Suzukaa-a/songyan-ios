@@ -264,6 +264,22 @@ extension LayoutAction {
     }
 }
 
+// MARK: - Candidate band
+
+/// Whether a page keeps the candidate band. A layout's own letters follow the layout; ABC always
+/// keeps its word suggestions, 123 and #+= only a live composition. On a wide surface the keyboard's
+/// dismiss entry sits in the band, and without it a rail beside the keys takes their width, so every
+/// page keeps the band there: flipping to 123 never narrows the key area.
+enum KeyboardCandidateBand {
+    static func required(
+        definitionPage: Bool, definitionRequires: Bool, lettersPage: Bool, keepsForComposition: Bool,
+        wideDismiss: Bool
+    ) -> Bool {
+        if definitionPage { return definitionRequires }
+        return lettersPage || keepsForComposition || wideDismiss
+    }
+}
+
 // MARK: - Authored control-row shortcuts
 
 /// The shortcuts the keyboard bar adds around an authored control row, and which entries that row

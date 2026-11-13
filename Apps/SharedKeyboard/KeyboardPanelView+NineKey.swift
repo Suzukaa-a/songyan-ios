@@ -74,8 +74,8 @@ extension KeyboardPanelView {
             if showsReadingChoices {
                 RoundedRectangle(cornerRadius: appearance.skin.keycap.cornerRadius)
                     .fill(appearance.color("control"))
-                    .padding(.horizontal, appearance.skin.spacing.visualInsetX)
-                    .padding(.vertical, appearance.skin.spacing.visualInsetY)
+                    .padding(.horizontal, keyAppearance.keyInsetX)
+                    .padding(.vertical, appearance.keyInsetY)
             }
         }
         // Outside the identity switch above: entering or leaving a composition

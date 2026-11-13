@@ -145,7 +145,7 @@ struct ControlRow<ModeKey: View>: View {
                 onTap: { onKey(.space) }, moveCursor: moveCursor)
         case .utility:
             switch policy.utility {
-            case .punctuation where policy.showsSpaceSideMarks:
+            case .punctuation where policy.showsSpaceSideMarks && !policy.hasGlobe:
                 periodKey
             case .punctuation(let text):
                 AlternateCharacterKey(
@@ -260,8 +260,8 @@ struct KeyboardPressStyle: ButtonStyle {
             .overlay {
                 RoundedRectangle(cornerRadius: appearance.skin.keycap.cornerRadius)
                     .fill(Color.primary.opacity(configuration.isPressed ? KeyboardPressPhysics.overlayOpacity : 0))
-                    .padding(.horizontal, appearance.skin.spacing.visualInsetX)
-                    .padding(.vertical, appearance.skin.spacing.visualInsetY)
+                    .padding(.horizontal, appearance.keyInsetX)
+                    .padding(.vertical, appearance.keyInsetY)
                     .allowsHitTesting(false)
             }
             // One shared press vocabulary with the UIKit keys: immediate

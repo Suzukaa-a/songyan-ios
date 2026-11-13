@@ -8,9 +8,7 @@ final class KeyboardPageFooterGeometryTests: XCTestCase {
             let source =
                 automatic ? KeyboardPagePresets.symbolsSystem : KeyboardPagePresets.symbolRowsPage(ascii: false)
             for globe in [false, true] {
-                let keys = try XCTUnwrap(source.materialized().chrome?.bottom).filter {
-                    globe || $0.action.type != .globe
-                }
+                let keys = try XCTUnwrap(source.materialized().chrome?.bottom).forSystemSwitch(shown: globe)
                 for ascii in [false, true] {
                     let policy = KeyboardControlPolicy(
                         page: .symbols, isEnglishMode: false, hasGlobe: globe, isPhoneLayout: false,
@@ -179,19 +177,25 @@ final class KeyboardPageFooterGeometryTests: XCTestCase {
         XCTAssertNotEqual(old.chrome, KeyboardPagePresets.numericKeypad.chrome)
     }
 
-    /// Pages saved while the globe came first keep the native widths, each key its own slot's, and
-    /// an untouched stored copy of a preset in that order still counts as the preset.
-    func testFootersSavedWithTheGlobeFirstKeepTheirWidths() {
+    /// Pages saved while the globe came first, or right after the page key, keep the native widths,
+    /// each key its own slot's, and an untouched stored copy of a preset in that order still counts
+    /// as the preset.
+    func testFootersSavedWithAnEarlierGlobePlaceKeepTheirWidths() throws {
         let policy = lettersPolicy()
-        var keys = footer(KeyboardPagePresets.englishQwerty)
+        let keys = footer(KeyboardPagePresets.englishQwerty)
         let current = KeyboardPageFooterGeometry(width: 382, keys: keys, policy: policy)
         XCTAssertTrue(current.usesControlRowBudget)
-        keys.insert(keys.remove(at: 1), at: 0)
-        XCTAssertEqual(keys[0].action.type, .globe)
-        let saved = KeyboardPageFooterGeometry(width: 382, keys: keys, policy: policy)
-        XCTAssertTrue(saved.usesControlRowBudget)
-        XCTAssertEqual(saved.keyWidths[0], current.keyWidths[1], accuracy: 0.001)
-        XCTAssertEqual(saved.keyWidths[1], current.keyWidths[0], accuracy: 0.001)
+        let globe = try XCTUnwrap(keys.firstIndex { $0.action.type == .globe })
+        for place in [0, 1] {
+            var saved = keys
+            saved.insert(saved.remove(at: globe), at: place)
+            let geometry = KeyboardPageFooterGeometry(width: 382, keys: saved, policy: policy)
+            XCTAssertTrue(geometry.usesControlRowBudget, "globe at \(place)")
+            let widths = keys.map { key in geometry.keyWidths[saved.firstIndex(of: key)!] }
+            for (width, expected) in zip(widths, current.keyWidths) {
+                XCTAssertEqual(width, expected, accuracy: 0.001, "globe at \(place)")
+            }
+        }
 
         var keypad = KeyboardPagePresets.numericKeypad
         var bottom = keypad.chrome?.bottom ?? []

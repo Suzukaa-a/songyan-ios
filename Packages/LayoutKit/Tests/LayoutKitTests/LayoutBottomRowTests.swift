@@ -43,11 +43,11 @@ final class LayoutBottomRowTests: XCTestCase {
         XCTAssertFalse(BuiltinLayouts.matchesMainShell(encoding, as: .qwerty26))
     }
 
-    func testTheKeyboardsRowStartsWith123AndTheGlobe() {
+    func testTheKeyboardsRowStartsWith123AndPutsTheGlobeLeftOfTheSpaceBar() throws {
         let actions = LayoutBottomRow.defaultKeys.map(\.action)
         XCTAssertEqual(actions.first?.pageSwitchTarget, .numeric)
-        XCTAssertEqual(actions.dropFirst().first?.type, .globe)
-        XCTAssertTrue(actions.contains { $0.type == .space })
+        let space = try XCTUnwrap(actions.firstIndex { $0.type == .space })
+        XCTAssertEqual(actions[space - 1].type, .globe)
     }
 
     func testAnAddedSymbolKeyIsKeptAsAuthored() {

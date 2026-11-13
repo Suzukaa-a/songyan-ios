@@ -131,17 +131,19 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
     /// and row-shaped 123 / #+= pages (or opens symbols where 123 cannot), has no utility slot on the
     /// phone digit pad (the comma sits in its right column) and locks the categorized symbol page.
     ///
-    /// The globe sits between the page key and the space bar, as on the system keyboard: in the
-    /// corner it took the thumb's aim for the page key. A surface without a system-keyboard
+    /// The globe sits immediately left of the space bar, in the comma's slot of the split footer;
+    /// in the corner it took the thumb's aim for the page key. A surface without a system-keyboard
     /// switch has no globe slot, and the freed width goes to space/Return.
     public var slots: [Slot] {
         if isDigitPad {
             return [.page, .globe, .language, .space, .symbolPage, .enter].filter { $0 != .globe || hasGlobe }
         }
+        // With the marks beside the space bar, the system's globe takes the comma's slot and the
+        // key right of the space bar becomes the comma: no other key moves when the globe comes or goes.
         let row: [Slot] =
             showsSpaceSideMarks
-            ? [.page, .globe, .language, .markLeft, .space, .utility, .enter]
-            : [.page, .globe, .language, .space, .utility, .enter]
+            ? [.page, .language, hasGlobe ? .globe : .markLeft, .space, .utility, .enter]
+            : [.page, .language, .globe, .space, .utility, .enter]
         return row.filter {
             ($0 != .globe || hasGlobe) && ($0 != .enter || includesBottomEnter)
         }
@@ -270,8 +272,12 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
     }
     public var utility: Utility {
         isBundledPhonePad && page == .numeric && !isDigitPad
-            ? .digit("0") : .punctuation(showsSpaceSideMarks ? fullStopText : utilityText)
+            ? .digit("0") : .punctuation(showsSpaceSideMarks && !hasGlobe ? fullStopText : singleMarkText)
     }
+
+    /// The one mark of a footer without the comma beside the space bar: the comma in sentences,
+    /// the field's own mark in a URL or email field.
+    public var singleMarkText: String { fieldMarks == .sentence ? utilityText : fullStopText }
 
     /// The runtime footer's full stop right of the space bar; the same mark in every script.
     public static let fullStop = "。"
@@ -319,7 +325,8 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
     public var symbolLibraryTitle: String { KeyLabelPolicy.symbolLibraryTitle(script: script) }
 
     public var utilityAlternates: [String] {
-        if showsSpaceSideMarks {
+        if showsSpaceSideMarks, hasGlobe, fieldMarks != .sentence { return fullStopAlternates }
+        if showsSpaceSideMarks, !hasGlobe {
             return usesASCIIPunctuation ? ["'", ";", ":"] : [script == .japanese ? "・" : "、", "：", "；"]
         }
         if usesASCIIPunctuation { return [".", "?", "!", "'", "\""] }
@@ -469,20 +476,21 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
             width: Double, hasGlobe: Bool, includesEnter: Bool
         ) -> Metrics {
             let width = width.isFinite ? max(0, width) : 0
-            let count = (hasGlobe ? 1 : 0) + 6
-            let minimumContent =
-                (hasGlobe ? 44.0 : 0) + 40 + 40 + 40 + 44 + 40 + (includesEnter ? 80.0 : 0)
+            // The globe and the comma share one slot, so both machines draw the same six keys.
+            let count = includesEnter ? 6 : 5
+            let minimumContent = 40.0 + 40 + 40 + 44 + 40 + (includesEnter ? 80.0 : 0)
             let minimumTotal = minimumContent + Double(count - 1) * 4
             let scale = min(1, width / minimumTotal)
             let spacing = 4 * scale
             let content = max(0, width - Double(count - 1) * spacing)
             let page = 40 * scale
             let language = page
-            let markLeft = 40 * scale
-            let utility = markLeft
-            let globe = hasGlobe ? 44 * scale : 0
+            let mark = 40 * scale
+            let markLeft = hasGlobe ? 0 : mark
+            let utility = mark
+            let globe = hasGlobe ? mark : 0
             let enter = includesEnter ? 80 * scale : 0
-            let space = max(0, content - page - language - markLeft - utility - globe - enter)
+            let space = max(0, content - page - language - mark - utility - enter)
             return Metrics(
                 spacing: spacing, page: page, language: language, globe: globe, space: space,
                 utility: utility, enter: enter, markLeft: markLeft, markRight: utility)

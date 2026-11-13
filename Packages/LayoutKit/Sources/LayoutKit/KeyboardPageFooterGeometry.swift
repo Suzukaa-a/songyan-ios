@@ -140,13 +140,18 @@ public struct KeyboardPageFooterGeometry: Equatable, Sendable {
         return (lead.map { [$0] } ?? []) + shares + (trail.map { [$0] } ?? [])
     }
 
-    /// The slots of a default footer: the control row's slots in order, or the order pages were
-    /// saved with while the globe sat first, so a stored copy keeps its native widths.
+    /// The slots of a default footer: the control row's slots in order, or an order pages were
+    /// saved with earlier (the globe first, or right after the page key), so a stored copy keeps
+    /// its native widths.
     static func defaultFooterSlots(keys: [LayoutKey], policy: KeyboardControlPolicy) -> [KeyboardControlPolicy.Slot]? {
         let slots = policy.slots
         if isDefaultFooter(keys: keys, slots: slots, policy: policy) { return slots }
-        let globeFirst = slots.filter { $0 == .globe } + slots.filter { $0 != .globe }
-        if globeFirst != slots, isDefaultFooter(keys: keys, slots: globeFirst, policy: policy) { return globeFirst }
+        let rest = slots.filter { $0 != .globe }
+        guard rest.count < slots.count else { return nil }
+        for earlier in [[.globe] + rest, Array(rest.prefix(1)) + [.globe] + rest.dropFirst()]
+        where earlier != slots && isDefaultFooter(keys: keys, slots: earlier, policy: policy) {
+            return earlier
+        }
         return nil
     }
 

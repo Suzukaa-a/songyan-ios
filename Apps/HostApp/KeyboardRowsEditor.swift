@@ -102,6 +102,8 @@ struct SelectedRowKeyActions: View {
     @Binding var selected: LayoutKeyPath
     /// The bottom row keeps its function keys: no key moves into or out of it.
     var bottomRow: Int? = nil
+    /// The main layout's last globe key on a machine that needs one: it moves but is not deleted.
+    var protectsGlobe = false
     private let rowKeyLimit = LayoutResourceBudget.keysPerRegion
 
     var body: some View {
@@ -141,10 +143,14 @@ struct SelectedRowKeyActions: View {
                     rows[row] = LayoutRow(keys: keys)
                     selected = .row(row, key: min(index, keys.count - 1))
                 }
-                .disabled(rows[row].keys.count == 1)
+                .disabled(rows[row].keys.count == 1 || isProtectedGlobe(rows[row].keys[index]))
             }
             .buttonStyle(.borderless)
         }
+    }
+
+    private func isProtectedGlobe(_ key: LayoutKey) -> Bool {
+        protectsGlobe && rows.flatMap(\.keys).isLastGlobe(key)
     }
 
     private func moveKey(_ row: Int, _ index: Int, by offset: Int) {
@@ -171,6 +177,8 @@ struct KeyboardBottomRowEditor: View {
     @Binding var keys: [LayoutKey]
     let row: Int
     @Binding var selected: LayoutKeyPath
+    /// The system draws its own switch key here, so a globe key is not offered.
+    var offersGlobe = true
 
     var body: some View {
         Section(String(localized: "底行按键")) {
@@ -182,8 +190,8 @@ struct KeyboardBottomRowEditor: View {
                         }
                     }
                     Menu {
-                        ForEach(Self.choices.indices, id: \.self) { index in
-                            Button(Self.choices[index].title) { add(Self.choices[index].key) }
+                        ForEach(choices.indices, id: \.self) { index in
+                            Button(choices[index].title) { add(choices[index].key) }
                         }
                     } label: {
                         Image(systemName: "plus")
@@ -197,7 +205,11 @@ struct KeyboardBottomRowEditor: View {
         .buttonStyle(.borderless)
     }
 
-    private static var choices: [(title: String, key: LayoutKey)] {
+    private var choices: [(title: String, key: LayoutKey)] {
+        Self.allChoices.filter { offersGlobe || $0.key.action.type != .globe }
+    }
+
+    private static var allChoices: [(title: String, key: LayoutKey)] {
         [
             (
                 String(localized: "符号页"),

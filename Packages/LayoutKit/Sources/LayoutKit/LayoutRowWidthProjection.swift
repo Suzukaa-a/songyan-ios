@@ -26,17 +26,3 @@ public struct LayoutRowWidthProjection: Equatable, Sendable {
         insetFraction = scaledInset / total
     }
 }
-
-extension Array where Element == LayoutKey {
-    /// Automatic footers keep their automatic widths when the system switch is hidden. In an
-    /// explicitly weighted footer, the removed globe's weight goes to Return as before.
-    /// A row without a space key just loses the globe.
-    public func withoutGlobe() -> [LayoutKey] {
-        let freed = filter { $0.action.type == .globe }.reduce(0) { $0 + $1.widthWeight }
-        guard freed > 0 else { return self }
-        let rest = filter { $0.action.type != .globe }
-        if KeyboardPageFooterGeometry.hasAutomaticWidths(self) { return rest }
-        guard rest.contains(where: { $0.action.type == .space }) else { return rest }
-        return rest.map { $0.action.type == .enter ? $0.settingWidth($0.widthWeight + freed) : $0 }
-    }
-}

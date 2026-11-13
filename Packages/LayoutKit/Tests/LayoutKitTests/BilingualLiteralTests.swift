@@ -258,7 +258,7 @@ final class BilingualLiteralTests: XCTestCase {
     func testDefaultFootersMatchTheFrozenOrderAndActions() throws {
         let abc = footer(KeyboardPagePresets.englishQwerty)
         XCTAssertEqual(abc[0].action.pageSwitchTarget, .numeric)
-        XCTAssertEqual(abc.map(\.action.type), [.pageSwitch, .globe, .languageSwitch, .space, .literal, .enter])
+        XCTAssertEqual(abc.map(\.action.type), [.pageSwitch, .languageSwitch, .globe, .space, .literal, .enter])
         XCTAssertEqual(abc[4].label, ",")
         XCTAssertEqual(abc[4].action.value, "，")
         XCTAssertEqual(abc[4].action.asciiValue, ",")
@@ -266,21 +266,21 @@ final class BilingualLiteralTests: XCTestCase {
         XCTAssertEqual(abc[4].longPress?.compactMap(\.action.asciiValue), [".", "?", "!", "'", "\""])
 
         let numeric = footer(KeyboardPagePresets.numericRowsPage(ascii: false))
-        XCTAssertEqual(numeric.map(\.action.type), [.pageSwitch, .globe, .languageSwitch, .space, .literal, .enter])
+        XCTAssertEqual(numeric.map(\.action.type), [.pageSwitch, .languageSwitch, .globe, .space, .literal, .enter])
         XCTAssertEqual(numeric[4], abc[4], "every row page shares the ABC page's comma key")
         XCTAssertEqual(numeric[0].label, "返回")
         XCTAssertEqual(numeric[0].action.pageSwitchTarget, .letters)
 
         let symbols = footer(KeyboardPagePresets.symbolRowsPage(ascii: false))
         XCTAssertEqual(
-            symbols.map(\.action.type), [.pageSwitch, .globe, .languageSwitch, .literal, .space, .literal, .enter])
+            symbols.map(\.action.type), [.pageSwitch, .languageSwitch, .globe, .space, .literal, .enter])
         XCTAssertEqual(symbols[0].action.pageSwitchTarget, .letters)
 
         let categorized = try XCTUnwrap(KeyboardPagePresets.symbolsCategorized.materialized().chrome?.bottom)
-        XCTAssertEqual(categorized.map(\.action.type), [.languageSwitch, .globe, .pageSwitch, .space, .symbolLock])
+        XCTAssertEqual(categorized.map(\.action.type), [.languageSwitch, .pageSwitch, .globe, .space, .symbolLock])
         XCTAssertEqual(categorized[0].label, "返回")
         XCTAssertEqual(categorized[0].action.languageSwitchBehavior, .letters)
-        XCTAssertEqual(categorized[2].action.pageSwitchTarget, .numeric)
+        XCTAssertEqual(categorized[1].action.pageSwitchTarget, .numeric)
 
         let keypad = try XCTUnwrap(KeyboardPagePresets.numericKeypad.chrome)
         XCTAssertEqual(

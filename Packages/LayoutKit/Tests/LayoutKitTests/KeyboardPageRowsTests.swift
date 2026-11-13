@@ -8,6 +8,32 @@ import XCTest
 final class KeyboardPageRowsTests: XCTestCase {
     private let spacing = 4.0
 
+    /// Every phone draws a skin's key gaps exactly; wider columns grow them in proportion, so the
+    /// gap keeps the share of the key its author drew.
+    func testSkinKeyGapsStayOnPhonesAndScaleWithWiderColumns() {
+        for width in [312.0, 382, 432] {
+            XCTAssertEqual(StandardKeyRowGeometry(width: width).keyGapScale(), 1, "width \(width)")
+            XCTAssertEqual(StandardKeyRowGeometry.capInset(0.5, scale: 1), 0.5)
+        }
+        let wide = StandardKeyRowGeometry(width: 800)
+        let scale = wide.keyGapScale()
+        XCTAssertEqual(scale, (wide.keyWidth + spacing) / 44, accuracy: 0.0001)
+        for inset in [0.0, 0.5, 2, 6] {
+            let gap = spacing + 2 * StandardKeyRowGeometry.capInset(inset, scale: scale)
+            XCTAssertEqual(gap / (wide.keyWidth + spacing), (spacing + 2 * inset) / 44, accuracy: 0.0001)
+        }
+    }
+
+    /// A split board's columns are its halves', so its gaps follow those narrower keys.
+    func testASplitBoardScalesByItsOwnColumns() throws {
+        let split = try XCTUnwrap(
+            ActiveLayoutSplit.resolving(
+                nested: LayoutSplitConfiguration(activation: .automatic), parent: nil, width: 1000, automaticAbove: 0))
+        XCTAssertLessThan(
+            StandardKeyRowGeometry(width: 1000, split: split).keyGapScale(),
+            StandardKeyRowGeometry(width: 1000).keyGapScale())
+    }
+
     func testBothPagesKeepTenColumnRowsWithASevenMarkThirdRow() {
         for ascii in [false, true] {
             for rows in [

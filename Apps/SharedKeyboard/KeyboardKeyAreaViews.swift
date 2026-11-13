@@ -165,16 +165,20 @@ struct KeyboardSplitHalvesPad<Key: View>: View {
     let split: ActiveLayoutSplit
     /// Keys that cannot work here are left out of their half.
     var isVisible: (LayoutKey) -> Bool = { _ in true }
-    /// Without a system switcher each half drops its globe and hands the width to its Return.
+    /// Without a system switcher the row reads as `forSystemSwitch(shown: false)` across both halves.
     var showsGlobe = true
     /// Receives the key, its row and its index in the whole row.
     @ViewBuilder var key: (LayoutKey, Int, Int) -> Key
 
     var body: some View {
-        let shown = rows.map {
-            LayoutSplitRow(
-                left: (showsGlobe ? $0.left : $0.left.withoutGlobe()).filter(isVisible),
-                right: (showsGlobe ? $0.right : $0.right.withoutGlobe()).filter(isVisible))
+        let shown = rows.map { row in
+            let whole = row.left + row.right
+            let keys = whole.forSystemSwitch(shown: showsGlobe)
+            let sources = whole.systemSwitchSources(shown: showsGlobe)
+            let halves = zip(sources, keys)
+            return LayoutSplitRow(
+                left: halves.filter { $0.0 < row.left.count }.map(\.1).filter(isVisible),
+                right: halves.filter { $0.0 >= row.left.count }.map(\.1).filter(isVisible))
         }
         GeometryReader { proxy in
             let geometry = SplitHalvesGeometry(width: Double(proxy.size.width), rows: shown, split: split)
@@ -418,7 +422,8 @@ struct KeyboardLayoutUtilityBar<Key: View, Globe: View, ModeSwitch: View>: View 
         if let split {
             let keys = keys
             let boundary = split.breakIndex(row: rowIndex, keyCount: keys.count)
-            let shown = keys.indices.filter { showsGlobe || keys[$0].action.type != .globe }
+            let shown = keys.systemSwitchSources(shown: showsGlobe)
+            let drawn = keys.systemSwitchKeysBySource(shown: showsGlobe)
             let visible = shown.filter { keys[$0].action.type != .space }
             let widths = footerWidths(keys, shown: shown)
             let plan = shortcutPlan
@@ -437,7 +442,7 @@ struct KeyboardLayoutUtilityBar<Key: View, Globe: View, ModeSwitch: View>: View 
                 leftWidths: left.map { $0.width(widths: widths.values) },
                 rightWidths: right.map { $0.width(widths: widths.values) }, split: split,
                 spaceWidthMultiplier: widths.automatic ? 3 : 3 * space.widthWeight / 4,
-                key: { footerKey($0, keys: keys) },
+                key: { footerKey($0, keys: drawn) },
                 space: { key(space, "controls-space", spaceIndex ?? -1) },
                 fallback: { singleSpaceBar })
         } else {
@@ -448,7 +453,7 @@ struct KeyboardLayoutUtilityBar<Key: View, Globe: View, ModeSwitch: View>: View 
     /// Split main rows use the same compact control budget as split authored pages, while
     /// declared indices stay stable for key callbacks.
     private func footerWidths(_ keys: [LayoutKey], shown: [Int]) -> (values: [Double], automatic: Bool) {
-        let visible = showsGlobe ? keys : keys.withoutGlobe()
+        let visible = keys.forSystemSwitch(shown: showsGlobe)
         var widths = keys.map { max(44, $0.widthWeight * 44) }
         for (index, key) in zip(shown, visible) { widths[index] = max(44, key.widthWeight * 44) }
         if !shortcutPlan.supplementShortcuts, let footerPolicy {
@@ -488,8 +493,8 @@ struct KeyboardLayoutUtilityBar<Key: View, Globe: View, ModeSwitch: View>: View 
                 pageShortcut(symbolPageTitle, target: .symbols, accessibilityLabel: symbolPageAccessibilityLabel)
             }
             if let row = controlRow {
-                let sources = row.keys.indices.filter { showsGlobe || row.keys[$0].action.type != .globe }
-                let shown = showsGlobe ? row.keys : row.keys.withoutGlobe()
+                let sources = row.keys.systemSwitchSources(shown: showsGlobe)
+                let shown = row.keys.forSystemSwitch(shown: showsGlobe)
                 KeyboardDefinitionRow(
                     keys: shown, isControls: true,
                     controlPolicy: plan.supplementShortcuts ? nil : footerPolicy

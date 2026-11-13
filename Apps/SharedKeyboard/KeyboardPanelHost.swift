@@ -38,7 +38,6 @@ public struct KeyboardPanelHost: View {
             hostAppearance: host, systemDark: colorScheme == .dark,
             systemTraitKnown: systemTraitKnown)
         var resolved = KeyboardAppearance(skin: appearanceSnapshot.document.skin, dark: dark)
-        resolved.widensKeyGaps = compactReadingRow
         resolved.candidateTextSize = storedCandidateTextSize
         resolved.showsCollapsedCandidateComments = storedCollapsedCandidateComments
         return resolved

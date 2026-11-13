@@ -11,8 +11,8 @@ import UIKit
 /// Keyboard settings a preview mirrors. Read off the main thread; the last read seeds the next
 /// preview so it does not start from defaults.
 ///
-/// Globe keys: a preview draws them when it is an editor, so they can be selected, or when the
-/// keyboard last reported that the system needs its own switch key (unknown counts as needed).
+/// Globe keys: a preview, editor or not, draws them only where this machine needs one (seeded at
+/// first launch, then the keyboard's own report; unknown counts as needed), as the keyboard does.
 /// Main-layout and page previews both follow this rule.
 struct KeyboardPreviewPreferences: Equatable, Sendable {
     var heightPreset = KeyboardHeightPreset.standard
@@ -29,7 +29,7 @@ struct KeyboardPreviewPreferences: Equatable, Sendable {
         layout.flatMap { docks[$0] } ?? .center
     }
 
-    func showsGlobe(editing: Bool) -> Bool { editing || needsInputModeSwitchKey }
+    var showsGlobe: Bool { needsInputModeSwitchKey }
 
     @MainActor static func load() async -> Self {
         let value = await Task.detached(priority: .userInitiated) { read() }.value
@@ -282,7 +282,7 @@ public struct KeyboardPagePreviewView: View {
     }
 
     private var editing: Bool { onSelectKey != nil || onSelectCategoryKey != nil }
-    private var showsGlobe: Bool { preferences.showsGlobe(editing: editing) }
+    private var showsGlobe: Bool { preferences.showsGlobe }
 
     /// The previewed branch wins, then an explicit page default, otherwise an English page shows the English branch and
     /// numeric/symbol pages show Chinese. The same value feeds resolution, faces and the footer.
@@ -306,6 +306,13 @@ public struct KeyboardPagePreviewView: View {
         ) {
             widths in
             content(resolution, widths: widths)
+                // The key gaps scale with the columns, as on the keyboard.
+                .environment(
+                    \.keyboardAppearance,
+                    appearance.scalingKeyGaps(
+                        width: widths.content,
+                        split: pageSplit(resolution.page?.split, widths: widths, authored: resolution.page))
+                )
                 .padding(4)
                 .background(appearance.previewSurface, in: RoundedRectangle(cornerRadius: 8))
         }

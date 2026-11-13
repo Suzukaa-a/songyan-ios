@@ -12,4 +12,19 @@ public struct StandardKeyRowGeometry: Equatable, Sendable {
         keyWidth = max(0, (width - gap - spacing * 9) / 10)
         thirdRowSideWidth = max(0, (width - gap - keyWidth * 7 - spacing * 8) / 2)
     }
+
+    /// Skins set their key gaps for a phone's keys; the widest phone column, gap included, is about
+    /// 44 pt. A wider column (landscape, an unfolded or tablet screen) grows the visible gap in the
+    /// same proportion, so a skin keeps the look its author drew; every phone keeps it exactly.
+    public static let skinReferencePitch = 44.0
+
+    /// How much wider this board's columns are than a phone's; never below 1.
+    public func keyGapScale(spacing: Double = 4) -> Double {
+        max(1, (keyWidth + spacing) / Self.skinReferencePitch)
+    }
+
+    /// The cap inset that draws a skin's visible gap (`spacing + 2 × inset`) at `scale`.
+    public static func capInset(_ inset: Double, scale: Double, spacing: Double = 4) -> Double {
+        max(inset, ((spacing + 2 * inset) * scale - spacing) / 2)
+    }
 }

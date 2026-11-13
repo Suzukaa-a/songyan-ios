@@ -95,7 +95,7 @@ extension KeyboardPanelView {
             keyAreaGeneration: keyAreaGeneration,
             page: page,
             keyHeight: keyHeight,
-            appearance: appearance,
+            appearance: keyAppearance,
             preferredLayoutID: localLayoutID ?? selectedLayoutID,
             definitionInputsRevision: controller.definitionInputsRevision,
             shuangpinHintEnabled: shuangpinHints?.enabled ?? false,

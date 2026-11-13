@@ -497,10 +497,10 @@ public struct KeyboardAppearance: Equatable, Sendable {
         didSet { palette = KeyboardPalette.resolve(skin: skin, dark: dark) }
     }
     private var palette: KeyboardPalette
-    /// A compact-height surface (an iPhone in landscape) has wide, short keys: like the system
-    /// keyboard it shows a wider seam between caps. Only the painted cap narrows; touch areas
+    /// How much wider the board's columns are than a phone's (`StandardKeyRowGeometry.keyGapScale`):
+    /// the skin's horizontal gap grows in proportion. Only the painted cap narrows; touch areas
     /// still meet, so no tap lands in a dead gap.
-    public var widensKeyGaps = false
+    public var keyGapScale = 1.0
     /// Device-level candidate text scale; read from the cached preference when the appearance is built.
     public var candidateTextSize = CandidateTextSizePreferences.current
     /// Device-level choice to draw engine comments in the collapsed candidate row.
@@ -509,8 +509,6 @@ public struct KeyboardAppearance: Equatable, Sendable {
     public var candidateFontSize: Double { skin.typography.candidateSize * candidateTextSize.factor }
     /// The skin's comment size with the device scale applied.
     public var candidateSecondaryFontSize: Double { skin.typography.secondarySize * candidateTextSize.factor }
-    /// Extra inset on each side of a cap when `widensKeyGaps` is set.
-    static let landscapeGapInset: Double = 1.5
     public init(skin: SkinDefinition = .systemDefault, dark: Bool = false) {
         // Stored/fallback/default appearances share one source; custom skins stay exact.
         let skin = skin.id == SkinDefinition.systemDefault.id ? .systemDefault : skin
@@ -523,7 +521,7 @@ public struct KeyboardAppearance: Equatable, Sendable {
     /// SwiftUI uses this to skip environment-driven updates when a parent rebuilds
     /// an identical appearance.
     public static func == (lhs: KeyboardAppearance, rhs: KeyboardAppearance) -> Bool {
-        lhs.dark == rhs.dark && lhs.skin == rhs.skin && lhs.widensKeyGaps == rhs.widensKeyGaps
+        lhs.dark == rhs.dark && lhs.skin == rhs.skin && lhs.keyGapScale == rhs.keyGapScale
             && lhs.candidateTextSize == rhs.candidateTextSize
             && lhs.showsCollapsedCandidateComments == rhs.showsCollapsedCandidateComments
     }
@@ -562,10 +560,20 @@ public struct KeyboardAppearance: Equatable, Sendable {
         guard width > availableWidth else { return base }
         return max(base * 0.55, base * availableWidth / width)
     }
+    /// Each side of a cap inside its slot. Rows keep their height on a wide board, so only the
+    /// horizontal gap scales.
+    public var keyInsetX: Double { StandardKeyRowGeometry.capInset(skin.spacing.visualInsetX, scale: keyGapScale) }
+    public var keyInsetY: Double { skin.spacing.visualInsetY }
+
+    /// This appearance on a board whose letter rows are `width` wide.
+    public func scalingKeyGaps(width: Double, split: ActiveLayoutSplit?) -> Self {
+        var scaled = self
+        scaled.keyGapScale = StandardKeyRowGeometry(width: width, split: split).keyGapScale()
+        return scaled
+    }
+
     public func visualRect(in bounds: CGRect) -> CGRect {
-        bounds.insetBy(
-            dx: skin.spacing.visualInsetX + (widensKeyGaps ? Self.landscapeGapInset : 0),
-            dy: skin.spacing.visualInsetY)
+        bounds.insetBy(dx: keyInsetX, dy: keyInsetY)
     }
     public func color(_ name: String) -> Color { Color(uiColor: uiColor(name)) }
     public func uiColor(_ name: String) -> UIColor { palette.fill(name) }

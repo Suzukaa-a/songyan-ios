@@ -265,7 +265,9 @@ public struct KeyboardPanelView: View {
             let _ = widthBox.record(
                 contentWidth: contentWidth - 8 - CGFloat(2 * sideMargin),
                 mainSplitWidth: rawWidth, pageSplitWidth: contentWidth - 8, sideMargin: CGFloat(sideMargin))
+            let keyAppearance = self.keyAppearance
             panelBody(isWide: isWideSurface)
+                .environment(\.keyboardAppearance, keyAppearance)
                 .frame(width: contentWidth, alignment: .topLeading)
                 .disabled(showsCoveringPanel)
                 .accessibilityHidden(showsCoveringPanel)
@@ -289,6 +291,7 @@ public struct KeyboardPanelView: View {
                             initialCategory: quickContentCategory
                         ) { showsSymbolLibrary = false }
                         .id(ObjectIdentifier(controller))
+                        .environment(\.keyboardAppearance, keyAppearance)
                         .frame(width: contentWidth, height: geometry.size.height)
                         .background(Color.black.opacity(0.001))
                         .clipped()
@@ -329,6 +332,12 @@ public struct KeyboardPanelView: View {
 
     /// The main split comes from the same active definition the panel draws; page splits never
     /// change this host-level width.
+    /// The appearance every key on this board draws with: columns wider than a phone's grow the
+    /// skin's key gaps in proportion. One value for all pages, so flipping a page never changes them.
+    var keyAppearance: KeyboardAppearance {
+        appearance.scalingKeyGaps(width: widthBox.contentWidth, split: activeSplit)
+    }
+
     private func wideMaximumContentWidth(rawWidth: Double, fullWidth: Double) -> Double? {
         KeyboardPanelRules.wideMaximumContentWidth(
             rawWidth: rawWidth, fullWidth: fullWidth, mainSplit: activeDefinition?.split, layout: controller.layout,
@@ -570,9 +579,10 @@ public struct KeyboardPanelView: View {
             eligible: definitionPage && readingRowEligibleNow,
             definitionID: activeDefinition?.id,
             resolvedFromRegistry: layoutRegistry != nil,
-            candidateAreaRequired: definitionPage
-                ? definitionFacts.candidateAreaRequired
-                : page == .letters || symbolPageKeepsCandidates,
+            candidateAreaRequired: KeyboardCandidateBand.required(
+                definitionPage: definitionPage, definitionRequires: definitionFacts.candidateAreaRequired,
+                lettersPage: page == .letters, keepsForComposition: symbolPageKeepsCandidates,
+                wideDismiss: dismissKeyboard != nil && widthBox.mainSplitWidth > KeyboardSurfaceWidth.phoneMaximum),
             pageOverride: !definitionPage,
             physicalMainRowCount: physicalMainRowBudget,
             drawnMainRowCount: drawnMainRowCount)

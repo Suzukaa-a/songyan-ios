@@ -77,9 +77,9 @@ final class KeyboardPageChromeTests: XCTestCase {
 
         let bottom = try XCTUnwrap(page.chrome?.bottom)
         XCTAssertEqual(bottom.count, 6)
-        XCTAssertEqual(bottom[1].action.type, .globe, "the globe sits between the page key and the space bar")
+        XCTAssertEqual(bottom[2].action.type, .globe, "the globe holds the comma's slot left of the space bar")
         XCTAssertEqual(bottom[0].action.pageSwitchTarget, .numeric)
-        XCTAssertEqual(bottom[2].action.type, .languageSwitch)
+        XCTAssertEqual(bottom[1].action.type, .languageSwitch)
         XCTAssertEqual(bottom[3].action.type, .space)
         XCTAssertEqual(bottom[3].width, 4)
         // The comma sits where 符号 used to be; its long press holds the other sentence marks.
@@ -106,7 +106,7 @@ final class KeyboardPageChromeTests: XCTestCase {
             let materialized = page.materialized()
             XCTAssertEqual(
                 materialized.chrome?.bottom.map(\.widthWeight),
-                page.kind == .symbols ? [1, 1, 1, 1, 4, 1, 1] : [1, 1, 1, 4, 1, 1])
+                [1, 1, 1, 4, 1, 1])
         }
         let categorized = KeyboardPagePresets.symbolsCategorized.materialized()
         XCTAssertEqual(categorized.chrome?.bottom.map(\.widthWeight), [1, 1, 1, 4, 1])
@@ -132,15 +132,15 @@ final class KeyboardPageChromeTests: XCTestCase {
         XCTAssertEqual(delete.width, 1.5, "Delete is a side key as wide as on the ABC page")
         XCTAssertEqual(delete.titleMode, .automatic)
         XCTAssertNil(chinese.defaultSymbolMarks)
-        // Frozen default footer: 返回, globe, 中英, space, comma, Return.
+        // Frozen default footer: 返回, 中英, globe, space, comma, Return.
         let bottom = try XCTUnwrap(chinese.chrome?.bottom)
         XCTAssertEqual(bottom.count, 6)
-        XCTAssertEqual(bottom.map(\.action.type), [.pageSwitch, .globe, .languageSwitch, .space, .literal, .enter])
+        XCTAssertEqual(bottom.map(\.action.type), [.pageSwitch, .languageSwitch, .globe, .space, .literal, .enter])
         XCTAssertEqual(bottom[4].action.value, "，")
         XCTAssertEqual(bottom[0].label, "返回")
         XCTAssertEqual(bottom[0].action.pageSwitchTarget, .letters)
         XCTAssertEqual(bottom[0].titleMode, .automatic)
-        XCTAssertNil(bottom[2].action.languageSwitchBehavior)
+        XCTAssertNil(bottom[1].action.languageSwitchBehavior)
         // The marks are an explicit bilingual pair: Chinese value, ASCII counterpart, and the
         // stored label follows the initial branch.
         let paired = chinese.rows[1].keys[2]
@@ -167,7 +167,7 @@ final class KeyboardPageChromeTests: XCTestCase {
         XCTAssertEqual(symbolSwitch.width, 1.5)
         XCTAssertEqual(symbolSwitch.titleMode, .automatic)
         XCTAssertEqual(symbols.rows[2].keys.last?.action.type, .backspace)
-        XCTAssertEqual(symbols.chrome?.bottom.count, 7)
+        XCTAssertEqual(symbols.chrome?.bottom.count, 6)
     }
 
     func testMaterializedAutomaticSymbolPageBecomesAuthoredRows() throws {
@@ -176,11 +176,10 @@ final class KeyboardPageChromeTests: XCTestCase {
         XCTAssertEqual(page.rows.map { $0.keys.count }, [10, 10, 9])
         XCTAssertEqual(page.rows[2].keys.first?.action.pageSwitchTarget, .numeric)
         XCTAssertEqual(page.rows[2].keys.last?.action.type, .backspace)
-        XCTAssertEqual(page.chrome?.bottom.count, 7)
+        XCTAssertEqual(
+            page.chrome?.bottom.map(\.action.type),
+            [.pageSwitch, .languageSwitch, .globe, .space, .symbolLibrary, .enter])
         XCTAssertEqual(page.chrome?.bottom[0].action.pageSwitchTarget, .letters)
-        XCTAssertEqual(page.chrome?.bottom[3].action.value, "，")
-        XCTAssertEqual(page.chrome?.bottom[4].action.type, .space)
-        XCTAssertEqual(page.chrome?.bottom[5].action.type, .symbolLibrary)
         try page.validate()
     }
 
@@ -191,10 +190,10 @@ final class KeyboardPageChromeTests: XCTestCase {
         XCTAssertTrue(page.rows.isEmpty)
         let chrome = try XCTUnwrap(page.chrome)
         XCTAssertEqual(chrome.bottom.count, 5)
-        XCTAssertEqual(chrome.bottom.map(\.action.type), [.languageSwitch, .globe, .pageSwitch, .space, .symbolLock])
+        XCTAssertEqual(chrome.bottom.map(\.action.type), [.languageSwitch, .pageSwitch, .globe, .space, .symbolLock])
         XCTAssertEqual(chrome.bottom[0].label, "返回")
         XCTAssertEqual(chrome.bottom[0].action.languageSwitchBehavior, .letters)
-        XCTAssertEqual(chrome.bottom[2].action.pageSwitchTarget, .numeric)
+        XCTAssertEqual(chrome.bottom[1].action.pageSwitchTarget, .numeric)
         XCTAssertEqual(chrome.trailing.map(\.action.type), [.backspace, .clearInput, .enter])
         XCTAssertEqual(chrome.trailing.map(\.widthWeight), [1, 1, 2])
         XCTAssertTrue(chrome.trailingSpansBottom)

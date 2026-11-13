@@ -453,31 +453,28 @@ public struct KeyboardPageDefinition: Codable, Equatable, Identifiable, Sendable
         kind: KeyboardPageKind, offersSymbolLibrary: Bool = false, marks: KeyboardNumericMarks = .chinese
     ) -> KeyboardPageChrome {
         switch kind {
+        // The globe holds the comma's slot left of the space bar; without the system's globe the
+        // footer reads `， 空格 。` (see `forSystemSwitch(shown:)`), as the native footer does.
         case .english:
-            // 123, globe, 中英, space, comma, Return
             return KeyboardPageChrome(
-                bottom: [pageSwitchKey(.numeric), globeKey, languageSwitchKey, spaceKey, commaKey, enterKey])
+                bottom: [pageSwitchKey(.numeric), languageSwitchKey, globeKey, spaceKey, commaKey, enterKey])
         case .numeric:
-            // 返回, globe, 中英, space, comma, Return; the 123/symbol switch opens the third row.
+            // The 123/symbol switch opens the third row.
             return KeyboardPageChrome(
-                bottom: [pageSwitchKey(.letters), globeKey, languageSwitchKey, spaceKey, commaKey, enterKey])
+                bottom: [pageSwitchKey(.letters), languageSwitchKey, globeKey, spaceKey, commaKey, enterKey])
         case .symbols:
-            // Mirror the native symbol footer, including its comma before space and the
-            // library entry on an automatic page. An authored row page keeps the full stop.
+            // An automatic symbol page offers the library (更多) where the other pages type the comma.
             let utility =
                 offersSymbolLibrary
                 ? functionKey(KeyLabelPolicy.symbolLibraryTitle(script: .simplifiedChinese), .init(.symbolLibrary))
-                : symbolFooterMark(fullStop: true, marks: marks)
+                : commaKey
             return KeyboardPageChrome(
-                bottom: [
-                    pageSwitchKey(.letters), globeKey, languageSwitchKey,
-                    symbolFooterMark(fullStop: false, marks: marks), spaceKey, utility, enterKey,
-                ])
+                bottom: [pageSwitchKey(.letters), languageSwitchKey, globeKey, spaceKey, utility, enterKey])
         }
     }
 
     /// Snapshot the same punctuation menus as the native footer, including their corner hints.
-    private static func symbolFooterMark(fullStop: Bool, marks: KeyboardNumericMarks) -> LayoutKey {
+    static func symbolFooterMark(fullStop: Bool, marks: KeyboardNumericMarks) -> LayoutKey {
         func policy(ascii: Bool) -> KeyboardControlPolicy {
             KeyboardControlPolicy(
                 page: .symbols, isEnglishMode: false, hasGlobe: true, isPhoneLayout: false,
@@ -505,7 +502,7 @@ public struct KeyboardPageDefinition: Codable, Equatable, Identifiable, Sendable
         KeyboardPageChrome(
             bottom: [
                 // The categorized default return keeps the native language/tools menu.
-                returnToLettersLanguageKey, globeKey, pageSwitchKey(.numeric), spaceKey, symbolLockKey,
+                returnToLettersLanguageKey, pageSwitchKey(.numeric), globeKey, spaceKey, symbolLockKey,
             ],
             trailing: [
                 railKey("⌫", .init(.backspace), span: 1), railKey("重输", .init(.clearInput), span: 1),

@@ -55,7 +55,7 @@ public struct KeyboardPreviewView: View {
                 KeyboardMainLayoutPreview(
                     definition: layout, facts: facts,
                     sample: editing ? .idle : sample,
-                    editing: editing, showsGlobe: preferences.showsGlobe(editing: editing), widths: widths,
+                    editing: editing, showsGlobe: preferences.showsGlobe, widths: widths,
                     standardKeyHeight: preferences.keyHeight(compact: verticalSizeClass == .compact),
                     quickSymbols: layout.t9QuickSymbols ?? preferences.t9QuickSymbols,
                     candidateBar: candidateBar, inspected: inspected,
@@ -222,6 +222,8 @@ private struct KeyboardMainLayoutPreview: View {
         // The rows draw at the height the keyboard actually uses for this page: the preset on a
         // three-row page, the redistributed height on a four-row board.
         .environment(\.keyboardKeyHeight, pageKeyHeight)
+        // The key gaps scale with the columns, as on the keyboard.
+        .environment(\.keyboardAppearance, appearance.scalingKeyGaps(width: widths.content, split: split))
     }
 
     // MARK: Key area
@@ -286,7 +288,7 @@ private struct KeyboardMainLayoutPreview: View {
     }
 
     private func visibleSources(_ keys: [LayoutKey]) -> [Int] {
-        keys.indices.filter { showsGlobe || keys[$0].action.type != .globe }
+        keys.systemSwitchSources(shown: showsGlobe)
     }
 
     private func definitionRow(
@@ -296,7 +298,7 @@ private struct KeyboardMainLayoutPreview: View {
         let keys = facts.mainRows[index].keys
         let sources = visibleSources(keys)
         return KeyboardDefinitionRow(
-            keys: showsGlobe ? keys : keys.withoutGlobe(), inset: inset, spacing: spacing, split: split,
+            keys: keys.forSystemSwitch(shown: showsGlobe), inset: inset, spacing: spacing, split: split,
             rowIndex: index,
             fixedKeyWidth: fixedKeyWidth, splitGap: splitGap
         ) { key, visible in

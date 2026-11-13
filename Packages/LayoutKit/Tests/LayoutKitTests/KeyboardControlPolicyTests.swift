@@ -43,7 +43,7 @@ final class KeyboardControlPolicyTests: XCTestCase {
     func testSplitFooterLongPressListsAreSplitBetweenCommaAndFullStop() {
         func policy(_ script: KeyLabelScript, ascii: Bool = false) -> KeyboardControlPolicy {
             KeyboardControlPolicy(
-                page: .letters, isEnglishMode: false, hasGlobe: true, isPhoneLayout: false,
+                page: .letters, isEnglishMode: false, hasGlobe: false, isPhoneLayout: false,
                 usesASCIIPunctuation: ascii, script: script, showsSpaceSideMarks: true)
         }
         XCTAssertEqual(policy(.simplifiedChinese).utilityAlternates, ["、", "：", "；"])
@@ -57,18 +57,23 @@ final class KeyboardControlPolicyTests: XCTestCase {
 
     /// 中/英 changes the marks beside the space bar, never the footer's keys or their widths.
     func testEnglishKeepsTheSplitFooterWithASCIIMarks() {
-        func policy(english: Bool) -> KeyboardControlPolicy {
+        func policy(english: Bool, globe: Bool) -> KeyboardControlPolicy {
             KeyboardControlPolicy(
-                page: .letters, isEnglishMode: english, hasGlobe: true, isPhoneLayout: false,
+                page: .letters, isEnglishMode: english, hasGlobe: globe, isPhoneLayout: false,
                 usesASCIIPunctuation: english, script: .simplifiedChinese, showsSpaceSideMarks: true)
         }
-        let chinese = policy(english: false)
-        let english = policy(english: true)
-        XCTAssertEqual(chinese.slots, english.slots)
-        XCTAssertEqual(chinese.metrics(width: 382), english.metrics(width: 382))
-        XCTAssertEqual(english.utilityText, ",")
-        XCTAssertEqual(english.utility, .punctuation("."))
-        XCTAssertEqual(chinese.utility, .punctuation("。"))
+        for globe in [false, true] {
+            let chinese = policy(english: false, globe: globe)
+            let english = policy(english: true, globe: globe)
+            XCTAssertEqual(chinese.slots, english.slots)
+            XCTAssertEqual(chinese.metrics(width: 382), english.metrics(width: 382))
+            XCTAssertEqual(english.utilityText, ",")
+        }
+        XCTAssertEqual(policy(english: true, globe: false).utility, .punctuation("."))
+        XCTAssertEqual(policy(english: false, globe: false).utility, .punctuation("。"))
+        // The globe takes the comma's slot, so the key right of the space bar is the comma.
+        XCTAssertEqual(policy(english: true, globe: true).utility, .punctuation(","))
+        XCTAssertEqual(policy(english: false, globe: true).utility, .punctuation("，"))
     }
 
     /// A URL field puts `:` and `/` beside the space bar and an email field `@` and `.`; the keys
@@ -200,15 +205,15 @@ final class KeyboardControlPolicyTests: XCTestCase {
         }
     }
 
-    /// Every page puts the globe first. The left switch after it is 123 on letters and a literal
-    /// return on the row pages, which keep the comma in the utility position (their third row holds
-    /// the page switch).
+    /// Every page leads with its switch key: 123 on letters and a literal return on the row pages,
+    /// which keep the comma in the utility position (their third row holds the page switch). The
+    /// globe sits right left of the space bar.
     /// Slot widths stay position-based.
     func testNonLetterPagesLeadWithTheirSwitchKey() {
         let expectations: [KeyboardControlPolicy.Page: [KeyboardControlPolicy.Slot]] = [
-            .letters: [.page, .globe, .language, .space, .utility, .enter],
-            .numeric: [.returnToLetters, .globe, .language, .space, .utility, .enter],
-            .symbols: [.returnToLetters, .globe, .language, .space, .utility, .enter],
+            .letters: [.page, .language, .globe, .space, .utility, .enter],
+            .numeric: [.returnToLetters, .language, .globe, .space, .utility, .enter],
+            .symbols: [.returnToLetters, .language, .globe, .space, .utility, .enter],
         ]
         for (page, expected) in expectations {
             let policy = KeyboardControlPolicy(
@@ -253,7 +258,7 @@ final class KeyboardControlPolicyTests: XCTestCase {
             page: .letters, isEnglishMode: false, hasGlobe: true,
             isPhoneLayout: false, usesASCIIPunctuation: false, numericPageReachesSymbols: false)
         XCTAssertEqual(policy.key(at: .utility), .symbolPage)
-        XCTAssertEqual(policy.slots.map(policy.key(at:)), [.page, .globe, .language, .space, .symbolPage, .enter])
+        XCTAssertEqual(policy.slots.map(policy.key(at:)), [.page, .language, .globe, .space, .symbolPage, .enter])
     }
 
     /// Bundled 9-key: 123 | 中/英 | 空格 | 符 on letters, so 123 and the language key stay where every layout
@@ -268,7 +273,7 @@ final class KeyboardControlPolicyTests: XCTestCase {
         XCTAssertEqual(keys(.letters), [.page, .language, .space, .symbolPage])
         XCTAssertEqual(keys(.numeric), [.returnToLetters, .language, .space, .utility])
         XCTAssertEqual(keys(.symbols), [.language, .page, .space, .symbolLock])
-        XCTAssertEqual(keys(.letters, globe: true), [.page, .globe, .language, .space, .symbolPage])
+        XCTAssertEqual(keys(.letters, globe: true), [.page, .language, .globe, .space, .symbolPage])
         let letters = KeyboardControlPolicy(
             page: .letters, isEnglishMode: false, hasGlobe: false, isPhoneLayout: true,
             usesASCIIPunctuation: false, includesBottomEnter: false)
@@ -627,14 +632,23 @@ final class KeyboardControlPolicyTests: XCTestCase {
                     XCTFail("no space bar on (page)")
                     continue
                 }
-                XCTAssertEqual(slots[space - 1], .markLeft, "comma left of space on (page)")
-                XCTAssertEqual(slots[space + 1], .utility, "full stop right of space on (page)")
-                XCTAssertEqual(policy.key(at: .markLeft), .markLeft)
-                XCTAssertEqual(policy.key(at: .markRight), .markRight)
-                XCTAssertEqual(policy.utility, .punctuation("。"))
+                XCTAssertEqual(slots[space + 1], .utility)
                 XCTAssertEqual(policy.utilityText, "、")
-                XCTAssertEqual(policy.utilityAlternates.first, "・")
                 XCTAssertEqual(policy.fullStopAlternates, ["？", "！", "…"])
+                if globe {
+                    // 123 中/英 🌐 空格 、 换行: the globe holds the comma's slot.
+                    XCTAssertEqual(slots[space - 1], .globe, "globe left of space on \(page)")
+                    XCTAssertFalse(slots.contains(.markLeft))
+                    XCTAssertEqual(policy.utility, .punctuation("、"))
+                    XCTAssertEqual(policy.utilityAlternates.first, "。")
+                } else {
+                    // 123 中/英 、 空格 。 换行
+                    XCTAssertEqual(slots[space - 1], .markLeft, "comma left of space on \(page)")
+                    XCTAssertEqual(policy.key(at: .markLeft), .markLeft)
+                    XCTAssertEqual(policy.key(at: .markRight), .markRight)
+                    XCTAssertEqual(policy.utility, .punctuation("。"))
+                    XCTAssertEqual(policy.utilityAlternates.first, "・")
+                }
             }
         }
     }
@@ -643,9 +657,19 @@ final class KeyboardControlPolicyTests: XCTestCase {
     /// threshold the space bar would drop under 44pt and the caller falls back.
     func testSpaceSideMarksKeepTheRowWidthAndFallBackWhenTooNarrow() {
         let policy = KeyboardControlPolicy(
+            page: .letters, isEnglishMode: false, hasGlobe: false, isPhoneLayout: false,
+            usesASCIIPunctuation: false, script: .japanese, showsSpaceSideMarks: true)
+        let withGlobe = KeyboardControlPolicy(
             page: .letters, isEnglishMode: false, hasGlobe: true, isPhoneLayout: false,
             usesASCIIPunctuation: false, script: .japanese, showsSpaceSideMarks: true)
         for width in [382.0, 390, 430, 768] {
+            // The globe comes and goes in the comma's slot: no other key moves.
+            let marks = policy.metrics(width: width)
+            let globe = withGlobe.metrics(width: width)
+            XCTAssertEqual(globe.globe, marks.markLeft, accuracy: 0.001)
+            for slot in [KeyboardControlPolicy.Slot.page, .language, .space, .utility, .enter] {
+                XCTAssertEqual(globe[slot], marks[slot], accuracy: 0.001, "\(slot) at \(width)")
+            }
             let metrics = policy.metrics(width: width)
             let used =
                 policy.slots.reduce(0) { $0 + metrics[$1] }
@@ -658,7 +682,7 @@ final class KeyboardControlPolicyTests: XCTestCase {
             XCTAssertEqual(metrics.markRight, metrics.markLeft, accuracy: 0.001)
             XCTAssertGreaterThan(metrics.enter, metrics.markRight)
         }
-        XCTAssertLessThan(policy.metrics(width: 320).space, 44)
+        XCTAssertLessThan(policy.metrics(width: 280).space, 44)
         XCTAssertEqual(policy.withSpaceSideMarks(false).slots.contains(.markLeft), false)
     }
 
@@ -693,7 +717,7 @@ final class KeyboardControlPolicyTests: XCTestCase {
             XCTAssertEqual(policy.languageAction, .toggleSymbols)
             XCTAssertEqual(policy.languageTitle, "中/英")
             XCTAssertEqual(policy.languageCurrentSideIsFirst(for: nil), !english)
-            XCTAssertEqual(Array(policy.slots.map(policy.key(at:)).prefix(3)), [.returnToLetters, .globe, .language])
+            XCTAssertEqual(Array(policy.slots.map(policy.key(at:)).prefix(3)), [.returnToLetters, .language, .globe])
         }
         let grid = KeyboardControlPolicy(
             page: .symbols, isEnglishMode: false, hasGlobe: true,
@@ -790,15 +814,14 @@ final class KeyboardControlPolicyTests: XCTestCase {
                     showsSpaceSideMarks: marks, offersSymbolLibrary: true)
                 let footer = symbols.slots.map { symbols.key(at: $0) }
                 var expected: [KeyboardControlPolicy.Slot] = [.returnToLetters]
-                expected += globe ? [.globe] : []
                 expected += [.language]
-                expected += marks ? [.markLeft] : []
+                expected += globe ? [.globe] : marks ? [.markLeft] : []
                 expected += [.space, .symbolLibrary, .enter]
                 XCTAssertEqual(footer, expected, "globe \(globe) marks \(marks)")
                 let metrics = symbols.metrics(width: 390)
                 XCTAssertEqual(metrics[.symbolLibrary], metrics[.utility])
                 if marks {
-                    XCTAssertEqual(metrics[.symbolLibrary], metrics[.markLeft], accuracy: 0.001)
+                    XCTAssertEqual(metrics[.symbolLibrary], metrics[globe ? .globe : .markLeft], accuracy: 0.001)
                     XCTAssertGreaterThan(metrics[.enter], metrics[.symbolLibrary])
                 }
                 // 123 keeps its full stop.

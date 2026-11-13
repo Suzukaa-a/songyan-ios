@@ -40,9 +40,9 @@ final class RomajiLayoutTests: XCTestCase {
             "the Japanese romaji keyboard must be a bundled layout, not only an example file")
     }
 
-    private func japanesePolicy(showsSpaceSideMarks: Bool = true) -> KeyboardControlPolicy {
+    private func japanesePolicy(showsSpaceSideMarks: Bool = true, globe: Bool = false) -> KeyboardControlPolicy {
         KeyboardControlPolicy(
-            page: .letters, isEnglishMode: false, hasGlobe: true, isPhoneLayout: false,
+            page: .letters, isEnglishMode: false, hasGlobe: globe, isPhoneLayout: false,
             usesASCIIPunctuation: false, script: .japanese, showsSpaceSideMarks: showsSpaceSideMarks)
     }
 
@@ -146,6 +146,10 @@ final class RomajiLayoutTests: XCTestCase {
         XCTAssertEqual(policy.key(at: .markRight), .markRight)
         XCTAssertEqual(policy.utility, .punctuation("。"), "the right mark is the full stop")
         XCTAssertFalse(japanesePolicy(showsSpaceSideMarks: false).slots.contains(.markLeft))
+        // The system's globe takes the comma's slot; the key right of the space bar types the comma.
+        let globe = japanesePolicy(globe: true)
+        XCTAssertEqual(globe.slots[space - 1], .globe)
+        XCTAssertEqual(globe.utility, .punctuation("、"))
     }
 
     func testSpaceReturnAndLanguageKeysFollowTheInputLanguage() throws {

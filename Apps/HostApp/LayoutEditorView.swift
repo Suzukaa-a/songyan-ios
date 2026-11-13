@@ -9,6 +9,8 @@ struct LayoutEditorView: View {
     @ObservedObject private var manager = LayoutManager.shared
     @State private var draft: LayoutDefinition
     @State private var selected: LayoutKeyPath = .row(0, key: 0)
+    /// Whether this machine's keyboard draws a globe key; settled once at launch.
+    private let needsGlobe: Bool
     /// The split view edits the keys as they are when the keyboard splits; the other view the whole rows.
     @State private var splitView = false
     @State private var splitSelected = SplitKeyAddress(row: 0, key: 0)
@@ -26,7 +28,9 @@ struct LayoutEditorView: View {
     init(layout: LayoutDefinition, onSaved: ((LayoutDefinition) -> Void)? = nil) {
         // The bottom row opens as the keys the keyboard draws, so it can be edited like any row;
         // saving it unchanged keeps the layout following the keyboard's own row.
-        let editable = LayoutBottomRow.editable(layout)
+        let needsGlobe = KeyboardPreviewPreferences.cached.needsInputModeSwitchKey
+        let editable = LayoutBottomRow.editable(layout).forSystemSwitch(shown: needsGlobe)
+        self.needsGlobe = needsGlobe
         original = editable
         self.onSaved = onSaved
         _draft = State(initialValue: editable)
@@ -135,6 +139,12 @@ struct LayoutEditorView: View {
         }
     }
 
+    /// The main layout keeps a way to the next keyboard on a machine that needs one: its last globe
+    /// key moves but its action stays.
+    private func isProtectedGlobe(_ key: LayoutKey) -> Bool {
+        needsGlobe && draft.rows.flatMap(\.keys).isLastGlobe(key)
+    }
+
     @ViewBuilder
     private var wholeSections: some View {
         Section(String(localized: "点键编辑")) {
@@ -148,20 +158,22 @@ struct LayoutEditorView: View {
             let inBottomRow = bottomIndex != nil && selectedRow == bottomIndex
             // Main-layout function keys draw custom titles at runtime too.
             LayoutKeyFields(
-                key: key, allowsCode: !inBottomRow, allowsTitleMode: true, editsAction: !cyclesQuickSymbols
+                key: key, allowsCode: !inBottomRow, allowsTitleMode: true,
+                editsAction: !cyclesQuickSymbols && !isProtectedGlobe(key)
             ) { updated in
                 draft = draft.replacingKey(at: selected, with: updated)
             }
             .id(selected)
         }
-        SelectedRowKeyActions(rows: rowsBinding, selected: $selected, bottomRow: bottomIndex)
+        SelectedRowKeyActions(
+            rows: rowsBinding, selected: $selected, bottomRow: bottomIndex, protectsGlobe: needsGlobe)
         KeyboardRowsEditor(rows: letterRowsBinding, selected: $selected)
         if let bottomIndex {
             KeyboardBottomRowEditor(
                 keys: Binding(
                     get: { draft.rows[bottomIndex].keys },
                     set: { draft = LayoutBottomRow.replacing($0, in: draft) }),
-                row: bottomIndex, selected: $selected)
+                row: bottomIndex, selected: $selected, offersGlobe: needsGlobe)
         }
         if draft.hasExplicitSplit && !PhoneKeypadStructure.matches(draft) {
             Section {

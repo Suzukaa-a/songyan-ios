@@ -10,6 +10,8 @@ import UIKit
 struct KeyboardPageEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject private var manager = LayoutManager.shared
+    /// Whether this machine's keyboard draws a globe key; settled once at launch.
+    private let needsGlobe: Bool
     @State private var draft: KeyboardPageDefinition
     @State private var selected: KeyboardPageKeyPath = .row(0, key: 0)
     /// Which branch the preview draws; a view of the page, never saved with it.
@@ -45,7 +47,9 @@ struct KeyboardPageEditorView: View {
         usesHandCuts: Bool = false, isPhoneLayout: Bool = false, mainLayout: KeyboardLayoutKind? = nil,
         onSaved: ((KeyboardPageDefinition) -> Void)? = nil
     ) {
-        let materialized = page.materialized()
+        let needsGlobe = KeyboardPreviewPreferences.cached.needsInputModeSwitchKey
+        let materialized = page.materialized().forSystemSwitch(shown: needsGlobe)
+        self.needsGlobe = needsGlobe
         original = materialized
         _draft = State(initialValue: materialized)
         _previewMarks = State(initialValue: materialized.defaultSymbolMarks ?? .chinese)
@@ -130,7 +134,7 @@ struct KeyboardPageEditorView: View {
                         }
                     }
                 }
-                if draft.chrome != nil, !draft.hasInputModeSwitchKey {
+                if needsGlobe, draft.chrome != nil, !draft.hasInputModeSwitchKey {
                     Section {
                         Button(String(localized: "添加\(UserTerminology.globeKey)"), systemImage: "globe") {
                             addInputModeSwitchKey()
@@ -203,14 +207,16 @@ struct KeyboardPageEditorView: View {
         return titles
     }
 
-    /// Adds the globe key the machine may require, at the footer's leftmost slot. Never automatic:
-    /// the save gate reports the missing key and the author decides.
+    /// Adds a globe key. A page may go without one: the author decides.
     private func addInputModeSwitchKey() {
         guard let chrome = draft.chrome, draft.canAppendKey(to: .chrome(.bottom)) else { return }
         let globe = LayoutKey(label: "🌐", action: LayoutAction(.globe), titleMode: .automatic)
-        draft = draft.settingChrome(chrome.settingKeys([globe] + chrome.bottom, in: .bottom))
-            .settingSplitAdjusted(draft.split)
-        selected = .chrome(.bottom, key: 0)
+        // Where the default footer keeps it: immediately left of the space bar.
+        let index = chrome.bottom.firstIndex { $0.action.type == .space } ?? 0
+        var bottom = chrome.bottom
+        bottom.insert(globe, at: index)
+        draft = draft.settingChrome(chrome.settingKeys(bottom, in: .bottom)).settingSplitAdjusted(draft.split)
+        selected = .chrome(.bottom, key: index)
     }
 
     // MARK: - Selected key
@@ -247,7 +253,6 @@ struct KeyboardPageEditorView: View {
         let targets = draft.editableKeyRegions.filter { $0 != current }
         Section(String(localized: "按键位置")) {
             if case .chrome(let region, let index) = selected {
-                let count = draft.chrome?.keys(in: region).count ?? 0
                 HStack {
                     Button(isRail(region) ? String(localized: "上移") : String(localized: "前移")) {
                         apply(draft.reorderingChromeKey(at: selected, by: -1))
@@ -257,7 +262,7 @@ struct KeyboardPageEditorView: View {
                     Button(isRail(region) ? String(localized: "下移") : String(localized: "后移")) {
                         apply(draft.reorderingChromeKey(at: selected, by: 1))
                     }
-                    .disabled(index >= count - 1)
+                    .disabled(index >= (draft.chrome?.keys(in: region).count ?? 0) - 1)
                 }
                 Button(String(localized: "复制按键")) { apply(draft.duplicatingChromeKey(at: selected)) }
                     .disabled(!draft.canAppendKey(to: current))
