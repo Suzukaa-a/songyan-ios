@@ -123,6 +123,7 @@ final class SchemeImportCenter: ObservableObject {
     /// (never the picked filename). Models stay file references end-to-end (each reference
     /// owns a private temporary-file lease released when the last holder drops it); no 420MB Data.
     @Published var providedDownloadFiles: [String: RecipeFileResource] = [:]
+    var providedResourceURLs: [String: URL] = [:]
     /// Non-model provided resources (yaml/dicts) are bounded bytes frozen as immutable
     /// `ProvidedOrdinaryResource`, hashed once in the background acquisition. The core plan API
     /// accepts Data only for these; model bytes stay file references.

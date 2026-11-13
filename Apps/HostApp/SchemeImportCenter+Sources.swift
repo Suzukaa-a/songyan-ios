@@ -36,6 +36,7 @@ extension SchemeImportCenter {
         sourceBaseline = nil
         sourceGeneration = nil
         providedDownloadFiles = [:]
+        providedResourceURLs = [:]
         providedOrdinaryResources = [:]
         lastInstalledPackageID = nil
         let step = Task {
@@ -235,6 +236,7 @@ extension SchemeImportCenter {
                     userNotice = String(
                         localized: "输入方案已安装，但没能记住它的来源。以后更新时，请重新输入来源。")
                 }
+                recordModelSources(packageID: packageID, models: plan.fileResources)
                 sourcePlan = nil
                 acquiredSources = []
                 lastInstalledPackageID = packageID

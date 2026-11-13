@@ -330,6 +330,7 @@ extension SchemeImportCenter {
                 }
             }
             lastInstallReplacedVersion = installedPackages.contains { $0.id == prepared.declaration.id }
+            recordModelSources(packageID: prepared.declaration.id, models: prepared.fileResources)
             self.prepared = nil
             preparedSourceURL = nil
             lastInstalledPackageID = prepared.declaration.id
