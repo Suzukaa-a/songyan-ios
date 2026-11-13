@@ -22,7 +22,7 @@ public enum BuiltinLayouts {
 
     /// Where the unedited bundled 26- and 18-key layouts split when nothing saved says otherwise:
     /// each hand keeps its letters from a physical keyboard, QWERT ASDFG ZXCVB on the left (on 18
-    /// keys three, three and four keys, the BN pair following its B). The cuts live here rather than
+    /// keys three keys a row, so BN and M share the right hand). The cuts live here rather than
     /// on the definitions so a layout copied from them is not tied to them; a copy gets them written
     /// into its own split (`persistingHandCuts(in:)`). 26 keys stays whole
     /// (`off`) until the user turns splitting on. The cuts count letter keys: the key area draws
@@ -34,7 +34,7 @@ public enum BuiltinLayouts {
         let layout: LayoutInput.Builtin
         switch definition.input.builtinLayout {
         case .some(.qwerty26): (layout, breaks) = (.qwerty26, standardLetterRowBreaks)
-        case .some(.merged18): (layout, breaks) = (.merged18, [3, 3, 4])
+        case .some(.merged18): (layout, breaks) = (.merged18, [3, 3, 3])
         default: return nil
         }
         let bundled = preset(for: layout)

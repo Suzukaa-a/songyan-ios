@@ -40,7 +40,7 @@ final class BuiltinLayoutSplitTests: XCTestCase {
         XCTAssertNil(qwerty.resolved(forWidth: 1366))
         let merged = try XCTUnwrap(BuiltinLayouts.handSplit(for: BuiltinLayouts.merged18))
         XCTAssertEqual(merged.activation, .automatic)
-        XCTAssertEqual(merged.rowBreaks, [3, 3, 4])
+        XCTAssertEqual(merged.rowBreaks, [3, 3, 3])
         XCTAssertEqual(merged.gapFraction, LayoutSplitConfiguration.defaultGapFraction)
         XCTAssertTrue(merged.automaticGap)
         XCTAssertNil(BuiltinLayouts.handSplit(for: BuiltinLayouts.merged14))
@@ -62,7 +62,7 @@ final class BuiltinLayoutSplitTests: XCTestCase {
     /// cuts; the cuts it shows are the same ones, and the steppers' saved cuts win.
     func testTurningSplittingOnKeepsTheHandCuts() throws {
         for (layout, cuts, middle) in [
-            (BuiltinLayouts.qwerty26, [5, 5, 5], [5, 5, 4]), (BuiltinLayouts.merged18, [3, 3, 4], [4, 3, 3]),
+            (BuiltinLayouts.qwerty26, [5, 5, 5], [5, 5, 4]), (BuiltinLayouts.merged18, [3, 3, 3], [4, 3, 3]),
         ] {
             let toggled = layout.settingSplit(LayoutSplitConfiguration(activation: .automatic))
             let split = try XCTUnwrap(BuiltinLayouts.handSplit(for: toggled), layout.id)
@@ -103,7 +103,7 @@ final class BuiltinLayoutSplitTests: XCTestCase {
         XCTAssertEqual(
             ActiveLayoutSplit.drawn(
                 main: main, mainWidth: 1024, showsMainLetters: true, showsEnglishLetters: false,
-                authoredPage: nil, pageSplit: nil, contentWidth: 1024)?.rowBreaks, [3, 3, 4])
+                authoredPage: nil, pageSplit: nil, contentWidth: 1024)?.rowBreaks, [3, 3, 3])
     }
 
     /// The preset English page draws like the built-in letters, so it keeps the hand cuts; a page of
@@ -140,7 +140,7 @@ final class BuiltinLayoutSplitTests: XCTestCase {
     /// A saved copy keeps the cuts the editor showed; a changed note on the bundled layout would
     /// not drop them.
     func testACopyKeepsTheShownHandCuts() throws {
-        for (layout, cuts) in [(BuiltinLayouts.qwerty26, [5, 5, 5]), (BuiltinLayouts.merged18, [3, 3, 4])] {
+        for (layout, cuts) in [(BuiltinLayouts.qwerty26, [5, 5, 5]), (BuiltinLayouts.merged18, [3, 3, 3])] {
             let draft = layout.settingSplit(LayoutSplitConfiguration(activation: .automatic))
             let copy = BuiltinLayouts.persistingHandCuts(in: draft).copy()
             XCTAssertEqual(copy.split?.rowBreaks, cuts, layout.id)
@@ -174,10 +174,10 @@ final class BuiltinLayoutSplitTests: XCTestCase {
         XCTAssertEqual(merged.forStandardLetterRows.gapFraction, merged.gapFraction)
     }
 
-    func testEighteenKeysPutThreeThreeAndFourKeysOnTheLeft() throws {
+    func testEighteenKeysPutThreeKeysARowOnTheLeft() throws {
         let split = try XCTUnwrap(BuiltinLayouts.handSplit(for: BuiltinLayouts.merged18)?.resolved(forWidth: 1024))
         let rows = BuiltinLayouts.merged18.rows.prefix(3).map { $0.keys.map(\.label) }
-        XCTAssertEqual(leftLetters(rows, split), ["qwert", "asdfg", "zxcvbn"])
+        XCTAssertEqual(leftLetters(rows, split), ["qwert", "asdfg", "zxcv"])
     }
 
     func testSavedExplicitOffOverridesTheBuiltinDefault() throws {
@@ -232,8 +232,8 @@ final class BuiltinLayoutSplitTests: XCTestCase {
         XCTAssertEqual(fourteen.left, ["qwerty", "asdfgh", "zxcv"])
         XCTAssertEqual(fourteen.right, ["uiop", "jkl", "bnm"])
         let eighteen = leftAndRightLetters(BuiltinLayouts.merged18)
-        XCTAssertEqual(eighteen.left, ["qwert", "asdfg", "zxcvbn"])
-        XCTAssertEqual(eighteen.right, ["yuiop", "hjkl", "m"])
+        XCTAssertEqual(eighteen.left, ["qwert", "asdfg", "zxcv"])
+        XCTAssertEqual(eighteen.right, ["yuiop", "hjkl", "bnm"])
         // The phone pad has no letter rows and never splits.
         XCTAssertNil(BuiltinLayouts.phone9.split)
         XCTAssertNil(BuiltinLayouts.handSplit(for: BuiltinLayouts.phone9))
