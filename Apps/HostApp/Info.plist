@@ -2,6 +2,19 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array><string>app.songyan.ime.configuration-backup</string></array>
+	<key>UIBackgroundModes</key>
+	<array><string>processing</string></array>
+	<key>NSUbiquitousContainers</key>
+	<dict>
+		<key>iCloud.app.songyan.ime</key>
+		<dict>
+			<key>NSUbiquitousContainerIsDocumentScopePublic</key><false/>
+			<key>NSUbiquitousContainerName</key><string>松烟备份</string>
+			<key>NSUbiquitousContainerSupportedFolderLevels</key><string>Any</string>
+		</dict>
+	</dict>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
 	<key>UIFileSharingEnabled</key>

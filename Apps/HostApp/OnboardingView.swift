@@ -88,6 +88,11 @@ struct OnboardingView: View {
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
 
+            if presentation == .standalone && step == 0 {
+                NavigationLink(String(localized: "已有备份？从 iCloud 恢复")) { LearningBackupView() }
+                    .padding(.top, 8)
+            }
+
             // Native page dots overlay the scroll view and obscure large text.
             HStack(spacing: 8) {
                 ForEach(steps.indices, id: \.self) { index in

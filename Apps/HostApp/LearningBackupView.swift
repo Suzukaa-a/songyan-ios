@@ -39,6 +39,7 @@ struct LearningBackupView: View {
 
     var body: some View {
         List {
+            ConfigurationBackupSections()
             sourceSection
             statusSection
             actionSection
@@ -50,7 +51,7 @@ struct LearningBackupView: View {
                 }
             }
         }
-        .navigationTitle(String(localized: "学习备份"))
+        .navigationTitle(String(localized: "备份与恢复"))
         .navigationBarTitleDisplayMode(.inline)
         .task { model.refreshSource() }
         .onAppear { model.activate() }
@@ -124,7 +125,7 @@ struct LearningBackupView: View {
                 Button(String(localized: "重试")) { model.refreshSource() }
             }
         } header: {
-            Text("当前来源")
+            Text("单独备份学习数据 · 当前来源")
         }
     }
 
