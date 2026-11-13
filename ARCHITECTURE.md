@@ -12,7 +12,7 @@ A fact index of modules, targets, dependencies, entry points, data flows, storag
 | Development team | `DEVELOPMENT_TEAM` (empty by default) | [Config/Identity.xcconfig](Config/Identity.xcconfig) |
 | Local overrides | optional, git-ignored `Config/Local.xcconfig`, included last by `Identity.xcconfig` | [Config/Identity.xcconfig](Config/Identity.xcconfig) |
 | Minimum OS / Swift language mode | iOS 17.0 / Swift 5.0 | [project.pbxproj](Songyan.xcodeproj/project.pbxproj) |
-| Version | `MARKETING_VERSION 0.1.0`, `CURRENT_PROJECT_VERSION 1` | [project.pbxproj](Songyan.xcodeproj/project.pbxproj) |
+| Version | `MARKETING_VERSION 0.1.7`, `CURRENT_PROJECT_VERSION 330` (continues TestFlight 0.1.7 / 316) | [project.pbxproj](Songyan.xcodeproj/project.pbxproj) |
 | Extension point | `com.apple.keyboard-service`; `IsASCIICapable=true`, `RequestsOpenAccess=true`, `PrimaryLanguage=zh-Hans` | [Apps/KeyboardExtension/Info.plist](Apps/KeyboardExtension/Info.plist) |
 | Extension build settings | `APPLICATION_EXTENSION_API_ONLY=YES`, `GENERATE_INFOPLIST_FILE=NO`, bridging header `DocumentIdentityBridge.h` | [project.pbxproj](Songyan.xcodeproj/project.pbxproj) |
 

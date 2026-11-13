@@ -26,8 +26,15 @@ class ProjectIdentityConsistencyTests(unittest.TestCase):
                                                     + ['"$(SONGYAN_BUNDLE_ID).performance"'] * 2))
         self.assertNotIn("DEVELOPMENT_TEAM", project)
         self.assertEqual(set(re.findall(r"IPHONEOS_DEPLOYMENT_TARGET = ([^;]+);", project)), {"17.0"})
-        self.assertEqual(set(re.findall(r"MARKETING_VERSION = ([^;]+);", project)), {"0.1.0"})
-        self.assertEqual(set(re.findall(r"CURRENT_PROJECT_VERSION = ([^;]+);", project)), {"1"})
+        # Releases advance these values; host/extension and Debug/Release must agree.
+        versions = re.findall(r"MARKETING_VERSION = ([^;]+);", project)
+        builds = re.findall(r"CURRENT_PROJECT_VERSION = ([^;]+);", project)
+        self.assertEqual(len(versions), 4)
+        self.assertEqual(len(builds), 4)
+        self.assertEqual(len(set(versions)), 1)
+        self.assertEqual(len(set(builds)), 1)
+        self.assertRegex(versions[0], r"^\d+\.\d+\.\d+$")
+        self.assertRegex(builds[0], r"^[1-9]\d*$")
         self.assertEqual(re.findall(r"APPLICATION_EXTENSION_API_ONLY = ([^;]+);", project), ["YES", "YES"])
 
     def test_app_group_flows_from_xcconfig_to_entitlements_plists_and_runtime(self):

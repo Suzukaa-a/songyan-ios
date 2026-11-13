@@ -1235,7 +1235,7 @@
 				CODE_SIGN_ENTITLEMENTS = Apps/HostApp/HostApp.entitlements;
 				INFOPLIST_FILE = Apps/HostApp/Info.plist;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 330;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "松烟";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
@@ -1248,7 +1248,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.1.7;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-lc++",
@@ -1270,7 +1270,7 @@
 				CODE_SIGN_ENTITLEMENTS = Apps/HostApp/HostApp.entitlements;
 				INFOPLIST_FILE = Apps/HostApp/Info.plist;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 330;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "松烟";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
@@ -1283,7 +1283,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.1.7;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-lc++",
@@ -1304,7 +1304,7 @@
 				CODE_SIGN_ENTITLEMENTS = Apps/KeyboardExtension/KeyboardExtension.entitlements;
 				SWIFT_OBJC_BRIDGING_HEADER = Apps/KeyboardExtension/DocumentIdentityBridge.h;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 330;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "Apps/KeyboardExtension/Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1318,7 +1318,7 @@
 					"-lc++",
 					"-lc++abi",
 				);
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.1.7;
 				PRODUCT_BUNDLE_IDENTIFIER = "$(SONGYAN_BUNDLE_ID).keyboard";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -1335,7 +1335,7 @@
 				CODE_SIGN_ENTITLEMENTS = Apps/KeyboardExtension/KeyboardExtension.entitlements;
 				SWIFT_OBJC_BRIDGING_HEADER = Apps/KeyboardExtension/DocumentIdentityBridge.h;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 330;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = "Apps/KeyboardExtension/Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
@@ -1349,7 +1349,7 @@
 					"-lc++",
 					"-lc++abi",
 				);
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.1.7;
 				PRODUCT_BUNDLE_IDENTIFIER = "$(SONGYAN_BUNDLE_ID).keyboard";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
