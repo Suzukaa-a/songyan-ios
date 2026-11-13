@@ -127,6 +127,12 @@ public enum KeyboardLearningTransfer {
         // Container resolution and store construction happen on the dedicated file queue; the main thread does no disk access.
         guard let store = await store() else { return }
 
+        if canYieldEngine(session), isFullAccessGranted(), let resources = session.resourceSet {
+            try? await LearningTransferIO.async {
+                try prepareAutomaticTransfer(store: store, resources: resources)
+            }
+        }
+
         // 1. Read state. Both pending and running continue: running may be an orphan from a crashed
         //    process, and only the execution lease proves the old executor is gone. Terminal states return.
         guard let request = try? await LearningTransferIO.async({ try store.read() }),
@@ -297,7 +303,8 @@ public enum KeyboardLearningTransfer {
             return
         }
         _ = try await LearningTransferIO.async {
-            try store.completeBackup(requestID: claimed.id, lease: lease, archive: archive)
+            try snapshotStore(store).save(archive)
+            return try store.completeBackup(requestID: claimed.id, lease: lease, archive: archive)
         }
     }
 
@@ -355,11 +362,14 @@ public enum KeyboardLearningTransfer {
 
         // The complete safety backup must be on disk, with the flag published, before the merge starts.
         do {
-            guard let safety = try snapshotArchive(claimed: claimed, engine: engine) else {
-                throw KeyboardLearningTransferError.safetyBackupUnavailable
-            }
+            let safety = try snapshotArchive(claimed: claimed, engine: engine)
             try await LearningTransferIO.async {
-                try store.saveSafetyBackup(requestID: claimed.id, lease: lease, archive: safety)
+                if let safety {
+                    try store.saveSafetyBackup(requestID: claimed.id, lease: lease, archive: safety)
+                    try snapshotStore(store).saveSafety(safety)
+                } else {
+                    try store.saveEmptySafetyBackup(requestID: claimed.id, lease: lease)
+                }
             }
         } catch {
             try await fail(store, lease, claimed.id, message: String(localized: "未能保存恢复前备份，已中止合并。"))
@@ -386,9 +396,40 @@ public enum KeyboardLearningTransfer {
         }
 
         let result = importPlan.map(importResultMessage)
+        if let merged = try snapshotArchive(claimed: claimed, engine: engine) {
+            try await LearningTransferIO.async { try snapshotStore(store).save(merged) }
+        }
         _ = try await LearningTransferIO.async {
             try store.completeRestore(requestID: claimed.id, lease: lease, message: result)
         }
+    }
+
+    nonisolated private static func snapshotStore(_ transfer: LearningTransferStore) -> LearningSnapshotStore {
+        LearningSnapshotStore(
+            root: transfer.directory.deletingLastPathComponent().appendingPathComponent(
+                LearningSnapshotStore.directoryName))
+    }
+
+    nonisolated private static func prepareAutomaticTransfer(
+        store: LearningTransferStore, resources: KeyboardResourceSet
+    ) throws {
+        guard let activation = try KeyboardRecipeStore.activation(), activation.recipeEnabled,
+            activation.generation == resources.publicationGeneration,
+            activation.revision == resources.sourceRevision, let source = activation.rosterKey
+        else { return }
+        let snapshots = snapshotStore(store)
+        if try snapshots.advanceRestore(sourceID: source, revision: activation.revision, transfer: store) { return }
+        guard
+            KeyboardRecipeStore.sharedDefaults()?.object(forKey: LearningSnapshotStore.automaticBackupKey) as? Bool
+                != false
+        else { return }
+        let current = try store.read()
+        guard current?.status != .pending, current?.status != .running,
+            try snapshots.shouldAutomaticallyExport(sourceID: source, revision: activation.revision, now: Date())
+        else { return }
+        try snapshots.markAutomaticAttempt(sourceID: source, revision: activation.revision, date: Date())
+        _ = try store.submitBackup(
+            sourceID: source, resourceRevision: activation.revision, sourceName: activation.dictionaryName ?? source)
     }
 
     /// The receipt line of an import: what was merged, and how many of the picked files were left out.
