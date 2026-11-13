@@ -24,6 +24,7 @@ struct SchemePackageImportView: View {
     @ObservedObject private var downloadService = SchemeURLDownloadService.shared
     @State private var recognizedNames: [String: String] = [:]
     @StateObject private var switcher = InputSchemeSwitch()
+    @StateObject private var recommendedDownloads = RecommendedDownloadModel()
 
     /// One use of fileImporter: pick a scheme package source, or supply a local file for a declared external resource.
     enum ImporterPurpose: Equatable {
@@ -139,6 +140,7 @@ struct SchemePackageImportView: View {
             if let message = center.message, !center.busy { messageSection(message) }
         }
         .listStyle(.insetGrouped)
+        .recommendedDownloads(recommendedDownloads, center: center)
         .navigationTitle(isInstalledMode ? String(localized: "方案选项") : UserTerminology.addInputScheme)
         .navigationBarTitleDisplayMode(.inline)
         .task {
@@ -323,9 +325,7 @@ struct SchemePackageImportView: View {
 
     @ViewBuilder
     private var entrySection: some View {
-        RecommendedInputMethodsView(center: center)
-            .listRowInsets(EdgeInsets())
-            .listRowBackground(Color.clear)
+        RecommendedInputMethodsSections(center: center, model: recommendedDownloads)
         Section {
             Button {
                 importerPurpose = .packageSource
@@ -602,14 +602,20 @@ struct SchemePackageImportView: View {
     }
 }
 
+/// Download state shared by the recommended rows and their confirmation sheet. The sheet hangs off a
+/// view that stays mounted, because rows of a lazy List come and go as they scroll.
+@MainActor
+final class RecommendedDownloadModel: ObservableObject {
+    @Published var pendingSource: RecommendedSchemeSource?
+    @Published var downloadingSourceID: String?
+}
+
+/// Recommended input methods as cards, for pages that are not a List (onboarding).
 struct RecommendedInputMethodsView: View {
     @ObservedObject var center = SchemeImportCenter.shared
     var onDownloaded: ((SchemeURLDownloadService.Result) -> Void)?
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @ObservedObject private var downloadService = SchemeURLDownloadService.shared
+    @StateObject private var model = RecommendedDownloadModel()
     @State private var showingOtherSchemes = false
-    @State private var downloadingSourceID: String?
-    @State private var pendingSource: RecommendedSchemeSource?
 
     var body: some View {
         let sources = RecommendedSchemeSource.ordered(preferredLanguages: Locale.preferredLanguages)
@@ -618,26 +624,18 @@ struct RecommendedInputMethodsView: View {
             if let featured = sources.first {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("推荐").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
-                    recommendationSummary(featured)
-                    recommendationAction(featured, prominent: true)
+                    RecommendedSchemeRow(source: featured, prominent: true, center: center, model: model)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(16)
                 .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
+                .accessibilityElement(children: .contain)
                 .accessibilityIdentifier("schemes.featured.\(featured.id)")
                 DisclosureGroup(isExpanded: $showingOtherSchemes) {
                     VStack(spacing: 12) {
                         ForEach(Array(sources.dropFirst())) { source in
                             Divider()
-                            let layout =
-                                dynamicTypeSize.isAccessibilitySize
-                                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
-                                : AnyLayout(HStackLayout(alignment: .top, spacing: 12))
-                            layout {
-                                recommendationSummary(source)
-                                recommendationAction(source, prominent: false)
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                            RecommendedSchemeRow(source: source, prominent: false, center: center, model: model)
                         }
                     }
                     .padding(.top, 12)
@@ -649,47 +647,92 @@ struct RecommendedInputMethodsView: View {
                 .accessibilityIdentifier("schemes.more")
             }
         }
-        .onDisappear { if downloadingSourceID != nil { downloadService.cancel() } }
-        .sheet(item: $pendingSource) { source in
-            NavigationStack {
-                Form {
-                    Section {
-                        Text(source.name).font(.headline)
-                        Text(source.detail).foregroundStyle(.secondary)
-                        Text(
-                            "\(ByteCountFormatter.string(fromByteCount: source.byteCountHint, countStyle: .file)) · \(licenseNames(source))"
-                        )
-                        .font(.footnote).foregroundStyle(.secondary)
-                        Link(String(localized: "查看项目主页"), destination: source.homepage)
-                    }
-                    Section {
-                        Button(String(localized: "下载")) {
-                            pendingSource = nil
-                            startDownload(source)
-                        }
-                        .accessibilityIdentifier("schemes.confirmDownload")
-                    }
-                }
-                .navigationTitle(String(localized: "下载「\(source.name)」？"))
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button(String(localized: "取消")) { pendingSource = nil }
-                    }
-                }
+        .recommendedDownloads(model, center: center, onDownloaded: onDownloaded)
+    }
+}
+
+/// Recommended input methods as List sections: the system animates the rows of the expanding
+/// group itself, which a single row holding cards cannot get. Attach `recommendedDownloads` to the List.
+struct RecommendedInputMethodsSections: View {
+    @ObservedObject var center = SchemeImportCenter.shared
+    @ObservedObject var model: RecommendedDownloadModel
+    @State private var showingOtherSchemes = false
+
+    var body: some View {
+        let sources = RecommendedSchemeSource.ordered(preferredLanguages: Locale.preferredLanguages)
+        if let featured = sources.first {
+            Section {
+                RecommendedSchemeRow(source: featured, prominent: true, center: center, model: model)
+                    .accessibilityElement(children: .contain)
+                    .accessibilityIdentifier("schemes.featured.\(featured.id)")
+            } header: {
+                Text("推荐")
             }
-            .presentationDetents([.medium, .large])
+            Section {
+                DisclosureGroup(isExpanded: $showingOtherSchemes) {
+                    ForEach(Array(sources.dropFirst())) { source in
+                        RecommendedSchemeRow(source: source, prominent: false, center: center, model: model)
+                    }
+                } label: {
+                    Text("更多输入方式（\(sources.count - 1)）")
+                }
+                .accessibilityIdentifier("schemes.more")
+            }
         }
     }
+}
 
-    private func licenseNames(_ source: RecommendedSchemeSource) -> String {
-        var seen = Set<String>()
-        return source.archives.flatMap(\.licenses).map(\.name).filter { seen.insert($0).inserted }.joined(
-            separator: ", ")
+extension View {
+    /// The download confirmation sheet, and cancelling a transfer when the page goes away.
+    func recommendedDownloads(
+        _ model: RecommendedDownloadModel, center: SchemeImportCenter,
+        onDownloaded: ((SchemeURLDownloadService.Result) -> Void)? = nil
+    ) -> some View {
+        modifier(RecommendedDownloadSheet(model: model, center: center, onDownloaded: onDownloaded))
+    }
+}
+
+private struct RecommendedDownloadSheet: ViewModifier {
+    @ObservedObject var model: RecommendedDownloadModel
+    @ObservedObject var center: SchemeImportCenter
+    var onDownloaded: ((SchemeURLDownloadService.Result) -> Void)?
+    @ObservedObject private var downloadService = SchemeURLDownloadService.shared
+
+    func body(content: Content) -> some View {
+        content
+            .onDisappear { if model.downloadingSourceID != nil { downloadService.cancel() } }
+            .sheet(item: $model.pendingSource) { source in
+                NavigationStack {
+                    Form {
+                        Section {
+                            Text(source.name).font(.headline)
+                            Text(source.detail).foregroundStyle(.secondary)
+                            Text(RecommendedSchemeRow.sizeAndLicenses(source))
+                                .font(.footnote).foregroundStyle(.secondary)
+                            Link(String(localized: "查看项目主页"), destination: source.homepage)
+                        }
+                        Section {
+                            Button(String(localized: "下载")) {
+                                model.pendingSource = nil
+                                startDownload(source)
+                            }
+                            .accessibilityIdentifier("schemes.confirmDownload")
+                        }
+                    }
+                    .navigationTitle(String(localized: "下载「\(source.name)」？"))
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button(String(localized: "取消")) { model.pendingSource = nil }
+                        }
+                    }
+                }
+                .presentationDetents([.medium, .large])
+            }
     }
 
     private func startDownload(_ source: RecommendedSchemeSource) {
-        downloadingSourceID = source.id
+        model.downloadingSourceID = source.id
         Task {
             guard let result = try? await downloadService.download(address: source.url.absoluteString) else { return }
             if let onDownloaded {
@@ -701,8 +744,45 @@ struct RecommendedInputMethodsView: View {
             }
         }
     }
+}
 
-    private func recommendationSummary(_ source: RecommendedSchemeSource) -> some View {
+/// One recommended input method: what it is on the leading side, the download button in a fixed
+/// trailing column so every row lines up, and the transfer's progress underneath while it runs.
+private struct RecommendedSchemeRow: View {
+    let source: RecommendedSchemeSource
+    let prominent: Bool
+    @ObservedObject var center: SchemeImportCenter
+    @ObservedObject var model: RecommendedDownloadModel
+    @ObservedObject private var downloadService = SchemeURLDownloadService.shared
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    static func sizeAndLicenses(_ source: RecommendedSchemeSource) -> String {
+        var seen = Set<String>()
+        let licenses = source.archives.flatMap(\.licenses).map(\.name).filter { seen.insert($0).inserted }
+        return "\(ByteCountFormatter.string(fromByteCount: source.byteCountHint, countStyle: .file)) · \(licenses.joined(separator: ", "))"
+    }
+
+    private var isDownloading: Bool { model.downloadingSourceID == source.id && downloadService.isDownloading }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            let layout =
+                dynamicTypeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+                : AnyLayout(HStackLayout(alignment: .center, spacing: 12))
+            layout {
+                summary.frame(maxWidth: .infinity, alignment: .leading)
+                if !isDownloading { downloadButton }
+            }
+            if isDownloading {
+                progress
+            } else if model.downloadingSourceID == source.id, let failure = downloadService.lastError {
+                Text(failure).font(.footnote).foregroundStyle(.red)
+            }
+        }
+    }
+
+    private var summary: some View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: "character.book.closed")
                 .font(.title2)
@@ -711,65 +791,51 @@ struct RecommendedInputMethodsView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(source.name).font(.headline)
                 Text(source.detail).font(.subheadline).foregroundStyle(.secondary)
-                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 1)
-                Text(
-                    "\(ByteCountFormatter.string(fromByteCount: source.byteCountHint, countStyle: .file)) · \(licenseNames(source))"
-                )
-                .font(.footnote).foregroundStyle(.secondary)
+                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? nil : 2)
+                Text(Self.sizeAndLicenses(source)).font(.footnote).foregroundStyle(.secondary)
             }
             .fixedSize(horizontal: false, vertical: true)
         }
     }
 
     @ViewBuilder
-    private func recommendationAction(_ source: RecommendedSchemeSource, prominent: Bool) -> some View {
-        if downloadingSourceID == source.id, downloadService.isDownloading {
-            VStack(alignment: .leading, spacing: 8) {
-                if let progress = downloadService.progress, let total = progress.totalBytes, total > 0 {
-                    ProgressView(value: Double(min(progress.downloadedBytes, total)), total: Double(total))
-                    Text(
-                        "\(HostStorePaths.fileSizeText(progress.downloadedBytes)) / \(HostStorePaths.fileSizeText(total))"
-                    )
-                    .font(.footnote).foregroundStyle(.secondary)
-                } else {
-                    ProgressView(String(localized: "正在下载…"))
-                    if let progress = downloadService.progress, progress.downloadedBytes > 0 {
-                        Text("已下载 \(HostStorePaths.fileSizeText(progress.downloadedBytes))")
-                            .font(.footnote).foregroundStyle(.secondary)
-                    }
-                }
-                Button(String(localized: "取消")) { downloadService.cancel() }
-                    .buttonStyle(.borderless)
-                    .frame(minHeight: 44)
-                    .accessibilityIdentifier("schemes.cancel.\(source.id)")
-            }
-            .accessibilityIdentifier("schemes.progress.\(source.id)")
-        } else {
-            VStack(alignment: .leading, spacing: 8) {
-                if downloadingSourceID == source.id, let failure = downloadService.lastError {
-                    Text(failure).font(.footnote).foregroundStyle(.red)
-                }
-                if prominent {
-                    downloadButton(source)
-                        .buttonStyle(.borderedProminent)
-                } else {
-                    downloadButton(source)
-                        .buttonStyle(.borderless)
-                }
-            }
-        }
-    }
-
-    private func downloadButton(_ source: RecommendedSchemeSource) -> some View {
-        Button {
-            pendingSource = source
+    private var downloadButton: some View {
+        let button = Button {
+            model.pendingSource = source
         } label: {
             Text("下载")
-                .frame(minHeight: 32)
         }
+        .buttonBorderShape(.capsule)
         .disabled(center.busy || downloadService.isDownloading)
         .accessibilityLabel(String(localized: "下载\(source.name)"))
         .accessibilityIdentifier("schemes.download.\(source.id)")
+        if prominent {
+            button.buttonStyle(.borderedProminent)
+        } else {
+            button.buttonStyle(.bordered)
+        }
     }
 
+    private var progress: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if let progress = downloadService.progress, let total = progress.totalBytes, total > 0 {
+                ProgressView(value: Double(min(progress.downloadedBytes, total)), total: Double(total))
+                Text(
+                    "\(HostStorePaths.fileSizeText(progress.downloadedBytes)) / \(HostStorePaths.fileSizeText(total))"
+                )
+                .font(.footnote).foregroundStyle(.secondary)
+            } else {
+                ProgressView(String(localized: "正在下载…"))
+                if let progress = downloadService.progress, progress.downloadedBytes > 0 {
+                    Text("已下载 \(HostStorePaths.fileSizeText(progress.downloadedBytes))")
+                        .font(.footnote).foregroundStyle(.secondary)
+                }
+            }
+            Button(String(localized: "取消")) { downloadService.cancel() }
+                .buttonStyle(.borderless)
+                .frame(minHeight: 44)
+                .accessibilityIdentifier("schemes.cancel.\(source.id)")
+        }
+        .accessibilityIdentifier("schemes.progress.\(source.id)")
+    }
 }
