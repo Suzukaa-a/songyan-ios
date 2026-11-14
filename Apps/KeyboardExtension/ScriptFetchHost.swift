@@ -11,6 +11,26 @@ enum ScriptHostFailure: Equatable, Sendable {
     case networkFailure(message: String)
 }
 
+/// A thread-safe flag shared with the engine thread. The cancel side only writes this flag; the
+/// engine thread observes it between steps and destroys the C runtime itself, because the shared C
+/// API makes no thread-safety promise and is never called from two threads.
+final class ScriptRunCancellation: @unchecked Sendable {
+    private let lock = NSLock()
+    private var cancelled = false
+
+    func cancel() {
+        lock.lock()
+        cancelled = true
+        lock.unlock()
+    }
+
+    var isCancelled: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return cancelled
+    }
+}
+
 /// State shared by the C callbacks of one run. The callbacks execute on the engine thread; the
 /// URLSession observer runs on its own queue, so the counters and the recorded failure are locked.
 final class ScriptFetchHostContext: @unchecked Sendable {
@@ -25,6 +45,9 @@ final class ScriptFetchHostContext: @unchecked Sendable {
     /// replace the transport with URLProtocol to exercise the real URLSession request path without a
     /// network.
     let protocolClasses: [AnyClass]
+    /// Receives each console.log line when set; the keyboard leaves it nil, the app's try box
+    /// shows the lines.
+    var onLog: ((String) -> Void)?
 
     private let lock = NSLock()
     private var requestCount: UInt32 = 0
@@ -185,7 +208,7 @@ enum ScriptFetchHost {
         host.userdata = Unmanaged.passUnretained(context).toOpaque()
         host.authorize = scriptHostAuthorize
         host.fetch = scriptHostFetch
-        host.log = nil
+        host.log = context.onLog == nil ? nil : scriptHostLog
         return host
     }
 
@@ -355,4 +378,13 @@ private func scriptHostFetch(
         errorMessage?.pointee = message
     }
     return action
+}
+
+private func scriptHostLog(
+    _ userdata: UnsafeMutableRawPointer?, _ text: UnsafePointer<CChar>?, _ length: Int
+) {
+    guard let userdata, let text else { return }
+    let context = Unmanaged<ScriptFetchHostContext>.fromOpaque(userdata).takeUnretainedValue()
+    let raw = UnsafeRawBufferPointer(start: text, count: length)
+    context.onLog?(String(decoding: raw.bindMemory(to: UInt8.self), as: UTF8.self))
 }

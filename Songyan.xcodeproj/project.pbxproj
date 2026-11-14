@@ -292,6 +292,7 @@
 		ST2611180000000000000027 /* ScriptNetworkingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = ST2611180000000000000026 /* ScriptNetworkingTests.swift */; };
 		ST2611180000000000000029 /* ScriptFetchHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = ST2611180000000000000028 /* ScriptFetchHost.swift */; };
 		ST2611180000000000000030 /* ScriptFetchHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = ST2611180000000000000028 /* ScriptFetchHost.swift */; };
+		ST2611180000000000000032 /* ScriptFetchHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = ST2611180000000000000028 /* ScriptFetchHost.swift */; };
 		SA2611180000000000000011 /* ScriptAddonCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = SA2611180000000000000001 /* ScriptAddonCatalog.swift */; };
 		SA2611180000000000000012 /* ScriptAddonDirectory.swift in Sources */ = {isa = PBXBuildFile; fileRef = SA2611180000000000000002 /* ScriptAddonDirectory.swift */; };
 		SA2611180000000000000013 /* ScriptAddonCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = SA2611180000000000000001 /* ScriptAddonCatalog.swift */; };
@@ -1089,6 +1090,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				ST2611180000000000000032 /* ScriptFetchHost.swift in Sources */,
 				HE2611180000000000000011 /* ScriptAddonBridge.swift in Sources */,
 				HE2611180000000000000012 /* ScriptAddonCenter.swift in Sources */,
 				HE2611180000000000000013 /* ScriptAddonCenterView.swift in Sources */,

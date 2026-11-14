@@ -192,26 +192,6 @@ enum ScriptToolError: Error, LocalizedError, Equatable, Sendable {
     }
 }
 
-/// A thread-safe flag shared with the engine thread. The cancel side only writes this flag; the
-/// engine thread observes it between steps and destroys the C runtime itself, because the shared C
-/// API makes no thread-safety promise and is never called from two threads.
-final class ScriptRunCancellation: @unchecked Sendable {
-    private let lock = NSLock()
-    private var cancelled = false
-
-    func cancel() {
-        lock.lock()
-        cancelled = true
-        lock.unlock()
-    }
-
-    var isCancelled: Bool {
-        lock.lock()
-        defer { lock.unlock() }
-        return cancelled
-    }
-}
-
 /// One shared-runtime script exposed as ToolKit's TextTool. The header is parsed once (the same C
 /// parser the command-line tool uses), the injected limits and text are copied per run, and the run
 /// drives the real QuickJS engine. A script without @connect stays offline: a fetch() fails with

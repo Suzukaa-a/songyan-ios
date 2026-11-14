@@ -2,9 +2,8 @@ import Foundation
 import ScriptAddonKit
 
 /// Host app marshalling for the shared C script runtime (Tools/Script): the same header
-/// parser and the same pinned QuickJS build the keyboard extension uses. Nothing here
-/// parses JavaScript or runs an engine of its own. HostApp links those C sources and
-/// includes their headers in its bridging header (project registration pending).
+/// parser, the same pinned QuickJS build and the same network host the keyboard extension
+/// uses. Nothing here parses JavaScript or runs an engine of its own.
 struct ScriptAddonBridge: Sendable {
     enum BridgeError: Error, Equatable {
         case invalidConfiguration
@@ -13,24 +12,8 @@ struct ScriptAddonBridge: Sendable {
         case cancelled
     }
 
-    /// Cancels a try run from the UI. The engine loop reads this flag between steps and calls
-    /// the shared runtime's own cancel; the C API is never called from two threads.
-    final class RunCancellation: @unchecked Sendable {
-        private let lock = NSLock()
-        private var cancelled = false
-
-        func cancel() {
-            lock.lock()
-            cancelled = true
-            lock.unlock()
-        }
-
-        var isCancelled: Bool {
-            lock.lock()
-            defer { lock.unlock() }
-            return cancelled
-        }
-    }
+    /// Cancels a try run from the UI; the same flag the keyboard's runs and fetches observe.
+    typealias RunCancellation = ScriptRunCancellation
 
     struct TryRunResult: Equatable {
         var outputs: [String]
@@ -60,9 +43,10 @@ struct ScriptAddonBridge: Sendable {
 
     // MARK: - Try run
 
-    /// Runs once for the editor's try box. No network callbacks are supplied, so fetch
-    /// fails with networkFailure instead of opening a socket; console lines are collected
-    /// and the thrown error's line comes from the shared result.
+    /// Runs once for the editor's try box, the way the keyboard runs it: the real header (so a
+    /// declared @timeout counts), the shared address rule and the same network host, so a script
+    /// that reaches the user's service here reaches it from the keyboard too. Console lines are
+    /// collected and the thrown error's line comes from the shared result.
     func tryRun(
         source: Data, inputText: String?, settingsJSON: String?, limits: ScriptAddonLimits,
         cancellation: RunCancellation? = nil, onLog: @Sendable (String) -> Void
@@ -74,16 +58,21 @@ struct ScriptAddonBridge: Sendable {
             duration_ms: limits.durationMilliseconds, compute_ms: limits.computeMilliseconds,
             request_count: limits.requestCount,
             response_bytes: limits.responseBytes, input_text_bytes: limits.maximumInputTextBytes)
+        let engine = try Engine(source: source, limits: engineLimits)
+        let values =
+            (settingsJSON?.data(using: .utf8)).flatMap {
+                try? JSONSerialization.jsonObject(with: $0) as? [String: Any]
+            } ?? [:]
+        let settingURLs = declarations.settings.filter { $0.kind == .url }.compactMap {
+            values[$0.key] as? String
+        }
+        let context = ScriptFetchHostContext(
+            header: engine.header, settingURLs: settingURLs, requestLimit: limits.requestCount,
+            responseLimit: limits.responseBytes, cancellation: cancellation ?? RunCancellation())
         let collector = LogCollector()
-        let host = songyan_script_host(
-            userdata: Unmanaged.passUnretained(collector).toOpaque(), authorize: nil, fetch: nil,
-            log: { userdata, text, length in
-                guard let userdata, let text else { return }
-                let raw = UnsafeRawBufferPointer(start: text, count: length)
-                let line = String(decoding: raw.bindMemory(to: UInt8.self), as: UTF8.self)
-                Unmanaged<LogCollector>.fromOpaque(userdata).takeUnretainedValue().lines.append(line)
-            })
-        let engine = Engine(declarations: declarations, limits: engineLimits, host: host)
+        context.onLog = { collector.lines.append($0) }
+        defer { context.releaseAllocations() }
+        engine.host = ScriptFetchHost.make(context)
         guard
             let run = engine.makeRun(
                 source: source, inputText: inputText ?? "", settingsJSON: settingsJSON ?? "{}")
@@ -116,8 +105,8 @@ struct ScriptAddonBridge: Sendable {
             case SONGYAN_SCRIPT_STEP_CANCELLED:
                 throw BridgeError.cancelled
             default:
-                throw BridgeError.runtime(
-                    message: "network access is not available in the try box", line: 0)
+                // The shared fetch host answers synchronously, so a run never waits on it here.
+                throw BridgeError.runtime(message: "the run is waiting on a request", line: 0)
             }
         }
         throw BridgeError.runtime(message: "the run did not finish", line: 0)
@@ -154,7 +143,7 @@ struct ScriptAddonBridge: Sendable {
             needsAudio: header.needs & SONGYAN_SCRIPT_CAPABILITY_AUDIO.rawValue != 0)
     }
 
-    private static func text(_ failure: songyan_script_header_error) -> String {
+    fileprivate static func text(_ failure: songyan_script_header_error) -> String {
         var failure = failure
         return withUnsafePointer(to: &failure.message) { pointer in
             pointer.withMemoryRebound(to: CChar.self, capacity: 256) { String(cString: $0) }
@@ -177,33 +166,34 @@ struct ScriptAddonBridge: Sendable {
     /// Owns the C header value for the lifetime of one run, so the configuration's
     /// header pointer stays valid while the run copies what it needs.
     private final class Engine {
-        private let headerStorage: UnsafeMutablePointer<songyan_script_header>
+        let header: UnsafeMutablePointer<songyan_script_header>
         private let limits: songyan_script_limits
-        private let host: songyan_script_host
+        var host = songyan_script_host()
 
-        init(declarations: ScriptDeclarations, limits: songyan_script_limits, host: songyan_script_host) {
-            self.headerStorage = .allocate(capacity: 1)
+        init(source: Data, limits: songyan_script_limits) throws {
+            self.header = .allocate(capacity: 1)
             self.limits = limits
-            self.host = host
             var value = songyan_script_header()
-            value.api = UInt32(declarations.apiVersion)
-            value.name = strdup(declarations.name)
-            value.description = declarations.summary.map { strdup($0) }
-            value.needs =
-                declarations.needsAudio
-                ? SONGYAN_SCRIPT_CAPABILITY_AUDIO.rawValue : SONGYAN_SCRIPT_CAPABILITY_TEXT.rawValue
-            headerStorage.initialize(to: value)
+            var failure = songyan_script_header_error()
+            let status = source.withUnsafeBytes { raw in
+                songyan_script_header_parse(
+                    raw.bindMemory(to: CChar.self).baseAddress, source.count, &value, &failure)
+            }
+            header.initialize(to: value)
+            guard status == SONGYAN_SCRIPT_OK else {
+                throw BridgeError.header(message: ScriptAddonBridge.text(failure), line: Int(failure.line))
+            }
         }
 
         deinit {
-            songyan_script_header_free(headerStorage)
-            headerStorage.deinitialize(count: 1)
-            headerStorage.deallocate()
+            songyan_script_header_free(header)
+            header.deinitialize(count: 1)
+            header.deallocate()
         }
 
         func makeRun(source: Data, inputText: String, settingsJSON: String) -> OpaquePointer? {
             var limits = limits
-            let pointer = headerStorage
+            let pointer = UnsafePointer(header)
             return source.withUnsafeBytes { sourceRaw in
                 let sourcePointer = sourceRaw.bindMemory(to: CChar.self).baseAddress!
                 return inputText.withCString { textPointer in

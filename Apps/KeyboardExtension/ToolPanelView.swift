@@ -303,6 +303,10 @@ struct ToolPanelView: View {
             Text(title)
                 .font(.body)
                 .foregroundStyle(Color(uiColor: appearance.text(on: "key")))
+            if status == .running {
+                // A few seconds in, the elapsed time shows a slow model is being waited on.
+                ToolRunElapsedText(color: Color(uiColor: appearance.text(on: "key", secondary: true)))
+            }
             Spacer(minLength: 0)
         }
         .padding(.horizontal, KeyboardToolsStyle.contentHorizontalInset)
@@ -323,5 +327,23 @@ struct ToolPanelView: View {
         .foregroundStyle(Color(uiColor: appearance.text(on: "panel", secondary: true)))
         .padding(.horizontal, KeyboardToolsStyle.contentHorizontalInset)
         .padding(.top, KeyboardToolsStyle.sectionTopPadding)
+    }
+}
+
+/// Minutes and seconds since the running row appeared; hidden for the first few seconds so a quick
+/// run never flashes a counter. The row is rebuilt for each run, so the start resets with it.
+private struct ToolRunElapsedText: View {
+    let color: Color
+    @State private var start = Date()
+
+    var body: some View {
+        TimelineView(.periodic(from: start, by: 1)) { context in
+            let seconds = Int(context.date.timeIntervalSince(start))
+            if seconds >= 3 {
+                Text(String(format: "%d:%02d", seconds / 60, seconds % 60))
+                    .font(.body.monospacedDigit())
+                    .foregroundStyle(color)
+            }
+        }
     }
 }
