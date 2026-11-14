@@ -12,10 +12,12 @@ public enum MergedKeypadGeometry {
         public let keyWidths: [Double]
     }
 
-    /// `width` is the full row width; `sideWidth` is each side key in the last row.
+    /// `width` is the full row width; `sideWidth` is each side key in the last row. A split board
+    /// passes `matchesUpperKeys`: its last row's keys are no wider than the rows above, and the
+    /// row (side keys with it) is centred rather than stretched across the half.
     public static func rows(
         weights: [[Double]], width: Double, spacing: Double,
-        sideWidth: Double
+        sideWidth: Double, matchesUpperKeys: Bool = false
     ) -> [Row] {
         guard !weights.isEmpty else { return [] }
         let upper = weights.dropLast()
@@ -29,7 +31,8 @@ public enum MergedKeypadGeometry {
         let last = weights[weights.count - 1]
         let available = max(0, width - 2 * (sideWidth + spacing))
         let lastUnits = units(last)
-        let lastUnit = lastUnits > 0 ? max(0, (available - (lastUnits - 1) * spacing) / lastUnits) : 0
+        let fitted = lastUnits > 0 ? max(0, (available - (lastUnits - 1) * spacing) / lastUnits) : 0
+        let lastUnit = matchesUpperKeys ? min(fitted, unit) : fitted
         result.append(
             Row(
                 leadingInset: 0,

@@ -227,14 +227,22 @@ struct KeyboardMergedPad<Key: View, Separator: View, Delete: View>: View {
     var body: some View {
         GeometryReader { geometry in
             let spacing: CGFloat = 4
-            let side = Self.sharedDeleteWidth(for: geometry.size.width)
             let gap = CGFloat(
                 split?.gap(
                     width: Double(geometry.size.width), keyCount: (rows.map { $0.keys.count }.max() ?? 1) + 2) ?? 0)
+            // The word-split key and Delete follow the whole width on one board. Split, each half
+            // holds only a few keys, so they follow the letter keys above them instead (one and a
+            // half of them) and the last row's letters keep the upper rows' width.
+            let upperUnits = rows.dropLast().map { $0.keys.reduce(0) { $0 + $1.widthWeight } }.max() ?? 1
+            let letter = max(0, (Double(geometry.size.width - gap) - (upperUnits - 1) * spacing) / max(1, upperUnits))
+            let side =
+                gap > 0
+                ? min(Self.sharedDeleteWidth(for: geometry.size.width), max(44, CGFloat(letter) * 1.5))
+                : Self.sharedDeleteWidth(for: geometry.size.width)
             let metrics = MergedKeypadGeometry.rows(
                 weights: rows.map { $0.keys.map(\.widthWeight) },
                 width: max(0, geometry.size.width - gap), spacing: spacing,
-                sideWidth: side)
+                sideWidth: side, matchesUpperKeys: gap > 0)
             VStack(spacing: spacing) {
                 ForEach(Array(zip(rows, metrics).enumerated()), id: \.offset) { index, entry in
                     let isLast = index == rows.count - 1
