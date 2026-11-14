@@ -58,9 +58,10 @@ public enum BuiltinLayouts {
             ["zx", "cv", "bn", "m"],
         ]) + [controls],
         note: "两个字母合用一个键，轻点输入。输入方案支持时，向左或向右滑动可只输入左边或右边的字母。",
-        // Wide surfaces split by default so both thumbs reach the merged pairs; a saved split,
-        // including an explicit off, stays authoritative and is never migrated back on.
-        split: LayoutSplitConfiguration())
+        // Five merged keys a row cut only three and two: the halves never balance, so the pad
+        // stays whole on a wide screen by default (capped and docked); splitting every layout
+        // still splits it.
+        split: LayoutSplitConfiguration(activation: .off))
 
     /// Every key must be easy to hit, single letters included. Two-unit pairs would leave
     /// the singles as the narrowest caps on the pad (about 38 pt on a 420 pt phone), so pairs

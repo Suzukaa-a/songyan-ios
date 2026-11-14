@@ -5,8 +5,17 @@ import XCTest
 /// Default split of the merged letter pads: wide surfaces only, while saved layouts (including
 /// an explicit off and a custom break) stay exactly as the author stored them.
 final class BuiltinLayoutSplitTests: XCTestCase {
+    /// 14 keys stay whole: five merged keys a row cut only three and two, so the halves never
+    /// balance. Splitting every layout still splits it.
+    func testThe14KeyPadStaysWholeByDefault() throws {
+        let split = try XCTUnwrap(BuiltinLayouts.merged14.split)
+        XCTAssertEqual(split.activation, .off)
+        XCTAssertNil(split.resolved(forWidth: 1366))
+        XCTAssertNotNil(KeyboardSplitMode.on.applied(to: split)?.resolved(forWidth: 1366))
+    }
+
     func testMergedLayoutsSplitByDefaultOnlyOnWideSurfaces() throws {
-        for layout in [BuiltinLayouts.merged14, BuiltinLayouts.merged18] {
+        for layout in [BuiltinLayouts.merged18] {
             let split = try XCTUnwrap(layout.split, layout.id)
             XCTAssertEqual(split.activation, .automatic)
             XCTAssertNoThrow(try layout.validate())
@@ -30,7 +39,7 @@ final class BuiltinLayoutSplitTests: XCTestCase {
         XCTAssertNil(BuiltinLayouts.qwerty26.split)
         XCTAssertNil(BuiltinLayouts.phone9.split)
         XCTAssertEqual(BuiltinLayouts.merged18.split, LayoutSplitConfiguration())
-        XCTAssertEqual(BuiltinLayouts.merged14.split, LayoutSplitConfiguration())
+        XCTAssertEqual(BuiltinLayouts.merged14.split, LayoutSplitConfiguration(activation: .off))
     }
 
     func testHandCutsApplyToTheUneditedBundled26And18KeyLayoutsOnly() throws {
