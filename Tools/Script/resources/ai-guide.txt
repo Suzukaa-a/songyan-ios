@@ -6,22 +6,21 @@
 用注释写声明，一行一条：
 
 // @api 1
-// @name 加书名号
-// @description 把选中的文字两边加上书名号
-// @connect api.example.com
-// @setting endpoint url 服务地址
-// @secret key 密钥
+// @name 加引号
+// @description 把选中的文字两边加上「」
 
 - @api 和 @name 必填，@api 现在只能是 1。
 - @description 用一句话说清它做什么，可以省略。
-- @connect 写脚本会连的网站域名，只写域名，不带 https:// 和路径，可以写多行。
-- @setting 是用户要填的设置，类型只能是 text、url、choice，最后是给用户看的标签。
-- choice 类型的设置在它下面用 @option 列出可选项，至少两个，第一个是默认值，例如：
+- @connect 写脚本会连的域名，只写域名，不带 https:// 和路径，可以写多行。
+- @setting 是用户要填的设置：@setting 键 类型 标签。类型只能是 text、url、choice。
+- choice 在下面用 @option 列出可选项，至少两个，第一个是默认值：
   // @setting lang choice 译成
   // @option lang 英文
   // @option lang 日文
-- @secret 是密钥，单独保存，不会写进导出的文件。
-- 不认识的声明会让文件导入失败，不要自创。
+- @secret 是密钥：@secret 键 标签。单独保存，不会写进导出的文件。
+- @timeout 300 把最长运行时间改成 300 秒，最多 600。
+- @input audio 表示脚本处理录音（见第四节）。
+- 不认识的声明会让导入失败，不要自创。设置和密钥的值在 settings.键 里。
 
 二、脚本
 export default async ({ text, settings }) => {
@@ -29,17 +28,58 @@ export default async ({ text, settings }) => {
   return text.replace(/\n/g, " ");
 };
 
-能用的全局只有 fetch、FormData、TextEncoder、TextDecoder、console.log，没有别的：没有 DOM、剪贴板、本地存储、定时器，脚本之间也看不到彼此。每次运行都是新环境，结束就销毁。
-
-一次运行默认最多 30 秒（等网络的时间也算）。要等更久的（比如慢的大模型），在开头加一行 // @timeout 300，单位是秒，最多 600。脚本自己计算最多 4 秒，最多发 4 次请求，每次回复最多 64 KB。
-
 返回一段字符串，或一组字符串让用户挑一条。抛出的错误会原样显示给用户，所以错误里写清发生了什么、用户能做什么。
 
-三、联网
-只能连头部声明过的域名，以及用户在设置里亲手填写的地址。不要把密钥发到别的地方。
+能用的全局只有 fetch、FormData、TextEncoder、TextDecoder、console.log。没有 DOM、剪贴板、本地存储、定时器，脚本之间也看不到彼此。每次运行都是新环境。
 
-四、例子（不联网）
+限制：一次运行默认最多 30 秒（等网络也算），脚本自己计算最多 4 秒，最多 4 次请求，每次回复最多 64 KB。
+
+三、联网
+只能连 @connect 写的域名，以及用户在 url 类型设置里填的地址。不要把密钥发到别的地方。
+
+fetch(地址, { method, headers, body })：body 可以是字符串、ArrayBuffer 或 FormData。返回：
+- status、ok：状态码，以及是否 2xx
+- headers.get("名字")：响应头，不区分大小写
+- text()、json()、arrayBuffer()：读正文，每个响应只能读一次
+
+四、例子
+不联网：
+
 // @api 1
-// @name 加书名号
-// @description 把选中的文字两边加上书名号
+// @name 加引号
+// @description 把选中的文字两边加上「」
 export default async ({ text }) => `「${text}」`;
+
+联网，调用用户自己的服务：
+
+// @api 1
+// @name 我的服务
+// @description 把选中的文字交给我的服务处理
+// @setting endpoint url 服务地址
+// @secret key 密钥
+export default async ({ text, settings }) => {
+  const r = await fetch(settings.endpoint, {
+    method: "POST",
+    headers: { Authorization: "Bearer " + settings.key, "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
+  if (!r.ok) throw new Error("服务返回 " + r.status + "，请检查服务地址和密钥");
+  return (await r.json()).text;
+};
+
+语音脚本（只在 Android 上能用）：开头加 // @input audio，输入是 audio，一段 16 kHz 单声道 16 位 WAV 的 ArrayBuffer；返回转写的字符串。
+
+// @api 1
+// @name 语音转文字
+// @input audio
+// @setting endpoint url 服务地址
+// @secret key 密钥
+export default async ({ audio, settings }) => {
+  const r = await fetch(settings.endpoint, {
+    method: "POST",
+    headers: { Authorization: "Bearer " + settings.key, "Content-Type": "audio/wav" },
+    body: audio,
+  });
+  if (!r.ok) throw new Error("服务返回 " + r.status + "，请检查服务地址和密钥");
+  return (await r.json()).text;
+};
