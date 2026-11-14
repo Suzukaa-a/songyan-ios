@@ -89,23 +89,44 @@ public enum CandidateExpandedFlow {
         return max(44, floor(fitted * displayScale + 1e-4) / displayScale)
     }
 
-    /// The flowed rows spread to the full width, so the cells of a row touch and the line between
-    /// two candidates sits halfway between them: each row's spare width is shared equally by its
-    /// cells. The last row is not stretched to the edge; its cells take the earlier rows' average
-    /// share (the column spacing when there is no earlier row), so a short tail keeps the rhythm.
-    public static func justified(_ rows: [Row], availableWidth: CGFloat, spacing: Double) -> [Row] {
-        guard availableWidth.isFinite, availableWidth > 0, !rows.isEmpty else { return rows }
-        let gap = spacing.isFinite ? max(0, CGFloat(spacing)) : 0
-        func share(_ row: Row) -> CGFloat {
-            max(0, availableWidth - row.widths.reduce(0, +)) / CGFloat(max(1, row.widths.count))
+    /// The expanded list as a table of equal columns, the way the system keyboard lays out its
+    /// candidates: the column is as wide as most of the first page needs (three in four fit one),
+    /// a longer candidate spans as many whole columns as it needs, and the last cell of a full row
+    /// takes the columns left over, so every row reaches the edge and every divider falls on the
+    /// same column lines from row to row. Read from the first page only, so pages loading in as
+    /// the list scrolls never move the columns.
+    public static func table(
+        entries: [BrowserCandidate], typography: CandidateTypography, cellPaddingX: Double,
+        availableWidth: CGFloat
+    ) -> [Row] {
+        guard !entries.isEmpty, availableWidth.isFinite, availableWidth > 0 else { return [] }
+        let naturals = entries.map { cellWidth(for: $0, typography: typography, cellPaddingX: cellPaddingX) }
+        let sample = naturals.prefix(firstPageSample).sorted()
+        let target = max(minimumCellWidth, sample[(sample.count * 3) / 4])
+        let columns = max(1, Int((availableWidth / target).rounded(.down)))
+        let unit = availableWidth / CGFloat(columns)
+        var rows: [Row] = []
+        var cells: [BrowserCandidate] = []
+        var spans: [Int] = []
+        func flush(fill: Bool) {
+            guard !cells.isEmpty else { return }
+            if fill { spans[spans.count - 1] += columns - spans.reduce(0, +) }
+            rows.append(Row(entries: cells, widths: spans.map { CGFloat($0) * unit }))
+            cells = []
+            spans = []
         }
-        let full = rows.dropLast()
-        let tail = full.isEmpty ? gap : min(full.map(share).reduce(0, +) / CGFloat(full.count), share(rows.last!))
-        return rows.enumerated().map { index, row in
-            let extra = index == rows.count - 1 ? min(tail, share(row)) : share(row)
-            return Row(entries: row.entries, widths: row.widths.map { $0 + extra })
+        for (entry, natural) in zip(entries, naturals) {
+            let span = min(columns, max(1, Int((natural / unit - 0.001).rounded(.up))))
+            if spans.reduce(0, +) + span > columns { flush(fill: true) }
+            cells.append(entry)
+            spans.append(span)
         }
+        flush(fill: false)
+        return rows
     }
+
+    /// How many leading candidates decide the column width.
+    static let firstPageSample = 10
 
     /// The rows a list draws: the candidates' rows, then empty ones up to `minimumRows` so the
     /// area is ruled to its bottom. One list with one id per row: a lazy stack given two lists

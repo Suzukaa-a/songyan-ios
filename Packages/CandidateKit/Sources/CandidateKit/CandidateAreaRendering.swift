@@ -854,14 +854,9 @@ struct ExpandedCandidateRows: View {
 
     @ViewBuilder
     private func adaptiveContent(availableWidth: CGFloat, rowHeight: CGFloat) -> some View {
-        let rows = CandidateExpandedFlow.justified(
-            CandidateExpandedFlow.layout(
-                entries: entries,
-                expanded: bar.expanded,
-                typography: context.typography,
-                cellPaddingX: bar.collapsed.cellPaddingX,
-                availableWidth: availableWidth),
-            availableWidth: availableWidth, spacing: bar.expanded.columnSpacing)
+        let rows = CandidateExpandedFlow.table(
+            entries: entries, typography: context.typography, cellPaddingX: bar.collapsed.cellPaddingX,
+            availableWidth: availableWidth)
         let prefetch = prefetchRow(rowCounts: rows.map(\.entries.count))
         let items = CandidateExpandedFlow.gridRows(rows, minimumRows: minimumRows)
         // Cells touch and rows touch: hairlines part them, so every point is some candidate's.
@@ -882,7 +877,7 @@ struct ExpandedCandidateRows: View {
         }
     }
 
-    /// One row of the list: every cell as wide as `CandidateExpandedFlow.justified` made it, its
+    /// One row of the list: every cell as wide as its columns in `CandidateExpandedFlow.table`, its
     /// word and comment centred, a hairline between neighbours.
     private func adaptiveRow(_ row: CandidateExpandedFlow.Row, rowHeight: CGFloat) -> some View {
         let reservesComment = Self.reservesCommentLine(row.entries)

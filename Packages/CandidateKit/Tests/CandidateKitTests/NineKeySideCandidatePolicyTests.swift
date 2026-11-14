@@ -101,22 +101,20 @@ final class CandidateJustifiedRowsTests: XCTestCase {
             candidate: Candidate(index: index, text: text, comment: "", selectKey: nil, selectLabel: nil))
     }
 
-    /// Each full row reaches the edge with its cells touching, so the rule between two candidates
-    /// sits halfway between them; the last row keeps the earlier rows' share and stays short.
-    func testFullRowsReachTheEdgeAndTheTailKeepsTheirRhythm() {
+    /// The list is a table: every full row reaches the edge, every cell is a whole number of equal
+    /// columns, so the dividers fall on the same lines from row to row.
+    func testEveryCellIsWholeColumnsAndFullRowsReachTheEdge() {
         let typography = CandidateTypography(candidateSize: 20, secondarySize: 12)
-        let entries = (0..<9).map { entry(String(repeating: "字", count: $0 % 3 + 1), $0) }
-        let flowed = CandidateExpandedFlow.layout(
-            entries: entries, expanded: .init(), typography: typography, cellPaddingX: 7, availableWidth: 300)
-        let rows = CandidateExpandedFlow.justified(flowed, availableWidth: 300, spacing: 5)
+        let entries = (0..<14).map { entry(String(repeating: "字", count: $0 % 4 == 3 ? 4 : 1), $0) }
+        let rows = CandidateExpandedFlow.table(
+            entries: entries, typography: typography, cellPaddingX: 7, availableWidth: 300)
+        let unit = rows[0].widths.min()!
         XCTAssertGreaterThan(rows.count, 1)
         for row in rows.dropLast() { XCTAssertEqual(row.widths.reduce(0, +), 300, accuracy: 0.001) }
-        XCTAssertLessThanOrEqual(rows.last!.widths.reduce(0, +), 300.001)
-        // Every cell of a row grew by the same amount.
-        for (plain, spread) in zip(flowed, rows) {
-            let grown = zip(plain.widths, spread.widths).map { $1 - $0 }
-            XCTAssertTrue(grown.allSatisfy { abs($0 - grown[0]) < 0.001 })
+        for width in rows.flatMap(\.widths) {
+            XCTAssertEqual((width / unit).rounded(), width / unit, accuracy: 0.001)
         }
+        XCTAssertEqual(rows.flatMap(\.entries).count, entries.count)
     }
 
     func testFillerRowsNeverShareAnIdWithTheCandidates() {
