@@ -43,8 +43,9 @@ enum SplitSpaceRowBudget {
     static let controlRowWidth: Double = 320
 }
 
-/// The one split row with a space bar in each half; each native space control owns its own
-/// touch and cursor-pan session.
+/// The split row with the space bar: the halves' keys keep their places and one space bar runs
+/// from the left half across the gutter into the right one, so the thumb on either side finds it
+/// and nothing between the halves is dead.
 struct SplitSpaceKeyboardRow<Key: Hashable, KeyContent: View, Space: View, Fallback: View>: View {
     @Environment(\.keyboardKeyHeight) private var keyHeight
     let leftKeys: [Key]
@@ -76,26 +77,24 @@ struct SplitSpaceKeyboardRow<Key: Hashable, KeyContent: View, Space: View, Fallb
                 leftKeyWidths: leftWidths, rightKeyWidths: rightWidths, spacing: spacing,
                 preferredSpaceWidth: letterWidth * spaceWidthMultiplier)
             {
-                HStack(spacing: 0) {
-                    HStack(spacing: geometry.spacing) {
-                        ForEach(Array(leftKeys.enumerated()), id: \.element) { index, item in
-                            key(item).frame(width: leftWidths[index], height: keyHeight)
-                        }
-                        space().id("left-space").frame(width: geometry.leftSpaceWidth, height: keyHeight)
-                    }.frame(width: geometry.leftWidth)
-                    KeyboardSplitGap().frame(width: geometry.gap + geometry.spacing, height: keyHeight)
-                    HStack(spacing: geometry.spacing) {
-                        space().id("right-space").frame(width: geometry.rightSpaceWidth, height: keyHeight)
-                        ForEach(Array(rightKeys.enumerated()), id: \.element) { index, item in
-                            key(item).frame(width: rightWidths[index], height: keyHeight)
-                        }
-                    }.frame(width: geometry.rightWidth)
+                HStack(spacing: geometry.spacing) {
+                    ForEach(Array(leftKeys.enumerated()), id: \.element) { index, item in
+                        key(item).frame(width: leftWidths[index], height: keyHeight)
+                    }
+                    space().id("space")
+                        .frame(
+                            width: geometry.leftSpaceWidth + geometry.gap + geometry.spacing
+                                + geometry.rightSpaceWidth,
+                            height: keyHeight)
+                    ForEach(Array(rightKeys.enumerated()), id: \.element) { index, item in
+                        key(item).frame(width: rightWidths[index], height: keyHeight)
+                    }
                 }
             } else if narrowUsesFallback {
                 fallback()
             } else {
-                // The user asked for a split and the surface is too narrow for two usable spaces:
-                // keep both spaces and scroll the row instead of silently dropping one.
+                // The user asked for a split and the surface is too narrow for it: keep the space as
+                // wide as the two halves' would be and scroll the row.
                 let spaceWidth = CGFloat(max(44, letterWidth * spaceWidthMultiplier))
                 let gutter = max(CGFloat(24), CGFloat(requested))
                 ScrollView(.horizontal, showsIndicators: false) {
@@ -104,9 +103,7 @@ struct SplitSpaceKeyboardRow<Key: Hashable, KeyContent: View, Space: View, Fallb
                             key(item)
                                 .frame(width: CGFloat(max(44, leftWidths[index])), height: keyHeight)
                         }
-                        space().id("left-space").frame(width: spaceWidth, height: keyHeight)
-                        KeyboardSplitGap().frame(width: max(0, gutter - 4), height: keyHeight)
-                        space().id("right-space").frame(width: spaceWidth, height: keyHeight)
+                        space().id("space").frame(width: spaceWidth * 2 + gutter, height: keyHeight)
                         ForEach(Array(rightKeys.enumerated()), id: \.element) { index, item in
                             key(item)
                                 .frame(width: CGFloat(max(44, rightWidths[index])), height: keyHeight)

@@ -144,19 +144,30 @@ struct WeightedKeyRow: View {
             let boundary = split?.breakIndex(row: rowIndex, keyCount: caps.count)
             let available = max(geometry.size.width - spacing * CGFloat(max(caps.count - 1, 0)) - gap, 0)
             let total = max(caps.reduce(CGFloat.zero) { $0 + CGFloat($1.width) } + edgeUnits * 2, 1)
+            let width = { (cap: KeyCap) in fixedKeyWidth ?? (available * CGFloat(cap.width) / total) }
+            // A space bar cut in two by the split is drawn as one key across the gutter.
+            let joinsSpace =
+                boundary.map { $0 > 0 && $0 < caps.count && caps[$0 - 1].action == .space && caps[$0].action == .space }
+                ?? false
             HStack(spacing: spacing) {
                 ForEach(Array(caps.enumerated()), id: \.element.id) { index, cap in
-                    if index == boundary, gap > 0 {
+                    if index == boundary, gap > 0, !joinsSpace {
                         KeyboardSplitGap().frame(width: gap - spacing, height: keyHeight)
                     }
-                    AlternateCharacterKey(
-                        cap: cap, alternates: alternates(cap),
-                        showsKeyPreview: showsKeyPreview,
-                        visualRole: visualRole, onSelect: onTap
-                    )
-                    .disabled(!isEnabled(cap))
-                    .opacity(isEnabled(cap) ? 1 : 0.45)
-                    .frame(width: fixedKeyWidth ?? (available * CGFloat(cap.width) / total), height: keyHeight)
+                    if !(joinsSpace && index == boundary) {
+                        AlternateCharacterKey(
+                            cap: cap, alternates: alternates(cap),
+                            showsKeyPreview: showsKeyPreview,
+                            visualRole: visualRole, onSelect: onTap
+                        )
+                        .disabled(!isEnabled(cap))
+                        .opacity(isEnabled(cap) ? 1 : 0.45)
+                        .frame(
+                            width: joinsSpace && index == (boundary ?? 0) - 1
+                                ? width(cap) + width(caps[index + 1]) + gap + spacing
+                                : width(cap),
+                            height: keyHeight)
+                    }
                 }
             }
             .padding(

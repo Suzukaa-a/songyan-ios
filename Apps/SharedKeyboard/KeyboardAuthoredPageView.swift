@@ -522,13 +522,10 @@ struct KeyboardAuthoredPageFooter: View {
                     keyView(index: index, keyValue: keys[index])
                         .frame(width: CGFloat(max(minimumWidth, widths[index])), height: keyHeight)
                 }
+                // One space bar across the gutter, as wide as the halves' two would be.
                 keyView(index: space, keyValue: keys[space])
-                    .id("authored-footer-left-space")
-                    .frame(width: spaceWidth, height: keyHeight)
-                KeyboardSplitGap().frame(width: max(0, gap - spacing), height: keyHeight)
-                keyView(index: space, keyValue: keys[space])
-                    .id("authored-footer-right-space")
-                    .frame(width: spaceWidth, height: keyHeight)
+                    .id("authored-footer-space")
+                    .frame(width: spaceWidth * 2 + gap, height: keyHeight)
                 ForEach(Array(right.filter { $0 != space }.enumerated()), id: \.offset) { _, index in
                     keyView(index: index, keyValue: keys[index])
                         .frame(width: CGFloat(max(minimumWidth, widths[index])), height: keyHeight)

@@ -1,6 +1,8 @@
 import Foundation
 
-/// Keeps a usable space bar in each half while preserving the surrounding controls.
+/// Sizes a split row's space bar: each half's share stays usable under its thumb while the
+/// surrounding controls keep their widths; the keyboard joins the two shares across the gutter
+/// into one key.
 public struct SplitSpaceRowGeometry: Equatable, Sendable {
     public let gap: Double
     public let spacing: Double

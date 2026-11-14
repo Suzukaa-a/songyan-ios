@@ -90,13 +90,15 @@ public struct LayoutSplitConfiguration: Codable, Equatable, Sendable {
         halves ?? derivedArrangement(of: rows)
     }
 
-    /// `rows` cut at `rowBreaks`; the space bar of a row becomes one half under each thumb.
+    /// `rows` cut at `rowBreaks`; the space bar of a row is shared by the halves, and the keyboard
+    /// draws it as one key across the gutter.
     public func derivedArrangement(of rows: [LayoutRow]) -> [LayoutSplitRow] {
         rows.indices.map { cut(row: $0, keys: rows[$0].keys) }
     }
 
     /// One row cut where this split says. The space bar of a row is divided between the halves: the
-    /// left gets the keys before it and half its width, the right the other half and the keys after.
+    /// left gets the keys before it and half its width, the right the other half and the keys after;
+    /// the two halves meet across the gutter as one drawn key.
     public func cut(row: Int, keys: [LayoutKey]) -> LayoutSplitRow {
         guard let spaceAt = keys.firstIndex(where: { $0.action.type == .space }) else {
             let at = breakIndex(row: row, keyCount: keys.count)

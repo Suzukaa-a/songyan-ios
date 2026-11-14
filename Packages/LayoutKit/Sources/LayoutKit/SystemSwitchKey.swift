@@ -14,7 +14,7 @@ extension Array where Element == LayoutKey {
             return shown ? self : filter { $0.action.type != .globe }
         }
         if space > 0, self[space - 1].action.type == .globe {
-            // A split footer has a space bar in each half; the comma follows the last of them.
+            // A split footer's space bar may come as two halves; the comma follows the last of them.
             var afterSpace = space + 1
             while afterSpace < count, self[afterSpace].action.type == .space { afterSpace += 1 }
             return enumerated().map { index, key in
