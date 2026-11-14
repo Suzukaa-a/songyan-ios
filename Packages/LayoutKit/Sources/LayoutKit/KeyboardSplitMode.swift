@@ -6,7 +6,9 @@ import Foundation
 public enum KeyboardSplitMode: String, CaseIterable, Sendable {
     /// Each layout's own setting decides.
     case layout
-    /// Every layout splits on a wide surface, at its own row cuts when it has them.
+    /// Every layout without a split of its own splits on a wide surface. A layout its author set
+    /// not to split keeps that, and the 9-key keyboard never splits: its wide-screen form is the
+    /// candidates beside it.
     case on
     /// No layout splits.
     case off
@@ -14,13 +16,14 @@ public enum KeyboardSplitMode: String, CaseIterable, Sendable {
     public static func resolve(_ stored: String?) -> Self { stored.flatMap(Self.init(rawValue:)) ?? .layout }
 
     /// The split that applies to a layout's own `split` under this mode, nil for an unsplit keyboard.
-    public func applied(to split: LayoutSplitConfiguration?) -> LayoutSplitConfiguration? {
+    /// `isPhoneKeypad` is the 9-key shell, which this mode never splits.
+    public func applied(to split: LayoutSplitConfiguration?, isPhoneKeypad: Bool = false) -> LayoutSplitConfiguration? {
         switch self {
         case .off: return nil
         case .layout: return split
         case .on:
-            guard var split else { return LayoutSplitConfiguration() }
-            if split.activation == .off { split.activation = .automatic }
+            if isPhoneKeypad { return split }
+            guard let split else { return LayoutSplitConfiguration() }
             return split
         }
     }

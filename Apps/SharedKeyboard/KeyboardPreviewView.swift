@@ -132,7 +132,10 @@ struct KeyboardMainLayoutPreview: View {
 
     private var activeSplit: ActiveLayoutSplit? {
         KeyboardPanelRules.activeSplit(
-            main: widths.splitMode.applied(to: facts.handSplit ?? definition.split), mainWidth: widths.mainSplit,
+            main: widths.splitMode.applied(
+                to: facts.handSplit ?? definition.split,
+                isPhoneKeypad: definition.input.builtinLayout?.rawValue == KeyboardLayoutKind.phone9.rawValue),
+            mainWidth: widths.mainSplit,
             showsMainLetters: usesConfiguredLayout, pageSplit: nil, contentWidth: widths.content,
             showsEnglishLetters: page == .letters && isEnglishMode && facts.handSplit != nil,
             splitAbove: widths.splitAbove)

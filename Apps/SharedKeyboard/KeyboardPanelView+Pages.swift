@@ -187,7 +187,8 @@ extension KeyboardPanelView {
     /// one continuous row with a single space and no gutter.
     var activeSplit: ActiveLayoutSplit? {
         KeyboardPanelRules.activeSplit(
-            main: widthSettings.splitMode.applied(to: definitionFacts.handSplit ?? activeDefinition?.split),
+            main: widthSettings.splitMode.applied(
+                to: definitionFacts.handSplit ?? activeDefinition?.split, isPhoneKeypad: controller.layout == .phone9),
             mainWidth: widthBox.mainSplitWidth,
             showsMainLetters: page == .letters && !controller.isEnglishMode,
             pageSplit: pageDefinition?.split, contentWidth: widthBox.pageSplitWidth,

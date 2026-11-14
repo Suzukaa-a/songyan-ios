@@ -98,7 +98,7 @@ struct KeyboardPreviewFrame<Content: View>: View {
             panelWidth: raw, settings: widthSettings,
             systemInsetsSides: !resolvesAtWindowWidth && sceneWidth - width > 1)
         let cap = KeyboardPanelRules.wideMaximumContentWidth(
-            rawWidth: raw - 2 * margin, fullWidth: raw, mainSplit: widthSettings.splitMode.applied(to: mainSplit),
+            rawWidth: raw - 2 * margin, fullWidth: raw, mainSplit: widthSettings.splitMode.applied(to: mainSplit, isPhoneKeypad: layout == .phone9),
             layout: layout, splitAbove: splitAbove)
         let side =
             layout == .phone9 && cap != nil
