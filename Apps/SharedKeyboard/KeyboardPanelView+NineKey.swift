@@ -217,16 +217,14 @@ extension KeyboardPanelView {
         return visibleKeys(PhoneKeypadRailPolicy.declaredKeys(in: definition, position: position))
     }
 
-    /// The candidates beside a docked 9-key keyboard: the same expanded candidates the keyboard
-    /// opens over its keys, with their header, placed opposite them. The list lines up with the
-    /// key area and the header with the band above it; the swap button sits in the gap. With
-    /// nothing typed the header still names the area, so the side never reads as empty.
+    /// The candidates beside a docked 9-key keyboard: the same expanded list the keyboard opens
+    /// over its keys, lined up with the key area opposite them; the swap button sits in the gap.
+    /// With nothing typed the list's grid lines still mark out the area.
     func sideCandidateArea(_ plan: NineKeySideCandidatePlan, keyArea: CGRect) -> some View {
         let width = CGFloat(plan.candidateWidth)
         let strip = CGFloat(plan.stripWidth)
         let x = plan.side == .left ? keyArea.minX - strip - width : keyArea.maxX + strip
         let swapX = plan.side == .left ? keyArea.minX - strip : keyArea.maxX
-        let headerHeight = min(keyArea.minY, candidateRowHeight)
         let pending = controller.snapshot.isComposing || !controller.session.pendingCodes.isEmpty
         let live = pending ? candidateAreaContext(sideColumn: true).displayEntries : []
         // A key still decoding empties the list for a moment: the last real candidates stay on
@@ -240,10 +238,7 @@ extension KeyboardPanelView {
         if replaced { sideCandidateHold.outgoing = sideCandidateHold.shown }
         sideCandidateHold.shown = shown
         return ZStack(alignment: .topLeading) {
-            VStack(spacing: 0) {
-                candidateRendererView(expanded: false, sideColumn: true)
-                    .frame(height: headerHeight)
-                ZStack {
+            ZStack {
                     if !sideCandidateHold.outgoing.isEmpty {
                         candidateRendererView(
                             expanded: true, heldEntries: sideCandidateHold.outgoing, sideColumn: true
@@ -253,17 +248,15 @@ extension KeyboardPanelView {
                         .allowsHitTesting(false)
                         .accessibilityHidden(true)
                     }
-                    candidateRendererView(expanded: true, heldEntries: held ? shown : nil, sideColumn: true)
-                        .allowsHitTesting(!held)
-                        .opacity(sideCandidateFade)
-                }
-                .frame(height: keyArea.height)
+                candidateRendererView(expanded: true, heldEntries: held ? shown : nil, sideColumn: true)
+                    .allowsHitTesting(!held)
+                    .opacity(sideCandidateFade)
             }
-            .frame(width: width)
+            .frame(width: width, height: keyArea.height)
             // iOS drops touches on fully transparent pixels of a keyboard extension.
             .background(Color.black.opacity(0.001))
             .padding(.leading, x)
-            .padding(.top, keyArea.minY - headerHeight)
+            .padding(.top, keyArea.minY)
             sideCandidateSwapButton(plan.side, width: plan.stripWidth)
                 .frame(height: keyArea.height)
                 .padding(.leading, swapX)

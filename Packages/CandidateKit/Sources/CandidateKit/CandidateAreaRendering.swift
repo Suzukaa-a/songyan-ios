@@ -676,6 +676,16 @@ private struct DefaultExpandedCandidates: View {
     @Environment(\.candidateSkinToken) private var skin
     @Environment(\.displayScale) private var displayScale
 
+    /// Whole touch rows filling the real scroll viewport: otherwise the fixed keyboard budget
+    /// exposes only the glyph tops of the next row before the user scrolls. The adaptive grid's
+    /// rows sit edge to edge.
+    private func rowHeight(viewport: CGFloat) -> CGFloat {
+        CandidateExpandedFlow.fittedRowHeight(
+            rowAreaHeight: CandidateExpandedFlow.rowAreaHeight(totalHeight: viewport),
+            spacing: context.bar.expanded.isAdaptive ? 0 : CGFloat(context.bar.expandedRowSpacing),
+            displayScale: displayScale)
+    }
+
     private var state: CandidatePresentationState { context.state }
     private var bar: CandidateBarDefinition { context.bar }
     private var entries: [BrowserCandidate] { context.displayEntries }
@@ -691,13 +701,12 @@ private struct DefaultExpandedCandidates: View {
                         context: context,
                         // -4 = 2pt horizontal content padding on each side, so row width does not exceed the visible area.
                         availableWidth: max(0, geometry.size.width - 4),
-                        // Fill the real scroll viewport with whole touch rows.
-                        // Otherwise the fixed keyboard budget exposes only the
-                        // glyph tops of the next row before the user scrolls.
-                        rowHeight: CandidateExpandedFlow.fittedRowHeight(
-                            rowAreaHeight: CandidateExpandedFlow.rowAreaHeight(totalHeight: geometry.size.height),
-                            spacing: CGFloat(context.bar.expandedRowSpacing),
-                            displayScale: displayScale)
+                        rowHeight: rowHeight(viewport: geometry.size.height),
+                        minimumRows: context.bar.expanded.isAdaptive
+                            ? Int(
+                                CandidateExpandedFlow.rowAreaHeight(totalHeight: geometry.size.height)
+                                    / rowHeight(viewport: geometry.size.height) + 0.01)
+                            : 0
                     )
                     .padding(.horizontal, 2)
                     .padding(.top, CandidateExpandedFlow.topInset)
@@ -750,6 +759,9 @@ struct ExpandedCandidateRows: View {
     let context: CandidateAreaContext
     let availableWidth: CGFloat
     let rowHeight: CGFloat
+    /// The adaptive grid draws empty rows up to this many, so its lines fill the area.
+    var minimumRows = 0
+    @Environment(\.displayScale) private var displayScale
     @Environment(\.candidateSkinToken) private var skin
     @Environment(\.colorSchemeContrast) private var contrast
 
@@ -861,27 +873,79 @@ struct ExpandedCandidateRows: View {
             cellPaddingX: bar.collapsed.cellPaddingX,
             availableWidth: availableWidth)
         let prefetch = prefetchRow(rowCounts: rows.map(\.entries.count))
-        LazyVStack(spacing: bar.expandedRowSpacing) {
+        let unit = CandidateExpandedFlow.columnUnit(
+            entries: entries, availableWidth: availableWidth, typography: context.typography,
+            cellPaddingX: bar.collapsed.cellPaddingX)
+        let columns = max(1, Int((availableWidth / unit).rounded()))
+        let blankRows = max(0, minimumRows - rows.count)
+        let total = rows.count + blankRows
+        // Rows sit edge to edge: the grid's own lines part them, so no row spacing.
+        LazyVStack(spacing: 0) {
             ForEach(Array(rows.enumerated()), id: \.offset) { index, row in
-                adaptiveRow(row, rowHeight: rowHeight)
+                adaptiveRow(row, rowHeight: rowHeight, unit: unit, columns: columns, isLast: index == total - 1)
                     .modifier(CandidatePrefetch(context: context, isTrigger: index == prefetch, kind: .expandedTail))
+            }
+            ForEach(0..<blankRows, id: \.self) { index in
+                gridRow(cells: [], unit: unit, columns: columns, rowHeight: rowHeight)
+                    .overlay(alignment: .bottom) { if rows.count + index < total - 1 { gridLine(horizontal: true) } }
+                    .accessibilityHidden(true)
             }
             tailSentinel
         }
     }
 
-    /// One adaptive row: each candidate gets a fixed cell width from its estimated width (single characters do not spread across the row), left-aligned.
-    @ViewBuilder
-    private func adaptiveRow(_ row: CandidateExpandedFlow.Row, rowHeight: CGFloat) -> some View {
-        let reservesComment = Self.reservesCommentLine(row.entries)
-        // Cells already span whole grid columns (`CandidateExpandedFlow.columnUnit`).
-        HStack(alignment: .top, spacing: 0) {
-            ForEach(row.entries.indices, id: \.self) { index in
-                cell(row.entries[index], minimumHeight: rowHeight, reservesCommentLine: reservesComment)
-                    .frame(width: row.widths[index], alignment: .topLeading)
+    /// The faint lines between grid cells: they show where each touch lands, and with nothing to
+    /// show they still mark out the area.
+    private func gridLine(horizontal: Bool) -> some View {
+        let color = skin.secondaryColor.opacity(0.22)
+        let hairline = 1 / max(1, displayScale)
+        return Group {
+            if horizontal {
+                color.frame(height: hairline).padding(.horizontal, 6)
+            } else {
+                color.frame(width: hairline).padding(.vertical, 10)
+            }
+        }
+    }
+
+    /// One row of the grid: `cells` (each with its width) then empty columns to the end, every
+    /// cell but the last followed by a divider.
+    private func gridRow(
+        cells: [(content: AnyView, width: CGFloat)], unit: CGFloat, columns: Int, rowHeight: CGFloat
+    ) -> some View {
+        let used = cells.reduce(CGFloat(0)) { $0 + $1.width }
+        let blanks = max(0, columns - Int((used / unit).rounded()))
+        let slots = cells + Array(repeating: (content: AnyView(Color.clear), width: unit), count: blanks)
+        return HStack(alignment: .top, spacing: 0) {
+            ForEach(slots.indices, id: \.self) { index in
+                slots[index].content
+                    .frame(width: slots[index].width)
+                    .frame(minHeight: rowHeight)
+                    .overlay(alignment: .trailing) {
+                        if index < slots.count - 1 { gridLine(horizontal: false) }
+                    }
             }
             Spacer(minLength: 0)
         }
+    }
+
+    /// One adaptive row: each candidate spans whole grid columns (`CandidateExpandedFlow.columnUnit`)
+    /// with its text centred, so the columns line up from row to row.
+    private func adaptiveRow(
+        _ row: CandidateExpandedFlow.Row, rowHeight: CGFloat, unit: CGFloat, columns: Int, isLast: Bool
+    ) -> some View {
+        let reservesComment = Self.reservesCommentLine(row.entries)
+        let cells = row.entries.indices.map { index in
+            (
+                content: AnyView(
+                    cell(
+                        row.entries[index], minimumHeight: rowHeight, reservesCommentLine: reservesComment,
+                        alignment: .center)),
+                width: row.widths[index]
+            )
+        }
+        return gridRow(cells: cells, unit: unit, columns: columns, rowHeight: rowHeight)
+            .overlay(alignment: .bottom) { if !isLast { gridLine(horizontal: true) } }
     }
 
     /// When any cell in a row carries a real comment/reading, the other cells keep a same-height **blank** comment slot:
@@ -896,7 +960,7 @@ struct ExpandedCandidateRows: View {
     @ViewBuilder
     private func cell(
         _ entry: BrowserCandidate, minimumHeight: CGFloat = 44,
-        reservesCommentLine: Bool = false
+        reservesCommentLine: Bool = false, alignment: Alignment = .leading
     ) -> some View {
         let highlighted = context.isHighlighted(entry)
         Button {
@@ -944,8 +1008,8 @@ struct ExpandedCandidateRows: View {
             .foregroundStyle(skin.candidateColor)
             .padding(.horizontal, bar.collapsed.cellPaddingX)
             .padding(.vertical, 6)
-            .frame(minWidth: 44, minHeight: minimumHeight, alignment: .leading)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(minWidth: 44, minHeight: minimumHeight, alignment: alignment)
+            .frame(maxWidth: .infinity, alignment: alignment)
             .overlay(alignment: .leading) {
                 if highlighted {
                     Capsule().fill(

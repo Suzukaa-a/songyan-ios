@@ -50,6 +50,8 @@ public enum CandidateTextMetrics {
 
 /// Adaptive flow layout of expanded candidates.
 public enum CandidateExpandedFlow {
+    /// How many leading candidates decide the column width.
+    static let firstPageSample = 10
     /// Minimum touch width of a cell (same as the collapsed strip): short candidates keep a tappable area.
     public static let minimumCellWidth: CGFloat = 44
     /// Bottom safety inset of the expanded content: breathing room between the last row and the real bottom bar so touch areas do not hug it.
@@ -121,13 +123,20 @@ public enum CandidateExpandedFlow {
         return entry.text.count > threshold || entry.comment.count > threshold * 3
     }
 
-    /// The column every expanded cell snaps to: about one character plus the cell's padding, so a
-    /// single character gets room around it and the column grows with the text on a wide board.
+    /// The column every expanded cell snaps to: as wide as the list's typical candidate (the
+    /// median of the first page), so most candidates take one column each and the columns line up
+    /// from row to row; never narrower than one character with its padding. Read from the first
+    /// page only, so pages loading in as the list scrolls never move the columns.
     public static func columnUnit(
-        availableWidth: CGFloat, typography: CandidateTypography, cellPaddingX: Double
+        entries: [BrowserCandidate], availableWidth: CGFloat, typography: CandidateTypography,
+        cellPaddingX: Double
     ) -> CGFloat {
         let pad = cellPaddingX.isFinite ? max(0, CGFloat(cellPaddingX)) : 0
-        let target = max(minimumCellWidth, CGFloat(typography.candidateSize) + pad * 2 + 4)
+        let floor = max(minimumCellWidth, CGFloat(typography.candidateSize) + pad * 2 + 4)
+        let sample = entries.prefix(firstPageSample)
+            .map { cellWidth(for: $0, typography: typography, cellPaddingX: cellPaddingX) }
+            .sorted()
+        let target = sample.isEmpty ? floor : max(floor, sample[sample.count / 2])
         guard availableWidth.isFinite, availableWidth > 0 else { return target }
         let columns = max(1, (availableWidth / target).rounded(.down))
         return availableWidth / columns
@@ -146,7 +155,8 @@ public enum CandidateExpandedFlow {
         availableWidth: CGFloat
     ) -> [Row] {
         guard !entries.isEmpty else { return [] }
-        let unit = columnUnit(availableWidth: availableWidth, typography: typography, cellPaddingX: cellPaddingX)
+        let unit = columnUnit(
+            entries: entries, availableWidth: availableWidth, typography: typography, cellPaddingX: cellPaddingX)
         let spacing: CGFloat = 0
         let available =
             availableWidth.isFinite && availableWidth > 0

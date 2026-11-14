@@ -70,3 +70,29 @@ final class CandidateEmojiWidthTests: XCTestCase {
         XCTAssertEqual(CandidateTextMetrics.estimatedWidth("a1", fontSize: 20), 2 * 20 * 0.62, accuracy: 1e-9)
     }
 }
+
+final class CandidateColumnUnitTests: XCTestCase {
+    private func entry(_ text: String, _ index: Int) -> BrowserCandidate {
+        BrowserCandidate(
+            pageIndex: 0, pageLocalIndex: index,
+            candidate: Candidate(index: index, text: text, comment: "", selectKey: nil, selectLabel: nil))
+    }
+
+    /// A list of two-character words gets two-character columns: an emoji among them takes one
+    /// column like the words, so every row divides the same way.
+    func testTheColumnFollowsTheListsTypicalCandidate() {
+        let typography = CandidateTypography(candidateSize: 20, secondarySize: 12)
+        let words = ["奶酪", "🧀", "买来", "难看", "南开", "耐劳", "难堪"].enumerated().map { entry($1, $0) }
+        let rows = CandidateExpandedFlow.layout(
+            entries: words, expanded: .init(), typography: typography, cellPaddingX: 12, availableWidth: 300)
+        XCTAssertTrue(rows.allSatisfy { Set($0.widths).count == 1 }, "\(rows.map(\.widths))")
+        XCTAssertEqual(rows.map(\.entries.count), [4, 3])
+        // Single characters keep narrow columns.
+        let singles = ["你", "忙", "梦", "密"].enumerated().map { entry($1, $0) }
+        XCTAssertLessThan(
+            CandidateExpandedFlow.columnUnit(
+                entries: singles, availableWidth: 300, typography: typography, cellPaddingX: 12),
+            CandidateExpandedFlow.columnUnit(
+                entries: words, availableWidth: 300, typography: typography, cellPaddingX: 12))
+    }
+}
