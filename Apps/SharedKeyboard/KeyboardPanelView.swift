@@ -177,6 +177,9 @@ public struct KeyboardPanelView: View {
     /// Candidates the strip shows whole: expanded, it stays as the first row and the list below
     /// starts after them.
     @State var stripFirstRowCount = 0
+    /// The starting keys have no toolbar: when the ready panel takes over, its tools fade in
+    /// instead of popping up over keys that stay where they were.
+    @State var headerRevealed = false
 
     /// Observation coordinator for definition changes (pure value): distinguishes "the panel's own explicit selection/reconciliation" from
     /// "external registry content replacement". The explicit path registers the expected (from, to) before acting; the observation callback
@@ -872,6 +875,7 @@ public struct KeyboardPanelView: View {
                                 )
                                 .frame(width: proxy.size.width, height: proxy.size.height)
                             }
+                            .opacity(headerRevealed ? 1 : 0)
                         }
                     }
                     .overlay(alignment: .trailing) {
@@ -886,6 +890,7 @@ public struct KeyboardPanelView: View {
                             .contentShape(Rectangle())
                             .accessibilityLabel(String(localized: "收起键盘"))
                             .accessibilityIdentifier("keyboard.wideDismiss")
+                            .opacity(headerRevealed ? 1 : 0)
                         }
                     }
                     .frame(height: CGFloat(plan.headerHeight), alignment: .bottom)
@@ -1089,6 +1094,7 @@ public struct KeyboardPanelView: View {
                 if layoutHintName != nil { layoutHintName = currentInputMethodName }
             }
             .onAppear { refreshContentDock() }
+            .onAppear { withAnimation(.easeOut(duration: 0.2)) { headerRevealed = true } }
             .onChange(of: hostBindingTick) {
                 refreshContentDock()
                 clearSymbolMarksOverride()

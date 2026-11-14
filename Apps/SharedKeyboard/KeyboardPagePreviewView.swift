@@ -75,18 +75,28 @@ struct KeyboardPreviewFrame<Content: View>: View {
     /// The 9-key candidates beside the keys, as the keyboard draws them: the keys narrow and move
     /// to the other side, so the keyboard does not start in one place and jump to another.
     var nineKeyCandidateSide = NineKeyCandidateSide.off
+    /// A preview in a settings card resolves at the window's width and scales down to the card. The
+    /// keyboard's own starting keys sit in the keyboard and must take exactly its width: the
+    /// window is wider wherever the system keeps keys beside the keyboard (an iPhone in landscape),
+    /// and resolving there laid the keys out wider than the keyboard then jumped them in.
+    var resolvesAtWindowWidth = true
     @ViewBuilder var content: (KeyboardPreviewWidths) -> Content
     @State private var width: CGFloat = 0
     @State private var windowWidth: CGFloat = 0
+    @State private var sceneWidth: CGFloat = 0
 
     var body: some View {
         // A Form cell is narrower than the keyboard's window. Resolve at the real surface
         // width first, then scale the complete result; otherwise a preview can drop native
         // footer slots or choose a different split merely because it sits in a padded card.
-        let raw = Double(max(width, windowWidth))
+        let raw = Double(resolvesAtWindowWidth ? max(width, windowWidth) : width)
         let scale = raw > 0 ? min(1, width / CGFloat(raw)) : 1
         let splitAbove = Double(widthSettings.splitWidth)
-        let margin = KeyboardPanelRules.sideMargin(panelWidth: raw, settings: widthSettings)
+        // In the keyboard itself a window wider than the keyboard means the system keeps keys
+        // beside it (an iPhone in landscape), and the keyboard then adds no default margin.
+        let margin = KeyboardPanelRules.sideMargin(
+            panelWidth: raw, settings: widthSettings,
+            systemInsetsSides: !resolvesAtWindowWidth && sceneWidth - width > 1)
         let cap = KeyboardPanelRules.wideMaximumContentWidth(
             rawWidth: raw - 2 * margin, fullWidth: raw, mainSplit: widthSettings.splitMode.applied(to: mainSplit),
             layout: layout, splitAbove: splitAbove)
@@ -103,14 +113,20 @@ struct KeyboardPreviewFrame<Content: View>: View {
         KeyboardPreviewScaleLayout(surfaceWidth: CGFloat(raw), scale: scale) {
             content(
                 KeyboardPreviewWidths(
-                    content: max(0, contentWidth + 2 * margin - 8), mainSplit: raw, splitAbove: splitAbove, splitMode: widthSettings.splitMode)
+                    // The keys get the docked width less the panel's 4 pt sides, as in the
+                    // keyboard: the margins are outside it, not part of the rows.
+                    content: max(0, contentWidth - 8), mainSplit: raw, splitAbove: splitAbove,
+                    splitMode: widthSettings.splitMode)
             )
             .frame(width: CGFloat(contentWidth))
             .padding(.leading, margin > 0 ? CGFloat(plan.leadingInset) : 0)
             .frame(width: CGFloat(raw), alignment: margin > 0 ? .leading : Self.alignment(of: dock))
             .scaleEffect(scale, anchor: .topLeading)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        // The measured width is the space offered, never the content's own: the content is laid
+        // out at the measured width, so following it kept a first, wider pass (the scene's width
+        // before the keyboard settles) for good and the starting keys ran off both edges.
+        .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
         .opacity(width > 0 ? 1 : 0)
         .background {
             GeometryReader { proxy in
@@ -118,7 +134,10 @@ struct KeyboardPreviewFrame<Content: View>: View {
                     .onAppear { width = proxy.size.width }
                     .onChange(of: proxy.size.width) { _, newWidth in width = newWidth }
             }
-            KeyboardPreviewWindowWidth { windowWidth = $0 }
+            KeyboardPreviewWindowWidth { window, scene in
+                windowWidth = window
+                sceneWidth = scene
+            }
         }
     }
 
@@ -148,17 +167,19 @@ private struct KeyboardPreviewScaleLayout: Layout {
 
 /// Use the hosting window, not the screen: iPad multitasking and rotation change the keyboard's
 /// surface without necessarily changing the screen bounds.
+/// The window's width and its scene's: in the keyboard the window is the keyboard, and a scene
+/// wider than it means the system keeps keys beside it.
 private struct KeyboardPreviewWindowWidth: UIViewRepresentable {
-    let onChange: (CGFloat) -> Void
+    let onChange: (CGFloat, CGFloat) -> Void
 
     func makeUIView(context: Context) -> WidthView { WidthView(onChange: onChange) }
     func updateUIView(_ view: WidthView, context: Context) { view.reportWidth() }
 
     final class WidthView: UIView {
-        private let onChange: (CGFloat) -> Void
-        private var reported: CGFloat = 0
+        private let onChange: (CGFloat, CGFloat) -> Void
+        private var reported: (CGFloat, CGFloat) = (0, 0)
 
-        init(onChange: @escaping (CGFloat) -> Void) {
+        init(onChange: @escaping (CGFloat, CGFloat) -> Void) {
             self.onChange = onChange
             super.init(frame: .zero)
             isUserInteractionEnabled = false
@@ -175,9 +196,11 @@ private struct KeyboardPreviewWindowWidth: UIViewRepresentable {
         }
 
         func reportWidth() {
-            guard let width = window?.bounds.width, width > 0, width != reported else { return }
-            reported = width
-            DispatchQueue.main.async { [weak self] in self?.onChange(width) }
+            guard let width = window?.bounds.width, width > 0 else { return }
+            let scene = window?.windowScene?.coordinateSpace.bounds.width ?? width
+            guard (width, scene) != reported else { return }
+            reported = (width, scene)
+            DispatchQueue.main.async { [weak self] in self?.onChange(width, scene) }
         }
     }
 }

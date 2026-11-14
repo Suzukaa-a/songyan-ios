@@ -845,5 +845,6 @@ extension KeyboardPanelView {
         .frame(height: mainAreaHeight)
     }
 
-    static let expandedEditingColumnWidth: CGFloat = 56
+    /// As wide as the strip's collapse control above it, so the two line up.
+    static let expandedEditingColumnWidth: CGFloat = 44
 }

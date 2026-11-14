@@ -656,7 +656,8 @@ struct KeyboardStartingKeys: View {
         KeyboardPreviewFrame(
             layout: layoutKind, mainSplit: layout.split,
             dock: layoutKind.map(KeyboardContentDockPreferences.dock(for:)) ?? .center, widthSettings: widthSettings,
-            nineKeyCandidateSide: NineKeyCandidateSidePreferences.current
+            nineKeyCandidateSide: NineKeyCandidateSidePreferences.current,
+            resolvesAtWindowWidth: false
         ) { widths in
             KeyboardMainLayoutPreview(
                 definition: layout, facts: DefinitionResolutionMemo.Facts(usable: [], active: layout),
