@@ -21,7 +21,8 @@ Cantonese, Japanese and more. The engine runs inside the keyboard on your device
    it with a tool that signs it under your own Apple ID, such as AltStore or Sideloadly. Or build it
    yourself (see below). iOS 17.0 or later.
 2. Add Songyan under Settings → General → Keyboard → Keyboards and turn on Allow Full Access. Full
-   Access is used only to share your schemes and settings between the keyboard and the Songyan app.
+   Access shares your schemes and settings between the keyboard and the Songyan app, and lets the
+   scripts you add go online.
 
 ## What it does
 
@@ -37,34 +38,22 @@ Cantonese, Japanese and more. The engine runs inside the keyboard on your device
   [appearance editor](https://suzukaa-a.github.io/songyan-themes/). Appearance files work on both iOS and Android.
 - **Optional features:** typo correction, prediction, grammar models, and backups of the
   words it learned (shared with Android).
+- **Scripts:** paste or import a bit of JavaScript to add your own feature to the keyboard, such
+  as polishing or translating with your own model. You preview the result before replacing or
+  inserting it, and can undo. The same script works on iOS and Android.
 - Interface in Simplified Chinese, Traditional Chinese and Japanese.
 
 ## Privacy
 
-Songyan collects no personal data and sends nothing to its developers or to anyone else. The keyboard
-never goes online. The app connects to the internet only when you ask it to: downloading or
-updating an input scheme, or downloading a dictionary or model file. What you type and the words it
-learns stay on your device.
+Songyan collects no personal data and sends nothing to its developers or to anyone else. Songyan never
+goes online on its own. The app connects to the internet only when you ask it to: downloading or
+updating an input scheme, downloading a dictionary or model file, or adding a script from a link.
+What you type and the words it learns stay on your device.
 
-## Privacy
-
-- **Songyan itself does not collect data.** There are no accounts, no analytics,
-  no advertising and no tracking, and nothing you type is sent to a Songyan
-  server.
-- **Your scripts can send text off the device.** A script you choose to add and
-  run may send the text it processes to the sites listed on its confirmation
-  page or the addresses you give it, where that script or its service handles it; that transfer does not go
-  through a Songyan server. The App Store privacy disclosure says so: Songyan
-  collects no data itself, while user content can leave the app when you run
-  such a script.
-- **Network.** The host app opens a connection only when you import or update a
-  scheme, download a dictionary or model, or add/update a script from a link.
-  The keyboard extension itself makes no network requests; only the scripts you
-  run can contact the sites listed on their confirmation pages and the addresses
-  you enter in their settings, and nothing else
-  in the extension goes online.
-- **Full Access** is used to share files and settings with the host app
-  through the App Group and to let the scripts you run go online.
+The scripts you add are the exception: when one runs, it sends the text it works on to the sites
+it declares or the addresses you enter in its settings (plain http reaches only an address you
+entered on this device or your local network). Those requests come from the keyboard, need Allow
+Full Access, and do not pass through a Songyan server.
 
 ## Known issues
 
