@@ -136,7 +136,6 @@ private struct CandidateSkinTokenKey: EnvironmentKey {
         panelColor: Color(CandidatePlatformColor.windowBackground))
 }
 
-
 extension EnvironmentValues {
     /// Skin values consumed by the default renderer; the host injects them in the keyboard environment (same source, SkinKit).
     public var candidateSkinToken: CandidateSkinToken {
