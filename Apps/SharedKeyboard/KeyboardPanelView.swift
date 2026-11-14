@@ -359,6 +359,14 @@ public struct KeyboardPanelView: View {
                 .overlay(alignment: .trailing) {
                     if needsHeaderlessToolRail { headerlessWideToolRail }
                 }
+                // Folding or rotating resizes the keyboard inside the system's animation, which
+                // SwiftUI would play over the switch to or from the 9-key side candidates: the
+                // side list fading out, the strip fading in and the keys sliding across flashed
+                // whenever there were candidates. The switch is one step instead.
+                .transaction(value: sideCandidates != nil) { transaction in
+                    transaction.animation = nil
+                    transaction.disablesAnimations = true
+                }
         }
     }
 
