@@ -230,38 +230,57 @@ struct KeyboardMergedPad<Key: View, Separator: View, Delete: View>: View {
             let gap = CGFloat(
                 split?.gap(
                     width: Double(geometry.size.width), keyCount: (rows.map { $0.keys.count }.max() ?? 1) + 2) ?? 0)
-            // The word-split key and Delete follow the whole width on one board. Split, each half
-            // holds only a few keys, so they follow the letter keys above them instead (one and a
-            // half of them) and the last row's letters keep the upper rows' width.
-            let upperUnits = rows.dropLast().map { $0.keys.reduce(0) { $0 + $1.widthWeight } }.max() ?? 1
-            let letter = max(0, (Double(geometry.size.width - gap) - (upperUnits - 1) * spacing) / max(1, upperUnits))
-            let side =
-                gap > 0
-                ? min(Self.sharedDeleteWidth(for: geometry.size.width), max(44, CGFloat(letter) * 1.5))
-                : Self.sharedDeleteWidth(for: geometry.size.width)
+            let side = Self.sharedDeleteWidth(for: geometry.size.width)
             let metrics = MergedKeypadGeometry.rows(
                 weights: rows.map { $0.keys.map(\.widthWeight) },
                 width: max(0, geometry.size.width - gap), spacing: spacing,
-                sideWidth: side, matchesUpperKeys: gap > 0)
+                sideWidth: side)
             VStack(spacing: spacing) {
                 ForEach(Array(zip(rows, metrics).enumerated()), id: \.offset) { index, entry in
                     let isLast = index == rows.count - 1
-                    HStack(spacing: spacing) {
-                        if isLast {
-                            separator().frame(width: side, height: keyHeight)
-                        }
-                        ForEach(Array(entry.0.keys.enumerated()), id: \.offset) { keyIndex, key in
-                            if keyIndex == split?.breakIndex(row: index, keyCount: entry.0.keys.count), gap > 0 {
-                                KeyboardSplitGap().frame(width: gap - spacing, height: keyHeight)
+                    if isLast, gap > 0, let split, rows.count > 1, let upper = metrics.first {
+                        // Split, the last row takes the halves of the rows above, edges and gutter
+                        // in line, the word-split key and Delete as wide as a letter.
+                        let lastBreak = split.breakIndex(row: index, keyCount: entry.0.keys.count)
+                        let widths = MergedKeypadGeometry.splitLastRow(
+                            upperWidths: upper.keyWidths.map { Double($0) },
+                            upperBreak: split.breakIndex(row: 0, keyCount: rows[0].keys.count),
+                            lastWeights: entry.0.keys.map(\.widthWeight), lastBreak: lastBreak,
+                            spacing: Double(spacing))
+                        HStack(spacing: spacing) {
+                            separator().frame(width: CGFloat(widths.left[0]), height: keyHeight)
+                            ForEach(Array(entry.0.keys.enumerated()), id: \.offset) { keyIndex, key in
+                                if keyIndex == lastBreak {
+                                    KeyboardSplitGap().frame(width: gap - spacing, height: keyHeight)
+                                }
+                                self.key(key, index, keyIndex)
+                                    .frame(
+                                        width: CGFloat(
+                                            keyIndex < lastBreak
+                                                ? widths.left[keyIndex + 1] : widths.right[keyIndex - lastBreak]),
+                                        height: keyHeight)
                             }
-                            self.key(key, index, keyIndex)
-                                .frame(width: entry.1.keyWidths[keyIndex], height: keyHeight)
+                            delete().frame(width: CGFloat(widths.right.last ?? 44), height: keyHeight)
                         }
-                        if isLast {
-                            delete().frame(width: side, height: keyHeight)
+                        .frame(width: geometry.size.width)
+                    } else {
+                        HStack(spacing: spacing) {
+                            if isLast {
+                                separator().frame(width: side, height: keyHeight)
+                            }
+                            ForEach(Array(entry.0.keys.enumerated()), id: \.offset) { keyIndex, key in
+                                if keyIndex == split?.breakIndex(row: index, keyCount: entry.0.keys.count), gap > 0 {
+                                    KeyboardSplitGap().frame(width: gap - spacing, height: keyHeight)
+                                }
+                                self.key(key, index, keyIndex)
+                                    .frame(width: entry.1.keyWidths[keyIndex], height: keyHeight)
+                            }
+                            if isLast {
+                                delete().frame(width: side, height: keyHeight)
+                            }
                         }
+                        .frame(width: geometry.size.width)
                     }
-                    .frame(width: geometry.size.width)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
