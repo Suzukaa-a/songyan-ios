@@ -89,6 +89,33 @@ public enum CandidateExpandedFlow {
         return max(44, floor(fitted * displayScale + 1e-4) / displayScale)
     }
 
+    /// The flowed rows spread to the full width, so the cells of a row touch and the line between
+    /// two candidates sits halfway between them: each row's spare width is shared equally by its
+    /// cells. The last row is not stretched to the edge; its cells take the earlier rows' average
+    /// share (the column spacing when there is no earlier row), so a short tail keeps the rhythm.
+    public static func justified(_ rows: [Row], availableWidth: CGFloat, spacing: Double) -> [Row] {
+        guard availableWidth.isFinite, availableWidth > 0, !rows.isEmpty else { return rows }
+        let gap = spacing.isFinite ? max(0, CGFloat(spacing)) : 0
+        func share(_ row: Row) -> CGFloat {
+            max(0, availableWidth - row.widths.reduce(0, +)) / CGFloat(max(1, row.widths.count))
+        }
+        let full = rows.dropLast()
+        let tail = full.isEmpty ? gap : min(full.map(share).reduce(0, +) / CGFloat(full.count), share(rows.last!))
+        return rows.enumerated().map { index, row in
+            let extra = index == rows.count - 1 ? min(tail, share(row)) : share(row)
+            return Row(entries: row.entries, widths: row.widths.map { $0 + extra })
+        }
+    }
+
+    /// The rows a list draws: the candidates' rows, then empty ones up to `minimumRows` so the
+    /// area is ruled to its bottom. One list with one id per row: a lazy stack given two lists
+    /// whose ids overlap draws an empty row in place of a real one.
+    public static func gridRows(_ rows: [Row], minimumRows: Int) -> [(id: Int, row: Row?)] {
+        let filled = rows.enumerated().map { (id: $0.offset, row: Optional($0.element)) }
+        let blanks = (rows.count..<max(rows.count, minimumRows)).map { (id: $0, row: Row?.none) }
+        return filled + blanks
+    }
+
     /// One row: candidates correspond one-to-one with their cell widths (same order as `entries`).
     public struct Row: Equatable, Sendable {
         public let entries: [BrowserCandidate]

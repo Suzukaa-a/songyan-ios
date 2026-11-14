@@ -93,3 +93,39 @@ final class CandidateExpandedFirstRowTests: XCTestCase {
         XCTAssertEqual(context.displayEntries.count, 5, "the strip still has them all")
     }
 }
+
+final class CandidateJustifiedRowsTests: XCTestCase {
+    private func entry(_ text: String, _ index: Int) -> BrowserCandidate {
+        BrowserCandidate(
+            pageIndex: 0, pageLocalIndex: index,
+            candidate: Candidate(index: index, text: text, comment: "", selectKey: nil, selectLabel: nil))
+    }
+
+    /// Each full row reaches the edge with its cells touching, so the rule between two candidates
+    /// sits halfway between them; the last row keeps the earlier rows' share and stays short.
+    func testFullRowsReachTheEdgeAndTheTailKeepsTheirRhythm() {
+        let typography = CandidateTypography(candidateSize: 20, secondarySize: 12)
+        let entries = (0..<9).map { entry(String(repeating: "字", count: $0 % 3 + 1), $0) }
+        let flowed = CandidateExpandedFlow.layout(
+            entries: entries, expanded: .init(), typography: typography, cellPaddingX: 7, availableWidth: 300)
+        let rows = CandidateExpandedFlow.justified(flowed, availableWidth: 300, spacing: 5)
+        XCTAssertGreaterThan(rows.count, 1)
+        for row in rows.dropLast() { XCTAssertEqual(row.widths.reduce(0, +), 300, accuracy: 0.001) }
+        XCTAssertLessThanOrEqual(rows.last!.widths.reduce(0, +), 300.001)
+        // Every cell of a row grew by the same amount.
+        for (plain, spread) in zip(flowed, rows) {
+            let grown = zip(plain.widths, spread.widths).map { $1 - $0 }
+            XCTAssertTrue(grown.allSatisfy { abs($0 - grown[0]) < 0.001 })
+        }
+    }
+
+    func testFillerRowsNeverShareAnIdWithTheCandidates() {
+        let typography = CandidateTypography(candidateSize: 20, secondarySize: 12)
+        let rows = CandidateExpandedFlow.layout(
+            entries: [entry("你", 0), entry("好", 1)], expanded: .init(), typography: typography,
+            cellPaddingX: 12, availableWidth: 300)
+        let grid = CandidateExpandedFlow.gridRows(rows, minimumRows: 4)
+        XCTAssertEqual(grid.map(\.id), [0, 1, 2, 3])
+        XCTAssertNotNil(grid[0].row, "the candidates come first")
+    }
+}
