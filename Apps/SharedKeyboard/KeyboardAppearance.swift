@@ -346,6 +346,22 @@ public enum KeyboardContentDockPreferences {
     }
 }
 
+/// Where the 9-key keyboard puts its expanded candidates on a screen with room beside it: the
+/// left (the default), the right, or nowhere. Re-read per presentation, never per key.
+public enum NineKeyCandidateSidePreferences {
+    public static let key = "keyboard.nineKeyCandidateSide.v1"
+    public static var defaults: UserDefaults { KeyboardRecipeStore.sharedDefaults() ?? .standard }
+
+    public static var current: NineKeyCandidateSide {
+        NineKeyCandidateSide.resolve(SharedPreferences.object(forKey: key, in: defaults) as? String)
+    }
+
+    public static func set(_ side: NineKeyCandidateSide) {
+        SharedPreferences.set(side.rawValue, forKey: key, in: defaults)
+        NotificationCenter.default.post(name: .keyboardContentDockChanged, object: nil)
+    }
+}
+
 extension Notification.Name {
     /// The single appearance-change notification: skin, candidate-area layout and display mode share one
     /// appearance identity, so there is one change channel.

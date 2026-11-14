@@ -1,6 +1,72 @@
 {
   "sourceLanguage": "zh-Hans",
   "strings": {
+    "9 键候选区": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "9キーの候補エリア"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "9 键候选区"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "9 鍵候選區"
+          }
+        }
+      }
+    },
+    "屏幕够宽时，9 键的候选在键盘旁展开，键盘移到另一侧。下次打开键盘时生效。": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "画面に余裕があるとき、9キーの候補をキーボードの横に広げ、キーボードは反対側に寄せます。次にキーボードを開いたときに反映されます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "屏幕够宽时，9 键的候选在键盘旁展开，键盘移到另一侧。下次打开键盘时生效。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "螢幕夠寬時，9 鍵的候選在鍵盤旁展開，鍵盤移到另一側。下次打開鍵盤時生效。"
+          }
+        }
+      }
+    },
+    "候选区换到另一侧": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "候補エリアを反対側へ"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "候选区换到另一侧"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "候選區換到另一側"
+          }
+        }
+      }
+    },
     "选择一个开始": {
       "localizations": {
         "zh-Hans": {

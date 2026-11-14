@@ -167,6 +167,8 @@ public struct KeyboardPanelView: View {
     @State private var contentDock: KeyboardContentDock
     /// The user's split width and side margin, re-read at presentation like the dock (never per key).
     @State var widthSettings = KeyboardWidthPreferences.current
+    /// Where the 9-key keyboard shows its candidates on a wide screen; re-read like the dock.
+    @State var nineKeyCandidateSide = NineKeyCandidateSidePreferences.current
 
     /// Observation coordinator for definition changes (pure value): distinguishes "the panel's own explicit selection/reconciliation" from
     /// "external registry content replacement". The explicit path registers the expected (from, to) before acting; the observation callback
@@ -243,10 +245,20 @@ public struct KeyboardPanelView: View {
                 panelWidth: Double(rawWidth), settings: widthSettings,
                 systemInsetsSides: controller.systemInsetsSides)
             let keyAreaSurface = Double(rawWidth) - 2 * sideMargin
+            let maximumContentWidth = wideMaximumContentWidth(rawWidth: keyAreaSurface, fullWidth: Double(rawWidth))
+            // The capped 9-key keyboard leaves room beside it: the candidates take it and the keys
+            // move to the other side.
+            let sideCandidates =
+                controller.layout == .phone9 && maximumContentWidth != nil
+                ? NineKeySideCandidatePolicy.plan(
+                    keyAreaWidth: keyAreaSurface, keypadWidth: maximumContentWidth ?? 0,
+                    side: nineKeyCandidateSide)
+                : nil
+            let dock = sideCandidates?.keypadDock ?? contentDock
             let widePlan = KeyboardWideContentPolicy.plan(
                 panelWidth: Double(rawWidth),
-                maximumContentWidth: wideMaximumContentWidth(rawWidth: keyAreaSurface, fullWidth: Double(rawWidth)),
-                dock: contentDock, sideMargin: sideMargin)
+                maximumContentWidth: maximumContentWidth,
+                dock: dock, sideMargin: sideMargin)
             // A definition without a candidate area has no header to host the dismiss entry.
             // Wide-only fallback: reserve a real 44pt right rail outside the keys. Standard
             // pages with a header keep their full content width and use the header entry.
@@ -261,7 +273,7 @@ public struct KeyboardPanelView: View {
             let contentIsDocked = widePlan.active || needsHeaderlessToolRail
             let wideSignature = WideContentSignature(
                 isWideSurface: isWideSurface, active: contentIsDocked,
-                headerlessToolRail: needsHeaderlessToolRail, dock: contentDock)
+                headerlessToolRail: needsHeaderlessToolRail, dock: dock)
             let _ = widthBox.record(
                 contentWidth: contentWidth - 8 - CGFloat(2 * sideMargin),
                 mainSplitWidth: rawWidth, pageSplitWidth: contentWidth - 8, sideMargin: CGFloat(sideMargin))
@@ -322,7 +334,13 @@ public struct KeyboardPanelView: View {
                     choiceHold.row = nil
                     KeyboardRoutedTouch.clear()
                 }
-                .frame(width: availableWidth, alignment: wideDockAlignment)
+                .frame(width: availableWidth, alignment: Self.alignment(of: dock))
+                .overlay(alignment: sideCandidates?.side == .right ? .topTrailing : .topLeading) {
+                    if let sideCandidates, !showsCoveringPanel {
+                        sideCandidateColumn(sideCandidates)
+                            .padding(.horizontal, CGFloat(sideMargin))
+                    }
+                }
                 .frame(width: rawWidth, alignment: .topLeading)
                 .overlay(alignment: .trailing) {
                     if needsHeaderlessToolRail { headerlessWideToolRail }
@@ -344,8 +362,18 @@ public struct KeyboardPanelView: View {
             splitAbove: Double(widthSettings.splitWidth))
     }
 
-    private var wideDockAlignment: Alignment {
-        switch contentDock {
+    var candidateSkinToken: CandidateSkinToken {
+        CandidateSkinToken(
+            candidateColor: Color(uiColor: appearance.text(on: "panel")),
+            secondaryColor: Color(uiColor: appearance.text(on: "panel", secondary: true)),
+            accentColor: appearance.accentForeground,
+            panelColor: appearance.color("panel"),
+            fontFamily: appearance.skin.typography.family,
+            fontWeight: appearance.skin.typography.weight)
+    }
+
+    private static func alignment(of dock: KeyboardContentDock) -> Alignment {
+        switch dock {
         case .left: return .topLeading
         case .center: return .top
         case .right: return .topTrailing
@@ -921,16 +949,7 @@ public struct KeyboardPanelView: View {
             \.keyboardDeleteHasComposition,
             { controller.snapshot.isComposing || !controller.session.pendingCodes.isEmpty }
         )
-        .environment(
-            \.candidateSkinToken,
-            CandidateSkinToken(
-                candidateColor: Color(uiColor: appearance.text(on: "panel")),
-                secondaryColor: Color(uiColor: appearance.text(on: "panel", secondary: true)),
-                accentColor: appearance.accentForeground,
-                panelColor: appearance.color("panel"),
-                fontFamily: appearance.skin.typography.family,
-                fontWeight: appearance.skin.typography.weight)
-        )
+        .environment(\.candidateSkinToken, candidateSkinToken)
         .environment(\.keyboardInputLanguage, controller.inputLanguage.language)
         .overlay { KeyboardPopupSurface(view: popupSurface).allowsHitTesting(false) }
         .tint(appearance.accentForeground)
@@ -1078,6 +1097,8 @@ public struct KeyboardPanelView: View {
         let dock = KeyboardContentDockPreferences.dock(for: controller.layout)
         ContentDockCache.docks[controller.layout] = dock
         if contentDock != dock { contentDock = dock }
+        let side = NineKeyCandidateSidePreferences.current
+        if nineKeyCandidateSide != side { nineKeyCandidateSide = side }
         let widths = KeyboardWidthPreferences.refresh()
         if widthSettings != widths {
             widthSettings = widths

@@ -73,6 +73,8 @@ struct InputOptionsView: View {
     @AppStorage(KeyboardKana12Preferences.flickOnlyKey, store: KeyboardKana12Preferences.defaults)
     private var kanaFlickOnly = KeyboardKana12Preferences.defaultFlickOnly
     @State private var wideDockValues: [String: KeyboardContentDock] = [:]
+    @AppStorage(NineKeyCandidateSidePreferences.key, store: NineKeyCandidateSidePreferences.defaults)
+    private var nineKeyCandidateSide = NineKeyCandidateSide.left.rawValue
     /// The split width and side margin being dragged; stored once the finger lifts, so the panel
     /// does not rebuild its keys on every tick.
     @State private var splitWidthDraft = Double(KeyboardWidthSettings.defaultSplitWidth)
@@ -273,10 +275,16 @@ struct InputOptionsView: View {
                 }
                 .accessibilityIdentifier("inputOptions.wideDock.\(layout.rawValue)")
             }
+            Picker("9 键候选区", selection: $nineKeyCandidateSide) {
+                Text("左侧").tag(NineKeyCandidateSide.left.rawValue)
+                Text("右侧").tag(NineKeyCandidateSide.right.rawValue)
+                Text("关闭").tag(NineKeyCandidateSide.off.rawValue)
+            }
+            .accessibilityIdentifier("inputOptions.nineKeyCandidateSide")
         } header: {
             Text("宽屏键盘位置")
         } footer: {
-            Text("下次打开键盘时生效。")
+            Text("屏幕够宽时，9 键的候选在键盘旁展开，键盘移到另一侧。下次打开键盘时生效。")
         }
     }
 

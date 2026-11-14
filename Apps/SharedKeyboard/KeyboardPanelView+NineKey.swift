@@ -211,6 +211,49 @@ extension KeyboardPanelView {
         return visibleKeys(PhoneKeypadRailPolicy.declaredKeys(in: definition, position: position))
     }
 
+    /// The expanded candidates beside a docked 9-key keyboard, with the swap button between them
+    /// and the keys. Blank while nothing is being typed; the swap button stays.
+    func sideCandidateColumn(_ plan: NineKeySideCandidatePlan) -> some View {
+        HStack(spacing: 0) {
+            if plan.side == .right { sideCandidateSwapButton(plan.side) }
+            Group {
+                if controller.snapshot.isComposing && !controller.snapshot.candidates.isEmpty {
+                    candidateRendererView(expanded: true)
+                } else {
+                    Color.clear
+                }
+            }
+            .padding(.vertical, 4)
+            .frame(width: CGFloat(plan.candidateWidth))
+            .frame(maxHeight: .infinity)
+            // iOS drops touches on fully transparent pixels of a keyboard extension.
+            .background(Color.black.opacity(0.001))
+            if plan.side == .left { sideCandidateSwapButton(plan.side) }
+        }
+        .environment(\.keyboardAppearance, keyAppearance)
+        .environment(\.candidateSkinToken, candidateSkinToken)
+    }
+
+    private func sideCandidateSwapButton(_ side: NineKeyCandidateSide) -> some View {
+        Button {
+            emitKeyFeedback()
+            let next = side.mirrored
+            nineKeyCandidateSide = next
+            NineKeyCandidateSidePreferences.set(next)
+        } label: {
+            Image(systemName: "arrow.left.arrow.right")
+                .font(appearance.font(appearance.controlIconSize))
+                .foregroundStyle(Color(uiColor: appearance.text(on: "panel", secondary: true)))
+                .frame(width: CGFloat(NineKeySideCandidatePolicy.swapStripWidth), height: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(KeyboardPressStyle())
+        .frame(width: CGFloat(NineKeySideCandidatePolicy.swapStripWidth))
+        .frame(maxHeight: .infinity)
+        .accessibilityLabel(String(localized: "候选区换到另一侧"))
+        .accessibilityIdentifier("keyboard.sideCandidateSwap")
+    }
+
     var standardT9Keypad: some View {
         StablePhoneKeypadShell(
             trailingSpansControlRow: isBuiltinPhonePad,

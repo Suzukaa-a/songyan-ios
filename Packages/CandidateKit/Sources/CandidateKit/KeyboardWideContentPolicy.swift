@@ -159,3 +159,52 @@ public struct KeyboardWidthSettings: Equatable, Sendable {
         return (clamped / sideMarginPercentStep).rounded() * sideMarginPercentStep
     }
 }
+
+/// Where the 9-key keyboard shows its expanded candidates on a screen with room beside it.
+public enum NineKeyCandidateSide: String, CaseIterable, Sendable {
+    case left, right, off
+
+    /// Unknown or missing stored values fall back to the left, the default.
+    public static func resolve(_ storedValue: String?) -> Self {
+        storedValue.flatMap(Self.init(rawValue:)) ?? .left
+    }
+
+    /// The other side; off stays off.
+    public var mirrored: Self {
+        switch self {
+        case .left: return .right
+        case .right: return .left
+        case .off: return .off
+        }
+    }
+}
+
+/// The candidate column beside a docked 9-key keyboard.
+public struct NineKeySideCandidatePlan: Equatable, Sendable {
+    /// `.left` or `.right`, never `.off`.
+    public let side: NineKeyCandidateSide
+    /// Width of the candidate column, the swap button's strip not included.
+    public let candidateWidth: Double
+
+    /// The keys sit on the side away from the candidates.
+    public var keypadDock: KeyboardContentDock { side == .left ? .right : .left }
+}
+
+/// Decides whether the room a capped 9-key keyboard leaves on a wide screen is enough for a
+/// column of expanded candidates. Geometry only; the panel owns what is drawn there.
+public enum NineKeySideCandidatePolicy {
+    /// Narrower than this the column would show a word or two per row; the side stays blank.
+    public static let minimumCandidateWidth: Double = 200
+    /// The strip between the candidates and the keys that holds the swap button.
+    public static let swapStripWidth: Double = 40
+
+    /// `keyAreaWidth` is the width left after the side margins; `keypadWidth` the capped keys.
+    public static func plan(
+        keyAreaWidth: Double, keypadWidth: Double, side: NineKeyCandidateSide
+    ) -> NineKeySideCandidatePlan? {
+        guard side != .off, keyAreaWidth.isFinite, keypadWidth.isFinite, keypadWidth > 0 else { return nil }
+        let candidateWidth = keyAreaWidth - keypadWidth - swapStripWidth
+        guard candidateWidth >= minimumCandidateWidth else { return nil }
+        return NineKeySideCandidatePlan(side: side, candidateWidth: candidateWidth)
+    }
+}
