@@ -53,17 +53,18 @@ learns stay on your device.
   server.
 - **Your scripts can send text off the device.** A script you choose to add and
   run may send the text it processes to the sites listed on its confirmation
-  page, where that script or its service handles it; that transfer does not go
+  page or the addresses you give it, where that script or its service handles it; that transfer does not go
   through a Songyan server. The App Store privacy disclosure says so: Songyan
   collects no data itself, while user content can leave the app when you run
   such a script.
 - **Network.** The host app opens a connection only when you import or update a
   scheme, download a dictionary or model, or add/update a script from a link.
   The keyboard extension itself makes no network requests; only the scripts you
-  run can contact the sites listed on their confirmation pages, and nothing else
+  run can contact the sites listed on their confirmation pages and the addresses
+  you enter in their settings, and nothing else
   in the extension goes online.
-- **Full Access** is used only to share files and settings with the host app
-  through the App Group.
+- **Full Access** is used to share files and settings with the host app
+  through the App Group and to let the scripts you run go online.
 
 ## Known issues
 
