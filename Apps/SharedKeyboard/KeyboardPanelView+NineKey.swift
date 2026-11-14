@@ -239,15 +239,15 @@ extension KeyboardPanelView {
         sideCandidateHold.shown = shown
         return ZStack(alignment: .topLeading) {
             ZStack {
-                    if !sideCandidateHold.outgoing.isEmpty {
-                        candidateRendererView(
-                            expanded: true, heldEntries: sideCandidateHold.outgoing, sideColumn: true
-                        )
-                        .opacity(sideCandidateOutgoing)
-                        // Only ever a picture of the last list: a touch always lands on the new one.
-                        .allowsHitTesting(false)
-                        .accessibilityHidden(true)
-                    }
+                if !sideCandidateHold.outgoing.isEmpty {
+                    candidateRendererView(
+                        expanded: true, heldEntries: sideCandidateHold.outgoing, sideColumn: true
+                    )
+                    .opacity(sideCandidateOutgoing)
+                    // Only ever a picture of the last list: a touch always lands on the new one.
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+                }
                 candidateRendererView(expanded: true, heldEntries: held ? shown : nil, sideColumn: true)
                     .allowsHitTesting(!held)
                     .opacity(sideCandidateFade)
