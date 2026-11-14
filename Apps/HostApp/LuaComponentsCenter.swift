@@ -125,14 +125,14 @@ extension SchemeImportCenter {
             plan: { context in
                 guard !LuaComponents.userOwnsSetting(customYAML: context.snapshot.files[schemaID + ".custom.yaml"])
                 else {
-                    throw RecipeInstallError.invalidResource(String(localized: "此输入方式的扩展功能由方案配置决定"))
+                    throw RecipeInstallError.invalidResource(String(localized: "此输入方式的Lua 功能由方案配置决定"))
                 }
                 let recipe = try LuaComponents.make(schemaID: schemaID, baseline: baseline, disabled: disabled)
                 return ManagedPatchPlan(recipe: recipe, change: ())
             },
             verify: { engine, enabledIDs, deployment, _ in
                 guard enabledIDs.contains(schemaID) else {
-                    throw RecipeInstallError.deployment(String(localized: "扩展功能：输入方式「\(schemaID)」未启用"))
+                    throw RecipeInstallError.deployment(String(localized: "Lua 功能：输入方式「\(schemaID)」未启用"))
                 }
                 let build = deployment.userDataURL.appendingPathComponent("build")
                 let components = Set(engine.schemaComponents(schemaID))
@@ -144,7 +144,7 @@ extension SchemeImportCenter {
                         compiled: compiled, schemaID: schemaID,
                         baseline: baseline, disabled: disabled)
                 else {
-                    throw RecipeInstallError.deployment(String(localized: "扩展功能配置读取不一致：输入方式「\(schemaID)」"))
+                    throw RecipeInstallError.deployment(String(localized: "Lua 功能配置读取不一致：输入方式「\(schemaID)」"))
                 }
             })
         return PredictionOutcome(changed: true, previousRevision: result.previousRevision)
@@ -158,7 +158,7 @@ struct LuaComponentsView: View {
     var body: some View {
         List {
             if center.sources.isEmpty {
-                Text(center.loading ? String(localized: "正在读取…") : String(localized: "已安装的输入方案未包含扩展功能。"))
+                Text(center.loading ? String(localized: "正在读取…") : String(localized: "已安装的输入方案未包含Lua 功能。"))
                     .font(.footnote).foregroundStyle(.secondary)
             }
             if center.working {
@@ -196,7 +196,7 @@ struct LuaComponentsView: View {
                 }
             }
         }
-        .navigationTitle(String(localized: "扩展功能"))
+        .navigationTitle(String(localized: "Lua 功能"))
         .navigationBarTitleDisplayMode(.inline)
         .task { await center.refresh() }
     }

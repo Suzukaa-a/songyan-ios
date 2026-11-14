@@ -24,7 +24,7 @@ struct ToolPanelEntry: Identifiable, Equatable, Sendable {
         case .ready:
             return nil
         case .missingCapabilities:
-            return String(localized: "缺少这个工具需要的输入能力，暂时不能运行")
+            return String(localized: "这台设备上不可用")
         }
     }
 }
@@ -50,22 +50,22 @@ enum ToolPanelMessage: Equatable, Sendable {
     var text: String {
         switch self {
         case .noTextInput:
-            return String(localized: "这里没有可以交给工具的文字")
+            return String(localized: "这里没有可以交给脚本的文字")
         case .secureEntry:
-            return String(localized: "密码输入框不能使用工具")
+            return String(localized: "密码输入框不能使用脚本")
         case .missingCapabilities:
-            return String(localized: "当前设备缺少这个工具需要的输入能力")
+            return String(localized: "这台设备上不可用")
         case .cancelled:
             return String(localized: "已取消这次运行")
         case .timedOut:
-            return String(localized: "工具运行超时，请重试")
+            return String(localized: "脚本运行超时，请重试")
         case .noResult:
-            return String(localized: "工具没有返回可用的结果")
+            return String(localized: "脚本没有返回可用的结果")
         case .toolFailed(let message):
             let trimmed = message?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            return trimmed.isEmpty ? String(localized: "工具运行失败") : trimmed
+            return trimmed.isEmpty ? String(localized: "脚本运行失败") : trimmed
         case .documentChanged:
-            return String(localized: "输入框已经切换，请重新运行工具")
+            return String(localized: "输入框已经切换，请重试")
         case .noTextField:
             return String(localized: "这个输入框不能写入")
         case .unsupportedPartialReplacement:
@@ -140,13 +140,15 @@ struct ToolPanelPresentation: Equatable, Sendable {
                 status: .running, toolTitle: lastToolTitle, message: nil, resultRows: [],
                 actions: [.cancel], showsToolList: false, isBusy: true)
         case .previewing(let preview):
+            // iOS refuses to insert while text is selected, so a selection run offers no Insert.
             let rows = preview.results.enumerated().map { index, text in
                 ToolPanelResultRow(index: index, text: text, isSelected: index == preview.selectedIndex)
             }
             return ToolPanelPresentation(
                 status: .preview, toolTitle: preview.identity.title,
                 message: writeBlock.map(message(forWriteBlock:)), resultRows: rows,
-                actions: [.copy, .replace, .insert], showsToolList: false, isBusy: false)
+                actions: preview.input.scope == .selection ? [.copy, .replace] : [.copy, .replace, .insert],
+                showsToolList: false, isBusy: false)
         case .writing:
             return ToolPanelPresentation(
                 status: .writing, toolTitle: preview?.identity.title ?? lastToolTitle, message: nil,

@@ -57,6 +57,35 @@ class ScriptAddonUXContractTests(unittest.TestCase):
         self.assertIn("String(localized: \"下载中…\")", view)
         self.assertIn("String(localized: \"添加第一个脚本\")", view)
 
+    def test_try_run_returns_the_failure_with_the_console_lines(self):
+        bridge = self.read("Apps/HostApp/ScriptAddonBridge.swift")
+        self.assertIn("var failure: ScriptAddonFailure?", bridge)
+        self.assertIn("SONGYAN_SCRIPT_ERROR_SCRIPT: return .script(message:", bridge)
+        self.assertNotIn("var errorMessage", bridge)
+        views = self.read("Apps/HostApp/ScriptAddonViews.swift")
+        self.assertIn("ScriptAddonCenter.userMessage(for: failure)", views)
+        center = self.read("Apps/HostApp/ScriptAddonCenter.swift")
+        self.assertIn("failure.scriptMessage", center)
+
+    def test_network_disclosure_counts_url_settings_and_shows_the_timeout(self):
+        views = self.read("Apps/HostApp/ScriptAddonViews.swift")
+        self.assertIn("declarations.dependsOnNetwork", views)
+        self.assertIn("declarations.hasURLSetting", views)
+        self.assertIn("你在设置里填的地址", views)
+        self.assertIn("最长运行 %lld 分钟", views)
+        self.assertNotIn("connectHosts.isEmpty", views)
+
+    def test_linked_download_is_bounded_while_reading(self):
+        center = self.read("Apps/HostApp/ScriptAddonCenter.swift")
+        download = center.split("private static func downloadOverHTTPS", 1)[1].split("// MARK:", 1)[0]
+        self.assertIn("SONGYAN_SCRIPT_SHIPPED_SOURCE_BYTES", download)
+        self.assertIn("URLSession.shared.bytes", download)
+        self.assertNotIn("expectedContentLength", download)
+
+    def test_user_strings_are_plain_not_escaped(self):
+        for relative in ("Apps/HostApp/ScriptAddonCenter.swift", "Apps/HostApp/HostApp.swift"):
+            self.assertNotIn("\\u{8", self.read(relative), relative)
+
 
 if __name__ == "__main__":
     unittest.main()

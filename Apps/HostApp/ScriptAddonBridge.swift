@@ -18,8 +18,8 @@ struct ScriptAddonBridge: Sendable {
     struct TryRunResult: Equatable {
         var outputs: [String]
         var logs: [String]
-        var errorMessage: String?
-        var errorLine: Int?
+        /// Why the run failed, with the console lines collected before it stopped. Nil on success.
+        var failure: ScriptAddonFailure?
     }
 
     // MARK: - Header
@@ -82,26 +82,26 @@ struct ScriptAddonBridge: Sendable {
             if cancellation?.isCancelled == true {
                 songyan_script_run_cancel(run)
             }
-            switch songyan_script_run_step(run) {
+            let step = songyan_script_run_step(run)
+            switch step {
             case SONGYAN_SCRIPT_STEP_RUNNING:
                 continue
-            case SONGYAN_SCRIPT_STEP_DONE:
+            case SONGYAN_SCRIPT_STEP_DONE, SONGYAN_SCRIPT_STEP_FAILED, SONGYAN_SCRIPT_STEP_INVALID:
                 var result = songyan_script_run_result()
                 songyan_script_run_result_take(run, &result)
                 defer { songyan_script_run_result_free(&result) }
-                let outputs = Self.strings(result)
                 collector.lines.forEach(onLog)
+                if result.error == SONGYAN_SCRIPT_OK && step != SONGYAN_SCRIPT_STEP_INVALID {
+                    return TryRunResult(outputs: Self.strings(result), logs: collector.lines, failure: nil)
+                }
+                if step == SONGYAN_SCRIPT_STEP_INVALID {
+                    return TryRunResult(outputs: [], logs: collector.lines, failure: .invalidConfiguration)
+                }
                 return TryRunResult(
-                    outputs: outputs, logs: collector.lines,
-                    errorMessage: result.message.map { String(cString: $0) },
-                    errorLine: result.line > 0 ? Int(result.line) : nil)
-            case SONGYAN_SCRIPT_STEP_FAILED, SONGYAN_SCRIPT_STEP_INVALID:
-                var failure = songyan_script_run_result()
-                songyan_script_run_result_take(run, &failure)
-                defer { songyan_script_run_result_free(&failure) }
-                throw BridgeError.runtime(
-                    message: failure.message.map { String(cString: $0) } ?? "script failed",
-                    line: Int(failure.line))
+                    outputs: [], logs: collector.lines,
+                    failure: Self.failure(
+                        code: result.error, message: result.message.map { String(cString: $0) },
+                        line: Int(result.line), host: context.recordedFailure))
             case SONGYAN_SCRIPT_STEP_CANCELLED:
                 throw BridgeError.cancelled
             default:
@@ -140,7 +140,36 @@ struct ScriptAddonBridge: Sendable {
             apiVersion: Int(header.api), name: String(cString: header.name),
             summary: header.description.map { String(cString: $0) }, connectHosts: hosts,
             settings: settings, secrets: secrets,
-            needsAudio: header.needs & SONGYAN_SCRIPT_CAPABILITY_AUDIO.rawValue != 0)
+            needsAudio: header.needs & SONGYAN_SCRIPT_CAPABILITY_AUDIO.rawValue != 0,
+            timeoutSeconds: header.timeout_seconds > 0 ? Int(header.timeout_seconds) : nil)
+    }
+
+    /// Maps the shared result to what the try box can say. The host's own reason is more specific
+    /// than the bridge's single network code, so it wins when both are present.
+    static func failure(
+        code: songyan_script_error, message: String?, line: Int, host: ScriptHostFailure?
+    ) -> ScriptAddonFailure {
+        let line = line > 0 ? line : nil
+        switch host
+            ?? (code == SONGYAN_SCRIPT_ERROR_NETWORK_FAILURE ? ScriptHostFailure.fromBridgeMessage(message) : nil)
+        {
+        case .addressNotAllowed: return .addressNotAllowed
+        case .requestLimitExceeded: return .requestLimitExceeded
+        case .responseTooLarge: return .responseTooLarge
+        case .fetchTimedOut: return .timedOut
+        case .networkFailure: return .networkFailure
+        case nil: break
+        }
+        switch code {
+        case SONGYAN_SCRIPT_ERROR_SCRIPT: return .script(message: message ?? "", line: line)
+        case SONGYAN_SCRIPT_ERROR_TIMEOUT: return .timedOut
+        case SONGYAN_SCRIPT_ERROR_OUT_OF_MEMORY: return .outOfMemory
+        case SONGYAN_SCRIPT_ERROR_ADDRESS_NOT_ALLOWED: return .addressNotAllowed
+        case SONGYAN_SCRIPT_ERROR_NETWORK_FAILURE: return .networkFailure
+        case SONGYAN_SCRIPT_ERROR_CAPABILITY: return .unavailable
+        case SONGYAN_SCRIPT_ERROR_HEADER, SONGYAN_SCRIPT_ERROR_API_VERSION: return .header(line: line)
+        default: return .runtime(line: line)
+        }
     }
 
     fileprivate static func text(_ failure: songyan_script_header_error) -> String {

@@ -66,7 +66,8 @@
     "category",
     "cap",
     "literal",
-    "literals"
+    "literals",
+    "header"
   ],
   "skippedPathComponents": [
     "Tests",
@@ -79,6 +80,11 @@
     "Tests.swift"
   ],
   "dataLiterals": [
+    {
+      "path": "Apps/HostApp/HostApp.swift",
+      "value": "松烟输入法",
+      "reason": "Fixed text for the input-context probe in DEBUG builds; it is a test fixture, not interface copy."
+    },
     {
       "path": "Packages/PackageManager/Sources/PackageManager/RimeConfigFolder.swift",
       "value": "Rime 配置",
@@ -967,6 +973,46 @@
     {
       "path": "Packages/ScriptAddonKit/Sources/ScriptAddonKit/ScriptAddonFailure.swift",
       "value": "无法运行脚本，请稍后重试。",
+      "reason": "Localization key constant resolved by the Host app; not interface copy."
+    },
+    {
+      "path": "Packages/ScriptAddonKit/Sources/ScriptAddonKit/ScriptAddonFailure.swift",
+      "value": "这个脚本不能连接这个地址",
+      "reason": "Localization key constant resolved by the Host app; not interface copy."
+    },
+    {
+      "path": "Packages/ScriptAddonKit/Sources/ScriptAddonKit/ScriptAddonFailure.swift",
+      "value": "网络连接失败，请重试",
+      "reason": "Localization key constant resolved by the Host app; not interface copy."
+    },
+    {
+      "path": "Packages/ScriptAddonKit/Sources/ScriptAddonKit/ScriptAddonFailure.swift",
+      "value": "运行超时",
+      "reason": "Localization key constant resolved by the Host app; not interface copy."
+    },
+    {
+      "path": "Packages/ScriptAddonKit/Sources/ScriptAddonKit/ScriptAddonFailure.swift",
+      "value": "脚本占用内存过多",
+      "reason": "Localization key constant resolved by the Host app; not interface copy."
+    },
+    {
+      "path": "Packages/ScriptAddonKit/Sources/ScriptAddonKit/ScriptAddonFailure.swift",
+      "value": "请求次数超过上限",
+      "reason": "Localization key constant resolved by the Host app; not interface copy."
+    },
+    {
+      "path": "Packages/ScriptAddonKit/Sources/ScriptAddonKit/ScriptAddonFailure.swift",
+      "value": "服务器返回的内容太大",
+      "reason": "Localization key constant resolved by the Host app; not interface copy."
+    },
+    {
+      "path": "Packages/ScriptAddonKit/Sources/ScriptAddonKit/ScriptAddonFailure.swift",
+      "value": "这台设备上不可用",
+      "reason": "Localization key constant resolved by the Host app; not interface copy."
+    },
+    {
+      "path": "Packages/ScriptAddonKit/Sources/ScriptAddonKit/ScriptAddonFailure.swift",
+      "value": "脚本文件太大",
       "reason": "Localization key constant resolved by the Host app; not interface copy."
     }
   ]

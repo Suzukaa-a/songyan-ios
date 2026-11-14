@@ -148,7 +148,7 @@ struct ScriptAddonCenterView: View {
                 Text(
                     String(
                         localized:
-                            "脚本是一种工具：它读取你选中的文字（或光标前的一段），返回文字，键盘先预览再由你决定替换、插入或复制。")
+                            "脚本处理你选中的文字，结果先预览。")
                 )
                 .font(.footnote)
                 .foregroundStyle(.secondary)

@@ -9,6 +9,15 @@ enum ScriptHostFailure: Equatable, Sendable {
     case responseTooLarge
     case fetchTimedOut
     case networkFailure(message: String)
+
+    /// The shared bridge enforces request_count and response_bytes itself (the host supplies the
+    /// response), so its fixed diagnostics are the only signal for those two paths.
+    static func fromBridgeMessage(_ message: String?) -> ScriptHostFailure? {
+        guard let message else { return nil }
+        if message.contains("more than") && message.contains("requests") { return .requestLimitExceeded }
+        if message.contains("over the") && message.contains("byte limit") { return .responseTooLarge }
+        return nil
+    }
 }
 
 /// A thread-safe flag shared with the engine thread. The cancel side only writes this flag; the

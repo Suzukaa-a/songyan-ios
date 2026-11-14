@@ -117,6 +117,21 @@ do {
     check(presentation.resultRows.first?.isSelected == false, "previousRowUnselected")
 }
 
+// 3b. A run on selected text offers no Insert: iOS refuses to insert over a selection.
+do {
+    var session = ToolSession(limits: limits, sessionID: "probe")
+    let effect = session.start(
+        tool: tool, hostCapabilities: .text, document: document(selected: "abc"),
+        documentCapabilities: capabilities, now: 0)
+    if case .run(let request) = effect {
+        _ = session.complete(["X"], token: request.runToken, now: 0)
+        let presentation = present(session)
+        check(presentation.actions == [.copy, .replace], "selectionRunHidesInsert", "\(presentation.actions)")
+    } else {
+        check(false, "selectionRunStarted", "\(effect)")
+    }
+}
+
 // 4. A write refused because the field changed keeps the preview and explains why.
 do {
     var (session, token) = startedSession()

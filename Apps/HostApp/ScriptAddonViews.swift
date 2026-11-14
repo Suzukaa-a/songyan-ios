@@ -33,11 +33,32 @@ private func scriptDescription(
     (try? center.declarations(for: addon.state.id))?.summary
 }
 
-@MainActor
-private func scriptConnectHosts(
-    _ center: ScriptAddonCenter, _ addon: ScriptAddonStore.Addon
-) -> [String] {
-    (try? center.declarations(for: addon.state.id).connectHosts) ?? []
+/// Where the script goes online (declared hosts and the address the user fills in) and how long
+/// it may run. A script with neither a host nor a url setting says it stays offline.
+private struct ScriptNetworkSections: View {
+    let declarations: ScriptDeclarations
+
+    var body: some View {
+        Section(String(localized: "会连这些网站")) {
+            if !declarations.dependsOnNetwork {
+                Text(String(localized: "不联网"))
+            }
+            ForEach(declarations.connectHosts, id: \.self) { host in
+                Text(host).font(.system(.body, design: .monospaced))
+            }
+            if declarations.hasURLSetting {
+                Text(String(localized: "你在设置里填的地址"))
+            }
+        }
+        if let timeout = declarations.timeoutDisplay {
+            Section {
+                Text(
+                    timeout.isMinutes
+                        ? String(format: String(localized: "最长运行 %lld 分钟"), timeout.value)
+                        : String(format: String(localized: "最长运行 %lld 秒"), timeout.value))
+            }
+        }
+    }
 }
 
 @MainActor
@@ -81,15 +102,7 @@ struct ScriptAddonConfirmationView: View {
                             value: String(localized: "不使用麦克风"))
                     }
                 }
-                Section(String(localized: "会连这些网站")) {
-                    if draft.declarations.connectHosts.isEmpty {
-                        Text(String(localized: "不联网"))
-                    } else {
-                        ForEach(draft.declarations.connectHosts, id: \.self) { host in
-                            Text(host).font(.system(.body, design: .monospaced))
-                        }
-                    }
-                }
+                ScriptNetworkSections(declarations: draft.declarations)
                 if !draft.declarations.settings.isEmpty {
                     Section(String(localized: "设置")) {
                         ForEach(draft.declarations.settings, id: \.key) { setting in
@@ -289,14 +302,8 @@ struct ScriptAddonDetailView: View {
                     LabeledContent(String(localized: "录音"), value: String(localized: "不使用麦克风"))
                 }
             }
-            Section(String(localized: "会连这些网站")) {
-                if let hosts = declarations?.connectHosts, !hosts.isEmpty {
-                    ForEach(hosts, id: \.self) { host in
-                        Text(host).font(.system(.body, design: .monospaced))
-                    }
-                } else {
-                    Text(String(localized: "不联网"))
-                }
+            if let declarations {
+                ScriptNetworkSections(declarations: declarations)
             }
             Section {
                 NavigationLink {
@@ -324,7 +331,7 @@ struct ScriptAddonDetailView: View {
                         Text(String(localized: "导出脚本"))
                     }
                 }
-                Button(String(localized: "移除脚本"), role: .destructive) { showDelete = true }
+                Button(String(localized: "删除"), role: .destructive) { showDelete = true }
             }
         }
         .navigationTitle(declarations?.name ?? String(localized: "脚本"))
@@ -340,7 +347,7 @@ struct ScriptAddonDetailView: View {
             Text(ScriptAddonCenter.audioUnavailableNote)
         }
         .confirmationDialog(
-            String(localized: "移除脚本"),
+            String(localized: "删除脚本？"),
             isPresented: $showDelete
         ) {
             Button(String(localized: "删除"), role: .destructive) {
@@ -588,15 +595,9 @@ struct ScriptAddonEditorView: View {
                     }
                     .font(.footnote)
                 }
-                if let message = result.errorMessage {
-                    Text(message).font(.footnote).foregroundStyle(.red)
-                }
-                if let line = result.errorLine {
-                    Text(
-                        String(
-                            format: String(localized: "出错行号：%lld"), line)
-                    )
-                    .font(.footnote).foregroundStyle(.red)
+                if let failure = result.failure {
+                    Text(ScriptAddonCenter.userMessage(for: failure))
+                        .font(.footnote).foregroundStyle(.red)
                 }
             }
             if let error {
@@ -608,7 +609,7 @@ struct ScriptAddonEditorView: View {
     private var tryBox: some View {
         VStack(alignment: .leading, spacing: 8) {
             if dynamicTypeSize >= .accessibility1 {
-                TextField(String(localized: "试打文字"), text: $inputText)
+                TextField(String(localized: "要处理的文字"), text: $inputText)
                     .textFieldStyle(.roundedBorder)
                 HStack {
                     Button(String(localized: "保存")) { save() }
@@ -624,7 +625,7 @@ struct ScriptAddonEditorView: View {
                 }
             } else {
                 HStack {
-                    TextField(String(localized: "试打文字"), text: $inputText)
+                    TextField(String(localized: "要处理的文字"), text: $inputText)
                         .textFieldStyle(.roundedBorder)
                     if running {
                         ProgressView()

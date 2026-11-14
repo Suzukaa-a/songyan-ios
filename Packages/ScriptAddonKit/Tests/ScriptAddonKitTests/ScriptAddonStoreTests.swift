@@ -202,6 +202,48 @@ final class ScriptAddonStoreTests: XCTestCase {
             ScriptAddonFailure.unknown.userMessageKey, "无法运行脚本，请稍后重试。")
     }
 
+    func testScriptFailureKeepsItsOwnWordsAndLine() {
+        let failure = ScriptAddonFailure.script(message: "额度用完了", line: 7)
+        XCTAssertEqual(failure.scriptMessage, "额度用完了")
+        XCTAssertEqual(failure.line, 7)
+        XCTAssertNil(ScriptAddonFailure.script(message: "", line: nil).scriptMessage)
+        XCTAssertNil(ScriptAddonFailure.timedOut.scriptMessage)
+        XCTAssertEqual(ScriptAddonFailure.timedOut.userMessageKey, "运行超时")
+        XCTAssertEqual(ScriptAddonFailure.outOfMemory.userMessageKey, "脚本占用内存过多")
+        XCTAssertEqual(ScriptAddonFailure.addressNotAllowed.userMessageKey, "这个脚本不能连接这个地址")
+        XCTAssertEqual(ScriptAddonFailure.networkFailure.userMessageKey, "网络连接失败，请重试")
+        XCTAssertEqual(ScriptAddonFailure.requestLimitExceeded.userMessageKey, "请求次数超过上限")
+        XCTAssertEqual(ScriptAddonFailure.responseTooLarge.userMessageKey, "服务器返回的内容太大")
+        XCTAssertEqual(ScriptAddonFailure.unavailable.userMessageKey, "这台设备上不可用")
+        XCTAssertEqual(ScriptAddonFailure.tooLarge.userMessageKey, "脚本文件太大")
+    }
+
+    func testAURLSettingMeansTheScriptGoesOnline() {
+        let url = ScriptDeclarations.Setting(key: "endpoint", kind: .url, label: "Address")
+        XCTAssertFalse(declarations(connects: [], settings: [], secrets: []).dependsOnNetwork)
+        XCTAssertTrue(declarations(connects: ["api.example.com"], settings: [], secrets: []).dependsOnNetwork)
+        let own = declarations(connects: [], settings: [url], secrets: [])
+        XCTAssertTrue(own.dependsOnNetwork)
+        XCTAssertTrue(own.hasURLSetting)
+        XCTAssertFalse(declarations(connects: [], settings: [.init(key: "k", kind: .text, label: "K")], secrets: []).hasURLSetting)
+    }
+
+    func testTimeoutDisplayAndDigest() throws {
+        func make(_ seconds: Int?) -> ScriptDeclarations {
+            ScriptDeclarations(
+                apiVersion: 1, name: "T", summary: nil, connectHosts: [], settings: [], secrets: [],
+                needsAudio: false, timeoutSeconds: seconds)
+        }
+        XCTAssertNil(make(nil).timeoutDisplay)
+        XCTAssertEqual(make(90).timeoutDisplay?.value, 90)
+        XCTAssertEqual(make(90).timeoutDisplay?.isMinutes, false)
+        XCTAssertEqual(make(119).timeoutDisplay?.isMinutes, false)
+        XCTAssertEqual(make(120).timeoutDisplay?.value, 2)
+        XCTAssertEqual(make(120).timeoutDisplay?.isMinutes, true)
+        XCTAssertEqual(make(300).timeoutDisplay?.value, 5)
+        XCTAssertEqual(try make(300).confirmationDigest(), try make(nil).confirmationDigest())
+    }
+
     func testSettingsUpdateDoesNotTouchStoredScriptBytes() throws {
         let original = Data("// @api 1\n// @name Upper\n".utf8)
         _ = try addon(script: original)

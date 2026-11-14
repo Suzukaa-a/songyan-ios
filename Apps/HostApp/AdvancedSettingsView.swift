@@ -22,7 +22,7 @@ struct AdvancedSettingsView: View {
     var body: some View {
         List {
             Section {
-                NavigationLink(String(localized: "扩展功能")) { LuaComponentsView() }
+                NavigationLink(String(localized: "Lua 功能")) { LuaComponentsView() }
                     .accessibilityIdentifier("advanced.extensions")
             }
 

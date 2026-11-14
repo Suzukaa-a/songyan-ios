@@ -62,15 +62,25 @@ final class ScriptAddonCenter: ObservableObject {
         reload()
     }
 
-    /// A linked script comes from the user's own HTTPS URL; nothing else is fetched.
+    /// A linked script comes from the user's own HTTPS URL; nothing else is fetched. The body is
+    /// read incrementally and stops at the shipped source limit, because Content-Length may be
+    /// absent (chunked or compressed responses) and cannot be trusted anyway.
     private static func downloadOverHTTPS(_ url: URL) async throws -> Data {
         guard url.scheme?.lowercased() == "https" else { throw URLError(.unsupportedURL) }
-        let (data, response) = try await URLSession.shared.data(from: url)
+        let (bytes, response) = try await URLSession.shared.bytes(from: url)
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
             throw URLError(.badServerResponse)
         }
+        let limit = Int(SONGYAN_SCRIPT_SHIPPED_SOURCE_BYTES)
+        var data = Data()
+        for try await byte in bytes {
+            if data.count >= limit { throw DownloadError.tooLarge }
+            data.append(byte)
+        }
         return data
     }
+
+    enum DownloadError: Error { case tooLarge }
 
     // MARK: - Storage location
 
@@ -118,7 +128,7 @@ final class ScriptAddonCenter: ObservableObject {
             return false
         }
         guard source.count <= limits.maximumSourceBytes else {
-            errorMessage = String(localized: "\u{811A}\u{672C}\u{6587}\u{4EF6}\u{592A}\u{5927}")
+            errorMessage = String(localized: "脚本文件太大")
             return false
         }
         do {
@@ -159,7 +169,7 @@ final class ScriptAddonCenter: ObservableObject {
         do {
             let data = try await download(url)
             guard data.count <= limits.maximumSourceBytes else {
-                errorMessage = String(localized: "\u{811A}\u{672C}\u{6587}\u{4EF6}\u{592A}\u{5927}")
+                errorMessage = String(localized: "脚本文件太大")
                 return false
             }
             return stage(source: data, sourceURL: url)
@@ -204,8 +214,8 @@ final class ScriptAddonCenter: ObservableObject {
             reload()
             notice =
                 draft.isReplacement
-                ? String(localized: "\u{811A}\u{672C}\u{5DF2}\u{66F4}\u{65B0}")
-                : String(localized: "\u{5DF2}\u{6DFB}\u{52A0}\u{811A}\u{672C}")
+                ? String(localized: "脚本已更新")
+                : String(localized: "已添加脚本")
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -263,7 +273,7 @@ final class ScriptAddonCenter: ObservableObject {
             let download
         else {
             notice = String(
-                localized: "\u{8FD9}\u{4E2A}\u{811A}\u{672C}\u{6CA1}\u{6709}\u{6765}\u{6E90}\u{94FE}\u{63A5}")
+                localized: "这个脚本没有来源链接")
             return
         }
         Task {
@@ -281,7 +291,7 @@ final class ScriptAddonCenter: ObservableObject {
                         id: addon.state.id, script: data,
                         maximumSourceBytes: limits?.maximumSourceBytes ?? data.count)
                     reload()
-                    notice = String(localized: "\u{811A}\u{672C}\u{5DF2}\u{66F4}\u{65B0}")
+                    notice = String(localized: "脚本已更新")
                 }
             } catch {
                 let failure = Self.failure(for: error)
@@ -305,7 +315,7 @@ final class ScriptAddonCenter: ObservableObject {
                     id: addon.state.id, script: source, maximumSourceBytes: maximum,
                     confirmedDigest: digest)
                 reload()
-                notice = String(localized: "\u{811A}\u{672C}\u{5DF2}\u{4FDD}\u{5B58}")
+                notice = String(localized: "脚本已保存")
                 return
             }
             pending = Draft(
@@ -344,7 +354,7 @@ final class ScriptAddonCenter: ObservableObject {
                 }
             }
             reload()
-            notice = String(localized: "\u{8BBE}\u{7F6E}\u{5DF2}\u{4FDD}\u{5B58}")
+            notice = String(localized: "设置已保存")
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -388,15 +398,16 @@ final class ScriptAddonCenter: ObservableObject {
     nonisolated static func userMessage(
         for failure: ScriptAddonFailure, scriptName: String? = nil
     ) -> String {
-        var message = String(
-            localized: String.LocalizationValue(failure.userMessageKey))
+        var message =
+            failure.scriptMessage
+            ?? String(localized: String.LocalizationValue(failure.userMessageKey))
         if let line = failure.line {
             message += String(
-                format: String(localized: "\u{FF08}\u{7B2C} %lld \u{884C}\u{FF09}"), line)
+                format: String(localized: "（第 %lld 行）"), line)
         }
         if let scriptName, !scriptName.isEmpty {
             return String(
-                format: String(localized: "\u{300C}%@\u{300D}\u{FF1A}%@"), scriptName, message)
+                format: String(localized: "「%@」：%@"), scriptName, message)
         }
         return message
     }
@@ -415,6 +426,7 @@ final class ScriptAddonCenter: ObservableObject {
             }
         }
         if error is CancellationError { return .cancelled }
+        if error as? DownloadError == .tooLarge { return .tooLarge }
         return .unknown
     }
 
@@ -426,7 +438,7 @@ final class ScriptAddonCenter: ObservableObject {
             let declarations = try bridge.parseDeclarations(source: data)
             try store.confirm(declarations: declarations, id: addon.state.id)
             reload()
-            notice = String(localized: "\u{5DF2}\u{91CD}\u{65B0}\u{786E}\u{8BA4}")
+            notice = String(localized: "已重新确认")
         } catch {
             let failure = Self.failure(for: error)
             if failure == .cancelled { return }
@@ -444,7 +456,7 @@ final class ScriptAddonCenter: ObservableObject {
 
     static let audioUnavailableNote = String(
         localized:
-            "\u{6B64}\u{8BBE}\u{5907}\u{65E0}\u{6CD5}\u{5F55}\u{97F3}\u{3002}\u{58F0}\u{97F3}\u{811A}\u{672C}\u{53EF}\u{4EE5}\u{5BFC}\u{5165}\u{FF0C}\u{4F46}\u{5728}\u{952E}\u{76D8}\u{91CC}\u{4F1A}\u{6807}\u{4E3A}\u{4E0D}\u{53EF}\u{7528}\u{3002}"
+            "此设备无法录音。语音脚本可以导入，但在键盘里会标为不可用。"
     )
 
     /// Runs the editor's current source (not the saved bytes) off the main thread. A new,
@@ -508,7 +520,7 @@ final class ScriptAddonCenter: ObservableObject {
     static func aiGuide() -> String {
         bundledResource("ai-guide", "txt")
             .flatMap { try? String(contentsOf: $0, encoding: .utf8) }
-            ?? String(localized: "\u{627E}\u{4E0D}\u{5230}\u{7ED9} AI \u{7684}\u{8BF4}\u{660E}")
+            ?? String(localized: "找不到给 AI 的说明")
     }
 
     static func minimalExample() -> String {
@@ -519,7 +531,7 @@ final class ScriptAddonCenter: ObservableObject {
 
     static let limitsMissing = String(
         localized:
-            "\u{811A}\u{672C}\u{529F}\u{80FD}\u{6682}\u{65F6}\u{4E0D}\u{53EF}\u{7528}\u{FF0C}\u{8BF7}\u{7A0D}\u{540E}\u{91CD}\u{8BD5}\u{3002}"
+            "脚本功能暂时不可用，请稍后重试。"
     )
 }
 
@@ -552,8 +564,7 @@ final class ScriptAddonCenter: ObservableObject {
                     onLog: { _ in })
                 lines.append("outputs=\(result.outputs)")
                 lines.append("logs=\(result.logs)")
-                if let message = result.errorMessage { lines.append("error=\(message)") }
-                if let line = result.errorLine { lines.append("errorLine=\(line)") }
+                if let failure = result.failure { lines.append("failure=\(failure)") }
             } catch {
                 lines.append("threw: \(error)")
             }

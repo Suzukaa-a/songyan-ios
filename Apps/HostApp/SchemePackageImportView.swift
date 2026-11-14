@@ -337,7 +337,7 @@ struct SchemePackageImportView: View {
             NavigationLink {
                 SchemeURLImportView(initialURL: initialSourceURL)
             } label: {
-                Label(String(localized: "从链接导入"), systemImage: "link.badge.plus")
+                Label(String(localized: "从链接添加"), systemImage: "link.badge.plus")
             }
             .disabled(center.busy || downloadService.isDownloading)
             if developerOptions {

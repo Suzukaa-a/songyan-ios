@@ -158,6 +158,29 @@ final class ScriptToolTests: XCTestCase {
         }
     }
 
+    func testEveryFixedErrorIsLocalizedCopyNotAnEnglishDiagnostic() {
+        let fixed: [ScriptToolError] = [
+            .capabilityUnavailable, .timedOut, .outOfMemory, .addressNotAllowed, .networkFailure,
+            .requestLimitExceeded, .responseTooLarge, .fetchTimedOut, .invalidConfiguration(message: "x"),
+            .engineUnavailable,
+        ]
+        for error in fixed {
+            let text = error.errorDescription ?? ""
+            XCTAssertFalse(text.isEmpty)
+            XCTAssertTrue(
+                text.unicodeScalars.contains { (0x4E00...0x9FFF).contains($0.value) }, "\(error): \(text)")
+        }
+        XCTAssertEqual(ScriptToolError.addressNotAllowed.errorDescription, "这个脚本不能连接这个地址")
+        XCTAssertEqual(ScriptToolError.networkFailure.errorDescription, "网络连接失败，请重试")
+        XCTAssertEqual(ScriptToolError.timedOut.errorDescription, "运行超时")
+        XCTAssertEqual(ScriptToolError.outOfMemory.errorDescription, "脚本占用内存过多")
+        XCTAssertEqual(ScriptToolError.requestLimitExceeded.errorDescription, "请求次数超过上限")
+        XCTAssertEqual(ScriptToolError.responseTooLarge.errorDescription, "服务器返回的内容太大")
+        XCTAssertEqual(ScriptToolError.capabilityUnavailable.errorDescription, "这台设备上不可用")
+        XCTAssertEqual(
+            ScriptToolError.script(line: 2, message: "额度用完了").errorDescription, "额度用完了")
+    }
+
     func testEngineDeadlineMapsToToolFailureTimedOut() async throws {
         let tool = try ScriptTextTool(
             source: """

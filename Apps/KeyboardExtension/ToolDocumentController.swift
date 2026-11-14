@@ -99,7 +99,7 @@
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(String(localized: "工具"))
+                .accessibilityLabel(String(localized: "脚本"))
                 .accessibilityIdentifier("keyboard.toolPanel.entry")
             }
         }

@@ -141,40 +141,40 @@ struct HostApp: App {
 
         private static func seeds(for screen: String) -> [Seed] {
             let text = header(
-                name: "\u{5927}\u{5199}\u{8F6C}\u{6362}",
-                description: "\u{628A}\u{9009}\u{4E2D}\u{7684}\u{6587}\u{5B57}\u{6362}\u{6210}\u{5927}\u{5199}",
+                name: "大写转换",
+                description: "把选中的文字换成大写",
                 connect: "api.example.com",
-                settings: "// @setting mode choice \u{6A21}\u{5F0F}\n// @secret token API \u{5BC6}\u{94A5}\n",
+                settings: "// @setting mode choice 模式\n// @secret token API 密钥\n",
                 code: "export default async ({ text }) => [text.toUpperCase()];")
             let audio = header(
-                name: "\u{58F0}\u{97F3}\u{8F6C}\u{5199}",
+                name: "声音转写",
                 description:
-                    "\u{58F0}\u{97F3}\u{811A}\u{672C}\u{FF0C}\u{672C}\u{673A}\u{4E0D}\u{63D0}\u{4F9B}\u{5F55}\u{97F3}",
+                    "语音脚本，本机不提供录音",
                 connect: nil,
                 settings: "// @input audio\n", code: "export default () => []")
             let stale = header(
-                name: "\u{5F85}\u{786E}\u{8BA4}\u{811A}\u{672C}",
+                name: "待确认脚本",
                 description:
-                    "\u{6765}\u{81EA}\u{793A}\u{4F8B}\u{6E90}\u{7684}\u{811A}\u{672C}",
+                    "来自示例源的脚本",
                 connect: "cdn.example.com",
                 settings: "", code: "export default ({ text }) => [text]")
             let result = header(
-                name: "\u{6F14}\u{793A}\u{7ED3}\u{679C}",
-                description: "\u{8BD5}\u{6253}\u{6846}\u{5C55}\u{793A}\u{8F93}\u{51FA}", connect: nil, settings: "",
-                code: "export default async ({ text }) => [\"\u{4F60}\u{597D}\u{FF0C}\u{811A}\u{672C}\u{FF01}\", text];"
+                name: "演示结果",
+                description: "试打框展示输出", connect: nil, settings: "",
+                code: "export default async ({ text }) => [\"你好，脚本！\", text];"
             )
             let busy = header(
-                name: "\u{6162}\u{811A}\u{672C}",
+                name: "慢脚本",
                 description:
-                    "\u{8FD0}\u{884C}\u{51E0}\u{79D2}\u{4EE5}\u{4FBF}\u{622A}\u{53D6}\u{8FD0}\u{884C}\u{4E2D}\u{72B6}\u{6001}",
+                    "运行几秒以便截取运行中状态",
                 connect: nil, settings: "",
                 code:
-                    "export default () => { const end = Date.now() + 3200; while (Date.now() < end) {} return [\"\u{5B8C}\u{6210}\"]; }"
+                    "export default () => { const end = Date.now() + 3200; while (Date.now() < end) {} return [\"完成\"]; }"
             )
             let failure = header(
-                name: "\u{51FA}\u{9519}\u{811A}\u{672C}", description: "\u{629B}\u{51FA}\u{9519}\u{8BEF}", connect: nil,
+                name: "出错脚本", description: "抛出错误", connect: nil,
                 settings: "",
-                code: "export default () => { throw new Error(\"\u{6F14}\u{793A}\u{9519}\u{8BEF}\"); }")
+                code: "export default () => { throw new Error(\"演示错误\"); }")
             switch screen {
             case "empty": return []
             case "confirm-text": return [Seed(id: "visual-text", source: text, confirmed: true)]
@@ -346,26 +346,26 @@ struct HostApp: App {
                     checks.append(["name": name, "actual": actual, "expected": expected, "passed": actual == expected])
                 }
                 try await press(.kana(rowId: "ka", direction: .center))
-                check("first kana", keyboard.snapshot.rawInput, "\u{304B}")
+                check("first kana", keyboard.snapshot.rawInput, "か")
                 try await press(.kana(rowId: "ka", direction: .center))
-                check("repeated tap replaces the kana", keyboard.snapshot.rawInput, "\u{304D}")
+                check("repeated tap replaces the kana", keyboard.snapshot.rawInput, "き")
                 try await clear()
                 try await press(.kana(rowId: "sa", direction: .up))
                 try await press(.kana(rowId: "sa", direction: .left))
-                check("flick types sushi", keyboard.snapshot.rawInput, "\u{3059}\u{3057}")
+                check("flick types sushi", keyboard.snapshot.rawInput, "すし")
                 try await press(.enter)
-                check("Return commits raw kana", committed, "\u{3059}\u{3057}")
+                check("Return commits raw kana", committed, "すし")
                 try await clear()
                 try await press(.kana(rowId: "ta", direction: .up))
                 try await press(.modify)
-                check("modifier makes small tsu", keyboard.snapshot.rawInput, "\u{3063}")
+                check("modifier makes small tsu", keyboard.snapshot.rawInput, "っ")
                 try await press(.modify)
-                check("modifier makes voiced tsu", keyboard.snapshot.rawInput, "\u{3065}")
+                check("modifier makes voiced tsu", keyboard.snapshot.rawInput, "づ")
                 try await clear()
                 keyboard.kana12FlickOnly = true
                 try await press(.kana(rowId: "ka", direction: .center))
                 try await press(.kana(rowId: "ka", direction: .center))
-                check("flick only keeps repeated kana", keyboard.snapshot.rawInput, "\u{304B}\u{304B}")
+                check("flick only keeps repeated kana", keyboard.snapshot.rawInput, "かか")
                 let before = keyboard.snapshot.preeditCaretByte
                 try await press(.cursorLeft)
                 checks.append([
@@ -478,10 +478,10 @@ struct HostApp: App {
                 prebuiltEngine.shutdown()
                 report["preedit"] = result.preedit
                 report["candidates"] = result.candidates
-                let found = result.candidates.contains("\u{65E5}\u{672C}\u{8A9E}")
+                let found = result.candidates.contains("日本語")
                 report["success"] = found
                 if !found {
-                    report["error"] = "nihongo candidates do not contain \u{65E5}\u{672C}\u{8A9E}: \(result.candidates)"
+                    report["error"] = "nihongo candidates do not contain 日本語: \(result.candidates)"
                 }
             } catch {
                 report["success"] = false
@@ -733,7 +733,7 @@ struct HostApp: App {
     /// candidate row and one expanded flow each. Font and colours come from the same skin resolution as
     /// the keyboard, so the screenshot shows exactly what a candidate would draw.
     private struct GlyphProbeView: View {
-        private let texts = ["\u{76F4}", "\u{9AA8}", "\u{6D77}"]
+        private let texts = ["直", "骨", "海"]
         private let languages: [InputLanguage] = [.simplifiedChinese, .traditionalChinese, .japanese]
         private let appearance = KeyboardAppearance(skin: .systemDefault, dark: false)
 
@@ -741,7 +741,7 @@ struct HostApp: App {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
                     Text(
-                        "\u{5B57}\u{5F62}\u{6E32}\u{67D3}\u{68C0}\u{67E5}\u{FF1A}\u{540C}\u{6837}\u{7684}\u{6587}\u{5B57}\u{FF0C}\u{4E0D}\u{540C}\u{8F93}\u{5165}\u{8BED}\u{8A00}"
+                        "字形渲染检查：同样的文字，不同输入语言"
                     )
                     .font(.footnote)
                     .foregroundStyle(.secondary)
@@ -822,9 +822,8 @@ struct HostApp: App {
             ("ascii-middle", "abcdef", NSRange(location: 3, length: 0)),
             ("ascii-selection", "abcdef", NSRange(location: 2, length: 3)),
             ("empty", "", NSRange(location: 0, length: 0)),
-            // Five CJK characters as escapes: user-visible Chinese belongs in String Catalogs,
-            // and this fixed fixture string is test data, not UI text.
-            ("cjk-end", "\u{677E}\u{70DF}\u{8F93}\u{5165}\u{6CD5}", NSRange(location: 5, length: 0)),
+            // Fixed fixture text (five CJK characters) for the probe, not UI copy.
+            ("cjk-end", "松烟输入法", NSRange(location: 5, length: 0)),
         ]
 
         @State private var text = ""
@@ -834,7 +833,7 @@ struct HostApp: App {
         var body: some View {
             VStack(alignment: .leading, spacing: 12) {
                 Text(
-                    "\u{8F93}\u{5165}\u{4E0A}\u{4E0B}\u{6587}\u{68C0}\u{67E5}\u{FF1A}\u{56FA}\u{5B9A}\u{6587}\u{672C}\u{4E0E}\u{9009}\u{533A}\u{FF0C}\u{4E0D}\u{8BFB}\u{53D6}\u{7528}\u{6237}\u{5185}\u{5BB9}"
+                    "输入上下文检查：固定文本与选区，不读取用户内容"
                 )
                 .font(.footnote)
                 .foregroundStyle(.secondary)

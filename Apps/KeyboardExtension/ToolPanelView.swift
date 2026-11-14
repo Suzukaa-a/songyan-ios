@@ -117,7 +117,7 @@ struct ToolPanelView: View {
             KeyboardToolsTitleBar {
                 // While a run is in flight the title names the script, so a failure or a result
                 // can be attributed without reopening the panel.
-                KeyboardToolsTitle(text: model.presentation.toolTitle ?? String(localized: "工具"))
+                KeyboardToolsTitle(text: model.presentation.toolTitle ?? String(localized: "脚本"))
             } trailing: {
                 KeyboardToolsDismissButton(
                     title: String(localized: "完成"),
@@ -154,14 +154,14 @@ struct ToolPanelView: View {
         let presentation = model.presentation
         switch presentation.status {
         case .tools:
-            // The title bar already says 工具; a second section header would waste a row of the
+            // The title bar already says 脚本; a second section header would waste a row of the
             // short keyboard panel. The card alone keeps the list visually grouped.
             KeyboardToolsCard {
                 if model.entries.isEmpty {
                     // Reuses the Host app's existing "add and run a script" wording: no new
                     // localization key, but the empty panel says what to do next.
                     KeyboardToolsRow(
-                        title: String(localized: "还没有可用的工具"),
+                        title: String(localized: "还没有可用的脚本"),
                         detail: String(localized: "添加并运行你写的脚本")
                     ) {}
                     .disabled(true)
@@ -187,12 +187,7 @@ struct ToolPanelView: View {
             }
             KeyboardToolsSection(title: String(localized: "结果")) {
                 ForEach(presentation.resultRows) { row in
-                    KeyboardToolsRow(
-                        title: row.text,
-                        titleLineLimit: 6,
-                        mark: row.isSelected ? .check(true) : .check(false),
-                        isSelected: row.isSelected,
-                        action: { model.chooseResult(row.index) })
+                    ToolResultRowView(row: row) { model.chooseResult(row.index) }
                 }
             }
             actionSection(presentation.actions)
@@ -263,12 +258,12 @@ struct ToolPanelView: View {
                 }
             }
         case .replace:
-            return ActionRow(icon: "arrow.left.arrow.right", title: String(localized: "替换原文")) {
+            return ActionRow(icon: "arrow.left.arrow.right", title: String(localized: "替换")) {
                 rememberSelectedResult()
                 model.replace()
             }
         case .insert:
-            return ActionRow(icon: "text.insert", title: String(localized: "插入到光标处")) {
+            return ActionRow(icon: "text.insert", title: String(localized: "插入")) {
                 rememberSelectedResult()
                 model.insert()
             }
@@ -281,7 +276,7 @@ struct ToolPanelView: View {
                 model.cancel()
             }
         case .retry:
-            return ActionRow(icon: "arrow.clockwise", title: String(localized: "重新运行")) {
+            return ActionRow(icon: "arrow.clockwise", title: String(localized: "重试")) {
                 model.retry()
             }
         }
@@ -327,6 +322,104 @@ struct ToolPanelView: View {
         .foregroundStyle(Color(uiColor: appearance.text(on: "panel", secondary: true)))
         .padding(.horizontal, KeyboardToolsStyle.contentHorizontalInset)
         .padding(.top, KeyboardToolsStyle.sectionTopPadding)
+    }
+}
+
+/// One result in the preview. The text shows six lines; a longer result gets a 展开/收起 button so
+/// the rest can be read before anything is written. Selecting the result and expanding it are two
+/// separate buttons.
+private struct ToolResultRowView: View {
+    private static let collapsedLineLimit = 6
+
+    @Environment(\.keyboardAppearance) private var appearance
+    let row: ToolPanelResultRow
+    let select: () -> Void
+    @State private var expanded = false
+    @State private var collapsedHeight: CGFloat = 0
+    @State private var fullHeight: CGFloat = 0
+
+    private var overflows: Bool { fullHeight > collapsedHeight + 1 }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Button(action: select) {
+                HStack(spacing: KeyboardToolsStyle.iconTitleSpacing) {
+                    Color.clear.frame(width: KeyboardToolsStyle.iconColumnWidth, height: 1)
+                    Text(row.text)
+                        .font(.body)
+                        .foregroundStyle(Color(uiColor: appearance.text(on: "key")))
+                        .lineLimit(expanded ? nil : Self.collapsedLineLimit)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(alignment: .topLeading) { measure }
+                    if row.isSelected {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(appearance.accentForeground)
+                            .frame(width: 20)
+                            .accessibilityHidden(true)
+                    }
+                }
+                .padding(.horizontal, KeyboardToolsStyle.contentHorizontalInset)
+                .padding(.vertical, 4)
+                .frame(
+                    maxWidth: .infinity, minHeight: KeyboardToolsStyle.rowMinHeight,
+                    alignment: .leading
+                )
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(KeyboardToolsRowButtonStyle())
+            .accessibilityLabel(row.text)
+            .accessibilityAddTraits(row.isSelected ? .isSelected : [])
+            if overflows {
+                Button {
+                    expanded.toggle()
+                } label: {
+                    Text(expanded ? String(localized: "收起") : String(localized: "展开"))
+                        .font(.footnote.weight(.semibold))
+                        .padding(
+                            .leading,
+                            KeyboardToolsStyle.contentHorizontalInset
+                                + KeyboardToolsStyle.iconColumnWidth + KeyboardToolsStyle.iconTitleSpacing
+                        )
+                        .padding(.trailing, KeyboardToolsStyle.contentHorizontalInset)
+                        .frame(maxWidth: .infinity, minHeight: 36, alignment: .leading)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(KeyboardToolsTextButtonStyle())
+                .accessibilityLabel(
+                    expanded ? String(localized: "收起这条结果") : String(localized: "展开这条结果"))
+            }
+        }
+    }
+
+    /// Two invisible copies of the text in the row's own width: one capped at six lines, one
+    /// unlimited. When the unlimited one is taller the visible text is cut off.
+    private var measure: some View {
+        VStack(spacing: 0) {
+            Text(row.text).font(.body)
+                .lineLimit(Self.collapsedLineLimit)
+                .fixedSize(horizontal: false, vertical: true)
+                .background(HeightReader { collapsedHeight = $0 })
+            Text(row.text).font(.body)
+                .fixedSize(horizontal: false, vertical: true)
+                .background(HeightReader { fullHeight = $0 })
+        }
+        .hidden()
+        .accessibilityHidden(true)
+    }
+}
+
+private struct HeightReader: View {
+    let onChange: (CGFloat) -> Void
+
+    var body: some View {
+        GeometryReader { proxy in
+            Color.clear
+                .onAppear { onChange(proxy.size.height) }
+                .onChange(of: proxy.size.height) { _, height in onChange(height) }
+        }
     }
 }
 

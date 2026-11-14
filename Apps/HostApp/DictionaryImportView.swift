@@ -29,7 +29,7 @@ struct DictionaryImportView: View {
                     dependencyPath = nil
                     choosingFile = true
                 }
-                Button(String(localized: "从链接导入")) { openURL(nil) }
+                Button(String(localized: "从链接添加")) { openURL(nil) }
             } header: {
                 Text("导入词库")
             } footer: {
@@ -123,7 +123,7 @@ struct DictionaryImportView: View {
                             .font(.footnote).foregroundStyle(.secondary)
                     }
                 }
-                .navigationTitle(String(localized: "从链接导入"))
+                .navigationTitle(String(localized: "从链接添加"))
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Button(String(localized: "取消")) { enteringURL = false }

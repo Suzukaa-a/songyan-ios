@@ -46,10 +46,13 @@ public struct ScriptDeclarations: Equatable, Sendable {
     public let secrets: [Secret]
     /// The header declared @input audio; text input is always implicit.
     public let needsAudio: Bool
+    /// The header's @timeout in seconds, nil when it declares none. Shown to the user; it is not
+    /// part of the confirmation digest.
+    public let timeoutSeconds: Int?
 
     public init(
         apiVersion: Int, name: String, summary: String?, connectHosts: [String],
-        settings: [Setting], secrets: [Secret], needsAudio: Bool
+        settings: [Setting], secrets: [Secret], needsAudio: Bool, timeoutSeconds: Int? = nil
     ) {
         self.apiVersion = apiVersion
         self.name = name
@@ -58,6 +61,7 @@ public struct ScriptDeclarations: Equatable, Sendable {
         self.settings = settings
         self.secrets = secrets
         self.needsAudio = needsAudio
+        self.timeoutSeconds = timeoutSeconds
     }
 
     /// The confirmation page shows these sites; order does not matter to the user.
@@ -65,7 +69,18 @@ public struct ScriptDeclarations: Equatable, Sendable {
         Array(Set(connectHosts)).sorted()
     }
 
-    public var dependsOnNetwork: Bool { !connectHosts.isEmpty }
+    /// A url setting lets the user point the script at their own address, so it goes online
+    /// without any @connect host.
+    public var hasURLSetting: Bool { settings.contains { $0.kind == .url } }
+
+    /// How the declared @timeout reads on the confirmation and detail pages: seconds below two
+    /// minutes, otherwise whole minutes rounded up. Nil when the script declares none.
+    public var timeoutDisplay: (value: Int, isMinutes: Bool)? {
+        guard let seconds = timeoutSeconds, seconds > 0 else { return nil }
+        return seconds >= 120 ? ((seconds + 59) / 60, true) : (seconds, false)
+    }
+
+    public var dependsOnNetwork: Bool { !connectHosts.isEmpty || hasURLSetting }
 
     public var settingKeys: Set<String> {
         Set(settings.map(\.key)).union(secrets.map(\.key))

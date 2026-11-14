@@ -68,7 +68,7 @@ struct ScriptToolRuntimeLimits: Equatable, Sendable {
 }
 
 /// A failure the shared bridge reported. Script errors keep the script's own words, so the panel can
-/// show them after the tool title; the other cases carry a fixed developer diagnostic.
+/// show them after the tool title; the other cases carry fixed localized copy.
 enum ScriptToolError: Error, LocalizedError, Equatable, Sendable {
     case invalidHeader(line: Int, message: String)
     case unsupportedApiVersion(line: Int, message: String)
@@ -97,16 +97,16 @@ enum ScriptToolError: Error, LocalizedError, Equatable, Sendable {
             // script interface than this host implements, so the user action is "update the app".
             return
                 "the script needs a newer script interface version than this keyboard supports; update the app (reported: \(message))"
-        case .capabilityUnavailable:
-            return "this device cannot offer what the script requires"
-        case .timedOut:
-            return "the script exceeded its running time"
+        case .capabilityUnavailable, .invalidConfiguration, .engineUnavailable:
+            return String(localized: "这台设备上不可用")
+        case .timedOut, .fetchTimedOut:
+            return String(localized: "运行超时")
         case .outOfMemory:
-            return "the script exceeded its memory limit"
+            return String(localized: "脚本占用内存过多")
         case .addressNotAllowed:
-            return "the script asked for a host it did not declare with @connect"
+            return String(localized: "这个脚本不能连接这个地址")
         case .networkFailure:
-            return "the script's network request failed"
+            return String(localized: "网络连接失败，请重试")
         case .fullAccessRequired:
             // User-visible because it names the setting the user has to change. A localized key
             // keeps the fixed prompt out of the raw-literal gate; the key itself is the Chinese copy
@@ -114,21 +114,15 @@ enum ScriptToolError: Error, LocalizedError, Equatable, Sendable {
             return String(
                 localized: "这个脚本需要联网。请到「设置」>「通用」>「键盘」中允许松烟完全访问后重试。")
         case .requestLimitExceeded:
-            return "the script exceeded its request limit"
+            return String(localized: "请求次数超过上限")
         case .responseTooLarge:
-            return "the response exceeded the script's size limit"
-        case .fetchTimedOut:
-            return "the network request exceeded the run's time budget"
+            return String(localized: "服务器返回的内容太大")
         case .secretsUnavailable:
             // User-visible: the script cannot run safely without the value the user filled in.
             return String(
                 localized: "无法读取这个脚本的密钥。请到「松烟」中重新填写该脚本的密钥后再试。")
         case .script(_, let message):
             return message
-        case .invalidConfiguration(let message):
-            return "script runtime: \(message)"
-        case .engineUnavailable:
-            return "the script engine could not start"
         }
     }
 
@@ -155,22 +149,17 @@ enum ScriptToolError: Error, LocalizedError, Equatable, Sendable {
         case .requestLimitExceeded: return .requestLimitExceeded
         case .responseTooLarge: return .responseTooLarge
         case .fetchTimedOut: return .fetchTimedOut
-        case .networkFailure(let message): return .script(line: 0, message: message)
+        case .networkFailure: return .networkFailure
         }
     }
 
-    /// The bridge enforces request_count and response_bytes itself (the host supplies the response);
-    /// its diagnostics are the only signal for those two paths, so recognise their fixed shapes.
+    /// The bridge's own network diagnostics identify the request limit and the response size cap.
     static func fromNetworkFailure(message: String?) -> ScriptToolError {
-        if let message {
-            if message.contains("more than") && message.contains("requests") {
-                return .requestLimitExceeded
-            }
-            if message.contains("over the") && message.contains("byte limit") {
-                return .responseTooLarge
-            }
+        switch ScriptHostFailure.fromBridgeMessage(message) {
+        case .requestLimitExceeded: return .requestLimitExceeded
+        case .responseTooLarge: return .responseTooLarge
+        default: return .networkFailure
         }
-        return .networkFailure
     }
 
     static func fromEngine(
@@ -424,7 +413,8 @@ final class ScriptTextTool: TextTool, @unchecked Sendable {
             apiVersion: Int(header.api), name: String(cString: header.name),
             summary: header.description.map { String(cString: $0) }, connectHosts: hosts,
             settings: settings, secrets: secrets,
-            needsAudio: header.needs & UInt32(SONGYAN_SCRIPT_CAPABILITY_AUDIO.rawValue) != 0)
+            needsAudio: header.needs & UInt32(SONGYAN_SCRIPT_CAPABILITY_AUDIO.rawValue) != 0,
+            timeoutSeconds: header.timeout_seconds > 0 ? Int(header.timeout_seconds) : nil)
     }
 
     private static func executeRun(
