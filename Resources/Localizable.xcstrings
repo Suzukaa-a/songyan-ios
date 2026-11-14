@@ -37268,6 +37268,28 @@
           }
         }
       }
+    },
+    "从链接导入": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "从链接导入"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "從連結匯入"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リンクからインポート"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

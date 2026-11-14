@@ -225,7 +225,8 @@ final class ScriptAddonStoreTests: XCTestCase {
         let own = declarations(connects: [], settings: [url], secrets: [])
         XCTAssertTrue(own.dependsOnNetwork)
         XCTAssertTrue(own.hasURLSetting)
-        XCTAssertFalse(declarations(connects: [], settings: [.init(key: "k", kind: .text, label: "K")], secrets: []).hasURLSetting)
+        XCTAssertFalse(
+            declarations(connects: [], settings: [.init(key: "k", kind: .text, label: "K")], secrets: []).hasURLSetting)
     }
 
     func testTimeoutDisplayAndDigest() throws {

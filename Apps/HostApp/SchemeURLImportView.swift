@@ -74,7 +74,7 @@ struct SchemeURLImportView: View {
                 if source == nil { Text("支持 ZIP 下载链接或 GitHub 仓库地址。") }
             }
         }
-        .navigationTitle(source?.name ?? String(localized: "从链接添加"))
+        .navigationTitle(source?.name ?? String(localized: "从链接导入"))
         .navigationBarTitleDisplayMode(.inline)
         // Navigating back cancels the download (onDisappear), so there is no separate duplicate cancel button.
         .onAppear { addressFocused = address.isEmpty }

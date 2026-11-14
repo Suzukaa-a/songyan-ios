@@ -213,7 +213,7 @@ struct ShuangpinHintManagementView: View {
                 linkError = nil
                 enteringLink = true
             } label: {
-                Label(String(localized: "从链接添加"), systemImage: "link")
+                Label(String(localized: "从链接导入"), systemImage: "link")
             }
             Button {
                 importingFile = true
@@ -246,7 +246,7 @@ struct ShuangpinHintManagementView: View {
                 .disabled(importingLink)
             }
             .interactiveDismissDisabled(importingLink)
-            .navigationTitle(String(localized: "从链接添加"))
+            .navigationTitle(String(localized: "从链接导入"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
