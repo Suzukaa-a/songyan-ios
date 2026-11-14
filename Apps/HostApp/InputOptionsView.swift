@@ -80,6 +80,7 @@ struct InputOptionsView: View {
     @State private var splitWidthDraft = Double(KeyboardWidthSettings.defaultSplitWidth)
     @State private var marginWidthDraft = Double(KeyboardWidthSettings.defaultSplitWidth)
     @State private var middleGapDraft = Double(WideMiddleGap.defaultPercent)
+    @State private var splitModeDraft = KeyboardSplitMode.layout
     @State private var sideMarginPercentDraft = KeyboardWidthSettings.defaultSideMarginPercent
     @StateObject private var typoCorrection = TypoCorrectionCenter.shared
     @StateObject private var prediction = PredictionCenter.shared
@@ -321,6 +322,13 @@ struct InputOptionsView: View {
 
     private var keyboardWidthSection: some View {
         Section {
+            Picker("拆分键盘", selection: $splitModeDraft) {
+                Text("跟随键盘布局").tag(KeyboardSplitMode.layout)
+                Text("大屏上拆分").tag(KeyboardSplitMode.on)
+                Text("不拆分").tag(KeyboardSplitMode.off)
+            }
+            .onChange(of: splitModeDraft) { _, mode in KeyboardWidthPreferences.set(splitMode: mode) }
+            .accessibilityIdentifier("inputOptions.splitMode")
             widthRow(
                 title: String(localized: "拆分判定宽度"),
                 subtitle: String(localized: "键盘宽度超过 \(Int(splitWidthDraft)) pt 时自动拆分"),
@@ -421,6 +429,7 @@ struct InputOptionsView: View {
         marginWidthDraft = Double(stored.marginWidth)
         sideMarginPercentDraft = stored.sideMarginPercent
         middleGapDraft = Double(stored.middleGapPercent)
+        splitModeDraft = stored.splitMode
     }
 
     private func reloadWideDocks() {

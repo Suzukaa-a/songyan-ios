@@ -60,6 +60,8 @@ struct KeyboardPreviewWidths: Equatable {
     let mainSplit: Double
     /// An automatic split shows above this width.
     var splitAbove = KeyboardSurfaceWidth.phoneMaximum
+    /// The user's split mode, applied to the previewed layout's own split.
+    var splitMode = KeyboardSplitMode.layout
 }
 
 /// Applies the keyboard's own width rules to the preview's frame: a wide surface caps and docks
@@ -86,7 +88,8 @@ struct KeyboardPreviewFrame<Content: View>: View {
         let splitAbove = Double(widthSettings.splitWidth)
         let margin = KeyboardPanelRules.sideMargin(panelWidth: raw, settings: widthSettings)
         let cap = KeyboardPanelRules.wideMaximumContentWidth(
-            rawWidth: raw - 2 * margin, fullWidth: raw, mainSplit: mainSplit, layout: layout, splitAbove: splitAbove)
+            rawWidth: raw - 2 * margin, fullWidth: raw, mainSplit: widthSettings.splitMode.applied(to: mainSplit),
+            layout: layout, splitAbove: splitAbove)
         let side =
             layout == .phone9 && cap != nil
             ? NineKeySideCandidatePolicy.plan(
@@ -100,7 +103,7 @@ struct KeyboardPreviewFrame<Content: View>: View {
         KeyboardPreviewScaleLayout(surfaceWidth: CGFloat(raw), scale: scale) {
             content(
                 KeyboardPreviewWidths(
-                    content: max(0, contentWidth + 2 * margin - 8), mainSplit: raw, splitAbove: splitAbove)
+                    content: max(0, contentWidth + 2 * margin - 8), mainSplit: raw, splitAbove: splitAbove, splitMode: widthSettings.splitMode)
             )
             .frame(width: CGFloat(contentWidth))
             .padding(.leading, margin > 0 ? CGFloat(plan.leadingInset) : 0)

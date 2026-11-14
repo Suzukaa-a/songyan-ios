@@ -134,6 +134,7 @@ public enum KeyboardWidthPreferences {
     public static let marginWidthKey = "keyboard.marginWidth.v1"
     public static let sideMarginPercentKey = "keyboard.sideMarginPercent.v1"
     public static let middleGapPercentKey = "keyboard.wideMiddleGap.v1"
+    public static let splitModeKey = "keyboard.splitMode.v1"
     public static var defaults: UserDefaults { KeyboardRecipeStore.sharedDefaults() ?? .standard }
 
     private static let cache = OSAllocatedUnfairLock<KeyboardWidthSettings?>(uncheckedState: nil)
@@ -148,7 +149,8 @@ public enum KeyboardWidthPreferences {
         let settings = KeyboardWidthSettings(
             splitWidth: splitWidth, marginWidth: stored(marginWidthKey)?.intValue ?? splitWidth,
             sideMarginPercent: stored(sideMarginPercentKey)?.doubleValue,
-            middleGapPercent: stored(middleGapPercentKey)?.intValue ?? WideMiddleGap.defaultPercent)
+            middleGapPercent: stored(middleGapPercentKey)?.intValue ?? WideMiddleGap.defaultPercent,
+            splitMode: KeyboardSplitMode.resolve(SharedPreferences.object(forKey: splitModeKey, in: defaults) as? String))
         // Splits read the gap where they are resolved, which is everywhere a keyboard is drawn.
         WideMiddleGap.percent = settings.middleGapPercent
         return settings
@@ -176,6 +178,10 @@ public enum KeyboardWidthPreferences {
 
     public static func set(marginWidth: Int) {
         write(KeyboardWidthSettings.clampedSplitWidth(marginWidth), key: marginWidthKey)
+    }
+
+    public static func set(splitMode: KeyboardSplitMode) {
+        write(splitMode.rawValue, key: splitModeKey)
     }
 
     public static func set(middleGapPercent: Int) {

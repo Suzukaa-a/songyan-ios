@@ -131,15 +131,18 @@ public struct KeyboardWidthSettings: Equatable, Sendable {
     public let sideMarginIsChosen: Bool
     /// The middle gap of a split keyboard and of the 9-key beside its candidates (`WideMiddleGap`).
     public let middleGapPercent: Int
+    /// Whether layouts split: each by its own setting, all, or none.
+    public let splitMode: KeyboardSplitMode
 
     public static let standard = KeyboardWidthSettings()
 
     /// Out-of-range or off-step values snap into the offered choices. A nil margin is the default.
     public init(
         splitWidth: Int = defaultSplitWidth, marginWidth: Int? = nil, sideMarginPercent: Double? = nil,
-        middleGapPercent: Int = WideMiddleGap.defaultPercent
+        middleGapPercent: Int = WideMiddleGap.defaultPercent, splitMode: KeyboardSplitMode = .layout
     ) {
         self.middleGapPercent = WideMiddleGap.clampedPercent(middleGapPercent)
+        self.splitMode = splitMode
         self.splitWidth = Self.clampedSplitWidth(splitWidth)
         self.marginWidth = Self.clampedSplitWidth(marginWidth ?? Self.defaultSplitWidth)
         self.sideMarginPercent = Self.clampedSideMarginPercent(sideMarginPercent ?? Self.defaultSideMarginPercent)

@@ -372,7 +372,9 @@ public struct KeyboardPanelView: View {
 
     private func wideMaximumContentWidth(rawWidth: Double, fullWidth: Double) -> Double? {
         KeyboardPanelRules.wideMaximumContentWidth(
-            rawWidth: rawWidth, fullWidth: fullWidth, mainSplit: activeDefinition?.split, layout: controller.layout,
+            rawWidth: rawWidth, fullWidth: fullWidth,
+            mainSplit: widthSettings.splitMode.applied(to: definitionFacts.handSplit ?? activeDefinition?.split),
+            layout: controller.layout,
             splitAbove: Double(widthSettings.splitWidth))
     }
 
