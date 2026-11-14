@@ -21,7 +21,7 @@ final class NineKeySideCandidatePolicyTests: XCTestCase {
         XCTAssertEqual(right.keypadDock, .left)
     }
 
-    /// The keys shrink with the gap: they are not the phone shell's 444 pt beside a narrow gap.
+    /// The keys shrink with the gap and the candidates mirror them at the same width.
     func testTheGapComesOutOfTheKeysAsWellAsTheCandidates() throws {
         // An iPhone in landscape, about 790 pt: a 15 % gap and two even halves.
         let phone = try XCTUnwrap(
@@ -38,7 +38,8 @@ final class NineKeySideCandidatePolicyTests: XCTestCase {
         let tablet = try XCTUnwrap(
             NineKeySideCandidatePolicy.plan(keyAreaWidth: 1200, maximumKeypadWidth: 444, side: .left))
         XCTAssertEqual(tablet.keypadWidth, 444)
-        XCTAssertEqual(tablet.candidateWidth, 1200 - 180 - 444, accuracy: 1e-9)
+        XCTAssertEqual(tablet.candidateWidth, 444)
+        XCTAssertEqual(tablet.stripWidth, 1200 - 888, accuracy: 1e-9)
         // No gap still leaves room for the swap button.
         let none = try XCTUnwrap(
             NineKeySideCandidatePolicy.plan(
@@ -87,7 +88,7 @@ final class CandidateExpandedGridTests: XCTestCase {
         XCTAssertEqual(rows[0].compactMap(\.entry?.text), ["你", "你好"])
         XCTAssertEqual(rows[1].first?.entry?.text, "中华人民共和国")
         XCTAssertGreaterThan(rows[1].first?.span ?? 0, 1)
-        XCTAssertEqual(CandidateExpandedGrid.columns(availableWidth: 300, fontSize: 21), 5)
-        XCTAssertEqual(CandidateExpandedGrid.columns(availableWidth: 60, fontSize: 21), 2)
+        XCTAssertEqual(CandidateExpandedGrid.columns(availableWidth: 336, fontSize: 21), 5)
+        XCTAssertEqual(CandidateExpandedGrid.columns(availableWidth: 100, fontSize: 21), 3)
     }
 }

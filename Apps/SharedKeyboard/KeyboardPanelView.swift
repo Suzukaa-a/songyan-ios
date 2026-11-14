@@ -343,10 +343,13 @@ public struct KeyboardPanelView: View {
                     KeyboardRoutedTouch.clear()
                 }
                 .frame(width: availableWidth, alignment: Self.alignment(of: dock))
-                .overlay(alignment: sideCandidates?.side == .right ? .topTrailing : .topLeading) {
-                    if let sideCandidates, !showsCoveringPanel {
-                        sideCandidateColumn(sideCandidates)
-                            .padding(.horizontal, CGFloat(sideMargin))
+                .overlayPreferenceValue(NineKeyAreaBoundsKey.self) { anchor in
+                    // Placed from the key area's own frame, so the candidates share its top,
+                    // bottom and rows whatever the header above it holds.
+                    if let sideCandidates, let anchor, !showsCoveringPanel {
+                        GeometryReader { proxy in
+                            sideCandidateArea(sideCandidates, keyArea: proxy[anchor])
+                        }
                     }
                 }
                 .frame(width: rawWidth, alignment: .topLeading)
@@ -462,10 +465,11 @@ public struct KeyboardPanelView: View {
         CandidatePresentationState(snapshot: controller.snapshot, isEnglishMode: controller.isEnglishMode)
     }
 
-    private var candidateTypography: CandidateTypography {
+    var candidateTypography: CandidateTypography {
         CandidateTypography(
-            candidateSize: appearance.candidateFontSize,
-            secondarySize: appearance.candidateSecondaryFontSize)
+            // Candidates on a wide board grow with the key labels.
+            candidateSize: appearance.candidateFontSize * keyAppearance.labelScale,
+            secondarySize: appearance.candidateSecondaryFontSize * keyAppearance.labelScale)
     }
 
     /// What the candidate renderers draw. `heldEntries` replaces the live list with one already
@@ -530,7 +534,7 @@ public struct KeyboardPanelView: View {
             } : nil
         let context = CandidateAreaContext(
             state: candidateState,
-            bar: candidateBarDefinition,
+            bar: keyAppearance.scalingCandidateBar(candidateBarDefinition),
             actions: sink,
             typography: candidateTypography,
             browser: controller.candidateBrowser,
@@ -929,6 +933,7 @@ public struct KeyboardPanelView: View {
             // Under the default skin the key area is transparent (system keyboard surface shows through); iOS does not deliver touches in fully transparent
             // areas to a keyboard extension, so taps in the gaps between keys would be lost entirely. Lay down an invisible hit surface, and the root input view
             // (FeedbackInputView.hitTest) hands gap touches to the adjacent key. It covers the key area only, not the root view.
+            .anchorPreference(key: NineKeyAreaBoundsKey.self, value: .bounds) { $0 }
             .padding(.horizontal, widthBox.sideMargin)
             .id(keyAreaGeneration)
             .background(Color.black.opacity(0.001))
@@ -1230,6 +1235,14 @@ final class KeyboardPanelWidthBox {
         self.pageSplitWidth = nextPageSplit
         self.sideMargin = sideMargin
         return true
+    }
+}
+
+/// The key area's frame, for the 9-key side candidates to line up with.
+struct NineKeyAreaBoundsKey: PreferenceKey {
+    static let defaultValue: Anchor<CGRect>? = nil
+    static func reduce(value: inout Anchor<CGRect>?, nextValue: () -> Anchor<CGRect>?) {
+        value = value ?? nextValue()
     }
 }
 

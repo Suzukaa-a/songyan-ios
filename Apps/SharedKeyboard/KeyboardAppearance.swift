@@ -624,7 +624,19 @@ public struct KeyboardAppearance: Equatable, Sendable {
         skin.typography.keySize / SkinDefinition.systemDefault.typography.keySize * labelScale
     }
     /// Labels on a wide board grow with its columns (`StandardKeyRowGeometry.labelScale`).
-    private var labelScale: Double { StandardKeyRowGeometry.labelScale(keyGapScale) }
+    var labelScale: Double { StandardKeyRowGeometry.labelScale(keyGapScale) }
+
+    /// The candidate bar on a wide board: its padding and spacing grow with the candidate text,
+    /// the same rate as key labels, so the candidates keep their proportions to the keys.
+    func scalingCandidateBar(_ bar: CandidateBarDefinition) -> CandidateBarDefinition {
+        guard labelScale != 1 else { return bar }
+        var scaled = bar
+        scaled.collapsed.cellPaddingX *= labelScale
+        scaled.collapsed.cellSpacing *= labelScale
+        scaled.expanded.columnSpacing *= labelScale
+        scaled.expanded.rowSpacing *= labelScale
+        return scaled
+    }
     /// The skin's corner radius on this board (`StandardKeyRowGeometry.cornerScale`).
     public var keyCornerRadius: Double {
         skin.keycap.cornerRadius * StandardKeyRowGeometry.cornerScale(keyGapScale)
@@ -670,7 +682,10 @@ public struct KeyboardAppearance: Equatable, Sendable {
     private static func paletteRole(_ role: String) -> String { role == railChoiceRole ? "control" : role }
 
     public func color(_ name: String) -> Color { Color(uiColor: uiColor(name)) }
-    public func uiColor(_ name: String) -> UIColor { palette.fill(Self.paletteRole(name)) }
+    public func uiColor(_ name: String) -> UIColor {
+        // The rail already paints the column; a second translucent fill per choice showed as boxes.
+        name == Self.railChoiceRole ? .clear : palette.fill(name)
+    }
     /// The function keys of a dark, borderless skin get a hairline; see `outlinesFunctionKeys`.
     public func borderWidth(for role: String) -> Double {
         if role == Self.railChoiceRole { return 0 }

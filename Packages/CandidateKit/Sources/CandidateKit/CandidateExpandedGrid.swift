@@ -1,31 +1,24 @@
 import CoreGraphics
-import SwiftUI
 
-private struct CandidateExpandedGridKey: EnvironmentKey { static let defaultValue = false }
-
-extension EnvironmentValues {
-    /// Expanded candidates in a grid of equal columns divided by hairlines. The grid is drawn even
-    /// with nothing to show, so an area that stays on screen beside the keys never reads as empty.
-    public var candidateExpandedGrid: Bool {
-        get { self[CandidateExpandedGridKey.self] }
-        set { self[CandidateExpandedGridKey.self] = newValue }
-    }
-}
-
-/// Grid layout of expanded candidates: equal columns, a candidate spanning as many as its text
-/// needs, rows filled in order and padded with empty cells so every row divides the same way.
+/// Grid layout of candidates (the 9-key side area): equal columns, a candidate spanning as many as
+/// its text needs, rows filled in order and padded with empty cells so every row divides the same way.
 public enum CandidateExpandedGrid {
     public struct Cell: Equatable, Sendable {
         /// nil is an empty cell.
         public let entry: BrowserCandidate?
         public let span: Int
+
+        public init(entry: BrowserCandidate?, span: Int) {
+            self.entry = entry
+            self.span = span
+        }
     }
 
-    /// Columns about two and a half characters wide, never fewer than two.
+    /// Columns about three characters wide, so a two-character word fits one; never fewer than three.
     public static func columns(availableWidth: CGFloat, fontSize: Double) -> Int {
-        guard availableWidth.isFinite, availableWidth > 0 else { return 2 }
-        let target = max(52, CGFloat(fontSize.isFinite ? fontSize : 0) * 2.6)
-        return max(2, Int(availableWidth / target))
+        guard availableWidth.isFinite, availableWidth > 0 else { return 3 }
+        let target = max(64, CGFloat(fontSize.isFinite ? fontSize : 0) * 3)
+        return max(3, Int(availableWidth / target))
     }
 
     public static func rows(

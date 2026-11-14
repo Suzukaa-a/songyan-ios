@@ -196,7 +196,8 @@ public struct NineKeySideCandidatePlan: Equatable, Sendable {
 
 /// Splits a wide screen into the candidates, a gap and the 9-key keyboard. The gap is a share of
 /// the whole width, so the keys come away from the middle and sit under one thumb at the screen's
-/// edge; the rest is shared evenly, the keys never wider than the phone shell. Geometry only.
+/// edge. The candidates mirror the keys at the same width; the keys never grow wider than the
+/// phone shell, and the gap takes whatever that leaves. Geometry only.
 public enum NineKeySideCandidatePolicy {
     /// Narrower than this the column would show a word or two per row; the side stays blank.
     public static let minimumCandidateWidth: Double = 160
@@ -226,9 +227,8 @@ public enum NineKeySideCandidatePolicy {
         let strip = max(minimumStripWidth, keyAreaWidth * Double(clampedGapPercent(gapPercent)) / 100)
         let rest = keyAreaWidth - strip
         let keypad = min(maximumKeypadWidth, rest / 2)
-        let candidates = rest - keypad
-        guard keypad >= minimumKeypadWidth, candidates >= minimumCandidateWidth else { return nil }
+        guard keypad >= minimumKeypadWidth else { return nil }
         return NineKeySideCandidatePlan(
-            side: side, candidateWidth: candidates, stripWidth: strip, keypadWidth: keypad)
+            side: side, candidateWidth: keypad, stripWidth: keyAreaWidth - 2 * keypad, keypadWidth: keypad)
     }
 }

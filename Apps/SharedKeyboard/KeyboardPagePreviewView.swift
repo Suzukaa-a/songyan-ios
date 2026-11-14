@@ -70,6 +70,10 @@ struct KeyboardPreviewFrame<Content: View>: View {
     let mainSplit: LayoutSplitConfiguration?
     let dock: KeyboardContentDock
     var widthSettings = KeyboardWidthSettings.standard
+    /// The 9-key candidates beside the keys, as the keyboard draws them: the keys narrow and move
+    /// to the other side, so the keyboard does not start in one place and jump to another.
+    var nineKeyCandidateSide = NineKeyCandidateSide.off
+    var nineKeyCandidateGapPercent = NineKeySideCandidatePolicy.defaultGapPercent
     @ViewBuilder var content: (KeyboardPreviewWidths) -> Content
     @State private var width: CGFloat = 0
     @State private var windowWidth: CGFloat = 0
@@ -82,12 +86,17 @@ struct KeyboardPreviewFrame<Content: View>: View {
         let scale = raw > 0 ? min(1, width / CGFloat(raw)) : 1
         let splitAbove = Double(widthSettings.splitWidth)
         let margin = KeyboardPanelRules.sideMargin(panelWidth: raw, settings: widthSettings)
+        let cap = KeyboardPanelRules.wideMaximumContentWidth(
+            rawWidth: raw - 2 * margin, fullWidth: raw, mainSplit: mainSplit, layout: layout, splitAbove: splitAbove)
+        let side =
+            layout == .phone9 && cap != nil
+            ? NineKeySideCandidatePolicy.plan(
+                keyAreaWidth: raw - 2 * margin, maximumKeypadWidth: cap ?? 0,
+                side: nineKeyCandidateSide, gapPercent: nineKeyCandidateGapPercent)
+            : nil
+        let dock = side?.keypadDock ?? self.dock
         let plan = KeyboardWideContentPolicy.plan(
-            panelWidth: raw,
-            maximumContentWidth: KeyboardPanelRules.wideMaximumContentWidth(
-                rawWidth: raw - 2 * margin, fullWidth: raw, mainSplit: mainSplit, layout: layout, splitAbove: splitAbove
-            ),
-            dock: dock, sideMargin: margin)
+            panelWidth: raw, maximumContentWidth: side?.keypadWidth ?? cap, dock: dock, sideMargin: margin)
         let contentWidth = plan.contentWidth
         KeyboardPreviewScaleLayout(surfaceWidth: CGFloat(raw), scale: scale) {
             content(
@@ -96,7 +105,7 @@ struct KeyboardPreviewFrame<Content: View>: View {
             )
             .frame(width: CGFloat(contentWidth))
             .padding(.leading, margin > 0 ? CGFloat(plan.leadingInset) : 0)
-            .frame(width: CGFloat(raw), alignment: margin > 0 ? .leading : alignment)
+            .frame(width: CGFloat(raw), alignment: margin > 0 ? .leading : Self.alignment(of: dock))
             .scaleEffect(scale, anchor: .topLeading)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -111,7 +120,7 @@ struct KeyboardPreviewFrame<Content: View>: View {
         }
     }
 
-    private var alignment: Alignment {
+    private static func alignment(of dock: KeyboardContentDock) -> Alignment {
         switch dock {
         case .left: return .leading
         case .center: return .center

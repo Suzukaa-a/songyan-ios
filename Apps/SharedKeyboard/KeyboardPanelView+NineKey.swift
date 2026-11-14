@@ -217,47 +217,67 @@ extension KeyboardPanelView {
         return visibleKeys(PhoneKeypadRailPolicy.declaredKeys(in: definition, position: position))
     }
 
-    /// The expanded candidates beside a docked 9-key keyboard, with the swap button between them
-    /// and the keys. The area is drawn even while nothing is typed, and the list stays mounted:
-    /// rebuilding it per key flashed its scroll indicator and its rows.
-    func sideCandidateColumn(_ plan: NineKeySideCandidatePlan) -> some View {
+    /// The candidates beside a docked 9-key keyboard: a mirror of the keys, the same width, the
+    /// same top and bottom and the same row pitch, each candidate on a keycap. With nothing typed
+    /// the caps stay, faint, so the side never reads as empty. The swap button sits in the gap.
+    func sideCandidateArea(_ plan: NineKeySideCandidatePlan, keyArea: CGRect) -> some View {
+        let width = CGFloat(plan.candidateWidth)
+        let strip = CGFloat(plan.stripWidth)
+        let x = plan.side == .left ? keyArea.minX - strip - width : keyArea.maxX + strip
+        let swapX = plan.side == .left ? keyArea.minX - strip : keyArea.maxX
+        let context = candidateAreaContext()
         let pending = controller.snapshot.isComposing || !controller.session.pendingCodes.isEmpty
-        let live = pending ? candidateAreaContext().displayEntries : []
+        let live = pending ? context.displayEntries : []
         // A key still decoding empties the list for a moment: the last real candidates stay on
         // screen instead, inert, since their indices no longer match the engine.
-        let held: [BrowserCandidate]? = pending && live.isEmpty ? sideCandidateHold.shown : nil
-        let shown = held ?? live
+        let held = pending && live.isEmpty && !sideCandidateHold.shown.isEmpty
+        let shown = held ? sideCandidateHold.shown : live
         let texts = shown.map(\.text)
         if texts != sideCandidateHold.shown.map(\.text) {
             // What was on screen fades out over the new list; see the onChange below.
             sideCandidateHold.outgoing = sideCandidateHold.shown
             sideCandidateHold.shown = shown
         }
-        return HStack(spacing: 0) {
-            if plan.side == .right { sideCandidateSwapButton(plan.side, width: plan.stripWidth) }
+        let rowHeight = keyArea.height / 4
+        let typography = candidateTypography
+        return ZStack(alignment: .topLeading) {
             ZStack {
                 if !sideCandidateHold.outgoing.isEmpty {
-                    candidateRendererView(expanded: true, heldEntries: sideCandidateHold.outgoing)
-                        .opacity(sideCandidateOutgoing)
-                        // Only ever a picture of the last list: a touch always lands on the new one.
-                        .allowsHitTesting(false)
-                        .accessibilityHidden(true)
+                    SideCandidateKeys(
+                        entries: sideCandidateHold.outgoing, rowHeight: rowHeight, typography: typography,
+                        onSelect: nil, onReachEnd: nil
+                    )
+                    .opacity(sideCandidateOutgoing)
+                    // Only ever a picture of the last list: a touch always lands on the new one.
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
                 }
-                candidateRendererView(expanded: true, heldEntries: held)
-                    .allowsHitTesting(held == nil)
-                    .opacity(sideCandidateFade)
+                SideCandidateKeys(
+                    entries: shown, rowHeight: rowHeight, typography: typography,
+                    onSelect: held
+                        ? nil
+                        : { entry in
+                            let action = context.selectAction(entry)
+                            if let run = context.actions.prepare(action) {
+                                _ = run()
+                            } else {
+                                context.actions.perform(action)
+                            }
+                        },
+                    onReachEnd: held || !context.hasMoreEntries ? nil : { context.actions.perform(.loadMore) }
+                )
+                .opacity(sideCandidateFade)
             }
-            .environment(\.candidateExpandedGrid, true)
-            .padding(.horizontal, 4)
-            .padding(.vertical, 6)
-            .frame(width: CGFloat(plan.candidateWidth))
-            .frame(maxHeight: .infinity)
-            // iOS drops touches on fully transparent pixels of a keyboard extension.
-            .background(Color.black.opacity(0.001))
-            if plan.side == .left { sideCandidateSwapButton(plan.side, width: plan.stripWidth) }
+            .frame(width: width, height: keyArea.height)
+            .padding(.leading, x)
+            .padding(.top, keyArea.minY)
+            sideCandidateSwapButton(plan.side, width: plan.stripWidth)
+                .frame(height: keyArea.height)
+                .padding(.leading, swapX)
+                .padding(.top, keyArea.minY)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .environment(\.keyboardAppearance, keyAppearance)
-        .environment(\.candidateSkinToken, candidateSkinToken)
         .onChange(of: texts) { _, _ in
             // Cross-fade: the old list fades out as the new one fades in. Opacity only, so every
             // cell stays where it is hit-tested; the new list never falls below UIKit's
@@ -266,10 +286,10 @@ extension KeyboardPanelView {
             instant.disablesAnimations = true
             withTransaction(instant) {
                 sideCandidateOutgoing = 1
-                sideCandidateFade = 0.2
+                sideCandidateFade = 0.4
             }
             Task { @MainActor in
-                withAnimation(.easeOut(duration: 0.15)) {
+                withAnimation(.easeOut(duration: 0.09)) {
                     sideCandidateOutgoing = 0
                     sideCandidateFade = 1
                 }
@@ -292,7 +312,6 @@ extension KeyboardPanelView {
         }
         .buttonStyle(KeyboardPressStyle())
         .frame(width: CGFloat(width))
-        .frame(maxHeight: .infinity)
         .accessibilityLabel(String(localized: "候选区换到另一侧"))
         .accessibilityIdentifier("keyboard.sideCandidateSwap")
     }
@@ -481,5 +500,82 @@ extension KeyboardPanelView {
             onDelete: { isRepeating in handleKey(.backspace, emitFeedback: !isRepeating) },
             onReset: { keyFeedbackAfterEffect { _ = controller.discardComposition() } },
             onReturn: { handleDefinitionAction($0.action) })
+    }
+}
+
+/// The 9-key side candidates on keycaps, in rows as tall as the key rows beside them. Scrolls a
+/// row at a time past the rows that fit; `onSelect` nil draws an inert picture.
+private struct SideCandidateKeys: View {
+    let entries: [BrowserCandidate]
+    let rowHeight: CGFloat
+    let typography: CandidateTypography
+    let onSelect: ((BrowserCandidate) -> Void)?
+    let onReachEnd: (() -> Void)?
+    @Environment(\.keyboardAppearance) private var appearance
+
+    var body: some View {
+        GeometryReader { proxy in
+            let width = proxy.size.width
+            let columns = CandidateExpandedGrid.columns(availableWidth: width, fontSize: typography.candidateSize)
+            let unit = width / CGFloat(columns)
+            let filled = CandidateExpandedGrid.rows(
+                entries: entries, columns: columns, columnWidth: unit, typography: typography, cellPaddingX: 6)
+            let blank = Array(repeating: CandidateExpandedGrid.Cell(entry: nil, span: 1), count: columns)
+            let visibleRows = max(1, Int((proxy.size.height + 0.5) / max(1, rowHeight)))
+            let rows = filled + Array(repeating: blank, count: max(0, visibleRows - filled.count))
+            ScrollView(.vertical, showsIndicators: false) {
+                LazyVStack(spacing: 0) {
+                    ForEach(Array(rows.enumerated()), id: \.offset) { index, row in
+                        HStack(spacing: 0) {
+                            ForEach(Array(row.enumerated()), id: \.offset) { _, slot in
+                                cap(slot.entry)
+                                    .frame(width: unit * CGFloat(slot.span), height: rowHeight)
+                            }
+                        }
+                        .onAppear {
+                            if index == filled.count - 1 { onReachEnd?() }
+                        }
+                    }
+                }
+            }
+            .scrollDisabled(filled.count <= visibleRows)
+        }
+    }
+
+    @ViewBuilder
+    private func cap(_ entry: BrowserCandidate?) -> some View {
+        if let entry {
+            Button {
+                onSelect?(entry)
+            } label: {
+                Text(entry.text)
+                    .font(appearance.font(typography.candidateSize))
+                    .foregroundStyle(Color(uiColor: appearance.text(on: "key")))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+                    .padding(.horizontal, 6)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background { capShape }
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(KeyboardPressStyle())
+            .disabled(onSelect == nil)
+            .accessibilityLabel(entry.text)
+        } else {
+            capShape.opacity(0.4).accessibilityHidden(true)
+        }
+    }
+
+    /// The same cap a key draws: its fill, corner, border and the skin's hard shadow.
+    private var capShape: some View {
+        let shape = RoundedRectangle(cornerRadius: appearance.keyCornerRadius)
+        return
+            shape
+            .fill(appearance.color("key"))
+            .overlay { shape.strokeBorder(appearance.color("border"), lineWidth: appearance.borderWidth(for: "key")) }
+            .shadow(
+                color: .black.opacity(appearance.skin.keycap.shadow == "subtle" ? 0.18 : 0), radius: 0, x: 0, y: 1)
+            .padding(.horizontal, appearance.keyInsetX)
+            .padding(.vertical, appearance.keyInsetY)
     }
 }
