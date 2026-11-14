@@ -12,18 +12,31 @@ public enum MergedKeypadGeometry {
         public let keyWidths: [Double]
     }
 
-    /// The last row of a split pad: the word-split key, the letters and Delete share the width the
-    /// row above spends on its keys, so the outer edges line up and the gutter keeps its width,
-    /// each key by its weight (the two side keys as wide as a letter). Every key of the row is then
-    /// the same size, rather than one half crammed into the other's narrower span. `upperWidths`
-    /// are the row above's key widths; returns the last row's widths, the word-split key first and
-    /// Delete last.
-    public static func splitLastRow(upperWidths: [Double], lastWeights: [Double], spacing: Double) -> [Double] {
-        let weights = [1] + lastWeights.map(safe) + [1]
-        let upperSpan = upperWidths.reduce(0, +) + Double(max(0, upperWidths.count - 1)) * spacing
-        let keys = max(0, upperSpan - Double(weights.count - 1) * spacing)
-        let total = weights.reduce(0, +)
-        return weights.map { total > 0 ? keys * $0 / total : 0 }
+    /// The last row of a split pad, laid into the halves of the row above so the halves' edges and
+    /// the gutter line up. The word-split key opens the left half and Delete closes the right one,
+    /// each `sideWidth` wide (the 26-key board's Shift and Delete at this width, so every layout's
+    /// side keys match); the letters of each half share what is left by weight. `upperWidths` are
+    /// the row above's key widths, cut at `upperBreak`; `lastWeights` the last row's letters, cut at
+    /// `lastBreak`. Returns the left half's widths (the word-split key first) and the right half's
+    /// (Delete last).
+    public static func splitLastRow(
+        upperWidths: [Double], upperBreak: Int, lastWeights: [Double], lastBreak: Int, spacing: Double,
+        sideWidth: Double
+    ) -> (left: [Double], right: [Double]) {
+        func span(_ widths: ArraySlice<Double>) -> Double {
+            widths.reduce(0, +) + Double(max(0, widths.count - 1)) * spacing
+        }
+        func letters(_ width: Double, _ weights: ArraySlice<Double>) -> [Double] {
+            let total = weights.reduce(0) { $0 + safe($1) }
+            guard total > 0 else { return weights.map { _ in 0 } }
+            let room = max(0, width - sideWidth - Double(weights.count) * spacing)
+            return weights.map { safe($0) * room / total }
+        }
+        let cut = min(max(0, upperBreak), upperWidths.count)
+        let lastCut = min(max(0, lastBreak), lastWeights.count)
+        let left = [sideWidth] + letters(span(upperWidths[..<cut]), lastWeights[..<lastCut])
+        let right = letters(span(upperWidths[cut...]), lastWeights[lastCut...]) + [sideWidth]
+        return (left, right)
     }
 
     /// `width` is the full row width; `sideWidth` is each side key in the last row.
