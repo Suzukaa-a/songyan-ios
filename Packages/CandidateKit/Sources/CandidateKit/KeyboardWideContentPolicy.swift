@@ -185,6 +185,8 @@ public struct NineKeySideCandidatePlan: Equatable, Sendable {
     public let side: NineKeyCandidateSide
     /// Width of the candidate column, the swap button's strip not included.
     public let candidateWidth: Double
+    /// Width of the strip between the candidates and the keys that holds the swap button.
+    public let stripWidth: Double
 
     /// The keys sit on the side away from the candidates.
     public var keypadDock: KeyboardContentDock { side == .left ? .right : .left }
@@ -195,16 +197,23 @@ public struct NineKeySideCandidatePlan: Equatable, Sendable {
 public enum NineKeySideCandidatePolicy {
     /// Narrower than this the column would show a word or two per row; the side stays blank.
     public static let minimumCandidateWidth: Double = 200
-    /// The strip between the candidates and the keys that holds the swap button.
-    public static let swapStripWidth: Double = 40
+    /// The strip between the candidates and the keys that holds the swap button: a share of the
+    /// width, so the two parts stay apart on a large screen, and never narrower than the button.
+    public static let minimumStripWidth: Double = 40
+    public static let stripShare: Double = 0.06
+
+    public static func stripWidth(keyAreaWidth: Double) -> Double {
+        max(minimumStripWidth, keyAreaWidth * stripShare)
+    }
 
     /// `keyAreaWidth` is the width left after the side margins; `keypadWidth` the capped keys.
     public static func plan(
         keyAreaWidth: Double, keypadWidth: Double, side: NineKeyCandidateSide
     ) -> NineKeySideCandidatePlan? {
         guard side != .off, keyAreaWidth.isFinite, keypadWidth.isFinite, keypadWidth > 0 else { return nil }
-        let candidateWidth = keyAreaWidth - keypadWidth - swapStripWidth
+        let strip = stripWidth(keyAreaWidth: keyAreaWidth)
+        let candidateWidth = keyAreaWidth - keypadWidth - strip
         guard candidateWidth >= minimumCandidateWidth else { return nil }
-        return NineKeySideCandidatePlan(side: side, candidateWidth: candidateWidth)
+        return NineKeySideCandidatePlan(side: side, candidateWidth: candidateWidth, stripWidth: strip)
     }
 }

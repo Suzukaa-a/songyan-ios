@@ -240,7 +240,7 @@ extension KeyboardPanelView {
                     if headerContent == .candidates {
                         inlineReadingSection(rowWidth: geometry.size.width)
                     }
-                    candidateBar
+                    if !widthBox.showsSideCandidates { candidateBar }
                     Spacer(minLength: 0)
                     if statusMessage != nil, onStatusDetails != nil { statusEntryKey }
                     compositionFallbackBadge

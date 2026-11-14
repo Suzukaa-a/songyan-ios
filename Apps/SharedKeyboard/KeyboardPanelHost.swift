@@ -605,6 +605,9 @@ public struct KeyboardPanelHost: View {
     /// The layout the keyboard last drew, once the stored layouts are read; nil before the first
     /// ready keyboard, when the starting panel shows instead.
     private var startingLayout: LayoutDefinition? {
+        // A keyboard picked from the menu is on its way: the last keyboard's keys would show
+        // the old keyboard for a moment before the new one.
+        guard !session.announcesNextKeyboard else { return nil }
         // The user's skin first: keys in the default look would change colour when it arrives.
         guard hasValidAppearance,
             let id = UserDefaults.standard.string(forKey: KeyboardStartingKeys.lastLayoutKey)

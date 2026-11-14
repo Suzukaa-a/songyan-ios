@@ -1,46 +1,68 @@
 {
   "sourceLanguage": "zh-Hans",
   "strings": {
-    "9 键候选区": {
+    "候选区在左": {
       "localizations": {
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "9キーの候補エリア"
+            "value": "候補エリアを左に"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "9 键候选区"
+            "value": "候选区在左"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "9 鍵候選區"
+            "value": "候選區在左"
           }
         }
       }
     },
-    "屏幕够宽时，9 键的候选在键盘旁展开，键盘移到另一侧。下次打开键盘时生效。": {
+    "候选区在右": {
       "localizations": {
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "画面に余裕があるとき、9キーの候補をキーボードの横に広げ、キーボードは反対側に寄せます。次にキーボードを開いたときに反映されます。"
+            "value": "候補エリアを右に"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "屏幕够宽时，9 键的候选在键盘旁展开，键盘移到另一侧。下次打开键盘时生效。"
+            "value": "候选区在右"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "螢幕夠寬時，9 鍵的候選在鍵盤旁展開，鍵盤移到另一側。下次打開鍵盤時生效。"
+            "value": "候選區在右"
+          }
+        }
+      }
+    },
+    "候选区在左或右时，屏幕够宽就在 9 键旁展开候选，放不下时居中。下次打开键盘时生效。": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "候補エリアを左か右にすると、画面に余裕があるとき9キーの横に候補を広げます。収まらないときは中央に置きます。次にキーボードを開いたときに反映されます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "候选区在左或右时，屏幕够宽就在 9 键旁展开候选，放不下时居中。下次打开键盘时生效。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "候選區在左或右時，螢幕夠寬就在 9 鍵旁展開候選，放不下時置中。下次打開鍵盤時生效。"
           }
         }
       }

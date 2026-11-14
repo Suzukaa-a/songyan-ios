@@ -123,9 +123,10 @@ extension KeyboardPanelView {
         controller.awaitsOtherPackage = true
         let waiting = controller
         Task { @MainActor in
-            // The engine starts within this when the switch went through; past it the old
-            // keyboard is still here, so the switch failed or never began.
-            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            // A switch that does not happen says so (`awaitsOtherPackage` cleared by the route);
+            // this only catches one that never reports. Saving and reading another package can
+            // take seconds, and bringing the old keys back meanwhile flashed the old keyboard.
+            try? await Task.sleep(nanoseconds: 10_000_000_000)
             waiting.awaitsOtherPackage = false
         }
     }

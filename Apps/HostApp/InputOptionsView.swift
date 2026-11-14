@@ -258,34 +258,64 @@ struct InputOptionsView: View {
     private var wideDockSection: some View {
         Section {
             ForEach(Self.wideDockLayouts, id: \.rawValue) { layout in
-                Picker(
-                    UserTerminology.layoutName(layout),
-                    selection: Binding(
-                        get: { (wideDockValues[layout.rawValue] ?? .center).rawValue },
-                        set: { value in
-                            let dock = KeyboardContentDock.resolve(value)
-                            wideDockValues[layout.rawValue] = dock
-                            KeyboardContentDockPreferences.set(dock, for: layout)
-                        }
-                    )
-                ) {
-                    Text("靠左").tag(KeyboardContentDock.left.rawValue)
-                    Text("居中").tag(KeyboardContentDock.center.rawValue)
-                    Text("靠右").tag(KeyboardContentDock.right.rawValue)
+                if layout == .phone9 {
+                    nineKeyWidePicker
+                } else {
+                    Picker(
+                        UserTerminology.layoutName(layout),
+                        selection: Binding(
+                            get: { (wideDockValues[layout.rawValue] ?? .center).rawValue },
+                            set: { value in
+                                let dock = KeyboardContentDock.resolve(value)
+                                wideDockValues[layout.rawValue] = dock
+                                KeyboardContentDockPreferences.set(dock, for: layout)
+                            }
+                        )
+                    ) {
+                        Text("靠左").tag(KeyboardContentDock.left.rawValue)
+                        Text("居中").tag(KeyboardContentDock.center.rawValue)
+                        Text("靠右").tag(KeyboardContentDock.right.rawValue)
+                    }
+                    .accessibilityIdentifier("inputOptions.wideDock.\(layout.rawValue)")
                 }
-                .accessibilityIdentifier("inputOptions.wideDock.\(layout.rawValue)")
             }
-            Picker("9 键候选区", selection: $nineKeyCandidateSide) {
-                Text("左侧").tag(NineKeyCandidateSide.left.rawValue)
-                Text("右侧").tag(NineKeyCandidateSide.right.rawValue)
-                Text("关闭").tag(NineKeyCandidateSide.off.rawValue)
-            }
-            .accessibilityIdentifier("inputOptions.nineKeyCandidateSide")
         } header: {
             Text("宽屏键盘位置")
         } footer: {
-            Text("屏幕够宽时，9 键的候选在键盘旁展开，键盘移到另一侧。下次打开键盘时生效。")
+            Text("候选区在左或右时，屏幕够宽就在 9 键旁展开候选，放不下时居中。下次打开键盘时生效。")
         }
+    }
+
+    /// One choice for the 9-key keyboard on a wide screen: the candidates beside it (the keys
+    /// then take the other side), or no candidate column and the keys where the dock puts them.
+    private var nineKeyWidePicker: some View {
+        Picker(
+            UserTerminology.layoutName(.phone9),
+            selection: Binding(
+                get: {
+                    let side = NineKeyCandidateSide.resolve(nineKeyCandidateSide)
+                    if side != .off { return "candidates." + side.rawValue }
+                    return (wideDockValues[KeyboardLayoutKind.phone9.rawValue] ?? .center).rawValue
+                },
+                set: { value in
+                    if value.hasPrefix("candidates.") {
+                        nineKeyCandidateSide = String(value.dropFirst("candidates.".count))
+                        return
+                    }
+                    nineKeyCandidateSide = NineKeyCandidateSide.off.rawValue
+                    let dock = KeyboardContentDock.resolve(value)
+                    wideDockValues[KeyboardLayoutKind.phone9.rawValue] = dock
+                    KeyboardContentDockPreferences.set(dock, for: .phone9)
+                }
+            )
+        ) {
+            Text("候选区在左").tag("candidates." + NineKeyCandidateSide.left.rawValue)
+            Text("候选区在右").tag("candidates." + NineKeyCandidateSide.right.rawValue)
+            Text("靠左").tag(KeyboardContentDock.left.rawValue)
+            Text("居中").tag(KeyboardContentDock.center.rawValue)
+            Text("靠右").tag(KeyboardContentDock.right.rawValue)
+        }
+        .accessibilityIdentifier("inputOptions.wideDock.phone9")
     }
 
     private var keyboardWidthSection: some View {

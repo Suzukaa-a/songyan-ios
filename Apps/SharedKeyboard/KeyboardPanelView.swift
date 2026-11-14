@@ -274,6 +274,8 @@ public struct KeyboardPanelView: View {
             let wideSignature = WideContentSignature(
                 isWideSurface: isWideSurface, active: contentIsDocked,
                 headerlessToolRail: needsHeaderlessToolRail, dock: dock)
+            // The header leaves the candidates to the side column instead of showing them twice.
+            let _ = widthBox.recordSideCandidates(sideCandidates != nil)
             let _ = widthBox.record(
                 contentWidth: contentWidth - 8 - CGFloat(2 * sideMargin),
                 mainSplitWidth: rawWidth, pageSplitWidth: contentWidth - 8, sideMargin: CGFloat(sideMargin))
@@ -1192,6 +1194,10 @@ final class KeyboardPanelWidthBox {
     private(set) var pageSplitWidth: Double = 0
     /// The blank margin on each side of the key area, already part of neither width above.
     private(set) var sideMargin: CGFloat = 0
+    /// The 9-key candidates sit in their own column beside the keys.
+    private(set) var showsSideCandidates = false
+
+    func recordSideCandidates(_ shows: Bool) { showsSideCandidates = shows }
 
     @discardableResult
     func record(

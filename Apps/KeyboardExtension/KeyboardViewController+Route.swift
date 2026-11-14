@@ -353,6 +353,8 @@ extension KeyboardViewController {
             guard !Task.isCancelled, let self else { return }
             switch result {
             case .unchanged:
+                // Nothing to switch to: keys hidden for another package come back.
+                self.session.controller?.awaitsOtherPackage = false
                 guard Self.rescuedRoute == nil, let applied = Self.applied else { return }
                 self.route.message = applied.reason
                 self.route.notice = self.route.selectionError ?? applied.notice
@@ -428,6 +430,8 @@ extension KeyboardViewController {
         if let desired {
             // The session reuses a ready engine whose route identity already matches: no restart.
             session.switchResource(to: desired, layout: desired.preferredLayout ?? session.layout)
+            // Still ready means the running engine was kept: no new keyboard is coming.
+            if session.phase == .ready { session.controller?.awaitsOtherPackage = false }
         } else if session.resourceSet != nil {
             // The only route-withdrawal path: the shared record was read and names no applied scheme.
             session.restoreConfiguredRoute()

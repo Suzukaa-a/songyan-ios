@@ -15,17 +15,22 @@ final class NineKeySideCandidatePolicyTests: XCTestCase {
         let left = try XCTUnwrap(
             NineKeySideCandidatePolicy.plan(keyAreaWidth: 1000, keypadWidth: 444, side: .left))
         XCTAssertEqual(left.keypadDock, .right)
-        XCTAssertEqual(left.candidateWidth, 1000 - 444 - NineKeySideCandidatePolicy.swapStripWidth)
+        XCTAssertEqual(left.stripWidth, 60, accuracy: 1e-9)
+        XCTAssertEqual(left.candidateWidth, 1000 - 444 - 60, accuracy: 1e-9)
         let right = try XCTUnwrap(
             NineKeySideCandidatePolicy.plan(keyAreaWidth: 1000, keypadWidth: 444, side: .right))
         XCTAssertEqual(right.keypadDock, .left)
     }
 
+    func testTheStripGrowsWithTheWidthButNeverBelowTheButton() {
+        XCTAssertEqual(NineKeySideCandidatePolicy.stripWidth(keyAreaWidth: 600), 40)
+        XCTAssertEqual(NineKeySideCandidatePolicy.stripWidth(keyAreaWidth: 1200), 72, accuracy: 1e-9)
+    }
+
     func testTooLittleRoomOrOffLeavesTheSideBlank() {
-        // One point short of the keys, the swap strip and the narrowest useful column.
-        let width = 444 + NineKeySideCandidatePolicy.swapStripWidth + NineKeySideCandidatePolicy.minimumCandidateWidth
-        XCTAssertNil(NineKeySideCandidatePolicy.plan(keyAreaWidth: width - 1, keypadWidth: 444, side: .left))
-        XCTAssertNotNil(NineKeySideCandidatePolicy.plan(keyAreaWidth: width, keypadWidth: 444, side: .left))
+        // 444 keys + a 6 % strip + a 200 pt column need about 685.1 pt.
+        XCTAssertNil(NineKeySideCandidatePolicy.plan(keyAreaWidth: 685, keypadWidth: 444, side: .left))
+        XCTAssertNotNil(NineKeySideCandidatePolicy.plan(keyAreaWidth: 686, keypadWidth: 444, side: .left))
         XCTAssertNil(NineKeySideCandidatePolicy.plan(keyAreaWidth: 1000, keypadWidth: 444, side: .off))
         XCTAssertNil(NineKeySideCandidatePolicy.plan(keyAreaWidth: .nan, keypadWidth: 444, side: .left))
     }
