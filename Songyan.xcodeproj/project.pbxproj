@@ -700,7 +700,6 @@
 				ST2611180000000000000001 /* ScriptTextTool.swift */,
 				ST2611180000000000000002 /* ScriptToolRuntimeExtension.swift */,
 				ST2611180000000000000003 /* ScriptCoreBridge.h */,
-				ST2611180000000000000028 /* ScriptFetchHost.swift */,
 				SA2611180000000000000001 /* ScriptAddonCatalog.swift */,
 				SA2611180000000000000002 /* ScriptAddonDirectory.swift */,
 				TP2611180000000000000003 /* ToolPanelView.swift */,
@@ -719,6 +718,7 @@
 		A0000000000000000000000007 /* SharedKeyboard */ = {
 			isa = PBXGroup;
 			children = (
+				ST2611180000000000000028 /* ScriptFetchHost.swift */,
 				A0000000000000000000000034 /* KeyboardController.swift */,
 				A0000000000000000000000037 /* KeyboardPanelView.swift */,
 				CA6B3B07DA234E47A79863C6 /* EngineOwnershipCoordinator.swift */,

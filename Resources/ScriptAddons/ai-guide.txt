@@ -16,6 +16,10 @@
 - @description 用一句话说清它做什么，可以省略。
 - @connect 写脚本会连的网站域名，只写域名，不带 https:// 和路径，可以写多行。
 - @setting 是用户要填的设置，类型只能是 text、url、choice，最后是给用户看的标签。
+- choice 类型的设置在它下面用 @option 列出可选项，至少两个，第一个是默认值，例如：
+  // @setting lang choice 译成
+  // @option lang 英文
+  // @option lang 日文
 - @secret 是密钥，单独保存，不会写进导出的文件。
 - 不认识的声明会让文件导入失败，不要自创。
 
@@ -26,6 +30,8 @@ export default async ({ text, settings }) => {
 };
 
 能用的全局只有 fetch、FormData、TextEncoder、TextDecoder、console.log，没有别的：没有 DOM、剪贴板、本地存储、定时器，脚本之间也看不到彼此。每次运行都是新环境，结束就销毁。
+
+一次运行默认最多 30 秒（等网络的时间也算）。要等更久的（比如慢的大模型），在开头加一行 // @timeout 300，单位是秒，最多 600。脚本自己计算最多 4 秒，最多发 4 次请求，每次回复最多 64 KB。
 
 返回一段字符串，或一组字符串让用户挑一条。抛出的错误会原样显示给用户，所以错误里写清发生了什么、用户能做什么。
 
