@@ -72,8 +72,13 @@ extension KeyboardPanelView {
         // choices on a side-key surface instead of keys with an empty hole below.
         .background {
             if showsReadingChoices {
-                RoundedRectangle(cornerRadius: appearance.keyCornerRadius)
+                let column = RoundedRectangle(cornerRadius: appearance.keyCornerRadius)
+                column
                     .fill(appearance.color("control"))
+                    .overlay {
+                        column.strokeBorder(
+                            appearance.color("border"), lineWidth: appearance.borderWidth(for: "control"))
+                    }
                     .padding(.horizontal, keyAppearance.keyInsetX)
                     .padding(.vertical, appearance.keyInsetY)
             }
@@ -166,6 +171,7 @@ extension KeyboardPanelView {
         AlternateCharacterKey(
             cap: KeyCap(id: id, title: title, subtitle: hint, action: .literal(title)),
             alternates: [], phoneKey: true, phoneSideKey: true,
+            visualRole: KeyboardAppearance.railChoiceRole,
             titleSize: Self.t9RailChoiceTitleSize,
             accessibilityID: "t9.spelling.\(slot)",
             onSelect: { _ in selectionFeedbackAfterEffect(perform) }
@@ -215,42 +221,58 @@ extension KeyboardPanelView {
     /// and the keys. The area is drawn even while nothing is typed, and the list stays mounted:
     /// rebuilding it per key flashed its scroll indicator and its rows.
     func sideCandidateColumn(_ plan: NineKeySideCandidatePlan) -> some View {
-        let candidates = controller.snapshot.candidates
         let pending = controller.snapshot.isComposing || !controller.session.pendingCodes.isEmpty
+        let live = pending ? candidateAreaContext().displayEntries : []
         // A key still decoding empties the list for a moment: the last real candidates stay on
         // screen instead, inert, since their indices no longer match the engine.
-        let held: CandidatePresentationState? =
-            pending && candidates.isEmpty ? sideCandidateHold.state : nil
-        if held == nil { sideCandidateHold.state = pending && !candidates.isEmpty ? candidateState : nil }
+        let held: [BrowserCandidate]? = pending && live.isEmpty ? sideCandidateHold.shown : nil
+        let shown = held ?? live
+        let texts = shown.map(\.text)
+        if texts != sideCandidateHold.shown.map(\.text) {
+            // What was on screen fades out over the new list; see the onChange below.
+            sideCandidateHold.outgoing = sideCandidateHold.shown
+            sideCandidateHold.shown = shown
+        }
         return HStack(spacing: 0) {
             if plan.side == .right { sideCandidateSwapButton(plan.side, width: plan.stripWidth) }
-            candidateRendererView(expanded: true, held: held)
-                .allowsHitTesting(held == nil)
-                .opacity(sideCandidateFade)
-                .padding(.horizontal, 6)
-                .padding(.vertical, 8)
-                .frame(width: CGFloat(plan.candidateWidth))
-                .frame(maxHeight: .infinity)
-                .background {
-                    RoundedRectangle(cornerRadius: keyAppearance.keyCornerRadius * 1.5)
-                        .fill(appearance.color("control").opacity(0.35))
-                        .padding(.vertical, 4)
+            ZStack {
+                if !sideCandidateHold.outgoing.isEmpty {
+                    candidateRendererView(expanded: true, heldEntries: sideCandidateHold.outgoing)
+                        .opacity(sideCandidateOutgoing)
+                        // Only ever a picture of the last list: a touch always lands on the new one.
+                        .allowsHitTesting(false)
+                        .accessibilityHidden(true)
                 }
-                // iOS drops touches on fully transparent pixels of a keyboard extension.
-                .background(Color.black.opacity(0.001))
+                candidateRendererView(expanded: true, heldEntries: held)
+                    .allowsHitTesting(held == nil)
+                    .opacity(sideCandidateFade)
+            }
+            .environment(\.candidateExpandedGrid, true)
+            .padding(.horizontal, 4)
+            .padding(.vertical, 6)
+            .frame(width: CGFloat(plan.candidateWidth))
+            .frame(maxHeight: .infinity)
+            // iOS drops touches on fully transparent pixels of a keyboard extension.
+            .background(Color.black.opacity(0.001))
             if plan.side == .left { sideCandidateSwapButton(plan.side, width: plan.stripWidth) }
         }
         .environment(\.keyboardAppearance, keyAppearance)
         .environment(\.candidateSkinToken, candidateSkinToken)
-        .onChange(of: candidates.map(\.text)) { _, texts in
-            // New candidates come in from faint instead of popping in. Opacity only: the cells
-            // stay where they are hit-tested, and never fall below UIKit's hit-test alpha.
-            guard !texts.isEmpty else { return }
+        .onChange(of: texts) { _, _ in
+            // Cross-fade: the old list fades out as the new one fades in. Opacity only, so every
+            // cell stays where it is hit-tested; the new list never falls below UIKit's
+            // hit-test alpha, and the old one takes no touches.
             var instant = Transaction()
             instant.disablesAnimations = true
-            withTransaction(instant) { sideCandidateFade = 0.6 }
+            withTransaction(instant) {
+                sideCandidateOutgoing = 1
+                sideCandidateFade = 0.2
+            }
             Task { @MainActor in
-                withAnimation(.easeOut(duration: 0.14)) { sideCandidateFade = 1 }
+                withAnimation(.easeOut(duration: 0.15)) {
+                    sideCandidateOutgoing = 0
+                    sideCandidateFade = 1
+                }
             }
         }
     }

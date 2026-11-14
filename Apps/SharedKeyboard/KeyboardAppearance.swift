@@ -664,14 +664,20 @@ public struct KeyboardAppearance: Equatable, Sendable {
     public func visualRect(in bounds: CGRect) -> CGRect {
         bounds.insetBy(dx: keyInsetX, dy: keyInsetY)
     }
+    /// A choice on the 9-key rail: the rail draws one control-coloured column, outlined once, so
+    /// each choice takes the control colour without an outline of its own.
+    public static let railChoiceRole = "railChoice"
+    private static func paletteRole(_ role: String) -> String { role == railChoiceRole ? "control" : role }
+
     public func color(_ name: String) -> Color { Color(uiColor: uiColor(name)) }
-    public func uiColor(_ name: String) -> UIColor { palette.fill(name) }
+    public func uiColor(_ name: String) -> UIColor { palette.fill(Self.paletteRole(name)) }
     /// The function keys of a dark, borderless skin get a hairline; see `outlinesFunctionKeys`.
     public func borderWidth(for role: String) -> Double {
-        (role == "control" || role == "accent") && palette.outlinesControls ? 1 : skin.keycap.borderWidth
+        if role == Self.railChoiceRole { return 0 }
+        return (role == "control" || role == "accent") && palette.outlinesControls ? 1 : skin.keycap.borderWidth
     }
     public func text(on role: String, secondary: Bool = false) -> UIColor {
-        palette.text(on: role, secondary: secondary)
+        palette.text(on: Self.paletteRole(role), secondary: secondary)
     }
     public func uiFont(_ size: Double) -> UIFont {
         KeyboardFontCache.font(size: size, weight: skin.typography.weight, family: skin.typography.family)

@@ -326,7 +326,7 @@ struct InputOptionsView: View {
         if NineKeyCandidateSide.resolve(nineKeyCandidateSide) != .off {
             widthRow(
                 title: String(localized: "候选区与 9 键的间距"),
-                subtitle: String(localized: "9 键旁空余宽度的 \(Int(nineKeyGapDraft))%"),
+                subtitle: String(localized: "键盘宽度的 \(Int(nineKeyGapDraft))%"),
                 value: $nineKeyGapDraft,
                 range: Double(
                     NineKeySideCandidatePolicy.gapPercentRange.lowerBound)...Double(

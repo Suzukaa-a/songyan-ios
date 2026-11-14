@@ -172,8 +172,9 @@ public struct KeyboardPanelView: View {
     @State var nineKeyCandidateGapPercent = NineKeyCandidateSidePreferences.gapPercent
     /// The side column's last real candidates, shown while the next key is still being decoded.
     @State var sideCandidateHold = SideCandidateHold()
-    /// The side column's fade-in when its candidates change (opacity only, never transparent).
+    /// The side column's cross-fade when its candidates change (opacity only).
     @State var sideCandidateFade = 1.0
+    @State var sideCandidateOutgoing = 0.0
 
     /// Observation coordinator for definition changes (pure value): distinguishes "the panel's own explicit selection/reconciliation" from
     /// "external registry content replacement". The explicit path registers the expected (from, to) before acting; the observation callback
@@ -256,13 +257,13 @@ public struct KeyboardPanelView: View {
             let sideCandidates =
                 controller.layout == .phone9 && maximumContentWidth != nil
                 ? NineKeySideCandidatePolicy.plan(
-                    keyAreaWidth: keyAreaSurface, keypadWidth: maximumContentWidth ?? 0,
+                    keyAreaWidth: keyAreaSurface, maximumKeypadWidth: maximumContentWidth ?? 0,
                     side: nineKeyCandidateSide, gapPercent: nineKeyCandidateGapPercent)
                 : nil
             let dock = sideCandidates?.keypadDock ?? contentDock
             let widePlan = KeyboardWideContentPolicy.plan(
                 panelWidth: Double(rawWidth),
-                maximumContentWidth: maximumContentWidth,
+                maximumContentWidth: sideCandidates?.keypadWidth ?? maximumContentWidth,
                 dock: dock, sideMargin: sideMargin)
             // A definition without a candidate area has no header to host the dismiss entry.
             // Wide-only fallback: reserve a real 44pt right rail outside the keys. Standard
@@ -467,8 +468,9 @@ public struct KeyboardPanelView: View {
             secondarySize: appearance.candidateSecondaryFontSize)
     }
 
-    @ViewBuilder
-    func candidateRendererView(expanded: Bool, held: CandidatePresentationState? = nil) -> some View {
+    /// What the candidate renderers draw. `heldEntries` replaces the live list with one already
+    /// shown (the 9-key side column keeps it while the next key decodes, and fades it out).
+    func candidateAreaContext(heldEntries: [BrowserCandidate]? = nil) -> CandidateAreaContext {
         // Renderer actions go through this sink: select/paging are real input-session actions and emit
         // one selection feedback only once the action took effect (no-ops give none); expand/collapse are pure UI state
         // and give none (highlight is managed inside the renderer, also without feedback).
@@ -527,19 +529,25 @@ public struct KeyboardPanelView: View {
                         selectLabel: entry.selectLabel))
             } : nil
         let context = CandidateAreaContext(
-            state: held ?? candidateState,
+            state: candidateState,
             bar: candidateBarDefinition,
             actions: sink,
             typography: candidateTypography,
             browser: controller.candidateBrowser,
             isExpanded: showsAllCandidates,
-            visibleEntries: readingEntries,
-            visibleHasMore: filteringReadings ? controller.readingFilter.hasMore : nil,
-            visibleFrontier: filteringReadings ? controller.readingFilter.nextIndex : nil,
+            visibleEntries: heldEntries ?? readingEntries,
+            visibleHasMore: heldEntries != nil ? false : filteringReadings ? controller.readingFilter.hasMore : nil,
+            visibleFrontier: heldEntries != nil ? nil : filteringReadings ? controller.readingFilter.nextIndex : nil,
             contentLift: candidateContentLift,
             inputLanguage: controller.inputLanguage.language,
             showsCollapsedComments: appearance.showsCollapsedCandidateComments,
             rowHeight: Double(candidateRowHeight))
+        return context
+    }
+
+    @ViewBuilder
+    func candidateRendererView(expanded: Bool, heldEntries: [BrowserCandidate]? = nil) -> some View {
+        let context = candidateAreaContext(heldEntries: heldEntries)
         if expanded {
             CandidateRendererRegistry.renderer(id: DefaultCandidateAreaRenderer.rendererID)
                 .makeExpanded(context)
@@ -1225,9 +1233,10 @@ final class KeyboardPanelWidthBox {
     }
 }
 
-/// Non-observed storage for the 9-key side column's last real candidates.
+/// Non-observed storage for the 9-key side column: the list on screen and the one fading out.
 final class SideCandidateHold {
-    var state: CandidatePresentationState?
+    var shown: [BrowserCandidate] = []
+    var outgoing: [BrowserCandidate] = []
 }
 
 /// Non-observed storage for `KeyboardPanelView.choiceHold`.

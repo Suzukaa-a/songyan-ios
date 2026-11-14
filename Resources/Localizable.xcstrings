@@ -23,24 +23,24 @@
         }
       }
     },
-    "9 键旁空余宽度的 %lld%%": {
+    "键盘宽度的 %lld%%": {
       "localizations": {
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "9キーの横の空き幅の %lld%%"
+            "value": "キーボード幅の %lld%%"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "9 键旁空余宽度的 %lld%%"
+            "value": "键盘宽度的 %lld%%"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "9 鍵旁空餘寬度的 %lld%%"
+            "value": "鍵盤寬度的 %lld%%"
           }
         }
       }

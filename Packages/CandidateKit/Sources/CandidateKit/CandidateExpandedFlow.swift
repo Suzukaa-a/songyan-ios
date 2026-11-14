@@ -17,16 +17,27 @@ import KeyboardCore
 
 /// Estimated rendered width of candidate text (a layout budget, not exact typesetting).
 public enum CandidateTextMetrics {
-    /// CJK/full-width scalars count as 1em, everything else 0.62em; empty text or an invalid font size gives 0.
+    /// Counted per visible character: a CJK/full-width character or an emoji is 1em, anything else
+    /// 0.62em; empty text or an invalid font size gives 0. An emoji is often several scalars (a
+    /// variation selector, a skin tone, a flag's two letters, a ZWJ family) but draws as one glyph.
     public static func estimatedWidth(_ text: String, fontSize: Double) -> CGFloat {
         guard !text.isEmpty, fontSize.isFinite, fontSize > 0 else { return 0 }
         let unit = CGFloat(fontSize)
-        var cjk = 0
-        var latin = 0
-        for scalar in text.unicodeScalars {
-            if scalar.value > 0x2E80 { cjk += 1 } else { latin += 1 }
+        var wide = 0
+        var narrow = 0
+        for character in text {
+            if isWide(character) { wide += 1 } else { narrow += 1 }
         }
-        return CGFloat(cjk) * unit + CGFloat(latin) * unit * 0.62
+        return CGFloat(wide) * unit + CGFloat(narrow) * unit * 0.62
+    }
+
+    private static func isWide(_ character: Character) -> Bool {
+        let scalars = character.unicodeScalars
+        guard let first = scalars.first else { return false }
+        if first.value > 0x2E80 { return true }
+        // A text-default symbol (©, ❤, a digit) is an emoji only with a selector or a sequence.
+        return first.properties.isEmojiPresentation
+            || (first.properties.isEmoji && scalars.count > 1)
     }
 }
 
