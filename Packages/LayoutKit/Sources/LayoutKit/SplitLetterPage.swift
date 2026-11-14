@@ -36,8 +36,21 @@ public enum SplitLetterPage {
         if shell != .declared, let last = rows.last {
             let hasShift = last.keys.contains { $0.action.type == .shift }
             let hasDelete = last.keys.contains { $0.action.type == .backspace }
-            let shift = shell == .merged ? mergedShiftKey : Self.shiftKey
-            let delete = shell == .merged ? mergedDeleteKey : Self.deleteKey
+            var shift = shell == .merged ? mergedShiftKey : Self.shiftKey
+            var delete = shell == .merged ? mergedDeleteKey : Self.deleteKey
+            if shell == .merged {
+                // A half holds only a few merged keys, so a fixed 1.8 made the word-split key and
+                // Delete dwarf them and pushed the last row past the rows above. Each takes what
+                // its half needs to end where the other rows do, between one and one and a half keys.
+                let others = rows.dropLast()
+                func fill(_ side: KeyPath<LayoutSplitRow, [LayoutKey]>, _ letters: [LayoutKey]) -> Double {
+                    let widest = others.map { $0[keyPath: side].reduce(0) { $0 + $1.widthWeight } }.max() ?? 0
+                    let used = letters.reduce(0) { $0 + $1.widthWeight }
+                    return min(1.5, max(1, widest - used))
+                }
+                shift = shift.settingWidth(fill(\.left, last.left))
+                delete = delete.settingWidth(fill(\.right, last.right))
+            }
             rows[rows.count - 1] = LayoutSplitRow(
                 left: (hasShift ? [] : [shift]) + last.left, right: last.right + (hasDelete ? [] : [delete]))
         }
