@@ -72,6 +72,13 @@ struct SplitSpaceKeyboardRow<Key: Hashable, KeyContent: View, Space: View, Fallb
                     width: Double(proxy.size.width), keyCount: max(2, leftKeys.count + rightKeys.count + 1),
                     minimumKeyWidth: 44)
             let letterWidth = StandardKeyRowGeometry(width: Double(proxy.size.width), split: split).keyWidth
+            // The controls come sized for a phone's compact row; on a split board they grow with
+            // the letter keys above them, the narrowest as wide as a letter, so the space bar
+            // running across the gutter does not squeeze them.
+            let narrowest = (leftWidths + rightWidths).filter { $0 > 0 }.min() ?? letterWidth
+            let grow = max(1, letterWidth / narrowest)
+            let leftWidths = leftWidths.map { $0 * grow }
+            let rightWidths = rightWidths.map { $0 * grow }
             if let geometry = SplitSpaceRowGeometry(
                 width: Double(proxy.size.width), requestedGap: requested,
                 leftKeyWidths: leftWidths, rightKeyWidths: rightWidths, spacing: spacing,
