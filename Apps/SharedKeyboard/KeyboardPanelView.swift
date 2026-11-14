@@ -169,6 +169,11 @@ public struct KeyboardPanelView: View {
     @State var widthSettings = KeyboardWidthPreferences.current
     /// Where the 9-key keyboard shows its candidates on a wide screen; re-read like the dock.
     @State var nineKeyCandidateSide = NineKeyCandidateSidePreferences.current
+    @State var nineKeyCandidateGapPercent = NineKeyCandidateSidePreferences.gapPercent
+    /// The side column's last real candidates, shown while the next key is still being decoded.
+    @State var sideCandidateHold = SideCandidateHold()
+    /// The side column's fade-in when its candidates change (opacity only, never transparent).
+    @State var sideCandidateFade = 1.0
 
     /// Observation coordinator for definition changes (pure value): distinguishes "the panel's own explicit selection/reconciliation" from
     /// "external registry content replacement". The explicit path registers the expected (from, to) before acting; the observation callback
@@ -252,7 +257,7 @@ public struct KeyboardPanelView: View {
                 controller.layout == .phone9 && maximumContentWidth != nil
                 ? NineKeySideCandidatePolicy.plan(
                     keyAreaWidth: keyAreaSurface, keypadWidth: maximumContentWidth ?? 0,
-                    side: nineKeyCandidateSide)
+                    side: nineKeyCandidateSide, gapPercent: nineKeyCandidateGapPercent)
                 : nil
             let dock = sideCandidates?.keypadDock ?? contentDock
             let widePlan = KeyboardWideContentPolicy.plan(
@@ -452,7 +457,7 @@ public struct KeyboardPanelView: View {
     // MARK: Candidate area presentation (CandidateKit default renderer; skin injected via environment, no separate palette)
 
     /// Renderer-agnostic state derived from the real snapshot; select always carries the real candidate.index.
-    private var candidateState: CandidatePresentationState {
+    var candidateState: CandidatePresentationState {
         CandidatePresentationState(snapshot: controller.snapshot, isEnglishMode: controller.isEnglishMode)
     }
 
@@ -463,7 +468,7 @@ public struct KeyboardPanelView: View {
     }
 
     @ViewBuilder
-    func candidateRendererView(expanded: Bool) -> some View {
+    func candidateRendererView(expanded: Bool, held: CandidatePresentationState? = nil) -> some View {
         // Renderer actions go through this sink: select/paging are real input-session actions and emit
         // one selection feedback only once the action took effect (no-ops give none); expand/collapse are pure UI state
         // and give none (highlight is managed inside the renderer, also without feedback).
@@ -522,7 +527,7 @@ public struct KeyboardPanelView: View {
                         selectLabel: entry.selectLabel))
             } : nil
         let context = CandidateAreaContext(
-            state: candidateState,
+            state: held ?? candidateState,
             bar: candidateBarDefinition,
             actions: sink,
             typography: candidateTypography,
@@ -1101,6 +1106,8 @@ public struct KeyboardPanelView: View {
         if contentDock != dock { contentDock = dock }
         let side = NineKeyCandidateSidePreferences.current
         if nineKeyCandidateSide != side { nineKeyCandidateSide = side }
+        let gap = NineKeyCandidateSidePreferences.gapPercent
+        if nineKeyCandidateGapPercent != gap { nineKeyCandidateGapPercent = gap }
         let widths = KeyboardWidthPreferences.refresh()
         if widthSettings != widths {
             widthSettings = widths
@@ -1216,6 +1223,11 @@ final class KeyboardPanelWidthBox {
         self.sideMargin = sideMargin
         return true
     }
+}
+
+/// Non-observed storage for the 9-key side column's last real candidates.
+final class SideCandidateHold {
+    var state: CandidatePresentationState?
 }
 
 /// Non-observed storage for `KeyboardPanelView.choiceHold`.

@@ -1,6 +1,50 @@
 {
   "sourceLanguage": "zh-Hans",
   "strings": {
+    "候选区与 9 键的间距": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "候補エリアと9キーの間隔"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "候选区与 9 键的间距"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "候選區與 9 鍵的間距"
+          }
+        }
+      }
+    },
+    "9 键旁空余宽度的 %lld%%": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "9キーの横の空き幅の %lld%%"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "9 键旁空余宽度的 %lld%%"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "9 鍵旁空餘寬度的 %lld%%"
+          }
+        }
+      }
+    },
     "候选区在左": {
       "localizations": {
         "ja": {

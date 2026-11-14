@@ -215,16 +215,25 @@ extension KeyboardPanelView {
     /// and the keys. The area is drawn even while nothing is typed, and the list stays mounted:
     /// rebuilding it per key flashed its scroll indicator and its rows.
     func sideCandidateColumn(_ plan: NineKeySideCandidatePlan) -> some View {
-        HStack(spacing: 0) {
+        let candidates = controller.snapshot.candidates
+        let pending = controller.snapshot.isComposing || !controller.session.pendingCodes.isEmpty
+        // A key still decoding empties the list for a moment: the last real candidates stay on
+        // screen instead, inert, since their indices no longer match the engine.
+        let held: CandidatePresentationState? =
+            pending && candidates.isEmpty ? sideCandidateHold.state : nil
+        if held == nil { sideCandidateHold.state = pending && !candidates.isEmpty ? candidateState : nil }
+        return HStack(spacing: 0) {
             if plan.side == .right { sideCandidateSwapButton(plan.side, width: plan.stripWidth) }
-            candidateRendererView(expanded: true)
-                .padding(.horizontal, 4)
-                .padding(.vertical, 6)
+            candidateRendererView(expanded: true, held: held)
+                .allowsHitTesting(held == nil)
+                .opacity(sideCandidateFade)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 8)
                 .frame(width: CGFloat(plan.candidateWidth))
                 .frame(maxHeight: .infinity)
                 .background {
-                    RoundedRectangle(cornerRadius: keyAppearance.keyCornerRadius)
-                        .fill(appearance.color("control"))
+                    RoundedRectangle(cornerRadius: keyAppearance.keyCornerRadius * 1.5)
+                        .fill(appearance.color("control").opacity(0.35))
                         .padding(.vertical, 4)
                 }
                 // iOS drops touches on fully transparent pixels of a keyboard extension.
@@ -233,6 +242,17 @@ extension KeyboardPanelView {
         }
         .environment(\.keyboardAppearance, keyAppearance)
         .environment(\.candidateSkinToken, candidateSkinToken)
+        .onChange(of: candidates.map(\.text)) { _, texts in
+            // New candidates come in from faint instead of popping in. Opacity only: the cells
+            // stay where they are hit-tested, and never fall below UIKit's hit-test alpha.
+            guard !texts.isEmpty else { return }
+            var instant = Transaction()
+            instant.disablesAnimations = true
+            withTransaction(instant) { sideCandidateFade = 0.6 }
+            Task { @MainActor in
+                withAnimation(.easeOut(duration: 0.14)) { sideCandidateFade = 1 }
+            }
+        }
     }
 
     private func sideCandidateSwapButton(_ side: NineKeyCandidateSide, width: Double) -> some View {

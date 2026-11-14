@@ -360,6 +360,22 @@ public enum NineKeyCandidateSidePreferences {
         SharedPreferences.set(side.rawValue, forKey: key, in: defaults)
         NotificationCenter.default.post(name: .keyboardContentDockChanged, object: nil)
     }
+
+    /// The gap between the candidates and the keys, in percent of the room beside the keys.
+    public static let gapPercentKey = "keyboard.nineKeyCandidateGap.v1"
+
+    public static var gapPercent: Int {
+        guard let stored = SharedPreferences.object(forKey: gapPercentKey, in: defaults) as? Int else {
+            return NineKeySideCandidatePolicy.defaultGapPercent
+        }
+        return NineKeySideCandidatePolicy.clampedGapPercent(stored)
+    }
+
+    public static func set(gapPercent: Int) {
+        SharedPreferences.set(
+            NineKeySideCandidatePolicy.clampedGapPercent(gapPercent), forKey: gapPercentKey, in: defaults)
+        NotificationCenter.default.post(name: .keyboardContentDockChanged, object: nil)
+    }
 }
 
 extension Notification.Name {

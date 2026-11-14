@@ -197,22 +197,37 @@ public struct NineKeySideCandidatePlan: Equatable, Sendable {
 public enum NineKeySideCandidatePolicy {
     /// Narrower than this the column would show a word or two per row; the side stays blank.
     public static let minimumCandidateWidth: Double = 200
-    /// The strip between the candidates and the keys that holds the swap button: a share of the
-    /// width, so the two parts stay apart on a large screen, and never narrower than the button.
+    /// The strip between the candidates and the keys holds the swap button and is never narrower
+    /// than it.
     public static let minimumStripWidth: Double = 40
-    public static let stripShare: Double = 0.06
+    /// The strip's share of the room beside the keys, in percent. A wide strip keeps the keys at
+    /// the screen's edge under one thumb and the candidates at the other edge.
+    public static let gapPercentRange = 10...60
+    public static let gapPercentStep = 5
+    public static let defaultGapPercent = 40
 
-    public static func stripWidth(keyAreaWidth: Double) -> Double {
-        max(minimumStripWidth, keyAreaWidth * stripShare)
+    public static func clampedGapPercent(_ value: Int) -> Int {
+        let low = gapPercentRange.lowerBound
+        let clamped = min(max(value, low), gapPercentRange.upperBound)
+        return (clamped - low) / gapPercentStep * gapPercentStep + low
+    }
+
+    /// The strip for `room` beside the keys: the chosen share, cut so the column keeps its
+    /// minimum width, and never below the button.
+    public static func stripWidth(room: Double, gapPercent: Int = defaultGapPercent) -> Double {
+        let share = room * Double(clampedGapPercent(gapPercent)) / 100
+        return max(minimumStripWidth, min(share, room - minimumCandidateWidth))
     }
 
     /// `keyAreaWidth` is the width left after the side margins; `keypadWidth` the capped keys.
     public static func plan(
-        keyAreaWidth: Double, keypadWidth: Double, side: NineKeyCandidateSide
+        keyAreaWidth: Double, keypadWidth: Double, side: NineKeyCandidateSide,
+        gapPercent: Int = defaultGapPercent
     ) -> NineKeySideCandidatePlan? {
         guard side != .off, keyAreaWidth.isFinite, keypadWidth.isFinite, keypadWidth > 0 else { return nil }
-        let strip = stripWidth(keyAreaWidth: keyAreaWidth)
-        let candidateWidth = keyAreaWidth - keypadWidth - strip
+        let room = keyAreaWidth - keypadWidth
+        let strip = stripWidth(room: room, gapPercent: gapPercent)
+        let candidateWidth = room - strip
         guard candidateWidth >= minimumCandidateWidth else { return nil }
         return NineKeySideCandidatePlan(side: side, candidateWidth: candidateWidth, stripWidth: strip)
     }
