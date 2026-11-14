@@ -858,7 +858,8 @@ struct ExpandedCandidateRows: View {
             entries: entries, typography: context.typography, cellPaddingX: bar.collapsed.cellPaddingX,
             availableWidth: availableWidth)
         let prefetch = prefetchRow(rowCounts: rows.map(\.entries.count))
-        let items = CandidateExpandedFlow.gridRows(rows, minimumRows: minimumRows)
+        // With nothing listed there is nothing to part: no empty ruled rows.
+        let items = CandidateExpandedFlow.gridRows(rows, minimumRows: rows.isEmpty ? 0 : minimumRows)
         // Cells touch and rows touch: hairlines part them, so every point is some candidate's.
         LazyVStack(spacing: 0) {
             ForEach(items, id: \.id) { item in
