@@ -73,7 +73,6 @@ struct KeyboardPreviewFrame<Content: View>: View {
     /// The 9-key candidates beside the keys, as the keyboard draws them: the keys narrow and move
     /// to the other side, so the keyboard does not start in one place and jump to another.
     var nineKeyCandidateSide = NineKeyCandidateSide.off
-    var nineKeyCandidateGapPercent = NineKeySideCandidatePolicy.defaultGapPercent
     @ViewBuilder var content: (KeyboardPreviewWidths) -> Content
     @State private var width: CGFloat = 0
     @State private var windowWidth: CGFloat = 0
@@ -92,7 +91,7 @@ struct KeyboardPreviewFrame<Content: View>: View {
             layout == .phone9 && cap != nil
             ? NineKeySideCandidatePolicy.plan(
                 keyAreaWidth: raw - 2 * margin, maximumKeypadWidth: cap ?? 0,
-                side: nineKeyCandidateSide, gapPercent: nineKeyCandidateGapPercent)
+                side: nineKeyCandidateSide, gapPercent: widthSettings.middleGapPercent)
             : nil
         let dock = side?.keypadDock ?? self.dock
         let plan = KeyboardWideContentPolicy.plan(

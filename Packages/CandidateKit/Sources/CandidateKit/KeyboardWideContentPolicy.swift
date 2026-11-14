@@ -129,11 +129,17 @@ public struct KeyboardWidthSettings: Equatable, Sendable {
     public let sideMarginPercent: Double
     /// Whether the user picked the margin; an untouched setting gives way to a system inset.
     public let sideMarginIsChosen: Bool
+    /// The middle gap of a split keyboard and of the 9-key beside its candidates (`WideMiddleGap`).
+    public let middleGapPercent: Int
 
     public static let standard = KeyboardWidthSettings()
 
     /// Out-of-range or off-step values snap into the offered choices. A nil margin is the default.
-    public init(splitWidth: Int = defaultSplitWidth, marginWidth: Int? = nil, sideMarginPercent: Double? = nil) {
+    public init(
+        splitWidth: Int = defaultSplitWidth, marginWidth: Int? = nil, sideMarginPercent: Double? = nil,
+        middleGapPercent: Int = WideMiddleGap.defaultPercent
+    ) {
+        self.middleGapPercent = WideMiddleGap.clampedPercent(middleGapPercent)
         self.splitWidth = Self.clampedSplitWidth(splitWidth)
         self.marginWidth = Self.clampedSplitWidth(marginWidth ?? Self.defaultSplitWidth)
         self.sideMarginPercent = Self.clampedSideMarginPercent(sideMarginPercent ?? Self.defaultSideMarginPercent)
@@ -194,9 +200,9 @@ public struct NineKeySideCandidatePlan: Equatable, Sendable {
     public var keypadDock: KeyboardContentDock { side == .left ? .right : .left }
 }
 
-/// Splits a wide screen into the candidates, a gap and the 9-key keyboard. The gap is a share of
-/// the whole width, so the keys come away from the middle and sit under one thumb at the screen's
-/// edge. The candidates sit opposite at a little less than the keys' width; the keys never grow
+/// Splits a wide screen into the candidates, a gap and the 9-key keyboard. The gap is the user's
+/// wide-screen middle gap (`WideMiddleGap`), the same as a split keyboard's, so the keys come
+/// away from the middle and sit under one thumb at the screen's edge. The candidates sit opposite at a little less than the keys' width; the keys never grow
 /// wider than the phone shell, and the gap takes whatever that leaves. Geometry only.
 public enum NineKeySideCandidatePolicy {
     /// Narrower than this the column would show a word or two per row; the side stays blank.
@@ -205,29 +211,19 @@ public enum NineKeySideCandidatePolicy {
     public static let minimumKeypadWidth: Double = KeyboardWideContentPolicy.minimumKeyAreaWidth
     /// The gap holds the swap button and is never narrower than it.
     public static let minimumStripWidth: Double = 40
-    /// The gap in percent of the width left after the side margins.
-    public static let gapPercentRange = 0...30
-    public static let gapPercentStep = 5
-    public static let defaultGapPercent = 15
     /// The candidates are a little narrower than the keys: beside the dark function keys a light
     /// list of the same width reads as the wider of the two.
     public static let candidateShare: Double = 0.9
-
-    public static func clampedGapPercent(_ value: Int) -> Int {
-        let low = gapPercentRange.lowerBound
-        let clamped = min(max(value, low), gapPercentRange.upperBound)
-        return (clamped - low) / gapPercentStep * gapPercentStep + low
-    }
 
     /// `keyAreaWidth` is the width left after the side margins; `maximumKeypadWidth` the widest
     /// the 9-key shell draws.
     public static func plan(
         keyAreaWidth: Double, maximumKeypadWidth: Double, side: NineKeyCandidateSide,
-        gapPercent: Int = defaultGapPercent
+        gapPercent: Int = WideMiddleGap.defaultPercent
     ) -> NineKeySideCandidatePlan? {
         guard side != .off, keyAreaWidth.isFinite, maximumKeypadWidth.isFinite, maximumKeypadWidth > 0
         else { return nil }
-        let strip = max(minimumStripWidth, keyAreaWidth * Double(clampedGapPercent(gapPercent)) / 100)
+        let strip = max(minimumStripWidth, WideMiddleGap.width(for: keyAreaWidth, percent: gapPercent))
         let rest = keyAreaWidth - strip
         let keypad = min(maximumKeypadWidth, rest / (1 + candidateShare))
         guard keypad >= minimumKeypadWidth else { return nil }

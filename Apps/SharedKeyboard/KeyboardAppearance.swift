@@ -133,6 +133,7 @@ public enum KeyboardWidthPreferences {
     public static let splitWidthKey = "keyboard.splitWidth.v1"
     public static let marginWidthKey = "keyboard.marginWidth.v1"
     public static let sideMarginPercentKey = "keyboard.sideMarginPercent.v1"
+    public static let middleGapPercentKey = "keyboard.wideMiddleGap.v1"
     public static var defaults: UserDefaults { KeyboardRecipeStore.sharedDefaults() ?? .standard }
 
     private static let cache = OSAllocatedUnfairLock<KeyboardWidthSettings?>(uncheckedState: nil)
@@ -144,9 +145,13 @@ public enum KeyboardWidthPreferences {
         }
         let splitWidth = stored(splitWidthKey)?.intValue ?? KeyboardWidthSettings.defaultSplitWidth
         // One width once decided both; a margin width never chosen keeps following that choice.
-        return KeyboardWidthSettings(
+        let settings = KeyboardWidthSettings(
             splitWidth: splitWidth, marginWidth: stored(marginWidthKey)?.intValue ?? splitWidth,
-            sideMarginPercent: stored(sideMarginPercentKey)?.doubleValue)
+            sideMarginPercent: stored(sideMarginPercentKey)?.doubleValue,
+            middleGapPercent: stored(middleGapPercentKey)?.intValue ?? WideMiddleGap.defaultPercent)
+        // Splits read the gap where they are resolved, which is everywhere a keyboard is drawn.
+        WideMiddleGap.percent = settings.middleGapPercent
+        return settings
     }
 
     public static var current: KeyboardWidthSettings {
@@ -171,6 +176,10 @@ public enum KeyboardWidthPreferences {
 
     public static func set(marginWidth: Int) {
         write(KeyboardWidthSettings.clampedSplitWidth(marginWidth), key: marginWidthKey)
+    }
+
+    public static func set(middleGapPercent: Int) {
+        write(WideMiddleGap.clampedPercent(middleGapPercent), key: middleGapPercentKey)
     }
 
     public static func set(sideMarginPercent: Double) {
@@ -358,22 +367,6 @@ public enum NineKeyCandidateSidePreferences {
 
     public static func set(_ side: NineKeyCandidateSide) {
         SharedPreferences.set(side.rawValue, forKey: key, in: defaults)
-        NotificationCenter.default.post(name: .keyboardContentDockChanged, object: nil)
-    }
-
-    /// The gap between the candidates and the keys, in percent of the room beside the keys.
-    public static let gapPercentKey = "keyboard.nineKeyCandidateGap.v1"
-
-    public static var gapPercent: Int {
-        guard let stored = SharedPreferences.object(forKey: gapPercentKey, in: defaults) as? Int else {
-            return NineKeySideCandidatePolicy.defaultGapPercent
-        }
-        return NineKeySideCandidatePolicy.clampedGapPercent(stored)
-    }
-
-    public static func set(gapPercent: Int) {
-        SharedPreferences.set(
-            NineKeySideCandidatePolicy.clampedGapPercent(gapPercent), forKey: gapPercentKey, in: defaults)
         NotificationCenter.default.post(name: .keyboardContentDockChanged, object: nil)
     }
 }

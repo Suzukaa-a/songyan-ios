@@ -79,7 +79,7 @@ struct InputOptionsView: View {
     /// does not rebuild its keys on every tick.
     @State private var splitWidthDraft = Double(KeyboardWidthSettings.defaultSplitWidth)
     @State private var marginWidthDraft = Double(KeyboardWidthSettings.defaultSplitWidth)
-    @State private var nineKeyGapDraft = Double(NineKeySideCandidatePolicy.defaultGapPercent)
+    @State private var middleGapDraft = Double(WideMiddleGap.defaultPercent)
     @State private var sideMarginPercentDraft = KeyboardWidthSettings.defaultSideMarginPercent
     @StateObject private var typoCorrection = TypoCorrectionCenter.shared
     @StateObject private var prediction = PredictionCenter.shared
@@ -261,7 +261,6 @@ struct InputOptionsView: View {
             ForEach(Self.wideDockLayouts, id: \.rawValue) { layout in
                 if layout == .phone9 {
                     nineKeyWidePicker
-                    nineKeyGapRow
                 } else {
                     Picker(
                         UserTerminology.layoutName(layout),
@@ -320,28 +319,6 @@ struct InputOptionsView: View {
         .accessibilityIdentifier("inputOptions.wideDock.phone9")
     }
 
-    /// Shown only while the candidates sit beside the 9-key keyboard.
-    @ViewBuilder
-    private var nineKeyGapRow: some View {
-        if NineKeyCandidateSide.resolve(nineKeyCandidateSide) != .off {
-            widthRow(
-                title: String(localized: "候选区与 9 键的间距"),
-                subtitle: String(localized: "键盘宽度的 \(Int(nineKeyGapDraft))%"),
-                value: $nineKeyGapDraft,
-                range: Double(
-                    NineKeySideCandidatePolicy.gapPercentRange.lowerBound)...Double(
-                        NineKeySideCandidatePolicy.gapPercentRange.upperBound),
-                step: Double(NineKeySideCandidatePolicy.gapPercentStep),
-                isDefault: Int(nineKeyGapDraft) == NineKeySideCandidatePolicy.defaultGapPercent,
-                identifier: "inputOptions.nineKeyCandidateGap",
-                commit: { NineKeyCandidateSidePreferences.set(gapPercent: Int($0)) },
-                reset: {
-                    nineKeyGapDraft = Double(NineKeySideCandidatePolicy.defaultGapPercent)
-                    NineKeyCandidateSidePreferences.set(gapPercent: NineKeySideCandidatePolicy.defaultGapPercent)
-                })
-        }
-    }
-
     private var keyboardWidthSection: some View {
         Section {
             widthRow(
@@ -373,6 +350,20 @@ struct InputOptionsView: View {
                 reset: {
                     marginWidthDraft = Double(KeyboardWidthSettings.defaultSplitWidth)
                     KeyboardWidthPreferences.set(marginWidth: KeyboardWidthSettings.defaultSplitWidth)
+                })
+            widthRow(
+                title: String(localized: "宽屏中间间距"),
+                subtitle: String(
+                    localized: "键盘宽 1000 pt 时约 \(Int(middleGapDraft * 10)) pt，越宽越大"),
+                value: $middleGapDraft,
+                range: Double(WideMiddleGap.percentRange.lowerBound)...Double(WideMiddleGap.percentRange.upperBound),
+                step: Double(WideMiddleGap.percentStep),
+                isDefault: Int(middleGapDraft) == WideMiddleGap.defaultPercent,
+                identifier: "inputOptions.middleGap",
+                commit: { KeyboardWidthPreferences.set(middleGapPercent: Int($0)) },
+                reset: {
+                    middleGapDraft = Double(WideMiddleGap.defaultPercent)
+                    KeyboardWidthPreferences.set(middleGapPercent: WideMiddleGap.defaultPercent)
                 })
             widthRow(
                 title: String(localized: "大屏两侧留白"),
@@ -429,7 +420,7 @@ struct InputOptionsView: View {
         splitWidthDraft = Double(stored.splitWidth)
         marginWidthDraft = Double(stored.marginWidth)
         sideMarginPercentDraft = stored.sideMarginPercent
-        nineKeyGapDraft = Double(NineKeyCandidateSidePreferences.gapPercent)
+        middleGapDraft = Double(stored.middleGapPercent)
     }
 
     private func reloadWideDocks() {

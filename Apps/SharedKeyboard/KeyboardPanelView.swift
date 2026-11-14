@@ -169,7 +169,6 @@ public struct KeyboardPanelView: View {
     @State var widthSettings = KeyboardWidthPreferences.current
     /// Where the 9-key keyboard shows its candidates on a wide screen; re-read like the dock.
     @State var nineKeyCandidateSide = NineKeyCandidateSidePreferences.current
-    @State var nineKeyCandidateGapPercent = NineKeyCandidateSidePreferences.gapPercent
     /// The side column's last real candidates, shown while the next key is still being decoded.
     @State var sideCandidateHold = SideCandidateHold()
     /// The side column's cross-fade when its candidates change (opacity only).
@@ -258,7 +257,7 @@ public struct KeyboardPanelView: View {
                 controller.layout == .phone9 && maximumContentWidth != nil
                 ? NineKeySideCandidatePolicy.plan(
                     keyAreaWidth: keyAreaSurface, maximumKeypadWidth: maximumContentWidth ?? 0,
-                    side: nineKeyCandidateSide, gapPercent: nineKeyCandidateGapPercent)
+                    side: nineKeyCandidateSide, gapPercent: widthSettings.middleGapPercent)
                 : nil
             let dock = sideCandidates?.keypadDock ?? contentDock
             let widePlan = KeyboardWideContentPolicy.plan(
@@ -1130,8 +1129,6 @@ public struct KeyboardPanelView: View {
         if contentDock != dock { contentDock = dock }
         let side = NineKeyCandidateSidePreferences.current
         if nineKeyCandidateSide != side { nineKeyCandidateSide = side }
-        let gap = NineKeyCandidateSidePreferences.gapPercent
-        if nineKeyCandidateGapPercent != gap { nineKeyCandidateGapPercent = gap }
         let widths = KeyboardWidthPreferences.refresh()
         if widthSettings != widths {
             widthSettings = widths

@@ -1,5 +1,6 @@
 import CandidateKit
 import KeyboardCore
+import LayoutKit
 import XCTest
 
 final class NineKeySideCandidatePolicyTests: XCTestCase {
@@ -21,18 +22,19 @@ final class NineKeySideCandidatePolicyTests: XCTestCase {
         XCTAssertEqual(right.keypadDock, .left)
     }
 
-    /// The keys shrink with the gap; the candidates sit opposite at 90 % of their width.
+    /// The gap is the wide-screen middle gap; the keys shrink with it and the candidates sit
+    /// opposite at 90 % of their width.
     func testTheGapComesOutOfTheKeysAsWellAsTheCandidates() throws {
-        // An iPhone in landscape, about 790 pt: a 15 % gap, the rest shared 1 : 0.9.
+        // An iPhone in landscape, about 790 pt: a 62.4 pt gap, the rest shared 1 : 0.9.
         let phone = try XCTUnwrap(
             NineKeySideCandidatePolicy.plan(keyAreaWidth: 790, maximumKeypadWidth: 444, side: .left))
-        XCTAssertEqual(phone.keypadWidth, 671.5 / 1.9, accuracy: 1e-9)
+        XCTAssertEqual(phone.stripWidth, WideMiddleGap.width(for: 790, percent: 10), accuracy: 1e-9)
+        XCTAssertEqual(phone.keypadWidth, (790 - phone.stripWidth) / 1.9, accuracy: 1e-9)
         XCTAssertEqual(phone.candidateWidth, phone.keypadWidth * 0.9, accuracy: 1e-9)
-        XCTAssertEqual(phone.stripWidth + phone.keypadWidth + phone.candidateWidth, 790, accuracy: 1e-9)
         // A wider gap narrows the keys too.
         let wider = try XCTUnwrap(
             NineKeySideCandidatePolicy.plan(
-                keyAreaWidth: 790, maximumKeypadWidth: 444, side: .left, gapPercent: 25))
+                keyAreaWidth: 790, maximumKeypadWidth: 444, side: .left, gapPercent: 20))
         XCTAssertLessThan(wider.keypadWidth, phone.keypadWidth)
         // A tablet: the keys stop at the shell's width and the gap takes the rest.
         let tablet = try XCTUnwrap(
@@ -47,14 +49,11 @@ final class NineKeySideCandidatePolicyTests: XCTestCase {
     }
 
     func testTooLittleRoomOrOffLeavesTheSideBlank() {
-        // 280 pt keys need 532 pt after the 15 % gap: 625 pt is short, 627 fits.
-        XCTAssertNil(NineKeySideCandidatePolicy.plan(keyAreaWidth: 625, maximumKeypadWidth: 444, side: .left))
-        XCTAssertNotNil(NineKeySideCandidatePolicy.plan(keyAreaWidth: 627, maximumKeypadWidth: 444, side: .left))
+        // 280 pt keys, a 252 pt column and the 40 pt button need 572 pt: 570 is short, 574 fits.
+        XCTAssertNil(NineKeySideCandidatePolicy.plan(keyAreaWidth: 570, maximumKeypadWidth: 444, side: .left))
+        XCTAssertNotNil(NineKeySideCandidatePolicy.plan(keyAreaWidth: 574, maximumKeypadWidth: 444, side: .left))
         XCTAssertNil(NineKeySideCandidatePolicy.plan(keyAreaWidth: 1000, maximumKeypadWidth: 444, side: .off))
         XCTAssertNil(NineKeySideCandidatePolicy.plan(keyAreaWidth: .nan, maximumKeypadWidth: 444, side: .left))
-        XCTAssertEqual(NineKeySideCandidatePolicy.clampedGapPercent(-3), 0)
-        XCTAssertEqual(NineKeySideCandidatePolicy.clampedGapPercent(99), 30)
-        XCTAssertEqual(NineKeySideCandidatePolicy.clampedGapPercent(17), 15)
     }
 }
 

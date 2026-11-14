@@ -227,9 +227,6 @@ public struct ActiveLayoutSplit: Equatable, Sendable {
 
     /// Each half stays within one thumb's reach on large surfaces.
     public static let maximumThumbHalfWidth = 300.0
-    /// The automatic gutter's share of the width. It is narrower than the saved default so the
-    /// keys get wider; a wider surface opens the gutter instead once a half reaches its maximum.
-    public static let automaticGapShare = 0.2
     /// Automatic spacing lets a key grow to this width before the rest becomes gutter, so a few
     /// columns on a tablet do not stretch into slabs.
     public static let maximumAutomaticKeyWidth = 84.0
@@ -314,9 +311,11 @@ public struct ActiveLayoutSplit: Equatable, Sendable {
         let maximumContentWidth = min(
             Self.maximumThumbHalfWidth * 2,
             Double(keyCount) * Self.maximumAutomaticKeyWidth + Double(keyCount - 1) * spacing)
+        // The automatic gutter is the user's wide-screen middle gap; a wider surface opens it
+        // further once a half reaches its maximum.
         let requested =
             automaticGap
-            ? max(width * Self.automaticGapShare, width - maximumContentWidth)
+            ? max(WideMiddleGap.width(for: width, percent: WideMiddleGap.percent), width - maximumContentWidth)
             : width * gapFraction
         let result = min(requested, room)
         return result > spacing ? result : 0

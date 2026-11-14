@@ -77,10 +77,13 @@ final class LayoutSplitConfigurationTests: XCTestCase {
         XCTAssertEqual(gaps[1], 0)
         XCTAssertEqual(gaps[2], 0, "a 466pt cover screen fits one hand")
         for index in 4..<gaps.count { XCTAssertGreaterThan(gaps[index], gaps[index - 1]) }
-        XCTAssertGreaterThan(gaps[5], 834 * ActiveLayoutSplit.automaticGapShare)
+        XCTAssertGreaterThanOrEqual(gaps[5], WideMiddleGap.width(for: 834, percent: WideMiddleGap.percent))
+        // A forced split on a cover screen still keeps a gutter.
         let forced = LayoutSplitConfiguration(activation: .always).resolved(forWidth: 466)
         XCTAssertEqual(
-            forced?.gap(width: 466, keyCount: 10) ?? 0, 466 * ActiveLayoutSplit.automaticGapShare, accuracy: 0.001)
+            forced?.gap(width: 466, keyCount: 10) ?? 0,
+            WideMiddleGap.width(for: 466, percent: WideMiddleGap.percent), accuracy: 0.001)
+        XCTAssertGreaterThan(forced?.gap(width: 466, keyCount: 10) ?? 0, 4)
     }
 
     func testTheAutomaticThresholdIsTheUsersAndEqualWidthDoesNotSplit() throws {
@@ -191,5 +194,14 @@ final class LayoutSplitConfigurationTests: XCTestCase {
         XCTAssertThrowsError(try LayoutSplitConfiguration(rowBreaks: [5, 2]).validate(rowKeyCounts: [10])) { error in
             XCTAssertEqual(error as? LayoutError, .invalid("拆分位置比按键行还多，请重新设置拆分位置。"))
         }
+    }
+
+    /// The middle gap's share grows with the width: 10 % at 1000 pt, 8 % at 800, none at nothing.
+    func testTheMiddleGapGrowsFasterThanTheWidth() {
+        XCTAssertEqual(WideMiddleGap.width(for: 1000, percent: 10), 100, accuracy: 1e-9)
+        XCTAssertEqual(WideMiddleGap.width(for: 800, percent: 10), 64, accuracy: 1e-9)
+        XCTAssertEqual(WideMiddleGap.width(for: 1200, percent: 10), 144, accuracy: 1e-9)
+        XCTAssertEqual(WideMiddleGap.width(for: 1000, percent: 0), 0)
+        XCTAssertEqual(WideMiddleGap.width(for: 1000, percent: 99), 200, accuracy: 1e-9, "clamped to 20 %")
     }
 }

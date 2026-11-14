@@ -1,46 +1,46 @@
 {
   "sourceLanguage": "zh-Hans",
   "strings": {
-    "候选区与 9 键的间距": {
+    "宽屏中间间距": {
       "localizations": {
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "候補エリアと9キーの間隔"
+            "value": "横長画面の中央の間隔"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "候选区与 9 键的间距"
+            "value": "宽屏中间间距"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "候選區與 9 鍵的間距"
+            "value": "寬螢幕中間間距"
           }
         }
       }
     },
-    "键盘宽度的 %lld%%": {
+    "键盘宽 1000 pt 时约 %lld pt，越宽越大": {
       "localizations": {
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "キーボード幅の %lld%%"
+            "value": "キーボード幅 1000 pt で約 %lld pt、広いほど大きくなります"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "键盘宽度的 %lld%%"
+            "value": "键盘宽 1000 pt 时约 %lld pt，越宽越大"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "鍵盤寬度的 %lld%%"
+            "value": "鍵盤寬 1000 pt 時約 %lld pt，越寬越大"
           }
         }
       }
