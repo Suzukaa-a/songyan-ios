@@ -2,16 +2,14 @@ import LayoutKit
 import XCTest
 
 final class MergedSplitRowTests: XCTestCase {
-    /// Split, the last row fills exactly the halves of the row above: the word-split key and Delete
-    /// as wide as a letter, the edges and the gutter in line.
-    func testTheSplitLastRowTakesTheUpperHalves() {
-        // 14 keys: three keys left and two right above; zx cv | bn m below.
+    /// Split, the last row's keys are all one size and span what the row above spends on keys, so
+    /// with the same gutter the outer edges line up; no half is crammed.
+    func testTheSplitLastRowIsEvenAndSpansTheRowAbove() {
+        // 14 keys: five keys above; zx cv bn m below with the word-split key and Delete.
         let widths = MergedKeypadGeometry.splitLastRow(
-            upperWidths: [100, 100, 100, 100, 100], upperBreak: 3, lastWeights: [1, 1, 1, 1], lastBreak: 2,
-            spacing: 4)
-        XCTAssertEqual(widths.left, [100, 100, 100])
-        XCTAssertEqual(widths.left.reduce(0, +) + 2 * 4, 308, accuracy: 0.001)
-        XCTAssertEqual(widths.right.reduce(0, +) + 2 * 4, 204, accuracy: 0.001)
-        XCTAssertEqual(widths.right.count, 3)
+            upperWidths: [100, 100, 100, 100, 100], lastWeights: [1, 1, 1, 1], spacing: 4)
+        XCTAssertEqual(widths.count, 6)
+        XCTAssertTrue(widths.allSatisfy { abs($0 - widths[0]) < 0.001 })
+        XCTAssertEqual(widths.reduce(0, +) + 5 * 4, 500 + 4 * 4, accuracy: 0.001)
     }
 }

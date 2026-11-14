@@ -239,28 +239,22 @@ struct KeyboardMergedPad<Key: View, Separator: View, Delete: View>: View {
                 ForEach(Array(zip(rows, metrics).enumerated()), id: \.offset) { index, entry in
                     let isLast = index == rows.count - 1
                     if isLast, gap > 0, let split, rows.count > 1, let upper = metrics.first {
-                        // Split, the last row takes the halves of the rows above, edges and gutter
-                        // in line, the word-split key and Delete as wide as a letter.
+                        // Split, the last row's keys are all the same size and span the row above:
+                        // the outer edges line up and the gutter keeps its width.
                         let lastBreak = split.breakIndex(row: index, keyCount: entry.0.keys.count)
                         let widths = MergedKeypadGeometry.splitLastRow(
                             upperWidths: upper.keyWidths.map { Double($0) },
-                            upperBreak: split.breakIndex(row: 0, keyCount: rows[0].keys.count),
-                            lastWeights: entry.0.keys.map(\.widthWeight), lastBreak: lastBreak,
-                            spacing: Double(spacing))
+                            lastWeights: entry.0.keys.map(\.widthWeight), spacing: Double(spacing))
                         HStack(spacing: spacing) {
-                            separator().frame(width: CGFloat(widths.left[0]), height: keyHeight)
+                            separator().frame(width: CGFloat(widths.first ?? 44), height: keyHeight)
                             ForEach(Array(entry.0.keys.enumerated()), id: \.offset) { keyIndex, key in
                                 if keyIndex == lastBreak {
                                     KeyboardSplitGap().frame(width: gap - spacing, height: keyHeight)
                                 }
                                 self.key(key, index, keyIndex)
-                                    .frame(
-                                        width: CGFloat(
-                                            keyIndex < lastBreak
-                                                ? widths.left[keyIndex + 1] : widths.right[keyIndex - lastBreak]),
-                                        height: keyHeight)
+                                    .frame(width: CGFloat(widths[keyIndex + 1]), height: keyHeight)
                             }
-                            delete().frame(width: CGFloat(widths.right.last ?? 44), height: keyHeight)
+                            delete().frame(width: CGFloat(widths.last ?? 44), height: keyHeight)
                         }
                         .frame(width: geometry.size.width)
                     } else {
