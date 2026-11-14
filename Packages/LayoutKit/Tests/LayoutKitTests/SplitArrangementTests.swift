@@ -158,6 +158,24 @@ final class SplitArrangementTests: XCTestCase {
 
     // MARK: The letters page
 
+    /// A merged pad's half holds a few wide keys: the word-split key and Delete take what makes
+    /// the last row end where the rows above do, never the fixed 1.8 that dwarfed the half.
+    func testMergedShiftAndDeleteFitTheirHalf() throws {
+        func key(_ width: Double) -> LayoutKey { letter("a").settingWidth(width) }
+        let halves = [
+            LayoutSplitRow(left: [key(1), key(1.5), key(1.5)], right: [key(1), key(1), key(1.5), key(1)]),
+            LayoutSplitRow(left: [key(1), key(1.5), key(1.5)], right: [key(1), key(1.5), key(1)]),
+            LayoutSplitRow(left: [key(1), key(1.5), key(1)], right: [key(1.5), key(1)]),
+        ]
+        let arrangement = try XCTUnwrap(
+            SplitLetterPage.arrangement(halves: halves, mainRowCount: 3, hasControlRow: false, shell: .merged))
+        let last = arrangement.rows[2]
+        // Left: the rows above are 4 wide and the letters 3.5, so the word-split key takes 1 (its floor).
+        XCTAssertEqual(last.left.first?.widthWeight ?? 0, 1, accuracy: 1e-9)
+        // Right: the rows above reach 4.5 and the letters 2.5, so Delete takes its 1.5 ceiling.
+        XCTAssertEqual(last.right.last?.widthWeight ?? 0, 1.5, accuracy: 1e-9)
+    }
+
     func testTheLettersPageCarriesShiftDeleteAndTheFooterPerHalf() throws {
         let layout = duplicated()
         let halves = try XCTUnwrap(layout.split?.halves)
