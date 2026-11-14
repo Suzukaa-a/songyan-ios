@@ -95,4 +95,18 @@ final class CandidateColumnUnitTests: XCTestCase {
             CandidateExpandedFlow.columnUnit(
                 entries: words, availableWidth: 300, typography: typography, cellPaddingX: 12))
     }
+
+    /// Empty rows fill the grid below a short list with ids of their own: sharing the real rows'
+    /// ids let a lazy stack draw an empty row in place of a real one, and the candidates vanished.
+    func testFillerRowsNeverShareAnIdWithTheCandidates() {
+        let typography = CandidateTypography(candidateSize: 20, secondarySize: 12)
+        let rows = CandidateExpandedFlow.layout(
+            entries: [entry("你", 0), entry("好", 1)], expanded: .init(), typography: typography,
+            cellPaddingX: 12, availableWidth: 300)
+        let grid = CandidateExpandedFlow.gridRows(rows, minimumRows: 4)
+        XCTAssertEqual(grid.map(\.id), [0, 1, 2, 3])
+        XCTAssertEqual(grid.compactMap(\.row).count, rows.count)
+        XCTAssertNotNil(grid[0].row, "the candidates come first")
+        XCTAssertEqual(CandidateExpandedFlow.gridRows(rows, minimumRows: 0).count, rows.count)
+    }
 }

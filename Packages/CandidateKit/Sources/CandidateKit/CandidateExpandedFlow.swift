@@ -91,6 +91,15 @@ public enum CandidateExpandedFlow {
         return max(44, floor(fitted * displayScale + 1e-4) / displayScale)
     }
 
+    /// The rows a grid draws: the candidates' rows, then empty ones up to `minimumRows` so the grid
+    /// fills its area. One list with one id per row: a lazy stack given two lists whose ids overlap
+    /// showed an empty row in place of a real one, and the candidates vanished.
+    public static func gridRows(_ rows: [Row], minimumRows: Int) -> [(id: Int, row: Row?)] {
+        let filled = rows.enumerated().map { (id: $0.offset, row: Optional($0.element)) }
+        let blanks = (rows.count..<max(rows.count, minimumRows)).map { (id: $0, row: Row?.none) }
+        return filled + blanks
+    }
+
     /// One row: candidates correspond one-to-one with their cell widths (same order as `entries`).
     public struct Row: Equatable, Sendable {
         public let entries: [BrowserCandidate]
@@ -123,10 +132,10 @@ public enum CandidateExpandedFlow {
         return entry.text.count > threshold || entry.comment.count > threshold * 3
     }
 
-    /// The column every expanded cell snaps to: as wide as the list's typical candidate (the
-    /// median of the first page), so most candidates take one column each and the columns line up
-    /// from row to row; never narrower than one character with its padding. Read from the first
-    /// page only, so pages loading in as the list scrolls never move the columns.
+    /// The column every expanded cell snaps to: wide enough for three in four of the first page's
+    /// candidates, so nearly all take one column each and the columns line up from row to row;
+    /// never narrower than one character with its padding. Read from the first page only, so
+    /// pages loading in as the list scrolls never move the columns.
     public static func columnUnit(
         entries: [BrowserCandidate], availableWidth: CGFloat, typography: CandidateTypography,
         cellPaddingX: Double
@@ -136,7 +145,7 @@ public enum CandidateExpandedFlow {
         let sample = entries.prefix(firstPageSample)
             .map { cellWidth(for: $0, typography: typography, cellPaddingX: cellPaddingX) }
             .sorted()
-        let target = sample.isEmpty ? floor : max(floor, sample[sample.count / 2])
+        let target = sample.isEmpty ? floor : max(floor, sample[(sample.count * 3) / 4])
         guard availableWidth.isFinite, availableWidth > 0 else { return target }
         let columns = max(1, (availableWidth / target).rounded(.down))
         return availableWidth / columns

@@ -877,18 +877,20 @@ struct ExpandedCandidateRows: View {
             entries: entries, availableWidth: availableWidth, typography: context.typography,
             cellPaddingX: bar.collapsed.cellPaddingX)
         let columns = max(1, Int((availableWidth / unit).rounded()))
-        let blankRows = max(0, minimumRows - rows.count)
-        let total = rows.count + blankRows
+        let gridRows = CandidateExpandedFlow.gridRows(rows, minimumRows: minimumRows)
         // Rows sit edge to edge: the grid's own lines part them, so no row spacing.
         LazyVStack(spacing: 0) {
-            ForEach(Array(rows.enumerated()), id: \.offset) { index, row in
-                adaptiveRow(row, rowHeight: rowHeight, unit: unit, columns: columns, isLast: index == total - 1)
-                    .modifier(CandidatePrefetch(context: context, isTrigger: index == prefetch, kind: .expandedTail))
-            }
-            ForEach(0..<blankRows, id: \.self) { index in
-                gridRow(cells: [], unit: unit, columns: columns, rowHeight: rowHeight)
-                    .overlay(alignment: .bottom) { if rows.count + index < total - 1 { gridLine(horizontal: true) } }
-                    .accessibilityHidden(true)
+            ForEach(gridRows, id: \.id) { item in
+                let isLast = item.id == gridRows.count - 1
+                if let row = item.row {
+                    adaptiveRow(row, rowHeight: rowHeight, unit: unit, columns: columns, isLast: isLast)
+                        .modifier(
+                            CandidatePrefetch(context: context, isTrigger: item.id == prefetch, kind: .expandedTail))
+                } else {
+                    gridRow(cells: [], unit: unit, columns: columns, rowHeight: rowHeight)
+                        .overlay(alignment: .bottom) { if !isLast { gridLine(horizontal: true) } }
+                        .accessibilityHidden(true)
+                }
             }
             tailSentinel
         }
@@ -916,7 +918,7 @@ struct ExpandedCandidateRows: View {
         let used = cells.reduce(CGFloat(0)) { $0 + $1.width }
         let blanks = max(0, columns - Int((used / unit).rounded()))
         let slots = cells + Array(repeating: (content: AnyView(Color.clear), width: unit), count: blanks)
-        return HStack(alignment: .top, spacing: 0) {
+        return HStack(alignment: .center, spacing: 0) {
             ForEach(slots.indices, id: \.self) { index in
                 slots[index].content
                     .frame(width: slots[index].width)
@@ -966,7 +968,8 @@ struct ExpandedCandidateRows: View {
         Button {
             context.actions.perform(context.selectAction(entry))
         } label: {
-            VStack(alignment: .leading, spacing: 1) {
+            // A grid cell centres the word and its comment as one block between its dividers.
+            VStack(alignment: alignment == .center ? .center : .leading, spacing: 1) {
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
                     if let badge = entry.selectionBadge {
                         Text(badge)

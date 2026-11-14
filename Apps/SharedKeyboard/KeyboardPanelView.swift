@@ -572,7 +572,7 @@ public struct KeyboardPanelView: View {
                 .environment(
                     \.candidateBackspaceControl,
                     AnyView(
-                        RepeatingDeleteKey(skinRole: "panel") { isRepeating in
+                        RepeatingDeleteKey(skinRole: KeyboardAppearance.bareRole) { isRepeating in
                             handleKey(.backspace, emitFeedback: !isRepeating)
                         }
                         .environment(
