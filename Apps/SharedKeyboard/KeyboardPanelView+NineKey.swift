@@ -253,6 +253,12 @@ extension KeyboardPanelView {
                     .opacity(sideCandidateFade)
             }
             .frame(width: width, height: keyArea.height)
+            // The area reads as part of the keyboard whether or not anything is typed: a faint
+            // base a shade darker than the keyboard, rounded like the keys.
+            .background {
+                RoundedRectangle(cornerRadius: keyAppearance.keyCornerRadius, style: .continuous)
+                    .fill(Color.black.opacity(appearance.dark ? 0.16 : 0.045))
+            }
             // iOS drops touches on fully transparent pixels of a keyboard extension.
             .background(Color.black.opacity(0.001))
             .padding(.leading, x)
