@@ -226,23 +226,22 @@ final class CandidateKitTests: XCTestCase {
                     ##"{"formatVersion":1,"id":"x","name":"x","expanded":{"mode":"weird"}}"##.utf8)))
     }
 
-    /// Short candidates fill greedily by actual text width rather than fixed equal two columns.
+    /// Short candidates fill greedily on a column grid sized to the text, not fixed equal two columns.
     func testExpandedAdaptivePacksShortCandidatesByTextWidth() {
         let typography = CandidateTypography(candidateSize: 20, secondarySize: 10)
-        // Each single CJK character ~ 20pt + 12pt padding on each side = 44pt (raised to the minimum touch width).
+        // A column is one character + 12pt padding on each side + 4 = 48pt target; 300pt holds 6 of 50pt.
         let entries = ["是", "时", "事", "实", "十", "师", "使"].enumerated()
             .map { entry($0.element, local: $0.offset) }
         let rows = CandidateExpandedFlow.layout(
             entries: entries, expanded: .init(),
             typography: typography, cellPaddingX: 12,
             availableWidth: 300)
-        // 6 x 44 + 5 x 4 = 284 <= 300; adding a 7th needs 4 + 44 = 332 > 300, so it wraps.
         XCTAssertEqual(rows.count, 2)
         XCTAssertEqual(rows[0].entries.count, 6)
         XCTAssertEqual(rows[1].entries.count, 1)
         XCTAssertTrue(
-            rows.allSatisfy { row in row.widths.allSatisfy { $0 == 44 } },
-            "a single-character cell hugs its text (== minimum touch width) and no longer spreads across half the screen"
+            rows.allSatisfy { row in row.widths.allSatisfy { $0 == 50 } },
+            "a single character takes one column, the same in every row, and no longer spreads across half the screen"
         )
     }
 
@@ -250,11 +249,11 @@ final class CandidateKitTests: XCTestCase {
     func testExpandedAdaptiveWrapsOnlyWhenRowOverflows() {
         let typography = CandidateTypography(candidateSize: 20, secondarySize: 10)
         let two = [entry("是", local: 0), entry("时", local: 1)]
-        // Two 44-wide cells + 4 spacing = 92.
+        // Two 48pt columns fit in 96.
         XCTAssertEqual(
             CandidateExpandedFlow.layout(
                 entries: two, expanded: .init(), typography: typography,
-                cellPaddingX: 12, availableWidth: 92
+                cellPaddingX: 12, availableWidth: 96
             ).count, 1)
         XCTAssertEqual(
             CandidateExpandedFlow.layout(
@@ -328,7 +327,7 @@ final class CandidateKitTests: XCTestCase {
             entries: entries, expanded: .init(), typography: typography,
             cellPaddingX: 12, availableWidth: .infinity)
         XCTAssertEqual(rows.count, 1)
-        XCTAssertEqual(rows[0].widths, [44, 44])
+        XCTAssertEqual(rows[0].widths, [48, 48])
     }
 
     // MARK: - Collapsed strip readability (3-character words complete / long words reachable / short candidates filled evenly)

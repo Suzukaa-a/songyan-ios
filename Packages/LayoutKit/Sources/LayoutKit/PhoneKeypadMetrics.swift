@@ -39,6 +39,8 @@ public struct PhoneKeypadMetrics: Equatable, Sendable {
     public static let preferredDigitWidth: Double = 84
     /// The main grid is always three digit rows; the control row sits outside it.
     public static let mainRowCount: Int = 3
+    /// The narrowest a rail gets beside a digit: its share on a regular iPhone (about 58 of 84 pt).
+    public static let minimumRailShare: Double = 0.7
     /// Shell width beyond which the whole shell (grid + control row together) is
     /// centred instead of stretched: exactly the width where the rails would
     /// out-scale the preferred digits. `84·5 + 4·4 = 436pt`, wider than every
@@ -269,6 +271,12 @@ public struct PhoneKeypadMetrics: Equatable, Sendable {
             let digitAvailable = (shellWidth - spacing * 4 - minimumTouchTarget * 2) / 3
             digit = min(preferredDigitWidth, digitAvailable)
             rail = min((shellWidth - digit * 3 - spacing * 4) / 2, digit)
+            // A narrow shell does not take everything out of the rails: once they would fall
+            // below `minimumRailShare` of a digit, the digits give way too and both shrink together.
+            if rail < digit * minimumRailShare {
+                digit = (shellWidth - spacing * 4) / (3 + 2 * minimumRailShare)
+                rail = digit * minimumRailShare
+            }
             // Guard the touch minimum against a pathological cap interaction.
             if rail < minimumTouchTarget {
                 rail = minimumTouchTarget

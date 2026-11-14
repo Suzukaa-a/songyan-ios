@@ -196,8 +196,8 @@ public struct NineKeySideCandidatePlan: Equatable, Sendable {
 
 /// Splits a wide screen into the candidates, a gap and the 9-key keyboard. The gap is a share of
 /// the whole width, so the keys come away from the middle and sit under one thumb at the screen's
-/// edge. The candidates mirror the keys at the same width; the keys never grow wider than the
-/// phone shell, and the gap takes whatever that leaves. Geometry only.
+/// edge. The candidates sit opposite at a little less than the keys' width; the keys never grow
+/// wider than the phone shell, and the gap takes whatever that leaves. Geometry only.
 public enum NineKeySideCandidatePolicy {
     /// Narrower than this the column would show a word or two per row; the side stays blank.
     public static let minimumCandidateWidth: Double = 160
@@ -209,6 +209,9 @@ public enum NineKeySideCandidatePolicy {
     public static let gapPercentRange = 0...30
     public static let gapPercentStep = 5
     public static let defaultGapPercent = 15
+    /// The candidates are a little narrower than the keys: beside the dark function keys a light
+    /// list of the same width reads as the wider of the two.
+    public static let candidateShare: Double = 0.9
 
     public static func clampedGapPercent(_ value: Int) -> Int {
         let low = gapPercentRange.lowerBound
@@ -226,9 +229,11 @@ public enum NineKeySideCandidatePolicy {
         else { return nil }
         let strip = max(minimumStripWidth, keyAreaWidth * Double(clampedGapPercent(gapPercent)) / 100)
         let rest = keyAreaWidth - strip
-        let keypad = min(maximumKeypadWidth, rest / 2)
+        let keypad = min(maximumKeypadWidth, rest / (1 + candidateShare))
         guard keypad >= minimumKeypadWidth else { return nil }
+        let candidates = keypad * candidateShare
         return NineKeySideCandidatePlan(
-            side: side, candidateWidth: keypad, stripWidth: keyAreaWidth - 2 * keypad, keypadWidth: keypad)
+            side: side, candidateWidth: candidates, stripWidth: keyAreaWidth - keypad - candidates,
+            keypadWidth: keypad)
     }
 }

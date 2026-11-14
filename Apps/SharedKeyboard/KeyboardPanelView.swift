@@ -474,7 +474,10 @@ public struct KeyboardPanelView: View {
 
     /// What the candidate renderers draw. `heldEntries` replaces the live list with one already
     /// shown (the 9-key side column keeps it while the next key decodes, and fades it out).
-    func candidateAreaContext(heldEntries: [BrowserCandidate]? = nil) -> CandidateAreaContext {
+    /// `sideColumn` draws the 9-key side area: always the expanded look, with no expand control.
+    func candidateAreaContext(
+        heldEntries: [BrowserCandidate]? = nil, sideColumn: Bool = false
+    ) -> CandidateAreaContext {
         // Renderer actions go through this sink: select/paging are real input-session actions and emit
         // one selection feedback only once the action took effect (no-ops give none); expand/collapse are pure UI state
         // and give none (highlight is managed inside the renderer, also without feedback).
@@ -534,11 +537,11 @@ public struct KeyboardPanelView: View {
             } : nil
         let context = CandidateAreaContext(
             state: candidateState,
-            bar: keyAppearance.scalingCandidateBar(candidateBarDefinition),
+            bar: sideColumn ? sideColumnBar : keyAppearance.scalingCandidateBar(candidateBarDefinition),
             actions: sink,
             typography: candidateTypography,
             browser: controller.candidateBrowser,
-            isExpanded: showsAllCandidates,
+            isExpanded: sideColumn || showsAllCandidates,
             visibleEntries: heldEntries ?? readingEntries,
             visibleHasMore: heldEntries != nil ? false : filteringReadings ? controller.readingFilter.hasMore : nil,
             visibleFrontier: heldEntries != nil ? nil : filteringReadings ? controller.readingFilter.nextIndex : nil,
@@ -549,9 +552,17 @@ public struct KeyboardPanelView: View {
         return context
     }
 
+    private var sideColumnBar: CandidateBarDefinition {
+        var bar = keyAppearance.scalingCandidateBar(candidateBarDefinition)
+        bar.controls.showsExpand = false
+        return bar
+    }
+
     @ViewBuilder
-    func candidateRendererView(expanded: Bool, heldEntries: [BrowserCandidate]? = nil) -> some View {
-        let context = candidateAreaContext(heldEntries: heldEntries)
+    func candidateRendererView(
+        expanded: Bool, heldEntries: [BrowserCandidate]? = nil, sideColumn: Bool = false
+    ) -> some View {
+        let context = candidateAreaContext(heldEntries: heldEntries, sideColumn: sideColumn)
         if expanded {
             CandidateRendererRegistry.renderer(id: DefaultCandidateAreaRenderer.rendererID)
                 .makeExpanded(context)

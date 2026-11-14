@@ -422,4 +422,13 @@ final class PhoneKeypadMetricsTests: XCTestCase {
         XCTAssertEqual(m.columnRect(.trailingRail).maxX, 412, accuracy: 0.0001)
         XCTAssertEqual(m.centerlineX, 206, accuracy: 0.0001)
     }
+
+    /// A shell narrower than a phone (the 9-key beside its candidates) shrinks the digits with
+    /// the rails instead of squeezing the rails down to the touch minimum.
+    func testANarrowShellKeepsTheRailsInProportion() {
+        let m = PhoneKeypadMetrics.resolve(width: 336)
+        XCTAssertEqual(m.railWidth, m.digitWidth * PhoneKeypadMetrics.minimumRailShare, accuracy: 0.0001)
+        XCTAssertGreaterThan(m.railWidth, 50)
+        XCTAssertEqual(m.contentWidth, 336, accuracy: 0.0001)
+    }
 }

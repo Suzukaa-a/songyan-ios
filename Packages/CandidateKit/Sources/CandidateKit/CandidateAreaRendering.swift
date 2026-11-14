@@ -874,7 +874,8 @@ struct ExpandedCandidateRows: View {
     @ViewBuilder
     private func adaptiveRow(_ row: CandidateExpandedFlow.Row, rowHeight: CGFloat) -> some View {
         let reservesComment = Self.reservesCommentLine(row.entries)
-        HStack(alignment: .top, spacing: bar.expandedColumnSpacing) {
+        // Cells already span whole grid columns (`CandidateExpandedFlow.columnUnit`).
+        HStack(alignment: .top, spacing: 0) {
             ForEach(row.entries.indices, id: \.self) { index in
                 cell(row.entries[index], minimumHeight: rowHeight, reservesCommentLine: reservesComment)
                     .frame(width: row.widths[index], alignment: .topLeading)

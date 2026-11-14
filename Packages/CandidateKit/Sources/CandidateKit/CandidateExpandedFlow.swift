@@ -23,12 +23,11 @@ public enum CandidateTextMetrics {
     public static func estimatedWidth(_ text: String, fontSize: Double) -> CGFloat {
         guard !text.isEmpty, fontSize.isFinite, fontSize > 0 else { return 0 }
         let unit = CGFloat(fontSize)
-        var wide = 0
-        var narrow = 0
+        var width: CGFloat = 0
         for character in text {
-            if isWide(character) { wide += 1 } else { narrow += 1 }
+            width += isEmoji(character) ? unit * 1.25 : isWide(character) ? unit : unit * 0.62
         }
-        return CGFloat(wide) * unit + CGFloat(narrow) * unit * 0.62
+        return width
     }
 
     private static func isWide(_ character: Character) -> Bool {
@@ -38,6 +37,14 @@ public enum CandidateTextMetrics {
         // A text-default symbol (©, ❤, a digit) is an emoji only with a selector or a sequence.
         return first.properties.isEmojiPresentation
             || (first.properties.isEmoji && scalars.count > 1)
+    }
+
+    /// An emoji glyph draws a little wider than a Chinese character.
+    private static func isEmoji(_ character: Character) -> Bool {
+        guard let first = character.unicodeScalars.first, first.value <= 0x2E80 || first.value >= 0x1F000
+        else { return false }
+        return first.properties.isEmojiPresentation
+            || (first.properties.isEmoji && character.unicodeScalars.count > 1)
     }
 }
 
@@ -114,8 +121,22 @@ public enum CandidateExpandedFlow {
         return entry.text.count > threshold || entry.comment.count > threshold * 3
     }
 
-    /// Greedy line breaking: fill left to right and wrap when a candidate does not fit; long or over-wide
-    /// candidates take their own row, capped to the available width.
+    /// The column every expanded cell snaps to: about one character plus the cell's padding, so a
+    /// single character gets room around it and the column grows with the text on a wide board.
+    public static func columnUnit(
+        availableWidth: CGFloat, typography: CandidateTypography, cellPaddingX: Double
+    ) -> CGFloat {
+        let pad = cellPaddingX.isFinite ? max(0, CGFloat(cellPaddingX)) : 0
+        let target = max(minimumCellWidth, CGFloat(typography.candidateSize) + pad * 2 + 4)
+        guard availableWidth.isFinite, availableWidth > 0 else { return target }
+        let columns = max(1, (availableWidth / target).rounded(.down))
+        return availableWidth / columns
+    }
+
+    /// Greedy line breaking on a column grid: every cell spans whole columns (`columnUnit`), so the
+    /// cells of one row line up with those of the next; fill left to right and wrap when a
+    /// candidate does not fit; long or over-wide candidates take their own row, capped to the
+    /// available width. Cells sit edge to edge, their padding keeping the text apart.
     /// `availableWidth` is the usable content width of the expanded area; when non-finite or non-positive, nothing wraps.
     public static func layout(
         entries: [BrowserCandidate],
@@ -125,7 +146,8 @@ public enum CandidateExpandedFlow {
         availableWidth: CGFloat
     ) -> [Row] {
         guard !entries.isEmpty else { return [] }
-        let spacing = expanded.columnSpacing.isFinite ? max(0, CGFloat(expanded.columnSpacing)) : 0
+        let unit = columnUnit(availableWidth: availableWidth, typography: typography, cellPaddingX: cellPaddingX)
+        let spacing: CGFloat = 0
         let available =
             availableWidth.isFinite && availableWidth > 0
             ? availableWidth : CGFloat.greatestFiniteMagnitude
@@ -145,7 +167,8 @@ public enum CandidateExpandedFlow {
         }
 
         for entry in entries {
-            let estimated = cellWidth(for: entry, typography: typography, cellPaddingX: cellPaddingX)
+            let natural = cellWidth(for: entry, typography: typography, cellPaddingX: cellPaddingX)
+            let estimated = (natural / unit - 0.01).rounded(.up) * unit
             let ownRow =
                 wantsOwnRow(entry, fullRowTextLength: expanded.fullRowTextLength)
                 || estimated > available + 0.5
