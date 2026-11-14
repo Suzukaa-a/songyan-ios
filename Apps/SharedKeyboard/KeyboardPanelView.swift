@@ -174,6 +174,9 @@ public struct KeyboardPanelView: View {
     /// The side column's cross-fade when its candidates change (opacity only).
     @State var sideCandidateFade = 1.0
     @State var sideCandidateOutgoing = 0.0
+    /// Candidates the strip shows whole: expanded, it stays as the first row and the list below
+    /// starts after them.
+    @State var stripFirstRowCount = 0
 
     /// Observation coordinator for definition changes (pure value): distinguishes "the panel's own explicit selection/reconciliation" from
     /// "external registry content replacement". The explicit path registers the expected (from, to) before acting; the observation callback
@@ -286,6 +289,7 @@ public struct KeyboardPanelView: View {
                 mainSplitWidth: rawWidth, pageSplitWidth: contentWidth - 8, sideMargin: CGFloat(sideMargin))
             let keyAppearance = self.keyAppearance
             panelBody(isWide: isWideSurface)
+                .onPreferenceChange(CandidateStripFirstRowKey.self) { stripFirstRowCount = $0 }
                 .environment(\.keyboardAppearance, keyAppearance)
                 .frame(width: contentWidth, alignment: .topLeading)
                 .disabled(showsCoveringPanel)
@@ -534,7 +538,7 @@ public struct KeyboardPanelView: View {
                         comment: annotation, selectKey: entry.selectKey,
                         selectLabel: entry.selectLabel))
             } : nil
-        let context = CandidateAreaContext(
+        var context = CandidateAreaContext(
             state: candidateState,
             bar: sideColumn ? sideColumnBar : keyAppearance.scalingCandidateBar(candidateBarDefinition),
             actions: sink,
@@ -548,6 +552,7 @@ public struct KeyboardPanelView: View {
             inputLanguage: controller.inputLanguage.language,
             showsCollapsedComments: appearance.showsCollapsedCandidateComments,
             rowHeight: Double(candidateRowHeight))
+        if showsAllCandidates && !sideColumn && heldEntries == nil { context.expandedSkips = stripFirstRowCount }
         return context
     }
 
@@ -568,18 +573,6 @@ public struct KeyboardPanelView: View {
         } else {
             CandidateRendererRegistry.renderer(id: DefaultCandidateAreaRenderer.rendererID)
                 .makeCollapsed(context)
-                .environment(
-                    \.candidateBackspaceControl,
-                    AnyView(
-                        RepeatingDeleteKey(skinRole: KeyboardAppearance.bareRole) { isRepeating in
-                            handleKey(.backspace, emitFeedback: !isRepeating)
-                        }
-                        .environment(
-                            \.keyboardDeleteHasComposition,
-                            { controller.snapshot.isComposing || !controller.session.pendingCodes.isEmpty }
-                        )
-                    )
-                )
         }
     }
     var mainRowCount: Int {
@@ -917,7 +910,7 @@ public struct KeyboardPanelView: View {
                     } else {
                         VStack(spacing: 4) {
                             if showsAllCandidates && !controller.snapshot.candidates.isEmpty {
-                                expandedCandidates
+                                expandedCandidatesWithEditing
                             } else if CGFloat(mainRowCount) * (keyHeight + 4) - 4 > mainAreaHeight + 1 {
                                 ScrollView {
                                     gatedKeyRows

@@ -50,8 +50,6 @@ public enum CandidateTextMetrics {
 
 /// Adaptive flow layout of expanded candidates.
 public enum CandidateExpandedFlow {
-    /// How many leading candidates decide the column width.
-    static let firstPageSample = 10
     /// Minimum touch width of a cell (same as the collapsed strip): short candidates keep a tappable area.
     public static let minimumCellWidth: CGFloat = 44
     /// Bottom safety inset of the expanded content: breathing room between the last row and the real bottom bar so touch areas do not hug it.
@@ -91,15 +89,6 @@ public enum CandidateExpandedFlow {
         return max(44, floor(fitted * displayScale + 1e-4) / displayScale)
     }
 
-    /// The rows a grid draws: the candidates' rows, then empty ones up to `minimumRows` so the grid
-    /// fills its area. One list with one id per row: a lazy stack given two lists whose ids overlap
-    /// showed an empty row in place of a real one, and the candidates vanished.
-    public static func gridRows(_ rows: [Row], minimumRows: Int) -> [(id: Int, row: Row?)] {
-        let filled = rows.enumerated().map { (id: $0.offset, row: Optional($0.element)) }
-        let blanks = (rows.count..<max(rows.count, minimumRows)).map { (id: $0, row: Row?.none) }
-        return filled + blanks
-    }
-
     /// One row: candidates correspond one-to-one with their cell widths (same order as `entries`).
     public struct Row: Equatable, Sendable {
         public let entries: [BrowserCandidate]
@@ -132,29 +121,8 @@ public enum CandidateExpandedFlow {
         return entry.text.count > threshold || entry.comment.count > threshold * 3
     }
 
-    /// The column every expanded cell snaps to: wide enough for three in four of the first page's
-    /// candidates, so nearly all take one column each and the columns line up from row to row;
-    /// never narrower than one character with its padding. Read from the first page only, so
-    /// pages loading in as the list scrolls never move the columns.
-    public static func columnUnit(
-        entries: [BrowserCandidate], availableWidth: CGFloat, typography: CandidateTypography,
-        cellPaddingX: Double
-    ) -> CGFloat {
-        let pad = cellPaddingX.isFinite ? max(0, CGFloat(cellPaddingX)) : 0
-        let floor = max(minimumCellWidth, CGFloat(typography.candidateSize) + pad * 2 + 4)
-        let sample = entries.prefix(firstPageSample)
-            .map { cellWidth(for: $0, typography: typography, cellPaddingX: cellPaddingX) }
-            .sorted()
-        let target = sample.isEmpty ? floor : max(floor, sample[(sample.count * 3) / 4])
-        guard availableWidth.isFinite, availableWidth > 0 else { return target }
-        let columns = max(1, (availableWidth / target).rounded(.down))
-        return availableWidth / columns
-    }
-
-    /// Greedy line breaking on a column grid: every cell spans whole columns (`columnUnit`), so the
-    /// cells of one row line up with those of the next; fill left to right and wrap when a
-    /// candidate does not fit; long or over-wide candidates take their own row, capped to the
-    /// available width. Cells sit edge to edge, their padding keeping the text apart.
+    /// Greedy line breaking: fill left to right and wrap when a candidate does not fit; long or over-wide
+    /// candidates take their own row, capped to the available width.
     /// `availableWidth` is the usable content width of the expanded area; when non-finite or non-positive, nothing wraps.
     public static func layout(
         entries: [BrowserCandidate],
@@ -164,9 +132,7 @@ public enum CandidateExpandedFlow {
         availableWidth: CGFloat
     ) -> [Row] {
         guard !entries.isEmpty else { return [] }
-        let unit = columnUnit(
-            entries: entries, availableWidth: availableWidth, typography: typography, cellPaddingX: cellPaddingX)
-        let spacing: CGFloat = 0
+        let spacing = expanded.columnSpacing.isFinite ? max(0, CGFloat(expanded.columnSpacing)) : 0
         let available =
             availableWidth.isFinite && availableWidth > 0
             ? availableWidth : CGFloat.greatestFiniteMagnitude
@@ -186,8 +152,7 @@ public enum CandidateExpandedFlow {
         }
 
         for entry in entries {
-            let natural = cellWidth(for: entry, typography: typography, cellPaddingX: cellPaddingX)
-            let estimated = (natural / unit - 0.01).rounded(.up) * unit
+            let estimated = cellWidth(for: entry, typography: typography, cellPaddingX: cellPaddingX)
             let ownRow =
                 wantsOwnRow(entry, fullRowTextLength: expanded.fullRowTextLength)
                 || estimated > available + 0.5

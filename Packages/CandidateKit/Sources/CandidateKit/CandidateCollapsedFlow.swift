@@ -126,6 +126,19 @@ public enum CandidateCollapsedFlow {
         return available
     }
 
+    /// How many leading cells fit whole in `viewportWidth`: the strip's first row when the list
+    /// below it is expanded.
+    public static func wholeCellCount(cellWidths: [CGFloat], spacing: CGFloat, viewportWidth: CGFloat) -> Int {
+        let gap = spacing.isFinite ? max(0, spacing) : 0
+        var used: CGFloat = 0
+        for (index, width) in cellWidths.enumerated() {
+            let next = used + (index == 0 ? 0 : gap) + width
+            if next > viewportWidth + fitEpsilon { return index }
+            used = next
+        }
+        return cellWidths.count
+    }
+
     /// Collapsed strip layout: even-width fill (no scrolling) or intrinsic-width layout (scrolling when wider).
     ///
     /// Even-width fill is decided on **total width**: `widest*count + spacing*(count-1) <= available`

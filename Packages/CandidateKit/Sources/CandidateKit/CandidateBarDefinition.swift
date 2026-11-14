@@ -50,10 +50,11 @@ public struct CandidateBarDefinition: Codable, Equatable, Identifiable, Sendable
         var bar = CandidateBarDefinition(id: systemDefaultID, name: "系统默认")
         bar.collapsed.height = 40
         bar.collapsed.cellPaddingX = 7
-        bar.collapsed.cellSpacing = 0
+        // 5 pt between candidates, so two neighbours read as two words.
+        bar.collapsed.cellSpacing = 5
         bar.collapsed.fillsAvailableWidth = false
         bar.expanded.rowSpacing = 0
-        bar.expanded.columnSpacing = 0
+        bar.expanded.columnSpacing = 5
         return bar
     }()
 

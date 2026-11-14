@@ -136,17 +136,8 @@ private struct CandidateSkinTokenKey: EnvironmentKey {
         panelColor: Color(CandidatePlatformColor.windowBackground))
 }
 
-private struct CandidateBackspaceControlKey: EnvironmentKey {
-    static var defaultValue: AnyView? { nil }
-}
 
 extension EnvironmentValues {
-    /// Hosts reuse their native delete key, including hold and cancellation behavior.
-    public var candidateBackspaceControl: AnyView? {
-        get { self[CandidateBackspaceControlKey.self] }
-        set { self[CandidateBackspaceControlKey.self] = newValue }
-    }
-
     /// Skin values consumed by the default renderer; the host injects them in the keyboard environment (same source, SkinKit).
     public var candidateSkinToken: CandidateSkinToken {
         get { self[CandidateSkinTokenKey.self] }
@@ -225,6 +216,11 @@ extension CandidateAreaContext {
     public var hasMoreEntries: Bool { visibleHasMore ?? browser.hasMore }
     var entryFrontier: Int? { visibleFrontier ?? browser.nextPageToLoad }
     /// Accumulated candidates for continuous display: used when the host has fed `browser` (cross-page), otherwise falls back to the single-page snapshot.
+    /// The expanded list: what is not already on the strip above it.
+    var expandedEntries: [BrowserCandidate] {
+        expandedSkips > 0 ? Array(displayEntries.dropFirst(expandedSkips)) : displayEntries
+    }
+
     public var displayEntries: [BrowserCandidate] {
         if let visibleEntries { return visibleEntries }
         if !browser.isEmpty { return browser.entries }
@@ -290,7 +286,6 @@ private struct CandidateScrollReset: ViewModifier {
 private struct DefaultCollapsedCandidateBar: View {
     let context: CandidateAreaContext
     @Environment(\.candidateSkinToken) private var skin
-    @Environment(\.candidateBackspaceControl) private var backspaceControl
 
     private var state: CandidatePresentationState { context.state }
     private var bar: CandidateBarDefinition { context.bar }
@@ -318,34 +313,16 @@ private struct DefaultCollapsedCandidateBar: View {
                         : String(localized: "candidate.control.loadEarlier", bundle: .module),
                     disabled: false, action: .loadMore)
             }
-            if context.isExpanded {
-                Text("candidate.header.title", bundle: .module)
-                    .font(.system(size: 13, weight: .medium))
+            // Expanded, the strip stays where it is: it is the first row of the list below it.
+            if entries.isEmpty && context.visibleEntries == nil {
+                Text("candidate.header.composingHint", bundle: .module)
+                    .font(.caption)
                     .foregroundStyle(skin.secondaryColor)
-                    .padding(.leading, 10)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .accessibilityAddTraits(.isHeader)
-                if let backspaceControl {
-                    backspaceControl.frame(width: 44, height: hitHeight)
-                } else {
-                    pageButton(
-                        "delete.left", label: String(localized: "candidate.control.backspace", bundle: .module),
-                        disabled: false, action: .backspace)
-                }
-            } else {
-                // Read-only entry for earlier pages (not engine paging): shown when unloaded pages exist before the real current
-                // page; reads them by offset without changing the engine page/highlight/marked text. If the frontier is stopped on an
-                // "incompletely read" earlier page, a retry icon and label tell the user they can retry read-only.
-                if entries.isEmpty && context.visibleEntries == nil {
-                    Text("candidate.header.composingHint", bundle: .module)
-                        .font(.caption)
-                        .foregroundStyle(skin.secondaryColor)
-                        .frame(maxWidth: .infinity, minHeight: hitHeight, alignment: .leading)
-                        .padding(.horizontal, 8)
-                } else if !entries.isEmpty {
-                    GeometryReader { geometry in
-                        strip(width: geometry.size.width)
-                    }
+                    .frame(maxWidth: .infinity, minHeight: hitHeight, alignment: .leading)
+                    .padding(.horizontal, 8)
+            } else if !entries.isEmpty {
+                GeometryReader { geometry in
+                    strip(width: geometry.size.width)
                 }
             }
             // Scrolling loads naturally. A retry is shown only after an actual failed read.
@@ -412,7 +389,7 @@ private struct DefaultCollapsedCandidateBar: View {
             .scrollBounceBehavior(.basedOnSize)
             // A row that fits has nothing to scroll, so its pan must not take a tap that drifts
             // sideways: the candidate keeps it while the finger stays on it, as a plain button would.
-            .scrollDisabled(!layout.scrolls)
+            .scrollDisabled(!layout.scrolls || context.isExpanded)
             .coordinateSpace(name: CandidateScrollAnchor.viewport)
             .sharpCandidateScrollEdges()
             // Native horizontal scrolling is the browsing: no DragGesture triggers engine paging, so nothing is committed and
@@ -424,6 +401,13 @@ private struct DefaultCollapsedCandidateBar: View {
                     identity: context.scrollIdentity,
                     proxy: proxy, anchor: .leading)
             )
+            // Expanding lays the list out from the strip's first candidate.
+            .onChange(of: context.isExpanded) { _, expanded in
+                guard expanded else { return }
+                var transaction = Transaction(animation: nil)
+                transaction.disablesAnimations = true
+                withTransaction(transaction) { proxy.scrollTo(CandidateScrollAnchor.content, anchor: .leading) }
+            }
             .frame(width: viewport)
             .frame(width: width, alignment: .leading)
         }
@@ -431,6 +415,10 @@ private struct DefaultCollapsedCandidateBar: View {
         .accessibilityElement(children: .contain)
         .accessibilityLabel(Text("candidate.header.title", bundle: .module))
         .modifier(CandidateLoadingActions(context: context))
+        .preference(
+            key: CandidateStripFirstRowKey.self,
+            value: CandidateCollapsedFlow.wholeCellCount(
+                cellWidths: layout.cellWidths, spacing: spacing, viewportWidth: viewport - 4))
     }
 
 }
@@ -676,19 +664,9 @@ private struct DefaultExpandedCandidates: View {
     @Environment(\.candidateSkinToken) private var skin
     @Environment(\.displayScale) private var displayScale
 
-    /// Whole touch rows filling the real scroll viewport: otherwise the fixed keyboard budget
-    /// exposes only the glyph tops of the next row before the user scrolls. The adaptive grid's
-    /// rows sit edge to edge.
-    private func rowHeight(viewport: CGFloat) -> CGFloat {
-        CandidateExpandedFlow.fittedRowHeight(
-            rowAreaHeight: CandidateExpandedFlow.rowAreaHeight(totalHeight: viewport),
-            spacing: context.bar.expanded.isAdaptive ? 0 : CGFloat(context.bar.expandedRowSpacing),
-            displayScale: displayScale)
-    }
-
     private var state: CandidatePresentationState { context.state }
     private var bar: CandidateBarDefinition { context.bar }
-    private var entries: [BrowserCandidate] { context.displayEntries }
+    private var entries: [BrowserCandidate] { context.expandedEntries }
 
     var body: some View {
         // The expanded area's width is decided by host geometry (the panel gives a fixed height); the outer GeometryReader
@@ -701,12 +679,13 @@ private struct DefaultExpandedCandidates: View {
                         context: context,
                         // -4 = 2pt horizontal content padding on each side, so row width does not exceed the visible area.
                         availableWidth: max(0, geometry.size.width - 4),
-                        rowHeight: rowHeight(viewport: geometry.size.height),
-                        minimumRows: context.bar.expanded.isAdaptive
-                            ? Int(
-                                CandidateExpandedFlow.rowAreaHeight(totalHeight: geometry.size.height)
-                                    / rowHeight(viewport: geometry.size.height) + 0.01)
-                            : 0
+                        // Fill the real scroll viewport with whole touch rows.
+                        // Otherwise the fixed keyboard budget exposes only the
+                        // glyph tops of the next row before the user scrolls.
+                        rowHeight: CandidateExpandedFlow.fittedRowHeight(
+                            rowAreaHeight: CandidateExpandedFlow.rowAreaHeight(totalHeight: geometry.size.height),
+                            spacing: CGFloat(context.bar.expandedRowSpacing),
+                            displayScale: displayScale)
                     )
                     .padding(.horizontal, 2)
                     .padding(.top, CandidateExpandedFlow.topInset)
@@ -759,14 +738,11 @@ struct ExpandedCandidateRows: View {
     let context: CandidateAreaContext
     let availableWidth: CGFloat
     let rowHeight: CGFloat
-    /// The adaptive grid draws empty rows up to this many, so its lines fill the area.
-    var minimumRows = 0
-    @Environment(\.displayScale) private var displayScale
     @Environment(\.candidateSkinToken) private var skin
     @Environment(\.colorSchemeContrast) private var contrast
 
     private var bar: CandidateBarDefinition { context.bar }
-    private var entries: [BrowserCandidate] { context.displayEntries }
+    private var entries: [BrowserCandidate] { context.expandedEntries }
 
     var body: some View {
         Group {
@@ -873,81 +849,26 @@ struct ExpandedCandidateRows: View {
             cellPaddingX: bar.collapsed.cellPaddingX,
             availableWidth: availableWidth)
         let prefetch = prefetchRow(rowCounts: rows.map(\.entries.count))
-        let unit = CandidateExpandedFlow.columnUnit(
-            entries: entries, availableWidth: availableWidth, typography: context.typography,
-            cellPaddingX: bar.collapsed.cellPaddingX)
-        let columns = max(1, Int((availableWidth / unit).rounded()))
-        let gridRows = CandidateExpandedFlow.gridRows(rows, minimumRows: minimumRows)
-        // Rows sit edge to edge: the grid's own lines part them, so no row spacing.
-        LazyVStack(spacing: 0) {
-            ForEach(gridRows, id: \.id) { item in
-                let isLast = item.id == gridRows.count - 1
-                if let row = item.row {
-                    adaptiveRow(row, rowHeight: rowHeight, unit: unit, columns: columns, isLast: isLast)
-                        .modifier(
-                            CandidatePrefetch(context: context, isTrigger: item.id == prefetch, kind: .expandedTail))
-                } else {
-                    gridRow(cells: [], unit: unit, columns: columns, rowHeight: rowHeight)
-                        .overlay(alignment: .bottom) { if !isLast { gridLine(horizontal: true) } }
-                        .accessibilityHidden(true)
-                }
+        LazyVStack(spacing: bar.expandedRowSpacing) {
+            ForEach(Array(rows.enumerated()), id: \.offset) { index, row in
+                adaptiveRow(row, rowHeight: rowHeight)
+                    .modifier(CandidatePrefetch(context: context, isTrigger: index == prefetch, kind: .expandedTail))
             }
             tailSentinel
         }
     }
 
-    /// The faint lines between grid cells: they show where each touch lands, and with nothing to
-    /// show they still mark out the area.
-    private func gridLine(horizontal: Bool) -> some View {
-        let color = skin.secondaryColor.opacity(0.22)
-        let hairline = 1 / max(1, displayScale)
-        return Group {
-            if horizontal {
-                color.frame(height: hairline).padding(.horizontal, 6)
-            } else {
-                color.frame(width: hairline).padding(.vertical, 10)
-            }
-        }
-    }
-
-    /// One row of the grid: `cells` (each with its width) then empty columns to the end, every
-    /// cell but the last followed by a divider.
-    private func gridRow(
-        cells: [(content: AnyView, width: CGFloat)], unit: CGFloat, columns: Int, rowHeight: CGFloat
-    ) -> some View {
-        let used = cells.reduce(CGFloat(0)) { $0 + $1.width }
-        let blanks = max(0, columns - Int((used / unit).rounded()))
-        let slots = cells + Array(repeating: (content: AnyView(Color.clear), width: unit), count: blanks)
-        return HStack(alignment: .center, spacing: 0) {
-            ForEach(slots.indices, id: \.self) { index in
-                slots[index].content
-                    .frame(width: slots[index].width)
-                    .frame(minHeight: rowHeight)
-                    .overlay(alignment: .trailing) {
-                        if index < slots.count - 1 { gridLine(horizontal: false) }
-                    }
+    /// One adaptive row: each candidate gets a fixed cell width from its estimated width (single characters do not spread across the row), left-aligned.
+    @ViewBuilder
+    private func adaptiveRow(_ row: CandidateExpandedFlow.Row, rowHeight: CGFloat) -> some View {
+        let reservesComment = Self.reservesCommentLine(row.entries)
+        HStack(alignment: .top, spacing: bar.expandedColumnSpacing) {
+            ForEach(row.entries.indices, id: \.self) { index in
+                cell(row.entries[index], minimumHeight: rowHeight, reservesCommentLine: reservesComment)
+                    .frame(width: row.widths[index], alignment: .topLeading)
             }
             Spacer(minLength: 0)
         }
-    }
-
-    /// One adaptive row: each candidate spans whole grid columns (`CandidateExpandedFlow.columnUnit`)
-    /// with its text centred, so the columns line up from row to row.
-    private func adaptiveRow(
-        _ row: CandidateExpandedFlow.Row, rowHeight: CGFloat, unit: CGFloat, columns: Int, isLast: Bool
-    ) -> some View {
-        let reservesComment = Self.reservesCommentLine(row.entries)
-        let cells = row.entries.indices.map { index in
-            (
-                content: AnyView(
-                    cell(
-                        row.entries[index], minimumHeight: rowHeight, reservesCommentLine: reservesComment,
-                        alignment: .center)),
-                width: row.widths[index]
-            )
-        }
-        return gridRow(cells: cells, unit: unit, columns: columns, rowHeight: rowHeight)
-            .overlay(alignment: .bottom) { if !isLast { gridLine(horizontal: true) } }
     }
 
     /// When any cell in a row carries a real comment/reading, the other cells keep a same-height **blank** comment slot:
@@ -962,14 +883,13 @@ struct ExpandedCandidateRows: View {
     @ViewBuilder
     private func cell(
         _ entry: BrowserCandidate, minimumHeight: CGFloat = 44,
-        reservesCommentLine: Bool = false, alignment: Alignment = .leading
+        reservesCommentLine: Bool = false
     ) -> some View {
         let highlighted = context.isHighlighted(entry)
         Button {
             context.actions.perform(context.selectAction(entry))
         } label: {
-            // A grid cell centres the word and its comment as one block between its dividers.
-            VStack(alignment: alignment == .center ? .center : .leading, spacing: 1) {
+            VStack(alignment: .leading, spacing: 1) {
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
                     if let badge = entry.selectionBadge {
                         Text(badge)
@@ -1011,8 +931,8 @@ struct ExpandedCandidateRows: View {
             .foregroundStyle(skin.candidateColor)
             .padding(.horizontal, bar.collapsed.cellPaddingX)
             .padding(.vertical, 6)
-            .frame(minWidth: 44, minHeight: minimumHeight, alignment: alignment)
-            .frame(maxWidth: .infinity, alignment: alignment)
+            .frame(minWidth: 44, minHeight: minimumHeight, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .overlay(alignment: .leading) {
                 if highlighted {
                     Capsule().fill(
@@ -1058,4 +978,11 @@ extension CandidateRendererDescriptor {
             AnyView(Text(context.state.candidates.map(\.text).joined(separator: " ")))
         }
     )
+}
+
+/// How many candidates the collapsed strip shows whole at its start: expanded, the list below
+/// the strip starts after them.
+public struct CandidateStripFirstRowKey: PreferenceKey {
+    public static let defaultValue = 0
+    public static func reduce(value: inout Int, nextValue: () -> Int) { value = max(value, nextValue()) }
 }

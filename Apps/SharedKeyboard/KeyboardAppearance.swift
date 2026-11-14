@@ -672,25 +672,16 @@ public struct KeyboardAppearance: Equatable, Sendable {
     /// A choice on the 9-key rail: the rail draws one control-coloured column, outlined once, so
     /// each choice takes the control colour without an outline of its own.
     public static let railChoiceRole = "railChoice"
-    /// A control drawn as its glyph alone on the panel (the expanded candidates' delete), like the
-    /// header's other icons: no fill, no outline; a press still shows.
-    public static let bareRole = "bare"
-    private static func paletteRole(_ role: String) -> String {
-        switch role {
-        case railChoiceRole: return "control"
-        case bareRole: return "panel"
-        default: return role
-        }
-    }
+    private static func paletteRole(_ role: String) -> String { role == railChoiceRole ? "control" : role }
 
     public func color(_ name: String) -> Color { Color(uiColor: uiColor(name)) }
     public func uiColor(_ name: String) -> UIColor {
         // The rail already paints the column; a second translucent fill per choice showed as boxes.
-        name == Self.railChoiceRole || name == Self.bareRole ? .clear : palette.fill(name)
+        name == Self.railChoiceRole ? .clear : palette.fill(name)
     }
     /// The function keys of a dark, borderless skin get a hairline; see `outlinesFunctionKeys`.
     public func borderWidth(for role: String) -> Double {
-        if role == Self.railChoiceRole || role == Self.bareRole { return 0 }
+        if role == Self.railChoiceRole { return 0 }
         return (role == "control" || role == "accent") && palette.outlinesControls ? 1 : skin.keycap.borderWidth
     }
     public func text(on role: String, secondary: Bool = false) -> UIColor {

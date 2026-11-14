@@ -179,6 +179,9 @@ public struct CandidateAreaContext {
     /// strip's own budget. Every candidate and control answers to the whole band, so a tap above or
     /// below the glyphs still lands; the drawing keeps the budget's size, centred in the band.
     public let rowHeight: Double?
+    /// Expanded, the strip stays in place as the first row: these leading candidates are on it,
+    /// and the list below starts after them.
+    public var expandedSkips = 0
     public init(
         state: CandidatePresentationState, bar: CandidateBarDefinition,
         actions: CandidateAreaActionSink, typography: CandidateTypography,

@@ -1,4 +1,4 @@
-import CandidateKit
+@testable import CandidateKit
 import KeyboardCore
 import LayoutKit
 import XCTest
@@ -70,42 +70,26 @@ final class CandidateEmojiWidthTests: XCTestCase {
     }
 }
 
-final class CandidateColumnUnitTests: XCTestCase {
-    private func entry(_ text: String, _ index: Int) -> BrowserCandidate {
-        BrowserCandidate(
-            pageIndex: 0, pageLocalIndex: index,
-            candidate: Candidate(index: index, text: text, comment: "", selectKey: nil, selectLabel: nil))
-    }
-
-    /// A list of two-character words gets two-character columns: an emoji among them takes one
-    /// column like the words, so every row divides the same way.
-    func testTheColumnFollowsTheListsTypicalCandidate() {
-        let typography = CandidateTypography(candidateSize: 20, secondarySize: 12)
-        let words = ["奶酪", "🧀", "买来", "难看", "南开", "耐劳", "难堪"].enumerated().map { entry($1, $0) }
-        let rows = CandidateExpandedFlow.layout(
-            entries: words, expanded: .init(), typography: typography, cellPaddingX: 12, availableWidth: 300)
-        XCTAssertTrue(rows.allSatisfy { Set($0.widths).count == 1 }, "\(rows.map(\.widths))")
-        XCTAssertEqual(rows.map(\.entries.count), [4, 3])
-        // Single characters keep narrow columns.
-        let singles = ["你", "忙", "梦", "密"].enumerated().map { entry($1, $0) }
-        XCTAssertLessThan(
-            CandidateExpandedFlow.columnUnit(
-                entries: singles, availableWidth: 300, typography: typography, cellPaddingX: 12),
-            CandidateExpandedFlow.columnUnit(
-                entries: words, availableWidth: 300, typography: typography, cellPaddingX: 12))
-    }
-
-    /// Empty rows fill the grid below a short list with ids of their own: sharing the real rows'
-    /// ids let a lazy stack draw an empty row in place of a real one, and the candidates vanished.
-    func testFillerRowsNeverShareAnIdWithTheCandidates() {
-        let typography = CandidateTypography(candidateSize: 20, secondarySize: 12)
-        let rows = CandidateExpandedFlow.layout(
-            entries: [entry("你", 0), entry("好", 1)], expanded: .init(), typography: typography,
-            cellPaddingX: 12, availableWidth: 300)
-        let grid = CandidateExpandedFlow.gridRows(rows, minimumRows: 4)
-        XCTAssertEqual(grid.map(\.id), [0, 1, 2, 3])
-        XCTAssertEqual(grid.compactMap(\.row).count, rows.count)
-        XCTAssertNotNil(grid[0].row, "the candidates come first")
-        XCTAssertEqual(CandidateExpandedFlow.gridRows(rows, minimumRows: 0).count, rows.count)
+final class CandidateExpandedFirstRowTests: XCTestCase {
+    /// Expanded, the strip stays as the first row: the cells it shows whole are counted, and the
+    /// list below starts after them.
+    func testTheListStartsAfterTheStripsWholeCells() {
+        XCTAssertEqual(
+            CandidateCollapsedFlow.wholeCellCount(cellWidths: [44, 44, 60, 44], spacing: 5, viewportWidth: 158), 3)
+        XCTAssertEqual(
+            CandidateCollapsedFlow.wholeCellCount(cellWidths: [44, 44, 60, 44], spacing: 5, viewportWidth: 157), 2)
+        XCTAssertEqual(CandidateCollapsedFlow.wholeCellCount(cellWidths: [44], spacing: 5, viewportWidth: 300), 1)
+        let candidates = (0..<5).map {
+            Candidate(index: $0, text: "字\($0)", comment: "", selectKey: nil, selectLabel: nil)
+        }
+        let state = CandidatePresentationState(
+            preedit: "zi", rawInput: "zi", candidates: candidates, highlightedIndex: 0,
+            pageIndex: 0, canPageBackward: false, canPageForward: false, isComposing: true)
+        var context = CandidateAreaContext(
+            state: state, bar: .systemDefault, actions: CandidateAreaActionSink { _ in },
+            typography: .init(candidateSize: 20, secondarySize: 10), browser: CandidateBrowser(), isExpanded: true)
+        context.expandedSkips = 3
+        XCTAssertEqual(context.expandedEntries.map(\.text), ["字3", "字4"])
+        XCTAssertEqual(context.displayEntries.count, 5, "the strip still has them all")
     }
 }

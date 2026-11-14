@@ -816,4 +816,34 @@ extension KeyboardPanelView {
         candidateRendererView(expanded: true)
             .frame(height: mainAreaHeight)
     }
+
+    /// The expanded list over the letter rows, which covers their Delete: a fixed column beside it
+    /// keeps Delete and 重输 (the strip above keeps collapse, and iOS keeps its own dismiss key).
+    var expandedCandidatesWithEditing: some View {
+        HStack(spacing: 0) {
+            candidateRendererView(expanded: true)
+            VStack(spacing: 0) {
+                RepeatingDeleteKey { isRepeating in handleKey(.backspace, emitFeedback: !isRepeating) }
+                    .environment(
+                        \.keyboardDeleteHasComposition,
+                        { controller.snapshot.isComposing || !controller.session.pendingCodes.isEmpty }
+                    )
+                    .accessibilityLabel(String(localized: "删除"))
+                AlternateCharacterKey(
+                    cap: KeyCap(id: "expanded-reset", title: "重输", action: .backspace),
+                    alternates: [], visualRole: "control",
+                    titleSize: appearance.controlTextSize
+                ) { _ in
+                    keyFeedbackAfterEffect { _ = controller.discardComposition() }
+                }
+                .disabled(!controller.snapshot.isComposing)
+                .accessibilityLabel(String(localized: "重输"))
+                .accessibilityHint(String(localized: "清空当前输入"))
+            }
+            .frame(width: Self.expandedEditingColumnWidth)
+        }
+        .frame(height: mainAreaHeight)
+    }
+
+    static let expandedEditingColumnWidth: CGFloat = 56
 }
