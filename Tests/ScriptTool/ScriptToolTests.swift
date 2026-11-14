@@ -64,7 +64,7 @@ final class ScriptToolTests: XCTestCase {
 
     func testMinimalExampleRunsThroughSessionAndWritesVisibleText() async throws {
         let tool = try ScriptTextTool.bundled(named: "minimal.js", limits: runtimeLimits)
-        XCTAssertEqual(tool.identity.title, "加书名号")
+        XCTAssertEqual(tool.identity.title, "加引号")
         XCTAssertEqual(tool.requiredCapabilities, .text)
 
         let proxy = FakeToolTextDocumentProxy(text: "一段测试文字")
