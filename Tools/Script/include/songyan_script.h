@@ -12,6 +12,8 @@
  *   // @description <text>             optional
  *   // @connect <host>                 optional, repeatable; host name only
  *   // @setting <key> <text|url|choice> <label>
+ *   // @option <key> <value>           repeatable; the choices of an earlier choice setting
+ *   // @timeout <seconds>              optional; how long one run may take, 1 to 600
  *   // @secret <key> <label>
  *   // @input audio                    optional (text input is implicit)
  *
@@ -24,6 +26,16 @@
  * declaration. Setting and secret keys are ASCII letters, digits, '_' and '-'. @connect folds to
  * lowercase and accepts letters, digits, dots and inner hyphens only: no scheme, port, path,
  * wildcard or space. A missing host capability never rejects a file; it is reported separately.
+ *
+ * A choice setting lists what the user can pick with @option lines after it: at least two,
+ * distinct, kept in order, the first being the default. The value is the rest of the line and is
+ * both what the user sees and what the script receives. @option for a key that is not an earlier
+ * choice setting is an error, and only choice settings take options.
+ *
+ * @timeout replaces the host's wall-clock duration for this script, because a slow model can
+ * legitimately need minutes; the author knows that, the host cannot. It is an unsigned decimal
+ * without leading zeros from 1 to SONGYAN_SCRIPT_MAX_TIMEOUT_SECONDS. The compute limit is not
+ * affected: a long timeout buys waiting time, never CPU time.
  *
  * @api is an unsigned decimal without leading zeros. Exactly the version this host implements is
  * accepted; a higher one is a file this host refuses with unsupportedApiVersion and never runs;
@@ -41,8 +53,9 @@
  * must exit 1. The AI instructions users copy are resources/ai-guide.txt. The cases, the example
  * and that guide belong to the same sync set.
  *
- * Resource limits are injected by the host through songyan_script_limits: this contract carries
- * no numbers, because the final limits have to come from measured headroom, not from a guess. */
+ * Resource limits are injected by the host through songyan_script_limits on every run. The values
+ * both apps ship are the SONGYAN_SCRIPT_SHIPPED_* constants below, defined here once so a script
+ * that runs on one platform runs on the other; tests inject their own values. */
 
 #include <stddef.h>
 #include <stdint.h>
@@ -99,6 +112,8 @@ typedef struct {
     char *key;
     songyan_script_setting_kind kind;
     char *label;
+    char **options; /* choice settings only, in declaration order; NULL otherwise */
+    size_t option_count;
 } songyan_script_setting;
 
 typedef struct {
@@ -119,6 +134,7 @@ typedef struct {
     songyan_script_secret *secrets;
     size_t secret_count;
     unsigned needs; /* songyan_script_capability bits */
+    unsigned timeout_seconds; /* 0 when the header has no @timeout */
 } songyan_script_header;
 
 /* The diagnostic buffer is fixed at 256 bytes because this struct is passed by value across the
@@ -139,15 +155,51 @@ songyan_script_error songyan_script_header_parse(const char *source, size_t leng
 void songyan_script_header_free(songyan_script_header *header);
 
 /* Resource limits, injected by the host. The bridge has no defaults: a host that does not set
- * every field cannot run anything, which keeps unmeasured numbers out of the contract. */
+ * every field cannot run anything. duration_ms bounds the whole run on the wall clock, waiting
+ * for the network included; compute_ms bounds only the time the engine spends executing the
+ * script, so a busy loop stops quickly while a slow server still gets the full duration. */
 typedef struct {
     size_t source_bytes;
     size_t heap_bytes;
     uint32_t duration_ms;
+    uint32_t compute_ms;
     uint32_t request_count;
     size_t response_bytes;
     size_t input_text_bytes;
 } songyan_script_limits;
+
+/* The limits both apps ship. A language model rewriting a paragraph commonly answers in 5 to 20
+ * seconds, so the wall-clock duration leaves room for that; the compute bound stays short because
+ * no text tool needs seconds of pure computation. The heap fits the keyboard extension's memory
+ * on iOS, which is the tighter of the two platforms. */
+#define SONGYAN_SCRIPT_SHIPPED_SOURCE_BYTES 262144u /* 256 KiB */
+#define SONGYAN_SCRIPT_SHIPPED_HEAP_BYTES 8388608u /* 8 MiB */
+#define SONGYAN_SCRIPT_SHIPPED_DURATION_MS 30000u
+#define SONGYAN_SCRIPT_SHIPPED_COMPUTE_MS 4000u
+/* The longest a script may ask for with @timeout. */
+#define SONGYAN_SCRIPT_MAX_TIMEOUT_SECONDS 600u
+#define SONGYAN_SCRIPT_SHIPPED_REQUEST_COUNT 4u
+#define SONGYAN_SCRIPT_SHIPPED_RESPONSE_BYTES 65536u /* 64 KiB */
+#define SONGYAN_SCRIPT_SHIPPED_INPUT_TEXT_BYTES 65536u /* 64 KiB */
+
+/* Whether a script may reach url, the one address rule both platforms apply to every request and
+ * every redirect. Allowed are:
+ *   - https to a host the header declares with @connect;
+ *   - https to the host of a value the user typed into one of this script's url settings;
+ *   - http to such a user-typed host only when it is local: localhost, a *.local name, or a
+ *     literal loopback, private or link-local IP address.
+ * Everything else is refused: other schemes, URLs with credentials, http to a declared host (an
+ * author cannot hard-code cleartext) and any host neither the header nor the user named. Ports
+ * are ignored and nothing is resolved through DNS, so the answer depends on the text alone.
+ * setting_urls are the user's values of the url settings; empty or unparsable ones are skipped.
+ * The shared table tests/address-cases.txt pins this rule for every implementation. */
+int songyan_script_address_allowed(const char *url, const songyan_script_header *header,
+                                   const char *const *setting_urls, size_t setting_url_count);
+
+/* The wall-clock duration one run of this script gets: its @timeout when declared, otherwise
+ * the host's duration_ms. Hosts size their own watchdogs from this, not from duration_ms. */
+uint32_t songyan_script_run_duration_ms(const songyan_script_header *header,
+                                        const songyan_script_limits *limits);
 
 /* Names of the fields still zero, in declaration order. Returns the number written, which may
  * exceed capacity; call with a NULL array to count. */

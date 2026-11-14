@@ -8,6 +8,16 @@ enum ScriptAddonURLValidation {
         else { return false }
         return true
     }
+
+    /// A url setting is valid when the shared address rule would let the script reach it:
+    /// HTTPS anywhere, plain http only on the local network.
+    static func isReachableSettingURL(_ value: String) -> Bool {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.withCString { pointer in
+            var values: [UnsafePointer<CChar>?] = [pointer]
+            return songyan_script_address_allowed(pointer, nil, &values, 1) != 0
+        }
+    }
 }
 
 @MainActor
@@ -169,7 +179,8 @@ struct ScriptAddonConfirmationView: View {
         draft.declarations.settings.compactMap { setting in
             guard setting.kind == .url else { return nil }
             let value = settings[setting.key]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            return value.isEmpty || ScriptAddonURLValidation.isValidHTTPS(value) ? nil : setting.key
+            return value.isEmpty || ScriptAddonURLValidation.isReachableSettingURL(value)
+                ? nil : setting.key
         }
     }
 }
@@ -184,20 +195,37 @@ struct ScriptSettingField: View {
             Text(setting.label)
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            TextField("", text: $value)
-                .textFieldStyle(.roundedBorder)
-                .keyboardType(setting.kind == .url ? .URL : .default)
-                .textInputAutocapitalization(setting.kind == .url ? .never : .sentences)
-                .autocorrectionDisabled(setting.kind == .url)
-                .accessibilityLabel(setting.label)
+            if setting.kind == .choice {
+                Picker(setting.label, selection: $value) {
+                    ForEach(setting.options, id: \.self) { Text($0).tag($0) }
+                }
+                .pickerStyle(.menu)
+                .onAppear {
+                    // The first option is the default, so a fresh or outdated value never runs.
+                    if !setting.options.contains(value), let first = setting.options.first {
+                        value = first
+                    }
+                }
+            } else {
+                textField
+            }
             if setting.kind == .url, !value.isEmpty,
-                !ScriptAddonURLValidation.isValidHTTPS(value)
+                !ScriptAddonURLValidation.isReachableSettingURL(value)
             {
-                Text(String(localized: "请输入有效的 HTTPS 链接"))
+                Text(String(localized: "请输入 HTTPS 地址，或局域网里的 http 地址"))
                     .font(.caption)
                     .foregroundStyle(.red)
             }
         }
+    }
+
+    private var textField: some View {
+        TextField("", text: $value)
+            .textFieldStyle(.roundedBorder)
+            .keyboardType(setting.kind == .url ? .URL : .default)
+            .textInputAutocapitalization(setting.kind == .url ? .never : .sentences)
+            .autocorrectionDisabled(setting.kind == .url)
+            .accessibilityLabel(setting.label)
     }
 }
 

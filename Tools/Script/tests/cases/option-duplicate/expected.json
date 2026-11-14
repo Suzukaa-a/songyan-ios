@@ -1,0 +1,6 @@
+{
+  "ok": false,
+  "error": "badHeader",
+  "line": 5,
+  "message": "duplicate @option 正式"
+}

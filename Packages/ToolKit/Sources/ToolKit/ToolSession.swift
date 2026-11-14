@@ -48,6 +48,7 @@ public struct ToolSession: Sendable {
     private var activeDocument: ToolDocumentSnapshot?
     private var activeDocumentCapabilities: ToolDocumentCapabilities = []
     private var startedAt: Double?
+    private var activeTimeout: Double?
     private var lastPreview: ToolPreview?
     private var pendingSource: ToolSourceChange = .unchanged
     private var wroteState: ToolWroteState?
@@ -113,6 +114,7 @@ public struct ToolSession: Sendable {
             activeDocument = document
             activeDocumentCapabilities = documentCapabilities
             startedAt = now
+            activeTimeout = tool.runTimeout
             lastPreview = nil
             wroteState = nil
             writeBlock = nil
@@ -171,11 +173,14 @@ public struct ToolSession: Sendable {
         return .cancelRun(token)
     }
 
+    /// The budget of the run in progress: the tool's own when it declares one.
+    public var runTimeout: Double { activeTimeout ?? limits.runTimeout }
+
     /// Whether the injected time is past this run's budget. Delivery and tick use
     /// the same rule, so a result can never slip in just because tick was skipped.
     private func isPastDeadline(_ now: Double) -> Bool {
         guard case .running = phase, let startedAt else { return false }
-        return now - startedAt >= limits.runTimeout
+        return now - startedAt >= runTimeout
     }
 
     /// Stops a running run and asks the host to cancel its engine task. Closing a

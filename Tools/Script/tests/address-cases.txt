@@ -1,0 +1,35 @@
+# The shared address rule (songyan_script_address_allowed), one request per line:
+#   <allowed|denied> <url> | <declared @connect hosts, space separated> | <user url settings>
+# Every platform implementation runs this table; keep each line's reason in its comment.
+
+# Declared hosts: HTTPS only, any port and path, case folded.
+allowed https://api.example.com/v1 | api.example.com |
+allowed https://API.Example.com:8443/v1?q=1 | api.example.com |
+denied  http://api.example.com/v1 | api.example.com |
+denied  https://evil.example.com/ | api.example.com |
+denied  https://api.example.com.evil.com/ | api.example.com |
+denied  https://user:pw@api.example.com/ | api.example.com |
+denied  https://evil.com\@api.example.com/ | api.example.com |
+denied  ftp://api.example.com/ | api.example.com |
+denied  api.example.com/v1 | api.example.com |
+
+# A host the user typed into a url setting: HTTPS anywhere, plain HTTP only on the local network.
+allowed https://llm.mydomain.net/v1/chat | | https://llm.mydomain.net/v1
+allowed https://llm.mydomain.net/other | | https://llm.mydomain.net:9000
+allowed http://192.168.1.20:11434/api/generate | | http://192.168.1.20:11434
+allowed http://10.0.0.5/asr | | http://10.0.0.5
+allowed http://172.16.4.2/ | | http://172.16.4.2
+allowed http://127.0.0.1:8080/ | | http://127.0.0.1:8080
+allowed http://localhost:8080/ | | http://localhost:8080
+allowed http://nas.local/api | | http://nas.local
+allowed http://[::1]:8080/ | | http://[::1]:8080
+allowed http://[fd12:3456::1]/ | | http://[fd12:3456::1]
+allowed http://169.254.10.1/ | | http://169.254.10.1
+denied  http://llm.mydomain.net/v1 | | https://llm.mydomain.net/v1
+denied  http://8.8.8.8/ | | http://8.8.8.8
+denied  http://172.32.0.1/ | | http://172.32.0.1
+denied  http://192.168.001.20/ | | http://192.168.001.20
+denied  http://other.local/ | | http://nas.local
+denied  https://evil.com/ | | https://llm.mydomain.net
+denied  https://llm.mydomain.net/ | |
+denied  https://llm.mydomain.net/ | | not a url

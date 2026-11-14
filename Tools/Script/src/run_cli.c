@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 /* The command-line runner: it parses the same header the hosts parse, injects limits from the
  * command line (never from compiled-in numbers), runs a script with the script environment and
@@ -30,12 +31,15 @@ static void run_usage(FILE *out) {
           "  songyan-script run --script PATH [--script PATH ...] [--text TEXT | --text-file PATH]\n"
           "                     [--settings JSON | --settings-file PATH]\n"
           "                     [--capabilities text[,audio]] [--fetch FILE] [--log-limit N]\n"
-          "                     --source-bytes N --heap-bytes N --duration-ms N\n"
-          "                     --request-count N --response-bytes N --input-text-bytes N\n"
+          "                     [--host-wait-ms N]\n"
+          "                     [--shipped-limits] --source-bytes N --heap-bytes N\n"
+          "                     --duration-ms N --compute-ms N --request-count N\n"
+          "                     --response-bytes N --input-text-bytes N\n"
           "\n"
           "run executes each script once, in a fresh engine, and prints one JSON report (or one\n"
-          "report per --script under runs). A fetch fixture line grants or denies an address and\n"
-          "describes the response the next call receives.\n",
+          "report per --script under runs). --shipped-limits starts from the limits both apps\n"
+          "ship; a limit flag after it overrides one value. A fetch fixture line grants or denies\n"
+          "an address and describes the response the next call receives.\n",
           out);
 }
 
@@ -591,6 +595,8 @@ typedef struct {
     size_t log_bytes;
     size_t log_limit;
     int logs_truncated;
+    /* How long the host waits before answering any request, synchronously or deferred. */
+    size_t wait_ms;
     /* The upload bytes are part of what the shared cases verify, so the host records what the
      * script actually sent instead of only echoing a response. */
     recorded_request *requests;
@@ -1032,6 +1038,12 @@ static songyan_script_fetch_action fake_fetch(void *userdata, songyan_script_run
         return SONGYAN_SCRIPT_FETCH_REJECTED;
     }
     canned_response *canned = &host->responses[host->response_index++];
+    if (host->wait_ms > 0 && !canned->deferred) {
+        /* Stands in for a slow server answered synchronously, as both apps' hosts do. */
+        struct timespec wait = {(time_t)(host->wait_ms / 1000),
+                                (long)(host->wait_ms % 1000) * 1000000L};
+        nanosleep(&wait, NULL);
+    }
     if (canned->is_error) {
         *error_message = canned->error_message;
         return SONGYAN_SCRIPT_FETCH_REJECTED;
@@ -1068,6 +1080,7 @@ typedef struct {
     const char *fixture_path;
     size_t log_limit;
     int cancel_pending;
+    size_t host_wait_ms;
 } run_options;
 
 /* Runs one script and fills the result. Returns the process status this run deserves. */
@@ -1078,6 +1091,7 @@ static int run_one(const run_options *options, songyan_script_run_result *result
                    int *requests_truncated_out) {
     fake_host host;
     memset(&host, 0, sizeof(host));
+    host.wait_ms = options->host_wait_ms;
     host.log_limit = options->log_limit;
     char fixture_error[256];
     if (options->fixture_path != NULL &&
@@ -1113,6 +1127,12 @@ static int run_one(const run_options *options, songyan_script_run_result *result
             if (options->cancel_pending) {
                 songyan_script_run_cancel(run);
                 continue;
+            }
+            if (options->host_wait_ms > 0) {
+                /* Stands in for a slow server answered later, as a pending request. */
+                struct timespec wait = {(time_t)(options->host_wait_ms / 1000),
+                                        (long)(options->host_wait_ms % 1000) * 1000000L};
+                nanosleep(&wait, NULL);
             }
             const canned_response *deferred = host.deferred_response;
             if (deferred == NULL) {
@@ -1180,6 +1200,7 @@ int songyan_script_cli_run(int argc, char **argv) {
     const char *fixture_path = NULL;
     size_t log_limit = 1048576;
     int cancel_pending = 0;
+    size_t host_wait_ms = 0;
     songyan_script_limits limits;
     memset(&limits, 0, sizeof(limits));
     int index = 0;
@@ -1208,11 +1229,26 @@ int songyan_script_cli_run(int argc, char **argv) {
             capability_list = value;
         } else if (strcmp(flag, "--fetch") == 0) {
             fixture_path = value;
+        } else if (strcmp(flag, "--host-wait-ms") == 0) {
+            if (!parse_size(value, &host_wait_ms)) {
+                fprintf(stderr, "invalid value for %s: %s\n", flag, value);
+                return 64;
+            }
         } else if (strcmp(flag, "--log-limit") == 0) {
             if (!parse_size(value, &log_limit)) {
                 fprintf(stderr, "invalid value for %s: %s\n", flag, value);
                 return 64;
             }
+        } else if (strcmp(flag, "--shipped-limits") == 0) {
+            limits.source_bytes = SONGYAN_SCRIPT_SHIPPED_SOURCE_BYTES;
+            limits.heap_bytes = SONGYAN_SCRIPT_SHIPPED_HEAP_BYTES;
+            limits.duration_ms = SONGYAN_SCRIPT_SHIPPED_DURATION_MS;
+            limits.compute_ms = SONGYAN_SCRIPT_SHIPPED_COMPUTE_MS;
+            limits.request_count = SONGYAN_SCRIPT_SHIPPED_REQUEST_COUNT;
+            limits.response_bytes = SONGYAN_SCRIPT_SHIPPED_RESPONSE_BYTES;
+            limits.input_text_bytes = SONGYAN_SCRIPT_SHIPPED_INPUT_TEXT_BYTES;
+            index += 1;
+            continue;
         } else if (strcmp(flag, "--cancel-pending") == 0) {
             /* A flag without a value: consume it on its own instead of pairing it. */
             cancel_pending = 1;
@@ -1221,6 +1257,7 @@ int songyan_script_cli_run(int argc, char **argv) {
         } else if (strcmp(flag, "--source-bytes") == 0 ||
                    strcmp(flag, "--heap-bytes") == 0 ||
                    strcmp(flag, "--duration-ms") == 0 ||
+                   strcmp(flag, "--compute-ms") == 0 ||
                    strcmp(flag, "--request-count") == 0 ||
                    strcmp(flag, "--response-bytes") == 0 ||
                    strcmp(flag, "--input-text-bytes") == 0) {
@@ -1239,6 +1276,12 @@ int songyan_script_cli_run(int argc, char **argv) {
                     return 64;
                 }
                 limits.duration_ms = (uint32_t)parsed;
+            } else if (strcmp(flag, "--compute-ms") == 0) {
+                if (parsed > UINT32_MAX) {
+                    fprintf(stderr, "value for %s is out of range\n", flag);
+                    return 64;
+                }
+                limits.compute_ms = (uint32_t)parsed;
             } else if (strcmp(flag, "--request-count") == 0) {
                 if (parsed > UINT32_MAX) {
                     fprintf(stderr, "value for %s is out of range\n", flag);
@@ -1338,6 +1381,7 @@ int songyan_script_cli_run(int argc, char **argv) {
         options.fixture_path = fixture_path;
         options.log_limit = log_limit;
         options.cancel_pending = cancel_pending;
+        options.host_wait_ms = host_wait_ms;
         songyan_script_run_result result;
         songyan_script_step step = SONGYAN_SCRIPT_STEP_RUNNING;
         char **logs = NULL;

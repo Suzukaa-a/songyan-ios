@@ -14,7 +14,10 @@ enum ScriptHostFailure: Equatable, Sendable {
 /// State shared by the C callbacks of one run. The callbacks execute on the engine thread; the
 /// URLSession observer runs on its own queue, so the counters and the recorded failure are locked.
 final class ScriptFetchHostContext: @unchecked Sendable {
-    let allowedHosts: Set<String>
+    /// The script's parsed header, owned by the tool for longer than any run.
+    let header: UnsafePointer<songyan_script_header>
+    /// The user's values of the script's url settings; the shared address rule allows their hosts.
+    let settingURLs: [String]
     let requestLimit: UInt32
     let responseLimit: Int
     let cancellation: ScriptRunCancellation
@@ -29,14 +32,26 @@ final class ScriptFetchHostContext: @unchecked Sendable {
     private var allocations: [UnsafeMutableRawPointer] = []
 
     init(
-        allowedHosts: Set<String>, requestLimit: UInt32, responseLimit: Int,
-        cancellation: ScriptRunCancellation, protocolClasses: [AnyClass] = []
+        header: UnsafePointer<songyan_script_header>, settingURLs: [String], requestLimit: UInt32,
+        responseLimit: Int, cancellation: ScriptRunCancellation, protocolClasses: [AnyClass] = []
     ) {
-        self.allowedHosts = allowedHosts
+        self.header = header
+        self.settingURLs = settingURLs
         self.requestLimit = requestLimit
         self.responseLimit = responseLimit
         self.cancellation = cancellation
         self.protocolClasses = protocolClasses
+    }
+
+    /// The shared address rule, the same one Android applies, for a request or a redirect target.
+    func allows(_ url: String) -> Bool {
+        var pointers = settingURLs.map { strdup($0) }
+        defer { pointers.forEach { free($0) } }
+        return pointers.withUnsafeMutableBufferPointer { buffer in
+            buffer.baseAddress!.withMemoryRebound(to: UnsafePointer<CChar>?.self, capacity: max(buffer.count, 1)) {
+                songyan_script_address_allowed(url, header, buffer.isEmpty ? nil : $0, buffer.count) != 0
+            }
+        }
     }
 
     /// First failure wins: a transport error after a denied redirect must not hide the denial.
@@ -95,7 +110,6 @@ final class ScriptFetchHostContext: @unchecked Sendable {
 private final class ScriptFetchObserver: NSObject, URLSessionDataDelegate {
     let semaphore = DispatchSemaphore(value: 0)
     private let context: ScriptFetchHostContext
-    private let allowedHosts: Set<String>
     private let maximumBytes: Int
 
     private(set) var status: Int = 0
@@ -109,7 +123,6 @@ private final class ScriptFetchObserver: NSObject, URLSessionDataDelegate {
 
     init(context: ScriptFetchHostContext) {
         self.context = context
-        self.allowedHosts = context.allowedHosts
         self.maximumBytes = context.responseLimit
     }
 
@@ -145,7 +158,7 @@ private final class ScriptFetchObserver: NSObject, URLSessionDataDelegate {
         willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest,
         completionHandler: @escaping (URLRequest?) -> Void
     ) {
-        guard let host = request.url?.host?.lowercased(), allowedHosts.contains(host) else {
+        guard let url = request.url?.absoluteString, context.allows(url) else {
             isDeniedRedirect = true
             context.record(.addressNotAllowed(host: request.url?.host ?? ""))
             completionHandler(nil)
@@ -176,17 +189,11 @@ enum ScriptFetchHost {
         return host
     }
 
-    /// Only declared hosts, only http(s). A redirect target is asked again by the bridge and by the
+    /// The shared address rule decides; a redirect target is asked again by the bridge and by the
     /// URLSession delegate, so a cross-host redirect can never slip through.
     fileprivate static func authorize(_ context: ScriptFetchHostContext, url: String) -> Bool {
-        guard let parsed = URL(string: url), let scheme = parsed.scheme?.lowercased(),
-            scheme == "https" || scheme == "http", let host = parsed.host?.lowercased()
-        else {
-            context.record(.addressNotAllowed(host: url))
-            return false
-        }
-        guard context.allowedHosts.contains(host) else {
-            context.record(.addressNotAllowed(host: host))
+        guard context.allows(url) else {
+            context.record(.addressNotAllowed(host: URL(string: url)?.host ?? url))
             return false
         }
         return true

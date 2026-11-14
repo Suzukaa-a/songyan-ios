@@ -21,8 +21,9 @@
  * see each other and a finished run leaves no engine behind.
  *
  * Limits are policy, not implementation: songyan_script_limits is injected by the host on every
- * run and the bridge carries no numbers of its own. The bridge enforces the heap limit with
- * JS_SetMemoryLimit, the duration with its interrupt handler and the request count and response
+ * run. The bridge enforces the heap limit with JS_SetMemoryLimit, the duration and the compute
+ * time with its interrupt handler (compute time is the time spent inside songyan_script_run_step,
+ * so waiting for the host's fetch does not count) and the request count and response
  * size while it dispatches fetch. Source size and text length belong to the import and editor
  * steps the host owns; the bridge refuses an input that already violates them as a caller error
  * rather than inventing a user-facing script error.

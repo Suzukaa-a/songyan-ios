@@ -13,7 +13,7 @@
         /// Builds a ToolKit configuration from the HostApp's shared script store. Returns nil when no
         /// enabled, confirmed script exists: the toolbar/panel entry then stays hidden.
         static func storeConfiguration(
-            configuration: ScriptToolConfiguration = .provisional, isFullAccess: Bool,
+            configuration: ScriptToolConfiguration = .shipped, isFullAccess: Bool,
             root: URL? = ScriptAddonDirectory.sharedRoot(),
             secrets: (any ScriptSecretStore)? = nil
         ) -> ToolConfiguration? {

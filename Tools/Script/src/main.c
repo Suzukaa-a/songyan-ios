@@ -15,12 +15,15 @@ static void usage(FILE *out) {
     fputs("usage:\n"
           "  songyan-script header --script PATH [--capabilities text[,audio]]\n"
           "  songyan-script limits --source-bytes N --heap-bytes N --duration-ms N\n"
-          "                       --request-count N --response-bytes N --input-text-bytes N\n"
+          "                       --compute-ms N --request-count N --response-bytes N\n"
+          "                       --input-text-bytes N\n"
           "  songyan-script run --script PATH ...\n"
+          "  songyan-script address --url URL [--connect HOST ...] [--setting-url URL ...]\n"
           "\n"
           "header prints the parsed declarations as JSON and exits 0, or 1 when the header is\n"
           "refused. limits prints the injected limits as JSON and exits 64 when any is missing.\n"
-          "run executes a script in a fresh engine; see songyan-script run --help for its flags.\n",
+          "run executes a script in a fresh engine; see songyan-script run --help for its flags.\n"
+          "address prints allowed or denied for one request under the shared address rule.\n",
           out);
 }
 
@@ -116,6 +119,13 @@ static void emit_header_report(const songyan_script_header *header, unsigned hos
             write_indent(stdout, 8);
             fputs("\"label\": ", stdout);
             write_json_string(stdout, setting->label);
+            if (setting->kind == SONGYAN_SCRIPT_SETTING_CHOICE) {
+                fputs(",\n", stdout);
+                write_indent(stdout, 8);
+                fputs("\"options\": ", stdout);
+                emit_string_array(stdout, 8, (const char *const *)setting->options,
+                                  setting->option_count);
+            }
             fputc('\n', stdout);
             write_indent(stdout, 6);
             fputs(index + 1 < header->setting_count ? "},\n" : "}\n", stdout);
@@ -158,6 +168,9 @@ static void emit_header_report(const songyan_script_header *header, unsigned hos
         needs[need_count++] = songyan_script_capability_name(SONGYAN_SCRIPT_CAPABILITY_AUDIO);
     }
     emit_string_array(stdout, 4, needs, need_count);
+    if (header->timeout_seconds != 0) {
+        printf(",\n    \"timeoutSeconds\": %u", header->timeout_seconds);
+    }
     printf("\n  },\n");
     printf("  \"capabilities\": {\n");
     const char *host[2];
@@ -332,12 +345,14 @@ static int command_limits(int argc, char **argv) {
             slot = 1;
         } else if (strcmp(flag, "--duration-ms") == 0) {
             slot = 2;
-        } else if (strcmp(flag, "--request-count") == 0) {
+        } else if (strcmp(flag, "--compute-ms") == 0) {
             slot = 3;
-        } else if (strcmp(flag, "--response-bytes") == 0) {
+        } else if (strcmp(flag, "--request-count") == 0) {
             slot = 4;
-        } else if (strcmp(flag, "--input-text-bytes") == 0) {
+        } else if (strcmp(flag, "--response-bytes") == 0) {
             slot = 5;
+        } else if (strcmp(flag, "--input-text-bytes") == 0) {
+            slot = 6;
         }
         if (slot < 0 || value == NULL) {
             usage(stderr);
@@ -348,7 +363,7 @@ static int command_limits(int argc, char **argv) {
             fprintf(stderr, "invalid value for %s: %s\n", flag, value);
             return 64;
         }
-        if ((slot == 2 || slot == 3) && parsed > UINT32_MAX) {
+        if ((slot == 2 || slot == 3 || slot == 4) && parsed > UINT32_MAX) {
             fprintf(stderr, "value for %s is out of range: %s\n", flag, value);
             return 64;
         }
@@ -363,9 +378,12 @@ static int command_limits(int argc, char **argv) {
             limits.duration_ms = (uint32_t)parsed;
             break;
         case 3:
-            limits.request_count = (uint32_t)parsed;
+            limits.compute_ms = (uint32_t)parsed;
             break;
         case 4:
+            limits.request_count = (uint32_t)parsed;
+            break;
+        case 5:
             limits.response_bytes = parsed;
             break;
         default:
@@ -374,8 +392,8 @@ static int command_limits(int argc, char **argv) {
         }
         index += 2;
     }
-    const char *missing[6];
-    size_t missing_count = songyan_script_limits_missing(&limits, missing, 6);
+    const char *missing[7];
+    size_t missing_count = songyan_script_limits_missing(&limits, missing, 7);
     if (missing_count > 0) {
         printf("{\n  \"ok\": false,\n  \"cliError\": \"limitsNotInjected\",\n  \"missing\": ");
         emit_string_array(stdout, 2, missing, missing_count);
@@ -386,10 +404,43 @@ static int command_limits(int argc, char **argv) {
     printf("    \"sourceBytes\": %zu,\n", limits.source_bytes);
     printf("    \"heapBytes\": %zu,\n", limits.heap_bytes);
     printf("    \"durationMs\": %u,\n", limits.duration_ms);
+    printf("    \"computeMs\": %u,\n", limits.compute_ms);
     printf("    \"requestCount\": %u,\n", limits.request_count);
     printf("    \"responseBytes\": %zu,\n", limits.response_bytes);
     printf("    \"inputTextBytes\": %zu\n", limits.input_text_bytes);
     printf("  }\n}\n");
+    return 0;
+}
+
+/* Applies the shared address rule to one URL, for the table in tests/address-cases.txt. */
+static int command_address(int argc, char **argv) {
+    const char *url = NULL;
+    char *connects[32];
+    const char *setting_urls[32];
+    size_t connect_count = 0;
+    size_t setting_url_count = 0;
+    for (int index = 0; index + 1 < argc; index += 2) {
+        if (strcmp(argv[index], "--url") == 0) {
+            url = argv[index + 1];
+        } else if (strcmp(argv[index], "--connect") == 0 && connect_count < 32) {
+            connects[connect_count++] = argv[index + 1];
+        } else if (strcmp(argv[index], "--setting-url") == 0 && setting_url_count < 32) {
+            setting_urls[setting_url_count++] = argv[index + 1];
+        } else {
+            usage(stderr);
+            return 64;
+        }
+    }
+    if (url == NULL || argc % 2 != 0) {
+        usage(stderr);
+        return 64;
+    }
+    songyan_script_header header;
+    memset(&header, 0, sizeof(header));
+    header.connects = connects;
+    header.connect_count = connect_count;
+    puts(songyan_script_address_allowed(url, &header, setting_urls, setting_url_count) ? "allowed"
+                                                                                      : "denied");
     return 0;
 }
 
@@ -403,6 +454,9 @@ int main(int argc, char **argv) {
     }
     if (strcmp(argv[1], "limits") == 0) {
         return command_limits(argc - 2, argv + 2);
+    }
+    if (strcmp(argv[1], "address") == 0) {
+        return command_address(argc - 2, argv + 2);
     }
     if (strcmp(argv[1], "run") == 0) {
         return songyan_script_cli_run(argc - 2, argv + 2);

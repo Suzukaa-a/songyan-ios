@@ -38,8 +38,8 @@ final class ScriptAddonCenter: ObservableObject {
     var download: ((URL) async throws -> Data)?
     var hostSupportsAudio = false
 
-    /// The one instance the settings screen shows. The limits are the measured provisional
-    /// contract values from the shared runtime, the same ones the extension uses.
+    /// The one instance the settings screen shows. The limits are the shared contract's shipped
+    /// values, the same ones the extension uses.
     static let shared = ScriptAddonCenter()
 
     init(
@@ -50,9 +50,14 @@ final class ScriptAddonCenter: ObservableObject {
         self.store = ScriptAddonStore(root: root ?? Self.fallbackRoot())
         self.secrets = secrets
         limits = ScriptAddonLimits(
-            maximumSourceBytes: 262_144, maximumInputTextBytes: 65_536, sourceBytes: 262_144,
-            heapBytes: 8_388_608, durationMilliseconds: 4_000, requestCount: 1,
-            responseBytes: 65_536)
+            maximumSourceBytes: Int(SONGYAN_SCRIPT_SHIPPED_SOURCE_BYTES),
+            maximumInputTextBytes: Int(SONGYAN_SCRIPT_SHIPPED_INPUT_TEXT_BYTES),
+            sourceBytes: Int(SONGYAN_SCRIPT_SHIPPED_SOURCE_BYTES),
+            heapBytes: Int(SONGYAN_SCRIPT_SHIPPED_HEAP_BYTES),
+            durationMilliseconds: SONGYAN_SCRIPT_SHIPPED_DURATION_MS,
+            computeMilliseconds: SONGYAN_SCRIPT_SHIPPED_COMPUTE_MS,
+            requestCount: SONGYAN_SCRIPT_SHIPPED_REQUEST_COUNT,
+            responseBytes: Int(SONGYAN_SCRIPT_SHIPPED_RESPONSE_BYTES))
         download = Self.downloadOverHTTPS
         reload()
     }
@@ -528,7 +533,8 @@ final class ScriptAddonCenter: ObservableObject {
             let limits = ScriptAddonLimits(
                 maximumSourceBytes: 64 * 1024, maximumInputTextBytes: 4 * 1024,
                 sourceBytes: 64 * 1024, heapBytes: 8 * 1024 * 1024,
-                durationMilliseconds: 2_000, requestCount: 4, responseBytes: 256 * 1024)
+                durationMilliseconds: 2_000, computeMilliseconds: 2_000, requestCount: 4,
+                responseBytes: 256 * 1024)
             let bridge = ScriptAddonBridge()
             var lines: [String] = []
             do {

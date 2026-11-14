@@ -240,8 +240,12 @@ static int submit_slot(songyan_script_run *run, size_t index) {
     songyan_script_fetch_response response;
     memset(&response, 0, sizeof(response));
     const char *error_message = NULL;
+    /* A host may answer synchronously and wait on the network here; that wait is not the
+     * script's computation, so the compute clock stops for the call. */
+    songyan_script_run_pause_compute(run);
     songyan_script_fetch_action action =
         run->host.fetch(run->host.userdata, run, &request, &response, &error_message);
+    songyan_script_run_resume_compute(run);
     if (action == SONGYAN_SCRIPT_FETCH_PENDING) {
         slot->submitted = 1;
         return 1;

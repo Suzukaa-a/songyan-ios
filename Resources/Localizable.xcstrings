@@ -31016,7 +31016,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "連結被重定向至非 HTTPS 地址，已停止下載。"
+            "value": "連結被重定向至非 HTTPS 位址，已停止下載。"
           }
         }
       }
@@ -37133,6 +37133,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "無法讀取這個指令碼的金鑰。請到「松煙」中重新填寫該指令碼的金鑰後再試。"
+          }
+        }
+      }
+    },
+    "请输入 HTTPS 地址，或局域网里的 http 地址": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "HTTPS のアドレス、またはローカルネットワーク内の http アドレスを入力してください"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "请输入 HTTPS 地址，或局域网里的 http 地址"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請輸入 HTTPS 位址，或區域網路裡的 http 位址"
           }
         }
       }

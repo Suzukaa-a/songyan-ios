@@ -68,6 +68,4 @@ execution: $(BIN)
 # Runs one script with no host network and no fixture, for manual experiments.
 run: $(BIN)
 	$(BIN) run --script $(or $(SCRIPT),$(DIR)examples/minimal.js) \
-		--text "$(or $(TEXT),一段测试文字)" --capabilities text \
-		--source-bytes 1048576 --heap-bytes 8388608 --duration-ms 4000 \
-		--request-count 4 --response-bytes 1048576 --input-text-bytes 20000
+		--text "$(or $(TEXT),一段测试文字)" --capabilities text --shipped-limits

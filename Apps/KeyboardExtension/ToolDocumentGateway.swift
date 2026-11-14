@@ -400,7 +400,7 @@ final class ToolPanelDriver: ToolPanelDriving {
                 }
             }
         }
-        let timeout = configuration.limits.runTimeout
+        let timeout = tool.runTimeout ?? configuration.limits.runTimeout
         timeoutTask = Task { [weak self] in
             try? await Task.sleep(nanoseconds: UInt64(max(0.01, timeout) * 1_000_000_000))
             guard !Task.isCancelled else { return }

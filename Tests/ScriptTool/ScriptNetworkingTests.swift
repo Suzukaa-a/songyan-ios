@@ -92,6 +92,7 @@ final class ScriptNetworkingTests: XCTestCase {
     ) -> ScriptToolRuntimeLimits {
         ScriptToolRuntimeLimits(
             sourceBytes: 262_144, heapBytes: 8_388_608, durationMilliseconds: durationMilliseconds,
+            computeMilliseconds: 4_000,
             requestCount: requestCount, responseBytes: responseBytes, inputTextBytes: 65_536)
     }
 
@@ -155,6 +156,68 @@ final class ScriptNetworkingTests: XCTestCase {
             XCTAssertEqual(error.toolFailure, .toolError(message: error.errorDescription))
         }
         XCTAssertTrue(ScriptNetworkingURLProtocol.requests.isEmpty)
+    }
+
+    /// The user's own service: a host typed into a url setting is reachable without @connect,
+    /// and plain http to it works only because it is on the local network.
+    func testHostTypedIntoAUrlSettingIsReachable() async throws {
+        ScriptNetworkingURLProtocol.route("/api", .init(body: Data("自建服务".utf8)))
+        let source = """
+            // @api 1
+            // @name 自建服务
+            // @setting endpoint url 服务地址
+            export default async ({ settings }) => {
+                const response = await fetch(settings.endpoint + "/api");
+                return await response.text();
+            };
+            """
+        let tool = try ScriptTextTool(
+            source: source, id: "script.own", limits: limits(), isFullAccess: true,
+            settingsJSON: #"{"endpoint":"http://192.168.1.20:11434"}"#,
+            urlSessionProtocolClasses: [ScriptNetworkingURLProtocol.self])
+        XCTAssertTrue(tool.allowsNetworking)
+        let outputs = try await tool.run(
+            input: ToolInput(text: "文字", scope: .precedingSegment, isTruncated: false))
+        XCTAssertEqual(outputs, ["自建服务"])
+    }
+
+    func testPublicHostTypedIntoAUrlSettingNeedsHttps() async throws {
+        let source = """
+            // @api 1
+            // @name 自建服务
+            // @setting endpoint url 服务地址
+            export default async ({ settings }) => (await fetch(settings.endpoint)).text();
+            """
+        let tool = try ScriptTextTool(
+            source: source, id: "script.own", limits: limits(), isFullAccess: true,
+            settingsJSON: #"{"endpoint":"http://llm.example.test/v1"}"#,
+            urlSessionProtocolClasses: [ScriptNetworkingURLProtocol.self])
+        do {
+            _ = try await tool.run(
+                input: ToolInput(text: "文字", scope: .precedingSegment, isTruncated: false))
+            XCTFail("plain http to a public host should have been refused")
+        } catch let error as ScriptToolError {
+            XCTAssertEqual(error, .addressNotAllowed)
+        }
+        XCTAssertTrue(ScriptNetworkingURLProtocol.requests.isEmpty)
+    }
+
+    /// A declared @timeout outlasts the host duration, and the session gets the same budget.
+    func testDeclaredTimeoutOutlastsTheHostDuration() async throws {
+        ScriptNetworkingURLProtocol.route(
+            "/slow", .init(body: Data("慢模型".utf8), delay: 0.4))
+        let source = """
+            // @api 1
+            // @name 慢模型
+            // @connect api.example.test
+            // @timeout 5
+            export default async () => (await fetch("https://api.example.test/slow")).text();
+            """
+        let tool = try makeTool(source, limits: limits(durationMilliseconds: 150))
+        XCTAssertEqual(tool.runTimeout, 6)
+        let outputs = try await tool.run(
+            input: ToolInput(text: "文字", scope: .precedingSegment, isTruncated: false))
+        XCTAssertEqual(outputs, ["慢模型"])
     }
 
     func testRedirectToUndeclaredHostIsRefused() async throws {

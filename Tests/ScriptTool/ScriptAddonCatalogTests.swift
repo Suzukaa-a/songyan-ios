@@ -50,7 +50,7 @@ final class ScriptAddonCatalogTests: XCTestCase {
     private var root: URL!
     private var store: ScriptAddonStore!
     private let runtimeLimits = ScriptToolRuntimeLimits(
-        sourceBytes: 262_144, heapBytes: 8_388_608, durationMilliseconds: 4_000,
+        sourceBytes: 262_144, heapBytes: 8_388_608, durationMilliseconds: 4_000, computeMilliseconds: 4_000,
         requestCount: 4, responseBytes: 65_536, inputTextBytes: 65_536)
     private let sessionLimits = ToolLimits(
         maximumInputUnits: 20_000, runTimeout: 4, undoWindow: 30, maximumResults: 3)

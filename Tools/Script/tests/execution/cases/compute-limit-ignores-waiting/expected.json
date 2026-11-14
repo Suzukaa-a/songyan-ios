@@ -1,0 +1,16 @@
+{
+  "ok": true,
+  "outputs": [
+    "慢回复"
+  ],
+  "logs": [],
+  "logsTruncated": false,
+  "requests": [
+    {
+      "method": "GET",
+      "url": "https://api.example.com/v1",
+      "headers": null,
+      "bodyLength": 0
+    }
+  ]
+}

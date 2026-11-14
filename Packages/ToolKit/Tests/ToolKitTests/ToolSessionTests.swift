@@ -5,6 +5,7 @@ import XCTest
 private struct FakeTool: TextTool {
     var identity = ToolIdentity(id: "fake", title: "Fake")
     var requiredCapabilities: ToolCapabilities = .text
+    var runTimeout: Double?
 
     func run(input: ToolInput) async throws -> [String] {
         ["result:" + input.text]
@@ -91,6 +92,15 @@ final class ToolSessionTests: XCTestCase {
         XCTAssertEqual(preview.cancel(), .none, "closing a preview is dismiss, not cancel")
         preview.dismiss()
         XCTAssertEqual(preview.phase, .idle)
+    }
+
+    func testAToolsOwnTimeoutReplacesTheHostLimit() throws {
+        var session = makeSession()
+        let request = try XCTUnwrap(startRun(&session, tool: FakeTool(runTimeout: 300)))
+        XCTAssertEqual(session.runTimeout, 300)
+        XCTAssertEqual(session.tick(now: 299), .none)
+        XCTAssertTrue(session.complete(["late but in time"], token: request.runToken, now: 299))
+        XCTAssertNotNil(session.preview)
     }
 
     func testTimeoutEmitsCancelRunAndRetryUsesANewToken() throws {

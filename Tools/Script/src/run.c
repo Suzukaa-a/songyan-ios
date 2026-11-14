@@ -269,8 +269,45 @@ uint64_t songyan_script_now_ns(void) {
     return (uint64_t)now.tv_sec * 1000000000ull + (uint64_t)now.tv_nsec;
 }
 
+static int compute_passed(const songyan_script_run *run, uint64_t now) {
+    uint64_t used = run->compute_used_ns;
+    if (run->step_started_ns != 0 && now > run->step_started_ns) {
+        used += now - run->step_started_ns;
+    }
+    return used >= (uint64_t)run->limits.compute_ms * 1000000ull;
+}
+
+void songyan_script_run_pause_compute(songyan_script_run *run) {
+    if (run->step_started_ns != 0) {
+        uint64_t now = songyan_script_now_ns();
+        run->compute_used_ns += now > run->step_started_ns ? now - run->step_started_ns : 0;
+        run->step_started_ns = 0;
+    }
+}
+
+void songyan_script_run_resume_compute(songyan_script_run *run) {
+    run->step_started_ns = songyan_script_now_ns();
+}
+
 int songyan_script_run_deadline_passed(const songyan_script_run *run) {
-    return run->deadline_ns != 0 && songyan_script_now_ns() >= run->deadline_ns;
+    if (run->deadline_ns == 0) {
+        return 0;
+    }
+    uint64_t now = songyan_script_now_ns();
+    return now >= run->deadline_ns || compute_passed(run, now);
+}
+
+/* Fails the run with the diagnostic of whichever time limit ran out. */
+static void fail_timeout(songyan_script_run *run) {
+    if (compute_passed(run, songyan_script_now_ns())) {
+        songyan_script_run_failf(run, SONGYAN_SCRIPT_ERROR_TIMEOUT,
+                                 "the script computed for longer than %u ms",
+                                 (unsigned)run->limits.compute_ms);
+    } else {
+        songyan_script_run_failf(run, SONGYAN_SCRIPT_ERROR_TIMEOUT,
+                                 "the script ran longer than %u ms",
+                                 (unsigned)run->limits.duration_ms);
+    }
 }
 
 static int interrupt_handler(JSContext *context, void *opaque) {
@@ -364,9 +401,7 @@ int songyan_script_run_aborted(songyan_script_run *run) {
     }
     if (songyan_script_run_deadline_passed(run)) {
         run->timed_out = 1;
-        songyan_script_run_failf(run, SONGYAN_SCRIPT_ERROR_TIMEOUT,
-                                 "the script ran longer than %u ms",
-                                 (unsigned)run->limits.duration_ms);
+        fail_timeout(run);
         return 1;
     }
     return 0;
@@ -408,9 +443,7 @@ static size_t stack_line(const char *stack) {
 
 void songyan_script_run_fail_from_exception(songyan_script_run *run, JSValue exception) {
     if (run->timed_out) {
-        songyan_script_run_failf(run, SONGYAN_SCRIPT_ERROR_TIMEOUT,
-                                 "the script ran longer than %u ms",
-                                 (unsigned)run->limits.duration_ms);
+        fail_timeout(run);
         return;
     }
     /* Only an allocation this bridge refused is a real out-of-memory; a script's own error text
@@ -772,8 +805,8 @@ static int validate_config(songyan_script_run *run) {
         finish_invalid(run, "the script source is empty");
         return -1;
     }
-    const char *missing[6];
-    if (songyan_script_limits_missing(&run->limits, missing, 6) > 0) {
+    const char *missing[7];
+    if (songyan_script_limits_missing(&run->limits, missing, 7) > 0) {
         finish_invalid(run, "the host must inject every resource limit");
         return -1;
     }
@@ -1032,6 +1065,8 @@ uint32_t songyan_script_run_ms_left(const songyan_script_run *run) {
     return (uint32_t)remaining;
 }
 
+static songyan_script_step run_step(songyan_script_run *run);
+
 songyan_script_step songyan_script_run_step(songyan_script_run *run) {
     if (run == NULL) {
         return SONGYAN_SCRIPT_STEP_INVALID;
@@ -1039,14 +1074,21 @@ songyan_script_step songyan_script_run_step(songyan_script_run *run) {
     if (run->finished) {
         return run->terminal;
     }
+    songyan_script_run_resume_compute(run);
+    songyan_script_step step = run_step(run);
+    songyan_script_run_pause_compute(run);
+    return step;
+}
+
+static songyan_script_step run_step(songyan_script_run *run) {
     if (!run->started) {
         run->started = 1;
-        if (run->limits.duration_ms > 0) {
-            run->deadline_ns = songyan_script_now_ns() + (uint64_t)run->limits.duration_ms * 1000000ull;
-        }
         if (validate_config(run) < 0) {
             return run->terminal;
         }
+        /* A declared @timeout replaces the host's duration; the diagnostics then name it. */
+        run->limits.duration_ms = songyan_script_run_duration_ms(run->config.header, &run->limits);
+        run->deadline_ns = songyan_script_now_ns() + (uint64_t)run->limits.duration_ms * 1000000ull;
         if (engine_start(run) < 0) {
             return run->terminal;
         }

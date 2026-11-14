@@ -28,5 +28,12 @@ public struct ToolCapabilities: OptionSet, Sendable {
 public protocol TextTool: Sendable {
     var identity: ToolIdentity { get }
     var requiredCapabilities: ToolCapabilities { get }
+    /// The tool's own wall-clock budget in seconds, when it knows better than the host
+    /// (a script that declares a long timeout for a slow model). nil uses the host limit.
+    var runTimeout: Double? { get }
     func run(input: ToolInput) async throws -> [String]
+}
+
+extension TextTool {
+    public var runTimeout: Double? { nil }
 }

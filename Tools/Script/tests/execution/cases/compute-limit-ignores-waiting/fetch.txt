@@ -1,0 +1,2 @@
+allow https://api.example.com/v1
+deferred 200 text/plain 5oWi5Zue5aSN

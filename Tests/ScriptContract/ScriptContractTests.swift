@@ -84,7 +84,7 @@ final class ScriptContractTests: XCTestCase {
         let cases = try caseDirectories(in: resourceRoot.appendingPathComponent("tests/cases"))
         // Pinned to the shared directory, like the Android runner: a sync that silently drops case
         // folders must fail here instead of staying green with fewer checks.
-        XCTAssertEqual(cases.count, 30, "contract case count must match Tools/Script/tests/cases")
+        XCTAssertEqual(cases.count, 39, "contract case count must match Tools/Script/tests/cases")
         var failures: [String] = []
         for caseURL in cases {
             let name = caseURL.lastPathComponent
@@ -137,12 +137,16 @@ final class ScriptContractTests: XCTestCase {
         if FileManager.default.fileExists(atPath: caseURL.appendingPathComponent("cancel.txt").path) {
             arguments.append("--cancel-pending")
         }
+        if let wait = readText(caseURL.appendingPathComponent("hostWait.txt")) {
+            arguments += ["--host-wait-ms", wait]
+        }
         arguments += ["--capabilities", readText(caseURL.appendingPathComponent("capabilities.txt")) ?? "text"]
 
         var limits: [String: String] = [
             "sourceBytes": "1048576",
             "heapBytes": "8388608",
             "durationMs": "4000",
+            "computeMs": "4000",
             "requestCount": "8",
             "responseBytes": "1048576",
             "inputTextBytes": "20000",
@@ -162,6 +166,7 @@ final class ScriptContractTests: XCTestCase {
             ("sourceBytes", "--source-bytes"),
             ("heapBytes", "--heap-bytes"),
             ("durationMs", "--duration-ms"),
+            ("computeMs", "--compute-ms"),
             ("requestCount", "--request-count"),
             ("responseBytes", "--response-bytes"),
             ("inputTextBytes", "--input-text-bytes"),
@@ -170,11 +175,43 @@ final class ScriptContractTests: XCTestCase {
         return arguments
     }
 
+    /// The shared address rule table, run through the same CLI command the macOS harness uses.
+    func testAddressRuleMatchesSharedTable() throws {
+        let table = try String(
+            contentsOf: resourceRoot.appendingPathComponent("tests/address-cases.txt"), encoding: .utf8)
+        var failures: [String] = []
+        var count = 0
+        for line in table.split(separator: "\n") {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if trimmed.isEmpty || trimmed.hasPrefix("#") { continue }
+            let columns = trimmed.split(separator: "|", omittingEmptySubsequences: false)
+            guard columns.count == 3 else {
+                failures.append("malformed: \(trimmed)")
+                continue
+            }
+            let head = columns[0].split(separator: " ", omittingEmptySubsequences: true)
+            guard head.count == 2 else {
+                failures.append("malformed: \(trimmed)")
+                continue
+            }
+            var arguments = ["address", "--url", String(head[1])]
+            for host in columns[1].split(separator: " ") { arguments += ["--connect", String(host)] }
+            for value in columns[2].split(separator: " ") { arguments += ["--setting-url", String(value)] }
+            let result = try runCLI(arguments)
+            let actual = String(decoding: result.output, as: UTF8.self)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            if actual != String(head[0]) { failures.append("\(head[1]): \(actual), expected \(head[0])") }
+            count += 1
+        }
+        XCTAssertGreaterThan(count, 0)
+        XCTAssertTrue(failures.isEmpty, failures.joined(separator: "\n"))
+    }
+
     func testExecutionCasesMatchSharedExpectations() throws {
         let cases = try caseDirectories(in: resourceRoot.appendingPathComponent("tests/execution/cases"))
         // Pinned to the shared directory, like the Android runner.
         XCTAssertEqual(
-            cases.count, 54, "execution case count must match Tools/Script/tests/execution/cases")
+            cases.count, 58, "execution case count must match Tools/Script/tests/execution/cases")
         var failures: [String] = []
         for caseURL in cases {
             let name = caseURL.lastPathComponent

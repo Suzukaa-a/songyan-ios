@@ -71,7 +71,8 @@ struct ScriptAddonBridge: Sendable {
         let declarations = try parseDeclarations(source: source)
         let engineLimits = songyan_script_limits(
             source_bytes: limits.sourceBytes, heap_bytes: limits.heapBytes,
-            duration_ms: limits.durationMilliseconds, request_count: limits.requestCount,
+            duration_ms: limits.durationMilliseconds, compute_ms: limits.computeMilliseconds,
+            request_count: limits.requestCount,
             response_bytes: limits.responseBytes, input_text_bytes: limits.maximumInputTextBytes)
         let collector = LogCollector()
         let host = songyan_script_host(
@@ -134,9 +135,12 @@ struct ScriptAddonBridge: Sendable {
                 case SONGYAN_SCRIPT_SETTING_CHOICE: .choice
                 default: .text
                 }
+            let options = (0..<Int(setting.option_count)).map {
+                String(cString: setting.options[$0]!)
+            }
             return ScriptDeclarations.Setting(
                 key: String(cString: setting.key), kind: kind,
-                label: String(cString: setting.label))
+                label: String(cString: setting.label), options: options)
         }
         let secrets = (0..<header.secret_count).map { index in
             ScriptDeclarations.Secret(

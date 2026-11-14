@@ -41,6 +41,7 @@ fail() {
 default_source_bytes=1048576
 default_heap_bytes=8388608
 default_duration_ms=4000
+default_compute_ms=4000
 default_request_count=8
 default_response_bytes=1048576
 default_input_text_bytes=20000
@@ -64,6 +65,8 @@ for case_dir in "${HERE}"/execution/cases/*/; do
   [[ -f "${case_dir}logLimit.txt" ]] &&
     args+=(--log-limit "$(tr -d '[:space:]' <"${case_dir}logLimit.txt")")
   [[ -f "${case_dir}cancel.txt" ]] && args+=(--cancel-pending)
+  [[ -f "${case_dir}hostWait.txt" ]] &&
+    args+=(--host-wait-ms "$(tr -d '[:space:]' <"${case_dir}hostWait.txt")")
   capabilities="text"
   [[ -f "${case_dir}capabilities.txt" ]] &&
     capabilities="$(tr -d '[:space:]' <"${case_dir}capabilities.txt")"
@@ -72,6 +75,7 @@ for case_dir in "${HERE}"/execution/cases/*/; do
   source_bytes="${default_source_bytes}"
   heap_bytes="${default_heap_bytes}"
   duration_ms="${default_duration_ms}"
+  compute_ms="${default_compute_ms}"
   request_count="${default_request_count}"
   response_bytes="${default_response_bytes}"
   input_text_bytes="${default_input_text_bytes}"
@@ -82,6 +86,7 @@ for case_dir in "${HERE}"/execution/cases/*/; do
       sourceBytes) source_bytes="${value}" ;;
       heapBytes) heap_bytes="${value}" ;;
       durationMs) duration_ms="${value}" ;;
+      computeMs) compute_ms="${value}" ;;
       requestCount) request_count="${value}" ;;
       responseBytes) response_bytes="${value}" ;;
       inputTextBytes) input_text_bytes="${value}" ;;
@@ -93,7 +98,7 @@ for case_dir in "${HERE}"/execution/cases/*/; do
     done <"${case_dir}limits.txt"
   fi
   args+=(--source-bytes "${source_bytes}" --heap-bytes "${heap_bytes}"
-    --duration-ms "${duration_ms}" --request-count "${request_count}"
+    --duration-ms "${duration_ms}" --compute-ms "${compute_ms}" --request-count "${request_count}"
     --response-bytes "${response_bytes}" --input-text-bytes "${input_text_bytes}")
 
   status=0

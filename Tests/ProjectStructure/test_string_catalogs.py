@@ -58,6 +58,9 @@ SKIPPED_DIRECTORIES = frozenset({"build", "DerivedData", "Vendored", "node_modul
 SHARED_REPLACEMENTS = frozenset(
     {
         ("學習數據", "學習資料"),
+        ("局域網", "區域網路"),
+        ("HTTPS 地址", "HTTPS 位址"),
+        ("http 地址", "http 位址"),
         ("自定義", "自訂"),
         ("錯鍵糾正", "錯字修正"),
         ("鍵盤佈局", "鍵盤配置"),

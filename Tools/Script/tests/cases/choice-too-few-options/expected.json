@@ -1,0 +1,6 @@
+{
+  "ok": false,
+  "error": "badHeader",
+  "line": 0,
+  "message": "choice setting tone needs at least two @option lines"
+}

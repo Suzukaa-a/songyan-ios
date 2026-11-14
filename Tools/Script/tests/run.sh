@@ -90,21 +90,40 @@ grep -q '"limitsNotInjected"' "${SCRATCH}/stdout" || fail "limits refusal is not
 grep -q '"heapBytes"' "${SCRATCH}/stdout" || fail "limits refusal does not name the missing fields"
 
 expect_exit 64 "limits with a zero field" "${BIN}" limits \
-  --source-bytes 1048576 --heap-bytes 0 --duration-ms 4000 \
+  --source-bytes 1048576 --heap-bytes 0 --duration-ms 4000 --compute-ms 4000 \
   --request-count 4 --response-bytes 1048576 --input-text-bytes 20000
 
 expect_exit 0 "limits fully injected" "${BIN}" limits \
-  --source-bytes 1048576 --heap-bytes 8388608 --duration-ms 4000 \
+  --source-bytes 1048576 --heap-bytes 8388608 --duration-ms 4000 --compute-ms 4000 \
   --request-count 4 --response-bytes 1048576 --input-text-bytes 20000
 grep -q '"sourceBytes": 1048576' "${SCRATCH}/stdout" || fail "limits echo lost sourceBytes"
 grep -q '"durationMs": 4000' "${SCRATCH}/stdout" || fail "limits echo lost durationMs"
+grep -q '"computeMs": 4000' "${SCRATCH}/stdout" || fail "limits echo lost computeMs"
 
 expect_exit 64 "limits with a uint32 overflow" "${BIN}" limits \
-  --source-bytes 1048576 --heap-bytes 1048576 --duration-ms 4294967296 \
+  --source-bytes 1048576 --heap-bytes 1048576 --duration-ms 4294967296 --compute-ms 4000 \
   --request-count 4 --response-bytes 1048576 --input-text-bytes 20000
 expect_exit 64 "limits with a size overflow" "${BIN}" limits \
-  --source-bytes 18446744073709551616 --heap-bytes 1048576 --duration-ms 4000 \
+  --source-bytes 18446744073709551616 --heap-bytes 1048576 --duration-ms 4000 --compute-ms 4000 \
   --request-count 4 --response-bytes 1048576 --input-text-bytes 20000
+
+# The address rule table is shared with every platform implementation.
+while IFS= read -r line; do
+  [[ -z "${line}" || "${line:0:1}" == "#" ]] && continue
+  expected="${line%% *}"
+  rest="${line#* }"
+  url="$(sed 's/^ *//; s/ *|.*$//' <<<"${rest}")"
+  connects="$(cut -d'|' -f2 <<<"${rest}")"
+  settings="$(cut -d'|' -f3 <<<"${rest}")"
+  args=(address --url "${url}")
+  for host in ${connects}; do args+=(--connect "${host}"); done
+  if [[ -n "${settings// /}" ]]; then
+    settings="$(sed 's/^ *//; s/ *$//' <<<"${settings}")"
+    for value in ${settings}; do args+=(--setting-url "${value}"); done
+  fi
+  actual="$("${BIN}" "${args[@]}")"
+  if [[ "${actual}" == "${expected}" ]]; then pass; else fail "address ${url}: ${actual}, expected ${expected}"; fi
+done <"${HERE}/address-cases.txt"
 
 # The public parser is also exercised with forced allocation failures and byte-level boundaries.
 [[ -x "${FAULTS}" ]] && expect_exit 0 "allocation failure cleanup" "${FAULTS}"

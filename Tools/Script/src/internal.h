@@ -71,6 +71,10 @@ struct songyan_script_run {
     int finished;
 
     uint64_t deadline_ns;
+    /* Engine time used by finished steps, and the start of the step in progress (0 between
+     * steps), so the compute limit ignores the time the host spends on a fetch. */
+    uint64_t compute_used_ns;
+    uint64_t step_started_ns;
     int cancelled;
     int timed_out;
     int fetch_error;
@@ -110,6 +114,10 @@ int songyan_script_run_aborted(songyan_script_run *run);
 void songyan_script_run_fail(songyan_script_run *run, songyan_script_error code,
                              const char *message, size_t line);
 void songyan_script_run_fail_from_exception(songyan_script_run *run, JSValue exception);
+/* Stop and restart the compute clock around a host call that may block. */
+void songyan_script_run_pause_compute(songyan_script_run *run);
+void songyan_script_run_resume_compute(songyan_script_run *run);
+/* Returns 1 when the wall-clock duration or the compute time is used up. */
 int songyan_script_run_deadline_passed(const songyan_script_run *run);
 
 /* fetch.c */

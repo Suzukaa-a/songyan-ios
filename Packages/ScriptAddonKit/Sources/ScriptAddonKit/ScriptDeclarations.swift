@@ -15,11 +15,15 @@ public struct ScriptDeclarations: Equatable, Sendable {
         public let key: String
         public let kind: SettingKind
         public let label: String
+        /// What a choice setting offers, in declaration order; the first is the default.
+        /// Empty for text and URL settings.
+        public let options: [String]
 
-        public init(key: String, kind: SettingKind, label: String) {
+        public init(key: String, kind: SettingKind, label: String, options: [String] = []) {
             self.key = key
             self.kind = kind
             self.label = label
+            self.options = options
         }
     }
 
@@ -84,6 +88,8 @@ public struct ScriptDeclarations: Equatable, Sendable {
             let key: String
             let kind: String
             let label: String
+            /// Omitted for settings without options, so their digest is unchanged.
+            let options: [String]?
         }
         struct SecretCanonical: Codable {
             let key: String
@@ -95,7 +101,9 @@ public struct ScriptDeclarations: Equatable, Sendable {
             summary: summary,
             connects: networkHosts,
             settings: settings.map {
-                SettingCanonical(key: $0.key, kind: $0.kind.rawValue, label: $0.label)
+                SettingCanonical(
+                    key: $0.key, kind: $0.kind.rawValue, label: $0.label,
+                    options: $0.options.isEmpty ? nil : $0.options)
             },
             secrets: secrets.map { SecretCanonical(key: $0.key, label: $0.label) },
             audio: needsAudio)

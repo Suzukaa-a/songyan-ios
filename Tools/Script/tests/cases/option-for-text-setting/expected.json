@@ -1,0 +1,6 @@
+{
+  "ok": false,
+  "error": "badHeader",
+  "line": 4,
+  "message": "@option note does not follow a choice setting"
+}

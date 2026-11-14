@@ -19,23 +19,36 @@ struct ScriptToolRuntimeLimits: Equatable, Sendable {
     let sourceBytes: Int
     let heapBytes: Int
     let durationMilliseconds: UInt32
+    let computeMilliseconds: UInt32
     let requestCount: UInt32
     let responseBytes: Int
     let inputTextBytes: Int
 
+    /// What both apps ship, from the shared contract header.
+    static let shipped = ScriptToolRuntimeLimits(
+        sourceBytes: Int(SONGYAN_SCRIPT_SHIPPED_SOURCE_BYTES),
+        heapBytes: Int(SONGYAN_SCRIPT_SHIPPED_HEAP_BYTES),
+        durationMilliseconds: SONGYAN_SCRIPT_SHIPPED_DURATION_MS,
+        computeMilliseconds: SONGYAN_SCRIPT_SHIPPED_COMPUTE_MS,
+        requestCount: SONGYAN_SCRIPT_SHIPPED_REQUEST_COUNT,
+        responseBytes: Int(SONGYAN_SCRIPT_SHIPPED_RESPONSE_BYTES),
+        inputTextBytes: Int(SONGYAN_SCRIPT_SHIPPED_INPUT_TEXT_BYTES))
+
     init(
-        sourceBytes: Int, heapBytes: Int, durationMilliseconds: UInt32, requestCount: UInt32,
-        responseBytes: Int, inputTextBytes: Int
+        sourceBytes: Int, heapBytes: Int, durationMilliseconds: UInt32,
+        computeMilliseconds: UInt32, requestCount: UInt32, responseBytes: Int, inputTextBytes: Int
     ) {
         precondition(sourceBytes > 0, "sourceBytes must be positive")
         precondition(heapBytes > 0, "heapBytes must be positive")
         precondition(durationMilliseconds > 0, "durationMilliseconds must be positive")
+        precondition(computeMilliseconds > 0, "computeMilliseconds must be positive")
         precondition(requestCount > 0, "requestCount must be positive")
         precondition(responseBytes > 0, "responseBytes must be positive")
         precondition(inputTextBytes > 0, "inputTextBytes must be positive")
         self.sourceBytes = sourceBytes
         self.heapBytes = heapBytes
         self.durationMilliseconds = durationMilliseconds
+        self.computeMilliseconds = computeMilliseconds
         self.requestCount = requestCount
         self.responseBytes = responseBytes
         self.inputTextBytes = inputTextBytes
@@ -46,6 +59,7 @@ struct ScriptToolRuntimeLimits: Equatable, Sendable {
         limits.source_bytes = sourceBytes
         limits.heap_bytes = heapBytes
         limits.duration_ms = durationMilliseconds
+        limits.compute_ms = computeMilliseconds
         limits.request_count = requestCount
         limits.response_bytes = responseBytes
         limits.input_text_bytes = inputTextBytes
@@ -209,13 +223,18 @@ final class ScriptTextTool: TextTool, @unchecked Sendable {
 
     private let source: String
     private let limits: ScriptToolRuntimeLimits
-    private let allowedHosts: Set<String>
+    /// The user's values of the url settings; the shared address rule allows their hosts.
+    private let settingURLs: [String]
+    /// The script declares a host or a url setting, so a run may go online.
+    private let usesNetwork: Bool
+    /// The wall-clock budget of one run: the script's @timeout, or the host's duration.
+    let runTimeout: Double?
     /// Header declarations, used by the addon catalog to check confirmation and to show what the
     /// script needs. Parsed by the shared C parser in the initializer.
     let declarations: ScriptDeclarations
     /// Whether this tool instance may use the network; the runtime fingerprint uses it so a Full
     /// Access change rebuilds the tools.
-    var allowsNetworking: Bool { !allowedHosts.isEmpty && isFullAccess }
+    var allowsNetworking: Bool { usesNetwork && isFullAccess }
     /// Digest of everything that changes what this tool runs: the script bytes, the resolved
     /// settings (including secret values, hashed only), and the Full Access decision. The keyboard
     /// compares revisions on each appearance and rebuilds its tools when one changed.
@@ -292,13 +311,16 @@ final class ScriptTextTool: TextTool, @unchecked Sendable {
         hasher.update(data: Data("\u{0}".utf8))
         hasher.update(data: Data(id.utf8))
         self.revision = hasher.finalize().map { String(format: "%02x", $0) }.joined()
-        var hosts: Set<String> = []
-        for index in 0..<Int(header.connect_count) {
-            if let connect = header.connects?[index] {
-                hosts.insert(String(cString: connect).lowercased())
-            }
-        }
-        self.allowedHosts = hosts
+        let urlKeys = Set(declarations.settings.filter { $0.kind == .url }.map(\.key))
+        let values =
+            (settingsJSON?.data(using: .utf8)).flatMap {
+                try? JSONSerialization.jsonObject(with: $0) as? [String: Any]
+            } ?? [:]
+        self.settingURLs = urlKeys.sorted().compactMap { values[$0] as? String }
+        self.usesNetwork = header.connect_count > 0 || !urlKeys.isEmpty
+        var engineLimits = limits.cLimits
+        // A little past the engine's own deadline, so the engine reports the timeout itself.
+        self.runTimeout = Double(songyan_script_run_duration_ms(&header, &engineLimits)) / 1000 + 1
         self.identity = ToolIdentity(id: id, title: String(cString: header.name))
         var capabilities: ToolCapabilities = []
         if header.needs & UInt32(SONGYAN_SCRIPT_CAPABILITY_TEXT.rawValue) != 0 {
@@ -329,7 +351,7 @@ final class ScriptTextTool: TextTool, @unchecked Sendable {
         try Task.checkCancellation()
         // Refuse before the engine starts: a networking script without Full Access gets the fixed
         // prompt naming the setting, and an offline script is unaffected.
-        if !allowedHosts.isEmpty && !isFullAccess { throw ScriptToolError.fullAccessRequired }
+        if usesNetwork && !isFullAccess { throw ScriptToolError.fullAccessRequired }
         if settingsUnavailable { throw ScriptToolError.secretsUnavailable }
         let sourceBytes = Array(source.utf8)
         let textBytes = Array(input.text.utf8)
@@ -356,7 +378,8 @@ final class ScriptTextTool: TextTool, @unchecked Sendable {
         sourceBytes: [UInt8], textBytes: [UInt8], cancellation: ScriptRunCancellation
     ) throws -> [String] {
         let hostContext = ScriptFetchHostContext(
-            allowedHosts: allowedHosts, requestLimit: limits.requestCount,
+            header: UnsafePointer(headerPointer), settingURLs: settingURLs,
+            requestLimit: limits.requestCount,
             responseLimit: limits.responseBytes, cancellation: cancellation,
             protocolClasses: urlSessionProtocolClasses)
         defer { hostContext.releaseAllocations() }
@@ -405,9 +428,12 @@ final class ScriptTextTool: TextTool, @unchecked Sendable {
                 case SONGYAN_SCRIPT_SETTING_CHOICE: .choice
                 default: .text
                 }
+            let options = (0..<Int(setting.option_count)).map {
+                String(cString: setting.options[$0]!)
+            }
             return ScriptDeclarations.Setting(
                 key: String(cString: setting.key), kind: kind,
-                label: String(cString: setting.label))
+                label: String(cString: setting.label), options: options)
         }
         let secrets = (0..<Int(header.secret_count)).map { index in
             ScriptDeclarations.Secret(
@@ -484,22 +510,19 @@ final class ScriptTextTool: TextTool, @unchecked Sendable {
     }
 }
 
-/// Host policy for the in-extension runtime. These numbers live in the extension, not in the shared
-/// bridge. They are provisional: chosen so the shipped sample can run end to end, not measured
-/// production values. The S0 probe measured engine cold start and footprint in a simulator probe, but
-/// that is not a device memory budget and this file must not be read as claiming one. S2 replaces
-/// these with numbers from a device measurement (and from the user's tool settings); the duration
-/// mirrors ToolKit's session timeout so both layers agree.
+/// Host policy for the in-extension runtime. The engine limits are the shared contract's shipped
+/// values; the session's timeout matches their default duration and each script tool may extend it
+/// with @timeout.
 struct ScriptToolConfiguration: Sendable {
     let toolLimits: ToolLimits
     let runtimeLimits: ScriptToolRuntimeLimits
 
-    static let provisional = ScriptToolConfiguration(
+    static let shipped = ScriptToolConfiguration(
         toolLimits: ToolLimits(
-            maximumInputUnits: 20_000, runTimeout: 4.0, undoWindow: 30, maximumResults: 3),
-        runtimeLimits: ScriptToolRuntimeLimits(
-            sourceBytes: 262_144, heapBytes: 8_388_608, durationMilliseconds: 4_000,
-            requestCount: 1, responseBytes: 65_536, inputTextBytes: 65_536))
+            maximumInputUnits: 20_000,
+            runTimeout: Double(SONGYAN_SCRIPT_SHIPPED_DURATION_MS) / 1000 + 1,
+            undoWindow: 30, maximumResults: 3),
+        runtimeLimits: .shipped)
 }
 
 enum ScriptToolRuntime {

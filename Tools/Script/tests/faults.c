@@ -33,6 +33,8 @@ static const char *const kSource = "// @api 1\n"
                                    "// @connect cdn.example.com\n"
                                    "// @setting endpoint url 服务地址\n"
                                    "// @setting tone choice 语气\n"
+                                   "// @option tone 正式\n"
+                                   "// @option tone 随意\n"
                                    "// @setting note text 备注\n"
                                    "// @secret key 密钥\n"
                                    "export default async ({ text }) => text;\n";

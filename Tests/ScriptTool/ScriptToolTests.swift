@@ -57,7 +57,7 @@ final class FakeToolTextDocumentProxy: ToolTextDocumentProxy {
 
 final class ScriptToolTests: XCTestCase {
     private let runtimeLimits = ScriptToolRuntimeLimits(
-        sourceBytes: 262_144, heapBytes: 8_388_608, durationMilliseconds: 4_000,
+        sourceBytes: 262_144, heapBytes: 8_388_608, durationMilliseconds: 4_000, computeMilliseconds: 4_000,
         requestCount: 1, responseBytes: 65_536, inputTextBytes: 65_536)
     private let toolLimits = ToolLimits(
         maximumInputUnits: 20_000, runTimeout: 4.0, undoWindow: 30, maximumResults: 3)
@@ -146,7 +146,7 @@ final class ScriptToolTests: XCTestCase {
                 };
                 """, id: "script.memory",
             limits: ScriptToolRuntimeLimits(
-                sourceBytes: 262_144, heapBytes: 1_048_576, durationMilliseconds: 4_000,
+                sourceBytes: 262_144, heapBytes: 1_048_576, durationMilliseconds: 4_000, computeMilliseconds: 4_000,
                 requestCount: 1, responseBytes: 65_536, inputTextBytes: 65_536))
         do {
             _ = try await tool.run(
@@ -166,7 +166,7 @@ final class ScriptToolTests: XCTestCase {
                 export default async ({ text }) => { while (true) {} };
                 """, id: "script.timeout",
             limits: ScriptToolRuntimeLimits(
-                sourceBytes: 262_144, heapBytes: 8_388_608, durationMilliseconds: 50,
+                sourceBytes: 262_144, heapBytes: 8_388_608, durationMilliseconds: 50, computeMilliseconds: 4_000,
                 requestCount: 1, responseBytes: 65_536, inputTextBytes: 65_536))
         do {
             _ = try await tool.run(
@@ -220,7 +220,7 @@ final class ScriptToolTests: XCTestCase {
                 export default async ({ text }) => { while (true) {} };
                 """, id: "script.slow",
             limits: ScriptToolRuntimeLimits(
-                sourceBytes: 262_144, heapBytes: 8_388_608, durationMilliseconds: 600,
+                sourceBytes: 262_144, heapBytes: 8_388_608, durationMilliseconds: 600, computeMilliseconds: 4_000,
                 requestCount: 1, responseBytes: 65_536, inputTextBytes: 65_536))
         let proxy = FakeToolTextDocumentProxy(text: "文字")
         let gateway = ToolDocumentGateway(

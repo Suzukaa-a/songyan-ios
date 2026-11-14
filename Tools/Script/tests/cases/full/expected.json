@@ -19,7 +19,11 @@
       {
         "key": "tone",
         "kind": "choice",
-        "label": "语气"
+        "label": "语气",
+        "options": [
+          "正式",
+          "随意"
+        ]
       },
       {
         "key": "note",

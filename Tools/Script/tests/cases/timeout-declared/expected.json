@@ -1,0 +1,23 @@
+{
+  "ok": true,
+  "error": "ok",
+  "line": 0,
+  "header": {
+    "api": 1,
+    "name": "时长",
+    "description": null,
+    "connects": [],
+    "settings": [],
+    "secrets": [],
+    "needs": [
+      "text"
+    ],
+    "timeoutSeconds": 300
+  },
+  "capabilities": {
+    "host": [
+      "text"
+    ],
+    "missing": []
+  }
+}
