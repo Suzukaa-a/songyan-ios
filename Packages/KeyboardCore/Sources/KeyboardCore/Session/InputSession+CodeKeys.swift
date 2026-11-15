@@ -221,6 +221,20 @@ extension InputSession {
         return absolute && snapshot.pageSize > 0 ? snapshot.pageIndex * snapshot.pageSize + match.index : match.index
     }
 
+    /// Backspace inside a composition. With nothing decoding, the engine's composition is the
+    /// one on screen, so the delete goes to the engine queue like a code key and the press never
+    /// waits for the engine on the main thread. A press that arrives while it decodes settles it
+    /// first (`settlePendingCodes`) and decides engine or host delete on the landed state.
+    public func deleteInComposition() {
+        guard codeKeyQueue != nil, batch == nil, pendingCodes.isEmpty, mode == .chinese,
+            snapshot.isComposing, !snapshot.isPrediction
+        else {
+            tap(.backspace)
+            return
+        }
+        enqueueCodeKeys([EngineCodeKeyToken.backspace])
+    }
+
     /// Backspace on a key the engine has not seen yet just takes it back.
     public func removeLastPendingCode() -> Bool {
         guard pendingCodes.count > (batch?.keys.count ?? 0) else { return false }

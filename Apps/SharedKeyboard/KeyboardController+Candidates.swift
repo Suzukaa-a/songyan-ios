@@ -165,7 +165,9 @@ extension KeyboardController {
         // The newest press first: a key the engine has not decoded yet is just taken back.
         if session.removeLastPendingCode() { return }
         // A key already decoding settles first: it may have composed (engine backspace) or
-        // committed the letter directly (delete it from the host).
+        // committed the letter directly (delete it from the host). Having waited for the engine
+        // anyway, that press deletes synchronously too.
+        let settled = session.pendingCodes.isEmpty
         session.settlePendingCodes()
         // Locked: the first press only restores and releases the lock without sending Backspace; the next press does the normal delete.
         // The newest choice is undone first: a reading narrowed after the lock.
@@ -198,6 +200,8 @@ extension KeyboardController {
                     scheduleEnglishSuggestions()
                 }
             }
+        } else if settled {
+            session.deleteInComposition()
         } else {
             session.tap(.backspace)
         }

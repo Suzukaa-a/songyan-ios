@@ -311,6 +311,58 @@ final class DeferredCodeKeyTests: XCTestCase {
         XCTAssertEqual(engine.processed, ["6", "4"])
     }
 
+    /// A delete inside a settled composition never runs the engine on the calling thread; it
+    /// lands like a code key and leaves the same composition a synchronous delete would.
+    func testCompositionDeleteDecodesOnTheEngineQueue() {
+        let (session, engine, queue) = makeSession(delay: 0)
+        session.tap(.code("6"))
+        session.tap(.code("4"))
+        queue.runAll()
+        deliverMainQueue()
+        XCTAssertEqual(session.snapshot.rawInput, "64")
+        session.deleteInComposition()
+        XCTAssertEqual(engine.processed, ["6", "4"], "the press returns before the engine deletes")
+        XCTAssertEqual(session.snapshot.rawInput, "64")
+        XCTAssertEqual(session.pendingCodes, [EngineCodeKeyToken.backspace])
+        queue.runAll()
+        deliverMainQueue()
+        XCTAssertEqual(engine.processed, ["6", "4", "\u{08}"])
+        XCTAssertEqual(session.snapshot.rawInput, "6")
+        XCTAssertTrue(session.pendingCodes.isEmpty)
+    }
+
+    /// The next press while that delete decodes settles it first, so the last code is deleted
+    /// once and the empty composition is reported, exactly as with synchronous deletes.
+    func testDeleteDuringADecodingDeleteSettlesFirst() {
+        let (session, engine, queue) = makeSession(delay: 0)
+        session.tap(.code("6"))
+        XCTAssertEqual(session.snapshot.rawInput, "6")
+        session.deleteInComposition()
+        XCTAssertEqual(session.pendingCodes, [EngineCodeKeyToken.backspace])
+        XCTAssertFalse(session.removeLastPendingCode(), "a decoding delete is never taken back")
+        session.settlePendingCodes()
+        XCTAssertFalse(session.snapshot.isComposing, "the settled delete ended the composition")
+        XCTAssertEqual(engine.processed, ["6", "\u{08}"])
+        queue.runAll()
+        deliverMainQueue()
+        XCTAssertEqual(engine.processed, ["6", "\u{08}"], "the taken-back batch never deletes twice")
+    }
+
+    /// Without a composition, or with keys still decoding, the delete keeps the synchronous path.
+    func testDeleteOutsideASettledCompositionStaysSynchronous() {
+        let (session, engine, queue) = makeSession(delay: 0)
+        session.tap(.code("6"))
+        session.tap(.code("4"))
+        XCTAssertEqual(session.pendingCodes, ["4"])
+        session.deleteInComposition()
+        XCTAssertEqual(engine.processed, ["6", "4", "\u{08}"], "the decoding key lands, then the delete runs")
+        XCTAssertEqual(session.snapshot.rawInput, "6")
+        XCTAssertTrue(session.pendingCodes.isEmpty)
+        queue.runAll()
+        deliverMainQueue()
+        XCTAssertEqual(session.snapshot.rawInput, "6")
+    }
+
     func testCandidateTappedDuringDecodingIsFoundAgainOrNotSelected() {
         let (session, engine, _) = makeSession(delay: 0.03)
         session.tap(.code("6"))

@@ -480,6 +480,47 @@ final class ManualQueue: EngineWorkQueue {
         }
     }
 
+    /// Delete inside a landed composition goes to the engine queue; the decision between an
+    /// engine and a host delete is the same as with a synchronous engine, also mid-burst.
+    @MainActor static func compositionDeleteOffMain() async {
+        func composing() async -> (KeyboardController, ManualQueue, () -> Int) {
+            let engine = ProbeEngine()
+            engine.composingCode = "n"
+            let controller = KeyboardController(engine: engine)
+            let queue = ManualQueue()
+            controller.session.codeKeyQueue = queue
+            var hostDeletes = 0
+            controller.onRequestDeleteBackward = { hostDeletes += 1 }
+            controller.handle(.code("n"))
+            queue.runAll()
+            await eventually("the first key did not land as a composition") { controller.snapshot.isComposing }
+            return (controller, queue, { hostDeletes })
+        }
+        do {
+            let (controller, queue, hostDeletes) = await composing()
+            controller.handle(.backspace)
+            precondition(controller.snapshot.isComposing, "the engine delete runs on the engine queue")
+            precondition(hostDeletes() == 0, "a composition delete never deletes host text")
+            queue.runAll()
+            await eventually("the queued delete must land") { !controller.snapshot.isComposing }
+            precondition(hostDeletes() == 0)
+            controller.handle(.backspace)
+            precondition(hostDeletes() == 1, "with the composition gone the host deletes")
+            controller.retire()
+        }
+        do {
+            let (controller, queue, hostDeletes) = await composing()
+            controller.handle(.backspace)
+            controller.handle(.backspace)
+            precondition(!controller.snapshot.isComposing, "the second press settles the first delete")
+            precondition(hostDeletes() == 1, "the second press deletes host text once: \(hostDeletes())")
+            queue.runAll()
+            try? await Task.sleep(nanoseconds: 20_000_000)
+            precondition(hostDeletes() == 1 && !controller.snapshot.isComposing, "nothing lands twice")
+            controller.retire()
+        }
+    }
+
     @MainActor static func pendingFirstKeyFallback() async {
         let engine = ProbeEngine()
         engine.composingCode = "n"
@@ -1052,6 +1093,7 @@ final class ManualQueue: EngineWorkQueue {
         await candidateSinkDuringDecode()
         await firstKeyDeferred()
         await pendingFirstKeyFallback()
+        await compositionDeleteOffMain()
         print("controller input regression checks passed")
     }
 }
