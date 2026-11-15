@@ -59,13 +59,13 @@ final class NineKeySideCandidatePolicyTests: XCTestCase {
 }
 
 final class CandidateEmojiWidthTests: XCTestCase {
-    /// An emoji draws as one glyph however many scalars it is made of, a little wider than a
-    /// Chinese character.
-    func testAnEmojiIsOneGlyphWide() {
+    /// An emoji draws as one glyph however many scalars it is made of, budgeted as one Chinese
+    /// character.
+    func testAnEmojiIsOneCharacterWide() {
         let han = CandidateTextMetrics.estimatedWidth("你", fontSize: 20)
         XCTAssertEqual(han, 20)
         for emoji in ["😀", "❤️", "👍🏻", "🇨🇳", "👨‍👩‍👧"] {
-            XCTAssertEqual(CandidateTextMetrics.estimatedWidth(emoji, fontSize: 20), 25, emoji)
+            XCTAssertEqual(CandidateTextMetrics.estimatedWidth(emoji, fontSize: 20), han, emoji)
         }
         XCTAssertEqual(CandidateTextMetrics.estimatedWidth("a1", fontSize: 20), 2 * 20 * 0.62, accuracy: 1e-9)
     }
@@ -116,6 +116,17 @@ final class CandidateJustifiedRowsTests: XCTestCase {
             XCTAssertEqual((width / unit).rounded(), width / unit, accuracy: 0.001)
         }
         XCTAssertEqual(rows.flatMap(\.entries).count, entries.count)
+    }
+
+    /// Among single characters an emoji takes one column, as wide as each of them.
+    func testAnEmojiTakesOneColumnAmongSingleCharacters() {
+        let typography = CandidateTypography(candidateSize: 20, secondarySize: 12)
+        let texts = ["旁", "品", "派", "🥧", "排", "婆", "飘", "普", "陪", "配"]
+        let entries = texts.enumerated().map { entry($0.element, $0.offset) }
+        let rows = CandidateExpandedFlow.table(
+            entries: entries, typography: typography, cellPaddingX: 12, availableWidth: 440)
+        XCTAssertEqual(rows[0].entries.count, 10)
+        XCTAssertEqual(Set(rows[0].widths.map { ($0 * 1000).rounded() }).count, 1)
     }
 
     func testFillerRowsNeverShareAnIdWithTheCandidates() {

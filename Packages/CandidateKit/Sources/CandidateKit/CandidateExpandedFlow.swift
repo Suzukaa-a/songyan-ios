@@ -20,12 +20,15 @@ public enum CandidateTextMetrics {
     /// Counted per visible character: a CJK/full-width character or an emoji is 1em, anything else
     /// 0.62em; empty text or an invalid font size gives 0. An emoji is often several scalars (a
     /// variation selector, a skin tone, a flag's two letters, a ZWJ family) but draws as one glyph.
+    /// Its glyph draws a little wider than a Chinese character, but it is budgeted the same: the
+    /// cell padding takes the difference, and a wider budget made an emoji span two table columns
+    /// among single characters.
     public static func estimatedWidth(_ text: String, fontSize: Double) -> CGFloat {
         guard !text.isEmpty, fontSize.isFinite, fontSize > 0 else { return 0 }
         let unit = CGFloat(fontSize)
         var width: CGFloat = 0
         for character in text {
-            width += isEmoji(character) ? unit * 1.25 : isWide(character) ? unit : unit * 0.62
+            width += isWide(character) ? unit : unit * 0.62
         }
         return width
     }
@@ -37,14 +40,6 @@ public enum CandidateTextMetrics {
         // A text-default symbol (©, ❤, a digit) is an emoji only with a selector or a sequence.
         return first.properties.isEmojiPresentation
             || (first.properties.isEmoji && scalars.count > 1)
-    }
-
-    /// An emoji glyph draws a little wider than a Chinese character.
-    private static func isEmoji(_ character: Character) -> Bool {
-        guard let first = character.unicodeScalars.first, first.value <= 0x2E80 || first.value >= 0x1F000
-        else { return false }
-        return first.properties.isEmojiPresentation
-            || (first.properties.isEmoji && character.unicodeScalars.count > 1)
     }
 }
 
