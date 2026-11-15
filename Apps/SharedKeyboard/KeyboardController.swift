@@ -338,6 +338,10 @@ public final class KeyboardController: ObservableObject {
     var highlightedReadSource: (revision: Int, snapshot: EngineSnapshot)?
     var highlightedReadInFlight: UUID?
     var highlightedReadCompleted = false
+    #if SONGYAN_PERF
+        /// No key is still decoding and no reading is pending: the next host write is final.
+        public var hostTextSettled: Bool { session.pendingCodes.isEmpty && highlightedReadInFlight == nil }
+    #endif
     /// Per-character readings the engine proved earlier in this keyboard session. A
     /// sentence's later characters (还 in 哦还) are never on the current code's first
     /// page, so without these the field guessed a syllable from frequency alone.
@@ -667,6 +671,11 @@ public final class KeyboardController: ObservableObject {
         #if SONGYAN_PERF
             let endPerformanceInterval = KeyboardPerformanceTrace.interval("key")
             defer { endPerformanceInterval() }
+            switch action {
+            case .code, .literal, .letterVariant, .space, .enter, .backspace:
+                KeyboardPerformanceTrace.beginKeyToHost()
+            case .switchKeyboard, .cycleLayout: break
+            }
         #endif
         let endStallWatch = KeyboardStallReport.begin(Self.actionKind(of: action))
         defer { endStallWatch() }

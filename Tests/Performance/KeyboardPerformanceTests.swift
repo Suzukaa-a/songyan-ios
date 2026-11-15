@@ -80,7 +80,9 @@ final class KeyboardPerformanceTests: XCTestCase {
         let app = prepareKeyboard()
         let field = app.textViews["试打输入框"]
         let keyboard = XCUIApplication(bundleIdentifier: "app.songyan.ime.keyboard")
-        measure(metrics: [metric("key"), metric("engineOp"), metric("refresh")], options: options()) {
+        measure(
+            metrics: [metric("key"), metric("keyToHost"), metric("engineOp"), metric("refresh")], options: options()
+        ) {
             dismissKeyboard(app, keyboard: keyboard)
             field.tap()
             XCTAssertTrue(keyboard.keys["n"].waitForExistence(timeout: 5))
@@ -93,6 +95,56 @@ final class KeyboardPerformanceTests: XCTestCase {
             keyboard.keys["o"].tap()
             let decoded = expectation(for: NSPredicate(format: "value ENDSWITH %@", "o"), evaluatedWith: field)
             wait(for: [decoded], timeout: 5)
+            stopMeasuring()
+            keyboard.keys["空格"].tap()
+            let committed = expectation(for: NSPredicate(format: "value == %@", "你好"), evaluatedWith: field)
+            wait(for: [committed], timeout: 5)
+        }
+    }
+
+    /// Held Delete through a composition: every repeat is one engine delete.
+    @MainActor
+    func testHeldDeleteThroughAComposition() {
+        let app = prepareKeyboard()
+        let field = app.textViews["试打输入框"]
+        let keyboard = XCUIApplication(bundleIdentifier: "app.songyan.ime.keyboard")
+        measure(metrics: [metric("key"), metric("keyToHost"), metric("engineOp")], options: options()) {
+            app.buttons["清空"].tap()
+            for letter in ["z", "h", "o", "n", "g", "g", "u", "o", "r", "e", "n"] {
+                keyboard.keys[letter].tap()
+            }
+            let typed = expectation(for: NSPredicate(format: "value ENDSWITH %@", "n"), evaluatedWith: field)
+            wait(for: [typed], timeout: 5)
+            startMeasuring()
+            keyboard.keys["退格"].press(forDuration: 2.0)
+            let cleared = expectation(for: NSPredicate(format: "value == %@", ""), evaluatedWith: field)
+            wait(for: [cleared], timeout: 5)
+            stopMeasuring()
+        }
+    }
+
+    /// 9-key composition: the key, its decode and, without a schema display value, the
+    /// engine-proven reading that the field waits for.
+    @MainActor
+    func testNineKeyTypingWithTheRealEngine() {
+        useNineKeyKeyboard(true)
+        defer { useNineKeyKeyboard(false) }
+        let app = prepareKeyboard(nineKey: true)
+        let field = app.textViews["试打输入框"]
+        let keyboard = XCUIApplication(bundleIdentifier: "app.songyan.ime.keyboard")
+        measure(metrics: [metric("key"), metric("keyToHost"), metric("engineOp")], options: options()) {
+            app.buttons["清空"].tap()
+            for group in ["MNO", "GHI", "GHI", "ABC"] { nineKey(keyboard, group).tap() }
+            let typed = expectation(for: NSPredicate(format: "value.length >= 4"), evaluatedWith: field)
+            wait(for: [typed], timeout: 5)
+            // The highlighted reading lands after the decode; let it settle first.
+            Thread.sleep(forTimeInterval: 0.3)
+            let before = field.value as? String ?? ""
+            startMeasuring()
+            nineKey(keyboard, "MNO").tap()
+            let decoded = expectation(for: NSPredicate(format: "value != %@", before), evaluatedWith: field)
+            wait(for: [decoded], timeout: 5)
+            Thread.sleep(forTimeInterval: 0.3)
             stopMeasuring()
             keyboard.keys["空格"].tap()
             let committed = expectation(for: NSPredicate(format: "value == %@", "你好"), evaluatedWith: field)
@@ -255,8 +307,44 @@ final class KeyboardPerformanceTests: XCTestCase {
         app.terminate()
     }
 
+    /// Adds and uses the built-in 9-key keyboard, or uses 26-key again and removes it, so the
+    /// other tests keep their single-keyboard control row.
     @MainActor
-    private func prepareKeyboard() -> XCUIApplication {
+    private func useNineKeyKeyboard(_ on: Bool) {
+        let app = XCUIApplication()
+        app.launchArguments = ["-app.songyan.settings.onboardingCompleted", "YES", "-AppleLanguages", "(zh-Hans)"]
+        app.launch()
+        let keyboards = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "我的键盘")).firstMatch
+        XCTAssertTrue(keyboards.waitForExistence(timeout: 10))
+        keyboards.tap()
+        let nine = "songyan_quanpin:phone9"
+        let added = app.buttons["userKeyboard.pages." + nine]
+        XCTAssertTrue(app.buttons["userKeyboard.save"].waitForExistence(timeout: 5))
+        if on {
+            if !added.exists {
+                app.buttons["userKeyboard.card." + nine].tap()
+                app.buttons["userKeyboard.save"].tap()
+                XCTAssertTrue(added.waitForExistence(timeout: 5))
+            }
+            let use = app.buttons["userKeyboard.use." + nine]
+            if use.waitForExistence(timeout: 2) { use.tap() }
+        } else if added.exists {
+            let use = app.buttons["userKeyboard.use.songyan_quanpin:qwerty26"]
+            if use.waitForExistence(timeout: 2) { use.tap() }
+            app.buttons["userKeyboard.card." + nine].tap()
+            app.buttons["userKeyboard.save"].tap()
+            XCTAssertTrue(added.waitForNonExistence(timeout: 5))
+        }
+        app.terminate()
+    }
+
+    @MainActor
+    private func nineKey(_ keyboard: XCUIApplication, _ letters: String) -> XCUIElement {
+        keyboard.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", letters)).firstMatch
+    }
+
+    @MainActor
+    private func prepareKeyboard(nineKey: Bool = false) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-app.songyan.settings.onboardingCompleted", "YES", "-AppleLanguages", "(zh-Hans)"]
         app.launch()
@@ -279,12 +367,20 @@ final class KeyboardPerformanceTests: XCTestCase {
             XCTAssertTrue(
                 pickerItem.waitForExistence(timeout: 5), "Enable Songyan on the dedicated simulator before testing")
             pickerItem.tap()
-            shown = keyboard.keys["n"].waitForExistence(timeout: 15)
+            shown =
+                nineKey
+                ? self.nineKey(keyboard, "MNO").waitForExistence(timeout: 15)
+                : keyboard.keys["n"].waitForExistence(timeout: 15)
         }
         XCTAssertTrue(shown)
         XCTAssertEqual(app.frame.width, 402)
         XCTAssertEqual(app.frame.height, 874)
-        typeGreeting(keyboard)
+        if nineKey {
+            for group in ["MNO", "GHI", "GHI", "ABC", "MNO"] { self.nineKey(keyboard, group).tap() }
+            keyboard.keys["空格"].tap()
+        } else {
+            typeGreeting(keyboard)
+        }
         let committed = expectation(for: NSPredicate(format: "value == %@", "你好"), evaluatedWith: field)
         wait(for: [committed], timeout: 10)
         return app

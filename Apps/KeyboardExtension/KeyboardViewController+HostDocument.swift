@@ -138,6 +138,9 @@ extension KeyboardViewController {
         action()
         expectedContext = proxyContext
         proxyWriteInProgress = false
+        #if SONGYAN_PERF
+            noteHostWriteForPerformance()
+        #endif
         // Our own writes often arrive without text/selection callbacks, so the cached
         // "field is empty" (return key enablement) would stay at the value from before
         // e.g. a chat app cleared the field on send. Re-read now and after the host
@@ -145,6 +148,14 @@ extension KeyboardViewController {
         refreshHostTraits()
         scheduleHostTraitsRefresh()
     }
+
+    #if SONGYAN_PERF
+        /// Also counts a write skipped because the host already shows that text.
+        private func noteHostWriteForPerformance() {
+            guard session?.controller?.hostTextSettled != false else { return }
+            KeyboardPerformanceTrace.hostWriteSettled()
+        }
+    #endif
 
     func scheduleHostTraitsRefresh() {
         guard !hostTraitsRefreshScheduled else { return }
@@ -178,6 +189,9 @@ extension KeyboardViewController {
             if !keyboardOnlyComposition { cancelOwnedMarked() }
             keyboardOnlyComposition = true
             session.reportCompositionPresentation(.keyboard(reason: "长拼写在键盘内显示"))
+            #if SONGYAN_PERF
+                noteHostWriteForPerformance()
+            #endif
             return
         }
         // Every controller refresh re-sends the composition. Re-marking identical
@@ -187,6 +201,9 @@ extension KeyboardViewController {
         if composition == pendingMarked, markedDocument == document,
             expectedContext == context
         {
+            #if SONGYAN_PERF
+                noteHostWriteForPerformance()
+            #endif
             return
         }
         if hostTextFinalizedThisTurn {

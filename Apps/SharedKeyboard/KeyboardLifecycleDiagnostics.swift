@@ -248,6 +248,31 @@ public final class LiveObjectCounter: Sendable {
             let state = signposter.beginInterval(name, id: signposter.makeSignpostID())
             return { signposter.endInterval(name, state) }
         }
+
+        /// Key press to the host text it causes. `key` covers only the synchronous part of
+        /// `handle`; this one also covers the engine hops and ends at the end of the main
+        /// turn whose host write found nothing left in flight (no key decoding, no reading
+        /// pending), i.e. after the last write the key caused. Keys pressed meanwhile end
+        /// with it.
+        @MainActor private static var openKeyToHost: [@Sendable () -> Void] = []
+        @MainActor private static var keyToHostEndScheduled = false
+
+        @MainActor public static func beginKeyToHost() {
+            // A key that never writes (a refused Return) must not grow this forever.
+            if openKeyToHost.count >= 32 { openKeyToHost.removeFirst() }
+            openKeyToHost.append(interval("keyToHost"))
+        }
+
+        @MainActor public static func hostWriteSettled() {
+            guard !openKeyToHost.isEmpty, !keyToHostEndScheduled else { return }
+            keyToHostEndScheduled = true
+            DispatchQueue.main.async {
+                keyToHostEndScheduled = false
+                let ends = openKeyToHost
+                openKeyToHost.removeAll()
+                ends.forEach { $0() }
+            }
+        }
     }
 #endif
 

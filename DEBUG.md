@@ -97,12 +97,13 @@ Add probes to `DebugProbe` in [KeyboardLifecycleDiagnostics.swift](Apps/SharedKe
 
 `make benchmark` runs the shared `KeyboardPerformance` scheme through `xcodebuild test`. [sim-benchmark.sh](Tools/CI/scripts/sim-benchmark.sh) stages an ad-hoc signed Release build with `SONGYAN_PERF`, disables coverage, and runs [KeyboardPerformanceTests.swift](Tests/Performance/KeyboardPerformanceTests.swift) serially. Ordinary builds omit these performance signposts and the fixture reset button.
 
-The fixture uses a dedicated `Songyan-Perf-Isolated` iPhone 17 Pro simulator on iOS 27.0, the built-in full pinyin scheme and its 26-key layout. It verifies that typing `nihao` commits `你好` through the real extension and engine. Each measurement runs 10 iterations after XCTest's warm-up:
+The fixture uses a dedicated `Songyan-Perf-Isolated` iPhone 17 Pro simulator on iOS 27.0, the built-in full pinyin scheme on its 26-key layout and, for the 9-key case, on its 9-key layout (added for that test and removed afterwards). It verifies that typing `nihao` commits `你好` through the real extension and engine; the other cases hold Delete through a composition and type on the 9-key layout. Each measurement runs 10 iterations after XCTest's warm-up:
 
 - `appearance`: `viewWillAppear` through the end of `viewDidAppear`.
 - `key`: synchronous key dispatch in `KeyboardController.handle`.
 - `engineOp`: queue wait, engine execution and asynchronous return through `EngineOpQueue`.
 - `refresh`: controller state publication.
+- `keyToHost`: key press to the host text it causes, including the engine hops; it ends after the last proxy write the key caused, once no key is decoding and no reading is pending.
 
 These intervals describe their named code boundaries; first-frame and touch-to-visible latency need separate frame instrumentation. Results and raw samples are in `.local/ci/keyboard-performance-*/<run>/KeyboardPerformance.xcresult` and `metrics.json`. Compare repeated runs on the same simulator, runtime and build settings before drawing conclusions about a change. `make sim-perf MODE=typing ARG=<label>` runs the same native suite with a result label.
 
