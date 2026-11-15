@@ -47,10 +47,16 @@ jobs:
       - name: Lint
         run: Tools/CI/ci.sh lint
 
+  # Package tests and source probes on separate runners: the wall time is the
+  # slower half, not the sum.
   tests:
-    name: Tests
+    name: Tests (${{ matrix.part }})
     runs-on: xcode-27
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        part: [packages, probes]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -67,15 +73,15 @@ jobs:
             .local/swiftpm-cache
             .local/ci/swift-package-builds
             .local/swift-probes
-          key: tests-v2-${{ runner.os }}-${{ runner.arch }}-xcode-27.1-${{ hashFiles('Packages/**/Package.swift', 'Packages/**/Package.resolved', 'Tests/IOS/swift_probe.py') }}
+          key: tests-v3-${{ matrix.part }}-${{ runner.os }}-${{ runner.arch }}-xcode-27.1-${{ hashFiles('Packages/**/Package.swift', 'Packages/**/Package.resolved', 'Tests/IOS/swift_probe.py') }}
           restore-keys: |
-            tests-v2-${{ runner.os }}-${{ runner.arch }}-xcode-27.1-
+            tests-v3-${{ matrix.part }}-${{ runner.os }}-${{ runner.arch }}-xcode-27.1-
       - name: Install localization build tools
         run: brew install cmake
       - name: Build pinned localization converter
         run: bash Tools/CI/scripts/build-localization-opencc.sh
       - name: Run tests
-        run: Tools/CI/ci.sh fast
+        run: Tools/CI/ci.sh ${{ matrix.part }}
       - name: Save Swift build caches
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -89,7 +95,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: swift-package-test-logs
+          name: swift-package-test-logs-${{ matrix.part }}
           path: .local/ci/swift-packages/**/*.log
           if-no-files-found: ignore
           retention-days: 7

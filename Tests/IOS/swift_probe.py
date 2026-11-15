@@ -72,11 +72,17 @@ def scratch_directory(prefix):
     try:
         yield directory
     finally:
-        subprocess.run([
-            "swift", "-e",
-            "import Foundation; var destination: NSURL?; try FileManager.default.trashItem(at: URL(fileURLWithPath: CommandLine.arguments[1]), resultingItemURL: &destination)",
-            str(directory),
-        ], check=True, capture_output=True)
+        # macOS 15+ ships /usr/bin/trash; starting the Swift interpreter instead costs about a
+        # second per probe.
+        if Path("/usr/bin/trash").exists():
+            command = ["/usr/bin/trash", str(directory)]
+        else:
+            command = [
+                "swift", "-e",
+                "import Foundation; var destination: NSURL?; try FileManager.default.trashItem(at: URL(fileURLWithPath: CommandLine.arguments[1]), resultingItemURL: &destination)",
+                str(directory),
+            ]
+        subprocess.run(command, check=True, capture_output=True)
 
 
 def run(command, **kwargs):

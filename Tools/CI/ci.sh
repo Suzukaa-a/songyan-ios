@@ -6,9 +6,12 @@ ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
 usage() {
   cat <<'EOF'
-Usage: Tools/CI/ci.sh <fast|extended|release|lint|format>
+Usage: Tools/CI/ci.sh <fast|packages|probes|extended|release|lint|format>
 
-  fast      Clean-checkout tests without RimeKit or a simulator runtime.
+  fast      Clean-checkout tests without RimeKit or a simulator runtime
+            (packages + probes).
+  packages  Project-structure checks and the Swift package tests.
+  probes    Production-source probes in Tests/IOS, run in parallel.
   extended  fast + serialized native harnesses + unsigned Debug app builds.
   release   extended + installed RimeKit check + unsigned Release builds.
   lint      swift-format (strict), shellcheck and ruff on tracked sources.
@@ -31,15 +34,39 @@ EOF
 
 [[ $# -eq 1 ]] || { usage >&2; exit 64; }
 
-fast() {
+packages() {
   python3 -m unittest discover -s "${ROOT}/Tests/ProjectStructure" -p 'test_*.py' -v
-  # Keep the selected full Xcode in this shell for both package tests and the
-  # subsequent production-source probes (which may compile SwiftUI macros).
   source "${SCRIPT_DIR}/scripts/lib/xcode.sh"
   require_xcode
   "${SCRIPT_DIR}/scripts/test-swift-packages.sh"
-  # Offline production-source probes; no RimeKit prefix or Simulator runtime needed.
-  python3 -m unittest discover -s "${ROOT}/Tests/IOS" -p 'test_*.py' -v
+}
+
+# Offline production-source probes; no RimeKit prefix or Simulator runtime
+# needed. Each module is an independent swiftc compile (they share one locked
+# build of the production modules), so modules run side by side; a module's
+# output is printed whole when it fails. Exit status 5 is unittest's "no tests
+# ran": the simulator probes that are only run by hand.
+probes() {
+  # The full Xcode may be needed to compile SwiftUI macros.
+  source "${SCRIPT_DIR}/scripts/lib/xcode.sh"
+  require_xcode
+  local logs
+  logs="$(mktemp -d)"
+  # shellcheck disable=SC2016 # the inner script reads its arguments as $2 and $3
+  find "${ROOT}/Tests/IOS" -maxdepth 1 -name 'test_*.py' -exec basename {} .py \; | sort |
+    xargs -P "${PROBE_JOBS:-$(sysctl -n hw.ncpu)}" -I{} sh -c '
+      cd "$1" || exit 1
+      python3 -m unittest -v "$2" >"$3/$2.log" 2>&1
+      case $? in
+        0) printf "ok   %s\n" "$2" ;;
+        5) printf "skip %s (no test cases: run by hand)\n" "$2" ;;
+        *) printf "FAIL %s\n" "$2"; cat "$3/$2.log"; exit 1 ;;
+      esac' _ "${ROOT}/Tests/IOS" {} "${logs}"
+}
+
+fast() {
+  packages
+  probes
 }
 
 extended() {
@@ -110,6 +137,12 @@ case "$1" in
     ;;
   fast)
     fast
+    ;;
+  packages)
+    packages
+    ;;
+  probes)
+    probes
     ;;
   extended)
     extended
