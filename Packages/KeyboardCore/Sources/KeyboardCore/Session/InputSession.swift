@@ -804,6 +804,12 @@ public final class InputSession {
     /// The candidates after the first page of the snapshot being applied, read
     /// read-only right after its decode. Set only while `onUpdate` runs for a landed batch.
     public internal(set) var candidateLookahead: (rawInput: String, pageSize: Int, candidates: [Candidate])?
+    /// On a compact layout, a deferred batch also reads the highlighted candidate's proven
+    /// reading in its own engine hop when the schema gives no display value; the front end
+    /// otherwise held the field for a second hop after every key.
+    public var codeBatchReadsHighlightedReading = false
+    /// That reading for the snapshot being applied. Set only while `onUpdate` runs for a landed batch.
+    public internal(set) var landedHighlightedReading: LandedHighlightedReading?
 
     // MARK: Private
 

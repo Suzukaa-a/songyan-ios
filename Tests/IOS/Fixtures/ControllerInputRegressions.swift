@@ -169,6 +169,39 @@ final class ProbeEngine: EngineBackend {
     func shutdown() {}
 }
 
+/// A keypad composition with no schema display value: the field shows the engine-proven
+/// reading of the highlighted candidate, which this engine counts.
+final class KeypadReadingEngine: EngineBackend, @unchecked Sendable {
+    let kind: EngineBackendKind = .demoSimulator("controller-regression")
+    var statusSummary: String { "fixture" }
+    private let lock = NSLock()
+    private var input = ""
+    private var reads: [String] = []
+    var readCount: Int { lock.withLock { reads.count } }
+    func setup(sharedDirectory: URL, userDirectory: URL) throws {}
+    func selectSchema(_ schemaID: String) throws {}
+    func processKey(_ keyValue: String) throws -> EngineSnapshot {
+        lock.withLock { input += keyValue }
+        return currentSnapshot()
+    }
+    func selectCandidate(_ index: Int) throws -> EngineSnapshot { currentSnapshot() }
+    func nextPage() throws -> EngineSnapshot { currentSnapshot() }
+    func previousPage() throws -> EngineSnapshot { currentSnapshot() }
+    func currentSnapshot() -> EngineSnapshot {
+        let input = lock.withLock { self.input }
+        return EngineSnapshot(
+            candidates: [Candidate(index: 0, text: "字\(input.count)")], preedit: input, rawInput: input,
+            isComposing: !input.isEmpty, highlightedIndex: 0)
+    }
+    func verifiedHighlightedReading(
+        absoluteIndex: Int, expectedText: String, physicalLayoutEligible: Bool
+    ) throws -> String? {
+        lock.withLock { reads.append(expectedText) }
+        return "zi" + String(expectedText.dropFirst())
+    }
+    func shutdown() {}
+}
+
 /// Commits exactly the candidate text the front end renders at that index. ProbeEngine answers
 /// every selection with a synthetic "c<index>", so it cannot show whether a stale tap commits a
 /// word the user never saw.
@@ -519,6 +552,32 @@ final class ManualQueue: EngineWorkQueue {
             precondition(hostDeletes() == 1 && !controller.snapshot.isComposing, "nothing lands twice")
             controller.retire()
         }
+    }
+
+    /// A key batch reads the highlighted reading in its own engine hop, so the field gets the
+    /// reading with the decoded composition, without a second engine hop per key.
+    @MainActor static func keypadReadingInTheBatchHop() async {
+        let engine = KeypadReadingEngine()
+        let controller = KeyboardController(engine: engine)
+        controller.session.compactSpellingLayout = true
+        let queue = ManualQueue()
+        controller.session.codeKeyQueue = queue
+        controller.session.codeBatchReadsHighlightedReading = true
+        var marks: [MarkedComposition?] = []
+        controller.onMarkedComposition = { marks.append($0) }
+        controller.handle(.code("6"))
+        await eventually("the first key's reading must land") { controller.highlightedReading == "zi1" }
+        precondition(engine.readCount == 1)
+        controller.handle(.code("4"))
+        precondition(controller.session.pendingCodes == ["4"])
+        queue.runAll()
+        precondition(engine.readCount == 2, "the batch reads the reading with its decode")
+        await eventually("the batch must land with its reading") { controller.highlightedReading == "zi2" }
+        precondition(controller.highlightedReadInFlight == nil, "nothing is left to read")
+        precondition(marks.last??.text.isEmpty == false, "the field shows the composition at once")
+        try? await Task.sleep(nanoseconds: 50_000_000)
+        precondition(engine.readCount == 2, "no second engine hop for the same snapshot: \(engine.readCount)")
+        controller.retire()
     }
 
     @MainActor static func pendingFirstKeyFallback() async {
@@ -1094,6 +1153,7 @@ final class ManualQueue: EngineWorkQueue {
         await firstKeyDeferred()
         await pendingFirstKeyFallback()
         await compositionDeleteOffMain()
+        await keypadReadingInTheBatchHop()
         print("controller input regression checks passed")
     }
 }

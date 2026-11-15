@@ -590,6 +590,7 @@ public final class KeyboardController: ObservableObject {
         if engine is RimeBackend {
             session.codeKeyQueue = EngineOpCodeKeyQueue.shared
             session.codeBatchLookaheadPages = Self.candidatePagesPerRead - 1
+            session.codeBatchReadsHighlightedReading = true
         }
         session.onPendingCodesChanged = { [weak self] in
             guard let self else { return }

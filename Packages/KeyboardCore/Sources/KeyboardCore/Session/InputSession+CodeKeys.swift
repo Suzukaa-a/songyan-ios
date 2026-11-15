@@ -21,11 +21,14 @@ extension InputSession {
         private(set) var error: Error?
         private(set) var lookahead: [Candidate]?
         let lookaheadPages: Int
+        private(set) var highlightedReading: LandedHighlightedReading?
+        let readsHighlightedReading: Bool
 
-        init(keys: [String], engine: EngineBackend, lookaheadPages: Int) {
+        init(keys: [String], engine: EngineBackend, lookaheadPages: Int, readsHighlightedReading: Bool = false) {
             self.keys = keys
             self.engine = engine
             self.lookaheadPages = lookaheadPages
+            self.readsHighlightedReading = readsHighlightedReading
         }
 
         func run() {
@@ -46,6 +49,17 @@ extension InputSession {
                 s.pageSize > 0, s.pageIndex == 0, !s.isLastPage, s.candidates.count == s.pageSize
             {
                 lookahead = try? engine.readCandidates(fromIndex: s.pageSize, count: s.pageSize * lookaheadPages)
+            }
+            if !stopped, error == nil, readsHighlightedReading, let s = snapshot, s.isComposing,
+                s.highlightedDisplay.isEmpty, s.candidates.indices.contains(s.highlightedIndex), s.pageIndex >= 0
+            {
+                let absolute = s.pageSize > 0 ? s.pageIndex * s.pageSize + s.highlightedIndex : s.highlightedIndex
+                let text = s.candidates[s.highlightedIndex].text
+                // A failed read counts as unproven, like a nil reading.
+                let reading = try? engine.verifiedHighlightedReading(
+                    absoluteIndex: absolute, expectedText: text, physicalLayoutEligible: true)
+                highlightedReading = LandedHighlightedReading(
+                    absoluteIndex: absolute, text: text, reading: reading)
             }
             done = true
             lock.unlock()
@@ -127,7 +141,9 @@ extension InputSession {
 
     private func startCodeBatch() {
         guard !retired, let queue = codeKeyQueue, batch == nil, !pendingCodes.isEmpty else { return }
-        let next = CodeBatch(keys: pendingCodes, engine: engine, lookaheadPages: codeBatchLookaheadPages)
+        let next = CodeBatch(
+            keys: pendingCodes, engine: engine, lookaheadPages: codeBatchLookaheadPages,
+            readsHighlightedReading: codeBatchReadsHighlightedReading && compactSpellingLayout && mode == .chinese)
         batch = next
         queue.async { [weak self] in
             next.run()
@@ -150,8 +166,10 @@ extension InputSession {
         pendingCodesRevision &+= 1
         if let snapshot = landed.snapshot {
             candidateLookahead = landed.lookahead.map { (snapshot.rawInput, snapshot.pageSize, $0) }
+            landedHighlightedReading = landed.highlightedReading
             apply(snapshot, continuingCandidateSelection: true)
             candidateLookahead = nil
+            landedHighlightedReading = nil
         }
         if let error = landed.error {
             pendingCodes.removeAll()
@@ -243,6 +261,14 @@ extension InputSession {
         onPendingCodesChanged?()
         return true
     }
+}
+
+/// The highlighted candidate's engine-proven reading, read in a deferred batch's own hop.
+public struct LandedHighlightedReading: Equatable, Sendable {
+    public let absoluteIndex: Int
+    public let text: String
+    /// nil when the engine cannot prove it.
+    public let reading: String?
 }
 
 /// Engine control keys the front end may queue as code keys beside ordinary text keys.

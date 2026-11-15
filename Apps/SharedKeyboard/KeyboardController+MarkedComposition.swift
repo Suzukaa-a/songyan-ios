@@ -186,6 +186,13 @@ extension KeyboardController {
         guard !highlightedReadCompleted, highlightedReadInFlight == nil else { return }
         let absolute = s.pageSize > 0 ? s.pageIndex * s.pageSize + s.highlightedIndex : s.highlightedIndex
         let text = s.candidates[s.highlightedIndex].text
+        // A landed key batch already read it in its own engine hop.
+        if let landed = session.landedHighlightedReading, landed.absoluteIndex == absolute, landed.text == text {
+            highlightedReadCompleted = true
+            let shownReading = shownHighlightedReading(landed.reading, for: s)
+            if highlightedReading != shownReading { highlightedReading = shownReading }
+            return
+        }
         let physicalLayoutEligible = session.compactSpellingLayout
         // EngineBackend is not Sendable; its calls are serialized on EngineOpQueue.
         nonisolated(unsafe) let engine = session.engine
@@ -223,11 +230,7 @@ extension KeyboardController {
             }
             highlightedReadInFlight = nil
             highlightedReadCompleted = true
-            let reading = resolved ?? ""
-            let safeReading = s.hidesNumericTransportCode && reading.contains(where: { $0.isNumber }) ? "" : reading
-            let shownReading = typedReading(
-                safeReading, rawInput: s.rawInput, keypad: s.hidesNumericTransportCode,
-                exactLetters: exactTokenLetters)
+            let shownReading = shownHighlightedReading(resolved, for: s)
             guard highlightedReading != shownReading else {
                 // The held text (see `refresh`) is released even when unchanged.
                 publishMarked(markedComposition)
@@ -237,6 +240,14 @@ extension KeyboardController {
             publishMarked(markedComposition)
         }
     }
+
+    private func shownHighlightedReading(_ resolved: String?, for s: EngineSnapshot) -> String {
+        let reading = resolved ?? ""
+        let safeReading = s.hidesNumericTransportCode && reading.contains(where: { $0.isNumber }) ? "" : reading
+        return typedReading(
+            safeReading, rawInput: s.rawInput, keypad: s.hidesNumericTransportCode, exactLetters: exactTokenLetters)
+    }
+
     /// A sentence the engine joined from several words (一金贵呀) has no provable
     /// reading, and a 9-key field hides the numeric code, so the field went blank.
     /// Spell it from the engine's own syllable segments of the highlighted code

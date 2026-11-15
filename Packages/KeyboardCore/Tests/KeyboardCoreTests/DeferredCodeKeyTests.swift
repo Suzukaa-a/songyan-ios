@@ -88,11 +88,26 @@ final class DeferredCodeKeyTests: XCTestCase {
         private func menu() -> [Candidate] {
             (0..<menuCount).map { Candidate(index: $0, text: "\(input)-\($0)") }
         }
+        /// The composition highlights its first candidate, carrying this display value.
+        var highlightsFirst = false
+        var highlightedDisplay = ""
+        private(set) var readingRequests: [(absoluteIndex: Int, text: String)] = []
+        func verifiedHighlightedReading(
+            absoluteIndex: Int, expectedText: String, physicalLayoutEligible: Bool
+        ) throws -> String? {
+            lock.lock()
+            defer { lock.unlock() }
+            readingRequests.append((absoluteIndex, expectedText))
+            return "reading-" + expectedText
+        }
         private func state() -> EngineSnapshot {
             guard pageSize > 0, !input.isEmpty else {
-                return EngineSnapshot(
+                var snapshot = EngineSnapshot(
                     candidates: input.isEmpty ? [] : [Candidate(index: 0, text: input)],
-                    preedit: input, rawInput: input, isComposing: !input.isEmpty)
+                    preedit: input, rawInput: input, isComposing: !input.isEmpty,
+                    highlightedIndex: highlightsFirst && !input.isEmpty ? 0 : -1)
+                snapshot.highlightedDisplay = highlightedDisplay
+                return snapshot
             }
             let all = menu()
             return EngineSnapshot(
@@ -276,6 +291,44 @@ final class DeferredCodeKeyTests: XCTestCase {
         XCTAssertEqual(lookahead?.pageSize, 2)
         XCTAssertEqual(lookahead?.candidates.map(\.text), ["64-2", "64-3", "64-4"])
         XCTAssertNil(session.candidateLookahead, "only visible while the batch's update runs")
+    }
+
+    /// On a compact layout without a display value, the batch reads the highlighted reading in
+    /// its own engine hop; the front end gets it with the snapshot instead of a second hop.
+    func testABatchReadsTheHighlightedReadingWithItsDecode() {
+        let (session, engine, queue) = makeSession(delay: 0)
+        engine.highlightsFirst = true
+        session.codeBatchReadsHighlightedReading = true
+        var seen: [LandedHighlightedReading?] = []
+        session.onUpdate = { seen.append(session.landedHighlightedReading) }
+        session.tap(.code("6"))
+        XCTAssertNil(seen.last ?? nil, "a synchronous key reads nothing extra")
+        session.tap(.code("4"))
+        queue.runAll()
+        XCTAssertEqual(engine.readingRequests.map(\.text), ["64"], "read in the decode's hop, before landing")
+        XCTAssertEqual(engine.readingRequests.first?.absoluteIndex, 0)
+        deliverMainQueue()
+        XCTAssertEqual(
+            seen.last ?? nil, LandedHighlightedReading(absoluteIndex: 0, text: "64", reading: "reading-64"))
+        XCTAssertNil(session.landedHighlightedReading, "only visible while the batch's update runs")
+    }
+
+    /// A schema display value, a plain layout or no request reads nothing extra.
+    func testTheHighlightedReadingIsReadOnlyWhenTheFieldNeedsIt() {
+        for setup in 0..<3 {
+            let (session, engine, queue) = setup == 2 ? makePlainSession(delay: 0) : makeSession(delay: 0)
+            engine.highlightsFirst = true
+            engine.highlightedDisplay = setup == 0 ? "ni" : ""
+            session.codeBatchReadsHighlightedReading = setup != 1
+            session.tap(.code("6"))
+            session.tap(.code("4"))
+            for _ in 0..<2 {
+                queue.runAll()
+                deliverMainQueue()
+            }
+            XCTAssertTrue(session.pendingCodes.isEmpty)
+            XCTAssertTrue(engine.readingRequests.isEmpty, "case \(setup)")
+        }
     }
 
     func testOtherActionsDrainDeferredKeysFirst() {
