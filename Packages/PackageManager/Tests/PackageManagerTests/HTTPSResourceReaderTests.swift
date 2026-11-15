@@ -233,7 +233,7 @@ final class HTTPSResourceReaderTests: XCTestCase {
             recipePath: "recipe.yaml", license: "LICENSE", schemaID: "a", requiredComponents: [],
             files: files.map { path, body in
                 .init(
-                    path: path, sha256: SHA256.hash(data: body).map { String(format: "%02x", $0) }.joined(),
+                    path: path, sha256: sha256Hex(body),
                     size: body.count)
             }, origin: nil)
         let manager = RecipePackageManager(

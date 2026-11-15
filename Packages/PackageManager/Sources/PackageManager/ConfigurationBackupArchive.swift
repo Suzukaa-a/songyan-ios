@@ -32,7 +32,7 @@ public struct ConfigurationBackupManifest: Codable, Equatable, Sendable {
             + files.map {
                 "\($0.archivePath):\($0.bytes):\($0.sha256)"
             }.sorted()
-        return SHA256.hash(data: Data(lines.joined(separator: "\n").utf8)).map { String(format: "%02x", $0) }.joined()
+        return sha256Hex(Data(lines.joined(separator: "\n").utf8))
     }
 }
 
@@ -64,7 +64,7 @@ public enum ConfigurationBackupArchive {
             + value.files.map {
                 "\($0.domain.rawValue)/\($0.path):\($0.bytes):\($0.modified?.timeIntervalSince1970 ?? 0):\($0.identifier)"
             }
-        return SHA256.hash(data: Data(lines.joined(separator: "\n").utf8)).map { String(format: "%02x", $0) }.joined()
+        return sha256Hex(Data(lines.joined(separator: "\n").utf8))
     }
 
     /// Captures to a private staging directory before compression. A concurrent replacement or
@@ -203,7 +203,7 @@ public enum ConfigurationBackupArchive {
                     try handle.write(contentsOf: bytes)
                 }
                 guard count == file.bytes, checksum == entries[file.blobPath]!.checksum,
-                    digest.finalize().map({ String(format: "%02x", $0) }).joined() == file.sha256
+                    digest.finalize().hex == file.sha256
                 else { throw ConfigurationBackupError.invalidArchive }
                 extracted[file.blobPath] = output
             }
@@ -307,6 +307,6 @@ public enum ConfigurationBackupArchive {
             guard size <= maximumFileBytes else { throw ConfigurationBackupError.limitExceeded }
             digest.update(data: chunk)
         }
-        return (size, digest.finalize().map { String(format: "%02x", $0) }.joined())
+        return (size, digest.finalize().hex)
     }
 }

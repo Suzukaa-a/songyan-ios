@@ -13,7 +13,7 @@ final class RecipePackageManagerTests: XCTestCase {
         let data = Data("fixture".utf8)
         let files = ["recipe.yaml", "LICENSE", "test.schema.yaml"].map {
             RecipeManifest.File(
-                path: $0, sha256: SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined(), size: data.count)
+                path: $0, sha256: sha256Hex(data), size: data.count)
         }
         let manifest = RecipeManifest(
             id: "fixture", repository: "test/fixture", revision: String(repeating: "a", count: 40),
@@ -82,7 +82,7 @@ final class RecipePackageManagerTests: XCTestCase {
         let records = source.keys.sorted().map { path in
             RecipeManifest.File(
                 path: path,
-                sha256: SHA256.hash(data: source[path]!).map { String(format: "%02x", $0) }.joined(),
+                sha256: sha256Hex(source[path]!),
                 size: source[path]!.count)
         }
         let manifest = RecipeManifest(

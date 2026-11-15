@@ -15,7 +15,7 @@ final class RecheckCoreTests: XCTestCase {
             recipePath: "a.schema.yaml", license: "test", schemaID: "a", requiredComponents: [],
             files: bytes.map {
                 .init(
-                    path: $0.key, sha256: SHA256.hash(data: $0.value).map { String(format: "%02x", $0) }.joined(),
+                    path: $0.key, sha256: sha256Hex($0.value),
                     size: $0.value.count)
             }, origin: origin)
     }
@@ -195,7 +195,7 @@ final class RecheckCoreTests: XCTestCase {
                 license: "fixture", schemaID: "songyan_quanpin", requiredComponents: [],
                 files: data.map {
                     .init(
-                        path: $0.key, sha256: SHA256.hash(data: $0.value).map { String(format: "%02x", $0) }.joined(),
+                        path: $0.key, sha256: sha256Hex($0.value),
                         size: $0.value.count)
                 } + [.init(path: modelPath, sha256: model.sha256, size: model.size)], origin: .userScheme)
         }

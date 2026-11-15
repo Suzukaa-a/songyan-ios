@@ -11,7 +11,7 @@ final class SharedRimePresetTests: XCTestCase {
     func testPinnedDefaultsAreCompleteAndOnlySchemaListIsAdapted() throws {
         let original = try SharedRimePresets.bundled("default.yaml")
         XCTAssertEqual(
-            SHA256.hash(data: original).map { String(format: "%02x", $0) }.joined(),
+            sha256Hex(original),
             "0628ada16651d56c4cdfcb8e45ddba23d4d585cc8be0580a62c4e077c0bcc141")
         var files = ["sample.schema.yaml": schema]
         try SharedRimePresets.supplement(&files)

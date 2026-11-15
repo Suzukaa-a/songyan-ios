@@ -336,10 +336,6 @@ public enum KeyboardKana12Preferences {
     public static var flickOnly: Bool {
         (SharedPreferences.object(forKey: flickOnlyKey, in: defaults) as? Bool) ?? defaultFlickOnly
     }
-
-    public static func setFlickOnly(_ value: Bool) {
-        SharedPreferences.set(value, forKey: flickOnlyKey, in: defaults)
-    }
 }
 
 /// Where a width-capped wide-screen keyboard sits. One value per physical layout, so a

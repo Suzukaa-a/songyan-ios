@@ -205,12 +205,6 @@ public enum BuiltinLayouts {
     /// Long-press digit shared by the first key and 2-9.
     public static let t9DigitOne = "1"
 
-    /// Last-resort first key built from the address-mark fallback: label is the first three marks, tap inserts the first.
-    public static func t9PunctuationKey() -> LayoutKey {
-        let marks = t9PunctuationSymbols()
-        return LayoutKey(label: marks.prefix(3).joined(), action: .init(.literal, value: marks[0]))
-    }
-
     /// First key while composing: tap still separates syllables (sends apostrophe); long-press types `1` like 2-9.
     /// It is a plain literal action, so it commits the composition first, then inserts the digit,
     /// and never triggers cycling or separation.

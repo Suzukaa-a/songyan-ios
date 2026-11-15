@@ -177,7 +177,7 @@ final class LuaSandboxTests: XCTestCase {
                 recipePath: "a.schema.yaml", license: "test", schemaID: "a", requiredComponents: [],
                 files: bytes.map {
                     .init(
-                        path: $0.key, sha256: SHA256.hash(data: $0.value).map { String(format: "%02x", $0) }.joined(),
+                        path: $0.key, sha256: sha256Hex($0.value),
                         size: $0.value.count)
                 },
                 origin: .userScheme)

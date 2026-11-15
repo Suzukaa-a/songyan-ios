@@ -212,8 +212,6 @@ public enum AlternateDragPicker {
             return lower...upper
         }
 
-        public func isRowVisible(_ row: Int) -> Bool { visibleColumns(inRow: row) != nil }
-
         /// Number of cells that actually exist in `row` (the last row may be
         /// partial); 0 for a row that does not exist.
         public func optionCount(inRow row: Int) -> Int {

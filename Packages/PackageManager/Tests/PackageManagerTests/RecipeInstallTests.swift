@@ -270,7 +270,7 @@ final class RecipeInstallTests: XCTestCase {
         let data = Data("fixture".utf8)
         let files = ["recipe.yaml", "LICENSE", "a.schema.yaml", "b.schema.yaml", "default.yaml"].map {
             RecipeManifest.File(
-                path: $0, sha256: SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined(), size: data.count)
+                path: $0, sha256: sha256Hex(data), size: data.count)
         }
         let manifest = RecipeManifest(
             id: "pkg", repository: "user/import", revision: String(repeating: "a", count: 40),
@@ -309,7 +309,7 @@ final class RecipeInstallTests: XCTestCase {
         let data = Data("fixture".utf8)
         let files = ["recipe.yaml", "LICENSE", "a.schema.yaml", "b.schema.yaml", "default.yaml"].map {
             RecipeManifest.File(
-                path: $0, sha256: SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined(), size: data.count)
+                path: $0, sha256: sha256Hex(data), size: data.count)
         }
         let manifest = RecipeManifest(
             id: "pkg", repository: "user/recipe", revision: String(repeating: "b", count: 40),
@@ -353,7 +353,7 @@ final class RecipeInstallTests: XCTestCase {
         let data = Data("fixture".utf8)
         let files = ["recipe.yaml", "LICENSE", "a.schema.yaml", "b.schema.yaml", "default.yaml"].map {
             RecipeManifest.File(
-                path: $0, sha256: SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined(), size: data.count)
+                path: $0, sha256: sha256Hex(data), size: data.count)
         }
         func manifest(_ revision: String) -> RecipeManifest {
             RecipeManifest(

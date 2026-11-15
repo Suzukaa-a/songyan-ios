@@ -913,7 +913,7 @@ enum SchemeSourceCheck {
         guard let last = parts.last, last.lowercased().hasSuffix(".userdb.txt") else { return false }
         return !parts.dropLast().contains { $0.contains(".userdb") }
     }
-    static func hash(_ data: Data) -> String { SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined() }
+    static func hash(_ data: Data) -> String { sha256Hex(data) }
     /// Files a package provides for librime: configuration, dictionaries, Lua, OpenCC data and models.
     /// Everything else (licences, readmes, workflows) is attribution and documentation.
     static func isRuntimeSourceFile(_ path: String) -> Bool {
