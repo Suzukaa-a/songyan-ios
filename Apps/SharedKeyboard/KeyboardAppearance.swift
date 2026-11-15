@@ -150,7 +150,8 @@ public enum KeyboardWidthPreferences {
             splitWidth: splitWidth, marginWidth: stored(marginWidthKey)?.intValue ?? splitWidth,
             sideMarginPercent: stored(sideMarginPercentKey)?.doubleValue,
             middleGapPercent: stored(middleGapPercentKey)?.intValue ?? WideMiddleGap.defaultPercent,
-            splitMode: KeyboardSplitMode.resolve(SharedPreferences.object(forKey: splitModeKey, in: defaults) as? String))
+            splitMode: KeyboardSplitMode.resolve(
+                SharedPreferences.object(forKey: splitModeKey, in: defaults) as? String))
         // Splits read the gap where they are resolved, which is everywhere a keyboard is drawn.
         WideMiddleGap.percent = settings.middleGapPercent
         return settings

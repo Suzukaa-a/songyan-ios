@@ -1,7 +1,8 @@
-@testable import CandidateKit
 import KeyboardCore
 import LayoutKit
 import XCTest
+
+@testable import CandidateKit
 
 final class NineKeySideCandidatePolicyTests: XCTestCase {
     func testLeftIsTheDefaultAndMirroringSwapsSides() {

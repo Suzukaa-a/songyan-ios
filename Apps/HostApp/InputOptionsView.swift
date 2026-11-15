@@ -322,7 +322,7 @@ struct InputOptionsView: View {
 
     private var keyboardWidthSection: some View {
         Section {
-            Picker("拆分键盘", selection: $splitModeDraft) {
+            Picker(String(localized: "拆分键盘"), selection: $splitModeDraft) {
                 Text("跟随键盘布局").tag(KeyboardSplitMode.layout)
                 Text("大屏上拆分").tag(KeyboardSplitMode.on)
                 Text("不拆分").tag(KeyboardSplitMode.off)
