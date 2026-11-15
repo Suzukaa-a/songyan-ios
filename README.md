@@ -1,19 +1,12 @@
 # Songyan (松烟)
 
-![CI](../../actions/workflows/ci.yml/badge.svg)
+[![CI](https://github.com/Suzukaa-a/songyan-ios/actions/workflows/ci.yml/badge.svg)](https://github.com/Suzukaa-a/songyan-ios/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/Suzukaa-a/songyan-ios?include_prereleases)](https://github.com/Suzukaa-a/songyan-ios/releases)
+[![License](https://img.shields.io/badge/license-GPL--3.0-blue)](LICENSE)
 
 [简体中文](README.zh-CN.md)
 
-Songyan is a keyboard for iPhone and iPad built on the [RIME](https://rime.im) input method engine.
-It types in whatever your RIME input scheme types: pinyin and double pinyin, zhuyin, cangjie,
-Cantonese, Japanese and more. The engine runs inside the keyboard on your device. It shares its engine, schemes and file formats with
-[Songyan for Android](https://github.com/Suzukaa-a/songyan-android).
-
-<p>
-  <img src=".github/screenshots/keyboard-14.png" width="240" alt="14-key keyboard typing nihao">
-  <img src=".github/screenshots/keyboard-9.png" width="240" alt="9-key keyboard typing zhong">
-  <img src=".github/screenshots/home.png" width="240" alt="Host app home screen">
-</p>
+A keyboard for iPhone and iPad built on the [RIME](https://rime.im) input method engine. Design every key and every page yourself. Use any RIME input scheme directly on 9, 14, or 18 keys. Keyboard layout and appearance files work interchangeably with [Songyan for Android](https://github.com/Suzukaa-a/songyan-android).
 
 ## Install
 
@@ -24,24 +17,65 @@ Cantonese, Japanese and more. The engine runs inside the keyboard on your device
    Access shares your schemes and settings between the keyboard and the Songyan app, and lets the
    scripts you add go online.
 
-## What it does
+## Highlights
 
-- **Full pinyin and Xiaohe double pinyin built in**, on 26, 14, 18 and 9 keys.
-- **Any RIME scheme.** Add one from the recommended list (rime-ice, wanxiang, bopomofo, cangjie,
-  quick, cantonese, the Japanese カギロイ) or import your own from a file or a link. Nothing is
-  downloaded until you confirm. Imported schemes also get zhuyin, cangjie, Japanese romaji and kana
-  boards.
-- **Simplified or Traditional output** (Taiwan and Hong Kong standards too), switchable per input
-  method.
-- **Swipe sideways on a merged key** to type either letter, with optional double pinyin hints.
-- **Layouts and appearance:** edit key layouts in the app, and make appearances in the
-  [appearance editor](https://suzukaa-a.github.io/songyan-themes/). Appearance files work on both iOS and Android.
-- **Optional features:** typo correction, prediction, grammar models, and backups of the
-  words it learned (shared with Android).
-- **Scripts:** paste or import a bit of JavaScript to add your own feature to the keyboard, such
-  as polishing or translating with your own model. You preview the result before replacing or
-  inserting it, and can undo. The same script works on iOS and Android.
-- Interface in Simplified Chinese, Traditional Chinese and Japanese.
+### Design your own keyboard
+
+<p align="center">
+  <img src=".github/screenshots/layout-editor.png" width="360" alt="Layout editor: the 26-key arrangement and the settings of the selected key (space)">
+</p>
+
+- Customize any key: its label, subtitle, width, tap action, and long-press options.
+- Add, delete, or move keys, or add an entire row of keys.
+- Set where each row splits and how far apart the halves sit, independently for each keyboard layout.
+- Create your own 123 and symbol pages, browse symbols by category, and pair them with each keyboard.
+- Choose which buttons appear on the toolbar.
+- Show double pinyin final hints on letter keys, and write hints yourself or import and export them.
+- Export keyboard layouts as files to share, or import files from others; they work on Android too.
+
+### Any input scheme on 9 keys
+
+<p align="center">
+  <img src=".github/screenshots/keyboard-9.png" width="300" alt="rime-ice on 9 keys typing 你好世界">
+  <img src=".github/screenshots/keyboard-14.png" width="300" alt="rime-ice on 14 keys typing 中文输入法">
+</p>
+
+Songyan automatically generates 9, 14, and 18-key layouts from the input scheme you are already using, without needing extra schemes. Whether you use rime-ice, wanxiang, or a custom imported scheme, simply switch the keyboard layout and keep typing—with the same dictionary and learned words.
+
+### iPad and large screens
+
+<p align="center">
+  <img src=".github/screenshots/split-26.png" width="820" alt="26 keys split into two halves on an iPad">
+</p>
+
+When the keyboard width exceeds your set threshold, it splits into two halves for comfortable two-thumb typing. You can adjust the split threshold width, middle spacing, key area alignment, and side margins; iPhone also supports one-handed mode.
+
+### Appearance
+
+<p align="center">
+  <img src=".github/screenshots/appearances.png" width="820" alt="The same keyboard in three appearances">
+</p>
+
+Use built-in appearances, or create your own with the [appearance editor](https://suzukaa-a.github.io/songyan-themes/) and import the file directly. You can also customize the candidate bar style and reading display position. Appearance files work on both iOS and Android.
+
+### Add features to the keyboard
+
+- **Scripts:** Paste a JavaScript snippet to add custom features, such as polishing or translating text with your own AI model. Preview the result before confirming replacement or insertion.
+- **Voice input:** Choose a voice script, press the microphone button to speak, and let the script handle transcription.
+
+### What you type stays on your device
+
+The input method engine runs locally on your device, and the keyboard itself does not connect to the internet on its own. Scripts can only reach websites they declare, which are clearly listed for your confirmation before you add them.
+
+## All features
+
+- **Input schemes:** Built-in Full Pinyin and Xiaohe Double Pinyin, plus any RIME scheme—Pinyin, Double Pinyin, Zhuyin, Cangjie, Quick, Cantonese, Japanese, and more. Add from the recommended list, or import from files or links. Nothing is downloaded until you confirm.
+- **Keyboard layouts:** 26, 14, 18, and 9 keys, plus Zhuyin, Cangjie, Japanese Romaji, and Kana layouts.
+- **Cursor:** Press and hold space, then slide left or right to move the cursor.
+- **Phrases and symbol library:** Use them directly in the keyboard.
+- **From RIME:** Simplified/Traditional conversion (including Taiwan and Hong Kong standards), fuzzy pinyin, typo correction, prediction, grammar models, Lua scripts, and `custom.yaml` configuration; back up and merge learned words.
+- **Scripts and voice input:** As described above.
+- Interface available in Simplified Chinese, Traditional Chinese, and Japanese.
 
 ## Privacy
 
