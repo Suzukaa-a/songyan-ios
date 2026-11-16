@@ -125,8 +125,8 @@ public enum KeyGapScalingPreferences {
     }
 }
 
-/// Experimental: whether the keyboard draws the skin's own background behind the keys. Off by
-/// default while the look is being settled; read when the appearance is built, like the gap scaling.
+/// Whether the keyboard draws the skin's own background behind the keys. Off until the user turns
+/// it on in 键盘外观; read when the appearance is built, like the gap scaling.
 public enum SkinBackgroundPreferences {
     public static let key = "keyboard.skinBackground.v1"
     public static var defaults: UserDefaults { KeyboardRecipeStore.sharedDefaults() ?? .standard }
@@ -605,7 +605,7 @@ public struct KeyboardAppearance: Equatable, Sendable {
     public var keyGapScale = 1.0
     /// Device-level choice to widen gaps on wide boards at all; read when the appearance is built.
     public var scalesKeyGaps = KeyGapScalingPreferences.current
-    /// Device-level, experimental: draw the skin background behind the keys.
+    /// Device-level: draw the skin background behind the keys.
     public var drawsSkinBackground = SkinBackgroundPreferences.current
     /// Device-level candidate text scale; read from the cached preference when the appearance is built.
     public var candidateTextSize = CandidateTextSizePreferences.current

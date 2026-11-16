@@ -37577,28 +37577,6 @@
         }
       }
     },
-    "实验性": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "試験運用"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "实验性"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "實驗性"
-          }
-        }
-      }
-    },
     "外观自带背景时，画在按键后面，候选栏保持系统底色。": {
       "localizations": {
         "ja": {
