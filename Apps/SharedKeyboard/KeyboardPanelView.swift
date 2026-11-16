@@ -399,6 +399,7 @@ public struct KeyboardPanelView: View {
         let variant = appearance.dark ? appearance.skin.variants.dark : appearance.skin.variants.light
         if appearance.drawsSkinBackground, let background = variant?.background {
             SkinBackgroundTray(background: background)
+                .overlay { appearance.trayVeil }
         }
     }
 

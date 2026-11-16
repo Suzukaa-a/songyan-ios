@@ -593,10 +593,10 @@ public struct KeyboardInitialPresentation {
 /// `(skin, dark)` and fonts/measurements are cached process-wide.
 public struct KeyboardAppearance: Equatable, Sendable {
     public var skin: SkinDefinition {
-        didSet { palette = KeyboardPalette.resolve(skin: skin, dark: dark) }
+        didSet { palette = KeyboardPalette.resolve(skin: skin, dark: dark, tray: drawsSkinBackground) }
     }
     public var dark: Bool {
-        didSet { palette = KeyboardPalette.resolve(skin: skin, dark: dark) }
+        didSet { palette = KeyboardPalette.resolve(skin: skin, dark: dark, tray: drawsSkinBackground) }
     }
     private var palette: KeyboardPalette
     /// How much wider the board's columns are than a phone's (`StandardKeyRowGeometry.keyGapScale`):
@@ -605,8 +605,15 @@ public struct KeyboardAppearance: Equatable, Sendable {
     public var keyGapScale = 1.0
     /// Device-level choice to widen gaps on wide boards at all; read when the appearance is built.
     public var scalesKeyGaps = KeyGapScalingPreferences.current
-    /// Device-level: draw the skin background behind the keys.
-    public var drawsSkinBackground = SkinBackgroundPreferences.current
+    /// Device-level: draw the skin background behind the keys. The keys are then separated from
+    /// that background rather than from the system surface, so the palette follows it.
+    public var drawsSkinBackground = SkinBackgroundPreferences.current {
+        didSet {
+            if drawsSkinBackground != oldValue {
+                palette = KeyboardPalette.resolve(skin: skin, dark: dark, tray: drawsSkinBackground)
+            }
+        }
+    }
     /// Device-level candidate text scale; read from the cached preference when the appearance is built.
     public var candidateTextSize = CandidateTextSizePreferences.current
     /// Device-level choice to draw engine comments in the collapsed candidate row.
@@ -620,7 +627,7 @@ public struct KeyboardAppearance: Equatable, Sendable {
         let skin = skin.id == SkinDefinition.systemDefault.id ? .systemDefault : skin
         self.skin = skin
         self.dark = dark
-        self.palette = KeyboardPalette.resolve(skin: skin, dark: dark)
+        self.palette = KeyboardPalette.resolve(skin: skin, dark: dark, tray: drawsSkinBackground)
     }
 
     /// The palette is derived from `(skin, dark)`, so those two (and the cap geometry flag) decide equality.
@@ -647,6 +654,8 @@ public struct KeyboardAppearance: Equatable, Sendable {
     /// return-key *fill*; as a glyph on the panel it nearly vanished, so a fill
     /// without contrast is deepened (or lightened in dark mode) until legible.
     public var accentForeground: Color { Color(uiColor: palette.accentForeground) }
+    /// A faint veil over the drawn background, when the keys need it to stand out (see `KeyContrast`).
+    var trayVeil: Color? { palette.trayVeil }
     public var uiAccentForeground: UIColor { palette.accentForeground }
 
     /// Every skin's key size sits on one scale: the default 22 draws the system keyboard's sizes, so
@@ -742,13 +751,20 @@ private final class KeyboardPalette: Sendable {
     private let secondaryTexts: [String: UIColor]
     let accentForeground: UIColor
     let outlinesControls: Bool
+    /// Laid over the skin's background when the letter keys cannot part from it on their own.
+    let trayVeil: Color?
     /// Keys are drawn over the system keyboard surface of the mode, so translucent fills are judged
     /// as composited over it.
     private let surface: SkinColor
 
-    private init(skin: SkinDefinition, dark: Bool) {
-        let colors = skin.resolvedColors(dark: dark)
-        let surface = SkinDefinition.systemSurface(dark: dark)
+    private init(skin: SkinDefinition, dark: Bool, tray: Bool) {
+        var colors = skin.resolvedColors(dark: dark)
+        // Behind the keys is the skin's own background when the keyboard draws it, else the system's.
+        var traySamples = tray ? SkinBackgroundTray.samples(of: skin, dark: dark) : []
+        let veil = traySamples.isEmpty ? nil : KeyContrast.separate(&colors, from: traySamples)
+        if let veil { traySamples = traySamples.map { veil.composited(over: $0) } }
+        trayVeil = veil.map { Color(red: $0.red, green: $0.green, blue: $0.blue, opacity: $0.alpha) }
+        let surface = traySamples.isEmpty ? SkinDefinition.systemSurface(dark: dark) : SkinColor.average(traySamples)
         self.surface = surface
         resolved = colors
         func ui(_ c: SkinColor) -> UIColor { UIColor(red: c.red, green: c.green, blue: c.blue, alpha: c.alpha) }
@@ -804,18 +820,19 @@ private final class KeyboardPalette: Sendable {
         return UIColor(red: c.red, green: c.green, blue: c.blue, alpha: c.alpha)
     }
 
-    private static let recent = OSAllocatedUnfairLock<[(skin: SkinDefinition, dark: Bool, palette: KeyboardPalette)]>(
-        initialState: [])
+    private static let recent = OSAllocatedUnfairLock<
+        [(skin: SkinDefinition, dark: Bool, tray: Bool, palette: KeyboardPalette)]
+    >(initialState: [])
 
-    static func resolve(skin: SkinDefinition, dark: Bool) -> KeyboardPalette {
+    static func resolve(skin: SkinDefinition, dark: Bool, tray: Bool) -> KeyboardPalette {
         recent.withLock { recent in
-            if let index = recent.firstIndex(where: { $0.dark == dark && $0.skin == skin }) {
+            if let index = recent.firstIndex(where: { $0.dark == dark && $0.tray == tray && $0.skin == skin }) {
                 let hit = recent.remove(at: index)
                 recent.append(hit)
                 return hit.palette
             }
-            let palette = KeyboardPalette(skin: skin, dark: dark)
-            recent.append((skin, dark, palette))
+            let palette = KeyboardPalette(skin: skin, dark: dark, tray: tray)
+            recent.append((skin, dark, tray, palette))
             if recent.count > 6 { recent.removeFirst(recent.count - 6) }
             return palette
         }
@@ -1280,6 +1297,42 @@ struct SkinBackgroundTray: View {
         case "bottom": return .bottom
         default: return .center
         }
+    }
+
+    /// The colours the keys sit on: a solid colour, every gradient stop (the keys must read over
+    /// each), or an image's average. Empty when the skin authors no background for the mode.
+    static func samples(of skin: SkinDefinition, dark: Bool) -> [SkinColor] {
+        guard let background = (dark ? skin.variants.dark : skin.variants.light)?.background else { return [] }
+        let surface = SkinDefinition.systemSurface(dark: dark)
+        let colors: [SkinColor]
+        switch background.type {
+        case "linearGradient":
+            colors = (background.colors ?? [background.from, background.to].compactMap { $0 })
+                .compactMap(SkinColor.init(hex:))
+        case "image":
+            colors = image(background.image).flatMap(averageColor).map { [$0] } ?? []
+        default:
+            colors = background.color.flatMap(SkinColor.init(hex:)).map { [$0] } ?? []
+        }
+        return colors.map { $0.composited(over: surface) }
+    }
+
+    /// An image drawn into one pixel: its average colour.
+    private static func averageColor(_ image: UIImage) -> SkinColor? {
+        guard let cg = image.cgImage else { return nil }
+        var pixel = [UInt8](repeating: 0, count: 4)
+        let drawn = pixel.withUnsafeMutableBytes { buffer -> Bool in
+            guard
+                let context = CGContext(
+                    data: buffer.baseAddress, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4,
+                    space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue)
+            else { return false }
+            context.interpolationQuality = .medium
+            context.draw(cg, in: CGRect(x: 0, y: 0, width: 1, height: 1))
+            return true
+        }
+        guard drawn else { return nil }
+        return SkinColor(hex: String(format: "#%02X%02X%02X", pixel[0], pixel[1], pixel[2]))
     }
 
     private static func color(_ hex: String?) -> Color? {
