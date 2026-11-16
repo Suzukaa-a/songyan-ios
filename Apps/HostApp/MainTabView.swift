@@ -29,22 +29,14 @@ struct MainTabView: View {
     var body: some View {
         NavigationStack {
             List {
+                // Mirrors the Android home: what you type with first, then what feeds it. Settings
+                // a new user looks for (sound, correction, height) sit here, not behind the gear.
                 Section {
-                    NavigationLink {
-                        InputSchemeListView()
-                    } label: {
-                        HomeRow(
-                            title: UserTerminology.inputScheme, subtitle: schemeSummary,
-                            systemImage: "character.book.closed")
-                    }
                     NavigationLink {
                         UserKeyboardManagementView(source: center.userKeyboardSource)
                     } label: {
                         HomeRow(title: UserTerminology.userKeyboard, subtitle: keyboardLine, systemImage: "keyboard")
                     }
-                }
-
-                Section {
                     // One appearance project carries both the keyboard skin and the candidate-bar layout: this is the only entry.
                     NavigationLink {
                         SkinManagementView()
@@ -54,11 +46,19 @@ struct MainTabView: View {
                             systemImage: "paintpalette")
                     }
                     NavigationLink {
+                        InputOptionsView()
+                    } label: {
+                        HomeRow(
+                            title: String(localized: "输入选项"),
+                            subtitle: String(localized: "按键声音、纠错、联想与键盘高度"),
+                            systemImage: "slider.horizontal.3")
+                    }
+                    NavigationLink {
                         TryInputView()
                     } label: {
                         HomeRow(
                             title: String(localized: "试打"),
-                            subtitle: String(localized: "体验键盘输入与候选上屏"), systemImage: "text.cursor")
+                            subtitle: String(localized: "在输入框里试试键盘"), systemImage: "text.cursor")
                     }
                 } header: {
                     Text("键盘")
@@ -66,16 +66,12 @@ struct MainTabView: View {
 
                 Section {
                     NavigationLink {
-                        ScriptAddonCenterView(center: ScriptAddonCenter.shared)
+                        InputSchemeListView()
                     } label: {
                         HomeRow(
-                            title: UserTerminology.script,
-                            subtitle: String(localized: "添加并运行你写的脚本"),
-                            systemImage: "curlybraces")
+                            title: UserTerminology.inputScheme, subtitle: schemeSummary,
+                            systemImage: "character.book.closed")
                     }
-                }
-
-                Section {
                     NavigationLink {
                         DictionaryImportView()
                     } label: {
@@ -93,6 +89,21 @@ struct MainTabView: View {
                             subtitle: String(localized: "标点、特殊符号与颜文字"), systemImage: "number")
                     }
                     NavigationLink {
+                        QuickContentManagementView()
+                    } label: {
+                        HomeRow(
+                            title: String(localized: "常用语"),
+                            subtitle: String(localized: "在键盘里搜索并输入常用的句子"), systemImage: "text.quote")
+                    }
+                    NavigationLink {
+                        ScriptAddonCenterView(center: ScriptAddonCenter.shared)
+                    } label: {
+                        HomeRow(
+                            title: UserTerminology.script,
+                            subtitle: String(localized: "添加并运行你写的脚本"),
+                            systemImage: "curlybraces")
+                    }
+                    NavigationLink {
                         LearningBackupView()
                     } label: {
                         HomeRow(
@@ -101,7 +112,7 @@ struct MainTabView: View {
                             systemImage: "tray.and.arrow.up")
                     }
                 } header: {
-                    Text("工具")
+                    Text("内容")
                 }
             }
             .toolbar {

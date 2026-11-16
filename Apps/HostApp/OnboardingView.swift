@@ -266,7 +266,7 @@ struct OnboardingView: View {
                                     Text("尚未检测到键盘状态")
                                         .font(.subheadline.weight(.medium))
                                         .foregroundStyle(.primary)
-                                    Text("添加键盘并开启完全访问后，在任意输入框调出一次键盘即可确认。")
+                                    Text("不开启完全访问也能打字，只是这里确认不到；开启后调出一次键盘即可确认。")
                                         .font(.footnote)
                                         .foregroundStyle(.secondary)
                                 }
@@ -286,6 +286,9 @@ struct OnboardingView: View {
 
                         Text("打开后轻点「键盘」；也可以在「通用」→「键盘」→「键盘」中添加。")
                             .font(.footnote).foregroundStyle(.secondary)
+
+                        NavigationLink(String(localized: "哪些功能需要完全访问")) { FullAccessView() }
+                            .accessibilityIdentifier("onboarding.fullAccessDetails")
                     }
                 }
 

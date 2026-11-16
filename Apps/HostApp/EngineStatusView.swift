@@ -69,7 +69,8 @@ struct SettingsAndAboutView: View {
         var id: String { rawValue }
         var visibleByDefault: Bool {
             switch self {
-            case .inputOptions, .grammarModel, .quickContent, .keyboardAccess, .advanced:
+            // Input options and 常用语 live on the home page; here they are found by search only.
+            case .grammarModel, .keyboardAccess, .advanced:
                 return true
             default: return false
             }
