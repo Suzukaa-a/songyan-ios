@@ -39,7 +39,7 @@ private struct ScriptNetworkSections: View {
     let declarations: ScriptDeclarations
 
     var body: some View {
-        Section(String(localized: "会连这些网站")) {
+        Section {
             if !declarations.dependsOnNetwork {
                 Text(String(localized: "不联网"))
             }
@@ -48,6 +48,12 @@ private struct ScriptNetworkSections: View {
             }
             if declarations.hasURLSetting {
                 Text(String(localized: "你在设置里填的地址"))
+            }
+        } header: {
+            Text(String(localized: "会连这些网站"))
+        } footer: {
+            if declarations.dependsOnNetwork {
+                Text(String(localized: "在键盘里使用需要开启「允许完全访问」。"))
             }
         }
         if let timeout = declarations.timeoutDisplay {

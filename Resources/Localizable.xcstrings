@@ -6579,28 +6579,6 @@
         }
       }
     },
-    "前往系统「设置」，轻点「键盘」并添加「松烟」。\n\n键盘不会连接网络，输入内容仅在设备端处理。开启「允许完全访问」后，才能使用按键声音和常用语，并记住你在键盘里做的切换。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "前往系统「设置」，轻点「键盘」并添加「松烟」。\n\n键盘不会连接网络，输入内容仅在设备端处理。开启「允许完全访问」后，才能使用按键声音和常用语，并记住你在键盘里做的切换。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "前往系統「設定」，點一下「鍵盤」並新增「松煙」。\n\n鍵盤不會連線網路，輸入內容僅在裝置端處理。開啟「允許完整取用」後，才能使用按鍵聲音和常用語，並記住你在鍵盤裡做的切換。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "「設定」を開き、「キーボード」をタップして「松煙」を追加します。\n\nキーボードはネットワークに接続せず、入力内容は端末内だけで処理されます。「フルアクセスを許可」をオンにすると、キーの音や定型文を使い、キーボードでの切り替えを記憶できるようになります。"
-          }
-        }
-      }
-    },
     "下载输入方式": {
       "localizations": {
         "zh-Hans": {
@@ -10403,28 +10381,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "フルアクセスを許可"
-          }
-        }
-      }
-    },
-    "不开启也能使用所有输入方案；开启后才能使用按键声音和常用语，并记住你在键盘里做的切换。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "不开启也能使用所有输入方案；开启后才能使用按键声音和常用语，并记住你在键盘里做的切换。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "不開啟也能使用所有輸入方案；開啟後才能使用按鍵聲音和常用語，並記住你在鍵盤裡做的切換。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "オフのままでもすべての入力パックを使えます。オンにすると、キーの音や定型文が使え、キーボードでの切り替えも記憶されます。"
           }
         }
       }
@@ -16893,28 +16849,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "定型文"
-          }
-        }
-      }
-    },
-    "最多保存 100 条。在键盘的「快捷内容」中搜索并轻点输入。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "最多保存 100 条。在键盘的「快捷内容」中搜索并轻点输入。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "最多儲存 100 條。在鍵盤的「快捷內容」中搜索並點一下輸入。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "最大 100 件まで保存できます。キーボードの「クイックコンテンツ」で検索してタップすると入力できます。"
           }
         }
       }
@@ -37287,6 +37221,446 @@
           "stringUnit": {
             "state": "translated",
             "value": "リンクからインポート"
+          }
+        }
+      }
+    },
+    "开不开启，键盘都不会连接网络，输入内容只在设备上处理。": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オンでもオフでも、キーボードはネットワークに接続せず、入力内容は端末内だけで処理されます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开不开启，键盘都不会连接网络，输入内容只在设备上处理。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "開不開啟，鍵盤都不會連線網路，輸入內容只在裝置上處理。"
+          }
+        }
+      }
+    },
+    "所有输入方式、键盘布局和键盘外观": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "すべての入力方式、キー配列、キーボードの外観"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所有输入方式、键盘布局和键盘外观"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "所有輸入方式、鍵盤配置和鍵盤外觀"
+          }
+        }
+      }
+    },
+    "在键盘里切换的布局，下次调出时保留": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーボードで切り替えたキー配列は次回も保持"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在键盘里切换的布局，下次调出时保留"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在鍵盤裡切換的佈局，下次調出時保留"
+          }
+        }
+      }
+    },
+    "按你的用词调整候选": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力した語句に合わせた候補の調整"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按你的用词调整候选"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按你的用詞調整候選"
+          }
+        }
+      }
+    },
+    "不联网的脚本": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ネットワークに接続しないスクリプト"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不联网的脚本"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不連網的指令碼"
+          }
+        }
+      }
+    },
+    "不开启也能用": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オフでも使える機能"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不开启也能用"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不開啟也能用"
+          }
+        }
+      }
+    },
+    "符号库的最近使用": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記号ライブラリの最近使った項目"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "符号库的最近使用"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "符號庫的最近使用"
+          }
+        }
+      }
+    },
+    "九键快捷符号": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "9 キーのクイック記号"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "九键快捷符号"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "九鍵快捷符號"
+          }
+        }
+      }
+    },
+    "能用，但在键盘里改的不会保存": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "使えるが、キーボードでの変更は保存されない機能"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "能用，但在键盘里改的不会保存"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "能用，但在鍵盤裡改的不會儲存"
+          }
+        }
+      }
+    },
+    "在 App 里修改会照常保存。": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App で変更した内容は通常どおり保存されます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在 App 里修改会照常保存。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在 App 裡修改會照常儲存。"
+          }
+        }
+      }
+    },
+    "按键声音和按键触感": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーの音とキーの振動"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按键声音和按键触感"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按鍵聲音和按鍵觸感"
+          }
+        }
+      }
+    },
+    "联网的脚本": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ネットワークに接続するスクリプト"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "联网的脚本"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "連網的指令碼"
+          }
+        }
+      }
+    },
+    "在键盘里换用其他输入方式": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーボードでほかの入力方式に切り替える"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在键盘里换用其他输入方式"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在鍵盤裡換用其他輸入方式"
+          }
+        }
+      }
+    },
+    "学习记录的备份与合并": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "学習データのバックアップと統合"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "学习记录的备份与合并"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "學習記錄的備份與合併"
+          }
+        }
+      }
+    },
+    "需要开启": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オンが必要な機能"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要开启"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要開啟"
+          }
+        }
+      }
+    },
+    "不开启时，可以在 App 里换用其他输入方式。": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オフのままでも、App でほかの入力方式に切り替えられます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不开启时，可以在 App 里换用其他输入方式。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不開啟時，可以在 App 裡換用其他輸入方式。"
+          }
+        }
+      }
+    },
+    "不开启也能正常打字；按键声音、常用语等少数功能需要开启。": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "オフのままでも普通に入力できます。キーの音や定型文など、一部の機能にはオンが必要です。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不开启也能正常打字；按键声音、常用语等少数功能需要开启。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不開啟也能正常打字；按鍵聲音、常用語等少數功能需要開啟。"
+          }
+        }
+      }
+    },
+    "前往系统「设置」，轻点「键盘」并添加「松烟」。\n\n键盘不会连接网络，输入内容仅在设备端处理。不开启「允许完全访问」也能正常打字；按键声音、常用语等少数功能需要开启。": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「設定」を開き、「キーボード」をタップして「松煙」を追加します。\n\nキーボードはネットワークに接続せず、入力内容は端末内だけで処理されます。「フルアクセスを許可」がオフでも普通に入力できます。キーの音や定型文など、一部の機能にはオンが必要です。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "前往系统「设置」，轻点「键盘」并添加「松烟」。\n\n键盘不会连接网络，输入内容仅在设备端处理。不开启「允许完全访问」也能正常打字；按键声音、常用语等少数功能需要开启。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "前往系統「設定」，點一下「鍵盤」並新增「松煙」。\n\n鍵盤不會連線網路，輸入內容僅在裝置端處理。不開啟「允許完整取用」也能正常打字；按鍵聲音、常用語等少數功能需要開啟。"
+          }
+        }
+      }
+    },
+    "在键盘里使用需要开启「允许完全访问」。": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーボードで使うには「フルアクセスを許可」をオンにする必要があります。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在键盘里使用需要开启「允许完全访问」。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在鍵盤裡使用需要開啟「允許完整取用」。"
+          }
+        }
+      }
+    },
+    "最多保存 100 条。在键盘的「快捷内容」中搜索并轻点输入，需要开启「允许完全访问」。": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最大 100 件まで保存できます。キーボードの「クイックコンテンツ」で検索してタップすると入力できます。「フルアクセスを許可」が必要です。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最多保存 100 条。在键盘的「快捷内容」中搜索并轻点输入，需要开启「允许完全访问」。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最多儲存 100 條。在鍵盤的「快捷內容」中搜索並點一下輸入，需要開啟「允許完整取用」。"
           }
         }
       }

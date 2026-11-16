@@ -144,9 +144,14 @@ struct SettingsAndAboutView: View {
                     privacyRow(
                         String(localized: "键盘不联网"), systemImage: "wifi.slash",
                         text: String(localized: "输入内容只在设备上处理，不会上传。"))
-                    privacyRow(
-                        String(localized: "允许完全访问"), systemImage: "lock.open",
-                        text: String(localized: "不开启也能使用所有输入方案；开启后才能使用按键声音和常用语，并记住你在键盘里做的切换。"))
+                    NavigationLink {
+                        FullAccessView()
+                    } label: {
+                        privacyRow(
+                            String(localized: "允许完全访问"), systemImage: "lock.open",
+                            text: String(localized: "不开启也能正常打字；按键声音、常用语等少数功能需要开启。"))
+                    }
+                    .accessibilityIdentifier("settings.fullAccess")
                     privacyRow(
                         String(localized: "App 何时联网"), systemImage: "arrow.down.circle",
                         text: String(localized: "仅在你下载文件或检查更新时联网。"))

@@ -443,7 +443,7 @@ struct QuickContentManagementView: View {
         } header: {
             Text("常用语")
         } footer: {
-            Text("最多保存 100 条。在键盘的「快捷内容」中搜索并轻点输入。")
+            Text("最多保存 100 条。在键盘的「快捷内容」中搜索并轻点输入，需要开启「允许完全访问」。")
         }
         .disabled(model.isBusy || !model.isAvailable)
     }
