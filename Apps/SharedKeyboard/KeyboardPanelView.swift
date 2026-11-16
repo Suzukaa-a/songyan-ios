@@ -868,6 +868,14 @@ public struct KeyboardPanelView: View {
             isCovered: showsCoveringPanel)
     }
 
+    /// The skin's own background, behind the keys only; nil when the skin authors none.
+    @ViewBuilder private var backgroundTray: some View {
+        let variant = appearance.dark ? appearance.skin.variants.dark : appearance.skin.variants.light
+        if appearance.drawsSkinBackground, let background = variant?.background {
+            SkinBackgroundTray(background: background)
+        }
+    }
+
     private func panelSurface(isWide: Bool) -> some View {
         let plan = layoutPlan
         let showsWideDismiss = isWide && dismissKeyboard != nil
@@ -977,6 +985,22 @@ public struct KeyboardPanelView: View {
             // areas to a keyboard extension, so taps in the gaps between keys would be lost entirely. Lay down an invisible hit surface, and the root input view
             // (FeedbackInputView.hitTest) hands gap touches to the adjacent key. It covers the key area only, not the root view.
             .anchorPreference(key: NineKeyAreaBoundsKey.self, value: .bounds) { $0 }
+            .background {
+                // Soft top and bottom edges, so the band eases into the candidate bar and the
+                // system's bottom row instead of ending on a hard line.
+                backgroundTray
+                    .mask {
+                        VStack(spacing: 0) {
+                            LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)
+                                .frame(height: 8)
+                            Color.black
+                            LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom)
+                                .frame(height: 8)
+                        }
+                    }
+                    .padding(.vertical, -8)
+                    .padding(.horizontal, -40)
+            }
             .padding(.horizontal, widthBox.sideMargin)
             .id(keyAreaGeneration)
             .background(Color.black.opacity(0.001))

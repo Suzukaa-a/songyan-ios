@@ -263,6 +263,7 @@ public struct KeyboardPanelHost: View {
                 CollapsedCandidateCommentPreferences.refresh()
                 storedCollapsedCandidateComments = CollapsedCandidateCommentPreferences.current
                 KeyGapScalingPreferences.refresh()
+                SkinBackgroundPreferences.refresh()
                 storedScalesKeyGaps = KeyGapScalingPreferences.current
                 storedHeightPreset = KeyboardHeightPreferences.current
                 if presentationBudget == nil {
@@ -315,6 +316,7 @@ public struct KeyboardPanelHost: View {
                 CollapsedCandidateCommentPreferences.refresh()
                 storedCollapsedCandidateComments = CollapsedCandidateCommentPreferences.current
                 KeyGapScalingPreferences.refresh()
+                SkinBackgroundPreferences.refresh()
                 storedScalesKeyGaps = KeyGapScalingPreferences.current
                 oneHandMode = KeyboardOneHandPreferences.current
                 oneHandWidthPercent = KeyboardOneHandPreferences.widthPercent

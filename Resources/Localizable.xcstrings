@@ -37664,6 +37664,72 @@
           }
         }
       }
+    },
+    "显示外观背景": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外観の背景を表示"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "显示外观背景"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "顯示外觀背景"
+          }
+        }
+      }
+    },
+    "实验性": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "試験運用"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "实验性"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "實驗性"
+          }
+        }
+      }
+    },
+    "外观自带背景时，画在按键后面，候选栏保持系统底色。": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外観に背景がある場合、キーの後ろに表示します。候補バーはシステムの背景のままです。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外观自带背景时，画在按键后面，候选栏保持系统底色。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "外觀自帶背景時，畫在按鍵後面，候選列保持系統底色。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

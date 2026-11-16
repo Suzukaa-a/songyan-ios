@@ -125,6 +125,39 @@ public enum KeyGapScalingPreferences {
     }
 }
 
+/// Experimental: whether the keyboard draws the skin's own background behind the keys. Off by
+/// default while the look is being settled; read when the appearance is built, like the gap scaling.
+public enum SkinBackgroundPreferences {
+    public static let key = "keyboard.skinBackground.v1"
+    public static var defaults: UserDefaults { KeyboardRecipeStore.sharedDefaults() ?? .standard }
+
+    private static let cache = OSAllocatedUnfairLock<Bool?>(uncheckedState: nil)
+
+    public static func read(from defaults: UserDefaults) -> Bool {
+        SharedPreferences.object(forKey: key, in: defaults) as? Bool ?? false
+    }
+
+    public static var current: Bool {
+        get {
+            cache.withLockUnchecked { state in
+                if let state { return state }
+                let loaded = read(from: defaults)
+                state = loaded
+                return loaded
+            }
+        }
+        set {
+            SharedPreferences.set(newValue, forKey: key, in: defaults)
+            cache.withLockUnchecked { $0 = newValue }
+        }
+    }
+
+    public static func refresh() {
+        let loaded = read(from: defaults)
+        cache.withLockUnchecked { $0 = loaded }
+    }
+}
+
 /// Where a keyboard starts splitting, where it starts getting a blank margin beside the key area, and
 /// how wide that margin is. Shared by the app
 /// and the keyboard extension; the keyboard reads the in-process copy while it draws and re-reads
@@ -572,6 +605,8 @@ public struct KeyboardAppearance: Equatable, Sendable {
     public var keyGapScale = 1.0
     /// Device-level choice to widen gaps on wide boards at all; read when the appearance is built.
     public var scalesKeyGaps = KeyGapScalingPreferences.current
+    /// Device-level, experimental: draw the skin background behind the keys.
+    public var drawsSkinBackground = SkinBackgroundPreferences.current
     /// Device-level candidate text scale; read from the cached preference when the appearance is built.
     public var candidateTextSize = CandidateTextSizePreferences.current
     /// Device-level choice to draw engine comments in the collapsed candidate row.
@@ -594,6 +629,7 @@ public struct KeyboardAppearance: Equatable, Sendable {
     public static func == (lhs: KeyboardAppearance, rhs: KeyboardAppearance) -> Bool {
         lhs.dark == rhs.dark && lhs.skin == rhs.skin && lhs.keyGapScale == rhs.keyGapScale
             && lhs.scalesKeyGaps == rhs.scalesKeyGaps
+            && lhs.drawsSkinBackground == rhs.drawsSkinBackground
             && lhs.candidateTextSize == rhs.candidateTextSize
             && lhs.showsCollapsedCandidateComments == rhs.showsCollapsedCandidateComments
     }
@@ -1190,5 +1226,70 @@ class SkinnedButton: UIButton, KeyboardKeyHitTarget {
     override func contentRect(forBounds bounds: CGRect) -> CGRect {
         let rect = appearance.visualRect(in: bounds)
         return showsAuthorSubtitle ? rect.offsetBy(dx: 0, dy: -4) : rect
+    }
+}
+
+// MARK: - Background tray
+
+/// A skin's authored background, drawn as a band behind the key area only. The candidate bar above
+/// it and the system's bottom row below stay on the system keyboard surface, so the band never
+/// competes with the rounded sheet iOS draws around the keyboard.
+struct SkinBackgroundTray: View {
+    let background: SkinDefinition.Background
+
+    @ViewBuilder var body: some View {
+        switch background.type {
+        case "linearGradient":
+            LinearGradient(colors: stops, startPoint: start, endPoint: end)
+        case "image":
+            if let image = Self.image(background.image) {
+                GeometryReader { proxy in
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: proxy.size.width, height: proxy.size.height, alignment: imageAlignment)
+                        .clipped()
+                }
+            }
+        default:
+            Self.color(background.color) ?? .clear
+        }
+    }
+
+    private var stops: [Color] {
+        let hexes = background.colors ?? [background.from, background.to].compactMap { $0 }
+        return hexes.compactMap(Self.color)
+    }
+    private var start: UnitPoint {
+        switch background.direction {
+        case "horizontal": return .leading
+        case "diagonal": return .topLeading
+        default: return .top
+        }
+    }
+    private var end: UnitPoint {
+        switch background.direction {
+        case "horizontal": return .trailing
+        case "diagonal": return .bottomTrailing
+        default: return .bottom
+        }
+    }
+    private var imageAlignment: Alignment {
+        switch background.align {
+        case "top": return .top
+        case "bottom": return .bottom
+        default: return .center
+        }
+    }
+
+    private static func color(_ hex: String?) -> Color? {
+        guard let hex, let c = SkinColor(hex: hex) else { return nil }
+        return Color(red: c.red, green: c.green, blue: c.blue, opacity: c.alpha)
+    }
+    private static func image(_ dataURL: String?) -> UIImage? {
+        guard let dataURL, let comma = dataURL.firstIndex(of: ","),
+            let data = Data(base64Encoded: String(dataURL[dataURL.index(after: comma)...]))
+        else { return nil }
+        return UIImage(data: data)
     }
 }

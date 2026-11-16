@@ -51,6 +51,7 @@ struct SkinManagementView: View {
     @State private var savedDestination: AppearanceDocument?
     @State private var showsSaved = false
     @State private var scalesKeyGaps = KeyGapScalingPreferences.current
+    @State private var drawsSkinBackground = SkinBackgroundPreferences.current
     var body: some View {
         List {
             Section {
@@ -123,6 +124,23 @@ struct SkinManagementView: View {
                     .onChange(of: scalesKeyGaps) { KeyGapScalingPreferences.current = scalesKeyGaps }
             } footer: {
                 Text(String(localized: "横屏、展开的折叠屏和 iPad 上，按键间距、字号和圆角随按键一起变大。"))
+            }
+            Section {
+                Toggle(isOn: $drawsSkinBackground) {
+                    HStack(spacing: 6) {
+                        Text(String(localized: "显示外观背景"))
+                        Text(String(localized: "实验性"))
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Capsule().fill(Color(uiColor: .tertiarySystemFill)))
+                    }
+                }
+                .onChange(of: drawsSkinBackground) { SkinBackgroundPreferences.current = drawsSkinBackground }
+                .accessibilityIdentifier("appearance.skinBackground")
+            } footer: {
+                Text(String(localized: "外观自带背景时，画在按键后面，候选栏保持系统底色。"))
             }
             NavigationLink {
                 CandidateBarStyleView()
