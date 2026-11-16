@@ -11,11 +11,13 @@ A keyboard for iPhone and iPad built on the [RIME](https://rime.im) input method
 ## Install
 
 1. Download the IPA from [Releases](https://github.com/Suzukaa-a/songyan-ios/releases) and install
-   it with a tool that signs it under your own Apple ID, such as AltStore or Sideloadly. Or build it
-   yourself (see below). iOS 17.0 or later.
-2. Add Songyan under Settings → General → Keyboard → Keyboards and turn on Allow Full Access. Full
-   Access shares your schemes and settings between the keyboard and the Songyan app, and lets the
-   scripts you add go online.
+   it with a tool that signs it under your own Apple ID, such as AltStore or SideStore. Or build it
+   yourself (see below). iOS 17.0 or later. The keyboard and the app share their data through an App
+   Group; Sideloadly with a free Apple ID has been reported to grant none, and then the keyboard
+   cannot see what you set in the app.
+2. Add Songyan under Settings → General → Keyboard → Keyboards. It types without Allow Full Access;
+   turning it on adds key sounds, phrases and scripts that go online. Settings → Allow Full Access in
+   the app lists what needs it.
 
 ## Highlights
 

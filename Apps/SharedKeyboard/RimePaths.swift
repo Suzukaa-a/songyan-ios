@@ -145,8 +145,22 @@ extension KeyboardRecipeStore {
         return declared
     }()
 
-    /// App group used for every shared-container and shared-defaults lookup.
-    public static var groupID: String { declaredGroupID }
+    /// The group this install was granted: the declared one, or its renamed form after a sideloading
+    /// tool re-signed the app (see `AppGroupResolution`). Resolved once per process.
+    public static let grantedGroupID: String = {
+        let bundle = Bundle.main
+        let recorded = bundle.object(forInfoDictionaryKey: "ALTAppGroups") as? [String] ?? []
+        let profile =
+            bundle.url(forResource: "embedded", withExtension: "mobileprovision")
+            .flatMap { try? Data(contentsOf: $0, options: .mappedIfSafe) }
+            .map(AppGroupResolution.profileGroups) ?? []
+        return AppGroupResolution.resolve(
+            declared: declaredGroupID, recorded: recorded, profileGroups: profile,
+            isGranted: { FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: $0) != nil })
+    }()
+
+    /// App group used for every shared-container, shared-defaults and shared-keychain lookup.
+    public static var groupID: String { grantedGroupID }
 
     /// Every `containerURL(forSecurityApplicationGroupIdentifier:)` and
     /// `UserDefaults(suiteName:)` is an IPC to the container manager; device logs

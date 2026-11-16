@@ -10,8 +10,8 @@
 
 ## 安装
 
-1. 从 [Releases](https://github.com/Suzukaa-a/songyan-ios/releases) 下载 IPA，用 AltStore、Sideloadly 这类能用你自己的 Apple ID 重新签名的工具安装；也可以自己构建（见下文）。需要 iOS 17.0 或更高版本。
-2. 在「设置 → 通用 → 键盘 → 键盘」中添加松烟，并打开「允许完全访问」。完全访问用来让键盘和松烟 App 共用你的输入方案和设置，以及让你添加的脚本联网。
+1. 从 [Releases](https://github.com/Suzukaa-a/songyan-ios/releases) 下载 IPA，用 AltStore、SideStore 这类能用你自己的 Apple ID 重新签名的工具安装；也可以自己构建（见下文）。需要 iOS 17.0 或更高版本。键盘和松烟 App 通过 App Group 共用数据；有报告称 Sideloadly 用免费 Apple ID 安装时不授予 App Group，这时键盘读不到你在 App 里的设置。
+2. 在「设置 → 通用 → 键盘 → 键盘」中添加松烟。不开「允许完全访问」也能正常打字；开启后才有按键声音、常用语和联网的脚本，App 里「设置 → 允许完全访问」列出了哪些功能需要它。
 
 ## 特色
 
