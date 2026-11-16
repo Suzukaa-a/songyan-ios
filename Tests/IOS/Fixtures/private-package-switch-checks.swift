@@ -42,7 +42,8 @@ func privatePackageSwitchChecks(_ base: URL) throws {
     // Without Full Access the keyboard switches to package A's kept generation.
     KeyboardRecipeStore.canWriteSharedContainer = false
     check(
-        KeyboardRecipeStore.savePrivatePackageSwitch(rosterKey: keyA, keyboard: lunaInA, defaults: defaults, rootURL: root),
+        KeyboardRecipeStore.savePrivatePackageSwitch(
+            rosterKey: keyA, keyboard: lunaInA, defaults: defaults, rootURL: root),
         "package A is kept, so the switch is possible")
     let switched = seen()
     check(switched.rosterKey == keyA && switched.selectedSchemaID == "luna_pinyin", "the keyboard reads package A")
@@ -62,7 +63,8 @@ func privatePackageSwitchChecks(_ base: URL) throws {
 
     // Switching back to the package the shared record names drops the switch.
     check(
-        KeyboardRecipeStore.savePrivatePackageSwitch(rosterKey: keyB, keyboard: luna, defaults: defaults, rootURL: root),
+        KeyboardRecipeStore.savePrivatePackageSwitch(
+            rosterKey: keyB, keyboard: luna, defaults: defaults, rootURL: root),
         "switching back")
     check(seen() == onB, "back on the shared record")
     check(defaults.data(forKey: KeyboardRecipeStore.privatePackageSwitchKey) == nil, "nothing kept")
@@ -85,7 +87,8 @@ func privatePackageSwitchChecks(_ base: URL) throws {
     KeyboardRecipeStore.promotePrivateChoices(defaults: defaults, rootURL: root)
     let promoted = shared()
     check(
-        promoted.rosterKey == keyA && promoted.selectedSchemaID == "luna_pinyin" && promoted.generation == expected.generation,
+        promoted.rosterKey == keyA && promoted.selectedSchemaID == "luna_pinyin"
+            && promoted.generation == expected.generation,
         "the shared record now holds the keyboard's choice")
     check(defaults.data(forKey: KeyboardRecipeStore.privatePackageSwitchKey) == nil, "the switch is forgotten")
     check(defaults.data(forKey: KeyboardRecipeStore.privateSelectionKey) == nil, "the pick is forgotten")
