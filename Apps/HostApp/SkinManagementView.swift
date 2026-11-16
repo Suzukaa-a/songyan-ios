@@ -130,7 +130,7 @@ struct SkinManagementView: View {
                     .onChange(of: drawsSkinBackground) { SkinBackgroundPreferences.current = drawsSkinBackground }
                     .accessibilityIdentifier("appearance.skinBackground")
             } footer: {
-                Text(String(localized: "外观自带背景时，画在按键后面，候选栏保持系统底色。"))
+                Text(String(localized: "在按键后面画出外观的键盘底色和背景，和 Android 一样；候选栏保持系统底色。"))
             }
             NavigationLink {
                 CandidateBarStyleView()

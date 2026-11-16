@@ -201,6 +201,10 @@ struct KeyboardMainLayoutPreview: View {
                     keyArea(split: split, geometry: geometry)
                 }
             }
+            // The keyboard's own band behind the keys, edge to edge of the frame.
+            .background {
+                if framed { KeyAreaBackground(appearance: appearance).padding(.vertical, -8).padding(.horizontal, -4) }
+            }
             if sample == .longPress {
                 longPressSample
             }

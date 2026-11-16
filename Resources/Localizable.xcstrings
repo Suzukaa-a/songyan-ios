@@ -37577,28 +37577,6 @@
         }
       }
     },
-    "外观自带背景时，画在按键后面，候选栏保持系统底色。": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "外観に背景がある場合、キーの後ろに表示します。候補バーはシステムの背景のままです。"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "外观自带背景时，画在按键后面，候选栏保持系统底色。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "外觀自帶背景時，畫在按鍵後面，候選列保持系統底色。"
-          }
-        }
-      }
-    },
     "在键盘里切换的布局和输入方式，下次调出时保留": {
       "localizations": {
         "ja": {
@@ -37727,6 +37705,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "哪些功能需要完整取用"
+          }
+        }
+      }
+    },
+    "在按键后面画出外观的键盘底色和背景，和 Android 一样；候选栏保持系统底色。": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Android と同じく、外観のキーボードの色と背景をキーの後ろに表示します。候補バーはシステムの背景のままです。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在按键后面画出外观的键盘底色和背景，和 Android 一样；候选栏保持系统底色。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在按鍵後面畫出外觀的鍵盤底色和背景，和 Android 一樣；候選列保持系統底色。"
           }
         }
       }

@@ -1248,23 +1248,63 @@ class SkinnedButton: UIButton, KeyboardKeyHitTarget {
 
 // MARK: - Background tray
 
-/// A skin's authored background, drawn as a band behind the key area only. The candidate bar above
+/// What the keyboard draws behind its key area once 显示外观背景 is on: the skin's keyboard colour and
+/// background, the veil that keeps the keys apart from it, and soft top and bottom edges, so the band
+/// eases into the candidate bar and the system's bottom row. The keyboard and the host app's preview
+/// both use it; callers give it the frame to fill.
+struct KeyAreaBackground: View {
+    let appearance: KeyboardAppearance
+
+    var body: some View {
+        if appearance.drawsSkinBackground {
+            let variant = appearance.dark ? appearance.skin.variants.dark : appearance.skin.variants.light
+            SkinBackgroundTray(panel: appearance.color("panel"), background: variant?.background)
+                .overlay { appearance.trayVeil }
+                .mask {
+                    VStack(spacing: 0) {
+                        LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)
+                            .frame(height: 8)
+                        Color.black
+                        LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom)
+                            .frame(height: 8)
+                    }
+                }
+        }
+    }
+}
+
+/// The skin's keyboard colour and background, drawn as a band behind the key area only, as Android
+/// draws them behind its whole keyboard. The candidate bar above
 /// it and the system's bottom row below stay on the system keyboard surface, so the band never
 /// competes with the rounded sheet iOS draws around the keyboard.
 struct SkinBackgroundTray: View {
-    let background: SkinDefinition.Background
+    /// The skin's keyboard colour (`panel`), the base Android draws every keyboard on.
+    let panel: Color
+    /// The skin's own background over it, when it authors one.
+    let background: SkinDefinition.Background?
 
-    @ViewBuilder var body: some View {
+    var body: some View {
+        ZStack {
+            panel
+            if let background { fill(background) }
+        }
+    }
+
+    @ViewBuilder private func fill(_ background: SkinDefinition.Background) -> some View {
         switch background.type {
         case "linearGradient":
-            LinearGradient(colors: stops, startPoint: start, endPoint: end)
+            LinearGradient(
+                colors: Self.stops(background), startPoint: Self.start(background), endPoint: Self.end(background))
         case "image":
             if let image = Self.image(background.image) {
                 GeometryReader { proxy in
                     Image(uiImage: image)
                         .resizable()
                         .scaledToFill()
-                        .frame(width: proxy.size.width, height: proxy.size.height, alignment: imageAlignment)
+                        .frame(
+                            width: proxy.size.width, height: proxy.size.height,
+                            alignment: Self.imageAlignment(background)
+                        )
                         .clipped()
                 }
             }
@@ -1273,25 +1313,25 @@ struct SkinBackgroundTray: View {
         }
     }
 
-    private var stops: [Color] {
+    private static func stops(_ background: SkinDefinition.Background) -> [Color] {
         let hexes = background.colors ?? [background.from, background.to].compactMap { $0 }
-        return hexes.compactMap(Self.color)
+        return hexes.compactMap(color)
     }
-    private var start: UnitPoint {
+    private static func start(_ background: SkinDefinition.Background) -> UnitPoint {
         switch background.direction {
         case "horizontal": return .leading
         case "diagonal": return .topLeading
         default: return .top
         }
     }
-    private var end: UnitPoint {
+    private static func end(_ background: SkinDefinition.Background) -> UnitPoint {
         switch background.direction {
         case "horizontal": return .trailing
         case "diagonal": return .bottomTrailing
         default: return .bottom
         }
     }
-    private var imageAlignment: Alignment {
+    private static func imageAlignment(_ background: SkinDefinition.Background) -> Alignment {
         switch background.align {
         case "top": return .top
         case "bottom": return .bottom
@@ -1299,11 +1339,13 @@ struct SkinBackgroundTray: View {
         }
     }
 
-    /// The colours the keys sit on: a solid colour, every gradient stop (the keys must read over
-    /// each), or an image's average. Empty when the skin authors no background for the mode.
+    /// The colours the keys sit on: the keyboard colour, or over it a solid colour, every gradient
+    /// stop (the keys must read over each), or an image's average.
     static func samples(of skin: SkinDefinition, dark: Bool) -> [SkinColor] {
-        guard let background = (dark ? skin.variants.dark : skin.variants.light)?.background else { return [] }
         let surface = SkinDefinition.systemSurface(dark: dark)
+        let resolved = skin.resolvedColors(dark: dark)
+        let panel = (resolved["panel"] ?? resolved["key"]!).composited(over: surface)
+        guard let background = (dark ? skin.variants.dark : skin.variants.light)?.background else { return [panel] }
         let colors: [SkinColor]
         switch background.type {
         case "linearGradient":
@@ -1314,7 +1356,7 @@ struct SkinBackgroundTray: View {
         default:
             colors = background.color.flatMap(SkinColor.init(hex:)).map { [$0] } ?? []
         }
-        return colors.map { $0.composited(over: surface) }
+        return colors.isEmpty ? [panel] : colors.map { $0.composited(over: panel) }
     }
 
     /// An image drawn into one pixel: its average colour.

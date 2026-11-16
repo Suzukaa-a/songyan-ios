@@ -17,7 +17,8 @@ final class KeyContrastTests: XCTestCase {
             XCTAssertGreaterThanOrEqual(control.contrast(on: stop), KeyContrast.functionAgainstBackground - 0.01)
         }
         XCTAssertGreaterThanOrEqual(control.contrast(on: key), KeyContrast.functionAgainstKey - 0.01)
-        XCTAssertLessThan(control.contrast(on: color("#000000")), color("#DDE3DA").contrast(on: color("#000000")),
+        XCTAssertLessThan(
+            control.contrast(on: color("#000000")), color("#DDE3DA").contrast(on: color("#000000")),
             "on a light background the function keys go darker")
     }
 
