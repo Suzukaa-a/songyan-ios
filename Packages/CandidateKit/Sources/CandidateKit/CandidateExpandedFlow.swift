@@ -89,29 +89,32 @@ public enum CandidateExpandedFlow {
     /// a longer candidate spans as many whole columns as it needs, and the last cell of a full row
     /// takes the columns left over, so every row reaches the edge and every divider falls on the
     /// same column lines from row to row. Read from the first page only, so pages loading in as
-    /// the list scrolls never move the columns.
+    /// the list scrolls never move the columns. Cells are `gap` apart (the appearance's expanded
+    /// column spacing); a spanning cell covers the gaps between its columns.
     public static func table(
         entries: [BrowserCandidate], typography: CandidateTypography, cellPaddingX: Double,
-        availableWidth: CGFloat
+        availableWidth: CGFloat, gap: CGFloat = 0
     ) -> [Row] {
         guard !entries.isEmpty, availableWidth.isFinite, availableWidth > 0 else { return [] }
+        let gap = gap.isFinite ? max(0, gap) : 0
         let naturals = entries.map { cellWidth(for: $0, typography: typography, cellPaddingX: cellPaddingX) }
         let sample = naturals.prefix(firstPageSample).sorted()
         let target = max(minimumCellWidth, sample[(sample.count * 3) / 4])
-        let columns = max(1, Int((availableWidth / target).rounded(.down)))
-        let unit = availableWidth / CGFloat(columns)
+        let columns = max(1, Int(((availableWidth + gap) / (target + gap)).rounded(.down)))
+        let unit = max(1, (availableWidth - gap * CGFloat(columns - 1)) / CGFloat(columns))
+        func width(_ span: Int) -> CGFloat { CGFloat(span) * unit + CGFloat(span - 1) * gap }
         var rows: [Row] = []
         var cells: [BrowserCandidate] = []
         var spans: [Int] = []
         func flush(fill: Bool) {
             guard !cells.isEmpty else { return }
             if fill { spans[spans.count - 1] += columns - spans.reduce(0, +) }
-            rows.append(Row(entries: cells, widths: spans.map { CGFloat($0) * unit }))
+            rows.append(Row(entries: cells, widths: spans.map(width)))
             cells = []
             spans = []
         }
         for (entry, natural) in zip(entries, naturals) {
-            let span = min(columns, max(1, Int((natural / unit - 0.001).rounded(.up))))
+            let span = min(columns, max(1, Int(((natural + gap) / (unit + gap) - 0.001).rounded(.up))))
             if spans.reduce(0, +) + span > columns { flush(fill: true) }
             cells.append(entry)
             spans.append(span)

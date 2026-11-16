@@ -664,12 +664,11 @@ private struct DefaultExpandedCandidates: View {
     @Environment(\.displayScale) private var displayScale
 
     /// Whole touch rows filling the real scroll viewport: otherwise the fixed keyboard budget
-    /// exposes only the glyph tops of the next row before the user scrolls. The adaptive list's
-    /// rows touch, ruled apart.
+    /// exposes only the glyph tops of the next row before the user scrolls.
     private func rowHeight(viewport: CGFloat) -> CGFloat {
         CandidateExpandedFlow.fittedRowHeight(
             rowAreaHeight: CandidateExpandedFlow.rowAreaHeight(totalHeight: viewport),
-            spacing: context.bar.expanded.isAdaptive ? 0 : CGFloat(context.bar.expandedRowSpacing),
+            spacing: CGFloat(context.bar.expandedRowSpacing),
             displayScale: displayScale)
     }
 
@@ -691,8 +690,10 @@ private struct DefaultExpandedCandidates: View {
                         rowHeight: rowHeight(viewport: geometry.size.height),
                         minimumRows: context.bar.expanded.isAdaptive
                             ? Int(
-                                CandidateExpandedFlow.rowAreaHeight(totalHeight: geometry.size.height)
-                                    / rowHeight(viewport: geometry.size.height) + 0.01)
+                                (CandidateExpandedFlow.rowAreaHeight(totalHeight: geometry.size.height)
+                                    + CGFloat(context.bar.expandedRowSpacing))
+                                    / (rowHeight(viewport: geometry.size.height)
+                                        + CGFloat(context.bar.expandedRowSpacing)) + 0.01)
                             : 0
                     )
                     .padding(.horizontal, 2)
@@ -853,24 +854,29 @@ struct ExpandedCandidateRows: View {
 
     @ViewBuilder
     private func adaptiveContent(availableWidth: CGFloat, rowHeight: CGFloat) -> some View {
+        let columnGap = CGFloat(bar.expandedColumnSpacing)
+        let rowGap = CGFloat(bar.expandedRowSpacing)
         let rows = CandidateExpandedFlow.table(
             entries: entries, typography: context.typography, cellPaddingX: bar.collapsed.cellPaddingX,
-            availableWidth: availableWidth)
+            availableWidth: availableWidth, gap: columnGap)
         let prefetch = prefetchRow(rowCounts: rows.map(\.entries.count))
         // With nothing listed there is nothing to part: no empty ruled rows.
         let items = CandidateExpandedFlow.gridRows(rows, minimumRows: rows.isEmpty ? 0 : minimumRows)
-        // Cells touch and rows touch: hairlines part them, so every point is some candidate's.
-        LazyVStack(spacing: 0) {
+        // Cells and rows keep the appearance's expanded spacing; hairlines run down the middle of it.
+        LazyVStack(spacing: rowGap) {
             ForEach(items, id: \.id) { item in
                 Group {
                     if let row = item.row {
-                        adaptiveRow(row, rowHeight: rowHeight)
+                        adaptiveRow(row, rowHeight: rowHeight, gap: columnGap)
                     } else {
                         Color.clear.frame(height: rowHeight).accessibilityHidden(true)
                     }
                 }
-                // A rule above every row: the first parts the list from the strip above it.
-                .overlay(alignment: .top) { divider(horizontal: true) }
+                // A rule above every row: the first parts the list from the strip above it, the
+                // others sit in the middle of the row gap.
+                .overlay(alignment: .top) {
+                    divider(horizontal: true).offset(y: item.id == 0 ? 0 : -rowGap / 2)
+                }
                 .modifier(CandidatePrefetch(context: context, isTrigger: item.id == prefetch, kind: .expandedTail))
             }
             tailSentinel
@@ -879,9 +885,9 @@ struct ExpandedCandidateRows: View {
 
     /// One row of the list: every cell as wide as its columns in `CandidateExpandedFlow.table`, its
     /// word and comment centred, a hairline between neighbours.
-    private func adaptiveRow(_ row: CandidateExpandedFlow.Row, rowHeight: CGFloat) -> some View {
+    private func adaptiveRow(_ row: CandidateExpandedFlow.Row, rowHeight: CGFloat, gap: CGFloat) -> some View {
         let reservesComment = Self.reservesCommentLine(row.entries)
-        return HStack(alignment: .top, spacing: 0) {
+        return HStack(alignment: .top, spacing: gap) {
             ForEach(row.entries.indices, id: \.self) { index in
                 cell(
                     row.entries[index], minimumHeight: rowHeight, reservesCommentLine: reservesComment,
@@ -889,7 +895,7 @@ struct ExpandedCandidateRows: View {
                 )
                 .frame(width: row.widths[index])
                 .overlay(alignment: .trailing) {
-                    if index < row.entries.count - 1 { divider(horizontal: false) }
+                    if index < row.entries.count - 1 { divider(horizontal: false).offset(x: gap / 2) }
                 }
             }
             Spacer(minLength: 0)

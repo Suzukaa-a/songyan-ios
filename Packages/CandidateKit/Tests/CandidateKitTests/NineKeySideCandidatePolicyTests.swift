@@ -118,6 +118,21 @@ final class CandidateJustifiedRowsTests: XCTestCase {
         XCTAssertEqual(rows.flatMap(\.entries).count, entries.count)
     }
 
+    /// Regression: the expanded table ignored the appearance's column spacing, so only the strip
+    /// row above it was spaced. Full rows still reach the edge counting the gaps.
+    func testTheTableKeepsTheColumnGap() {
+        let typography = CandidateTypography(candidateSize: 20, secondarySize: 12)
+        let entries = (0..<14).map { entry(String(repeating: "字", count: $0 % 4 == 3 ? 4 : 1), $0) }
+        let rows = CandidateExpandedFlow.table(
+            entries: entries, typography: typography, cellPaddingX: 7, availableWidth: 300, gap: 5)
+        XCTAssertGreaterThan(rows.count, 1)
+        for row in rows.dropLast() {
+            let used = row.widths.reduce(0, +) + CGFloat(row.widths.count - 1) * 5
+            XCTAssertEqual(used, 300, accuracy: 0.001)
+        }
+        XCTAssertEqual(rows.flatMap(\.entries).count, entries.count)
+    }
+
     /// Among single characters an emoji takes one column, as wide as each of them.
     func testAnEmojiTakesOneColumnAmongSingleCharacters() {
         let typography = CandidateTypography(candidateSize: 20, secondarySize: 12)
