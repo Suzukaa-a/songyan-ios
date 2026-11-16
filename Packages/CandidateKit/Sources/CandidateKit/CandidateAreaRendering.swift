@@ -368,23 +368,32 @@ private struct DefaultCollapsedCandidateBar: View {
             showsComments: context.showsCollapsedComments)
         // Candidate widths change as pages arrive; switching container types at
         // the overflow threshold remounts every cell and the load sentinel.
-        // At rest the viewport ends on a cell boundary instead of halving a glyph.
-        let viewport =
+        let wholeCells =
             layout.scrolls
             ? CandidateCollapsedFlow.wholeCellViewportWidth(
                 cellWidths: layout.cellWidths,
                 spacing: spacing, availableWidth: available) + 4
             : width
+        // Collapsed, the row runs to the controls and the candidate that does not fit shows its
+        // start fading out, so the row reads as going on and scrolls from any point of it.
+        // Expanded, the row is the list's first row: it ends on a whole candidate, and the list
+        // below starts with the next one.
+        let fades = layout.scrolls && !context.isExpanded
+        let viewport = context.isExpanded ? wholeCells : width
+        let fade = CandidateCollapsedFlow.trailingFadeWidth
         ScrollViewReader { proxy in
             ScrollView(.horizontal, showsIndicators: false) {
                 CollapsedCandidateRow(
                     context: context, entries: entries,
                     cellWidths: layout.cellWidths, spacing: spacing, viewportWidth: viewport
                 )
-                .padding(.horizontal, 2)
+                .padding(.leading, 2)
+                // The end of the list scrolls clear of the fade.
+                .padding(.trailing, fades ? fade : 2)
                 .frame(minWidth: viewport, alignment: .leading)
                 .id(CandidateScrollAnchor.content)
             }
+            .modifier(CandidateTrailingFade(width: fades ? fade : 0))
             .scrollBounceBehavior(.basedOnSize)
             // A row that fits has nothing to scroll, so its pan must not take a tap that drifts
             // sideways: the candidate keeps it while the finger stays on it, as a plain button would.
@@ -417,9 +426,28 @@ private struct DefaultCollapsedCandidateBar: View {
         .preference(
             key: CandidateStripFirstRowKey.self,
             value: CandidateCollapsedFlow.wholeCellCount(
-                cellWidths: layout.cellWidths, spacing: spacing, viewportWidth: viewport - 4))
+                cellWidths: layout.cellWidths, spacing: spacing, viewportWidth: wholeCells - 4))
     }
 
+}
+
+/// Fades the strip's trailing edge to clear: the candidate cut by it reads as the row going on.
+private struct CandidateTrailingFade: ViewModifier {
+    let width: CGFloat
+
+    func body(content: Content) -> some View {
+        if width > 0 {
+            content.mask {
+                HStack(spacing: 0) {
+                    Color.black
+                    LinearGradient(colors: [.black, .clear], startPoint: .leading, endPoint: .trailing)
+                        .frame(width: width)
+                }
+            }
+        } else {
+            content
+        }
+    }
 }
 
 /// Production cells and the load sentinel stay mounted across width changes.

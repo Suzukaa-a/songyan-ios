@@ -108,8 +108,11 @@ public enum CandidateCollapsedFlow {
         return max(minimumCellWidth, scaled.isFinite ? scaled : minimumCellWidth)
     }
 
+    /// How far the collapsed strip fades out at its trailing edge when it scrolls.
+    public static let trailingFadeWidth: CGFloat = 28
+
     /// Visible viewport width when scrolling: shows only the cells that fit completely from the first cell, so the last
-    /// cell is not cut in half at the edge (a viewport box rather than a mask). Uses the full available width when not
+    /// cell is not cut in half at the edge. The expanded list's first row uses it. Uses the full available width when not
     /// scrolling or when the first cell is already wider.
     public static func wholeCellViewportWidth(
         cellWidths: [CGFloat], spacing: CGFloat,
