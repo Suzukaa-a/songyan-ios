@@ -7,9 +7,10 @@ only $(SONGYAN_APP_GROUP) was resolved with sed, so the Keychain sharing group a
 build setting the entitlements use and fails closed: a missing/unknown setting, or a Team ID that is
 absent or not ten uppercase letters/digits, is an error instead of a literal output.
 
-Team ID comes from --team-id or the TEAMID environment variable (release workflows set it from a
-repository variable); it is required because AppIdentifierPrefix is an Xcode signing setting, not an
-Identity.xcconfig entry.
+Team ID comes from --team-id or the TEAMID environment variable. It is optional: the public release
+IPA is not signed for any team, and whoever installs it re-signs it under their own team, for which
+a prefix of ours would be wrong. Without a Team ID the team-prefixed keychain-access-groups entries
+are left out (the App Group stays); with one they are expanded. Any other unexpanded setting fails.
 
 Usage:
   expand-device-entitlements.py --output-dir DIR [--team-id TEAM] [--root REPO]
@@ -44,14 +45,27 @@ def identity_settings(root: Path) -> dict[str, str]:
     return settings
 
 
-def resolve_team_id(value: str | None) -> str:
-    """The signing team prefix for AppIdentifierPrefix; missing or invalid is never guessed."""
+KEYCHAIN_GROUPS_KEY = "keychain-access-groups"
+TEAM_PREFIX = "$(AppIdentifierPrefix)"
+
+
+def resolve_team_id(value: str | None) -> str | None:
+    """The signing team prefix for AppIdentifierPrefix, or None when no team is given; invalid is never guessed."""
     team = (value or "").strip()
     if not team:
-        raise ValueError("TEAMID is required to expand $(AppIdentifierPrefix) for ad-hoc signing")
+        return None
     if not TEAM_ID.fullmatch(team):
         raise ValueError(f"TEAMID '{team}' is not ten uppercase letters/digits")
     return team
+
+
+def without_team_prefixed_groups(data: dict) -> dict:
+    """Drops keychain-access-groups entries that need a team prefix; the key goes when none is left."""
+    groups = [group for group in data.get(KEYCHAIN_GROUPS_KEY, []) if TEAM_PREFIX not in group]
+    trimmed = {key: value for key, value in data.items() if key != KEYCHAIN_GROUPS_KEY}
+    if groups:
+        trimmed[KEYCHAIN_GROUPS_KEY] = groups
+    return trimmed
 
 
 def expand_value(value, settings: dict[str, str]):
@@ -81,6 +95,8 @@ def expanded_entitlements(
 ) -> dict:
     with source.open("rb") as handle:
         data = plistlib.load(handle)
+    if "AppIdentifierPrefix" not in settings:
+        data = without_team_prefixed_groups(data)
     expanded = expand_value(data, settings)
     require_expanded(expanded, where)
     groups = expanded.get(APP_GROUP_KEY)
@@ -101,7 +117,8 @@ def main(argv: list[str] | None = None) -> int:
         app_group = settings.get("SONGYAN_APP_GROUP")
         if not app_group:
             raise ValueError("SONGYAN_APP_GROUP missing from Config/Identity.xcconfig")
-        settings["AppIdentifierPrefix"] = f"{team}."
+        if team:
+            settings["AppIdentifierPrefix"] = f"{team}."
         args.output_dir.mkdir(parents=True, exist_ok=True)
         for target in TARGETS:
             source = args.root / "Apps" / target / f"{target}.entitlements"

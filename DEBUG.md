@@ -135,8 +135,8 @@ Keychain values. Results are `s0Probe ...` lines on the `DebugProbe` category an
   it also writes and reads back its own App Group item. Only `OSStatus`, byte counts and whether
   the marker came back are recorded, never the item contents. Since the script addons arrived,
   both entitlements declare `keychain-access-groups = $(AppIdentifierPrefix)group.app.songyan.shared`
-  so the extension reads the Host app's script secrets; ad-hoc packaging expands that prefix
-  fail-closed. Whether an App Group alone was enough (the earlier theory that Apple counts
+  so the extension reads the Host app's script secrets; the public release IPA is signed for no
+  team, so packaging leaves that entry out and those installs rely on the App Group alone. Whether an App Group alone was enough (the earlier theory that Apple counts
   application groups among keychain access groups) was never verified, and no keychain result here
   comes from a device or from a locked screen. The Keychain Sharing capability's real-device
   provisioning profile and the shared-group read path remain unmeasured.

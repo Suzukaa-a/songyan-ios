@@ -4,9 +4,10 @@
 # it under the installer's own team and keep the shared App Group. A Debug build is accepted
 # for the S0 device probe, whose engine archive is already linked into that build.
 #
-# TEAMID must be set (ten uppercase letters/digits): entitlements use
-# $(AppIdentifierPrefix)group.app.songyan.shared for the shared script keychain, and codesign does
-# not expand build settings. A missing TEAMID fails closed instead of shipping a literal.
+# TEAMID is optional (ten uppercase letters/digits when given). The public release IPA is signed for
+# no team: the installer re-signs it under theirs, so the team-prefixed keychain-access-groups entry
+# ($(AppIdentifierPrefix)group.app.songyan.shared) is left out, and the App Group stays. codesign does
+# not expand build settings, so any other unexpanded one still fails instead of shipping a literal.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -36,8 +37,8 @@ mkdir -p "${STAGE}/Payload"
 ditto "${PRODUCT}" "${STAGE}/Payload/HostApp.app"
 APP="${STAGE}/Payload/HostApp.app"
 
-# codesign does not expand build settings. Expand App Group and the keychain-access-groups prefix
-# before signing; a missing TEAMID or an unexpanded setting is refused instead of shipping a literal.
+# codesign does not expand build settings. Expand them before signing; an unexpanded setting is
+# refused instead of shipping a literal.
 python3 "${SCRIPT_DIR}/expand-device-entitlements.py" \
   --root "${CI_ROOT}" --output-dir "${STAGE}"
 
