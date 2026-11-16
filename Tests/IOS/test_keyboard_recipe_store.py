@@ -23,6 +23,7 @@ case "publication": try publicationChecks(base)
 case "prune": try pruneChecks(base)
 case "builtin": try builtinPublicationChecks(base)
 case "kept": try keptPackagesChecks(base)
+case "private": try privateSelectionChecks(base)
 default: fatalError("unknown store scenario")
 }
 ''', encoding="utf-8")
@@ -36,6 +37,9 @@ default: fatalError("unknown store scenario")
 
     def test_selection_publication_and_resource_fallback(self):
         self.scenario("selection")
+
+    def test_a_pick_kept_without_full_access_applies_until_the_host_chooses(self):
+        self.scenario("private")
 
     def test_publication_rosters_and_provenance(self):
         self.scenario("publication")

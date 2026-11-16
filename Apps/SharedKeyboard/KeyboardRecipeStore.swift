@@ -373,6 +373,80 @@ public enum KeyboardRecipeStore {
     }
 }
 
+// MARK: - Choice kept without Full Access
+
+extension KeyboardRecipeStore {
+    /// A keyboard picked in the keyboard while the App Group is read-only (no Full Access). It lives
+    /// in the extension's own defaults, which it can always write, and applies only while the shared
+    /// record still says what it said when the pick was made: a choice made in the host app since
+    /// then wins, and this one is dropped.
+    struct PrivateSelection: Codable, Equatable, Sendable {
+        var baseGeneration: String
+        var baseSchemaID: String?
+        var baseLayout: KeyboardLayoutKind?
+        var baseBoard: String?
+        var schemaID: String
+        var layout: KeyboardLayoutKind
+        var board: String?
+    }
+
+    static let privateSelectionKey = "keyboard.privateSelection.v1"
+
+    /// Keeps a pick the shared record cannot take. False when there is no published record to base it on.
+    @discardableResult
+    public static func savePrivateSelection(
+        schemaID: String, layout: KeyboardLayoutKind, board: String?,
+        defaults: UserDefaults = .standard, rootURL: URL? = nil
+    ) -> Bool {
+        let read = readSelection(rootURL: rootURL)
+        guard read.readError == nil, let data = read.data,
+            let base = try? JSONDecoder().decode(Activation.self, from: data), base.recipeEnabled
+        else { return false }
+        let record = PrivateSelection(
+            baseGeneration: base.generation, baseSchemaID: base.selectedSchemaID,
+            baseLayout: base.selectedLayout, baseBoard: base.selectedBoard,
+            schemaID: schemaID, layout: layout, board: board)
+        guard let encoded = try? JSONEncoder().encode(record) else { return false }
+        defaults.set(encoded, forKey: privateSelectionKey)
+        return true
+    }
+
+    /// Forgets the kept pick: the shared record now holds the user's choice.
+    public static func clearPrivateSelection(defaults: UserDefaults = .standard) {
+        defaults.removeObject(forKey: privateSelectionKey)
+    }
+
+    /// [read] with the kept pick applied while the shared record is still the one it was made on,
+    /// and the pick is still a published keyboard there. Otherwise the kept pick is dropped and
+    /// [read] is returned as it is.
+    public static func applyingPrivateSelection(
+        _ read: SelectionRead, defaults: UserDefaults = .standard
+    ) -> SelectionRead {
+        guard let stored = defaults.data(forKey: privateSelectionKey) else { return read }
+        guard read.readError == nil, let data = read.data,
+            var activation = try? JSONDecoder().decode(Activation.self, from: data),
+            let record = try? JSONDecoder().decode(PrivateSelection.self, from: stored)
+        else { return read }
+        let unchanged =
+            activation.recipeEnabled && activation.generation == record.baseGeneration
+            && activation.selectedSchemaID == record.baseSchemaID
+            && activation.selectedLayout == record.baseLayout && activation.selectedBoard == record.baseBoard
+        let pick = PublishedKeyboard(schemaID: record.schemaID, layout: record.layout, board: record.board)
+        let published =
+            activation.requiredSchemaIDs.contains(record.schemaID)
+            && (activation.publishedKeyboards == nil || activation.keyboards.contains(pick))
+        guard unchanged, published else {
+            clearPrivateSelection(defaults: defaults)
+            return read
+        }
+        activation.selectedSchemaID = record.schemaID
+        activation.selectedLayout = record.layout
+        activation.selectedBoard = record.board
+        guard let rewritten = try? canonicalJSONEncoder().encode(activation) else { return read }
+        return SelectionRead(root: read.root, data: rewritten, readError: nil)
+    }
+}
+
 /// Sorted keys keep the encoded bytes of dictionary-bearing records identical across processes.
 func canonicalJSONEncoder() -> JSONEncoder {
     let encoder = JSONEncoder()

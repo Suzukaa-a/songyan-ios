@@ -156,9 +156,18 @@ extension KeyboardViewController {
                 """)
             return
         }
-        // Read-only App Group: the running session alone holds the choice.
+        // Read-only App Group (no Full Access): the extension keeps the choice in its own defaults,
+        // so the next presentation opens on it unless the host app picks a keyboard meanwhile.
         guard KeyboardRecipeStore.canWriteSharedContainer else {
-            Self.diagnosticLogger.info("selection kept for this session: shared container is read-only")
+            let schemaID = change.schemaID
+            let layout = change.layout
+            let board = change.board
+            Task.detached(priority: .userInitiated) {
+                if KeyboardRecipeStore.savePrivateSelection(schemaID: schemaID, layout: layout, board: board) {
+                    KeyboardPadSession.persistLayout(layout)
+                }
+            }
+            Self.diagnosticLogger.info("selection kept in the extension: shared container is read-only")
             return
         }
         let runtimeIdentity = KeyboardRecipeStore.SelectionRuntimeIdentity.published
@@ -173,7 +182,11 @@ extension KeyboardViewController {
                     let outcome = try KeyboardRecipeStore.saveSelection(
                         schemaID: schemaID, layout: layout, board: board,
                         runtimeIdentity: runtimeIdentity)
-                    if outcome == .saved { KeyboardPadSession.persistLayout(layout) }
+                    if outcome == .saved {
+                        KeyboardPadSession.persistLayout(layout)
+                        // The shared record holds the choice now; a pick kept without Full Access is stale.
+                        KeyboardRecipeStore.clearPrivateSelection()
+                    }
                     return outcome
                 }
                 guard let self, let backend, self.isBoundHost,
@@ -241,7 +254,8 @@ extension KeyboardViewController {
     nonisolated private static func resolveRoute(
         running: KeyboardRouteKey?, explainRecipeAvailability: Bool
     ) -> RouteRefreshResult {
-        let selection = KeyboardRecipeStore.readSelection()
+        // A pick kept without Full Access applies while the host app has not chosen differently since.
+        let selection = KeyboardRecipeStore.applyingPrivateSelection(KeyboardRecipeStore.readSelection())
         if let running, KeyboardRecipeStore.selection(selection, matches: running) { return .unchanged }
         return .resolved(resolveSelection(selection, explainRecipeAvailability: explainRecipeAvailability))
     }
