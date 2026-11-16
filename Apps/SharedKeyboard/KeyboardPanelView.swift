@@ -394,6 +394,14 @@ public struct KeyboardPanelView: View {
     /// change this host-level width.
     /// The appearance every key on this board draws with: columns wider than a phone's grow the
     /// skin's key gaps in proportion. One value for all pages, so flipping a page never changes them.
+    /// The skin's own background, behind the keys only; nil when the skin authors none.
+    @ViewBuilder private var backgroundTray: some View {
+        let variant = appearance.dark ? appearance.skin.variants.dark : appearance.skin.variants.light
+        if appearance.drawsSkinBackground, let background = variant?.background {
+            SkinBackgroundTray(background: background)
+        }
+    }
+
     var keyAppearance: KeyboardAppearance {
         appearance.scalingKeyGaps(width: widthBox.contentWidth, split: activeSplit)
     }
@@ -866,14 +874,6 @@ public struct KeyboardPanelView: View {
             hasPendingQueries: controller.readingQueryPending || controller.ambiguityQueryPending,
             isExpanded: showsAllCandidates,
             isCovered: showsCoveringPanel)
-    }
-
-    /// The skin's own background, behind the keys only; nil when the skin authors none.
-    @ViewBuilder private var backgroundTray: some View {
-        let variant = appearance.dark ? appearance.skin.variants.dark : appearance.skin.variants.light
-        if appearance.drawsSkinBackground, let background = variant?.background {
-            SkinBackgroundTray(background: background)
-        }
     }
 
     private func panelSurface(isWide: Bool) -> some View {
