@@ -27,7 +27,7 @@ struct FullAccessView: View {
 
             Section {
                 row("keyboard", String(localized: "所有输入方式、键盘布局和键盘外观"))
-                row("arrow.left.arrow.right", String(localized: "在键盘里切换的布局，下次调出时保留"))
+                row("arrow.left.arrow.right", String(localized: "在键盘里切换的布局和输入方式，下次调出时保留"))
                 row("text.badge.star", String(localized: "按你的用词调整候选"))
                 row("curlybraces", String(localized: "不联网的脚本"))
             } header: {
@@ -48,12 +48,9 @@ struct FullAccessView: View {
                 row("speaker.wave.2", String(localized: "按键声音和按键触感"))
                 row("text.quote", String(localized: "常用语"))
                 row("network", String(localized: "联网的脚本"))
-                row("square.stack", String(localized: "在键盘里换用其他输入方式"))
                 row("arrow.triangle.2.circlepath", String(localized: "学习记录的备份与合并"))
             } header: {
                 Text("需要开启")
-            } footer: {
-                Text("不开启时，可以在 App 里换用其他输入方式。")
             }
         }
         .navigationTitle(String(localized: "允许完全访问"))

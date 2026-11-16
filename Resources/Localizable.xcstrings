@@ -28139,28 +28139,6 @@
         }
       }
     },
-    "工具": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ツール"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "工具"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "工具"
-          }
-        }
-      }
-    },
     "松烟": {
       "localizations": {
         "ja": {
@@ -28179,28 +28157,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "松煙"
-          }
-        }
-      }
-    },
-    "体验键盘输入与候选上屏": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "キーボード入力と候補表示を試す"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "体验键盘输入与候选上屏"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "體驗鍵盤輸入與候選上屏"
           }
         }
       }
@@ -37269,28 +37225,6 @@
         }
       }
     },
-    "在键盘里切换的布局，下次调出时保留": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "キーボードで切り替えたキー配列は次回も保持"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "在键盘里切换的布局，下次调出时保留"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "在鍵盤裡切換的佈局，下次調出時保留"
-          }
-        }
-      }
-    },
     "按你的用词调整候选": {
       "localizations": {
         "ja": {
@@ -37489,28 +37423,6 @@
         }
       }
     },
-    "在键盘里换用其他输入方式": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "キーボードでほかの入力方式に切り替える"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "在键盘里换用其他输入方式"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "在鍵盤裡換用其他輸入方式"
-          }
-        }
-      }
-    },
     "学习记录的备份与合并": {
       "localizations": {
         "ja": {
@@ -37551,28 +37463,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "需要開啟"
-          }
-        }
-      }
-    },
-    "不开启时，可以在 App 里换用其他输入方式。": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "オフのままでも、App でほかの入力方式に切り替えられます。"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "不开启时，可以在 App 里换用其他输入方式。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "不開啟時，可以在 App 裡換用其他輸入方式。"
           }
         }
       }
@@ -37727,6 +37617,138 @@
           "stringUnit": {
             "state": "translated",
             "value": "外觀自帶背景時，畫在按鍵後面，候選列保持系統底色。"
+          }
+        }
+      }
+    },
+    "在键盘里切换的布局和输入方式，下次调出时保留": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーボードで切り替えたキー配列と入力方式は次回も保持"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在键盘里切换的布局和输入方式，下次调出时保留"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在鍵盤裡切換的佈局和輸入方式，下次調出時保留"
+          }
+        }
+      }
+    },
+    "按键声音、纠错、联想与键盘高度": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーの音、修正、予測とキーボードの高さ"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按键声音、纠错、联想与键盘高度"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按鍵聲音、糾錯、聯想與鍵盤高度"
+          }
+        }
+      }
+    },
+    "在输入框里试试键盘": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力欄でキーボードを試す"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在输入框里试试键盘"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在輸入框裡試試鍵盤"
+          }
+        }
+      }
+    },
+    "在键盘里搜索并输入常用的句子": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "よく使う文をキーボードで検索して入力"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在键盘里搜索并输入常用的句子"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在鍵盤裡搜尋並輸入常用的句子"
+          }
+        }
+      }
+    },
+    "不开启完全访问也能打字，只是这里确认不到；开启后调出一次键盘即可确认。": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フルアクセスがオフでも入力できますが、ここでは確認できません。オンにしてキーボードを一度表示すると確認できます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不开启完全访问也能打字，只是这里确认不到；开启后调出一次键盘即可确认。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不開啟完整取用也能打字，只是這裡確認不到；開啟後調出一次鍵盤即可確認。"
+          }
+        }
+      }
+    },
+    "哪些功能需要完全访问": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "フルアクセスが必要な機能"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "哪些功能需要完全访问"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "哪些功能需要完整取用"
           }
         }
       }

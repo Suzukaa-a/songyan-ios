@@ -69,6 +69,17 @@ extension KeyboardViewController {
                 try await EngineOpQueue.async {
                     switch target {
                     case .keptPackage(let key):
+                        // Read-only App Group (no Full Access): the keyboard remembers the switch in its
+                        // own storage and reads the same kept generation the host app published.
+                        guard KeyboardRecipeStore.canWriteSharedContainer else {
+                            guard KeyboardRecipeStore.savePrivatePackageSwitch(rosterKey: key, keyboard: keyboard)
+                            else {
+                                throw KeyboardRecipeStore.StoreError(
+                                    message: String(localized: "找不到这个输入方案的已保存版本，请在「松烟」App 中重新使用它"))
+                            }
+                            KeyboardPadSession.persistLayout(keyboard.layout)
+                            return
+                        }
                         try KeyboardRecipeStore.activateKeptPackage(
                             rosterKey: key, keyboard: keyboard, expectedGeneration: runningGeneration)
                     case .recordedPackage:
@@ -254,8 +265,8 @@ extension KeyboardViewController {
     nonisolated private static func resolveRoute(
         running: KeyboardRouteKey?, explainRecipeAvailability: Bool
     ) -> RouteRefreshResult {
-        // A pick kept without Full Access applies while the host app has not chosen differently since.
-        let selection = KeyboardRecipeStore.applyingPrivateSelection(KeyboardRecipeStore.readSelection())
+        // A switch or pick kept without Full Access applies while the host app has not chosen differently since.
+        let selection = KeyboardRecipeStore.applyingPrivateChoices(KeyboardRecipeStore.readSelection())
         if let running, KeyboardRecipeStore.selection(selection, matches: running) { return .unchanged }
         return .resolved(resolveSelection(selection, explainRecipeAvailability: explainRecipeAvailability))
     }

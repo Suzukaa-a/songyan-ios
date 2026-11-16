@@ -16,7 +16,7 @@ public struct ActivationPublishedKeyboardProvider: PublishedKeyboardListProvidin
     public func publishedKeyboards() async throws -> [UserKeyboard] {
         // The read must stay inside this read-queue closure (static gate: no disk I/O on the main thread).
         try await KeyboardResourceReadQueue.async {
-            guard let activation = try KeyboardRecipeStore.activation() else { return [] }
+            guard let activation = try KeyboardRecipeStore.effectiveActivation() else { return [] }
             return Self.keyboards(from: activation)
         }
     }

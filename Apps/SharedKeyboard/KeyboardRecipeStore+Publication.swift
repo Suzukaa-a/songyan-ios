@@ -407,18 +407,18 @@ extension KeyboardRecipeStore {
                 inputMethodName: display.inputMethodName
             ).title
         }
-        if canWrite {
-            if builtinRunning, !current.recipeEnabled, let roster = current.publishedKeyboards, !roster.isEmpty {
-                append(roster, of: current, target: .recordedPackage)
-            }
-            let currentKey = current.rosterKey
-            for (key, generation) in (current.keptGenerations ?? [:]).sorted(by: { $0.key < $1.key })
-            where key != currentKey {
-                guard let roster = current.keyboardsBySource?[key], !roster.isEmpty,
-                    let source = record(generation), source.rosterKey == key
-                else { continue }
-                append(roster, of: source, target: .keptPackage(rosterKey: key))
-            }
+        if canWrite, builtinRunning, !current.recipeEnabled, let roster = current.publishedKeyboards, !roster.isEmpty {
+            append(roster, of: current, target: .recordedPackage)
+        }
+        // Kept packages are offered with or without write access: without it the switch is kept in
+        // the keyboard's own storage (`savePrivatePackageSwitch`) over the same shared generations.
+        let currentKey = current.rosterKey
+        for (key, generation) in (current.keptGenerations ?? [:]).sorted(by: { $0.key < $1.key })
+        where key != currentKey {
+            guard let roster = current.keyboardsBySource?[key], !roster.isEmpty,
+                let source = record(generation), source.rosterKey == key
+            else { continue }
+            append(roster, of: source, target: .keptPackage(rosterKey: key))
         }
         return entries
     }
@@ -504,6 +504,17 @@ extension KeyboardRecipeStore {
         else {
             throw StoreError(message: String(localized: "输入方案配置版本已更新，请刷新后重试"))
         }
+        let next = try keptPackageActivation(from: current, rosterKey: targetKey, keyboard: keyboard, root: root)
+        try canonicalJSONEncoder().encode(next).write(
+            to: root.appendingPathComponent("active.json"), options: .atomic)
+    }
+
+    /// The record a switch from `current` to the kept package `targetKey` produces. Pure apart from
+    /// reading the target's generation, so a keyboard without Full Access can apply the same switch
+    /// in memory over the read-only shared record.
+    static func keptPackageActivation(
+        from current: Activation, rosterKey targetKey: String, keyboard: PublishedKeyboard, root: URL
+    ) throws -> Activation {
         guard targetKey != current.rosterKey,
             let generation = current.keptGenerations?[targetKey],
             let target = generationRecord(generation: generation, rootURL: root),
@@ -534,8 +545,7 @@ extension KeyboardRecipeStore {
         next.selectedBoard = keyboard.board
         next.keyboardsBySource = rosters.isEmpty ? nil : rosters
         next.keptGenerations = kept.isEmpty ? nil : kept
-        try canonicalJSONEncoder().encode(next).write(
-            to: root.appendingPathComponent("active.json"), options: .atomic)
+        return next
     }
 
     // MARK: - Compiled build sharing

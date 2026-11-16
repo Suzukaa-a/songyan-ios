@@ -398,7 +398,7 @@ extension KeyboardRecipeStore {
         schemaID: String, layout: KeyboardLayoutKind, board: String?,
         defaults: UserDefaults = .standard, rootURL: URL? = nil
     ) -> Bool {
-        let read = readSelection(rootURL: rootURL)
+        let read = applyingPrivatePackageSwitch(readSelection(rootURL: rootURL), defaults: defaults)
         guard read.readError == nil, let data = read.data,
             let base = try? JSONDecoder().decode(Activation.self, from: data), base.recipeEnabled
         else { return false }
@@ -444,6 +444,142 @@ extension KeyboardRecipeStore {
         activation.selectedBoard = record.board
         guard let rewritten = try? canonicalJSONEncoder().encode(activation) else { return read }
         return SelectionRead(root: read.root, data: rewritten, readError: nil)
+    }
+}
+
+// MARK: - Package switch kept without Full Access
+
+extension KeyboardRecipeStore {
+    /// A switch to another package made in the keyboard while the App Group is read-only. The host
+    /// app already keeps a compiled generation for every package with added keyboards
+    /// (`keptGenerations`), so nothing is copied: the keyboard only remembers which kept package and
+    /// keyboard to read, and applies the same switch `activateKeptPackage` would write. Learning
+    /// stays where it always is, in the extension's per-package user directory.
+    ///
+    /// Like `PrivateSelection` it applies only while the shared record is the one it was made on.
+    /// Once Full Access is on, `promotePrivateChoices` writes it into the shared record.
+    struct PrivatePackageSwitch: Codable, Equatable, Sendable {
+        var baseGeneration: String
+        var baseEnabled: Bool
+        var baseSchemaID: String?
+        var baseLayout: KeyboardLayoutKind?
+        var baseBoard: String?
+        var rosterKey: String
+        var keyboard: PublishedKeyboard
+
+        func isBased(on activation: Activation) -> Bool {
+            activation.generation == baseGeneration && activation.recipeEnabled == baseEnabled
+                && activation.selectedSchemaID == baseSchemaID && activation.selectedLayout == baseLayout
+                && activation.selectedBoard == baseBoard
+        }
+    }
+
+    static let privatePackageSwitchKey = "keyboard.privatePackageSwitch.v1"
+
+    /// Keeps a switch to `keyboard` of the kept package `rosterKey` that the shared record cannot
+    /// take. Switching back to the package the shared record names drops the switch instead. False
+    /// when the switch is not possible (the package is no longer kept, or the keyboard was removed).
+    @discardableResult
+    public static func savePrivatePackageSwitch(
+        rosterKey: String, keyboard: PublishedKeyboard,
+        defaults: UserDefaults = .standard, rootURL: URL? = nil
+    ) -> Bool {
+        let read = readSelection(rootURL: rootURL)
+        guard read.readError == nil, let data = read.data, let root = read.root,
+            let shared = try? JSONDecoder().decode(Activation.self, from: data)
+        else { return false }
+        if rosterKey == shared.rosterKey, shared.recipeEnabled {
+            clearPrivatePackageSwitch(defaults: defaults)
+            if shared.selectedSchemaID == keyboard.schemaID && shared.selectedLayout == keyboard.layout
+                && shared.selectedBoard == keyboard.board
+            {
+                clearPrivateSelection(defaults: defaults)
+                return true
+            }
+            return savePrivateSelection(
+                schemaID: keyboard.schemaID, layout: keyboard.layout, board: keyboard.board,
+                defaults: defaults, rootURL: rootURL)
+        }
+        guard (try? keptPackageActivation(from: shared, rosterKey: rosterKey, keyboard: keyboard, root: root)) != nil
+        else { return false }
+        let record = PrivatePackageSwitch(
+            baseGeneration: shared.generation, baseEnabled: shared.recipeEnabled,
+            baseSchemaID: shared.selectedSchemaID, baseLayout: shared.selectedLayout,
+            baseBoard: shared.selectedBoard, rosterKey: rosterKey, keyboard: keyboard)
+        guard let encoded = try? JSONEncoder().encode(record) else { return false }
+        defaults.set(encoded, forKey: privatePackageSwitchKey)
+        // A pick inside the package being left no longer means anything.
+        clearPrivateSelection(defaults: defaults)
+        return true
+    }
+
+    public static func clearPrivatePackageSwitch(defaults: UserDefaults = .standard) {
+        defaults.removeObject(forKey: privatePackageSwitchKey)
+    }
+
+    /// [read] with the kept switch applied while the shared record is still the one it was made on
+    /// and the target is still kept. Otherwise the switch is dropped and [read] returned as it is.
+    public static func applyingPrivatePackageSwitch(
+        _ read: SelectionRead, defaults: UserDefaults = .standard
+    ) -> SelectionRead {
+        guard let stored = defaults.data(forKey: privatePackageSwitchKey) else { return read }
+        guard read.readError == nil, let data = read.data, let root = read.root,
+            let shared = try? JSONDecoder().decode(Activation.self, from: data),
+            let record = try? JSONDecoder().decode(PrivatePackageSwitch.self, from: stored)
+        else { return read }
+        guard record.isBased(on: shared),
+            let next = try? keptPackageActivation(
+                from: shared, rosterKey: record.rosterKey, keyboard: record.keyboard, root: root),
+            let rewritten = try? canonicalJSONEncoder().encode(next)
+        else {
+            clearPrivatePackageSwitch(defaults: defaults)
+            return read
+        }
+        return SelectionRead(root: read.root, data: rewritten, readError: nil)
+    }
+
+    /// The shared record as this keyboard sees it: a package switch, then a keyboard pick, kept
+    /// without Full Access applied over it. In the host app nothing is kept, so it is the shared record.
+    public static func applyingPrivateChoices(
+        _ read: SelectionRead, defaults: UserDefaults = .standard
+    ) -> SelectionRead {
+        applyingPrivateSelection(applyingPrivatePackageSwitch(read, defaults: defaults), defaults: defaults)
+    }
+
+    /// `activation()` as this keyboard sees it (see `applyingPrivateChoices`).
+    public static func effectiveActivation(
+        defaults: UserDefaults = .standard, rootURL: URL? = nil
+    ) throws -> Activation? {
+        let read = applyingPrivateChoices(readSelection(rootURL: rootURL), defaults: defaults)
+        if let error = read.readError { throw StoreError(message: error) }
+        guard let data = read.data else { return nil }
+        return try JSONDecoder().decode(Activation.self, from: data)
+    }
+
+    /// With Full Access back, writes what was kept without it into the shared record, so the host
+    /// app shows the same choice, then forgets it. A kept choice the shared record moved past is
+    /// dropped by the reads above; nothing here overrides a newer host choice.
+    public static func promotePrivateChoices(defaults: UserDefaults = .standard, rootURL: URL? = nil) {
+        guard canWriteSharedContainer else { return }
+        if let stored = defaults.data(forKey: privatePackageSwitchKey),
+            let record = try? JSONDecoder().decode(PrivatePackageSwitch.self, from: stored)
+        {
+            try? activateKeptPackage(
+                rosterKey: record.rosterKey, keyboard: record.keyboard,
+                expectedGeneration: record.baseGeneration, rootURL: rootURL)
+            clearPrivatePackageSwitch(defaults: defaults)
+        }
+        let read = applyingPrivateSelection(readSelection(rootURL: rootURL), defaults: defaults)
+        guard defaults.data(forKey: privateSelectionKey) != nil,
+            let data = read.data, let picked = try? JSONDecoder().decode(Activation.self, from: data),
+            let schemaID = picked.selectedSchemaID, let layout = picked.selectedLayout
+        else { return }
+        if (try? saveSelection(
+            schemaID: schemaID, layout: layout, board: picked.selectedBoard,
+            runtimeIdentity: .published, rootURL: rootURL)) == .saved
+        {
+            clearPrivateSelection(defaults: defaults)
+        }
     }
 }
 

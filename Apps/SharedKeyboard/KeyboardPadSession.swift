@@ -209,7 +209,7 @@ public final class KeyboardPadSession: ObservableObject {
         // A failed read leaves the entries out; the current package's own list still works.
         return
             (try? await KeyboardResourceReadQueue.async {
-                guard let activation = try KeyboardRecipeStore.activation() else { return [] }
+                guard let activation = try KeyboardRecipeStore.effectiveActivation() else { return [] }
                 return KeyboardRecipeStore.otherPackageKeyboards(
                     from: activation, builtinRunning: builtinRunning || !activation.recipeEnabled,
                     canWrite: canWrite,

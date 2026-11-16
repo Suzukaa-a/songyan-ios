@@ -744,7 +744,14 @@ class KeyboardViewController: UIInputViewController {
             hapticsAllowed: fullAccess)
         KeyboardRecipeStore.canWriteSharedContainer = fullAccess
         // Lets the host app truthfully show "keyboard added with Full Access allowed".
-        if fullAccess { KeyboardPresenceStamp.recordFullAccessSeen() }
+        if fullAccess {
+            KeyboardPresenceStamp.recordFullAccessSeen()
+            // Switches kept while Full Access was off go into the shared record, in save order with
+            // other selection writes, so the host app shows the same choice as the keyboard.
+            Task.detached(priority: .utility) {
+                try? await EngineOpQueue.async { KeyboardRecipeStore.promotePrivateChoices() }
+            }
+        }
         if let early = fullAccessAtWillAppear, early != fullAccess {
             KeyboardLifecycleDiagnostics.emit(
                 "fullAccessResolvedAfterWillAppear",

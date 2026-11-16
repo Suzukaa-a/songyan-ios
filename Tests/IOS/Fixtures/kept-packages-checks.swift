@@ -149,7 +149,7 @@ func keptPackagesChecks(_ base: URL) throws {
     check(Set(running.map(\.id)).count == running.count, "entry ids unique")
     let readOnly = KeyboardRecipeStore.otherPackageKeyboards(
         from: backOnB, builtinRunning: false, canWrite: false, record: records)
-    check(readOnly.isEmpty, "without Full Access nothing is offered")
+    check(readOnly == running, "without Full Access kept packages are still offered")
     let none = KeyboardRecipeStore.otherPackageKeyboards(
         from: backOnB, builtinRunning: false, canWrite: true, record: { _ in nil })
     check(none.isEmpty, "a kept package without a record is left out")
@@ -173,6 +173,11 @@ func keptPackagesChecks(_ base: URL) throws {
         onBuiltin.map(\.target) == [.recordedPackage, .recordedPackage, .keptPackage(rosterKey: keyA)],
         "built-in running: recorded package's keyboards, then kept ones, no built-in entry")
     check(onBuiltin[0].packageName == "Name-pkg-b", "recorded package name")
+    check(
+        KeyboardRecipeStore.otherPackageKeyboards(
+            from: backOnB.withEnabled(false), builtinRunning: true, canWrite: false, record: records
+        ).map(\.target) == [.keptPackage(rosterKey: keyA)],
+        "without Full Access turning the recorded package back on still needs the host app")
     check(
         KeyboardRecipeStore.otherPackageKeyboards(
             from: nil, builtinRunning: true, canWrite: true, record: records
