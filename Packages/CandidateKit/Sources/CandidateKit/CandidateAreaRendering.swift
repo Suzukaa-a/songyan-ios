@@ -221,6 +221,13 @@ extension CandidateAreaContext {
     }
 
     public var displayEntries: [BrowserCandidate] {
+        let entries = sourceEntries
+        // Every surface (strip, grid, list, side column) and every width estimate reads these entries,
+        // so dropping the comment here removes it from all of them at once.
+        return showsComments ? entries : entries.map { $0.withoutComment() }
+    }
+
+    private var sourceEntries: [BrowserCandidate] {
         if let visibleEntries { return visibleEntries }
         if !browser.isEmpty { return browser.entries }
         return state.candidates.map {

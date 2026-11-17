@@ -887,4 +887,34 @@ final class CandidateKitTests: XCTestCase {
             noMatches.displayEntries.isEmpty,
             "empty verified subset cannot silently expose the original engine page")
     }
+
+    /// The comment master switch drops comments from every entry the surfaces read and from the widths
+    /// built on them, while the engine's candidates stay as they were.
+    func testCommentsOffRemoveCommentsAndTheirWidthEverywhere() {
+        let typography = CandidateTypography(candidateSize: 20, secondarySize: 10)
+        let commented = entry("你", comment: "nǐ hǎo hǎo hǎo")
+        let state = CandidatePresentationState(
+            preedit: "ni", rawInput: "ni", candidates: [commented.candidate],
+            highlightedIndex: 0, pageIndex: 0, isComposing: true)
+        let sink = CandidateAreaActionSink { _ in }
+        func context(shows: Bool, expanded: Bool) -> CandidateAreaContext {
+            CandidateAreaContext(
+                state: state, bar: .systemDefault, actions: sink, typography: typography,
+                isExpanded: expanded, showsCollapsedComments: true, showsComments: shows)
+        }
+        for expanded in [false, true] {
+            XCTAssertEqual(context(shows: true, expanded: expanded).displayEntries.first?.comment, "nǐ hǎo hǎo hǎo")
+            let off = context(shows: false, expanded: expanded)
+            XCTAssertEqual(off.displayEntries.map(\.comment), [""], "expanded=\(expanded)")
+            XCTAssertEqual(off.displayEntries.map(\.text), ["你"])
+            XCTAssertEqual(off.displayEntries.first?.id, commented.id)
+            XCTAssertEqual(state.candidates.first?.comment, "nǐ hǎo hǎo hǎo", "the engine's candidate is untouched")
+        }
+        let off = context(shows: false, expanded: true).displayEntries[0]
+        XCTAssertEqual(
+            CandidateExpandedFlow.cellWidth(for: off, typography: typography, cellPaddingX: 12),
+            CandidateExpandedFlow.cellWidth(for: entry("你"), typography: typography, cellPaddingX: 12),
+            "a comment adds no width once it is off")
+        XCTAssertFalse(ExpandedCandidateRows.reservesCommentLine([off]), "no blank comment line is reserved either")
+    }
 }

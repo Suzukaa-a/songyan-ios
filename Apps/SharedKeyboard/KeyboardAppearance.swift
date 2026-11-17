@@ -58,6 +58,41 @@ public enum CandidateTextSizePreferences {
     }
 }
 
+/// Whether the candidate bar draws engine comments at all (collapsed and expanded). Cached like the
+/// candidate text size: the keyboard reads the in-process copy while it draws and re-reads the stored
+/// value at presentation.
+public enum CandidateCommentPreferences {
+    public static let key = "keyboard.showCandidateComments.v1"
+    public static var defaults: UserDefaults { KeyboardRecipeStore.sharedDefaults() ?? .standard }
+
+    private static let cache = OSAllocatedUnfairLock<Bool?>(uncheckedState: nil)
+
+    /// A missing or non-Bool value is the default: comments are shown.
+    public static func read(from defaults: UserDefaults) -> Bool {
+        SharedPreferences.object(forKey: key, in: defaults) as? Bool ?? true
+    }
+
+    public static var current: Bool {
+        get {
+            cache.withLockUnchecked { state in
+                if let state { return state }
+                let loaded = read(from: defaults)
+                state = loaded
+                return loaded
+            }
+        }
+        set {
+            SharedPreferences.set(newValue, forKey: key, in: defaults)
+            cache.withLockUnchecked { $0 = newValue }
+        }
+    }
+
+    public static func refresh() {
+        let loaded = read(from: defaults)
+        cache.withLockUnchecked { $0 = loaded }
+    }
+}
+
 /// Whether the collapsed candidate row draws engine comments. Cached like the candidate text size:
 /// the keyboard reads the in-process copy while it draws and re-reads the stored value at presentation.
 public enum CollapsedCandidateCommentPreferences {
@@ -616,6 +651,8 @@ public struct KeyboardAppearance: Equatable, Sendable {
     }
     /// Device-level candidate text scale; read from the cached preference when the appearance is built.
     public var candidateTextSize = CandidateTextSizePreferences.current
+    /// Device-level master switch: off, engine comments are drawn nowhere.
+    public var showsCandidateComments = CandidateCommentPreferences.current
     /// Device-level choice to draw engine comments in the collapsed candidate row.
     public var showsCollapsedCandidateComments = CollapsedCandidateCommentPreferences.current
     /// The skin's candidate size with the device scale applied.
@@ -638,6 +675,7 @@ public struct KeyboardAppearance: Equatable, Sendable {
             && lhs.scalesKeyGaps == rhs.scalesKeyGaps
             && lhs.drawsSkinBackground == rhs.drawsSkinBackground
             && lhs.candidateTextSize == rhs.candidateTextSize
+            && lhs.showsCandidateComments == rhs.showsCandidateComments
             && lhs.showsCollapsedCandidateComments == rhs.showsCollapsedCandidateComments
     }
 

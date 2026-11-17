@@ -13,6 +13,7 @@ struct CandidateBarStyleView: View {
     @State private var loaded = false
     @State private var toast: String?
     @State private var textSize = CandidateTextSizePreferences.current
+    @State private var showsAllComments = CandidateCommentPreferences.current
     @State private var showsComments = CollapsedCandidateCommentPreferences.current
 
     private var hasChanges: Bool { loaded && draft.candidateBar != manager.applied.candidateBar }
@@ -30,8 +31,15 @@ struct CandidateBarStyleView: View {
                 Text("候选字号")
             }
             Section {
+                Toggle(String(localized: "显示注释"), isOn: $showsAllComments)
+                    .accessibilityIdentifier("candidateBarStyle.showComments")
+            } footer: {
+                Text("关闭后，候选栏不显示注释，展开后也不显示。")
+            }
+            Section {
                 Toggle(String(localized: "单行显示注释"), isOn: $showsComments)
                     .accessibilityIdentifier("candidateBarStyle.collapsedComments")
+                    .disabled(!showsAllComments)
             } footer: {
                 Text("关闭后，注释只在展开候选栏时显示。")
             }
@@ -43,6 +51,7 @@ struct CandidateBarStyleView: View {
         .disabled(manager.isLoading || manager.isMutating)
         .savedToast($toast)
         .onChange(of: textSize) { CandidateTextSizePreferences.current = textSize }
+        .onChange(of: showsAllComments) { CandidateCommentPreferences.current = showsAllComments }
         .onChange(of: showsComments) { CollapsedCandidateCommentPreferences.current = showsComments }
         .onChange(of: manager.isLoading, initial: true) {
             guard !manager.isLoading, !loaded else { return }

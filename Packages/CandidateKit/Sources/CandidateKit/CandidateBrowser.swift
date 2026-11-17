@@ -108,6 +108,16 @@ public struct BrowserCandidate: Identifiable, Equatable, Sendable {
         self.candidate = candidate
     }
 
+    /// The same candidate drawn without its comment; the engine's value is untouched.
+    public func withoutComment() -> BrowserCandidate {
+        guard !candidate.comment.isEmpty else { return self }
+        return BrowserCandidate(
+            pageIndex: pageIndex, pageLocalIndex: pageLocalIndex,
+            candidate: Candidate(
+                index: candidate.index, text: candidate.text, comment: "",
+                selectKey: candidate.selectKey, selectLabel: candidate.selectLabel))
+    }
+
     /// Stable identity: page number + in-page index (candidate text can repeat, so text cannot be the identity).
     public var id: String { "\(pageIndex):\(pageLocalIndex)" }
     public var text: String { candidate.text }

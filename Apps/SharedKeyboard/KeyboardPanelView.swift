@@ -581,6 +581,7 @@ public struct KeyboardPanelView: View {
             contentLift: candidateContentLift,
             inputLanguage: controller.inputLanguage.language,
             showsCollapsedComments: appearance.showsCollapsedCandidateComments,
+            showsComments: appearance.showsCandidateComments,
             rowHeight: Double(candidateRowHeight))
         if showsAllCandidates && !sideColumn && heldEntries == nil { context.expandedSkips = stripFirstRowCount }
         return context

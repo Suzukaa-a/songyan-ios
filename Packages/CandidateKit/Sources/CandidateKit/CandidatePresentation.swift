@@ -172,6 +172,8 @@ public struct CandidateAreaContext {
     /// the drawing position moves, each cell's hit region stays the full row height.
     /// The value is clamped to the row's height slack (see `CandidateCollapsedFlow.clampedLift`).
     public let contentLift: Double
+    /// Master switch for engine comments: off, no surface draws, measures or announces them, collapsed or expanded.
+    public let showsComments: Bool
     /// Whether the collapsed strip draws each candidate's comment (and counts it in the cell width). The
     /// expanded panel and the accessibility value always carry the comment.
     public let showsCollapsedComments: Bool
@@ -189,8 +191,9 @@ public struct CandidateAreaContext {
         visibleEntries: [BrowserCandidate]? = nil,
         visibleHasMore: Bool? = nil, visibleFrontier: Int? = nil,
         contentLift: Double = 0, inputLanguage: InputLanguage = .simplifiedChinese,
-        showsCollapsedComments: Bool = true, rowHeight: Double? = nil
+        showsCollapsedComments: Bool = true, showsComments: Bool = true, rowHeight: Double? = nil
     ) {
+        self.showsComments = showsComments
         self.showsCollapsedComments = showsCollapsedComments
         self.rowHeight = rowHeight
         self.contentLift = contentLift

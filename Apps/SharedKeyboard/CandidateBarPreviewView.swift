@@ -61,7 +61,8 @@ public struct CandidateBarPreviewView: View {
         let context = CandidateAreaContext(
             state: sampleState, bar: bar,
             actions: previewActions, typography: typography,
-            showsCollapsedComments: appearance.showsCollapsedCandidateComments)
+            showsCollapsedComments: appearance.showsCollapsedCandidateComments,
+            showsComments: appearance.showsCandidateComments)
         VStack(alignment: .leading, spacing: 4) {
             Text("示例候选（ni hao）").font(.caption2).foregroundStyle(.secondary)
             ScrollView(.horizontal, showsIndicators: false) {

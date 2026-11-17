@@ -39,6 +39,7 @@ public struct KeyboardPanelHost: View {
             systemTraitKnown: systemTraitKnown)
         var resolved = KeyboardAppearance(skin: appearanceSnapshot.document.skin, dark: dark)
         resolved.candidateTextSize = storedCandidateTextSize
+        resolved.showsCandidateComments = storedCandidateComments
         resolved.showsCollapsedCandidateComments = storedCollapsedCandidateComments
         resolved.scalesKeyGaps = storedScalesKeyGaps
         return resolved
@@ -80,6 +81,7 @@ public struct KeyboardPanelHost: View {
     private var compactReadingRow: Bool { presentationBudget?.compact ?? (verticalSizeClass == .compact) }
     @State private var storedHeightPreset = KeyboardHeightPreferences.current
     @State private var storedCandidateTextSize = CandidateTextSizePreferences.current
+    @State private var storedCandidateComments = CandidateCommentPreferences.current
     @State private var storedCollapsedCandidateComments = CollapsedCandidateCommentPreferences.current
     @State private var storedScalesKeyGaps = KeyGapScalingPreferences.current
     private var keyHeight: CGFloat {
@@ -260,6 +262,8 @@ public struct KeyboardPanelHost: View {
                 KeyboardKeyFeelPreferences.refresh()
                 CandidateTextSizePreferences.refresh()
                 storedCandidateTextSize = CandidateTextSizePreferences.current
+                CandidateCommentPreferences.refresh()
+                storedCandidateComments = CandidateCommentPreferences.current
                 CollapsedCandidateCommentPreferences.refresh()
                 storedCollapsedCandidateComments = CollapsedCandidateCommentPreferences.current
                 KeyGapScalingPreferences.refresh()
@@ -313,6 +317,8 @@ public struct KeyboardPanelHost: View {
                 KeyboardKeyFeelPreferences.refresh()
                 CandidateTextSizePreferences.refresh()
                 storedCandidateTextSize = CandidateTextSizePreferences.current
+                CandidateCommentPreferences.refresh()
+                storedCandidateComments = CandidateCommentPreferences.current
                 CollapsedCandidateCommentPreferences.refresh()
                 storedCollapsedCandidateComments = CollapsedCandidateCommentPreferences.current
                 KeyGapScalingPreferences.refresh()
