@@ -24,7 +24,11 @@ final class CandidateGlyphCoverageTests: XCTestCase {
 
     func testTextBelowTheSupplementaryIdeographsIsNeverAsked() {
         let shown = CandidateGlyphCoverage.displayText(
-            "木㭁😀", covered: { _ in XCTFail("asked about a common character"); return false })
+            "木㭁😀",
+            covered: { _ in
+                XCTFail("asked about a common character")
+                return false
+            })
         XCTAssertEqual(shown, "木㭁😀")
     }
 
