@@ -1,3 +1,4 @@
+import CoreText
 import KeyboardCore
 import SwiftUI
 
@@ -98,7 +99,8 @@ public enum CandidateTextTruncation: Sendable {
             let paragraph = NSMutableParagraphStyle()
             paragraph.alignment = .left
             paragraph.lineBreakMode = lineBreakMode
-            let string = CandidateTextLanguage.attributed(text, language: language)
+            let shown = CandidateGlyphCoverage.displayText(text, base: font as CTFont)
+            let string = CandidateTextLanguage.attributed(shown, language: language)
             if string.length > 0 {
                 string.addAttributes(
                     [
