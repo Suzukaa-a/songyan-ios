@@ -18,7 +18,11 @@ let package = Package(
             dependencies: [
                 .product(name: "ZIPFoundation", package: "ZIPFoundation"), .product(name: "Yams", package: "Yams"),
                 .product(name: "KeyboardCore", package: "KeyboardCore"),
-            ], resources: [.copy("Resources/RimePrelude"), .process("Resources/Localizable.xcstrings")]),
+            ],
+            resources: [
+                .copy("Resources/RimePrelude"), .process("Resources/Localizable.xcstrings"),
+                .copy("Resources/ScriptCharacters.txt"),
+            ]),
         .testTarget(
             name: "PackageManagerTests",
             dependencies: ["PackageManager", .product(name: "KeyboardCore", package: "KeyboardCore")],
