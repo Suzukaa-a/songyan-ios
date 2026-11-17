@@ -637,7 +637,7 @@ struct KeyboardMainLayoutPreview: View {
                 candidateColor: Color(uiColor: appearance.text(on: "panel")),
                 secondaryColor: Color(uiColor: appearance.text(on: "panel", secondary: true)),
                 accentColor: appearance.accentForeground, panelColor: appearance.color("panel"),
-                fontFamily: appearance.skin.typography.family, fontWeight: appearance.skin.typography.weight))
+                fontFamily: appearance.candidateFontFamily, fontWeight: appearance.skin.typography.weight))
     }
 }
 

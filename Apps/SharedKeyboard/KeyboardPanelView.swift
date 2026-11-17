@@ -412,7 +412,7 @@ public struct KeyboardPanelView: View {
             secondaryColor: Color(uiColor: appearance.text(on: "panel", secondary: true)),
             accentColor: appearance.accentForeground,
             panelColor: appearance.color("panel"),
-            fontFamily: appearance.skin.typography.family,
+            fontFamily: appearance.candidateFontFamily,
             fontWeight: appearance.skin.typography.weight)
     }
 

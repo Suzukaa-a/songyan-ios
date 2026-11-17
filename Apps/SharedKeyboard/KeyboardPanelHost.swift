@@ -42,6 +42,8 @@ public struct KeyboardPanelHost: View {
         resolved.showsCandidateComments = storedCandidateComments
         resolved.showsCollapsedCandidateComments = storedCollapsedCandidateComments
         resolved.scalesKeyGaps = storedScalesKeyGaps
+        resolved.importedCandidateFont = storedFonts.candidate
+        resolved.importedKeyFont = storedFonts.keyLabel
         return resolved
     }
     /// Runtime-only rescue; implementations must not require a shared selection write.
@@ -84,6 +86,8 @@ public struct KeyboardPanelHost: View {
     @State private var storedCandidateComments = CandidateCommentPreferences.current
     @State private var storedCollapsedCandidateComments = CollapsedCandidateCommentPreferences.current
     @State private var storedScalesKeyGaps = KeyGapScalingPreferences.current
+    /// Imported fonts are registered off the main thread with each appearance read; until then the skin's font shows.
+    @State private var storedFonts = DisplayFontPreferences.current
     private var keyHeight: CGFloat {
         CGFloat(presentationBudget?.keyHeight ?? heightPreset.keyHeight(compact: compactReadingRow))
     }
@@ -866,13 +870,15 @@ public struct KeyboardPanelHost: View {
             let read = await KeyboardLifecycleDiagnostics.measureAsync("appearanceRead") {
                 do {
                     return try await KeyboardResourceReadQueue.async { () -> AppearanceReadResult? in
-                        RimePaths.sharedAppearanceReadStore()?.read()
+                        DisplayFontPreferences.refresh()
+                        return RimePaths.sharedAppearanceReadStore()?.read()
                     }
                 } catch {
                     return nil
                 }
             }
             guard appearanceReadGate.accepts(token) else { return }
+            storedFonts = DisplayFontPreferences.current
             defer { reportPresentationBudget() }
             guard let read else {
                 if !hasValidAppearance {

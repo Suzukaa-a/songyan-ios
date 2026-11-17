@@ -1,7 +1,10 @@
 import AppearanceKit
 import CandidateKit
+import KeyboardCore
+import LayoutKit
 import SkinKit
 import SwiftUI
+import UniformTypeIdentifiers
 
 // MARK: - Candidate bar style (part of the applied appearance)
 
@@ -166,6 +169,161 @@ struct CandidateAreaEditorSections: View {
             Slider(value: value, in: range, step: 1)
                 .accessibilityLabel(title)
                 .accessibilityValue(String(Int(value.wrappedValue.rounded())))
+        }
+    }
+}
+
+// MARK: - Fonts (device preference, not part of the appearance file)
+
+/// 键盘外观 > 字体: font files the keyboard can draw candidates and key labels in. The files live in
+/// the shared container, so the keyboard reads the same copies.
+struct DisplayFontsView: View {
+    @ObservedObject private var manager = AppearanceManager.shared
+    @Environment(\.colorScheme) private var colorScheme
+    @State private var fonts: [ImportedFont] = []
+    @State private var candidateChoice = ""
+    @State private var keyChoice = ""
+    @State private var importing = false
+    @State private var busy = false
+    @State private var message: String?
+    @State private var previewLayout: LayoutDefinition?
+    /// Bumped after every change so the previews are drawn again with the new font.
+    @State private var revision = 0
+
+    private var readableFonts: [ImportedFont] { fonts.filter(\.isReadable) }
+
+    var body: some View {
+        Form {
+            Section(String(localized: "预览")) {
+                CandidateBarPreviewView(
+                    bar: manager.applied.candidateBar, skin: manager.applied.skin, dark: colorScheme == .dark
+                ).id(revision)
+                if let previewLayout {
+                    KeyboardPreviewView(
+                        layout: previewLayout, skin: manager.applied.skin,
+                        candidateBar: manager.applied.candidateBar, previewDark: colorScheme == .dark
+                    ).id(revision)
+                }
+            }
+            Section {
+                Picker(String(localized: "候选字体"), selection: choiceBinding($candidateChoice, key: \.candidateFont)) {
+                    Text("系统字体").tag("")
+                    ForEach(readableFonts) { Text($0.family ?? $0.storedName).tag($0.storedName) }
+                }
+                .accessibilityIdentifier("fonts.candidate")
+                Picker(String(localized: "按键字体"), selection: choiceBinding($keyChoice, key: \.keyLabelFont)) {
+                    Text("系统字体").tag("")
+                    ForEach(readableFonts) { Text($0.family ?? $0.storedName).tag($0.storedName) }
+                }
+                .accessibilityIdentifier("fonts.keyLabel")
+            } footer: {
+                Text("选用字体后，字重不再生效；缺的字依次用其他已导入的字体，最后用系统字体。")
+            }
+            Section(String(localized: "已导入的字体")) {
+                if fonts.isEmpty { Text("还没有导入字体").foregroundStyle(.secondary) }
+                ForEach(fonts) { font in
+                    VStack(alignment: .leading, spacing: 2) {
+                        if let family = font.family {
+                            Text(family)
+                            Text(font.storedName).font(.caption).foregroundStyle(.secondary)
+                        } else {
+                            Text(font.storedName)
+                            Text("无法读取").font(.caption).foregroundStyle(.orange)
+                        }
+                    }
+                    .accessibilityElement(children: .combine)
+                    .swipeActions {
+                        Button(String(localized: "删除字体"), role: .destructive) { delete(font) }
+                    }
+                }
+                .onDelete { offsets in offsets.map { fonts[$0] }.forEach(delete) }
+                Button {
+                    importing = true
+                } label: {
+                    Label(String(localized: "导入字体文件"), systemImage: "square.and.arrow.down")
+                }
+                .disabled(busy)
+                .accessibilityIdentifier("fonts.import")
+                if let message { Text(message).font(.footnote).foregroundStyle(.red) }
+            }
+        }
+        .navigationTitle(String(localized: "字体"))
+        .navigationBarTitleDisplayMode(.inline)
+        .fileImporter(isPresented: $importing, allowedContentTypes: [.font], allowsMultipleSelection: true) { result in
+            switch result {
+            case .success(let urls): importFonts(urls)
+            case .failure(let error): message = error.localizedDescription
+            }
+        }
+        .task {
+            reload()
+            if previewLayout == nil, let preview = try? await AppearancePreviewLoader.load() {
+                previewLayout = preview.layouts.first { $0.id == preview.selectedID } ?? preview.layouts.first
+            }
+        }
+    }
+
+    private func choiceBinding(
+        _ choice: Binding<String>, key: WritableKeyPath<ImportedFontPreferences, String?>
+    ) -> Binding<String> {
+        Binding(
+            get: { readableFonts.contains { $0.storedName == choice.wrappedValue } ? choice.wrappedValue : "" },
+            set: { value in
+                choice.wrappedValue = value
+                var preferences = DisplayFontPreferences.preferences
+                preferences[keyPath: key] = value.isEmpty ? nil : value
+                apply()
+            })
+    }
+
+    /// Registers the chosen fonts off the main thread, then redraws the previews and any open keyboard panel.
+    private func apply() {
+        Task {
+            await Task.detached(priority: .userInitiated) { DisplayFontPreferences.refresh() }.value
+            revision += 1
+            NotificationCenter.default.post(name: .keyboardAppearanceChanged, object: nil)
+        }
+    }
+
+    private func reload() {
+        Task {
+            let loaded = await Task.detached(priority: .userInitiated) { () -> ([ImportedFont], String, String) in
+                let preferences = DisplayFontPreferences.preferences
+                return (
+                    DisplayFontPreferences.library?.list() ?? [], preferences.candidateFont ?? "",
+                    preferences.keyLabelFont ?? ""
+                )
+            }.value
+            fonts = loaded.0
+            candidateChoice = loaded.1
+            keyChoice = loaded.2
+        }
+    }
+
+    private func importFonts(_ urls: [URL]) {
+        guard let library = DisplayFontPreferences.library, !urls.isEmpty else { return }
+        busy = true
+        Task {
+            let result = await Task.detached(priority: .userInitiated) { () -> ImportedFontLibrary.ImportResult in
+                let scoped = urls.filter { $0.startAccessingSecurityScopedResource() }
+                defer { scoped.forEach { $0.stopAccessingSecurityScopedResource() } }
+                return library.importFiles(urls)
+            }.value
+            message =
+                result.rejected.isEmpty
+                ? nil : String(localized: "不是字体文件：\(result.rejected.joined(separator: "、"))")
+            busy = false
+            reload()
+            apply()
+        }
+    }
+
+    private func delete(_ font: ImportedFont) {
+        guard let library = DisplayFontPreferences.library else { return }
+        Task {
+            await Task.detached(priority: .userInitiated) { library.delete(font.storedName) }.value
+            reload()
+            apply()
         }
     }
 }

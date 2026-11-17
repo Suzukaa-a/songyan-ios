@@ -67,7 +67,7 @@ public struct CandidateBarPreviewView: View {
             Text("示例候选（ni hao）").font(.caption2).foregroundStyle(.secondary)
             ScrollView(.horizontal, showsIndicators: false) {
                 Text("ni hao")
-                    .font(.system(size: appearance.candidateSecondaryFontSize))
+                    .font(appearance.candidateFont(appearance.candidateSecondaryFontSize))
                     .foregroundStyle(.secondary)
             }.frame(height: 20)
             if expanded {
@@ -88,7 +88,7 @@ public struct CandidateBarPreviewView: View {
                 candidateColor: Color(uiColor: appearance.text(on: "panel")),
                 secondaryColor: Color(uiColor: appearance.text(on: "panel", secondary: true)),
                 accentColor: appearance.accentForeground, panelColor: appearance.color("panel"),
-                fontFamily: skin.typography.family, fontWeight: skin.typography.weight)
+                fontFamily: appearance.candidateFontFamily, fontWeight: skin.typography.weight)
         )
         .environment(\.colorScheme, dark ? .dark : .light)
     }

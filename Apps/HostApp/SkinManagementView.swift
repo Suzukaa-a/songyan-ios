@@ -142,6 +142,17 @@ struct SkinManagementView: View {
                         .foregroundStyle(.secondary)
                 }
             }
+            NavigationLink {
+                DisplayFontsView()
+            } label: {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("字体")
+                    Text("候选和按键的字体")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .accessibilityIdentifier("appearance.fonts")
             if let importError { Text(importError).foregroundStyle(.red) }
         }.navigationTitle(UserTerminology.keyboardAppearance)
             .onAppear { manager.reload() }

@@ -16,14 +16,14 @@ extension KeyboardPanelView {
     private func compositionBadgeText(_ text: String) -> some View {
         if controller.inputLanguage.language == .simplifiedChinese {
             Text(text)
-                .font(appearance.font(appearance.skin.typography.secondarySize))
+                .font(appearance.candidateFont(appearance.skin.typography.secondarySize))
                 .lineLimit(1)
                 .truncationMode(.middle)
         } else {
             CandidateLanguageText(
                 text: text, language: controller.inputLanguage.language,
                 fontSize: appearance.skin.typography.secondarySize,
-                fontFamily: appearance.skin.typography.family,
+                fontFamily: appearance.candidateFontFamily,
                 fontWeight: appearance.skin.typography.weight,
                 color: Color(uiColor: appearance.text(on: "key", secondary: true)),
                 lineLimit: 1, truncation: .middle)
@@ -148,7 +148,7 @@ extension KeyboardPanelView {
                     selectionFeedbackAfterEffect { controller.selectEnglishSuggestion(word) }
                 } label: {
                     Text(word)
-                        .font(appearance.font(appearance.candidateFontSize - 2))
+                        .font(appearance.candidateFont(appearance.candidateFontSize - 2))
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
                         .padding(.horizontal, 6)
@@ -317,7 +317,7 @@ extension KeyboardPanelView {
             let displayed = displayedReadingRowContent
             let items = displayed.content.inlineItems
             if !items.isEmpty {
-                let font = appearance.uiFont(appearance.candidateFontSize)
+                let font = appearance.candidateUIFont(appearance.candidateFontSize)
                 // Leave the candidates at least half of the row beside the expand control.
                 let layout = InlineReadingStrip.layout(
                     textWidths: items.map { Double(KeyboardTextMeasure.width(of: $0.label, font: font)) },
@@ -404,7 +404,7 @@ extension KeyboardPanelView {
         _ content: CandidateReadingRowContent, height: Double,
         interactive: Bool
     ) -> some View {
-        let font = appearance.font(
+        let font = appearance.candidateFont(
             verticalSizeClass == .compact
                 ? CandidateReadingRowPolicy.compactFontSize : CandidateReadingRowPolicy.fontSize)
         switch content {

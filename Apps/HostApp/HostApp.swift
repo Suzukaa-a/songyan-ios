@@ -26,6 +26,8 @@ struct HostApp: App {
     init() {
         // Candidate renderer registration (source-level extension point; the default renderer is the production rendering path).
         CandidateRenders.installDefault()
+        // Fonts the user chose are registered off the main thread; previews built meanwhile use the system font.
+        Task.detached(priority: .utility) { DisplayFontPreferences.refresh() }
         // Before anything opens a package: older versions kept one Rime config folder for all of them.
         HostStorePaths.migrateRimeConfig()
         ConfigurationBackupModel.registerBackgroundTask()
@@ -764,7 +766,7 @@ struct HostApp: App {
                     secondaryColor: Color(uiColor: appearance.text(on: "panel", secondary: true)),
                     accentColor: appearance.accentForeground,
                     panelColor: appearance.color("panel"),
-                    fontFamily: appearance.skin.typography.family,
+                    fontFamily: appearance.candidateFontFamily,
                     fontWeight: appearance.skin.typography.weight)
             )
             .background(appearance.color("panel"))

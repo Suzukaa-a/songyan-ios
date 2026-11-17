@@ -58,6 +58,50 @@ public enum CandidateTextSizePreferences {
     }
 }
 
+/// The imported fonts chosen for candidate text and key labels, as family strings (`ImportedFontFamily`)
+/// that are already registered in this process. Nothing is read until `refresh`, which does file I/O
+/// and must run off the main thread; until then, and for every choice that cannot be honoured (no
+/// choice, file missing or not a font), the value is nil and the skin's font is used.
+public enum DisplayFontPreferences {
+    public struct Choice: Equatable, Sendable {
+        public var candidate: String?
+        public var keyLabel: String?
+    }
+
+    public static var defaults: UserDefaults { KeyboardRecipeStore.sharedDefaults() ?? .standard }
+
+    public static var preferences: ImportedFontPreferences { ImportedFontPreferences(defaults: defaults) }
+
+    public static var library: ImportedFontLibrary? {
+        KeyboardRecipeStore.sharedContainerURL().map {
+            ImportedFontLibrary(
+                directory: $0.appendingPathComponent("Fonts", isDirectory: true), preferences: preferences)
+        }
+    }
+
+    private static let cache = OSAllocatedUnfairLock(initialState: Choice())
+
+    public static var current: Choice { cache.withLock { $0 } }
+    public static var candidate: String? { current.candidate }
+    public static var keyLabel: String? { current.keyLabel }
+
+    /// Re-reads the stored choices and registers the fonts they need. With no choice nothing is touched.
+    @discardableResult
+    public static func refresh() -> Choice {
+        let stored = preferences
+        let candidate = stored.candidateFont
+        let keyLabel = stored.keyLabelFont
+        var resolved = Choice()
+        if (candidate != nil || keyLabel != nil), let library {
+            resolved.candidate = ImportedFontRuntime.prepare(chosen: candidate, library: library)
+            resolved.keyLabel = ImportedFontRuntime.prepare(chosen: keyLabel, library: library)
+        }
+        let result = resolved
+        cache.withLock { $0 = result }
+        return result
+    }
+}
+
 /// Whether the candidate bar draws engine comments at all (collapsed and expanded). Cached like the
 /// candidate text size: the keyboard reads the in-process copy while it draws and re-reads the stored
 /// value at presentation.
@@ -655,6 +699,9 @@ public struct KeyboardAppearance: Equatable, Sendable {
     public var showsCandidateComments = CandidateCommentPreferences.current
     /// Device-level choice to draw engine comments in the collapsed candidate row.
     public var showsCollapsedCandidateComments = CollapsedCandidateCommentPreferences.current
+    /// Device-level imported fonts (see `DisplayFontPreferences`); nil keeps the skin's font family.
+    public var importedCandidateFont = DisplayFontPreferences.candidate
+    public var importedKeyFont = DisplayFontPreferences.keyLabel
     /// The skin's candidate size with the device scale applied.
     public var candidateFontSize: Double { skin.typography.candidateSize * candidateTextSize.factor }
     /// The skin's comment size with the device scale applied.
@@ -677,6 +724,8 @@ public struct KeyboardAppearance: Equatable, Sendable {
             && lhs.candidateTextSize == rhs.candidateTextSize
             && lhs.showsCandidateComments == rhs.showsCandidateComments
             && lhs.showsCollapsedCandidateComments == rhs.showsCollapsedCandidateComments
+            && lhs.importedCandidateFont == rhs.importedCandidateFont
+            && lhs.importedKeyFont == rhs.importedKeyFont
     }
 
     public var isSystemDefault: Bool { skin.id == SkinDefinition.systemDefault.id }
@@ -773,10 +822,18 @@ public struct KeyboardAppearance: Equatable, Sendable {
     public func text(on role: String, secondary: Bool = false) -> UIColor {
         palette.text(on: Self.paletteRole(role), secondary: secondary)
     }
+    /// Key labels and controls. An imported key-label font replaces the skin's family.
     public func uiFont(_ size: Double) -> UIFont {
-        KeyboardFontCache.font(size: size, weight: skin.typography.weight, family: skin.typography.family)
+        KeyboardFontCache.font(
+            size: size, weight: skin.typography.weight, family: importedKeyFont ?? skin.typography.family)
     }
     public func font(_ size: Double) -> Font { Font(uiFont(size)) }
+    /// The family candidate text is drawn in: the imported candidate font, else the skin's.
+    public var candidateFontFamily: String { importedCandidateFont ?? skin.typography.family }
+    public func candidateUIFont(_ size: Double) -> UIFont {
+        KeyboardFontCache.font(size: size, weight: skin.typography.weight, family: candidateFontFamily)
+    }
+    public func candidateFont(_ size: Double) -> Font { Font(candidateUIFont(size)) }
 }
 /// The colours of one `(skin, dark)` pair, resolved once. Instances are immutable
 /// and shared through a small most-recently-used cache: a keyboard only ever
@@ -886,6 +943,12 @@ enum KeyboardFontCache {
     static func font(size: Double, weight: String, family: String) -> UIFont {
         let key = "\(family)|\(weight)|\(size)" as NSString
         if let cached = cache.object(forKey: key) { return cached }
+        if let imported = ImportedFontFamily.ctFont(family: family, size: size) {
+            // CTFont and UIFont are toll-free bridged; an imported font is used as it is, without the skin weight.
+            let font = (imported as AnyObject) as! UIFont
+            cache.setObject(font, forKey: key)
+            return font
+        }
         let uiWeight: UIFont.Weight = weight == "semibold" ? .semibold : weight == "regular" ? .regular : .medium
         let base = UIFont.systemFont(ofSize: size, weight: uiWeight)
         let design: UIFontDescriptor.SystemDesign =
