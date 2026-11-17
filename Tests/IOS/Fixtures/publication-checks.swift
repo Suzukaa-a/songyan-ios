@@ -188,6 +188,23 @@ func publicationChecks(_ base: URL) throws {
     )
     check(pubA2.keyboardsBySource?["userScheme:pkg-b"] == [b1], "switching back to A must not drop B's roster")
 
+    // A package installed but never given keyboards stays without any: later writes for other packages
+    // (publishing, selecting, switching the keyboard off and on) neither add a default roster for it nor ask
+    // for a folded keyboard on its behalf.
+    let untouched = "userScheme:pkg-fresh"
+    check(pubA2.keyboardsBySource?[untouched] == nil, "a package nobody picked keyboards for has no roster")
+    try KeyboardRecipeStore.setEnabled(false, rootURL: root)
+    try KeyboardRecipeStore.setEnabled(true, rootURL: root)
+    let toggled = try KeyboardRecipeStore.activation(rootURL: root)!
+    check(toggled.keyboardsBySource?[untouched] == nil, "switching the keyboard off and on adds no roster")
+    check(toggled.keyboardsBySource == pubA2.keyboardsBySource, "and leaves the others as they were")
+    check(
+        PublishedKeyboard.generationTasks(for: toggled.keyboardsBySource?[untouched] ?? []).isEmpty,
+        "no folded keyboard is asked for on its behalf")
+    check(
+        PublishedKeyboard.generationTasks(for: rosterA).isEmpty,
+        "keyboards on 26 keys ask for no folded keyboard either")
+
     let beforeBad = try KeyboardRecipeStore.activation(rootURL: root)!
     // A failed publication must not change any source's roster (compact composition missing its adapter).
     let compactBad = PublishedKeyboard(schemaID: "rime_ice", layout: .merged14)
