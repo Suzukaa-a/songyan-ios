@@ -1,0 +1,43 @@
+# Compiled form, trimmed to the sections a key profile reads.
+schema:
+  schema_id: rime_ice
+  name: 雾凇拼音
+engine:
+  processors:
+    - ascii_composer
+    - recognizer
+    - key_binder
+    - speller
+    - punctuator
+    - selector
+    - express_editor
+  translators:
+    - punct_translator
+    - script_translator
+    - lua_translator@*date_translator
+    - table_translator@custom_phrase
+    - table_translator@melt_eng
+    - table_translator@radical_lookup
+    - lua_translator@*unicode
+speller:
+  alphabet: zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA`
+  initials: zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA
+  delimiter: " '"
+translator:
+  dictionary: rime_ice
+custom_phrase:
+  dictionary: ""
+  user_dict: custom_phrase
+melt_eng:
+  dictionary: melt_eng
+radical_lookup:
+  tag: radical_lookup
+  dictionary: radical_pinyin
+  prefix: "uU"
+recognizer:
+  patterns:
+    punct: "^v([0-9]|10|[A-Za-z]+)$"
+    radical_lookup: "^uU[a-z]+$"
+    unicode: "^U[a-f0-9]+"
+    number: "^R[0-9]+[.]?[0-9]*"
+    calculator: "^cC.+"

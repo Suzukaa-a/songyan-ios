@@ -1,0 +1,34 @@
+# Compiled form, trimmed to the sections a key profile reads.
+schema:
+  schema_id: stroke
+  name: 五筆畫
+engine:
+  processors:
+    - ascii_composer
+    - recognizer
+    - key_binder
+    - speller
+    - punctuator
+    - selector
+    - express_editor
+  translators:
+    - punct_translator
+    - reverse_lookup_translator
+    - table_translator
+speller:
+  alphabet: "abcdefghijklmnopqrstuvwxyz"
+  delimiter: " '"
+translator:
+  dictionary: stroke
+  preedit_format:
+    - xlit/hspnz/⼀⼁⼃⼂⼄/
+abc_segmentor:
+  extra_tags:
+    - reverse_lookup
+reverse_lookup:
+  dictionary: luna_pinyin
+  prefix: "`"
+  suffix: "'"
+recognizer:
+  patterns:
+    reverse_lookup: "`[a-z]*'?$"

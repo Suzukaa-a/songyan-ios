@@ -1,0 +1,34 @@
+# Compiled form, trimmed to the sections a key profile reads.
+schema:
+  schema_id: double_pinyin_flypy
+  name: 小鹤双拼
+engine:
+  processors:
+    - ascii_composer
+    - recognizer
+    - key_binder
+    - speller
+    - punctuator
+    - selector
+    - express_editor
+  translators:
+    - punct_translator
+    - script_translator
+    - table_translator@custom_phrase
+    - table_translator@melt_eng
+    - table_translator@radical_lookup
+speller:
+  alphabet: zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA`
+  initials: zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA
+  delimiter: " '"
+translator:
+  dictionary: rime_ice
+  prism: double_pinyin_flypy
+radical_lookup:
+  tag: radical_lookup
+  dictionary: radical_pinyin
+  prefix: "uU"
+recognizer:
+  patterns:
+    punct: "^V([0-9]|10|[A-Za-z]+)$"
+    radical_lookup: "^uU[a-z]+$"

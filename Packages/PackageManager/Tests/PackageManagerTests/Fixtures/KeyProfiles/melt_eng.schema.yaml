@@ -1,0 +1,21 @@
+# Compiled form, trimmed to the sections a key profile reads.
+schema:
+  schema_id: melt_eng
+  name: 英文
+engine:
+  processors:
+    - ascii_composer
+    - recognizer
+    - key_binder
+    - speller
+    - punctuator
+    - selector
+    - express_editor
+  translators:
+    - punct_translator
+    - table_translator
+speller:
+  alphabet: zyxwvutsrqponmlkjihgfedcbaZYXWVUTSRQPONMLKJIHGFEDCBA
+  delimiter: " '"
+translator:
+  dictionary: melt_eng

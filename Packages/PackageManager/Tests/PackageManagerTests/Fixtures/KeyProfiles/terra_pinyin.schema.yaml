@@ -1,0 +1,32 @@
+# Compiled form, trimmed to the sections a key profile reads.
+schema:
+  schema_id: terra_pinyin
+  name: 地球拼音
+engine:
+  processors:
+    - ascii_composer
+    - recognizer
+    - key_binder
+    - speller
+    - punctuator
+    - selector
+    - express_editor
+  translators:
+    - punct_translator
+    - table_translator@custom_phrase
+    - reverse_lookup_translator
+    - script_translator
+speller:
+  alphabet: 'zyxwvutsrqponmlkjihgfedcba-;/<,\.'
+  initials: zyxwvutsrqponmlkjihgfedcba
+  delimiter: " '"
+translator:
+  dictionary: terra_pinyin
+reverse_lookup:
+  dictionary: stroke
+  prefix: "`"
+  suffix: "'"
+recognizer:
+  patterns:
+    reverse_lookup: "`[a-z]*'?$"
+    uppercase: "[A-Z][-_+.'0-9A-Za-z]*$"

@@ -1,0 +1,32 @@
+# Compiled form, trimmed to the sections a key profile reads.
+schema:
+  schema_id: bopomofo
+  name: 注音
+engine:
+  processors:
+    - ascii_composer
+    - recognizer
+    - key_binder
+    - speller
+    - punctuator
+    - selector
+    - express_editor
+  translators:
+    - punct_translator
+    - table_translator@custom_phrase
+    - reverse_lookup_translator
+    - script_translator
+speller:
+  alphabet: '1qaz2wsxedcrfv5tgbyhnujm8ik,9ol.0p;/- 6347'
+  initials: '1qaz2wsxedcrfv5tgbyhnujm8ik,9ol.0p;/-'
+  delimiter: "'"
+translator:
+  dictionary: terra_pinyin
+  prism: bopomofo
+reverse_lookup:
+  dictionary: stroke
+  prefix: "`"
+  suffix: "'"
+recognizer:
+  patterns:
+    reverse_lookup: "`[a-z]*'?$"

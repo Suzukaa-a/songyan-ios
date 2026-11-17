@@ -1,0 +1,21 @@
+# Compiled form, trimmed to the sections a key profile reads.
+schema:
+  schema_id: thai_kedmanee
+  name: ไทย
+engine:
+  processors:
+    - ascii_composer
+    - recognizer
+    - key_binder
+    - speller
+    - punctuator
+    - selector
+    - express_editor
+  translators:
+    - punct_translator
+    - script_translator
+speller:
+  alphabet: กขคงจฉชซญดตถทนบปผฝพฟภมยรลวศษสหอฮะาิี
+  delimiter: " '"
+translator:
+  dictionary: thai_kedmanee

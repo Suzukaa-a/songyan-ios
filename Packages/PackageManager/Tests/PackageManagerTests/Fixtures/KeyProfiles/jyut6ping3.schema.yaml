@@ -1,0 +1,51 @@
+# Compiled form, trimmed to the sections a key profile reads.
+schema:
+  schema_id: jyut6ping3
+  name: 粵拼
+engine:
+  processors:
+    - ascii_composer
+    - recognizer
+    - key_binder
+    - speller
+    - punctuator
+    - selector
+    - express_editor
+  translators:
+    - punct_translator
+    - script_translator
+    - script_translator@luna_pinyin
+    - script_translator@loengfan
+    - table_translator@stroke
+    - table_translator@cangjie5
+speller:
+  alphabet: zyxwvutsrqponmlkjihgfedcba
+  delimiter: " '"
+translator:
+  dictionary: jyut6ping3
+luna_pinyin:
+  tag: luna_pinyin
+  dictionary: luna_pinyin
+  prefix: "`"
+  suffix: ";"
+loengfan:
+  tag: loengfan
+  dictionary: loengfan
+  prefix: "r"
+  suffix: ";"
+stroke:
+  tag: stroke
+  dictionary: stroke
+  prefix: "x"
+  suffix: ";"
+cangjie5:
+  tag: cangjie5
+  dictionary: cangjie5
+  prefix: "v"
+  suffix: ";"
+recognizer:
+  patterns:
+    punct: "^/([0-9]0?|[a-z]+)$"
+    luna_pinyin: "^`[a-z']*;?$"
+    loengfan: "^r[a-z']*;?$"
+    stroke: "^x[hspnz]*;?$"

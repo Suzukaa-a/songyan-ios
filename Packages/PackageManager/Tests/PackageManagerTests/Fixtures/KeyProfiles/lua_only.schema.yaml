@@ -1,0 +1,15 @@
+# Compiled form, trimmed to the sections a key profile reads.
+schema:
+  schema_id: lua_only
+  name: Lua only
+engine:
+  processors:
+    - ascii_composer
+    - recognizer
+    - key_binder
+    - punctuator
+    - selector
+    - express_editor
+  translators:
+    - lua_translator@*only
+# No speller and no script or table translator: nothing here says which keys the scheme needs.
