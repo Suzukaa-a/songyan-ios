@@ -36032,7 +36032,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "沒能儲存變更。請重試；如果一直這樣，把指令碼刪掉後重新新增。"
+            "value": "沒能儲存更改。請重試；如果一直這樣，把指令碼刪掉後重新新增。"
           }
         }
       }
@@ -36054,7 +36054,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "沒能讀取指令碼清單。請結束松煙後重新開啟。"
+            "value": "沒能讀取指令碼列表。請退出松煙後重新開啟。"
           }
         }
       }
@@ -36164,7 +36164,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "這個指令碼由較新版本的松煙儲存。請先更新松煙。"
+            "value": "這個指令碼由更新版本的松煙儲存。請先更新松煙。"
           }
         }
       }
@@ -36186,7 +36186,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "這個指令碼需要較新版本的松煙。請先更新松煙。"
+            "value": "這個指令碼需要更新版本的松煙。請先更新松煙。"
           }
         }
       }
@@ -36208,7 +36208,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "指令碼回報了錯誤：%@"
+            "value": "指令碼返回了錯誤：%@"
           }
         }
       }
@@ -36230,7 +36230,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "新增這個範例"
+            "value": "新增這個例子"
           }
         }
       }
@@ -36252,7 +36252,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "找不到這個範例。請重新安裝松煙。"
+            "value": "找不到這個例子。請重新安裝松煙。"
           }
         }
       }

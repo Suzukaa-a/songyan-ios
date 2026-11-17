@@ -1024,6 +1024,41 @@
       "path": "Packages/ScriptAddonKit/Sources/ScriptAddonKit/ScriptAddonFailure.swift",
       "value": "脚本文件太大",
       "reason": "Localization key constant resolved by the Host app; not interface copy."
+    },
+    {
+      "path": "Packages/ScriptAddonKit/Sources/ScriptAddonKit/ScriptAddonFailure.swift",
+      "value": "没能保存更改。请重试；如果一直这样，把脚本删掉后重新添加。",
+      "reason": "Localization key constant resolved by the Host app; not interface copy."
+    },
+    {
+      "path": "Packages/ScriptAddonKit/Sources/ScriptAddonKit/ScriptAddonFailure.swift",
+      "value": "没能读取脚本列表。请退出松烟后重新打开。",
+      "reason": "Localization key constant resolved by the Host app; not interface copy."
+    },
+    {
+      "path": "Packages/ScriptAddonKit/Sources/ScriptAddonKit/ScriptAddonFailure.swift",
+      "value": "没能读取这个文件。请确认文件还在，再试一次。",
+      "reason": "Localization key constant resolved by the Host app; not interface copy."
+    },
+    {
+      "path": "Packages/ScriptAddonKit/Sources/ScriptAddonKit/ScriptAddonFailure.swift",
+      "value": "没能保存脚本的密钥。请重试。",
+      "reason": "Localization key constant resolved by the Host app; not interface copy."
+    },
+    {
+      "path": "Packages/ScriptAddonKit/Sources/ScriptAddonKit/ScriptAddonFailure.swift",
+      "value": "这个脚本已经添加过了",
+      "reason": "Localization key constant resolved by the Host app; not interface copy."
+    },
+    {
+      "path": "Packages/ScriptAddonKit/Sources/ScriptAddonKit/ScriptAddonFailure.swift",
+      "value": "找不到这个脚本的文件。请把脚本删掉后重新添加。",
+      "reason": "Localization key constant resolved by the Host app; not interface copy."
+    },
+    {
+      "path": "Packages/ScriptAddonKit/Sources/ScriptAddonKit/ScriptAddonFailure.swift",
+      "value": "这个脚本由更新版本的松烟保存。请先更新松烟。",
+      "reason": "Localization key constant resolved by the Host app; not interface copy."
     }
   ]
 }
