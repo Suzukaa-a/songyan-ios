@@ -149,6 +149,9 @@ extension SchemeImportCenter {
             return String(localized: "此方案需要松烟暂不支持的功能。")
         case RecipeInstallError.missingGrammarModels:
             return String(localized: "这个方案还需要语法模型文件。请在「语法模型」里添加后重试。")
+        case RecipeInstallError.missingSchemaFiles:
+            // The file names tell the user what to add; the generic text below hides them.
+            return (error as? RecipeInstallError)?.userFacingDescription ?? String(localized: "文件不完整或格式不正确。")
         case RecipeInstallError.invalidManifest, RecipeInstallError.invalidResource:
             return String(localized: "文件不完整或格式不正确。")
         case RecipeInstallError.deployment:
@@ -376,7 +379,7 @@ extension SchemeImportCenter {
                     name: engine.schemaValue(id, key: "schema/name") ?? id,
                     alphabet: engine.schemaValue(id, key: "speller/alphabet") ?? "")
             }
-            let descriptors = byID.values.sorted { $0.id < $1.id }
+            let descriptors = KeyboardSchemaDescriptor.inEnabledOrder(enabled, byID)
             try JSONEncoder().encode(descriptors).write(
                 to: deployment.resourceURL.appendingPathComponent(InstalledPackageLayout.keyboardSchemas),
                 options: .atomic)

@@ -74,6 +74,7 @@ extension SchemeImportCenter {
         diagnostics = []
         userNotice = nil
         lastInstalledPackageID = nil
+        lastMissingFeatures = []
         retryState.succeeded()
         resetRecipePlanningState()
         message =
@@ -103,6 +104,11 @@ extension SchemeImportCenter {
                     id: $0.id, name: $0.name,
                     entrySchemaID: $0.active.installation.schemaID)
             }
+            // A package may use files another installed package provides, as a desktop Rime shares
+            // one folder between packages; the one being updated does not lend its own old files.
+            let lenders = installedResources.filter { $0.key != explicit?.id }.sorted { $0.key < $1.key }.map(\.value)
+            let provide = RecipePackageManager.providedFiles(from: lenders)
+            let packageName = Self.packageName(from: capture.sourceURL)
             let result = try await withCheckedThrowingContinuation {
                 (continuation: CheckedContinuation<PreparedSchemeImport, Error>) in
                 DispatchQueue(label: "scheme-import.read", qos: .userInitiated).async {
@@ -112,7 +118,7 @@ extension SchemeImportCenter {
                                 if let recommendation {
                                     try reader.prepareRecommended(recommendation, archiveURLs: picked)
                                 } else {
-                                    try reader.prepareSync(picked)
+                                    try reader.prepareSync(picked, packageName: packageName, provide: provide)
                                 }
                             let existing =
                                 explicit
@@ -144,6 +150,19 @@ extension SchemeImportCenter {
             if capture.sourceURL != nil { preparedSourceURL = nil }
         }
         return prepared != nil
+    }
+
+    /// The package name a link implies: a GitHub repository's name, else the address's file name.
+    /// A downloaded file's own name is a temporary one, so it names nothing.
+    nonisolated private static func packageName(from url: URL?) -> String? {
+        guard let url else { return nil }
+        let parts = url.path.split(separator: "/").map(String.init)
+        if let host = url.host?.lowercased(), ["github.com", "www.github.com", "codeload.github.com"].contains(host),
+            parts.count >= 2
+        {
+            return parts[1].hasSuffix(".git") ? String(parts[1].dropLast(4)) : parts[1]
+        }
+        return parts.last
     }
 
     /// Whether this install already holds a user's built-in data, judged only from what an earlier
@@ -334,6 +353,7 @@ extension SchemeImportCenter {
             self.prepared = nil
             preparedSourceURL = nil
             lastInstalledPackageID = prepared.declaration.id
+            lastMissingFeatures = prepared.missingFeatures
             retryState.succeeded()
             // A file update keeps the download address an earlier import recorded, so later updates
             // can still fetch from it. A Rime source origin cannot survive an install that did not

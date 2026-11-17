@@ -256,9 +256,10 @@ final class MultiArchiveSchemeInstallTests: XCTestCase {
         let defaults = try XCTUnwrap(prepared.preparedBytes(for: "default.yaml"))
         let text = String(decoding: defaults, as: UTF8.self)
         XCTAssertNotEqual(defaults, Self.terraPinyinArchive["default.yaml"])
-        // An ordinary import still publishes every input method the merged package provides.
+        // An ordinary import publishes the input methods no other one of the merged package depends on;
+        // terra_pinyin is bopomofo_tw's dependency, built along with it.
         XCTAssertTrue(text.contains("schema: bopomofo_tw"), text)
-        XCTAssertTrue(text.contains("schema: terra_pinyin"), text)
+        XCTAssertFalse(text.contains("schema: terra_pinyin"), text)
     }
 
     /// The catalogue entry decides the installed input method list; a shipped default.yaml keeps

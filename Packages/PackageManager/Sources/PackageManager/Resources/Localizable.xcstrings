@@ -2355,6 +2355,94 @@
         }
       }
     },
+    "missingFeature.other": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一部の機能は使えません：%1$@ がありません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "部分功能用不了：缺少 %1$@。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "部分功能用不了：缺少 %1$@。"
+          }
+        }
+      }
+    },
+    "missingFeature.presetVocabulary": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "プリセット語彙は使えません：%1$@ がありません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "预设词汇用不了：缺少 %1$@。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "預設詞彙用不了：缺少 %1$@。"
+          }
+        }
+      }
+    },
+    "missingFeature.remedy": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "それを含む入力パックを追加してから、この入力パックをもう一度追加してください。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加提供它的输入方案后，再添加一次这个输入方案即可补上。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新增提供它的輸入方案後，再新增一次這個輸入方案即可補上。"
+          }
+        }
+      }
+    },
+    "missingFeature.reverseLookup": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "逆引きは使えません：%1$@ がありません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "反查用不了：缺少 %1$@。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "反查用不了：缺少 %1$@。"
+          }
+        }
+      }
+    },
     "modelState.currentInstallation": {
       "localizations": {
         "ja": {
@@ -3627,6 +3715,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "缺少配置所需的外部檔案：%1$@（%2$@）"
+          }
+        }
+      }
+    },
+    "recipe.error.missingFiles": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力パックに次のファイルがありません：%1$@。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入方案缺少这些文件：%1$@。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "輸入方案缺少這些檔案：%1$@。"
           }
         }
       }
@@ -4925,28 +5035,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "輸入方案宣告為空或標識無效"
-          }
-        }
-      }
-    },
-    "schemeImport.error.missingDependency": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "入力パックに必要な依存ファイルがありません：%1$@"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "缺少输入方案依赖项：%1$@"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "缺少輸入方案依賴項：%1$@"
           }
         }
       }

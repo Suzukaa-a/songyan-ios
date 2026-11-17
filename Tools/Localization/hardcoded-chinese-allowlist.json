@@ -896,6 +896,16 @@
       "reason": "HostLog-only diagnostic for rejected adapter; not rendered in interface."
     },
     {
+      "path": "Apps/HostApp/CompactAdapterDeployment.swift",
+      "value": "输入方式「」的编码太多，不生成折叠键盘（）",
+      "reason": "HostLog-only diagnostic for a source skipped by the fold budget; not rendered in interface."
+    },
+    {
+      "path": "Apps/HostApp/CompactAdapterDeployment.swift",
+      "value": "输入方式「」的编码太多，不生成折叠键盘（）：",
+      "reason": "HostLog-only diagnostic for a source skipped by the fold budget; not rendered in interface."
+    },
+    {
       "path": "Apps/HostApp/EngineDeployVerification.swift",
       "value": "你好",
       "reason": "Fixed native playback expected word and HostLog-only verification payload."

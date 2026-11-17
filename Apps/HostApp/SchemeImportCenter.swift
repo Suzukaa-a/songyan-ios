@@ -75,6 +75,8 @@ final class SchemeImportCenter: ObservableObject {
     @Published var preparedSourceURL: URL?
     /// ID of the most recently installed package (for the "view scheme" entry; install does not auto-apply).
     @Published var lastInstalledPackageID: String?
+    /// What the last installed package's input methods go without (a reverse lookup, say); shown with the success notice.
+    @Published var lastMissingFeatures: [MissingFeature] = []
     /// The last install replaced an existing package's files instead of adding a scheme.
     @Published var lastInstallReplacedVersion = false
     /// The learned words the last installed package shipped, until the user answers.

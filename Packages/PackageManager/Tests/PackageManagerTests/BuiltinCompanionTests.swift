@@ -214,7 +214,7 @@ final class BuiltinCompanionTests: XCTestCase {
         let withoutOpenCC = RecipePackageManager(rootURL: root)
         XCTAssertThrowsError(try withoutOpenCC.prepareBundledPackage(directory: package)) { error in
             let detail = String(describing: error)
-            XCTAssertTrue(detail.contains("缺少输入方案依赖项"), detail)
+            XCTAssertTrue(error.localizedDescription.contains("缺少启用或依赖的输入方案文件"), detail)
             XCTAssertTrue(detail.contains("opencc/s2t.json"), detail)
         }
         let withOpenCC = RecipePackageManager(rootURL: root, sharedOpenCCDirectory: sharedOpenCC)

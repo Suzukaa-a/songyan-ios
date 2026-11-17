@@ -67,7 +67,13 @@ public enum RecipeInstallError: Error, LocalizedError {
     /// lives in `errorDescription`, for diagnostic logs or developer options only.
     public var userFacingDescription: String {
         switch self {
-        case .invalidManifest, .invalidResource, .missingSchemaFiles:
+        case .missingSchemaFiles(let paths):
+            // File names say what to add; "incomplete" alone hides the cause.
+            let names = paths.prefix(5).map { ($0 as NSString).lastPathComponent }
+            return PackageText.format(
+                "recipe.error.missingFiles",
+                names.joined(separator: "、") + (paths.count > 5 ? "…" : ""))
+        case .invalidManifest, .invalidResource:
             return PackageText.string("recipe.error.filesIncomplete")
         case .http: return PackageText.string("recipe.error.downloadFailed")
         case .busy: return PackageText.string("recipe.error.busy")

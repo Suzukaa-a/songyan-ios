@@ -290,6 +290,16 @@ struct SchemePackageImportView: View {
         Section {
             Label(notice, systemImage: "checkmark.circle.fill")
                 .foregroundStyle(.green)
+            if !center.lastMissingFeatures.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach(center.lastMissingFeatures, id: \.names) { feature in
+                        Text(feature.userFacingDescription)
+                    }
+                    Text(MissingFeature.remedy)
+                }
+                .font(.footnote).foregroundStyle(.secondary)
+                .accessibilityIdentifier("scheme-missing-features")
+            }
             if let packageID = center.lastInstalledPackageID {
                 if switcher.phase == .done(packageID) {
                     Text(UserTerminology.statusInUse).foregroundStyle(.green)

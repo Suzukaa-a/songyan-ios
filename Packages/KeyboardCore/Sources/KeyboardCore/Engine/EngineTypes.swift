@@ -446,6 +446,14 @@ public struct KeyboardSchemaDescriptor: Codable, Equatable, Sendable, Identifiab
         self.alphabet = alphabet
     }
 
+    /// The runnable list in the order the package enables its input methods, so the first one stays the
+    /// package's primary. Sorting by ID would start a package whose primary sorts late with another one.
+    public static func inEnabledOrder(
+        _ enabled: [String], _ descriptors: [String: KeyboardSchemaDescriptor]
+    ) -> [KeyboardSchemaDescriptor] {
+        enabled.compactMap { descriptors[$0] }
+    }
+
     /// Resource manifests sometimes carry an ID as their label. Preserve real
     /// source-provided names; only known ID fallbacks get a friendly presentation name.
     public var displayName: String {

@@ -125,11 +125,21 @@ final class InactiveNamespaceDependencyTests: XCTestCase {
     // MARK: - A native component alias claims its namespace again
 
     func testAComponentAliasMakesItsNamespaceDictionaryRequired() throws {
-        let source = files(schema(translators: defaultTranslators + ["reverse_lookup_translator@moran"]))
+        let source = files(schema(translators: defaultTranslators + ["table_translator@moran"]))
         let closure = try SchemeSourceCheck.dependencyClosure(source)
         XCTAssertEqual(closure.required, [moranDictionary])
         XCTAssertEqual(closure.optional, [mungyeongDictionary])
         XCTAssertThrowsError(try SchemeSourceCheck.dependencies(source))
+    }
+
+    /// librime builds a reverse lookup only when its dictionary is there; the input method works either way.
+    func testAReverseLookupAliasLeavesItsDictionaryOptional() throws {
+        let source = files(schema(translators: defaultTranslators + ["reverse_lookup_translator@moran"]))
+        let closure = try SchemeSourceCheck.dependencyClosure(source)
+        XCTAssertEqual(closure.required, [])
+        XCTAssertEqual(closure.optional, [moranDictionary, mungyeongDictionary])
+        XCTAssertEqual(closure.lookups, [moranDictionary])
+        XCTAssertNoThrow(try SchemeSourceCheck.dependencies(source))
     }
 
     // MARK: - Unknown capability stays exactly as strict as before
@@ -152,16 +162,17 @@ final class InactiveNamespaceDependencyTests: XCTestCase {
 
     // MARK: - Native default namespaces keep their dictionaries
 
-    /// A bare reverse_lookup_translator reads reverse_lookup/ (librime remaps the component kind),
-    /// so that root section stays a hard dependency.
-    func testTheDefaultReverseLookupSectionStaysRequiredForABareReverseLookupTranslator() throws {
+    /// A bare reverse_lookup_translator reads reverse_lookup/ (librime remaps the component kind). As on
+    /// a desktop, a missing lookup dictionary costs only the lookup (rime-wubi's pinyin_simp).
+    func testTheDefaultReverseLookupSectionIsOptionalForABareReverseLookupTranslator() throws {
         let source = files(
             schema(
                 translators: defaultTranslators + ["reverse_lookup_translator"],
                 additionalRoot: "reverse_lookup:\n  dictionary: luna_lookup\n"))
         let closure = try SchemeSourceCheck.dependencyClosure(source)
-        XCTAssertEqual(closure.required, ["luna_lookup.dict.yaml"])
-        XCTAssertEqual(closure.optional, [moranDictionary, mungyeongDictionary])
+        XCTAssertEqual(closure.required, [])
+        XCTAssertEqual(closure.optional, ["luna_lookup.dict.yaml", moranDictionary, mungyeongDictionary])
+        XCTAssertEqual(closure.lookups, ["luna_lookup.dict.yaml"])
     }
 
     // MARK: - Only dictionary edges change; references stay hard

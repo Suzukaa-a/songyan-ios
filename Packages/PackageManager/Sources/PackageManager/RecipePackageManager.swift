@@ -120,21 +120,30 @@ public actor RecipePackageManager {
     ///
     /// Several ZIPs are one package: a recommended entry is assembled from the pinned upstream
     /// archives it needs, and a file one archive already provides is never silently overwritten.
-    nonisolated public func prepareSync(_ urls: [URL]) throws -> PreparedSchemeImport {
+    ///
+    /// `packageName` names a package that has no configuration of its own (a link's repository name; a
+    /// picked file's own name is used otherwise). `provide` returns another installed package's copy of a
+    /// file this package refers to but lacks (`pinyin_simp.dict.yaml` for rime-wubi's reverse lookup).
+    nonisolated public func prepareSync(
+        _ urls: [URL], packageName: String? = nil, provide: (String) -> Data? = { _ in nil }
+    ) throws -> PreparedSchemeImport {
         if urls.count > 1, urls.allSatisfy({ $0.pathExtension.lowercased() == "zip" }) {
-            return try prepareSchemeArchives(urls)
+            return try prepareSchemeArchives(
+                urls, packageName: packageName ?? urls[0].lastPathComponent, provide: provide)
         }
         guard urls.count == 1, let url = urls.first else {
             return try prepareSchemeImport(
-                files: urls.map { DictionaryImportFile(path: $0.lastPathComponent, location: $0) })
+                files: urls.map { DictionaryImportFile(path: $0.lastPathComponent, location: $0) }, provide: provide)
         }
         if url.pathExtension.lowercased() == "zip" {
-            return try prepareSchemeArchive(url)
+            return try prepareSchemeArchive(
+                url, packageName: packageName ?? url.lastPathComponent, provide: provide)
         }
         if (try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true {
-            return try prepareSchemeImport(directory: url)
+            return try prepareSchemeImport(directory: url, provide: provide)
         }
-        return try prepareSchemeImport(files: [DictionaryImportFile(path: url.lastPathComponent, location: url)])
+        return try prepareSchemeImport(
+            files: [DictionaryImportFile(path: url.lastPathComponent, location: url)], provide: provide)
     }
 
     nonisolated public func prepareRecommended(

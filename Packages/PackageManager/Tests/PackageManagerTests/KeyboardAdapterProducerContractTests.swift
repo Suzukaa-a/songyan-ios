@@ -334,7 +334,8 @@ extension KeyboardAdapterDisplayCapabilityTests {
 
     /// The same source with a script_translator, the only producer a fold is planned for.
     private func scriptVariant(_ table: Data) -> Data {
-        Data(String(decoding: table, as: UTF8.self).replacingOccurrences(of: "table_translator", with: "script_translator").utf8)
+        let text = String(decoding: table, as: UTF8.self)
+        return Data(text.replacingOccurrences(of: "table_translator", with: "script_translator").utf8)
     }
 
     func testTableUppercaseTokenGetsAReachableCompactDeriveAndMatchingSample() throws {

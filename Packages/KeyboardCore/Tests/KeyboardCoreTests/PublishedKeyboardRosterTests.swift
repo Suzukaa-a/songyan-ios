@@ -149,4 +149,17 @@ final class PublishedKeyboardRosterTests: XCTestCase {
         XCTAssertNil(KeyboardPublicationSource.userScheme(packageID: "../evil").cacheKey)
         XCTAssertNil(KeyboardPublicationSource.userScheme(packageID: "").cacheKey)
     }
+
+    /// A package whose primary input method sorts after its others still starts with the primary.
+    func testRunnableListKeepsTheEnabledOrder() {
+        let byID = Dictionary(
+            uniqueKeysWithValues: ["wubi86", "luna_pinyin_simp", "wubi_pinyin"].map {
+                ($0, KeyboardSchemaDescriptor(id: $0, name: $0))
+            })
+        let ordered = KeyboardSchemaDescriptor.inEnabledOrder(["wubi86", "wubi_pinyin", "luna_pinyin_simp"], byID)
+        XCTAssertEqual(ordered.map(\.id), ["wubi86", "wubi_pinyin", "luna_pinyin_simp"])
+        let start = PublishedKeyboard.switchTarget(
+            remembered: [], addable: ordered.map { PublishedKeyboard(schemaID: $0.id, layout: .qwerty26) })
+        XCTAssertEqual(start?.selection.schemaID, "wubi86")
+    }
 }

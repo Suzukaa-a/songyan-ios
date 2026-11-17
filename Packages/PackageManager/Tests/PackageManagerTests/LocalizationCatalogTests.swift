@@ -22,6 +22,8 @@ final class LocalizationCatalogTests: XCTestCase {
         "rimeConfig.error.fileName": "「%1$@」",
         "rimeConfig.error.line": "第 %1$@ 行",
         "recipe.description.fuzzyPinyin": "模糊音",
+        "missingFeature.reverseLookup": "反查用不了：缺少 %1$@。",
+        "missingFeature.other": "部分功能用不了：缺少 %1$@。",
     ]
     /// Entries where Japanese shares the Simplified form (a quoted placeholder only).
     private static let jaMayEqualHans: Set<String> = ["rimeConfig.error.fileName"]

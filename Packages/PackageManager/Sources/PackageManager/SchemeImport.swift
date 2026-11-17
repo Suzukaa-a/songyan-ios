@@ -61,6 +61,9 @@ public struct PreparedSchemeImport: Sendable {
     }
     public let resourceBytes: Int
     public let diagnostics: [String]
+    /// What the package's input methods go without: neither the package nor another installed one
+    /// provides a file they refer to. The import still succeeds; the user is told what to add.
+    public let missingFeatures: [MissingFeature]
     private let bytes: [String: Data]
     /// Learned words the package shipped as `*.userdb.txt`. They are never source files: they stay
     /// out of the package identity and the installed tree, and wait here for the user's answer.
@@ -119,13 +122,16 @@ public struct PreparedSchemeImport: Sendable {
             requiredComponents: manifest.requiredComponents, files: records, origin: manifest.origin)
         return PreparedSchemeImport(
             declaration: declaration, manifest: updated, schemaIDs: schemaIDs,
-            bytes: bytes, sourceFiles: sourceFiles, fileResources: models, learningSnapshots: learningSnapshots)
+            bytes: bytes, sourceFiles: sourceFiles, fileResources: models, learningSnapshots: learningSnapshots,
+            missingFeatures: missingFeatures)
     }
     fileprivate init(
         declaration: SchemePackageDeclaration, manifest: RecipeManifest,
         schemaIDs: [String], bytes: [String: Data], sourceFiles: [String: Data],
-        fileResources: [String: RecipeFileResource], learningSnapshots: CollectedSnapshots
+        fileResources: [String: RecipeFileResource], learningSnapshots: CollectedSnapshots,
+        missingFeatures: [MissingFeature]
     ) {
+        self.missingFeatures = missingFeatures
         self.learningSnapshots = learningSnapshots
         self.declaration = declaration
         self.manifest = manifest
@@ -171,13 +177,14 @@ public struct PreparedSchemeImport: Sendable {
         return PreparedSchemeImport(
             declaration: declaration, manifest: updatedManifest,
             schemaIDs: schemaIDs, bytes: updated, sourceFiles: sourceFiles, fileResources: fileResources,
-            learningSnapshots: learningSnapshots)
+            learningSnapshots: learningSnapshots, missingFeatures: missingFeatures)
     }
 }
 
 public extension RecipePackageManager {
     nonisolated func prepareSchemeArchive(
-        _ url: URL, expectedSHA256: String? = nil, advertisedSchemaIDs: [String]? = nil
+        _ url: URL, expectedSHA256: String? = nil, advertisedSchemaIDs: [String]? = nil,
+        packageName: String? = nil, provide: (String) -> Data? = { _ in nil }
     ) throws -> PreparedSchemeImport {
         let workspace = FileManager.default.temporaryDirectory.appendingPathComponent("scheme-zip-" + UUID().uuidString)
         try FileManager.default.createDirectory(at: workspace, withIntermediateDirectories: true)
@@ -241,7 +248,25 @@ public extension RecipePackageManager {
             }
         }
         let root = wrapper.map { staging.appendingPathComponent($0) } ?? staging
-        return try prepareSchemeImport(directory: root, advertisedSchemaIDs: advertisedSchemaIDs)
+        return try prepareSchemeImport(
+            directory: root, advertisedSchemaIDs: advertisedSchemaIDs,
+            packageName: Self.cleanPackageName(packageName) ?? Self.cleanPackageName(wrapper), provide: provide)
+    }
+
+    /// The files other installed packages provide, for `prepareSync(provide:)`: the first of
+    /// `resources` (installed package directories, in order) that holds the path wins.
+    nonisolated static func providedFiles(from resources: [URL]) -> (String) -> Data? {
+        { path in
+            guard SchemeSourceCheck.safe(path) else { return nil }
+            for directory in resources {
+                if let data = try? BoundedLocalFile.read(
+                    directory.appendingPathComponent(path), maximumBytes: RecipeResourceBudget.sourceFile)
+                {
+                    return data
+                }
+            }
+            return nil
+        }
     }
 
     /// Several archives of one catalogue entry, merged into a single package. The first archive is the
@@ -252,7 +277,8 @@ public extension RecipePackageManager {
     /// runtime path two archives fill differently is refused instead of resolving to the wrong
     /// upstream's bytes. Model files stay file references, never in-memory Data.
     nonisolated func prepareSchemeArchives(
-        _ urls: [URL], expectedArchives: [RecommendedSchemeArchive]? = nil, advertisedSchemaIDs: [String]? = nil
+        _ urls: [URL], expectedArchives: [RecommendedSchemeArchive]? = nil, advertisedSchemaIDs: [String]? = nil,
+        packageName: String? = nil, provide: (String) -> Data? = { _ in nil }
     ) throws -> PreparedSchemeImport {
         let workspace = FileManager.default.temporaryDirectory
             .appendingPathComponent("scheme-zips-" + UUID().uuidString)
@@ -270,6 +296,7 @@ public extension RecipePackageManager {
         var sourceBytes = 0
         var modelBytes = 0
         var stagedEntries = 0
+        var entryWrapper: String?
         // Resource snapshots must outlive this reader: the installation copies them after it returns.
         let resourceStaging = FileManager.default.temporaryDirectory
             .appendingPathComponent("scheme-resources-" + UUID().uuidString)
@@ -282,6 +309,7 @@ public extension RecipePackageManager {
             let archive = try Archive(url: snapshot, accessMode: .read)
             let entries = try Self.scanArchiveEntries(archive)
             let wrapper = Self.archiveWrapper(entries)
+            if index == 0 { entryWrapper = wrapper }
             let label = Self.archiveLabel(url: url, wrapper: wrapper, index: index)
             for (entry, path) in entries where entry.type != .directory {
                 let logicalPath = wrapper.map { String(path.dropFirst($0.count + 1)) } ?? path
@@ -377,7 +405,9 @@ public extension RecipePackageManager {
         }
         return try prepareSchemeImport(
             bytes: bytes, fileResources: fileResources, declaration: nil,
-            learning: Self.collectLearning(files: snapshotFiles), advertisedSchemaIDs: advertisedSchemaIDs)
+            learning: Self.collectLearning(files: snapshotFiles), advertisedSchemaIDs: advertisedSchemaIDs,
+            packageName: Self.cleanPackageName(packageName) ?? Self.cleanPackageName(entryWrapper),
+            provide: provide)
     }
 
     // Verify the frozen input once, before ZIP parsing; a caller-controlled original can change meanwhile.
@@ -515,7 +545,8 @@ public extension RecipePackageManager {
     /// A complete directory selected by the user. Symlinks and user databases are never imported.
     /// ZIPs must first be extracted by the user; no shell/plum script is executed.
     nonisolated func prepareSchemeImport(
-        directory: URL, declaration: SchemePackageDeclaration? = nil, advertisedSchemaIDs: [String]? = nil
+        directory: URL, declaration: SchemePackageDeclaration? = nil, advertisedSchemaIDs: [String]? = nil,
+        packageName: String? = nil, provide: (String) -> Data? = { _ in nil }
     ) throws -> PreparedSchemeImport {
         let fm = FileManager.default
         let info = try directory.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
@@ -592,13 +623,14 @@ public extension RecipePackageManager {
         return try prepareSchemeImport(
             files: files, declaration: declaration,
             learning: sawSnapshot ? Self.collectLearning(in: directory) : .empty,
-            advertisedSchemaIDs: advertisedSchemaIDs)
+            advertisedSchemaIDs: advertisedSchemaIDs, packageName: packageName, provide: provide)
     }
 
     /// Multiple files retain explicit package-relative paths (including lua/, opencc/, dictionaries/).
     nonisolated func prepareSchemeImport(
         files: [DictionaryImportFile], declaration supplied: SchemePackageDeclaration? = nil,
-        learning folderLearning: CollectedSnapshots? = nil, advertisedSchemaIDs: [String]? = nil
+        learning folderLearning: CollectedSnapshots? = nil, advertisedSchemaIDs: [String]? = nil,
+        packageName: String? = nil, provide: (String) -> Data? = { _ in nil }
     ) throws -> PreparedSchemeImport {
         var bytes: [String: Data] = [:]
         var fileResources: [String: RecipeFileResource] = [:]
@@ -653,7 +685,7 @@ public extension RecipePackageManager {
         return try prepareSchemeImport(
             bytes: bytes, fileResources: fileResources, declaration: supplied,
             learning: folderLearning ?? Self.collectLearning(files: snapshotFiles),
-            advertisedSchemaIDs: advertisedSchemaIDs)
+            advertisedSchemaIDs: advertisedSchemaIDs, packageName: packageName, provide: provide)
     }
 
     /// Reads the shipped snapshots a package carries. Nothing here fails an import: a pick over the
@@ -709,10 +741,16 @@ public extension RecipePackageManager {
     nonisolated private func prepareSchemeImport(
         bytes source: [String: Data], fileResources: [String: RecipeFileResource],
         declaration supplied: SchemePackageDeclaration?,
-        learning: CollectedSnapshots = .empty, advertisedSchemaIDs: [String]? = nil
+        learning: CollectedSnapshots = .empty, advertisedSchemaIDs: [String]? = nil,
+        packageName: String? = nil, provide: (String) -> Data? = { _ in nil }
     ) throws -> PreparedSchemeImport {
         var bytes = source
         let sourceFiles = bytes
+        // A package with no configuration of its own (a desktop Rime folder, a repository with several
+        // schemas) is named after the package and offers the schemas no other one of it depends on.
+        let inferred =
+            advertisedSchemaIDs == nil && supplied == nil && bytes["default.yaml"] == nil
+            && bytes["default.custom.yaml"] == nil && bytes[InstalledPackageLayout.keyboardPackageFile] == nil
         let availableSchemas = InstalledPackageLayout.topLevelSchemaFiles(in: bytes.keys).map {
             String($0.dropLast(12))
         }.sorted()
@@ -721,6 +759,7 @@ public extension RecipePackageManager {
         {
             throw RecipeInstallError.invalidManifest(PackageText.string("schemeImport.error.missingInputMethod"))
         }
+        let offered = inferred ? Self.offeredSchemas(bytes, roots: availableSchemas, packageName: packageName) : nil
         let declaration: SchemePackageDeclaration
         if let supplied {
             declaration = supplied
@@ -741,10 +780,11 @@ public extension RecipePackageManager {
             let listed = SchemeSourceCheck.matches(
                 "^\\s*-\\s*schema:\\s*[\"']?([A-Za-z0-9_.-]+)",
                 String(data: bytes["default.yaml"] ?? Data(), encoding: .utf8) ?? "")
-            let primary = advertisedSchemaIDs?.first ?? listed.first(where: ids.contains) ?? first
+            let primary = advertisedSchemaIDs?.first ?? offered?.first ?? listed.first(where: ids.contains) ?? first
             let schemaText = String(data: bytes[InstalledPackageLayout.schemaFile(primary)]!, encoding: .utf8) ?? ""
             let name =
-                SchemeSourceCheck.matches("^\\s+name:\\s*[\"']?([^\"'\\r\\n#]+)", schemaText).first?
+                (inferred ? packageName : nil)
+                ?? SchemeSourceCheck.matches("^\\s+name:\\s*[\"']?([^\"'\\r\\n#]+)", schemaText).first?
                 .trimmingCharacters(in: .whitespaces) ?? primary
             // Without an explicit stable package ID, different source bytes receive separate
             // learning namespaces. Matching filenames alone cannot prove encoding compatibility.
@@ -775,17 +815,19 @@ public extension RecipePackageManager {
                     PackageText.format("schemeImport.error.codeNotOnLayout", layout.userTitle, binding.code))
             }
         }
-        let schemas = advertisedSchemaIDs ?? availableSchemas
+        let schemas = advertisedSchemaIDs ?? offered ?? availableSchemas
         guard !schemas.isEmpty else {
             throw RecipeInstallError.invalidManifest(PackageText.string("schemeImport.error.noInstallableSchema"))
         }
         try SharedRimePresets.supplement(
-            &bytes, openCCDirectory: sharedOpenCCDirectory, enabledSchemaIDs: advertisedSchemaIDs)
+            &bytes, openCCDirectory: sharedOpenCCDirectory, enabledSchemaIDs: advertisedSchemaIDs ?? offered)
         if let advertisedSchemaIDs {
             try Self.enforceAdvertisedSchemaList(&bytes, advertised: advertisedSchemaIDs)
         }
         let compiled = Set(fileResources.keys.filter { SchemeSourceCheck.isCompiledBuildFile($0) })
-        try SchemeSourceCheck.dependencies(bytes, compiled: compiled)
+        SchemeSourceCheck.borrow(into: &bytes, compiled: compiled, provide: provide)
+        let closure = try SchemeSourceCheck.dependencyClosure(bytes, compiled: compiled)
+        try SchemeSourceCheck.requireComplete(closure)
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
         if bytes[InstalledPackageLayout.keyboardPackageFile] == nil || supplied != nil {
@@ -814,7 +856,48 @@ public extension RecipePackageManager {
             schemaID: entrySchema, requiredComponents: [], files: records, origin: .userScheme)
         return PreparedSchemeImport(
             declaration: declaration, manifest: manifest, schemaIDs: schemas, bytes: bytes, sourceFiles: sourceFiles,
-            fileResources: fileResources, learningSnapshots: learning)
+            fileResources: fileResources, learningSnapshots: learning, missingFeatures: MissingFeature.of(closure))
+    }
+
+    /// The input methods a package without its own configuration offers: every root schema no other
+    /// schema of the package lists in its `dependencies` (those are reverse lookups, built along with
+    /// the schema that needs them). The one the package name names comes first, as the primary.
+    nonisolated private static func offeredSchemas(
+        _ files: [String: Data], roots: [String], packageName: String?
+    ) -> [String] {
+        var dependencies = Set<String>()
+        for id in roots {
+            guard let data = files[InstalledPackageLayout.schemaFile(id)],
+                let text = String(data: data, encoding: .utf8),
+                let root = try? BoundedYAML.load(yaml: text) as? [String: Any],
+                let listed = (root["schema"] as? [String: Any])?["dependencies"] as? [Any]
+            else { continue }
+            for case let name as String in listed where name != id { dependencies.insert(name) }
+        }
+        // Schemas that only depend on each other (luna_pinyin and stroke) still leave something to type with.
+        let offered = roots.filter { !dependencies.contains($0) }
+        let candidates = offered.isEmpty ? roots : offered
+        let words = (packageName?.lowercased() ?? "")
+            .split(whereSeparator: { "-_ .".contains($0) }).map(String.init)
+            .filter { $0.count >= 3 && $0 != "rime" }
+        let named = candidates.filter { id in words.contains { id.lowercased().hasPrefix($0) } }
+        return named + candidates.filter { !named.contains($0) }
+    }
+
+    /// A package's name from its file or repository name: `rime-wubi-master.zip` is `rime-wubi`.
+    /// Nil when nothing usable is left (a download's temporary file name names nothing).
+    nonisolated static func cleanPackageName(_ raw: String?) -> String? {
+        let trimmed = raw?.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard var name = trimmed?.split(separator: "/").last.map(String.init) else { return nil }
+        if name.lowercased().hasSuffix(".zip") { name = String(name.dropLast(4)) }
+        name = name.replacingOccurrences(
+            of: "-(?:master|main|[0-9a-f]{7,40})$", with: "", options: .regularExpression
+        ).trimmingCharacters(in: .whitespaces)
+        let hasControl = name.unicodeScalars.contains { CharacterSet.controlCharacters.contains($0) }
+        guard !name.isEmpty, name.count <= 80, !hasControl,
+            name.range(of: "^scheme-[0-9A-Fa-f-]{36}$", options: .regularExpression) == nil
+        else { return nil }
+        return name
     }
 
     /// A catalogue entry decides which input methods an installation offers. A shipped default.yaml
@@ -990,13 +1073,32 @@ enum SchemeSourceCheck {
         }
     }
     static func dependencies(_ files: [String: Data], compiled: Set<String> = []) throws {
-        let missing = try dependencyClosure(files, compiled: compiled).required
-        guard missing.isEmpty else {
-            if missing.allSatisfy({ $0.hasSuffix(".schema.yaml") }) {
-                throw RecipeInstallError.missingSchemaFiles(missing)
+        try requireComplete(dependencyClosure(files, compiled: compiled))
+    }
+    /// The user is told which files are missing; a generic "incomplete files" notice hides the cause.
+    static func requireComplete(_ closure: DependencyClosure) throws {
+        guard closure.required.isEmpty else { throw RecipeInstallError.missingSchemaFiles(closure.required) }
+    }
+    /// Copies in what another installed package provides of the files this one refers to and lacks, until
+    /// nothing more is found, as a desktop Rime shares one user folder between packages. Only runtime
+    /// files at their package-relative path; a file the package ships is never replaced.
+    static func borrow(
+        into bytes: inout [String: Data], compiled: Set<String>, provide: (String) -> Data?
+    ) {
+        var tried = Set<String>()
+        var total = bytes.values.reduce(0) { $0 + $1.count }
+        while let closure = try? dependencyClosure(bytes, compiled: compiled) {
+            var copied = false
+            for path in closure.required + closure.optional where tried.insert(path).inserted {
+                guard safe(path), isRuntimeSourceFile(path), !RecipeResourceBudget.isModel(path), bytes[path] == nil,
+                    let data = provide(path), data.count <= RecipeResourceBudget.sourceFile,
+                    total + data.count <= RecipeResourceBudget.sourceTotal
+                else { continue }
+                total += data.count
+                bytes[path] = data
+                copied = true
             }
-            throw RecipeInstallError.invalidResource(
-                PackageText.format("schemeImport.error.missingDependency", missing.joined(separator: "、")))
+            if !copied { return }
         }
     }
     /// Every referenced path the tree lacks, the optional ones included, so a source download can fetch them all.
@@ -1008,15 +1110,27 @@ enum SchemeSourceCheck {
     }
 
     /// What the tree lacks. `required` stops an installation; `optional` does not: files reached only
-    /// through a schema's `dependencies` (a reverse-lookup scheme librime builds when present) or a
-    /// dictionary's `use_preset_vocabulary`. librime deploys the input method without them and only that
-    /// lookup, or the preset vocabulary, is absent; packages such as 薄荷 and 白霜 rely on the shared
-    /// `luna_pinyin` and `essay` that a desktop Rime installs.
+    /// through a schema's `dependencies` or a reverse-lookup dictionary (librime builds the lookup when
+    /// its dictionary is there, and the lookup yields nothing when it is not), or a dictionary's
+    /// `use_preset_vocabulary`. librime deploys the input method without them and only that lookup, or
+    /// the preset vocabulary, is absent; packages such as 薄荷, 白霜 and rime-wubi rely on the shared
+    /// `luna_pinyin`, `pinyin_simp` and `essay` that a desktop Rime installs.
+    /// `direct` are the optional paths the package's own files name (not those of a lookup's own
+    /// lookup), and `lookups` the ones of them a reverse lookup needs: librime builds a lookup's
+    /// dependencies one level deep only.
+    struct DependencyClosure: Equatable {
+        let required: [String]
+        let optional: [String]
+        let direct: [String]
+        let lookups: [String]
+    }
+
     static func dependencyClosure(
         _ files: [String: Data], inventory: [String: Data]? = nil, compiled: Set<String> = []
-    ) throws -> (required: [String], optional: [String]) {
+    ) throws -> DependencyClosure {
         var missing = Set<String>()
         var optional = Set<String>()
+        var lookups = Set<String>()
         var softPending: [String] = []
         var soft = false
         // Source inventory can include variants which are not deployment roots.
@@ -1090,6 +1204,10 @@ enum SchemeSourceCheck {
             }
             softPending.append(name)
         }
+        func requireLookup(_ name: String) throws {
+            if !soft { lookups.insert(name) }
+            try requireOptional(name)
+        }
         func requireModule(_ module: String) throws {
             let base = "lua/" + module.replacingOccurrences(of: ".", with: "/")
             let available = inventory ?? files
@@ -1142,6 +1260,7 @@ enum SchemeSourceCheck {
                         relaxedDictionaryNamespaces(schemaPath: path, root: $0, files: inventory ?? files)
                     } ?? []
                 // BoundedYAML already caps expansion; keep an independent budget for the walkers below.
+                let lookupNamespaces = Self.lookupNamespaces(schemaPath: path, root: root)
                 var budget = 2 * BoundedYAML.maximumExpandedNodes  // two walks below
                 func spend() throws {
                     budget -= 1
@@ -1181,7 +1300,9 @@ enum SchemeSourceCheck {
                                 if let name = scalar(value), !name.isEmpty {
                                     // A namespace no engine entry claims is never loaded natively, so
                                     // its dictionary stays optional; every claimed one stays required.
-                                    if let top, relaxedNamespaces.contains(top) {
+                                    if let top, lookupNamespaces.contains(top) {
+                                        try requireLookup(name + ".dict.yaml")
+                                    } else if let top, relaxedNamespaces.contains(top) {
                                         try requireOptional(name + ".dict.yaml")
                                     } else {
                                         try require(name + ".dict.yaml")
@@ -1198,7 +1319,7 @@ enum SchemeSourceCheck {
                                     for item in list {
                                         guard let name = scalar(item), !name.isEmpty else { continue }
                                         if key.string == "dependencies" {
-                                            try requireOptional(name + InstalledPackageLayout.schemaFileSuffix)
+                                            try requireLookup(name + InstalledPackageLayout.schemaFileSuffix)
                                         } else {
                                             try require(name + ".dict.yaml")
                                         }
@@ -1257,7 +1378,11 @@ enum SchemeSourceCheck {
                 try visit(object)
             }
         }
-        return (missing.sorted(), optional.subtracting(missing).sorted())
+        let absent = optional.subtracting(missing)
+        return DependencyClosure(
+            required: missing.sorted(), optional: absent.sorted(),
+            direct: absent.intersection(softPending).sorted(),
+            lookups: lookups.intersection(absent).sorted())
     }
 
     // MARK: - Inactive dictionary namespaces
@@ -1345,6 +1470,33 @@ enum SchemeSourceCheck {
         let customPath = String(schemaPath.dropLast(".schema.yaml".count)) + ".custom.yaml"
         if let custom = files[customPath], !customPatchLeavesEngineAlone(custom) { return [] }
         return Set(document.compactMap { $0.key.string }).subtracting(active)
+    }
+
+    /// Root sections only a reverse lookup reads: `reverse_lookup` and the `@name` of a
+    /// reverse_lookup_translator or reverse_lookup_filter. librime builds the lookup when its
+    /// dictionary is there and it yields nothing when it is not; the input method itself is
+    /// unaffected. A section another component also names (a translator reading the same
+    /// namespace) stays strict.
+    private static func lookupNamespaces(schemaPath: String, root: Node?) -> Set<String> {
+        guard schemaPath.hasSuffix(".schema.yaml"), let document = root?.mapping else { return [] }
+        var lookups: Set<String> = ["reverse_lookup"]
+        var claimed: Set<String> = ["translator"]
+        let engine = document.first(where: { $0.key.string == "engine" })?.value.mapping
+        for key in ["processors", "segmentors", "translators", "filters"] {
+            guard let entries = engine?.first(where: { $0.key.string == key })?.value.sequence else { continue }
+            for item in entries {
+                guard let name = configScalar(item) else { continue }
+                let at = name.firstIndex(of: "@")
+                let klass = at.map { String(name[..<$0]) } ?? name
+                let namespace = at.map { String(name[name.index(after: $0)...]) }
+                if klass == "reverse_lookup_translator" || klass == "reverse_lookup_filter" {
+                    if let namespace { lookups.insert(namespace) }
+                } else if let namespace {
+                    claimed.insert(namespace)
+                }
+            }
+        }
+        return lookups.subtracting(claimed)
     }
 
     private static func configScalar(_ node: Node) -> String? {
