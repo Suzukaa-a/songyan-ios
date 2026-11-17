@@ -14,7 +14,11 @@ from swift_probe import ROOT, run, scratch_directory
 
 TOOLKIT = ROOT / "Packages/ToolKit/Sources/ToolKit"
 EXTENSION = ROOT / "Apps/KeyboardExtension"
-GATEWAY_SOURCES = (EXTENSION / "ToolDocumentProxy.swift", EXTENSION / "ToolDocumentGateway.swift")
+GATEWAY_SOURCES = (
+    EXTENSION / "ToolDocumentProxy.swift",
+    EXTENSION / "ToolDocumentGateway.swift",
+    ROOT / "Apps/SharedKeyboard/KeyboardLog.swift",
+)
 
 PROBE = r'''
 import Foundation

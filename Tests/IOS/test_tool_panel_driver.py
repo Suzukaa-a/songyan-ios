@@ -27,6 +27,7 @@ class ToolPanelDriverTests(unittest.TestCase):
             EXTENSION / "ToolPanelPresentation.swift",
             EXTENSION / "ToolDocumentProxy.swift",
             EXTENSION / "ToolDocumentGateway.swift",
+            ROOT / "Apps/SharedKeyboard/KeyboardLog.swift",
         ):
             texts.append(
                 path.read_text(encoding="utf-8").replace("import ToolKit\n", ""))

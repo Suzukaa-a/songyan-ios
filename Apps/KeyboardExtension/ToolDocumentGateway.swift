@@ -395,7 +395,7 @@ final class ToolPanelDriver: ToolPanelDriving {
                 // Only the script runtime's own mapped copy may reach the panel; any other error
                 // is logged and the panel falls back to its generic sentence.
                 Logger.scriptAddon.error("script run failed: \(String(describing: error), privacy: .private)")
-                let message = (error as? ScriptToolError)?.errorDescription
+                let message = (error as? ToolRunError)?.toolMessage
                 await MainActor.run { [weak self] in
                     guard let self else { return }
                     _ = self.gateway()?.fail(

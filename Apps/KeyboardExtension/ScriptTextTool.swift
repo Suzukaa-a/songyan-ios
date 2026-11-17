@@ -69,7 +69,7 @@ struct ScriptToolRuntimeLimits: Equatable, Sendable {
 
 /// A failure the shared bridge reported. Script errors keep the script's own words, so the panel can
 /// show them after the tool title; the other cases carry fixed localized copy.
-enum ScriptToolError: Error, LocalizedError, Equatable, Sendable {
+enum ScriptToolError: Error, LocalizedError, Equatable, Sendable, ToolRunError {
     case invalidHeader(line: Int, message: String)
     case unsupportedApiVersion(line: Int, message: String)
     case capabilityUnavailable
@@ -497,4 +497,8 @@ struct ScriptToolConfiguration: Sendable {
 }
 
 enum ScriptToolRuntime {
+}
+
+extension ScriptToolError {
+    var toolMessage: String? { errorDescription }
 }
