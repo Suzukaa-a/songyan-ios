@@ -38302,6 +38302,28 @@
           }
         }
       }
+    },
+    "这个键盘布局正在被「我的键盘」里的键盘使用，请先移除那个键盘。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这个键盘布局正在被「我的键盘」里的键盘使用，请先移除那个键盘。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このキー配列は「マイキーボード」のキーボードで使われています。先にそのキーボードを削除してください。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這個鍵盤配置正在被「我的鍵盤」裡的鍵盤使用，請先移除那個鍵盤。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

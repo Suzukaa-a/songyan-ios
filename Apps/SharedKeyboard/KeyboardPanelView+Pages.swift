@@ -12,7 +12,11 @@ extension KeyboardPanelView {
     /// The pairing for the running input method × layout (keyed like `UserKeyboard.id`).
     var selectedComposition: KeyboardComposition? {
         pageMemo.composition(for: compositionMemoKey) {
-            layoutRegistry?.compositions["\(controller.selectedSchemaID):\(controller.layout.rawValue)"]
+            guard let builtin = LayoutInput.Builtin(rawValue: controller.layout.rawValue) else { return nil }
+            return layoutRegistry?.savedComposition(
+                for: KeyboardCompositionKey(
+                    inputMethodID: controller.selectedSchemaID, layout: builtin,
+                    layoutID: controller.selectedBoard))
         }
     }
 

@@ -25,6 +25,7 @@ case "builtin": try builtinPublicationChecks(base)
 case "kept": try keptPackagesChecks(base)
 case "private": try privateSelectionChecks(base)
 case "privateSwitch": try privatePackageSwitchChecks(base)
+case "layoutKeyboards": try layoutKeyboardsChecks(base)
 default: fatalError("unknown store scenario")
 }
 ''', encoding="utf-8")
@@ -44,6 +45,9 @@ default: fatalError("unknown store scenario")
 
     def test_a_package_switch_kept_without_full_access_is_promoted_with_it(self):
         self.scenario("privateSwitch")
+
+    def test_keyboards_that_name_their_layout_and_the_records_saved_before(self):
+        self.scenario("layoutKeyboards")
 
     def test_publication_rosters_and_provenance(self):
         self.scenario("publication")

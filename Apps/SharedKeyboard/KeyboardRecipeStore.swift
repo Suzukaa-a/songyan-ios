@@ -96,6 +96,12 @@ public enum KeyboardRecipeStore {
             PublishedKeyboard.resolve(published: publishedKeyboards)
         }
 
+        /// Whether a keyboard of any input scheme in 我的键盘 names this layout as the one it types on.
+        public func hasKeyboard(namingLayout id: String) -> Bool {
+            keyboards.contains { $0.board == id }
+                || (keyboardsBySource ?? [:]).values.contains { $0.contains { $0.board == id } }
+        }
+
         /// Whether this record forces showing only added keyboards: true with an explicit list or a
         /// selection; a record with neither (built-in pinyin) keeps every bundled combination.
         public var enforcesPublishedKeyboards: Bool {

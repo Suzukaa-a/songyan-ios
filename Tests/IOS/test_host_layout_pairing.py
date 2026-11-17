@@ -1,6 +1,7 @@
 """The Host's pairing default for a newly added keyboard: the input language's own board (note the
 saved pairing is kept), resolved through the one shared policy rather than a second family table.
 The same resolved board also names the row, so a 41-key keyboard is never read as the 26-key shape."""
+import shutil
 import sys
 import unittest
 
@@ -34,6 +35,9 @@ class HostLayoutPairingTests(unittest.TestCase):
             source.write_text(production_source(), encoding="utf-8")
             probe = directory / "main.swift"
             probe.write_text(checks, encoding="utf-8")
+            # The probe reads the files of an install made before keyboards named their layout
+            # from beside itself.
+            shutil.copytree(ROOT / "Tests/IOS/Fixtures/pre-layout-keyboards", directory / "pre-layout-keyboards")
             binary = compile_swift(
                 directory, [source, probe], dependencies=("KeyboardCore", "LayoutKit"))
             output = run([str(binary), str(compiled)])

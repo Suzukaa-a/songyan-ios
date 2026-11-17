@@ -125,9 +125,108 @@ let romajiKeyboard = UserKeyboard(
     inputMethodID: "kagiroi", inputMethodName: "日本語", layout: .qwerty26, board: "romaji26")
 check(kanaKeyboard.id != romajiKeyboard.id, "the two Japanese boards are two keyboards")
 checkEqual(
-    kanaKeyboard.compositionKey.rawValue, japaneseKey.rawValue,
-    "both boards share the one pairing, derived without parsing the id")
-checkEqual(romajiKeyboard.compositionKey.rawValue, japaneseKey.rawValue, "the romaji board shares it too")
+    kanaKeyboard.compositionKey.rawValue, "kagiroi:qwerty26#kana12",
+    "a keyboard that names its layout has a pairing of its own, derived without parsing the id")
+checkEqual(kanaKeyboard.compositionKey.shapeKey, japaneseKey, "it runs on the same shape")
+var sharedPages = registry.composition(for: japaneseKey)
+sharedPages.numericPageID = KeyboardPagePresets.numericKeypad.id
+try registry.setComposition(sharedPages, for: japaneseKey.rawValue)
+for keyboard in [kanaKeyboard, romajiKeyboard] {
+    let pages = registry.composition(for: keyboard.compositionKey)
+    checkEqual(
+        pages.numericPageID, KeyboardPagePresets.numericKeypad.id,
+        "\(keyboard.board ?? "") keeps the pages saved before boards were separate keyboards")
+    checkEqual(pages.mainLayoutID, keyboard.board ?? "", "and types on its own board")
+}
+
+// The keyboards 我的键盘 offers for one input method: its family's boards or the shape's own layout,
+// then the user's layouts for that shape.
+func applicable(
+    _ schemaID: String, shapes: [KeyboardLayoutKind] = KeyboardLayoutKind.allCases, in registry: LayoutRegistry
+) -> [String] {
+    HostLayoutAvailability.applicableLayouts(
+        schemaID: schemaID, shapes: shapes, descriptors: schemes, in: registry
+    ).map { "\($0.shape.rawValue)#\($0.layoutID)" }
+}
+var library = try LayoutRegistry()
+checkEqual(
+    applicable("songyan_quanpin", in: library),
+    ["qwerty26#qwerty26", "merged14#merged14", "merged18#merged18", "phone9#phone9"],
+    "pinyin is offered the four shipped shapes")
+checkEqual(
+    applicable("songyan_quanpin", shapes: [.qwerty26, .phone9], in: library),
+    ["qwerty26#qwerty26", "phone9#phone9"], "only the shapes the source can run")
+checkEqual(
+    applicable("kagiroi", in: library), ["qwerty26#romaji26", "qwerty26#kana12"],
+    "Japanese is offered its two boards")
+checkEqual(applicable("bopomofo_tw", in: library), ["qwerty26#zhuyin41"], "zhuyin is offered its board")
+checkEqual(applicable("jyut6ping3", in: library).first, "qwerty26#qwerty26", "Cantonese keeps the 26-key layout")
+let copied26 = try library.copy(BuiltinLayouts.qwerty26, name: "我的 26 键")
+let copied9 = try library.copy(BuiltinLayouts.phone9, name: "我的 9 键")
+checkEqual(
+    applicable("songyan_quanpin", in: library),
+    [
+        "qwerty26#qwerty26", "qwerty26#\(copied26.id)", "merged14#merged14", "merged18#merged18",
+        "phone9#phone9", "phone9#\(copied9.id)",
+    ], "a copied layout is a keyboard of its own next to the shipped one of its shape")
+checkEqual(
+    applicable("kagiroi", in: library), ["qwerty26#romaji26", "qwerty26#kana12", "qwerty26#\(copied26.id)"],
+    "a family with boards is offered the user's 26-key layouts too, never the folded ones")
+checkEqual(
+    HostLayoutAvailability.layoutName(
+        schemaID: "songyan_quanpin", layout: .qwerty26, board: copied26.id, descriptors: schemes, in: library),
+    "我的 26 键", "a keyboard on the user's layout is named by that layout")
+checkEqual(
+    HostLayoutAvailability.layoutName(
+        schemaID: "songyan_quanpin", layout: .qwerty26, board: "qwerty26", descriptors: schemes, in: library),
+    nil, "the shape's own layout keeps the shape name")
+checkEqual(
+    HostLayoutAvailability.namingLayout(
+        PublishedKeyboard(schemaID: "kagiroi", layout: .qwerty26), descriptors: schemes, in: library),
+    PublishedKeyboard(schemaID: "kagiroi", layout: .qwerty26, board: "romaji26"),
+    "a new keyboard is written with the layout it opens on")
+checkEqual(
+    HostLayoutAvailability.namingLayout(
+        PublishedKeyboard(schemaID: "songyan_quanpin", layout: .merged14), descriptors: schemes, in: library),
+    PublishedKeyboard(schemaID: "songyan_quanpin", layout: .merged14, board: "merged14"),
+    "a folded shape names its shipped layout")
+
+// The files of an install made before keyboards named their layout: every keyboard resolves the
+// layout and pages it had.
+let before = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+    .appendingPathComponent("pre-layout-keyboards")
+struct OlderRecord: Decodable {
+    let keyboardsBySource: [String: [PublishedKeyboard]]
+    let schemas: [KeyboardSchemaDescriptor]
+}
+let older = try JSONDecoder().decode(
+    OlderRecord.self, from: Data(contentsOf: before.appendingPathComponent("active.json")))
+let olderLayouts = try JSONDecoder().decode(
+    LayoutRegistry.self, from: Data(contentsOf: before.appendingPathComponent("layouts.json")))
+let copiedMain = "0fd7d991-9160-4016-a88f-3df09fd773cb"
+func resolved(_ keyboards: [PublishedKeyboard], _ descriptors: [KeyboardSchemaDescriptor]) -> [String] {
+    keyboards.map {
+        HostLayoutAvailability.effectiveMainLayoutID(
+            schemaID: $0.schemaID, layout: $0.layout, board: $0.board, descriptors: descriptors, in: olderLayouts)
+    }
+}
+checkEqual(
+    resolved(older.keyboardsBySource["userScheme:scheme-22f83b4a27914716"] ?? [], older.schemas),
+    ["romaji26", "kana12"], "the Japanese keyboards keep their boards")
+checkEqual(
+    resolved(older.keyboardsBySource["userScheme:songyan-builtin"] ?? [], schemes),
+    [copiedMain, "phone9", "qwerty26", "merged14"], "the bundled keyboards keep their main layouts")
+let olderQuanpin = UserKeyboard(inputMethodID: "songyan_quanpin", inputMethodName: "内置全拼", layout: .qwerty26)
+checkEqual(
+    olderLayouts.composition(for: olderQuanpin.compositionKey).numericPageID,
+    KeyboardPagePresets.numericKeypad.id, "the saved pages are kept")
+checkEqual(
+    HostLayoutAvailability.layoutName(
+        schemaID: "songyan_quanpin", layout: .qwerty26, board: nil, descriptors: schemes, in: olderLayouts),
+    nil, "and it is still titled by its shape")
+checkEqual(
+    applicable("songyan_quanpin", shapes: [.qwerty26], in: olderLayouts),
+    ["qwerty26#qwerty26", "qwerty26#\(copiedMain)"], "its copied layout can now be added as a keyboard")
 
 // The shape gate stays: only the 26-key shape is offered to the traditional families.
 check(

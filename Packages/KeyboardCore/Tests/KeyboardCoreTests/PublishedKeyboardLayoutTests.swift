@@ -47,7 +47,8 @@ final class PublishedKeyboardLayoutTests: XCTestCase {
         let mine = UserKeyboardCandidate(
             inputMethodID: "pinyin", inputMethodName: "全拼", layout: .qwerty26, board: copied)
         XCTAssertEqual(mine.id, "pinyin:qwerty26#" + copied)
-        XCTAssertEqual(mine.keyboard().published, PublishedKeyboard(schemaID: "pinyin", layout: .qwerty26, board: copied))
+        XCTAssertEqual(
+            mine.keyboard().published, PublishedKeyboard(schemaID: "pinyin", layout: .qwerty26, board: copied))
     }
 
     func testTheTitleNamesAUserLayoutByItsSavedName() {

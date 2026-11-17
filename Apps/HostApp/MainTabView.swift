@@ -193,11 +193,9 @@ struct MainTabView: View {
                 schemaID: snapshot.selectedSchemaID, schemas: snapshot.schemas)
             let board = snapshot.selectedLayout.flatMap { layout -> String? in
                 guard let schemaID = snapshot.selectedSchemaID else { return nil }
-                let id = HostLayoutAvailability.effectiveMainLayoutID(
+                return HostLayoutAvailability.layoutName(
                     schemaID: schemaID, layout: layout, board: snapshot.selectedBoard,
-                    descriptors: snapshot.schemas,
-                    in: LayoutManager.shared.registry)
-                return UserTerminology.builtinLayoutName(physicalLayoutID: id)
+                    descriptors: snapshot.schemas, in: LayoutManager.shared.registry)
             }
             keyboardLine =
                 UserTerminology.currentKeyboardSummary(

@@ -262,7 +262,9 @@ extension KeyboardPanelView {
                     for: KeyboardCompositionKey(inputMethodID: keyboard.inputMethodID, layout: layout),
                     board: keyboard.board, availability: availability)
             }
-            let board = physicalID.flatMap { UserTerminology.builtinLayoutName(physicalLayoutID: $0) }
+            let board = keyboard.layoutName(
+                mainLayoutID: physicalID,
+                savedName: physicalID.flatMap { layoutRegistry?.resolvedLayout(id: $0)?.name })
             return KeyCap(
                 id: Self.userKeyboardCapID(keyboard), title: keyboard.title(physicalLayoutName: board),
                 subtitle: isCurrent(keyboard) ? UserTerminology.userKeyboardCurrent : nil,
@@ -270,8 +272,16 @@ extension KeyboardPanelView {
         }
         // The other packages' keyboards follow the current package's, quieter in the menu; the entry
         // list is only filled where the switch can be made (the keyboard extension, Full Access).
-        caps += controller.otherPackageKeyboards.map {
-            KeyCap(id: $0.id, title: $0.title, subtitle: $0.packageName, action: .cycleLayout)
+        caps += controller.otherPackageKeyboards.map { other in
+            // The record names a shipped board itself; a layout of the user's own is only known here.
+            let own = other.keyboard.board.flatMap { board in
+                UserKeyboard.layoutName(
+                    board: board, mainLayoutID: board, savedName: layoutRegistry?.resolvedLayout(id: board)?.name)
+            }
+            let title =
+                UserKeyboard.physicalBoardTitle(inputMethodName: other.inputMethodName, physicalLayoutName: own)
+                ?? other.title
+            return KeyCap(id: other.id, title: title, subtitle: other.packageName, action: .cycleLayout)
         }
         caps.append(
             KeyCap(

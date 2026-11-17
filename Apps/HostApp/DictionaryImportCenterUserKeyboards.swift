@@ -80,11 +80,14 @@ final class DictionaryImportCenterUserKeyboards: UserKeyboardManaging {
 
     func addKeyboard(_ candidate: UserKeyboardCandidate) async throws -> String {
         let context = try await currentContext()
-        let keyboard = PublishedKeyboard(
-            schemaID: candidate.inputMethodID,
-            layout: candidate.layout)
+        let keyboard = HostLayoutAvailability.namingLayout(
+            PublishedKeyboard(schemaID: candidate.inputMethodID, layout: candidate.layout, board: candidate.board),
+            descriptors: context.schemas, in: LayoutManager.shared.registry)
         _ = try await context.transaction.addKeyboard(keyboard)
-        return String(localized: "已添加 \(displayTitle(candidate.keyboard(), schemas: context.schemas))。")
+        let added = UserKeyboard(
+            inputMethodID: keyboard.schemaID, inputMethodName: candidate.inputMethodName,
+            layout: keyboard.layout, board: keyboard.board)
+        return String(localized: "已添加 \(displayTitle(added, schemas: context.schemas))。")
     }
 
     func removeKeyboard(_ keyboard: UserKeyboard) async throws -> String {
@@ -170,12 +173,10 @@ final class DictionaryImportCenterUserKeyboards: UserKeyboardManaging {
         _ keyboard: UserKeyboard, schemas: [KeyboardSchemaDescriptor]
     ) -> String {
         let registry = LayoutManager.shared.registry
-        let layoutID = HostLayoutAvailability.effectiveMainLayoutID(
-            schemaID: keyboard.inputMethodID, layout: keyboard.layout, board: keyboard.board,
-            descriptors: schemas, in: registry)
-        guard let layout = registry.resolvedLayout(id: layoutID) else { return keyboard.title }
         return keyboard.title(
-            physicalLayoutName: UserTerminology.builtinLayoutName(physicalLayoutID: layout.id))
+            physicalLayoutName: HostLayoutAvailability.layoutName(
+                schemaID: keyboard.inputMethodID, layout: keyboard.layout, board: keyboard.board,
+                descriptors: schemas, in: registry))
     }
 }
 

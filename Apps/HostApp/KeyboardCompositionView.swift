@@ -24,8 +24,10 @@ extension KeyboardLayoutKind {
 }
 
 extension UserKeyboard {
+    /// A keyboard that names its layout has pages of its own; one saved before that shares the
+    /// pairing stored under its shape.
     var compositionKey: KeyboardCompositionKey {
-        KeyboardCompositionKey(inputMethodID: inputMethodID, layout: layout.builtinLayout)
+        KeyboardCompositionKey(inputMethodID: inputMethodID, layout: layout.builtinLayout, layoutID: board)
     }
 }
 
@@ -70,6 +72,63 @@ enum HostLayoutAvailability {
 }
 
 extension HostLayoutAvailability {
+    /// One layout an input method can be given as a keyboard in 我的键盘.
+    struct ApplicableLayout: Equatable {
+        let shape: KeyboardLayoutKind
+        let layoutID: String
+    }
+
+    /// The layouts an input method can be typed on, each one a keyboard 我的键盘 can add. `shapes` are
+    /// the shapes the source can run the input method on. Per shape: the family's own boards, or the
+    /// shape's shipped layout when the family has none, then the user's layouts made for that shape
+    /// (and for this input method, when they name one). Every surface that offers keyboards asks here.
+    static func applicableLayouts(
+        schemaID: String, shapes: [KeyboardLayoutKind],
+        descriptors: [KeyboardSchemaDescriptor], in registry: LayoutRegistry
+    ) -> [ApplicableLayout] {
+        let family = family(schemaID: schemaID, descriptors: descriptors)
+        let availability = policy(schemaID: schemaID, descriptors: descriptors)
+        let shipped = Set(BuiltinLayouts.all.map(\.id))
+        var result: [ApplicableLayout] = []
+        for shape in KeyboardLayoutKind.allCases
+        where shapes.contains(shape) && InputLayoutPolicy.allows(kind: shape, family: family) {
+            let key = KeyboardCompositionKey(inputMethodID: schemaID, layout: shape.builtinLayout)
+            let candidates = registry.mainLayoutCandidates(for: key, availability: availability).map(\.id)
+            let boards =
+                shape == .qwerty26 ? InputLayoutPolicy.boards(of: family).filter(candidates.contains) : []
+            let preset = BuiltinLayouts.preset(for: shape.builtinLayout).id
+            let own = boards.isEmpty ? [preset].filter(candidates.contains) : boards
+            for id in own + candidates.filter({ !shipped.contains($0) }) {
+                result.append(ApplicableLayout(shape: shape, layoutID: id))
+            }
+        }
+        return result
+    }
+
+    /// The name a keyboard's layout adds to its title (see `UserKeyboard.layoutName`), resolved
+    /// against the layout it really types on.
+    static func layoutName(
+        schemaID: String, layout: KeyboardLayoutKind, board: String?,
+        descriptors: [KeyboardSchemaDescriptor], in registry: LayoutRegistry
+    ) -> String? {
+        let id = effectiveMainLayoutID(
+            schemaID: schemaID, layout: layout, board: board, descriptors: descriptors, in: registry)
+        return UserKeyboard.layoutName(
+            board: board, mainLayoutID: id, savedName: registry.resolvedLayout(id: id)?.name)
+    }
+
+    /// A keyboard to add that does not name its layout yet, as the record 我的键盘 writes for it: the
+    /// layout it would open on, by ID.
+    static func namingLayout(
+        _ keyboard: PublishedKeyboard, descriptors: [KeyboardSchemaDescriptor], in registry: LayoutRegistry
+    ) -> PublishedKeyboard {
+        guard keyboard.board == nil else { return keyboard }
+        return PublishedKeyboard(
+            schemaID: keyboard.schemaID, layout: keyboard.layout,
+            board: effectiveMainLayoutID(
+                schemaID: keyboard.schemaID, layout: keyboard.layout, descriptors: descriptors, in: registry))
+    }
+
     /// The keyboards an input scheme can use, named as 我的键盘 titles its rows: a shipped board by its own name
     /// (an input method with several boards lists each), any other keyboard by its shape.
     static func keyboardNames(
@@ -206,9 +265,8 @@ struct KeyboardCompositionView: View {
             Section {
                 Text(
                     keyboard.title(
-                        physicalLayoutName: mainLayout.flatMap {
-                            UserTerminology.builtinLayoutName(physicalLayoutID: $0.id)
-                        }))
+                        physicalLayoutName: keyboard.layoutName(
+                            mainLayoutID: mainLayout?.id, savedName: mainLayout?.name)))
                 Text("页面与布局单独保存到库中；选好后轻点「保存搭配」。")
                     .font(.footnote).foregroundStyle(.secondary)
                 if let libraryNotice {

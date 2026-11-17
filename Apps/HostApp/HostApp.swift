@@ -30,6 +30,11 @@ struct HostApp: App {
         Task.detached(priority: .utility) { DisplayFontPreferences.refresh() }
         // Before anything opens a package: older versions kept one Rime config folder for all of them.
         HostStorePaths.migrateRimeConfig()
+        LayoutManager.shared.keyboardNamesLayout = { id in
+            (try? await KeyboardResourceReadQueue.async {
+                try KeyboardRecipeStore.activation()?.hasKeyboard(namingLayout: id) ?? false
+            }) ?? false
+        }
         ConfigurationBackupModel.registerBackgroundTask()
         #if DEBUG
             DebugProbe.reportEnvironment(role: "hostApp")

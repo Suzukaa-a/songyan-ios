@@ -64,9 +64,8 @@ struct UserKeyboardManagementView: View {
                         ForEach(groups, id: \.id) { group in
                             DisclosureGroup(isExpanded: expansion(for: group.id)) {
                                 ForEach(group.items) { item in
-                                    // A keyboard without a board in a family with several boards is one saved
-                                    // before boards were separate keyboards: a shipped board it types on is
-                                    // shown as that board's row, a user-made main layout keeps a row of its own.
+                                    // A keyboard saved before keyboards named their layout is shown as
+                                    // the row of the layout it types on.
                                     if !isRepresentedByBoardRow(item) { pickRow(item, inputMethod: group.name) }
                                 }
                             } label: {
@@ -192,7 +191,7 @@ struct UserKeyboardManagementView: View {
                 Section {
                     LabeledContent(
                         UserTerminology.statusInUse,
-                        value: boardTitle(current, board: builtinBoardName(mainLayout(for: current))))
+                        value: boardTitle(current, board: ownLayoutName(current, main: mainLayout(for: current))))
                 }
             }
             if let result = center.resultMessage {
@@ -232,29 +231,37 @@ struct UserKeyboardManagementView: View {
         let items: [Item]
     }
 
+    /// Every keyboard this page can show: the saved ones as they are, then one per layout each input
+    /// method can be typed on (`HostLayoutAvailability.applicableLayouts`), named by that layout.
     private var items: [Item] {
         let published = center.publishedKeyboards.map {
             Item(
                 id: $0.id, inputMethodID: $0.inputMethodID,
                 inputMethodName: displayName($0.inputMethodName), layout: $0.layout, board: $0.board)
         }
-        let publishedIDs = Set(published.map(\.id))
-        let addable = center.addableKeyboards.map {
-            Item(
-                id: $0.id, inputMethodID: $0.inputMethodID,
-                inputMethodName: displayName($0.inputMethodName), layout: $0.layout)
+        var order: [String] = []
+        var names: [String: String] = [:]
+        var shapes: [String: [KeyboardLayoutKind]] = [:]
+        func note(_ id: String, _ name: String, _ layout: KeyboardLayoutKind) {
+            if shapes[id] == nil { order.append(id) }
+            names[id] = name
+            if shapes[id]?.contains(layout) != true { shapes[id, default: []].append(layout) }
         }
-        var result: [Item] = []
-        for base in published + addable {
-            let boards = base.board == nil ? boards(for: base) : []
-            // The board-less twin of a split family stays only as a keyboard saved before boards were separate.
-            if boards.isEmpty || publishedIDs.contains(base.id) || selectedIDs.contains(base.id) {
-                result.append(base)
-            }
-            result += boards.map { board in
-                Item(
-                    id: base.id + "#" + board, inputMethodID: base.inputMethodID,
-                    inputMethodName: base.inputMethodName, layout: base.layout, board: board)
+        for keyboard in published { note(keyboard.inputMethodID, keyboard.inputMethodName, keyboard.layout) }
+        for candidate in center.addableKeyboards {
+            note(candidate.inputMethodID, displayName(candidate.inputMethodName), candidate.layout)
+        }
+        var result = published
+        for id in order {
+            let applicable = HostLayoutAvailability.applicableLayouts(
+                schemaID: id, shapes: shapes[id] ?? [], descriptors: center.sourceSchemas,
+                in: layoutManager.registry)
+            result += applicable.map {
+                let keyboard = UserKeyboard(
+                    inputMethodID: id, inputMethodName: names[id] ?? "", layout: $0.shape, board: $0.layoutID)
+                return Item(
+                    id: keyboard.id, inputMethodID: id, inputMethodName: keyboard.inputMethodName,
+                    layout: $0.shape, board: $0.layoutID)
             }
         }
         var seen = Set<String>()
@@ -278,7 +285,13 @@ struct UserKeyboardManagementView: View {
         return stable.map { _, id in
             Group(
                 id: id, name: names[id] ?? String(localized: "输入方式"),
-                items: (grouped[id] ?? []).sorted { Self.layoutRank($0.layout) < Self.layoutRank($1.layout) })
+                // Rows of one shape keep the order they were offered in.
+                items: (grouped[id] ?? []).enumerated()
+                    .sorted {
+                        (Self.layoutRank($0.element.layout), $0.offset)
+                            < (Self.layoutRank($1.element.layout), $1.offset)
+                    }
+                    .map(\.element))
         }
     }
 
@@ -308,11 +321,10 @@ struct UserKeyboardManagementView: View {
             ? UserTerminology.inputMethod : name
     }
 
-    /// A shipped board's own localized name, or nil for every other main layout (the shape presets,
-    /// user copies and unknown ids keep the existing name).
-    private func builtinBoardName(_ main: LayoutDefinition?) -> String? {
-        guard let main else { return nil }
-        return UserTerminology.builtinLayoutName(physicalLayoutID: main.id)
+    /// The name the keyboard's layout adds to its title: a shipped board's own name, or the saved
+    /// name of a layout the keyboard names itself; nil keeps the shape name.
+    private func ownLayoutName(_ item: Item, main: LayoutDefinition?) -> String? {
+        item.keyboard.layoutName(mainLayoutID: main?.id, savedName: main?.name)
     }
 
     /// A row's name where the real board is known: the board's name first, then the input method;
@@ -336,7 +348,7 @@ struct UserKeyboardManagementView: View {
         var known: [String: String] = [:]
         for item in items {
             let key = item.keyboard.compositionKey.rawValue
-            let title = boardTitle(item, board: builtinBoardName(mainLayout(for: item)))
+            let title = boardTitle(item, board: ownLayoutName(item, main: mainLayout(for: item)))
             known[key] = known[key].map { $0 == title ? $0 : $0 + "、" + title } ?? title
         }
         return KeyboardNames(
@@ -350,18 +362,18 @@ struct UserKeyboardManagementView: View {
         main.id == BuiltinLayouts.preset(for: item.layout.builtinLayout).id ? nil : main.name
     }
 
-    /// Whether a keyboard without a board is shown as one of the board rows instead of a row of its own:
-    /// the family has several boards and the pairing's main layout is one of them.
+    /// Whether a keyboard saved without a layout is shown as the row of the layout it types on
+    /// instead of a row of its own.
     private func isRepresentedByBoardRow(_ item: Item) -> Bool {
         guard item.board == nil else { return false }
         return representedBoard(item) != nil
     }
 
-    /// The board a keyboard without a board types on, when it is one of its family's boards.
+    /// The layout a keyboard saved without one types on, when that layout has a row of its own.
     private func representedBoard(_ item: Item) -> String? {
-        guard item.board == nil, let main = mainLayout(for: item), boards(for: item).contains(main.id) else {
-            return nil
-        }
+        guard item.board == nil, let main = mainLayout(for: item),
+            items.contains(where: { $0.board == main.id && $0.combinationID == item.combinationID })
+        else { return nil }
         return main.id
     }
 
@@ -381,7 +393,7 @@ struct UserKeyboardManagementView: View {
         let inUse = center.currentKeyboardID == item.id
         let available = isAvailable(item)
         let main = mainLayout(for: item)
-        let board = builtinBoardName(main)
+        let board = ownLayoutName(item, main: main)
         let title = boardTitle(item, board: board)
         // The board name is already the row's title, so the caption only names a user-made main.
         let customMain = board == nil ? main.flatMap { customMainName(item, main: $0) } : nil
@@ -469,18 +481,6 @@ struct UserKeyboardManagementView: View {
         }
     }
 
-    /// The physical boards that stand in for this keyboard's shape row. Only the identity shape of
-    /// a family with several boards (Japanese: romaji and kana) is split into one keyboard per board;
-    /// every other row keeps the shape.
-    private func boards(for item: Item) -> [String] {
-        guard item.layout == .qwerty26, isShapeAvailable(item) else { return [] }
-        let family = HostLayoutAvailability.family(
-            schemaID: item.inputMethodID, descriptors: center.sourceSchemas)
-        let boards = InputLayoutPolicy.boards(of: family)
-        guard boards.count > 1 else { return [] }
-        return boards.filter { layoutManager.registry.resolvedLayout(id: $0) != nil }
-    }
-
     /// One layout of an input method: the row checks it into the draft; long-press uses it or opens
     /// its 页面搭配 without adding it first. A board row is one keyboard of its own, so checking it
     /// never unchecks another board; the keyboard saved before boards were separate shows as the row of
@@ -492,7 +492,7 @@ struct UserKeyboardManagementView: View {
         let selected = selectedIDs.contains(target.id)
         let main = mainLayout(for: item)
         let available = isAvailable(item)
-        let board = builtinBoardName(main)
+        let board = ownLayoutName(item, main: main)
         let layoutTitle = board ?? UserTerminology.layoutName(item.layout)
         let name = rowSpokenName(inputMethod: inputMethod, layoutTitle: layoutTitle)
         // A shipped board is named by its own title; only a user-made main needs the caption.
@@ -566,8 +566,11 @@ struct UserKeyboardManagementView: View {
         guard let board = item.board else { return true }
         let family = HostLayoutAvailability.family(
             schemaID: item.inputMethodID, descriptors: center.sourceSchemas)
-        return InputLayoutPolicy.allows(physicalLayoutID: board, family: family)
-            && layoutManager.registry.resolvedLayout(id: board) != nil
+        guard InputLayoutPolicy.allows(physicalLayoutID: board, family: family),
+            let definition = layoutManager.registry.resolvedLayout(id: board)
+        else { return false }
+        return definition.supportsComposition(
+            inputMethodID: item.inputMethodID, layout: item.layout.builtinLayout)
     }
 
     /// The paired main layout, or nil when the keyboard itself is unavailable.

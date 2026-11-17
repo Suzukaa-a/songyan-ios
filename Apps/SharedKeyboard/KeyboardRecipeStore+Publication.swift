@@ -391,7 +391,8 @@ extension KeyboardRecipeStore {
                 entries.append(
                     OtherPackageKeyboard(
                         target: target, keyboard: display.keyboard, packageName: package,
-                        title: title(of: display, in: descriptors)))
+                        title: title(of: display, in: descriptors),
+                        inputMethodName: display.inputMethodName))
             }
         }
         // A keyboard without a saved board runs on its family's own board (Zhuyin's 41 keys), the

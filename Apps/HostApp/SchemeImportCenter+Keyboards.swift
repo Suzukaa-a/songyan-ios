@@ -322,8 +322,15 @@ extension SchemeImportCenter {
         guard !busy else { throw UserKeyboardPublicationError.busy }
         let viewed = try await SourcePublishedKeyboardProvider(source: .package(packageID)).snapshot()
         let addable = viewed.roster.isEmpty ? try await addableKeyboards(packageID: packageID) : []
-        guard let target = PublishedKeyboard.switchTarget(remembered: viewed.roster, addable: addable) else {
+        guard var target = PublishedKeyboard.switchTarget(remembered: viewed.roster, addable: addable) else {
             throw UserKeyboardPublicationError.noAddableKeyboards
+        }
+        if viewed.roster.isEmpty {
+            // A first keyboard is a new record, so it names the layout it opens on.
+            let schemas = try await keyboardResources(packageID: packageID).schemas
+            let start = HostLayoutAvailability.namingLayout(
+                target.selection, descriptors: schemas, in: LayoutManager.shared.registry)
+            target = ([start], start)
         }
         _ = try await performReplaceKeyboards(
             packageID: packageID, requested: target.roster, selecting: target.selection,

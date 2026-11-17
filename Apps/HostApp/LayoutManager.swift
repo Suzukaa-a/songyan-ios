@@ -63,6 +63,10 @@ final class LayoutManager: ObservableObject {
     /// fallback, which must never be written over the user's catalog.
     private var baselineIsReadFromDisk = false
 
+    /// Asks the keyboard records whether a keyboard types on a layout. Set by the app at launch so this
+    /// type stays free of the recipe store.
+    var keyboardNamesLayout: (@Sendable (String) async -> Bool)?
+
     /// Init is purely in-memory: no FileManager or disk calls.
     /// Starts from the built-in layouts with an unresolved directory, then resolves it and loads the registry on the background queue.
     private init() {
@@ -275,6 +279,12 @@ final class LayoutManager: ObservableObject {
     }
 
     func remove(_ id: String) async {
+        // The registry only knows pairings; a keyboard can name a layout without having one.
+        let named = await keyboardNamesLayout?(id) ?? false
+        guard !named else {
+            lastError = String(localized: "这个键盘布局正在被「我的键盘」里的键盘使用，请先移除那个键盘。")
+            return
+        }
         await persist(context: .layoutRemoval) { reg in
             try reg.remove(id: id)
         }
