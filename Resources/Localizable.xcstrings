@@ -36213,6 +36213,50 @@
         }
       }
     },
+    "添加这个例子": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加这个例子"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この例を追加"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新增這個範例"
+          }
+        }
+      }
+    },
+    "找不到这个例子。请重新安装松烟。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "找不到这个例子。请重新安装松烟。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この例が見つかりません。松煙をインストールし直してください。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "找不到這個範例。請重新安裝松煙。"
+          }
+        }
+      }
+    },
     "「%@」：%@": {
       "localizations": {
         "zh-Hans": {

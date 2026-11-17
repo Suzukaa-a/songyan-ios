@@ -535,6 +535,18 @@ final class ScriptAddonCenter: ObservableObject {
             ?? String(localized: "找不到给 AI 的说明")
     }
 
+    /// Stages the bundled example the way a pasted script is staged, so it ends on the same
+    /// confirm screen.
+    @discardableResult
+    func stageMinimalExample() -> Bool {
+        let source = Self.minimalExample()
+        guard !source.isEmpty else {
+            errorMessage = String(localized: "找不到这个例子。请重新安装松烟。")
+            return false
+        }
+        return stage(source: Data(source.utf8))
+    }
+
     static func minimalExample() -> String {
         bundledResource("minimal", "js")
             .flatMap { try? String(contentsOf: $0, encoding: .utf8) }

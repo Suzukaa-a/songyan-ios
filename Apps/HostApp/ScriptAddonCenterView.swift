@@ -16,6 +16,9 @@ struct ScriptAddonCenterView: View {
     @State private var settingsTarget: ScriptAddonStore.Addon?
     @State private var pendingDeletes: [ScriptAddonStore.Addon] = []
     @State private var showGuide = false
+    /// Set by the guide sheet's add button; staged once the sheet is gone, so the confirm sheet
+    /// does not compete with a sheet that is still dismissing.
+    @State private var stageExampleAfterGuide = false
     @State private var showAddOptions = false
 
     var body: some View {
@@ -65,7 +68,14 @@ struct ScriptAddonCenterView: View {
         }
         .sheet(isPresented: $showsPaste) { pasteSheet }
         .sheet(isPresented: $showsLink) { linkSheet }
-        .sheet(isPresented: $showGuide) { guideSheet }
+        .sheet(
+            isPresented: $showGuide,
+            onDismiss: {
+                guard stageExampleAfterGuide else { return }
+                stageExampleAfterGuide = false
+                center.stageMinimalExample()
+            }
+        ) { guideSheet }
         .sheet(item: $settingsTarget) { addon in
             NavigationStack {
                 ScriptAddonSettingsView(center: center, addon: addon)
@@ -391,6 +401,11 @@ struct ScriptAddonCenterView: View {
                     Text(ScriptAddonCenter.minimalExample())
                         .font(.system(.footnote, design: .monospaced))
                         .textSelection(.enabled)
+                    Button(String(localized: "添加这个例子")) {
+                        stageExampleAfterGuide = true
+                        showGuide = false
+                    }
+                    .buttonStyle(.borderedProminent)
                 }
                 .padding()
             }

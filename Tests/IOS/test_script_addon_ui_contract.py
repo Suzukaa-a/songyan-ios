@@ -19,6 +19,14 @@ class ScriptAddonUXContractTests(unittest.TestCase):
         try_run = center.split("func tryRun", 1)[1].split("// MARK: - Empty-page resources", 1)[0]
         self.assertNotIn("error.localizedDescription", try_run)
 
+    def test_guide_sheet_adds_the_example_through_the_paste_flow(self):
+        view = self.read("Apps/HostApp/ScriptAddonCenterView.swift")
+        center = self.read("Apps/HostApp/ScriptAddonCenter.swift")
+        self.assertIn('Button(String(localized: "添加这个例子"))', view)
+        self.assertIn("center.stageMinimalExample()", view)
+        stage = center.split("func stageMinimalExample", 1)[1].split("static func minimalExample", 1)[0]
+        self.assertIn("stage(source: Data(source.utf8))", stage)
+
     def test_storage_errors_never_show_raw_descriptions(self):
         center = self.read("Apps/HostApp/ScriptAddonCenter.swift")
         self.assertNotIn("errorMessage = error.localizedDescription", center)
