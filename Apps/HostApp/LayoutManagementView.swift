@@ -204,9 +204,8 @@ struct LayoutManagementView: View {
     /// Layout descriptions use the unified "keyboard layout" term and do not equate skins with encodings.
     private func keyFormDescription(_ layout: LayoutDefinition) -> String {
         let keyCount = layout.rows.reduce(0) { $0 + $1.keys.count }
-        if let kind = KeyboardLayoutKind(rawValue: layout.input.builtinLayout?.rawValue ?? "") {
-            return UserTerminology.layoutName(kind)
-        }
+        let shape = KeyboardLayoutKind(rawValue: layout.input.builtinLayout?.rawValue ?? "")
+        if let name = UserTerminology.layoutShapeName(layoutID: layout.id, shape: shape) { return name }
         return String(localized: "\(layout.rows.count) 行 \(keyCount) 键")
     }
 

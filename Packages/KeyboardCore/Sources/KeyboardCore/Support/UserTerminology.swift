@@ -163,6 +163,13 @@ public enum UserTerminology: Sendable {
         return String(localized: key, bundle: bundle)
     }
 
+    /// What a layout row's subtitle calls the layout's form. A physical board (注音, 假名...) is modelled
+    /// on the 26-key shape but is its own board, so its own name wins over the shape's.
+    public static func layoutShapeName(layoutID: String, shape: KeyboardLayoutKind?) -> String? {
+        if let board = builtinLayoutName(physicalLayoutID: layoutID) { return board }
+        return shape.map(layoutName)
+    }
+
     /// The name a layout list shows. A bundled layout's stored name is the shipped data's Chinese,
     /// so while it is unchanged (keys edited or not) the UI language words it; a renamed board or
     /// the user's own layout keeps the name it was saved with. [shippedName] is the bundled preset's

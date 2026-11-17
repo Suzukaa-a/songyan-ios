@@ -197,4 +197,16 @@ final class KeyboardCoreLocalizationTests: XCTestCase {
                 }.sorted()
             } ?? []
     }
+
+    /// 注音 41 键 and 假名 12 键 are modelled on the 26-key shape; the layout list must not call them 26 键.
+    func testPhysicalBoardsAreNotLabelledWithTheirShape() {
+        let shape = KeyboardLayoutKind.qwerty26
+        for id in ["zhuyin41", "kana12", "cangjie26", "romaji26"] {
+            let name = UserTerminology.layoutShapeName(layoutID: id, shape: shape)
+            XCTAssertNotNil(name, id)
+            XCTAssertNotEqual(name, shape.userTitle, id)
+        }
+        XCTAssertEqual(UserTerminology.layoutShapeName(layoutID: "qwerty26", shape: shape), shape.userTitle)
+        XCTAssertNil(UserTerminology.layoutShapeName(layoutID: "mine", shape: nil))
+    }
 }
