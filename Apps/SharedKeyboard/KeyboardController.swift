@@ -210,9 +210,10 @@ public final class KeyboardController: ObservableObject {
     /// The same language as the label policy's value.
     public var inputLanguageScript: KeyLabelScript {
         switch inputLanguage.language {
-        case .simplifiedChinese: return .simplifiedChinese
         case .traditionalChinese: return .traditionalChinese
         case .japanese: return .japanese
+        // Key captions have no Korean or unspecified wording; they keep the default one.
+        case .simplifiedChinese, .korean, .unspecified: return .simplifiedChinese
         }
     }
 

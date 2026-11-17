@@ -92,6 +92,23 @@ final class InputSessionInputLanguageTests: XCTestCase {
             InputLanguageProfile(language: .traditionalChinese, family: .zhuyin))
     }
 
+    func testTheLanguageTheDeploymentReadFromTheDictionaryReachesTheSession() {
+        for (detected, expected) in [("zh-Hant", InputLanguage.traditionalChinese), ("none", .unspecified)] {
+            let root = URL(fileURLWithPath: "/unused")
+            let schema = KeyboardSchemaDescriptor(
+                id: "wubi86", name: "", alphabet: "abcdefghijklmnopqrstuvwxyz",
+                profile: SchemaKeyProfile(kind: .shapeCode, language: detected))
+            let set = KeyboardResourceSet(
+                id: "pkg", name: "test", sharedDirectory: root, userDirectory: root,
+                layoutEntries: [.init(layout: .qwerty26, schemaID: "wubi86")], schemas: [schema],
+                selectedSchemaID: "wubi86")
+            let session = InputSession(
+                engine: AlphabetEngine(schemas: [schema], options: [], current: "wubi86"), layout: .qwerty26,
+                resourceSet: set)
+            XCTAssertEqual(session.inputLanguage, InputLanguageProfile(language: expected, family: .generic))
+        }
+    }
+
     func testDeclaredSwitchAndRepeatedPrepareKeepTheProfile() {
         let schemaID = "user_scheme"
         let descriptor = EngineOptionDescriptor(

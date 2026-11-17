@@ -14,7 +14,7 @@ extension KeyboardPanelView {
     /// Simplified Chinese keeps the plain SwiftUI text; Traditional and Japanese draw the language-tagged label.
     @ViewBuilder
     private func compositionBadgeText(_ text: String) -> some View {
-        if controller.inputLanguage.language == .simplifiedChinese {
+        if !controller.inputLanguage.language.needsLanguageTag {
             Text(text)
                 .font(appearance.candidateFont(appearance.skin.typography.secondarySize))
                 .lineLimit(1)

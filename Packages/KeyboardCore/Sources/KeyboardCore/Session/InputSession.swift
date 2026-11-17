@@ -35,7 +35,7 @@ public final class InputSession {
     /// so the key path reads one cached value and never asks the engine.
     public private(set) var inputLanguage = InputLanguageProfile(language: .simplifiedChinese, family: .generic)
     /// Last inputs the cached profile was resolved from; equal inputs skip the pure resolver.
-    private var languageInputs: (source: String, alphabet: String, conversion: String?)?
+    private var languageInputs: (source: String, alphabet: String, conversion: String?, detected: String?)?
     /// A scheme's alphabet is fixed for an engine generation, so it is read once per source.
     private var alphabetBySchema: [String: String] = [:]
     /// Real engine-state version, incremented on every `apply` (real engine action/refresh).
@@ -86,11 +86,16 @@ public final class InputSession {
     /// so unchanged inputs must not reach the resolver again.
     private func updateInputLanguage() {
         let source = resourceSet?.sourceSchemaID(selectedSchemaID) ?? selectedSchemaID
-        let inputs = (source: source, alphabet: alphabet(ofSource: source), conversion: activeDeclaredConfig())
+        let inputs = (
+            source: source, alphabet: alphabet(ofSource: source), conversion: activeDeclaredConfig(),
+            // What the deployment read from the input method's dictionary; a companion answers for its source.
+            detected: resourceSet?.schemas.first { $0.id == source }?.profile?.language
+        )
         if let languageInputs, languageInputs == inputs { return }
         languageInputs = inputs
         inputLanguage = InputLanguageResolver.resolve(
-            schemaID: inputs.source, alphabet: inputs.alphabet, declaredConversion: inputs.conversion)
+            schemaID: inputs.source, alphabet: inputs.alphabet, declaredConversion: inputs.conversion,
+            detected: inputs.detected)
     }
 
     private func alphabet(ofSource schemaID: String) -> String {

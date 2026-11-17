@@ -566,7 +566,7 @@ struct CollapsedCandidateRow: View {
                     }
                     // Simplified Chinese is the system's default glyph form, so it keeps the plain
                     // SwiftUI text; only Traditional and Japanese need the language-tagged label.
-                    if context.inputLanguage == .simplifiedChinese {
+                    if !context.inputLanguage.needsLanguageTag {
                         Text(entry.text)
                             .font(skin.font(context.typography.candidateSize))
                             .lineLimit(1)
@@ -978,7 +978,7 @@ struct ExpandedCandidateRows: View {
                             .foregroundStyle(skin.secondaryColor)
                             .lineLimit(1)
                     }
-                    if context.inputLanguage == .simplifiedChinese {
+                    if !context.inputLanguage.needsLanguageTag {
                         Text(entry.text)
                             .font(skin.font(context.typography.candidateSize))
                             .lineLimit(nil)

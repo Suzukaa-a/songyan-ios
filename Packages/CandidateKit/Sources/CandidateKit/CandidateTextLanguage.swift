@@ -20,9 +20,10 @@ public enum CandidateTextLanguage {
         return string
     }
 
-    /// Marks the whole string as `language`; an empty string simply receives no run.
+    /// Marks the whole string as `language`; an empty string simply receives no run, and an unspecified
+    /// language leaves the system's own.
     public static func apply(to string: NSMutableAttributedString, language: InputLanguage) {
-        guard string.length > 0 else { return }
+        guard string.length > 0, language != .unspecified else { return }
         string.addAttribute(
             attributeName, value: language.rawValue,
             range: NSRange(location: 0, length: string.length))

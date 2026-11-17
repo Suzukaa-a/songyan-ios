@@ -37,7 +37,8 @@ public struct SchemaKeyProfile: Codable, Equatable, Sendable {
     public let codes: [String]
     /// The stroke keys with their captions; only for `.strokes`.
     public let strokes: [Stroke]
-    /// Candidate language the dictionary content implies; nil when not computed or not determined.
+    /// The language the dictionary is written in, read at deployment: `zh-Hans`, `zh-Hant`, `ja`, `ko`, `zh`
+    /// (Chinese in both scripts: the system's decides) or `none` (nothing to force); nil when not read.
     public let language: String?
 
     public init(kind: Kind, codes: [String] = [], strokes: [Stroke] = [], language: String? = nil) {

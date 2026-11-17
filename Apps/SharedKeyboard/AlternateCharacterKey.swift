@@ -685,7 +685,7 @@ struct AlternateCharacterKey: UIViewRepresentable {
             // Only CJK faces can take another language's glyph forms; ASCII letters, digits and marks
             // keep the plain-label path, so ordinary typing adds no attributed-string work. Simplified
             // Chinese is the system default form and keeps the plain label too.
-            guard inputLanguage != .simplifiedChinese,
+            guard inputLanguage.needsLanguageTag,
                 cap.title.unicodeScalars.contains(where: { $0.value > 0x2E80 })
             else {
                 if title.attributedText != nil { title.text = cap.title }

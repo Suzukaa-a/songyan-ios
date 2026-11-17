@@ -34,6 +34,17 @@ final class CandidateTextLanguageTests: XCTestCase {
         XCTAssertEqual(language(of: string), "zh-Hant")
     }
 
+    func testKoreanCandidatesAskForKoreanGlyphForms() {
+        XCTAssertEqual(language(of: CandidateTextLanguage.attributed("한", language: .korean)), "ko")
+    }
+
+    /// A dictionary with no Chinese, Japanese or Korean text forces no language: the system's own applies.
+    func testAnUnspecifiedLanguageMarksNothing() {
+        let string = CandidateTextLanguage.attributed("hello", language: .unspecified)
+        XCTAssertNil(language(of: string))
+        XCTAssertEqual(string.string, "hello")
+    }
+
     /// A comment or reading is drawn as its own run; every character of a multi-character candidate is
     /// marked, so a mixed string cannot fall back to the system language halfway through.
     func testTheLanguageCoversEveryCharacterOfAMultiCharacterCandidate() {

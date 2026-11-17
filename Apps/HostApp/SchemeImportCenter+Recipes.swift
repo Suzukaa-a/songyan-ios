@@ -365,7 +365,9 @@ extension SchemeImportCenter {
             try postValidation?(engine, enabled)
             // The profiles come from the schemas as compiled, before any companion is generated from them.
             let build = deployment.userDataURL.appendingPathComponent("build")
-            let profiles = SchemaKeyProfiles.computeAll(buildDir: build, ids: enabled)
+            let profiles = SchemaKeyProfiles.withLanguages(
+                SchemaKeyProfiles.computeAll(buildDir: build, ids: enabled), buildDir: build,
+                sourceDirectories: [deployment.userDataURL, deployment.resourceURL])
             try SchemaKeyProfiles.write(profiles, buildDir: build)
             // The only trigger for adapter generation: `nil` = ordinary install/update (adapter registry untouched, never generated);
             // non-nil (including an empty array) = add/remove a user keyboard, or a model transaction refreshing existing registered combinations;

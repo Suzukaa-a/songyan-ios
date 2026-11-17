@@ -167,4 +167,48 @@ final class InputLanguageTests: XCTestCase {
         XCTAssertEqual(profile("rime_ice", latinAlphabet, conversion: "s2twp"), traditional)
         XCTAssertEqual(profile("rime_ice", latinAlphabet), simplified)
     }
+
+    private func detected(
+        _ detected: String?, conversion: String? = nil, schemaID: String = "wubi86", locale: String = "en"
+    ) -> InputLanguage {
+        InputLanguageResolver.resolve(
+            schemaID: schemaID, alphabet: latinAlphabet, declaredConversion: conversion, detected: detected,
+            systemLocale: Locale(identifier: locale)
+        ).language
+    }
+
+    func testADictionaryTheDeploymentReadDecidesTheLanguageOfAnUnclaimedInputMethod() {
+        XCTAssertEqual(detected("zh-Hans"), .simplifiedChinese)
+        XCTAssertEqual(detected("zh-Hant"), .traditionalChinese)
+        XCTAssertEqual(detected("ja"), .japanese)
+        XCTAssertEqual(detected("ko"), .korean)
+        XCTAssertEqual(detected(InputLanguageResolver.detectedNone), .unspecified)
+        // Not read (a build made before the deployment looked): the old rule.
+        XCTAssertEqual(detected(nil), .simplifiedChinese)
+        XCTAssertEqual(detected(nil, conversion: "s2t"), .traditionalChinese)
+    }
+
+    func testADeclaredScriptSwitchStillFlipsDetectedChineseButNotOtherLanguages() {
+        XCTAssertEqual(detected("zh-Hans", conversion: "s2t"), .traditionalChinese)
+        XCTAssertEqual(detected("zh-Hant", conversion: "t2s"), .simplifiedChinese)
+        XCTAssertEqual(detected("ja", conversion: "s2t"), .japanese)
+    }
+
+    func testAnEvenMixFollowsTheSystemChineseScript() {
+        XCTAssertEqual(detected(InputLanguageResolver.detectedSystemChinese, locale: "zh-Hant-TW"), .traditionalChinese)
+        XCTAssertEqual(detected(InputLanguageResolver.detectedSystemChinese, locale: "zh-HK"), .traditionalChinese)
+        XCTAssertEqual(detected(InputLanguageResolver.detectedSystemChinese, locale: "zh-Hans-CN"), .simplifiedChinese)
+        XCTAssertEqual(detected(InputLanguageResolver.detectedSystemChinese, locale: "en"), .simplifiedChinese)
+    }
+
+    func testAFamilyKeepsItsRulesWhateverTheDictionarySays() {
+        XCTAssertEqual(detected("zh-Hans", schemaID: "kagiroi"), .japanese)
+        XCTAssertEqual(detected("none", schemaID: "cangjie5"), .traditionalChinese)
+    }
+
+    func testOnlyTraditionalJapaneseAndKoreanDrawLanguageTaggedText() {
+        XCTAssertFalse(InputLanguage.simplifiedChinese.needsLanguageTag)
+        XCTAssertFalse(InputLanguage.unspecified.needsLanguageTag)
+        XCTAssertTrue([InputLanguage.traditionalChinese, .japanese, .korean].allSatisfy(\.needsLanguageTag))
+    }
 }

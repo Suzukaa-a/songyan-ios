@@ -99,6 +99,36 @@ public enum SchemaKeyProfiles {
         try write(computeAll(buildDir: buildDir, ids: ids), buildDir: buildDir)
     }
 
+    /// `profiles` with the language of each primary dictionary read from `sourceDirectories` (the first
+    /// one holding the file wins).
+    public static func withLanguages(
+        _ profiles: [String: SchemaKeyProfile], buildDir: URL, sourceDirectories: [URL]
+    ) -> [String: SchemaKeyProfile] {
+        var result = profiles
+        for (id, profile) in profiles {
+            let language = primaryDictionary(buildDir: buildDir, id: id).flatMap { name in
+                sourceDirectories.lazy.compactMap { DictionaryLanguage.read(sourceDirectory: $0, name: name) }.first
+            }
+            result[id] = SchemaKeyProfile(
+                kind: profile.kind, codes: profile.codes, strokes: profile.strokes, language: language)
+        }
+        return result
+    }
+
+    /// The dictionary the primary script or table translator of a compiled schema reads.
+    static func primaryDictionary(compiledSchema text: String) -> String? {
+        guard let root = (try? BoundedYAML.load(yaml: text)) as? [String: Any],
+            let engine = root["engine"] as? [String: Any],
+            let primary = CompactSchemaAdapter.primaryProducer(translators: stringList(engine["translators"]))
+        else { return nil }
+        return (root[primary.namespace] as? [String: Any])?["dictionary"] as? String
+    }
+
+    private static func primaryDictionary(buildDir: URL, id: String) -> String? {
+        boundedRead(buildDir.appendingPathComponent("\(id).schema.yaml"), limit: RecipeResourceBudget.sourceFile)
+            .flatMap { String(data: $0, encoding: .utf8) }.flatMap { primaryDictionary(compiledSchema: $0) }
+    }
+
     public static func write(_ profiles: [String: SchemaKeyProfile], buildDir: URL) throws {
         try SchemaKeyProfile.encode(profiles)
             .write(to: buildDir.appendingPathComponent(SchemaKeyProfile.fileName), options: .atomic)

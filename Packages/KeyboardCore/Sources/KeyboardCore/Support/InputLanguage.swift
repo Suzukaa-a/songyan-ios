@@ -6,6 +6,19 @@ public enum InputLanguage: String, Sendable, Equatable {
     case simplifiedChinese = "zh-Hans"
     case traditionalChinese = "zh-Hant"
     case japanese = "ja"
+    case korean = "ko"
+    /// The dictionary has no Chinese, Japanese or Korean text: no glyph language is forced, the system's own applies.
+    case unspecified = ""
+
+    /// Whether candidates in this language are drawn as a language-tagged run. Simplified Chinese is the
+    /// system's default glyph form and an unspecified language leaves the system's choice alone, so both
+    /// keep the plain text.
+    public var needsLanguageTag: Bool {
+        switch self {
+        case .simplifiedChinese, .unspecified: return false
+        case .traditionalChinese, .japanese, .korean: return true
+        }
+    }
 }
 
 /// The keyboard family a scheme belongs to. `generic` adds no restriction: a scheme this table
@@ -40,8 +53,12 @@ public enum InputLanguageResolver {
     /// (`s2t` and the like), or nil when no conversion is active. Only the exact bare names in
     /// the table count: paths and extensions belong to the caller, and an unknown name must not
     /// become traditional output.
+    /// `detected` is what the deployment read from the input method's dictionary (`detectedNone` when it
+    /// has no Chinese, Japanese or Korean text; nil when it did not look, as for a build made before it
+    /// did). Only an input method no family claims takes it.
     public static func resolve(
-        schemaID: String, alphabet: String, declaredConversion: String? = nil
+        schemaID: String, alphabet: String, declaredConversion: String? = nil, detected: String? = nil,
+        systemLocale: Locale = Locale(identifier: Locale.preferredLanguages.first ?? "")
     ) -> InputLanguageProfile {
         if schemaID.hasPrefix("kagiroi") {
             return InputLanguageProfile(language: .japanese, family: .japanese)
@@ -61,10 +78,60 @@ public enum InputLanguageResolver {
             return InputLanguageProfile(
                 language: simplifies ? .simplifiedChinese : .traditionalChinese, family: family)
         }
+        if let detected {
+            return InputLanguageProfile(
+                language: detectedLanguage(
+                    detected, declaredConversion: declaredConversion, systemLocale: systemLocale),
+                family: .generic)
+        }
         if let declaredConversion, traditionalConversions.contains(declaredConversion) {
             return InputLanguageProfile(language: .traditionalChinese, family: .generic)
         }
         return InputLanguageProfile(language: .simplifiedChinese, family: .generic)
+    }
+
+    /// The dictionary's Chinese is about evenly Simplified and Traditional: the system language decides.
+    public static let detectedSystemChinese = "zh"
+
+    /// The deployment read the dictionary and found no Chinese, Japanese or Korean text.
+    public static let detectedNone = "none"
+
+    /// The language a dictionary's text proves; a declared script switch in force still flips Chinese.
+    private static func detectedLanguage(
+        _ detected: String, declaredConversion: String?, systemLocale: Locale
+    ) -> InputLanguage {
+        let chinese: InputLanguage?
+        switch detected {
+        case "zh-Hans": chinese = .simplifiedChinese
+        case "zh-Hant": chinese = .traditionalChinese
+        case detectedSystemChinese: chinese = systemChinese(systemLocale)
+        default: chinese = nil
+        }
+        if let chinese {
+            if let declaredConversion, traditionalConversions.contains(declaredConversion) {
+                return .traditionalChinese
+            }
+            if let declaredConversion, simplifiedConversions.contains(declaredConversion) {
+                return .simplifiedChinese
+            }
+            return chinese
+        }
+        switch detected {
+        case "ja": return .japanese
+        case "ko": return .korean
+        default: return .unspecified
+        }
+    }
+
+    /// The Chinese script of the system language; Simplified when the system is not Chinese.
+    private static func systemChinese(_ locale: Locale) -> InputLanguage {
+        guard locale.language.languageCode?.identifier == "zh" else { return .simplifiedChinese }
+        let traditionalRegions: Set<String> = ["TW", "HK", "MO"]
+        if locale.language.script?.identifier == "Hant" || traditionalRegions.contains(locale.region?.identifier ?? "")
+        {
+            return .traditionalChinese
+        }
+        return .simplifiedChinese
     }
 
     /// 大千 layouts start with the contiguous row `1qaz2wsx`; the punctuation keys follow the
