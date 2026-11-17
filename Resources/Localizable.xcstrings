@@ -36015,6 +36015,204 @@
         }
       }
     },
+    "没能保存更改。请重试；如果一直这样，把脚本删掉后重新添加。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没能保存更改。请重试；如果一直这样，把脚本删掉后重新添加。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "変更を保存できませんでした。もう一度お試しください。改善しない場合は、スクリプトを削除して追加し直してください。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "沒能儲存變更。請重試；如果一直這樣，把指令碼刪掉後重新新增。"
+          }
+        }
+      }
+    },
+    "没能读取脚本列表。请退出松烟后重新打开。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没能读取脚本列表。请退出松烟后重新打开。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スクリプトの一覧を読み込めませんでした。松煙を終了して、もう一度開いてください。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "沒能讀取指令碼清單。請結束松煙後重新開啟。"
+          }
+        }
+      }
+    },
+    "没能读取这个文件。请确认文件还在，再试一次。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没能读取这个文件。请确认文件还在，再试一次。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このファイルを読み込めませんでした。ファイルがあることを確認して、もう一度お試しください。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "沒能讀取這個檔案。請確認檔案還在，再試一次。"
+          }
+        }
+      }
+    },
+    "没能保存脚本的密钥。请重试。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "没能保存脚本的密钥。请重试。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スクリプトのキーを保存できませんでした。もう一度お試しください。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "沒能儲存指令碼的金鑰。請重試。"
+          }
+        }
+      }
+    },
+    "这个脚本已经添加过了": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这个脚本已经添加过了"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このスクリプトはすでに追加されています"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這個指令碼已經新增過了"
+          }
+        }
+      }
+    },
+    "找不到这个脚本的文件。请把脚本删掉后重新添加。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "找不到这个脚本的文件。请把脚本删掉后重新添加。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このスクリプトのファイルが見つかりません。スクリプトを削除して追加し直してください。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "找不到這個指令碼的檔案。請把指令碼刪掉後重新新增。"
+          }
+        }
+      }
+    },
+    "这个脚本由更新版本的松烟保存。请先更新松烟。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这个脚本由更新版本的松烟保存。请先更新松烟。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このスクリプトは新しいバージョンの松煙で保存されています。先に松煙を更新してください。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這個指令碼由較新版本的松煙儲存。請先更新松煙。"
+          }
+        }
+      }
+    },
+    "这个脚本需要更新版本的松烟。请先更新松烟。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这个脚本需要更新版本的松烟。请先更新松烟。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このスクリプトには新しいバージョンの松煙が必要です。先に松煙を更新してください。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這個指令碼需要較新版本的松煙。請先更新松煙。"
+          }
+        }
+      }
+    },
+    "脚本返回了错误：%@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "脚本返回了错误：%@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "スクリプトからのエラー：%@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "指令碼回報了錯誤：%@"
+          }
+        }
+      }
+    },
     "「%@」：%@": {
       "localizations": {
         "zh-Hans": {

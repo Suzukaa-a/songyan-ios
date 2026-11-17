@@ -178,7 +178,13 @@ final class ScriptToolTests: XCTestCase {
         XCTAssertEqual(ScriptToolError.responseTooLarge.errorDescription, "服务器返回的内容太大")
         XCTAssertEqual(ScriptToolError.capabilityUnavailable.errorDescription, "这台设备上不可用")
         XCTAssertEqual(
-            ScriptToolError.script(line: 2, message: "额度用完了").errorDescription, "额度用完了")
+            ScriptToolError.script(line: 2, message: "额度用完了").errorDescription, "脚本返回了错误：额度用完了")
+        XCTAssertEqual(
+            ScriptToolError.fromEngine(SONGYAN_SCRIPT_ERROR_SCRIPT, line: 2, message: nil).errorDescription,
+            "脚本运行出错")
+        XCTAssertEqual(
+            ScriptToolError.fromEngine(songyan_script_error(rawValue: 9999), line: 0, message: "engine diag")
+                .errorDescription, "这台设备上不可用")
     }
 
     func testEngineDeadlineMapsToToolFailureTimedOut() async throws {
@@ -214,8 +220,8 @@ final class ScriptToolTests: XCTestCase {
                 return XCTFail("wrong mapping: \(error)")
             }
             let description = try XCTUnwrap(error.errorDescription)
-            XCTAssertTrue(description.contains("newer script interface version"), description)
-            XCTAssertTrue(description.contains("update the app"), description)
+            XCTAssertEqual(description, "这个脚本需要更新版本的松烟。请先更新松烟。")
+            XCTAssertFalse(description.contains(message), description)
             XCTAssertNotEqual(description, ScriptToolError.invalidHeader(line: 1, message: message).errorDescription)
         }
 
@@ -230,7 +236,7 @@ final class ScriptToolTests: XCTestCase {
             guard case .invalidHeader = error else { return XCTFail("wrong mapping: \(error)") }
             XCTAssertTrue(
                 ScriptToolError.fromEngine(SONGYAN_SCRIPT_ERROR_HEADER, line: 1, message: "bad")
-                    .errorDescription?.hasPrefix("script header:") == true)
+                    .errorDescription == "脚本开头格式有误（第 1 行）")
         }
     }
 

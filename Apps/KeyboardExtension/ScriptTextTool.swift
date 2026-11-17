@@ -90,13 +90,12 @@ enum ScriptToolError: Error, LocalizedError, Equatable, Sendable {
 
     var errorDescription: String? {
         switch self {
-        case .invalidHeader(_, let message):
-            return "script header: \(message)"
-        case .unsupportedApiVersion(_, let message):
-            // Kept distinct from a malformed header: the script is well-formed but wants a newer
-            // script interface than this host implements, so the user action is "update the app".
-            return
-                "the script needs a newer script interface version than this keyboard supports; update the app (reported: \(message))"
+        case .invalidHeader(let line, _):
+            let base = String(localized: "脚本开头格式有误")
+            return line > 0 ? base + String(format: String(localized: "（第 %lld 行）"), line) : base
+        case .unsupportedApiVersion:
+            // Distinct from a malformed header: the script is fine but needs a newer app.
+            return String(localized: "这个脚本需要更新版本的松烟。请先更新松烟。")
         case .capabilityUnavailable, .invalidConfiguration, .engineUnavailable:
             return String(localized: "这台设备上不可用")
         case .timedOut, .fetchTimedOut:
@@ -122,7 +121,9 @@ enum ScriptToolError: Error, LocalizedError, Equatable, Sendable {
             return String(
                 localized: "无法读取这个脚本的密钥。请到「松烟」中重新填写该脚本的密钥后再试。")
         case .script(_, let message):
-            return message
+            let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { return String(localized: "脚本运行出错") }
+            return String(format: String(localized: "脚本返回了错误：%@"), trimmed)
         }
     }
 
@@ -170,7 +171,7 @@ enum ScriptToolError: Error, LocalizedError, Equatable, Sendable {
         case SONGYAN_SCRIPT_ERROR_OUT_OF_MEMORY: return .outOfMemory
         case SONGYAN_SCRIPT_ERROR_ADDRESS_NOT_ALLOWED: return .addressNotAllowed
         case SONGYAN_SCRIPT_ERROR_NETWORK_FAILURE: return .networkFailure  // caller refines with fromNetworkFailure
-        case SONGYAN_SCRIPT_ERROR_SCRIPT: return .script(line: line, message: message ?? "the script failed")
+        case SONGYAN_SCRIPT_ERROR_SCRIPT: return .script(line: line, message: message ?? "")
         case SONGYAN_SCRIPT_ERROR_CAPABILITY: return .capabilityUnavailable
         case SONGYAN_SCRIPT_ERROR_HEADER: return .invalidHeader(line: line, message: message ?? "invalid header")
         case SONGYAN_SCRIPT_ERROR_API_VERSION:

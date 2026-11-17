@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 import ToolKit
 
 /// The single gateway between tools and the keyboard's document. It reads through
@@ -391,10 +392,14 @@ final class ToolPanelDriver: ToolPanelDriving {
             } catch is CancellationError {
                 // A cancel or timeout already moved the session.
             } catch {
+                // Only the script runtime's own mapped copy may reach the panel; any other error
+                // is logged and the panel falls back to its generic sentence.
+                Logger.scriptAddon.error("script run failed: \(String(describing: error), privacy: .private)")
+                let message = (error as? ScriptToolError)?.errorDescription
                 await MainActor.run { [weak self] in
                     guard let self else { return }
                     _ = self.gateway()?.fail(
-                        message: error.localizedDescription, token: request.runToken,
+                        message: message, token: request.runToken,
                         now: self.clock())
                     self.notify()
                 }

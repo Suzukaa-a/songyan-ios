@@ -218,6 +218,23 @@ final class ScriptAddonStoreTests: XCTestCase {
         XCTAssertEqual(ScriptAddonFailure.tooLarge.userMessageKey, "脚本文件太大")
     }
 
+    func testStorageErrorsMapToLocalizedClassesNotRawText() {
+        struct Raw: Error, LocalizedError { var errorDescription: String? { "The file couldn't be saved." } }
+        XCTAssertEqual(ScriptAddonFailure.forStorage(Raw()), .saveFailed)
+        XCTAssertEqual(ScriptAddonFailure.forStorage(CocoaError(.fileWriteOutOfSpace)), .saveFailed)
+        XCTAssertEqual(ScriptAddonFailure.forStorage(ScriptAddonStore.StoreError.duplicateID), .duplicate)
+        XCTAssertEqual(ScriptAddonFailure.forStorage(ScriptAddonStore.StoreError.missingScript), .scriptMissing)
+        XCTAssertEqual(ScriptAddonFailure.forStorage(ScriptAddonStore.StoreError.scriptTooLarge(limit: 1)), .tooLarge)
+        XCTAssertEqual(
+            ScriptAddonFailure.forStorage(ScriptAddonStore.StoreError.unsupportedStateVersion(9)), .newerAppRequired)
+        XCTAssertEqual(
+            ScriptAddonFailure.forStorage(KeychainScriptSecretStore.KeychainError.status(-25300)), .secretNotSaved)
+        for failure in [ScriptAddonFailure.saveFailed, .loadFailed, .fileUnreadable, .secretNotSaved] {
+            let key = failure.userMessageKey
+            XCTAssertTrue(key.unicodeScalars.allSatisfy { !$0.isASCII || !$0.properties.isAlphabetic })
+        }
+    }
+
     func testAURLSettingMeansTheScriptGoesOnline() {
         let url = ScriptDeclarations.Setting(key: "endpoint", kind: .url, label: "Address")
         XCTAssertFalse(declarations(connects: [], settings: [], secrets: []).dependsOnNetwork)

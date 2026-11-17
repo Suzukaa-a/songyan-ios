@@ -21,5 +21,6 @@ extension Logger {
 
     // Host app.
     static let keyboardPreparation = Logger(subsystem: songyanSubsystem, category: "KeyboardPreparation")
+    static let scriptAddon = Logger(subsystem: songyanSubsystem, category: "ScriptAddon")
     static let keyboardSave = Logger(subsystem: songyanSubsystem, category: "KeyboardSave")
 }

@@ -28,6 +28,20 @@ public enum ScriptAddonFailure: Equatable, Sendable {
     case cancelled
     /// Anything unexpected: show a generic sentence, never the underlying description.
     case unknown
+    /// A saved script or its settings could not be written or changed.
+    case saveFailed
+    /// The saved scripts could not be read back.
+    case loadFailed
+    /// A chosen file could not be read.
+    case fileUnreadable
+    /// A secret could not be stored in or removed from the Keychain.
+    case secretNotSaved
+    /// The script was already added.
+    case duplicate
+    /// The stored script is missing from disk.
+    case scriptMissing
+    /// The stored data was written by a newer app version.
+    case newerAppRequired
 
     /// Localization key the Host app resolves. These are catalog keys, not user copy.
     public var userMessageKey: String {
@@ -45,6 +59,13 @@ public enum ScriptAddonFailure: Equatable, Sendable {
         case .invalidConfiguration: "无法运行脚本，请稍后重试。"
         case .cancelled: "运行已取消"
         case .unknown: "无法运行脚本，请稍后重试。"
+        case .saveFailed: "没能保存更改。请重试；如果一直这样，把脚本删掉后重新添加。"
+        case .loadFailed: "没能读取脚本列表。请退出松烟后重新打开。"
+        case .fileUnreadable: "没能读取这个文件。请确认文件还在，再试一次。"
+        case .secretNotSaved: "没能保存脚本的密钥。请重试。"
+        case .duplicate: "这个脚本已经添加过了"
+        case .scriptMissing: "找不到这个脚本的文件。请把脚本删掉后重新添加。"
+        case .newerAppRequired: "这个脚本由更新版本的松烟保存。请先更新松烟。"
         }
     }
 
@@ -58,9 +79,26 @@ public enum ScriptAddonFailure: Equatable, Sendable {
     public var line: Int? {
         switch self {
         case .header(let line), .runtime(let line), .script(_, let line): line
-        case .invalidConfiguration, .cancelled, .unknown, .addressNotAllowed, .networkFailure,
+        case .invalidConfiguration, .cancelled, .unknown, .saveFailed, .loadFailed, .fileUnreadable,
+            .secretNotSaved, .duplicate, .scriptMissing, .newerAppRequired, .addressNotAllowed, .networkFailure,
             .timedOut, .outOfMemory, .requestLimitExceeded, .responseTooLarge, .unavailable, .tooLarge:
             nil
         }
+    }
+
+    /// Classifies an error thrown while saving or changing scripts. Anything that is not a known
+    /// storage error falls back to the generic save failure; the raw text never reaches the UI.
+    public static func forStorage(_ error: Error) -> ScriptAddonFailure {
+        if let store = error as? ScriptAddonStore.StoreError {
+            switch store {
+            case .scriptTooLarge: return .tooLarge
+            case .duplicateID: return .duplicate
+            case .missingScript: return .scriptMissing
+            case .unsupportedStateVersion: return .newerAppRequired
+            case .invalidIdentifier: return .saveFailed
+            }
+        }
+        if error is KeychainScriptSecretStore.KeychainError { return .secretNotSaved }
+        return .saveFailed
     }
 }

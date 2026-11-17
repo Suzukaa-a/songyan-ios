@@ -19,6 +19,11 @@ class ScriptAddonUXContractTests(unittest.TestCase):
         try_run = center.split("func tryRun", 1)[1].split("// MARK: - Empty-page resources", 1)[0]
         self.assertNotIn("error.localizedDescription", try_run)
 
+    def test_storage_errors_never_show_raw_descriptions(self):
+        center = self.read("Apps/HostApp/ScriptAddonCenter.swift")
+        self.assertNotIn("errorMessage = error.localizedDescription", center)
+        self.assertIn("Self.storageMessage(for: error", center)
+
     def test_list_rows_are_buttons_with_named_toggles_and_chevrons(self):
         view = self.read("Apps/HostApp/ScriptAddonCenterView.swift")
         self.assertIn("NavigationLink {", view)

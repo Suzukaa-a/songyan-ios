@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 import ScriptAddonKit
 import SwiftUI
 
@@ -100,7 +101,7 @@ final class ScriptAddonCenter: ObservableObject {
         do {
             addons = try store.list()
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = Self.storageMessage(for: error, fixed: .loadFailed)
         }
     }
 
@@ -151,7 +152,7 @@ final class ScriptAddonCenter: ObservableObject {
         do {
             stage(source: try Data(contentsOf: url))
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = Self.storageMessage(for: error, fixed: .fileUnreadable)
         }
     }
 
@@ -217,7 +218,7 @@ final class ScriptAddonCenter: ObservableObject {
                 ? String(localized: "脚本已更新")
                 : String(localized: "已添加脚本")
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = Self.storageMessage(for: error)
         }
     }
 
@@ -232,7 +233,7 @@ final class ScriptAddonCenter: ObservableObject {
             try store.setEnabled(enabled, id: addon.state.id)
             reload()
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = Self.storageMessage(for: error)
         }
     }
 
@@ -243,7 +244,7 @@ final class ScriptAddonCenter: ObservableObject {
             try store.reorder(ids)
             reload()
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = Self.storageMessage(for: error)
         }
     }
 
@@ -253,7 +254,7 @@ final class ScriptAddonCenter: ObservableObject {
             try store.delete(id: addon.state.id)
             reload()
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = Self.storageMessage(for: error)
         }
     }
 
@@ -356,7 +357,7 @@ final class ScriptAddonCenter: ObservableObject {
             reload()
             notice = String(localized: "设置已保存")
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = Self.storageMessage(for: error)
         }
     }
 
@@ -399,7 +400,7 @@ final class ScriptAddonCenter: ObservableObject {
         for failure: ScriptAddonFailure, scriptName: String? = nil
     ) -> String {
         var message =
-            failure.scriptMessage
+            failure.scriptMessage.map { String(format: String(localized: "脚本返回了错误：%@"), $0) }
             ?? String(localized: String.LocalizationValue(failure.userMessageKey))
         if let line = failure.line {
             message += String(
@@ -412,8 +413,18 @@ final class ScriptAddonCenter: ObservableObject {
         return message
     }
 
+    /// Copy for a failed save, load or file read. The raw error goes to the log; only the
+    /// classified sentence is shown, so a system or Keychain message never reaches the user.
+    nonisolated static func storageMessage(
+        for error: Error, fixed: ScriptAddonFailure? = nil
+    ) -> String {
+        Logger.scriptAddon.error("script storage failed: \(String(describing: error), privacy: .private)")
+        return userMessage(for: fixed ?? ScriptAddonFailure.forStorage(error))
+    }
+
     nonisolated static func failure(for error: Error) -> ScriptAddonFailure {
         if let bridge = error as? ScriptAddonBridge.BridgeError {
+            Logger.scriptAddon.error("script run failed: \(String(describing: bridge), privacy: .private)")
             switch bridge {
             case .header(_, let line):
                 return .header(line: line > 0 ? line : nil)
@@ -427,6 +438,7 @@ final class ScriptAddonCenter: ObservableObject {
         }
         if error is CancellationError { return .cancelled }
         if error as? DownloadError == .tooLarge { return .tooLarge }
+        Logger.scriptAddon.error("script operation failed: \(String(describing: error), privacy: .private)")
         return .unknown
     }
 
