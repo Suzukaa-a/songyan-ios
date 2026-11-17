@@ -271,7 +271,7 @@ def recipe_store_source():
                 "\npublic struct KeyboardSelectionChange"),
     ]
     for path in [
-        "Engine/KeyboardResourceSet.swift", "Support/GrammarModelPath.swift",
+        "Engine/SchemaKeyProfile.swift", "Engine/KeyboardResourceSet.swift", "Support/GrammarModelPath.swift",
         "Engine/PublishedKeyboard.swift", "Engine/PublishedKeyboardRoster.swift",
         "Engine/KeyboardPublicationSource.swift", "Engine/UserKeyboardPublicationTransaction.swift",
         "Support/UserTerminology.swift", "Support/RefreshCoordination.swift",

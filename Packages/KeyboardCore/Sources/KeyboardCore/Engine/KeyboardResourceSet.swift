@@ -46,6 +46,11 @@ public struct KeyboardResourceSet: Equatable, Sendable {
                 // A folded shape only runs schemes that keep today's behaviour; an author declaration,
                 // generated adapter or published entry never overrides the family rule.
                 guard InputLayoutPolicy.allows(kind: layout, family: family) else { continue }
+                // Only a scheme spelled syllable by syllable folds; a shape code folded into keys
+                // means nothing to its speller.
+                if layout != .qwerty26, schemas.first(where: { $0.id == source })?.profile?.allowsFolding == false {
+                    continue
+                }
                 // When non-nil, only combinations explicitly added in the manifest are visible,
                 // and only structurally runnable ones appear (a compact layout must have a
                 // generated adapter or an author binding; never fall back to the source's 26-key).

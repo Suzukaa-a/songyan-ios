@@ -365,6 +365,10 @@ public enum KeyboardRecipeStore {
     static func deployedSchemas(build: URL) throws -> [KeyboardSchemaDescriptor] {
         let enabled = try resolvedSchemas(nil, build: build)
         guard let api = rime_get_api() else { throw StoreError(message: String(localized: "Rime 配置接口不可用")) }
+        // Written by the host at deployment; a build from before profiles has none and keeps the family rule.
+        let profiles =
+            (try? Data(contentsOf: build.appendingPathComponent(SchemaKeyProfile.fileName)))
+            .flatMap(SchemaKeyProfile.decode) ?? [:]
         return try enabled.map { entry in
             let yaml = try String(contentsOf: build.appendingPathComponent(entry.id + ".schema.yaml"), encoding: .utf8)
             var config = RimeConfig()
@@ -374,7 +378,8 @@ public enum KeyboardRecipeStore {
             }
             let name = api.pointee.config_get_cstring(&config, "schema/name").map { String(cString: $0) } ?? entry.id
             let alphabet = api.pointee.config_get_cstring(&config, "speller/alphabet").map { String(cString: $0) } ?? ""
-            return KeyboardSchemaDescriptor(id: entry.id, name: name, alphabet: alphabet)
+            return KeyboardSchemaDescriptor(
+                id: entry.id, name: name, alphabet: alphabet, profile: profiles[entry.id])
         }
     }
 }

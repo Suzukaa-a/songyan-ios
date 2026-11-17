@@ -96,8 +96,12 @@ public enum SchemaKeyProfiles {
 
     /// Writes the profiles of `ids` next to the compiled schemas of `buildDir`.
     public static func write(buildDir: URL, ids: [String]) throws {
-        let data = try SchemaKeyProfile.encode(computeAll(buildDir: buildDir, ids: ids))
-        try data.write(to: buildDir.appendingPathComponent(SchemaKeyProfile.fileName), options: .atomic)
+        try write(computeAll(buildDir: buildDir, ids: ids), buildDir: buildDir)
+    }
+
+    public static func write(_ profiles: [String: SchemaKeyProfile], buildDir: URL) throws {
+        try SchemaKeyProfile.encode(profiles)
+            .write(to: buildDir.appendingPathComponent(SchemaKeyProfile.fileName), options: .atomic)
     }
 
     private static func boundedRead(_ file: URL, limit: Int) -> Data? {

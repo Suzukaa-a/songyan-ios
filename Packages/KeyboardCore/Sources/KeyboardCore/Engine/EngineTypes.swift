@@ -440,10 +440,14 @@ public struct KeyboardSchemaDescriptor: Codable, Equatable, Sendable, Identifiab
     public let id: String
     public let name: String
     public var alphabet: String
-    public init(id: String, name: String, alphabet: String = "") {
+    /// What the schema's speller needs (see `SchemaKeyProfile`); nil while unknown, which keeps the
+    /// family rule alone.
+    public var profile: SchemaKeyProfile?
+    public init(id: String, name: String, alphabet: String = "", profile: SchemaKeyProfile? = nil) {
         self.id = id
         self.name = name
         self.alphabet = alphabet
+        self.profile = profile
     }
 
     /// The runnable list in the order the package enables its input methods, so the first one stays the

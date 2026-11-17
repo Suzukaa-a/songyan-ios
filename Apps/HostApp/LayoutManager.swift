@@ -301,6 +301,17 @@ final class LayoutManager: ObservableObject {
         }
     }
 
+    /// Stores the layouts made from a scheme's key profile that a keyboard is about to name, so the
+    /// keyboard has a layout to open on. One already in the catalog is left as the user may have edited it.
+    func installGenerated(_ definitions: [LayoutDefinition]) async -> Bool {
+        guard !definitions.isEmpty else { return true }
+        return await persist { reg in
+            for definition in definitions where reg.layout(id: definition.id) == nil {
+                try reg.install(definition.encoded())
+            }
+        }
+    }
+
     /// Read into a draft. Import never writes until the user chooses save/replace/copy.
     /// The MainActor owns the busy flag and scope lifetime; the queue performs all
     /// file inspection, bounded reading, decoding and validation before scope release.

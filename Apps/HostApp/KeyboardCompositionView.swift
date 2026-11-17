@@ -72,37 +72,106 @@ enum HostLayoutAvailability {
 }
 
 extension HostLayoutAvailability {
+    /// A layout made from the key profile, installed into the catalog when its keyboard is added.
+    enum GeneratedKind: Equatable {
+        case keys26, strokes
+    }
+
     /// One layout an input method can be given as a keyboard in 我的键盘.
     struct ApplicableLayout: Equatable {
         let shape: KeyboardLayoutKind
         let layoutID: String
+        /// The codes the scheme needs that the layout has no key for, in the scheme's order.
+        var missingCodes: [String] = []
+        /// Set for a layout made from the key profile.
+        var generated: GeneratedKind?
     }
 
     /// The layouts an input method can be typed on, each one a keyboard 我的键盘 can add. `shapes` are
-    /// the shapes the source can run the input method on. Per shape: the family's own boards, or the
-    /// shape's shipped layout when the family has none, then the user's layouts made for that shape
-    /// (and for this input method, when they name one). Every surface that offers keyboards asks here.
+    /// the shapes the source can run the input method on; folded shapes only for a scheme spelled
+    /// syllable by syllable (its profile, read from `descriptors`). Per shape: the family's own boards, or
+    /// the shape's shipped layout when the family has none, then the user's layouts made for that shape
+    /// (and for this input method, when they name one). On the 26-key shape the profile adds the layouts
+    /// it asks for: the stroke pad, and the 26-key board with the missing codes, which a syllabic scheme
+    /// only gets as an extra choice. Every surface that offers keyboards asks here.
     static func applicableLayouts(
         schemaID: String, shapes: [KeyboardLayoutKind],
         descriptors: [KeyboardSchemaDescriptor], in registry: LayoutRegistry
     ) -> [ApplicableLayout] {
         let family = family(schemaID: schemaID, descriptors: descriptors)
         let availability = policy(schemaID: schemaID, descriptors: descriptors)
+        let profile = descriptors.first { $0.id == schemaID }?.profile
         let shipped = Set(BuiltinLayouts.all.map(\.id))
         var result: [ApplicableLayout] = []
         for shape in KeyboardLayoutKind.allCases
-        where shapes.contains(shape) && InputLayoutPolicy.allows(kind: shape, family: family) {
+        where shapes.contains(shape) && InputLayoutPolicy.allows(kind: shape, family: family)
+            && (shape == .qwerty26 || profile?.allowsFolding != false)
+        {
             let key = KeyboardCompositionKey(inputMethodID: schemaID, layout: shape.builtinLayout)
             let candidates = registry.mainLayoutCandidates(for: key, availability: availability).map(\.id)
-            let boards =
-                shape == .qwerty26 ? InputLayoutPolicy.boards(of: family).filter(candidates.contains) : []
+            let familyBoards = shape == .qwerty26 ? InputLayoutPolicy.boards(of: family) : []
+            let boards = familyBoards.filter(candidates.contains)
             let preset = BuiltinLayouts.preset(for: shape.builtinLayout).id
             let own = boards.isEmpty ? [preset].filter(candidates.contains) : boards
-            for id in own + candidates.filter({ !shipped.contains($0) }) {
-                result.append(ApplicableLayout(shape: shape, layoutID: id))
+            var entries: [ApplicableLayout] = (own + candidates.filter { !shipped.contains($0) }).map { id in
+                let missing =
+                    shape == .qwerty26
+                    ? profile.flatMap { profile in
+                        registry.resolvedLayout(id: id).map {
+                            LayoutCodeCoverage.missing($0, needed: profile.codes)
+                        }
+                    } ?? [] : []
+                return ApplicableLayout(shape: shape, layoutID: id, missingCodes: missing)
             }
+            // A family with physical boards of its own keeps them; nothing is generated beside them.
+            if shape == .qwerty26, let profile, familyBoards.isEmpty {
+                entries = withGenerated(schemaID: schemaID, entries: entries, profile: profile)
+            }
+            result += entries
         }
         return result
+    }
+
+    private static func withGenerated(
+        schemaID: String, entries: [ApplicableLayout], profile: SchemaKeyProfile
+    ) -> [ApplicableLayout] {
+        guard profile.kind != .unknown else { return entries }
+        let keys26ID = GeneratedLayouts.keys26ID(schemaID: schemaID)
+        let strokesID = GeneratedLayouts.strokesID(schemaID: schemaID)
+        func generated(_ id: String, _ kind: GeneratedKind) -> ApplicableLayout {
+            var entry =
+                entries.first { $0.layoutID == id } ?? ApplicableLayout(shape: .qwerty26, layoutID: id)
+            entry.generated = kind
+            entry.missingCodes = []
+            return entry
+        }
+        let wantsKeys26 = !LayoutCodeCoverage.missing(BuiltinLayouts.qwerty26, needed: profile.codes).isEmpty
+        let wantsStrokes = profile.kind == .strokes && !profile.strokes.isEmpty
+        let keys26 = wantsKeys26 ? generated(keys26ID, .keys26) : nil
+        let strokes = wantsStrokes ? generated(strokesID, .strokes) : nil
+        let own = Set([keys26, strokes].compactMap { $0?.layoutID })
+        let rest = entries.filter { !own.contains($0.layoutID) }
+        if let strokes { return [strokes] + rest + [keys26].compactMap { $0 } }
+        if profile.kind == .shapeCode { return [keys26].compactMap { $0 } + rest }
+        return rest + [keys26].compactMap { $0 }
+    }
+
+    /// The layout a generated keyboard types on, made from its scheme's profile; nil when the scheme
+    /// has none or the id is not one of its generated layouts.
+    static func generatedDefinition(
+        layoutID: String, schemaID: String, descriptors: [KeyboardSchemaDescriptor]
+    ) -> LayoutDefinition? {
+        guard let profile = descriptors.first(where: { $0.id == schemaID })?.profile else { return nil }
+        switch layoutID {
+        case GeneratedLayouts.keys26ID(schemaID: schemaID):
+            return GeneratedLayouts.keys26(
+                schemaID: schemaID, name: UserTerminology.keys26WithCodesName, codes: profile.codes)
+        case GeneratedLayouts.strokesID(schemaID: schemaID):
+            return GeneratedLayouts.strokes(
+                schemaID: schemaID, name: UserTerminology.strokePadName,
+                strokes: profile.strokes.map { ($0.code, $0.label) })
+        default: return nil
+        }
     }
 
     /// The name a keyboard's layout adds to its title (see `UserKeyboard.layoutName`), resolved

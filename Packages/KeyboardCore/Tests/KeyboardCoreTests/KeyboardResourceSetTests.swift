@@ -166,6 +166,37 @@ final class KeyboardResourceSetTests: XCTestCase {
         XCTAssertTrue(set.keyboardChoices(for: "disabled").isEmpty)
     }
 
+    func testAShapeCodeSchemeIsNeverOfferedOnAFoldedShape() throws {
+        let build = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: build, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: build) }
+        let adapters = [
+            KeyboardResourceSet.EncodingAdapter(sourceSchemaID: "wubi86", schemaID: "wubi86_9", layout: .phone9)
+        ]
+        try JSONEncoder().encode(adapters).write(to: build.appendingPathComponent("keyboard-adapters.json"))
+        func layouts(_ profile: SchemaKeyProfile?) -> [KeyboardLayoutKind] {
+            KeyboardResourceSet(
+                id: "source", name: "Source", sharedDirectory: shared, userDirectory: user,
+                layoutEntries: [], prebuiltDirectory: build,
+                schemas: [.init(id: "wubi86", name: "Wubi", alphabet: "abcdefghijklmnopqrstuvwxyz", profile: profile)],
+                selectedSchemaID: "wubi86"
+            ).availableLayouts
+        }
+        XCTAssertEqual(layouts(SchemaKeyProfile(kind: .shapeCode)), [.qwerty26])
+        XCTAssertEqual(layouts(SchemaKeyProfile(kind: .syllabic)), [.qwerty26, .phone9])
+        // A build published before profiles keeps the family rule alone.
+        XCTAssertEqual(layouts(nil), [.qwerty26, .phone9])
+    }
+
+    func testADescriptorSavedBeforeProfilesStillDecodes() throws {
+        let old = Data(#"{"id":"rime_ice","name":"雾凇","alphabet":"abc"}"#.utf8)
+        XCTAssertNil(try JSONDecoder().decode(KeyboardSchemaDescriptor.self, from: old).profile)
+        let profiled = KeyboardSchemaDescriptor(
+            id: "w", name: "w", alphabet: "a", profile: SchemaKeyProfile(kind: .strokes, codes: ["h"]))
+        let again = try JSONDecoder().decode(KeyboardSchemaDescriptor.self, from: JSONEncoder().encode(profiled))
+        XCTAssertEqual(again, profiled)
+    }
+
     func testDuplicateLayoutEntriesCollapseIntoOne() {
         let set = KeyboardResourceSet(
             id: "generic", name: "形码", sharedDirectory: shared, userDirectory: user,

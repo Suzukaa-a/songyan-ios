@@ -380,6 +380,13 @@ extension SchemeImportCenter {
                 throw UserKeyboardPublicationError.unavailable(UserTerminology.layoutUnavailableReason(added.layout))
             }
         }
+        let generated = roster.compactMap {
+            HostLayoutAvailability.generatedDefinition(
+                layoutID: $0.board ?? "", schemaID: $0.schemaID, descriptors: resources.schemas)
+        }
+        guard await LayoutManager.shared.installGenerated(generated) else {
+            throw UserKeyboardPublicationError.unavailable(String(localized: "没能添加这个内置布局，请重试。"))
+        }
         let active = try await activeRecipe(packageID: packageID)
         try await EngineOwnershipCoordinator.shared.withExclusive {
             try await EngineOpQueue.async {
@@ -500,6 +507,7 @@ extension SchemeImportCenter {
                         ?? .unsupported("")
                 else { continue }
                 let alphabet = resources.schemas.first { $0.id == source }?.alphabet
+                if resources.schemas.first(where: { $0.id == source })?.profile?.allowsFolding == false { continue }
                 // The shared family rule gates the folded shapes too: a known family never offers
                 // 14 / 18 / 9 even when the source is structurally adaptable.
                 let family = InputLayoutPolicy.family(schemaID: source, alphabet: alphabet ?? "")

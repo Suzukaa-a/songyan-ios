@@ -26,6 +26,7 @@ case "kept": try keptPackagesChecks(base)
 case "private": try privateSelectionChecks(base)
 case "privateSwitch": try privatePackageSwitchChecks(base)
 case "layoutKeyboards": try layoutKeyboardsChecks(base)
+case "keyProfiles": try keyProfileChecks(base)
 default: fatalError("unknown store scenario")
 }
 ''', encoding="utf-8")
@@ -48,6 +49,9 @@ default: fatalError("unknown store scenario")
 
     def test_keyboards_that_name_their_layout_and_the_records_saved_before(self):
         self.scenario("layoutKeyboards")
+
+    def test_the_deployed_key_profiles_reach_the_scheme_descriptors(self):
+        self.scenario("keyProfiles")
 
     def test_publication_rosters_and_provenance(self):
         self.scenario("publication")

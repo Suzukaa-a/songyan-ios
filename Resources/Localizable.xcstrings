@@ -33832,7 +33832,7 @@
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "準備中…"
+            "value": "準備しています…"
           }
         }
       }
@@ -38321,6 +38321,72 @@
           "stringUnit": {
             "state": "translated",
             "value": "這個鍵盤配置正在被「我的鍵盤」裡的鍵盤使用，請先移除那個鍵盤。"
+          }
+        }
+      }
+    },
+    "键盘上没有这些编码：%@": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "键盘上没有这些编码：%@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "鍵盤上沒有這些編碼：%@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーボードにないコード：%@"
+          }
+        }
+      }
+    },
+    "有些编码键盘上没有，可在键盘布局里补上": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有些编码键盘上没有，可在键盘布局里补上"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有些編碼鍵盤上沒有，可在鍵盤配置裡補上"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "キーボードにないコードがあります。キー配列で追加できます。"
+          }
+        }
+      }
+    },
+    "这个输入方式用不了这种键盘": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这个输入方式用不了这种键盘"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這個輸入方式用不了這種鍵盤"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この入力方式ではこのキーボードを使えません"
           }
         }
       }

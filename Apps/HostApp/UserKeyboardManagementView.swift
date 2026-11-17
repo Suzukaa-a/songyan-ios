@@ -63,6 +63,10 @@ struct UserKeyboardManagementView: View {
                     Section {
                         ForEach(groups, id: \.id) { group in
                             DisclosureGroup(isExpanded: expansion(for: group.id)) {
+                                if center.sourceSchemas.first(where: { $0.id == group.id })?.profile?.kind == .unknown {
+                                    Text("有些编码键盘上没有，可在键盘布局里补上")
+                                        .font(.footnote).foregroundStyle(.secondary)
+                                }
                                 ForEach(group.items) { item in
                                     // A keyboard saved before keyboards named their layout is shown as
                                     // the row of the layout it types on.
@@ -217,6 +221,9 @@ struct UserKeyboardManagementView: View {
         let layout: KeyboardLayoutKind
         /// The physical board this keyboard types on; nil = the main layout comes from the pairing.
         var board: String? = nil
+        /// The codes its scheme needs that this layout cannot send.
+        var missingCodes: [String] = []
+        var generated: HostLayoutAvailability.GeneratedKind?
         var keyboard: UserKeyboard {
             UserKeyboard(
                 inputMethodID: inputMethodID, inputMethodName: inputMethodName, layout: layout, board: board)
@@ -251,19 +258,28 @@ struct UserKeyboardManagementView: View {
         for candidate in center.addableKeyboards {
             note(candidate.inputMethodID, displayName(candidate.inputMethodName), candidate.layout)
         }
-        var result = published
+        var offered: [Item] = []
         for id in order {
             let applicable = HostLayoutAvailability.applicableLayouts(
                 schemaID: id, shapes: shapes[id] ?? [], descriptors: center.sourceSchemas,
                 in: layoutManager.registry)
-            result += applicable.map {
+            offered += applicable.map {
                 let keyboard = UserKeyboard(
                     inputMethodID: id, inputMethodName: names[id] ?? "", layout: $0.shape, board: $0.layoutID)
                 return Item(
                     id: keyboard.id, inputMethodID: id, inputMethodName: keyboard.inputMethodName,
-                    layout: $0.shape, board: $0.layoutID)
+                    layout: $0.shape, board: $0.layoutID, missingCodes: $0.missingCodes, generated: $0.generated)
             }
         }
+        // A saved keyboard shows what the layout it names lacks, as the row offered for it would.
+        let facts = Dictionary(offered.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        var result = published.map { item -> Item in
+            var item = item
+            item.missingCodes = facts[item.id]?.missingCodes ?? []
+            item.generated = facts[item.id]?.generated
+            return item
+        }
+        result += offered
         var seen = Set<String>()
         return result.filter { seen.insert($0.id).inserted }
     }
@@ -424,6 +440,10 @@ struct UserKeyboardManagementView: View {
                         .font(.caption)
                         .foregroundStyle(Color.accentColor)
                         .fixedSize(horizontal: false, vertical: true)
+                        if !item.missingCodes.isEmpty {
+                            Text("键盘上没有这些编码：\(item.missingCodes.joined(separator: " "))")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
                     }
                     Spacer(minLength: 4)
                     Image(systemName: "chevron.right")
@@ -511,6 +531,10 @@ struct UserKeyboardManagementView: View {
                     } else if !available {
                         Text("不可用").font(.caption).foregroundStyle(.secondary)
                     }
+                    if !item.missingCodes.isEmpty {
+                        Text("键盘上没有这些编码：\(item.missingCodes.joined(separator: " "))")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
                 }
                 Spacer(minLength: 4)
                 if let main {
@@ -567,16 +591,25 @@ struct UserKeyboardManagementView: View {
         let family = HostLayoutAvailability.family(
             schemaID: item.inputMethodID, descriptors: center.sourceSchemas)
         guard InputLayoutPolicy.allows(physicalLayoutID: board, family: family),
-            let definition = layoutManager.registry.resolvedLayout(id: board)
+            let definition = layoutManager.registry.resolvedLayout(id: board) ?? generatedDefinition(item)
         else { return false }
         return definition.supportsComposition(
             inputMethodID: item.inputMethodID, layout: item.layout.builtinLayout)
+    }
+
+    /// The layout of a generated keyboard that is not in the catalog yet (it is stored when the keyboard is saved).
+    private func generatedDefinition(_ item: Item) -> LayoutDefinition? {
+        item.board.flatMap {
+            HostLayoutAvailability.generatedDefinition(
+                layoutID: $0, schemaID: item.inputMethodID, descriptors: center.sourceSchemas)
+        }
     }
 
     /// The paired main layout, or nil when the keyboard itself is unavailable.
     private func mainLayout(for item: Item) -> LayoutDefinition? {
         guard isAvailable(item) else { return nil }
         let registry = layoutManager.registry
+        if let board = item.board, registry.resolvedLayout(id: board) == nil { return generatedDefinition(item) }
         let availability = HostLayoutAvailability.policy(
             schemaID: item.keyboard.inputMethodID, descriptors: center.sourceSchemas)
         return registry.resolvedLayout(

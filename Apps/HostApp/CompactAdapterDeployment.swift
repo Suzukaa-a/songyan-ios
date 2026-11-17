@@ -111,6 +111,10 @@ enum CompactAdapterDeployment {
             case .adaptable:
                 break
             }
+            // Only a scheme spelled syllable by syllable folds: a shape code or a stroke code would
+            // fold into keys that mean nothing to its speller.
+            guard SchemaKeyProfiles.compute(compiledSchema: String(decoding: compiled, as: UTF8.self)).allowsFolding
+            else { continue }
             // A known scheme family never offers the folded 14 / 18 / 9 layouts (its own physical
             // layout is registered instead). The add-keyboard list already skips them; this keeps
             // a persisted or author-declared combination from decoding the source projection at all.

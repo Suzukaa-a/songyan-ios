@@ -163,6 +163,12 @@ public enum UserTerminology: Sendable {
         return String(localized: key, bundle: bundle)
     }
 
+    /// Name of the 26-key board a scheme's key profile extends with the codes plain 26 keys lack.
+    public static var keys26WithCodesName: String { String(localized: "core.layout.keys26", bundle: .module) }
+
+    /// Name of the stroke pad made from a stroke scheme's key profile.
+    public static var strokePadName: String { String(localized: "core.layout.strokes", bundle: .module) }
+
     /// What a layout row's subtitle calls the layout's form. A physical board (注音, 假名...) is modelled
     /// on the 26-key shape but is its own board, so its own name wins over the shape's.
     public static func layoutShapeName(layoutID: String, shape: KeyboardLayoutKind?) -> String? {

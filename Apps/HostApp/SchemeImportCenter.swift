@@ -501,9 +501,18 @@ final class SchemeImportCenter: ObservableObject {
             from: Data(
                 contentsOf: active.resourceURL.appendingPathComponent(InstalledPackageLayout.keyboardPackageFile)))
         guard declaration.id == id else { throw RecipeInstallError.invalidResource(String(localized: "安装身份不匹配")) }
-        let schemas = try JSONDecoder().decode(
+        var schemas = try JSONDecoder().decode(
             [KeyboardSchemaDescriptor].self,
             from: Data(contentsOf: active.resourceURL.appendingPathComponent(InstalledPackageLayout.keyboardSchemas)))
+        // An install made before profiles existed has none in its list; read them from its build.
+        let unprofiled = schemas.filter { $0.profile == nil }.map(\.id)
+        if !unprofiled.isEmpty {
+            let profiles = SchemaKeyProfiles.read(
+                buildDir: active.userDataURL.appendingPathComponent("build"), ids: unprofiled)
+            for index in schemas.indices where schemas[index].profile == nil {
+                schemas[index].profile = profiles[schemas[index].id]
+            }
+        }
         // The enabled receipt is authoritative; missing source inventory never grants input capability.
         let sourceSchemas: [String]
         if let data = try? Data(
