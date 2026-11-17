@@ -15,11 +15,19 @@ public struct OtherPackageKeyboard: Equatable, Sendable, Identifiable {
     /// Input method plus layout, like the current package's entries.
     public let title: String
 
-    public init(target: Target, keyboard: PublishedKeyboard, packageName: String, title: String) {
+    /// The input method's own name, for a surface that knows the keyboard's layout by name and
+    /// words the title itself; empty when the record carries none.
+    public let inputMethodName: String
+
+    public init(
+        target: Target, keyboard: PublishedKeyboard, packageName: String, title: String,
+        inputMethodName: String = ""
+    ) {
         self.target = target
         self.keyboard = keyboard
         self.packageName = packageName
         self.title = title
+        self.inputMethodName = inputMethodName
     }
 
     /// Menu cap identity; the prefix keeps it apart from the current package's keyboards.

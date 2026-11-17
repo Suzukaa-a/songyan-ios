@@ -24,17 +24,34 @@ public struct PublishedKeyboard: Codable, Equatable, Hashable, Sendable, Identif
     /// Keyboard layout (26 / 26 shuangpin / 14 / 9).
     public let layout: KeyboardLayoutKind
 
-    /// A reserved physical layout ID (`InputLayoutPolicy.boards(of:)`) the keyboard types on. nil
-    /// keeps the older meaning: the main layout comes from the pairing. Boards of one input method
-    /// share its shape and so its pairing and resources; only the identity differs.
+    /// The ID of the layout the keyboard types on: a shipped shape, a shipped board, or the user's
+    /// own layout. The layouts of one input method and shape share its resources; only the identity
+    /// differs. nil is a record saved before keyboards named their layout: its main layout comes
+    /// from the pairing stored under the shape, then the family's board, then the shape's preset.
     public let board: String?
 
-    /// Identity: `schema:layout`, plus `#board` when a board is set.
+    /// Identity: `schema:shape`, plus `#layoutID` when the keyboard names its layout.
     public var id: String { combinationID + (board.map { "#" + $0 } ?? "") }
 
-    /// The resource-bearing combination (input method x layout) this keyboard runs on. Never parse
-    /// `id` back into it.
+    /// The resource-bearing combination (input method x shape) this keyboard runs on.
     public var combinationID: String { schemaID + ":" + layout.rawValue }
+
+    /// Reads an `id` back. The layout ID may hold any character, so it is everything after the
+    /// first "#"; the schema ID may contain ":", so the shape is the part after the last one
+    /// before it. Nil for a malformed id.
+    public init?(id: String) {
+        var head = Substring(id)
+        var board: String?
+        if let mark = id.firstIndex(of: "#") {
+            head = id[..<mark]
+            board = String(id[id.index(after: mark)...])
+            guard board?.isEmpty == false else { return nil }
+        }
+        guard let separator = head.lastIndex(of: ":"), separator != head.startIndex,
+            let layout = KeyboardLayoutKind(rawValue: String(head[head.index(after: separator)...]))
+        else { return nil }
+        self.init(schemaID: String(head[..<separator]), layout: layout, board: board)
+    }
 
     public init(schemaID: String, layout: KeyboardLayoutKind, board: String? = nil) {
         self.schemaID = schemaID

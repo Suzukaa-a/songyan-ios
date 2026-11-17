@@ -1,25 +1,47 @@
 import Foundation
 
-/// The key a pairing is stored under: `UserKeyboard.id`, i.e. `"<inputMethodID>:<builtin layout>"`.
-/// The input method ID may itself contain ":", so the layout is the part after the last one.
+/// The key a pairing is stored under: `UserKeyboard.id`, i.e. `"<inputMethodID>:<shape>"`, plus
+/// `"#<layoutID>"` for a keyboard that names the layout it types on. The layout ID may hold any
+/// character, so it is everything after the first "#"; the input method ID may itself contain
+/// ":", so the shape is the part after the last one before it.
 public struct KeyboardCompositionKey: Hashable, Sendable {
     public let inputMethodID: String
     public let layout: LayoutInput.Builtin
+    /// The layout this keyboard types on. nil is a keyboard saved before keyboards named their
+    /// layout: its main layout comes from the pairing stored under the shape.
+    public let layoutID: String?
 
-    public init(inputMethodID: String, layout: LayoutInput.Builtin) {
+    public init(inputMethodID: String, layout: LayoutInput.Builtin, layoutID: String? = nil) {
         self.inputMethodID = inputMethodID
         self.layout = layout
+        self.layoutID = layoutID.flatMap { $0.isEmpty ? nil : $0 }
     }
 
-    /// Nil for a malformed key: no separator, an empty input method or an unknown layout.
+    /// Nil for a malformed key: no separator, an empty input method, an unknown shape or an empty
+    /// layout ID after "#".
     public init?(_ rawValue: String) {
-        guard let separator = rawValue.lastIndex(of: ":"), separator != rawValue.startIndex,
-            let layout = LayoutInput.Builtin(rawValue: String(rawValue[rawValue.index(after: separator)...]))
+        var head = Substring(rawValue)
+        var layoutID: String?
+        if let mark = rawValue.firstIndex(of: "#") {
+            head = rawValue[..<mark]
+            layoutID = String(rawValue[rawValue.index(after: mark)...])
+            guard layoutID?.isEmpty == false else { return nil }
+        }
+        guard let separator = head.lastIndex(of: ":"), separator != head.startIndex,
+            let layout = LayoutInput.Builtin(rawValue: String(head[head.index(after: separator)...]))
         else { return nil }
-        self.init(inputMethodID: String(rawValue[..<separator]), layout: layout)
+        self.init(inputMethodID: String(head[..<separator]), layout: layout, layoutID: layoutID)
     }
 
-    public var rawValue: String { inputMethodID + ":" + layout.rawValue }
+    public var rawValue: String { shapeKey.plainRawValue + (layoutID.map { "#" + $0 } ?? "") }
+
+    /// The key of the shape this keyboard runs on, shared by every layout of that shape. Pairings
+    /// saved before keyboards named their layout live here.
+    public var shapeKey: KeyboardCompositionKey {
+        KeyboardCompositionKey(inputMethodID: inputMethodID, layout: layout)
+    }
+
+    private var plainRawValue: String { inputMethodID + ":" + layout.rawValue }
 }
 
 /// Indexed by `KeyboardCompositionKey.rawValue` in LayoutRegistry.

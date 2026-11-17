@@ -120,9 +120,22 @@ public struct LayoutRegistry: Codable, Equatable, Sendable {
         return using.keys.sorted().compactMap(KeyboardCompositionKey.init)
     }
 
-    /// The saved pairing, or the default one built on `defaultMainLayoutID(for:)`.
+    /// The saved pairing, or the default one built on `defaultMainLayoutID(for:)`. A keyboard that
+    /// names its layout always has that layout as its main layout.
     public func composition(for key: KeyboardCompositionKey) -> KeyboardComposition {
-        compositions[key.rawValue] ?? KeyboardComposition(mainLayoutID: defaultMainLayoutID(for: key))
+        if let saved = savedComposition(for: key) { return saved }
+        return KeyboardComposition(mainLayoutID: key.layoutID ?? defaultMainLayoutID(for: key))
+    }
+
+    /// The pairing stored for this keyboard, nil when it has none. A keyboard that names its layout
+    /// reads its own entry first and otherwise the pages stored under its shape: before keyboards
+    /// named their layout, every layout of one shape shared that entry's pages.
+    public func savedComposition(for key: KeyboardCompositionKey) -> KeyboardComposition? {
+        guard let layoutID = key.layoutID else { return compositions[key.rawValue] }
+        if let own = compositions[key.rawValue] { return own }
+        guard var shared = compositions[key.shapeKey.rawValue] else { return nil }
+        shared.mainLayoutID = layoutID
+        return shared
     }
 
     /// The main layout of a keyboard without a saved pairing; the host and the keyboard both
@@ -159,6 +172,9 @@ public struct LayoutRegistry: Codable, Equatable, Sendable {
     public func usableMainLayoutID(
         for key: KeyboardCompositionKey, availability: LayoutAvailability = .unrestricted
     ) -> String {
+        if let layoutID = key.layoutID {
+            return usableMainLayoutID(for: key.shapeKey, board: layoutID, availability: availability)
+        }
         // Only a really stored pairing can win here. `composition(for:)` materialises the default a
         // keyboard would use, and that default must itself be resolved with the injected
         // availability (otherwise a family-preferred layout could never be reached unsaved).
@@ -174,19 +190,21 @@ public struct LayoutRegistry: Codable, Equatable, Sendable {
         return defaultMainLayoutID(for: key, availability: availability)
     }
 
-    /// The main layout of a keyboard that types on a physical `board`: that board when it resolves,
-    /// fits the keyboard's shape and the family rules allow it; otherwise exactly the pairing's
-    /// `usableMainLayoutID`. Runtime-only, so a disallowed or missing board never rewrites anything.
+    /// The main layout of a keyboard that names the layout it types on (`board`, any layout ID):
+    /// that layout when it resolves, fits the keyboard's shape and the family rules allow it;
+    /// otherwise exactly the shape pairing's `usableMainLayoutID`. Runtime-only, so a disallowed
+    /// or missing layout never rewrites anything.
     public func usableMainLayoutID(
         for key: KeyboardCompositionKey, board: String?, availability: LayoutAvailability = .unrestricted
     ) -> String {
-        if let board, let definition = resolvedLayout(id: board),
-            definition.supportsComposition(inputMethodID: key.inputMethodID, layout: key.layout),
-            availability.allows(definition, key)
+        let shape = key.shapeKey
+        if let board = board ?? key.layoutID, let definition = resolvedLayout(id: board),
+            definition.supportsComposition(inputMethodID: shape.inputMethodID, layout: shape.layout),
+            availability.allows(definition, shape)
         {
             return board
         }
-        return usableMainLayoutID(for: key, availability: availability)
+        return usableMainLayoutID(for: shape, availability: availability)
     }
 
     public mutating func savePage(_ page: KeyboardPageDefinition) throws {
@@ -316,7 +334,9 @@ public struct LayoutRegistry: Codable, Equatable, Sendable {
                 throw LayoutError.invalid(
                     String(localized: "registry.error.compositionLayoutMissing", bundle: .module))
             }
-            guard main.supportsComposition(inputMethodID: key.inputMethodID, layout: key.layout) else {
+            guard main.supportsComposition(inputMethodID: key.inputMethodID, layout: key.layout),
+                key.layoutID == nil || key.layoutID == composition.mainLayoutID
+            else {
                 throw LayoutError.invalid(
                     String(localized: "registry.error.layoutNotForInputMethod", bundle: .module))
             }

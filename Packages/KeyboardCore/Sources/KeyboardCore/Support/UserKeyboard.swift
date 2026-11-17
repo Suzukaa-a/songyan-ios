@@ -25,7 +25,7 @@ public struct UserKeyboard: Equatable, Sendable, Identifiable {
     public let inputMethodName: String
     /// Front-end keyboard layout capability.
     public let layout: KeyboardLayoutKind
-    /// Reserved physical layout ID the keyboard types on (see `PublishedKeyboard.board`); nil = the main layout comes from the pairing.
+    /// ID of the layout the keyboard types on (see `PublishedKeyboard.board`); nil = the main layout comes from the pairing.
     public let board: String?
 
     public init(
@@ -61,6 +61,21 @@ public struct UserKeyboard: Equatable, Sendable, Identifiable {
     public func title(physicalLayoutName: String?) -> String {
         Self.physicalBoardTitle(inputMethodName: inputMethodName, physicalLayoutName: physicalLayoutName)
             ?? title
+    }
+
+    /// The name this keyboard's own layout adds to its title, once the layout it really types on
+    /// is known: a shipped board by its own name; a layout the keyboard names itself by the name it
+    /// was saved with. nil keeps the shape name (the shape's own preset, or a keyboard that only
+    /// reaches a user layout through its pairing).
+    public func layoutName(mainLayoutID: String?, savedName: String?) -> String? {
+        Self.layoutName(board: board, mainLayoutID: mainLayoutID, savedName: savedName)
+    }
+
+    public static func layoutName(board: String?, mainLayoutID: String?, savedName: String?) -> String? {
+        guard let mainLayoutID else { return nil }
+        if let shipped = UserTerminology.builtinLayoutName(physicalLayoutID: mainLayoutID) { return shipped }
+        guard board == mainLayoutID, KeyboardLayoutKind(rawValue: mainLayoutID) == nil else { return nil }
+        return savedName
     }
 
     public static func physicalBoardTitle(
@@ -225,21 +240,27 @@ public struct UserKeyboardCandidate: Equatable, Sendable, Identifiable {
     public let inputMethodID: String
     public let inputMethodName: String
     public let layout: KeyboardLayoutKind
+    /// The layout the keyboard would type on (see `PublishedKeyboard.board`); nil = the shape alone.
+    public let board: String?
 
-    public init(inputMethodID: String, inputMethodName: String, layout: KeyboardLayoutKind) {
+    public init(
+        inputMethodID: String, inputMethodName: String, layout: KeyboardLayoutKind, board: String? = nil
+    ) {
         self.inputMethodID = inputMethodID
         self.inputMethodName = inputMethodName
         self.layout = layout
+        self.board = board
     }
 
-    public var id: String { "\(inputMethodID):\(layout.rawValue)" }
+    public var id: String { keyboard().id }
     public var inputMethodNameOrLayout: String {
         inputMethodName.trimmingCharacters(in: .whitespaces).isEmpty
             ? layout.userTitle : inputMethodName
     }
 
     public func keyboard() -> UserKeyboard {
-        UserKeyboard(inputMethodID: inputMethodID, inputMethodName: inputMethodName, layout: layout)
+        UserKeyboard(
+            inputMethodID: inputMethodID, inputMethodName: inputMethodName, layout: layout, board: board)
     }
 }
 
