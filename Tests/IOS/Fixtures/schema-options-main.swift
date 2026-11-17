@@ -97,5 +97,54 @@ import Foundation
         ) { $0 == "t2s.json" ? "简体输出" : nil }
         try check(defaults.first?.title == "简体输出")
         print("PASS bare simplifier uses librime default t2s.json")
+
+        // The schema's own switches are offered as it words them, except the one the 中/英 key flips.
+        let wubi = SchemaOptionCapabilities.parse(
+            resourceID: "r", schemaID: "wubi86",
+            yaml: """
+                switches:
+                  - name: ascii_mode
+                    reset: 0
+                    states: [ 中文, 西文 ]
+                  - name: full_shape
+                    states: [ 半角, 全角 ]
+                  - name: extended_charset
+                    states: [ 常用, 增廣 ]
+                  - name: ascii_punct
+                    states: [ 。，, ．， ]
+                """
+        ) { _ in nil }
+        try check(wubi.map(\.name) == ["full_shape", "extended_charset", "ascii_punct"])
+        let declared = wubi.filter(\.isDeclared)
+        try check(declared.map(\.name) == ["extended_charset", "ascii_punct"])
+        try check(declared.map { [$0.disabledLabel, $0.enabledLabel] } == [["常用", "增廣"], ["。，", "．，"]])
+        try check(declared.map(\.title) == ["常用 / 增廣", "。， / ．，"])
+        try check(!wubi[0].isDeclared)
+        print("PASS declared switches are offered with their state labels, ascii_mode is not")
+        let own = SchemaOptionCapabilities.parse(
+            resourceID: "r", schemaID: "s",
+            yaml: """
+                switches:
+                  - options: [ pinyin, wubi_form, free ]
+                    states: [ 拼音, 五笔, 自由 ]
+                    reset: 1
+                """
+        ) { _ in nil }
+        try check(own.map(\.name) == ["pinyin", "wubi_form", "free"])
+        try check(own.allSatisfy { $0.isDeclared && $0.choiceGroup == ["pinyin", "wubi_form", "free"] })
+        try check(own.map(\.choiceLabel) == ["拼音", "五笔", "自由"])
+        print("PASS a group of the schema's own becomes one member per option")
+        let bare = SchemaOptionCapabilities.parse(
+            resourceID: "r", schemaID: "s",
+            yaml: """
+                switches:
+                  - name: no_labels
+                  - name: one_label
+                    states: [ 只有一个 ]
+                  - options: [ a, b ]
+                """
+        ) { _ in nil }
+        try check(bare.isEmpty)
+        print("PASS a switch without two labels or a group without labels stays out")
     }
 }

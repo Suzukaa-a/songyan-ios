@@ -431,12 +431,26 @@ enum SchemaOptionCapabilities {
         var result: [EngineOptionDescriptor] = []
         for item in items {
             if let name = field(item, "name") {
-                guard let title = name == "full_shape" ? String(localized: "全角") : conversions[name] else { continue }
+                if name == "full_shape" || driven.contains(name) {
+                    guard let title = name == "full_shape" ? String(localized: "全角") : conversions[name] else {
+                        continue
+                    }
+                    result.append(
+                        .init(
+                            resourceID: resourceID, schemaID: schemaID, name: name,
+                            title: title, disabledLabel: String(localized: "关闭"),
+                            enabledLabel: String(localized: "开启"), declaredConversion: declaredConfigs[name]))
+                    continue
+                }
+                // Any other two-state switch the schema declares is worded by its own state labels. The
+                // 中/英 key already flips `ascii_mode`, so it is not listed.
+                let states = list(item, "states")
+                guard name != "ascii_mode", states.count == 2, states.allSatisfy({ !$0.isEmpty }) else { continue }
                 result.append(
                     .init(
                         resourceID: resourceID, schemaID: schemaID, name: name,
-                        title: title, disabledLabel: String(localized: "关闭"), enabledLabel: String(localized: "开启"),
-                        declaredConversion: declaredConfigs[name]))
+                        title: states.joined(separator: " / "), disabledLabel: states[0], enabledLabel: states[1],
+                        isDeclared: true))
                 continue
             }
             let options = list(item, "options"), labels = list(item, "states")
@@ -444,7 +458,20 @@ enum SchemaOptionCapabilities {
                 Set(options).count == options.count
             else { continue }
             let kinds = options.compactMap { conversions[$0] }
-            guard !kinds.isEmpty,
+            if kinds.isEmpty {
+                // A group of the schema's own: one member per option, worded by its labels.
+                guard !options.contains(where: { driven.contains($0) || $0 == "ascii_mode" }) else { continue }
+                for (index, option) in options.enumerated() {
+                    result.append(
+                        .init(
+                            resourceID: resourceID, schemaID: schemaID, name: option,
+                            title: labels.joined(separator: " / "), disabledLabel: labels[index],
+                            enabledLabel: labels[index], choiceGroup: options, choiceLabel: labels[index],
+                            isDeclared: true))
+                }
+                continue
+            }
+            guard
                 kinds.allSatisfy({ $0 == String(localized: "繁体输出") || $0 == String(localized: "简体输出") }),
                 !options.contains(where: { driven.contains($0) && conversions[$0] == nil })
             else { continue }

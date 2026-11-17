@@ -17,13 +17,17 @@ public struct EngineOptionDescriptor: Identifiable, Equatable, Sendable {
     /// The bundled scheme's script state this member stands for, when the scheme's declaration is
     /// the bundled one; the UI words only these, so a scheme an author words itself is untouched.
     public let knownScriptState: BuiltinScriptState?
+    /// A switch or group the schema declares for itself (`extended_charset`, `ascii_punct`), not one of
+    /// the script, emoji or full-width switches the keyboard words itself.
+    public let isDeclared: Bool
     public var id: String { name }
 
     public init(
         resourceID: String, schemaID: String, name: String, title: String,
         disabledLabel: String, enabledLabel: String,
         choiceGroup: [String] = [], choiceLabel: String? = nil,
-        declaredConversion: String? = nil, knownScriptState: BuiltinScriptState? = nil
+        declaredConversion: String? = nil, knownScriptState: BuiltinScriptState? = nil,
+        isDeclared: Bool = false
     ) {
         self.resourceID = resourceID
         self.schemaID = schemaID
@@ -35,6 +39,7 @@ public struct EngineOptionDescriptor: Identifiable, Equatable, Sendable {
         self.choiceLabel = choiceLabel
         self.declaredConversion = declaredConversion
         self.knownScriptState = knownScriptState
+        self.isDeclared = isDeclared
     }
 }
 

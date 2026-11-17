@@ -214,6 +214,15 @@ extension KeyboardPanelView {
             showsUtilitiesMenu = true
             return
         }
+        if cap.id.hasPrefix("schema-switch:") {
+            let name = String(cap.id.dropFirst("schema-switch:".count))
+            guard
+                let state = controller.options.first(where: { $0.descriptor.name == name && $0.descriptor.isDeclared })
+            else { return }
+            let value = state.descriptor.choiceGroup.isEmpty ? !state.value : true
+            selectionFeedbackAfterEffect { controller.setOption(name, value: value) }
+            return
+        }
         if let other = controller.otherPackageKeyboards.first(where: { $0.id == cap.id }) {
             // Another package reloads the engine: settle the composition first, exactly like a keyboard switch.
             var settled = false
@@ -283,6 +292,21 @@ extension KeyboardPanelView {
                 ?? other.title
             return KeyCap(id: other.id, title: title, subtitle: other.packageName, action: .cycleLayout)
         }
+        // The running input method's own switches sit before the way out of the menu, worded by the
+        // labels its schema declares: a two-state switch shows the state it is in (a tap flips it), a
+        // group of options one entry each.
+        caps += controller.options.filter(\.descriptor.isDeclared).map { state in
+            let descriptor = state.descriptor
+            if descriptor.choiceGroup.isEmpty {
+                return KeyCap(
+                    id: Self.schemaSwitchCapID(descriptor.name),
+                    title: state.value ? descriptor.enabledLabel : descriptor.disabledLabel,
+                    subtitle: nil, action: .cycleLayout)
+            }
+            return KeyCap(
+                id: Self.schemaSwitchCapID(descriptor.name), title: descriptor.choiceLabel ?? descriptor.name,
+                subtitle: state.value ? UserTerminology.userKeyboardCurrent : nil, action: .cycleLayout)
+        }
         caps.append(
             KeyCap(
                 id: moreToolsCapID,
@@ -290,6 +314,8 @@ extension KeyboardPanelView {
                 subtitle: nil, action: .cycleLayout))
         return caps
     }
+
+    static func schemaSwitchCapID(_ name: String) -> String { "schema-switch:\(name)" }
 
     static func userKeyboardCapID(_ keyboard: UserKeyboard) -> String {
         "user-keyboard:\(keyboard.id)"
