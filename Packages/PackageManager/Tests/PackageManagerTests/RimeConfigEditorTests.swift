@@ -104,6 +104,41 @@ final class RimeConfigEditorTests: XCTestCase {
         _ = try await manager.reinstallActivePackage(deploy: Self.deploy())
     }
 
+    /// rime-wanxiang ships `custom/wanxiang.custom.yaml` for the user to copy up; Rime never reads it there.
+    /// Editing it used to save a copy at that path, which every apply then left unused.
+    func testEditingACustomTemplateInASubfolderEditsTheTopLevelFile() async throws {
+        let source = try scheme()
+        try FileManager.default.createDirectory(
+            at: source.appendingPathComponent("custom"), withIntermediateDirectories: true)
+        try Data("patch:\n  menu/page_size: 6\n".utf8).write(
+            to: source.appendingPathComponent("custom/main.custom.yaml"))
+        // The top-level file the package installs holds nothing of its own, as with only generated settings.
+        try Data("patch: {}\n".utf8).write(to: source.appendingPathComponent("main.custom.yaml"))
+        _ = try await manager.installSchemeImport(
+            try manager.prepareSchemeImport(directory: source), deploy: Self.deploy())
+        // A copy an earlier version made at the template's path is where the user's text starts from.
+        try write("patch:\n  menu/page_size: 9\n", "custom/main.custom.yaml")
+
+        let opened = try await manager.openRimeConfigFile("custom/main.custom.yaml")
+        XCTAssertEqual(opened.path, "main.custom.yaml")
+        XCTAssertEqual(opened.text, "patch:\n  menu/page_size: 9\n")
+        let saved = try await manager.saveRimeConfigFile(
+            "custom/main.custom.yaml", text: "patch:\n  menu/page_size: 8\n")
+        XCTAssertEqual(saved, .saved)
+        XCTAssertFalse(
+            FileManager.default.fileExists(atPath: folder.appendingPathComponent("custom/main.custom.yaml").path))
+        _ = try await manager.reinstallActivePackage(deploy: Self.deploy())
+
+        let user = try await active().userDataURL
+        XCTAssertEqual(
+            try String(contentsOf: user.appendingPathComponent("main.custom.yaml"), encoding: .utf8),
+            "patch:\n  menu/page_size: 8\n")
+        let unused = try await manager.unusedRimeConfigFiles()
+        XCTAssertEqual(unused, [])
+        let reopened = try await manager.openRimeConfigFile("custom/main.custom.yaml")
+        XCTAssertEqual(reopened.text, "patch:\n  menu/page_size: 8\n")
+    }
+
     func testEditingAPackageFileMakesACopyAndLeavesThePackageAlone() async throws {
         try await install()
         let opened = try await manager.openRimeConfigFile("main.schema.yaml")

@@ -69,6 +69,16 @@ public enum RimeConfigEditor {
         path.hasSuffix(".lua") || (path.hasSuffix(".yaml") && !UserScripts.components(path, Data(text.utf8)).isEmpty)
     }
 
+    /// The file the editor works on for `path`. Rime reads `<id>.custom.yaml` only at the top of the user
+    /// folder; a package's copy in a subfolder (rime-wanxiang's `custom/`) is a template to copy up, so
+    /// editing it edits the top-level file.
+    public static func editedPath(_ path: String) -> String {
+        guard path.contains("/"), path.hasSuffix(".custom.yaml"),
+            let name = path.split(separator: "/").last.map(String.init), UserConfigFiles.isCreatableName(name)
+        else { return path }
+        return name
+    }
+
     static func message(_ error: UserConfigError) -> String {
         error.errorDescription ?? PackageText.string("rimeConfig.error.saveFallback")
     }
@@ -164,10 +174,31 @@ extension RecipePackageManager {
     /// patches stay in memory until saved so reading settings does not pin source defaults.
     /// With `grammarExample` the text ends with commented-out
     /// grammar model parameters unless it has some; nothing of that is written before a save.
-    public func openRimeConfigFile(_ path: String, grammarExample: Bool = false) throws -> RimeConfigText {
+    public func openRimeConfigFile(_ requested: String, grammarExample: Bool = false) throws -> RimeConfigText {
+        let path = RimeConfigEditor.editedPath(requested)
         guard let context = try rimeConfigContext() else { throw UserConfigError(path, .name) }
         let text: String
-        if let existing = context.overrides.overrideFile(path) {
+        // A top-level file with nothing of the user's yet, and none of the package's own lines (at most the
+        // app's generated settings), starts from the template: the user's earlier copy of it, else the package's.
+        let packageLines =
+            context.package.hashes[path] != nil
+            && !(context.package.read(path).map { RimeConfigFolder.isUnmodifiedCustom(path, data: $0) } ?? true)
+        if path != requested, context.overrides.overrideFile(path) == nil, !packageLines {
+            let template: String
+            if let copy = context.overrides.overrideFile(requested) {
+                template = try Self.rimeConfigText(copy, requested)
+            } else if context.package.hashes[requested] != nil {
+                guard let data = context.package.read(requested) else { throw UserConfigError(requested, .notText) }
+                guard data.count <= UserConfigFiles.maximumFileBytes else {
+                    throw UserConfigError(requested, .tooLarge)
+                }
+                guard let decoded = UserConfigFiles.decode(data) else { throw UserConfigError(requested, .notText) }
+                template = decoded.hasPrefix("\u{FEFF}") ? String(decoded.dropFirst()) : decoded
+            } else {
+                throw UserConfigError(requested, .name)
+            }
+            text = Self.editableCustomText(template)
+        } else if let existing = context.overrides.overrideFile(path) {
             let loaded = try Self.rimeConfigText(existing, path)
             text = path.hasSuffix(".custom.yaml") ? Self.editableCustomText(loaded) : loaded
             // A file the user's copy shadows keeps its base from the first edit; one made before the marks existed gets it now.
@@ -203,7 +234,8 @@ extension RecipePackageManager {
     }
 
     /// Saves `text` as the user's file at `path` when it passes the checks every file of the folder passes.
-    public func saveRimeConfigFile(_ path: String, text: String) throws -> RimeConfigSave {
+    public func saveRimeConfigFile(_ requested: String, text: String) throws -> RimeConfigSave {
+        let path = RimeConfigEditor.editedPath(requested)
         guard let context = try rimeConfigContext() else {
             return .refused(PackageText.string("rimeConfig.error.saveUnavailable"))
         }
@@ -227,6 +259,8 @@ extension RecipePackageManager {
             at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
         try data.write(to: target, options: .atomic)
         if context.package.hashes[path] != nil { context.overrides.recordBase(path, package: context.package) }
+        // The user's copy of the template was only a starting point, which Rime never read.
+        if path != requested { _ = try? context.overrides.restore(requested) }
         return .saved
     }
 

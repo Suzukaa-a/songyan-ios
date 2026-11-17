@@ -355,7 +355,9 @@ private struct RimePackageFileView: View {
         .navigationTitle((path as NSString).lastPathComponent)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            Button(String(localized: "修改")) { editing = RimeEditRoute(packageID: packageID, path: path, title: path) }
+            Button(String(localized: "修改")) {
+                editing = RimeEditRoute(packageID: packageID, path: path, title: RimeConfigEditor.editedPath(path))
+            }
         }
         .navigationDestination(item: $editing) { RimeFileEditorView(route: $0, model: model) }
         .task {
