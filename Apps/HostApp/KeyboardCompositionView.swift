@@ -156,6 +156,22 @@ extension HostLayoutAvailability {
         return rest + [keys26].compactMap { $0 }
     }
 
+    /// The name a keyboard that is not added yet goes by in a list of choices: its layout's name, where a
+    /// generated layout not in the catalog yet is named as it will be stored.
+    static func choiceTitle(
+        _ keyboard: PublishedKeyboard, descriptors: [KeyboardSchemaDescriptor], in registry: LayoutRegistry
+    ) -> String {
+        let id = keyboard.board ?? ""
+        if registry.resolvedLayout(id: id) == nil,
+            let generated = generatedDefinition(layoutID: id, schemaID: keyboard.schemaID, descriptors: descriptors)
+        {
+            return generated.name
+        }
+        return layoutName(
+            schemaID: keyboard.schemaID, layout: keyboard.layout, board: keyboard.board,
+            descriptors: descriptors, in: registry) ?? UserTerminology.layoutName(keyboard.layout)
+    }
+
     /// The layout a generated keyboard types on, made from its scheme's profile; nil when the scheme
     /// has none or the id is not one of its generated layouts.
     static func generatedDefinition(

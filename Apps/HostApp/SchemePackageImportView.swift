@@ -303,13 +303,16 @@ struct SchemePackageImportView: View {
             if let packageID = center.lastInstalledPackageID {
                 if switcher.phase == .done(packageID) {
                     Text(UserTerminology.statusInUse).foregroundStyle(.green)
+                    RefusedKeyboardRows(switcher: switcher)
                     NavigationLink(UserTerminology.userKeyboard) {
                         UserKeyboardManagementView(source: .active)
                     }
                 } else {
                     UseInputSchemeRows(
                         switcher: switcher, packageID: packageID, title: String(localized: "开始使用"),
-                        disabled: center.busy)
+                        disabled: center.busy,
+                        // An update of a package in use keeps its keyboards; only a first install asks.
+                        offersKeyboards: !(isInstalledMode || center.lastInstallReplacedVersion))
                     Text("轻点「开始使用」，键盘会换成这个输入方案。")
                         .font(.footnote).foregroundStyle(.secondary)
                 }

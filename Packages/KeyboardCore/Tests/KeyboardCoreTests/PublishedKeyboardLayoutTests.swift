@@ -23,6 +23,23 @@ final class PublishedKeyboardLayoutTests: XCTestCase {
         XCTAssertEqual(PublishedKeyboard.generationTasks(for: folded), [folded[0]])
     }
 
+    func testARefusedFoldIsLeftOutAndTheRestStillGoIn() {
+        let plain = PublishedKeyboard(schemaID: "pinyin", layout: .qwerty26, board: "qwerty26")
+        let nine = PublishedKeyboard(schemaID: "pinyin", layout: .phone9, board: "phone9")
+        let fourteen = PublishedKeyboard(schemaID: "pinyin", layout: .merged14, board: "merged14")
+        let kept = PublishedKeyboard.withoutRefused(
+            roster: [plain, nine, fourteen], selection: plain, refused: [nine])
+        XCTAssertEqual(kept?.roster, [plain, fourteen])
+        XCTAssertEqual(kept?.selection, plain)
+        // A refused keyboard in use hands over to the first one left.
+        let moved = PublishedKeyboard.withoutRefused(
+            roster: [nine, plain], selection: nine, refused: [nine])
+        XCTAssertEqual(moved?.roster, [plain])
+        XCTAssertEqual(moved?.selection, plain)
+        // Nothing left to publish.
+        XCTAssertNil(PublishedKeyboard.withoutRefused(roster: [nine], selection: nine, refused: [nine]))
+    }
+
     func testTheIDReadsBack() {
         for keyboard in [
             PublishedKeyboard(schemaID: "pinyin", layout: .merged14),

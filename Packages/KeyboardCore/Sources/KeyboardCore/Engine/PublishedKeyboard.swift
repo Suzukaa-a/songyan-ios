@@ -143,6 +143,18 @@ public extension PublishedKeyboard {
         return ([start], start)
     }
 
+    /// The roster and the keyboard in use once the keyboards a deployment could not make are left
+    /// out: the rest still go in, and a refused selection moves to the first one left. nil when
+    /// nothing is left.
+    static func withoutRefused(
+        roster: [PublishedKeyboard], selection: PublishedKeyboard?, refused: [PublishedKeyboard]
+    ) -> (roster: [PublishedKeyboard], selection: PublishedKeyboard?)? {
+        let kept = roster.filter { !refused.contains($0) }
+        guard let first = kept.first else { return nil }
+        guard let selection, kept.contains(selection) else { return (kept, selection == nil ? nil : first) }
+        return (kept, selection)
+    }
+
     /// Adapter generation tasks (deduplicated, ordered): compact-layout combinations only.
     /// 26-key combinations need no generation and are excluded.
     static func generationTasks(for requested: [PublishedKeyboard]) -> [PublishedKeyboard] {

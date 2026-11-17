@@ -30,6 +30,10 @@ struct SchemePackageDetailView: View {
     @State private var confirmsDeletion = false
     /// Addable "input method x keyboard layout" pairs (same source as "My keyboards").
     @State private var addableKeyboards: Set<PublishedKeyboard> = []
+    /// The keyboards added for this package and the publication they were read from.
+    @State private var viewedKeyboards: UserKeyboardPublicationView?
+    @State private var addingKeyboard = false
+    @State private var addFailure: String?
     /// Raw delete/operation error: shown only under developer options (the normal flow gets user-facing text only).
     @State private var rawOperationError: String?
     /// The real stage classification of a failure (the failure page describes the status from it; never claims "unchanged" across the board).
@@ -126,6 +130,7 @@ struct SchemePackageDetailView: View {
             await center.recoverInterruptedDeletions()
             await center.refresh()
             addableKeyboards = Set((try? await center.addableKeyboards(packageID: packageID)) ?? [])
+            viewedKeyboards = try? await SourcePublishedKeyboardProvider(source: .package(packageID)).snapshot()
             await reloadSelection()
         }
         .onChange(of: center.selectionRevision) { _, _ in refreshTick &+= 1 }
@@ -307,7 +312,7 @@ struct SchemePackageDetailView: View {
                 Text(UserTerminology.statusNotApplied)
                 UseInputSchemeRows(
                     switcher: switcher, packageID: packageID, title: UserTerminology.useThisInputScheme,
-                    disabled: center.busy || selectionCenter.isBusy)
+                    disabled: center.busy || selectionCenter.isBusy, offersKeyboards: true)
             }
             if developerOptions {
                 LabeledRow(
@@ -333,6 +338,10 @@ struct SchemePackageDetailView: View {
             let current = currentSchemaID
             ForEach(item.schemas.filter { $0.id == current } + item.schemas.filter { $0.id != current }) { schema in
                 schemaRow(item, schema)
+            }
+            if let addFailure {
+                Label(addFailure, systemImage: "exclamationmark.triangle")
+                    .font(.footnote).foregroundStyle(.orange)
             }
             if !item.sourceSchemas.isEmpty, developerOptions {
                 DisclosureGroup(String(localized: "未启用（\(item.sourceSchemas.count)）")) {
@@ -370,10 +379,16 @@ struct SchemePackageDetailView: View {
                 let names = HostLayoutAvailability.keyboardNames(
                     for: layouts.map { PublishedKeyboard(schemaID: schema.id, layout: $0) },
                     descriptors: item.schemas, in: LayoutManager.shared.registry)
-                if let line = UserTerminology.keyboardLayoutLine(names) {
+                // What this input method has as keyboards; before any are added, what it could be given.
+                let own = (viewedKeyboards?.roster ?? []).filter { $0.schemaID == schema.id }
+                let ownNames = own.map {
+                    HostLayoutAvailability.choiceTitle($0, descriptors: item.schemas, in: LayoutManager.shared.registry)
+                }
+                if let line = UserTerminology.keyboardLayoutLine(own.isEmpty ? names : ownNames) {
                     Text(line)
                         .font(.caption).foregroundStyle(.secondary)
                 }
+                addKeyboardMenu(item, schema)
                 if developerOptions {
                     Text(schema.id)
                         .font(.caption.monospaced()).foregroundStyle(.secondary)
@@ -388,6 +403,52 @@ struct SchemePackageDetailView: View {
         }
         .padding(.vertical, 2)
         .accessibilityElement(children: .combine)
+    }
+
+    /// 添加键盘: the layouts this input method could still be given, each added with the keyboards it has.
+    @ViewBuilder
+    private func addKeyboardMenu(
+        _ item: SchemeImportCenter.InstalledPackage, _ schema: KeyboardSchemaDescriptor
+    ) -> some View {
+        let registry = LayoutManager.shared.registry
+        let added = Set((viewedKeyboards?.roster ?? []).map(\.id))
+        let options = HostLayoutAvailability.applicableLayouts(
+            schemaID: schema.id, shapes: addableKeyboards.filter { $0.schemaID == schema.id }.map(\.layout),
+            descriptors: item.schemas, in: registry
+        ).map { PublishedKeyboard(schemaID: schema.id, layout: $0.shape, board: $0.layoutID) }
+            .filter { !added.contains($0.id) }
+        if !options.isEmpty, viewedKeyboards != nil {
+            Menu {
+                ForEach(options) { keyboard in
+                    Button(HostLayoutAvailability.choiceTitle(keyboard, descriptors: item.schemas, in: registry)) {
+                        addKeyboard(keyboard)
+                    }
+                }
+            } label: {
+                Text("添加键盘").font(.caption)
+            }
+            .disabled(center.busy || addingKeyboard)
+        }
+    }
+
+    private func addKeyboard(_ keyboard: PublishedKeyboard) {
+        guard let viewed = viewedKeyboards, !addingKeyboard else { return }
+        addingKeyboard = true
+        addFailure = nil
+        Task { @MainActor in
+            defer { addingKeyboard = false }
+            do {
+                _ = try await center.performReplaceKeyboards(
+                    packageID: packageID, requested: viewed.roster + [keyboard],
+                    viewedActivation: viewed.activation, viewedRoster: viewed.roster,
+                    viewedSourceKey: viewed.sourceKey)
+            } catch {
+                addFailure = UserTerminology.userKeyboardFailureMessage(
+                    error, fallback: String(localized: "无法确认结果，请重新读取后重试。"))
+            }
+            viewedKeyboards = try? await SourcePublishedKeyboardProvider(source: .package(packageID)).snapshot()
+            refreshTick &+= 1
+        }
     }
 
     /// Human-readable name of an input method.
@@ -568,8 +629,27 @@ struct SchemePackageDetailView: View {
     }
 }
 
+/// One keyboard the install picker offers: an input method on one layout.
+struct KeyboardChoice: Identifiable, Equatable {
+    let keyboard: PublishedKeyboard
+    let title: String
+    let missingCodes: [String]
+    var id: String { keyboard.id }
+}
+
+/// The keyboards one input method of a package could be given.
+struct KeyboardChoiceGroup: Identifiable, Equatable {
+    let id: String
+    let name: String
+    let choices: [KeyboardChoice]
+    /// Its speller could not be read, so some of its codes may be missing from every layout.
+    let unknownCodes: Bool
+}
+
 /// One attempt to switch the keyboard to an input scheme: progress, the failure text, and which scheme
 /// it last switched to (the install result card shows that before the shared selection is read again).
+/// For a package nobody chose keyboards for yet it also holds the picker: every layout each of its input
+/// methods could have, with the first one of each ticked.
 @MainActor
 final class InputSchemeSwitch: ObservableObject {
     enum Phase: Equatable {
@@ -579,14 +659,69 @@ final class InputSchemeSwitch: ObservableObject {
     }
 
     @Published private(set) var phase: Phase = .idle
+    @Published private(set) var groups: [KeyboardChoiceGroup] = []
+    @Published var checked: Set<String> = []
+    /// Keyboards the engine could not make on the last use; they were left out.
+    @Published private(set) var refused: [KeyboardChoice] = []
 
     var isWorking: Bool { phase == .working }
 
+    /// The ticked keyboards in the order the picker lists them.
+    var chosen: [KeyboardChoice] { groups.flatMap(\.choices).filter { checked.contains($0.id) } }
+
+    /// Whether the ticked keyboards need engine data made for them first.
+    var needsPreparation: Bool { chosen.contains { $0.keyboard.needsGeneratedAdapter } }
+
+    /// Reads what the package could offer. Nothing is offered once it has keyboards of its own.
+    func loadChoices(packageID: String, center: SchemeImportCenter = .shared) async {
+        guard let viewed = try? await SourcePublishedKeyboardProvider(source: .package(packageID)).snapshot(),
+            viewed.roster.isEmpty, let resources = try? await center.keyboardResources(packageID: packageID)
+        else {
+            groups = []
+            return
+        }
+        let addable = (try? await center.addableKeyboards(packageID: packageID)) ?? []
+        let registry = LayoutManager.shared.registry
+        var result: [KeyboardChoiceGroup] = []
+        for schema in resources.inputSchemeChoices {
+            let applicable = HostLayoutAvailability.applicableLayouts(
+                schemaID: schema.id, shapes: addable.filter { $0.schemaID == schema.id }.map(\.layout),
+                descriptors: resources.schemas, in: registry)
+            let choices = applicable.map { layout in
+                let keyboard = PublishedKeyboard(schemaID: schema.id, layout: layout.shape, board: layout.layoutID)
+                return KeyboardChoice(
+                    keyboard: keyboard,
+                    title: HostLayoutAvailability.choiceTitle(
+                        keyboard, descriptors: resources.schemas, in: registry),
+                    missingCodes: layout.missingCodes)
+            }
+            guard !choices.isEmpty else { continue }
+            result.append(
+                KeyboardChoiceGroup(
+                    id: schema.id, name: UserTerminology.inputMethodName(schema), choices: choices,
+                    unknownCodes: schema.profile?.kind == .unknown))
+        }
+        groups = result
+        checked = Set(result.compactMap { $0.choices.first?.id })
+    }
+
+    func toggle(_ choice: KeyboardChoice) {
+        if checked.contains(choice.id) { checked.remove(choice.id) } else { checked.insert(choice.id) }
+    }
+
     func use(packageID: String, center: SchemeImportCenter = .shared) async {
         guard !isWorking else { return }
+        let picked = chosen
+        guard groups.isEmpty || !picked.isEmpty else { return }
         phase = .working
+        refused = []
         do {
-            try await center.useInputScheme(packageID: packageID)
+            if picked.isEmpty {
+                try await center.useInputScheme(packageID: packageID)
+            } else {
+                let outcome = try await center.useInputScheme(packageID: packageID, keyboards: picked.map(\.keyboard))
+                refused = picked.filter { outcome.refused.contains($0.keyboard) }
+            }
             phase = .done(packageID)
         } catch {
             HostLog.append("use input scheme failed: \(error.localizedDescription)")
@@ -597,22 +732,80 @@ final class InputSchemeSwitch: ObservableObject {
     }
 }
 
-/// The switch button with its progress and failure text, as rows of the section it sits in.
+/// The switch button with its progress and failure text, as rows of the section it sits in. With
+/// `offersKeyboards` a package nobody chose keyboards for lists them first, to tick.
 struct UseInputSchemeRows: View {
     @ObservedObject var switcher: InputSchemeSwitch
     let packageID: String
     let title: String
     let disabled: Bool
+    var offersKeyboards = false
 
     var body: some View {
+        if offersKeyboards, !switcher.groups.isEmpty {
+            Text("选择键盘").font(.subheadline).foregroundStyle(.secondary)
+            ForEach(switcher.groups) { group in
+                KeyboardChoiceRows(switcher: switcher, group: group, disabled: disabled || switcher.isWorking)
+            }
+        }
         if switcher.isWorking {
-            ProgressView(String(localized: "正在切换…"))
+            ProgressView(switcher.needsPreparation ? String(localized: "正在准备…") : String(localized: "正在切换…"))
         } else {
             Button(title) { Task { await switcher.use(packageID: packageID) } }
-                .disabled(disabled)
+                .disabled(disabled || (offersKeyboards && !switcher.groups.isEmpty && switcher.chosen.isEmpty))
         }
         if case .failed(let message) = switcher.phase {
             Label(message, systemImage: "exclamationmark.triangle")
+                .font(.footnote).foregroundStyle(.orange)
+        }
+        RefusedKeyboardRows(switcher: switcher)
+        Color.clear.frame(height: 0)
+            .task(id: packageID) { if offersKeyboards { await switcher.loadChoices(packageID: packageID) } }
+    }
+}
+
+/// One input method of the picker: its layouts as checkboxes.
+struct KeyboardChoiceRows: View {
+    @ObservedObject var switcher: InputSchemeSwitch
+    let group: KeyboardChoiceGroup
+    let disabled: Bool
+
+    var body: some View {
+        Text(group.name).font(.footnote.weight(.semibold))
+        if group.unknownCodes {
+            Text("有些编码键盘上没有，可在键盘布局里补上").font(.footnote).foregroundStyle(.secondary)
+        }
+        ForEach(group.choices) { choice in
+            let ticked = switcher.checked.contains(choice.id)
+            Button {
+                switcher.toggle(choice)
+            } label: {
+                HStack(spacing: 12) {
+                    Image(systemName: ticked ? "checkmark.circle.fill" : "circle")
+                        .foregroundStyle(ticked ? Color.accentColor : Color.secondary)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(choice.title).foregroundStyle(.primary)
+                        if !choice.missingCodes.isEmpty {
+                            Text("键盘上没有这些编码：\(choice.missingCodes.joined(separator: " "))")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+            .disabled(disabled)
+            .accessibilityAddTraits(ticked ? [.isSelected] : [])
+        }
+    }
+}
+
+/// The keyboards the engine could not make, named, after a switch that otherwise went through.
+struct RefusedKeyboardRows: View {
+    @ObservedObject var switcher: InputSchemeSwitch
+
+    var body: some View {
+        ForEach(switcher.refused) { choice in
+            Label(String(localized: "\(choice.title)：这个输入方式用不了这种键盘"), systemImage: "exclamationmark.triangle")
                 .font(.footnote).foregroundStyle(.orange)
         }
     }

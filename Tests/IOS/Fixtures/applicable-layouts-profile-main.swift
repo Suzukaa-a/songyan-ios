@@ -104,5 +104,19 @@ check(
     HostLayoutAvailability.generatedDefinition(layoutID: "qwerty26", schemaID: "wubi86", descriptors: []) == nil,
     "an ordinary layout has no generated definition")
 
+// The install picker ticks the first layout of each input method and titles generated layouts before they exist.
+let descriptors = [KeyboardSchemaDescriptor(id: "wubi86", name: "", profile: wubi)]
+let generatedKeyboard = PublishedKeyboard(schemaID: "wubi86", layout: .qwerty26, board: "auto.wubi86.keys26")
+checkEqual(
+    wubiList.first.map { PublishedKeyboard(schemaID: "wubi86", layout: $0.shape, board: $0.layoutID) },
+    generatedKeyboard, "the picker's default for a shape code scheme is its code board")
+checkEqual(
+    HostLayoutAvailability.choiceTitle(generatedKeyboard, descriptors: descriptors, in: registry),
+    UserTerminology.keys26WithCodesName, "a generated layout not in the catalog yet is titled as it will be stored")
+checkEqual(
+    HostLayoutAvailability.choiceTitle(
+        PublishedKeyboard(schemaID: "wubi86", layout: .qwerty26, board: "mine"), descriptors: descriptors, in: withCopy),
+    "副本", "a copied layout is titled by its saved name")
+
 if failures > 0 { fatalError("\(failures) applicable layout checks failed") }
 print("applicable layout checks passed")

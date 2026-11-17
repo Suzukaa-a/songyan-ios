@@ -13,7 +13,8 @@ extension SchemeImportCenter {
     private func prepareCompactKeyboards(
         packageID id: String, requested: [PublishedKeyboard],
         packageName explicitName: String? = nil,
-        announce: Bool = true
+        announce: Bool = true,
+        refused: RefusedKeyboards? = nil
     ) async throws {
         #if DEBUG
             let preparationStarted = Date()
@@ -86,6 +87,11 @@ extension SchemeImportCenter {
                                 enabledSchemas: enabledSchemas,
                                 requested: combo)
                         else {
+                            // The install picker publishes what could be made and reports the rest.
+                            if let refused {
+                                refused.add(combo)
+                                continue
+                            }
                             throw UserKeyboardPublicationError.unavailable(
                                 UserTerminology.layoutUnavailableReason(combo.layout))
                         }
@@ -98,6 +104,22 @@ extension SchemeImportCenter {
         lastInstalledPackageID = id
         await refresh()
         diagnostics = []
+    }
+
+    /// The requested keyboards a deployment could not make, collected while one roster is prepared.
+    final class RefusedKeyboards: @unchecked Sendable {
+        private let lock = NSLock()
+        private var storage: [PublishedKeyboard] = []
+        var keyboards: [PublishedKeyboard] {
+            lock.lock()
+            defer { lock.unlock() }
+            return storage
+        }
+        func add(_ keyboard: PublishedKeyboard) {
+            lock.lock()
+            defer { lock.unlock() }
+            if !storage.contains(keyboard) { storage.append(keyboard) }
+        }
     }
 
     private static var outdatedAdapterRebuild: Task<Void, Never>?
@@ -282,7 +304,8 @@ extension SchemeImportCenter {
         selecting: PublishedKeyboard? = nil,
         viewedActivation: KeyboardRecipeStore.Activation? = nil,
         viewedRoster: [PublishedKeyboard]? = nil,
-        viewedSourceKey: String? = nil
+        viewedSourceKey: String? = nil,
+        refused: RefusedKeyboards? = nil
     ) async throws
         -> [PublishedKeyboard]
     {
@@ -309,7 +332,7 @@ extension SchemeImportCenter {
             try await publishRoster(
                 packageID: packageID, roster: list,
                 selection: selecting ?? selected.flatMap { list.contains($0) ? $0 : nil } ?? list.first,
-                prepare: true, added: nil, baseline: baseline)
+                prepare: true, added: nil, baseline: baseline, refused: refused)
             return list
         }
     }
@@ -338,6 +361,24 @@ extension SchemeImportCenter {
         return target.selection
     }
 
+    /// Switches the keyboard to this input scheme with the keyboards the user ticked when its install
+    /// finished (or on its detail page), the first one in use. A folded keyboard the engine could not
+    /// make is left out and returned, so the rest still go in.
+    func useInputScheme(
+        packageID: String, keyboards: [PublishedKeyboard]
+    ) async throws -> (used: PublishedKeyboard, refused: [PublishedKeyboard]) {
+        guard !busy else { throw UserKeyboardPublicationError.busy }
+        guard let first = keyboards.first else { throw UserKeyboardPublicationError.noAddableKeyboards }
+        let viewed = try await SourcePublishedKeyboardProvider(source: .package(packageID)).snapshot()
+        let refused = RefusedKeyboards()
+        _ = try await performReplaceKeyboards(
+            packageID: packageID, requested: keyboards, selecting: first,
+            viewedActivation: viewed.activation, viewedRoster: viewed.roster, viewedSourceKey: viewed.sourceKey,
+            refused: refused)
+        let dropped = refused.keyboards
+        return (keyboards.first { !dropped.contains($0) } ?? first, dropped)
+    }
+
     private static let keepOneKeyboard = UserKeyboardPublicationError.unavailable(
         String(localized: "请至少保留一个键盘。如需停用整个方案，请直接删除该输入方案。"))
 
@@ -358,15 +399,29 @@ extension SchemeImportCenter {
     /// for `roster`, whose deployment proves every requested pair; a pair published without that
     /// (`added`, 26-key) is checked against the installed resources instead.
     private func publishRoster(
-        packageID: String, roster: [PublishedKeyboard], selection: PublishedKeyboard?,
+        packageID: String, roster requested: [PublishedKeyboard], selection requestedSelection: PublishedKeyboard?,
         prepare: Bool, added: PublishedKeyboard?,
-        baseline: KeyboardRecipeStore.PublishBaseline, preservingSelection: Bool = false
+        baseline: KeyboardRecipeStore.PublishBaseline, preservingSelection: Bool = false,
+        refused: RefusedKeyboards? = nil
     ) async throws {
+        var plan = (roster: requested, selection: requestedSelection)
         if prepare {
             try await prepareCompactKeyboards(
-                packageID: packageID, requested: roster,
-                packageName: installedPackages.first { $0.id == packageID }?.name)
+                packageID: packageID, requested: requested,
+                packageName: installedPackages.first { $0.id == packageID }?.name, refused: refused)
+            if let dropped = refused?.keyboards, !dropped.isEmpty {
+                guard
+                    let kept = PublishedKeyboard.withoutRefused(
+                        roster: requested, selection: requestedSelection, refused: dropped)
+                else {
+                    throw UserKeyboardPublicationError.unavailable(
+                        UserTerminology.layoutUnavailableReason(dropped[0].layout))
+                }
+                plan = kept
+            }
         }
+        let roster = plan.roster
+        let selection = plan.selection
         let resources = try await keyboardResources(packageID: packageID)
         if !prepare, let added {
             guard resources.schemas.contains(where: { $0.id == added.schemaID }) else {

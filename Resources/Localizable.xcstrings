@@ -38369,24 +38369,46 @@
         }
       }
     },
-    "这个输入方式用不了这种键盘": {
+    "选择键盘": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "这个输入方式用不了这种键盘"
+            "value": "选择键盘"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "這個輸入方式用不了這種鍵盤"
+            "value": "選擇鍵盤"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "この入力方式ではこのキーボードを使えません"
+            "value": "キーボードを選ぶ"
+          }
+        }
+      }
+    },
+    "%@：这个输入方式用不了这种键盘": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@：这个输入方式用不了这种键盘"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@：這個輸入方式用不了這種鍵盤"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@：この入力方式ではこのキーボードを使えません"
           }
         }
       }
