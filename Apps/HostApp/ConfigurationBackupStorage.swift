@@ -257,6 +257,8 @@ enum ConfigurationBackupStorage {
     static func recoverInterruptedRestore() throws {
         try ConfigurationRestoreTransaction.recover(journalURL: journal, destinations: destinations())
         try applyRestoredPreferences()
+        // A backup from an earlier version brings back the one folder every package shared.
+        HostStorePaths.migrateRimeConfig()
     }
 
     static func restore(_ prepared: PreparedConfigurationBackup) throws {
@@ -321,6 +323,7 @@ enum ConfigurationBackupStorage {
             try ConfigurationRestoreTransaction.install(replacements, journalURL: journal)
         }
         try applyRestoredPreferences()
+        HostStorePaths.migrateRimeConfig()
     }
 
     private static func preferenceValues(_ file: URL) throws -> [String: Any] {

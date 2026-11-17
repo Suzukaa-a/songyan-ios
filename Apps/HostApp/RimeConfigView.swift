@@ -14,6 +14,8 @@ final class RimeConfigModel: ObservableObject {
     }
 
     @Published private(set) var packageID: String?
+    /// The name of the folder in 「Rime 配置」 that holds the files of the scheme in use.
+    @Published private(set) var folderName: String?
     @Published private(set) var overview: RimeConfigOverview?
     @Published private(set) var applying = false
     @Published var result: String?
@@ -40,10 +42,19 @@ final class RimeConfigModel: ObservableObject {
     func refresh() async {
         guard let target = await center.rimeConfigTarget() else {
             packageID = nil
+            folderName = nil
             overview = nil
             return
         }
         packageID = target.packageID
+        // Each scheme has its own folder; it must exist before the user looks for it in the Files app.
+        folderName = await Task.detached { [packageID = target.packageID] () -> String? in
+            let scopes = HostStorePaths.rimeConfigScopes
+            guard let name = scopes.folderName(packageID) else { return nil }
+            try? FileManager.default.createDirectory(
+                at: scopes.root.appendingPathComponent(name, isDirectory: true), withIntermediateDirectories: true)
+            return name
+        }.value
         overview = try? await target.manager.rimeConfigOverview()
     }
 
@@ -187,7 +198,15 @@ struct RimeConfigRows: View {
         } header: {
             Text("Rime 配置")
         } footer: {
-            Text("用 xxx.custom.yaml 等文件修改输入方案，和电脑上的 Rime 一样。文件在「文件」App 的「我的 iPhone › 松烟 › Rime 配置」里，改完轻点「应用更改」才会生效。")
+            if let folder = model.folderName {
+                Text(
+                    "用 xxx.custom.yaml 等文件修改正在使用的输入方案，和电脑上的 Rime 一样。文件在「文件」App 的「我的 iPhone › 松烟 › Rime 配置 › \(folder)」里，改完轻点「应用更改」才会生效。"
+                )
+            } else {
+                Text(
+                    "用 xxx.custom.yaml 等文件修改输入方案，和电脑上的 Rime 一样。文件在「文件」App 的「我的 iPhone › 松烟 › Rime 配置」里，改完轻点「应用更改」才会生效。"
+                )
+            }
         }
         if let overview = model.overview, !overview.overrides.isEmpty {
             Section(String(localized: "改过的文件")) {

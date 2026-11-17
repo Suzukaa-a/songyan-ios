@@ -273,11 +273,14 @@ final class SchemeImportCenter: ObservableObject {
     }
     static var storeRoot: URL { HostStorePaths.applicationSupport.appendingPathComponent("SchemePackages") }
     func manager(_ id: String) -> RecipePackageManager {
-        RecipePackageManager(
-            rootURL: Self.storeRoot.appendingPathComponent(id),
+        let store = Self.storeRoot.appendingPathComponent(id)
+        // Each package reads only its own folder of the user's Rime files.
+        let config = HostStorePaths.rimeConfig(id: id, store: store)
+        return RecipePackageManager(
+            rootURL: store,
             sharedOpenCCDirectory: Bundle.main.url(
                 forResource: "opencc", withExtension: nil, subdirectory: "EngineResources"),
-            userConfigDirectory: HostStorePaths.rimeConfig, userConfigStateDirectory: HostStorePaths.rimeConfigState)
+            userConfigDirectory: config.folder, userConfigStateDirectory: config.state)
     }
 
     /// An installed package's quiescent workspace captured for recipe planning: the effective

@@ -63,9 +63,9 @@ final class DictionaryImportCenter: ObservableObject {
     private init() {
         let downloads = Downloads()
         self.downloads = downloads
+        let config = HostStorePaths.rimeConfig(id: HostStorePaths.dictionaryRimeConfigID, store: Self.storeRoot)
         manager = RecipePackageManager(
-            rootURL: Self.storeRoot, userConfigDirectory: HostStorePaths.rimeConfig,
-            userConfigStateDirectory: HostStorePaths.rimeConfigState
+            rootURL: Self.storeRoot, userConfigDirectory: config.folder, userConfigStateDirectory: config.state
         ) {
             try await downloads.read($0)
         }

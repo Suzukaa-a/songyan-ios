@@ -319,9 +319,11 @@ enum ConfigurationDependencyRestorer {
         _ dictionary: ConfigurationBackupDependencies.Dictionary, selection: KeyboardRecipeStore.Activation?
     ) async throws {
         let directory = ConfigurationBackupDependencies.pendingDirectory
+        let config = HostStorePaths.rimeConfig(
+            id: HostStorePaths.dictionaryRimeConfigID, store: DictionaryImportCenter.storeRoot)
         let manager = RecipePackageManager(
             rootURL: DictionaryImportCenter.storeRoot,
-            userConfigDirectory: HostStorePaths.rimeConfig, userConfigStateDirectory: HostStorePaths.rimeConfigState)
+            userConfigDirectory: config.folder, userConfigStateDirectory: config.state)
         let sources = dictionary.sources.map { source in
             DictionaryImportFile(
                 path: source.path, location: source.url ?? directory.appendingPathComponent("dictionary/" + source.path)

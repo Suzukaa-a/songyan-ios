@@ -20,6 +20,57 @@ enum HostStorePaths {
     static var rimeConfigState: URL {
         applicationSupport.appendingPathComponent("RimeConfigState", isDirectory: true)
     }
+    nonisolated static var rimeConfigScopes: RimeConfigScopes {
+        RimeConfigScopes(root: rimeConfig, state: rimeConfigState)
+    }
+    /// Whose folder holds the user's Rime files for the imported dictionary's input methods.
+    nonisolated static let dictionaryRimeConfigID = "user-pinyin"
+
+    /// The folder of the user's Rime files for the package `id` installed in `store`, and its private
+    /// state. A package that is not installed and never had a folder gets none.
+    nonisolated static func rimeConfig(id: String, store: URL) -> (folder: URL?, state: URL) {
+        let scopes = rimeConfigScopes
+        let folder = try? scopes.folder(id) { rimeConfigName(id: id, store: store) }
+        return (folder ?? nil, scopes.stateDirectory(id))
+    }
+
+    /// The name of the package installed in `store`, for its folder; nil when nothing is installed there.
+    nonisolated private static func rimeConfigName(id: String, store: URL) -> String? {
+        guard let installed = RimeConfigScopes.installedRecipient(store: store) else { return nil }
+        if let name = installed.declaredName { return name }
+        struct Summary: Decodable { let name: String }
+        if let generation = installed.generation,
+            let data = try? Data(
+                contentsOf: store.appendingPathComponent("versions/\(generation)/resources/host-import-summary.json")),
+            let summary = try? JSONDecoder().decode(Summary.self, from: data), !summary.name.isEmpty
+        {
+            return summary.name
+        }
+        return id
+    }
+
+    /// Earlier versions kept one folder every package read; each installed package gets its own copy of it.
+    /// Runs before any package manager reads a folder: at launch and after a backup is restored.
+    nonisolated static func migrateRimeConfig() {
+        let scopes = rimeConfigScopes
+        guard scopes.needsMigration() else { return }
+        let schemes = applicationSupport.appendingPathComponent("SchemePackages", isDirectory: true)
+        let dictionary = applicationSupport.appendingPathComponent("DictionaryImportStore", isDirectory: true)
+        var recipients: [RimeConfigScopes.Recipient] = []
+        for slot in (try? FileManager.default.contentsOfDirectory(atPath: schemes.path)) ?? []
+        where PublishedKeyboardSourceKey.validPackageID(slot) && !slot.hasPrefix(".") {
+            let store = schemes.appendingPathComponent(slot, isDirectory: true)
+            if let name = rimeConfigName(id: slot, store: store) { recipients.append(.init(id: slot, name: name)) }
+        }
+        if let name = rimeConfigName(id: dictionaryRimeConfigID, store: dictionary) {
+            recipients.append(.init(id: dictionaryRimeConfigID, name: name))
+        }
+        do {
+            try scopes.migrate(recipients: recipients)
+        } catch {
+            HostLog.append("rime config migration failed: \(error.localizedDescription)")
+        }
+    }
 }
 
 extension HostStorePaths {

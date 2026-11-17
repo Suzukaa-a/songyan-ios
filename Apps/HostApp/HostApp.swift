@@ -26,6 +26,8 @@ struct HostApp: App {
     init() {
         // Candidate renderer registration (source-level extension point; the default renderer is the production rendering path).
         CandidateRenders.installDefault()
+        // Before anything opens a package: older versions kept one Rime config folder for all of them.
+        HostStorePaths.migrateRimeConfig()
         ConfigurationBackupModel.registerBackgroundTask()
         #if DEBUG
             DebugProbe.reportEnvironment(role: "hostApp")

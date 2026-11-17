@@ -8383,6 +8383,28 @@
         }
       }
     },
+    "用 xxx.custom.yaml 等文件修改正在使用的输入方案，和电脑上的 Rime 一样。文件在「文件」App 的「我的 iPhone › 松烟 › Rime 配置 › %@」里，改完轻点「应用更改」才会生效。": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "xxx.custom.yaml などのファイルで使用中の入力パックを変更します。パソコンの Rime と同じです。ファイルは「ファイル」App の「このiPhone内 › 松煙 › Rime 設定 › %@」にあり、変更後に「変更を適用」をタップすると反映されます。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "用 xxx.custom.yaml 等文件修改正在使用的输入方案，和电脑上的 Rime 一样。文件在「文件」App 的「我的 iPhone › 松烟 › Rime 配置 › %@」里，改完轻点「应用更改」才会生效。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "用 xxx.custom.yaml 等檔案修改正在使用的輸入方案，和電腦上的 Rime 一樣。檔案在「檔案」App 的「我的 iPhone › 松煙 › Rime 配置 › %@」裡，改完點一下「應用更改」才會生效。"
+          }
+        }
+      }
+    },
     "改过的文件": {
       "localizations": {
         "zh-Hans": {
