@@ -130,5 +130,39 @@ done <"${HERE}/address-cases.txt"
 
 expect_exit 0 "header help" "${BIN}" --help
 
+# Every example in a platform's final AI guide must import on that platform: iOS ships
+# ai-guide.txt alone and offers text only; Android appends ai-guide-audio.txt and offers audio too.
+# An example starts at a "// @api" line and runs to the next blank line.
+check_guide() {
+  local platform="$1" capabilities="$2"
+  shift 2
+  local guide="${SCRATCH}/guide-${platform}.txt"
+  cat "$@" >"${guide}"
+  awk -v prefix="${SCRATCH}/${platform}-example-" '
+    /^\/\/ @api / && out == "" { count++; out = prefix count ".js" }
+    out != "" && /^$/ { close(out); out = ""; next }
+    out != "" { print > out }
+  ' "${guide}"
+  local examples=("${SCRATCH}/${platform}-example-"*.js)
+  [[ -f "${examples[0]}" ]] || { fail "${platform} guide has no examples"; return; }
+  local example status
+  for example in "${examples[@]}"; do
+    set +e
+    "${BIN}" header --script "${example}" --capabilities "${capabilities}" >"${SCRATCH}/guide.json"
+    status=$?
+    set -e
+    if [[ "${status}" -ne 0 ]]; then
+      fail "${platform} guide $(basename "${example}"): header refused"
+    elif ! tr -d ' \n' <"${SCRATCH}/guide.json" | grep -q '"missing":\[\]'; then
+      fail "${platform} guide $(basename "${example}"): needs a capability ${platform} lacks"
+    else
+      pass
+    fi
+  done
+}
+RESOURCES="${HERE}/../resources"
+check_guide ios text "${RESOURCES}/ai-guide.txt"
+check_guide android text,audio "${RESOURCES}/ai-guide.txt" "${RESOURCES}/ai-guide-audio.txt"
+
 printf 'contract tests: %d passed, %d failed\n' "${passed}" "${failed}"
 [[ "${failed}" -eq 0 ]]

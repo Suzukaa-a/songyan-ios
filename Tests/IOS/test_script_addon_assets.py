@@ -20,6 +20,15 @@ class ScriptAddonAssetTests(unittest.TestCase):
                 source.read_bytes(), copy.read_bytes(),
                 f"{copy.name} drifted from {source}")
 
+    def test_the_ios_guide_never_mentions_voice_scripts(self):
+        # iOS has no voice input; the audio section lives in ai-guide-audio.txt, which only
+        # Android appends. Tools/Script/tests/run.sh parses every example of both final guides.
+        guide = (ROOT / "Resources/ScriptAddons/ai-guide.txt").read_text(encoding="utf-8")
+        for word in ("@input audio", "audio", "语音"):
+            self.assertNotIn(word, guide)
+        self.assertTrue((ROOT / "Tools/Script/resources/ai-guide-audio.txt").is_file())
+        self.assertFalse((ROOT / "Resources/ScriptAddons/ai-guide-audio.txt").exists())
+
 
 if __name__ == "__main__":
     unittest.main()

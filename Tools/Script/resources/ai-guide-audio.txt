@@ -1,0 +1,17 @@
+
+语音脚本（只在 Android 上能用）：开头加 // @input audio，输入是 audio，一段 16 kHz 单声道 16 位 WAV 的 ArrayBuffer；返回转写的字符串。
+
+// @api 1
+// @name 语音转文字
+// @input audio
+// @setting endpoint url 服务地址
+// @secret key 密钥
+export default async ({ audio, settings }) => {
+  const r = await fetch(settings.endpoint, {
+    method: "POST",
+    headers: { Authorization: "Bearer " + settings.key, "Content-Type": "audio/wav" },
+    body: audio,
+  });
+  if (!r.ok) throw new Error("服务返回 " + r.status + "，请检查服务地址和密钥");
+  return (await r.json()).text;
+};

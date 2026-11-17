@@ -50,8 +50,9 @@
  * capabilities.txt ("text" or "text,audio"; default "text"), and script.js unless the case is fed
  * from examples/<name>.js: the minimal example is a case input, not a copy of one. expected.json
  * is the canonical JSON this implementation prints; a case whose expectation says "ok": false
- * must exit 1. The AI instructions users copy are resources/ai-guide.txt. The cases, the example
- * and that guide belong to the same sync set.
+ * must exit 1. The AI instructions users copy are resources/ai-guide.txt; a host that offers audio
+ * appends resources/ai-guide-audio.txt. The cases, the example and those guides belong to the same
+ * sync set.
  *
  * Resource limits are injected by the host through songyan_script_limits on every run. The values
  * both apps ship are the SONGYAN_SCRIPT_SHIPPED_* constants below, defined here once so a script

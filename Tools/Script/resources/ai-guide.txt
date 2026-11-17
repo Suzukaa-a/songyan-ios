@@ -19,7 +19,6 @@
   // @option lang 日文
 - @secret 是密钥：@secret 键 标签。单独保存，不会写进导出的文件。
 - @timeout 300 把最长运行时间改成 300 秒，最多 600。
-- @input audio 表示脚本处理录音（见第四节）。
 - 不认识的声明会让导入失败，不要自创。设置和密钥的值在 settings.键 里。
 
 二、脚本
@@ -62,23 +61,6 @@ export default async ({ text, settings }) => {
     method: "POST",
     headers: { Authorization: "Bearer " + settings.key, "Content-Type": "application/json" },
     body: JSON.stringify({ text }),
-  });
-  if (!r.ok) throw new Error("服务返回 " + r.status + "，请检查服务地址和密钥");
-  return (await r.json()).text;
-};
-
-语音脚本（只在 Android 上能用）：开头加 // @input audio，输入是 audio，一段 16 kHz 单声道 16 位 WAV 的 ArrayBuffer；返回转写的字符串。
-
-// @api 1
-// @name 语音转文字
-// @input audio
-// @setting endpoint url 服务地址
-// @secret key 密钥
-export default async ({ audio, settings }) => {
-  const r = await fetch(settings.endpoint, {
-    method: "POST",
-    headers: { Authorization: "Bearer " + settings.key, "Content-Type": "audio/wav" },
-    body: audio,
   });
   if (!r.ok) throw new Error("服务返回 " + r.status + "，请检查服务地址和密钥");
   return (await r.json()).text;
