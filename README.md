@@ -63,7 +63,6 @@ Use built-in appearances, or create your own with the [appearance editor](https:
 ### Add features to the keyboard
 
 - **Scripts:** Paste a JavaScript snippet to add custom features, such as polishing or translating text with your own AI model. Preview the result before confirming replacement or insertion.
-- **Voice input:** Choose a voice script, press the microphone button to speak, and let the script handle transcription.
 
 ### What you type stays on your device
 
@@ -76,7 +75,7 @@ The input method engine runs locally on your device, and the keyboard itself doe
 - **Cursor:** Press and hold space, then slide left or right to move the cursor.
 - **Phrases and symbol library:** Use them directly in the keyboard.
 - **From RIME:** Simplified/Traditional conversion (including Taiwan and Hong Kong standards), fuzzy pinyin, typo correction, prediction, grammar models, Lua scripts, and `custom.yaml` configuration; back up and merge learned words.
-- **Scripts and voice input:** As described above.
+- **Scripts:** As described above.
 - Interface available in Simplified Chinese, Traditional Chinese, and Japanese.
 
 ## Privacy
