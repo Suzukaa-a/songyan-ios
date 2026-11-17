@@ -16,6 +16,33 @@ public enum CompactSchemaAdapter {
         "derive/[omn]/6/", "derive/[pqrs]/7/", "derive/[tuv]/8/", "derive/[wxyz]/9/",
     ]
 
+    /// The most a source projection may hold before a fold is planned: the bytes the engine hands over,
+    /// the distinct tokens, and the spellings a fold derives (each `derive` doubles every spelling that
+    /// holds its letter). A syllable inventory (pinyin, jyutping) stays two orders of magnitude below;
+    /// a code inventory (157 000 stroke codes fold into about 4 million spellings) does not.
+    public static let foldProjectionBytes = 8 * 1024 * 1024
+    public static let foldTokenLimit = 8192
+    public static let foldSpellingLimit = 500_000
+
+    /// Why folding `projection` would exceed the fold budget, or nil when it fits. Counts the worst
+    /// case, the 9-key fold, where every letter moves to a digit.
+    public static func foldBudgetExceeded(_ projection: SourceProjection) -> String? {
+        if projection.syllables.count > foldTokenLimit {
+            return "\(projection.syllables.count) tokens exceed the fold limit of \(foldTokenLimit)"
+        }
+        var spellings = 0
+        for syllable in projection.syllables {
+            for spelling in syllable.spellings {
+                let letters = Set(spelling.text.lowercased().filter { foldableLetters.contains($0) })
+                spellings += 1 << min(letters.count, 30)
+                if spellings > foldSpellingLimit {
+                    return "folded spellings exceed the limit of \(foldSpellingLimit)"
+                }
+            }
+        }
+        return nil
+    }
+
     public static func identifier(sourceID: String, fold: CompactFold) -> String {
         let hash = SHA256.hash(data: Data(sourceID.utf8)).prefix(10).map { String(format: "%02x", $0) }.joined()
         return "keyboard_" + hash + "_" + fold.id

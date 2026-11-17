@@ -123,9 +123,12 @@ enum CompactAdapterDeployment {
             defer { engine.setOption("ascii_mode", value: wasASCII) }
             // The native projection MUST be available and complete. Missing or
             // undecodable projection is a real failure, never silently native.
-            guard
-                let projection = engine.sourceProjectionMap()
-                    .flatMap(CompactSchemaAdapter.SourceProjection.decode(json:))
+            let projectionData = engine.sourceProjectionMap()
+            if let projectionData, projectionData.count > CompactSchemaAdapter.foldProjectionBytes {
+                HostLog.append("输入方式「\(source)」的编码太多，不生成折叠键盘（\(source)）")
+                continue
+            }
+            guard let projection = projectionData.flatMap(CompactSchemaAdapter.SourceProjection.decode(json:))
             else {
                 throw RecipeInstallError.deployment(
                     String(localized: "无法读取输入方式「\(source)」的编码映射"))
@@ -139,6 +142,10 @@ enum CompactAdapterDeployment {
             // Whether a dictionary *happens* to contain some standalone candidate for
             // a probe is irrelevant and is never consulted.
             guard !projection.syllables.isEmpty else { continue }
+            if let reason = CompactSchemaAdapter.foldBudgetExceeded(projection) {
+                HostLog.append("输入方式「\(source)」的编码太多，不生成折叠键盘（\(source)）：\(reason)")
+                continue
+            }
             // The producer class used for the DISPLAY/REWRITE split is resolved from
             // the compiled schema with the SAME contract as `adaptability` and the
             // generators, so all three agree.

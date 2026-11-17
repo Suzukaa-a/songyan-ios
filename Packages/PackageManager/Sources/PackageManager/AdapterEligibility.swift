@@ -158,6 +158,11 @@ public extension CompactSchemaAdapter {
         guard producer.isDefaultNamespace else {
             return .unsupported("only a default-namespace primary producer is auto-adaptable")
         }
+        // A shape code (wubi, stroke, array) is a whole code, not a syllable: each of its tens of
+        // thousands of codes folds into 2^letters spellings, which librime cannot index in a phone's memory.
+        guard producer.klass == .script else {
+            return .unsupported("table_translator codes are typed on 26 keys")
+        }
         // The primary producer's own config section (namespace), never a hardcoded
         // `translator`.
         guard let speller = root["speller"] as? [String: Any],

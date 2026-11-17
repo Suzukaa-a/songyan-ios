@@ -60,7 +60,7 @@ extension KeyboardAdapterDisplayCapabilityTests {
         XCTAssertNil(CompactSchemaAdapter.primaryProducer(translators: ["punct_translator"]))
     }
 
-    func testDefaultTableWithAuxiliariesIsAdaptableAndPreserved() throws {
+    func testDefaultTableWithAuxiliariesIsUnsupportedButGeneratorPreserves() throws {
         // Real schemas commonly carry `table_translator@custom_phrase` plus a
         // reverse-lookup translator; those must NOT make the primary look mixed.
         let source = Data(
@@ -74,9 +74,10 @@ extension KeyboardAdapterDisplayCapabilityTests {
             custom_phrase: {dictionary: "", user_dict: custom_phrase, db_class: stabledb}
             reverse_lookup: {dictionary: pinyin_simp, prefix: z}
             """.utf8)
-        XCTAssertEqual(
-            try CompactSchemaAdapter.adaptability(compiled: source, sourceID: "tbl_aux"),
-            .adaptable)
+        // A shape code is typed on 26 keys: folding its code inventory would not fit in memory,
+        // so no companion is planned for a table source (its generator still preserves the schema).
+        guard case .unsupported = try CompactSchemaAdapter.adaptability(compiled: source, sourceID: "tbl_aux")
+        else { return XCTFail("a table_translator source must not be adaptable") }
         let projection = CompactSchemaAdapter.SourceProjection(
             sourceSchema: "tbl_aux", translatorNamespace: "translator", dictionary: "d",
             alphabet: "abcdefghijklmnopqrstuvwxyz", algebra: [], separator: "'",
@@ -299,7 +300,7 @@ extension KeyboardAdapterDisplayCapabilityTests {
         ] {
             let source = tableSource("sparse_test", alphabet: alphabet)
             XCTAssertEqual(
-                try CompactSchemaAdapter.adaptability(compiled: source, sourceID: "sparse_test"),
+                try CompactSchemaAdapter.adaptability(compiled: scriptVariant(source), sourceID: "sparse_test"),
                 .adaptable, "alphabet=\(alphabet)")
             let projection = CompactSchemaAdapter.SourceProjection(
                 sourceSchema: "sparse_test", translatorNamespace: "translator",
@@ -314,13 +315,13 @@ extension KeyboardAdapterDisplayCapabilityTests {
         // An alphabet without a lowercase key fails BOTH consistently.
         let bad = tableSource("bad_test", alphabet: "\u{4e2d}\u{6587}")
         XCTAssertEqual(
-            try CompactSchemaAdapter.adaptability(compiled: bad, sourceID: "bad_test"),
+            try CompactSchemaAdapter.adaptability(compiled: scriptVariant(bad), sourceID: "bad_test"),
             .unsupported("speller alphabet has no lowercase latin key to fold"))
         // A numeric (2–9) physical key space is typeable on the 9-key layout only. The
         // letter-group fold is constructible (its letters fold) but ignores the digits.
         let numeric = tableSource("numeric_test", alphabet: "23456789abcdefghijklmnopqrstuvwxyz")
         XCTAssertEqual(
-            try CompactSchemaAdapter.adaptability(compiled: numeric, sourceID: "numeric_test"),
+            try CompactSchemaAdapter.adaptability(compiled: scriptVariant(numeric), sourceID: "numeric_test"),
             .adaptable)
         XCTAssertEqual(
             CompactSchemaAdapter.physicalFold(
@@ -329,6 +330,11 @@ extension KeyboardAdapterDisplayCapabilityTests {
         XCTAssertEqual(
             CompactSchemaAdapter.physicalFold(
                 sourceAlphabet: "23456789abcdefghijklmnopqrstuvwxyz", fold: .phone9)?.ignoredCharacters, "")
+    }
+
+    /// The same source with a script_translator, the only producer a fold is planned for.
+    private func scriptVariant(_ table: Data) -> Data {
+        Data(String(decoding: table, as: UTF8.self).replacingOccurrences(of: "table_translator", with: "script_translator").utf8)
     }
 
     func testTableUppercaseTokenGetsAReachableCompactDeriveAndMatchingSample() throws {
@@ -455,5 +461,38 @@ extension KeyboardAdapterDisplayCapabilityTests {
         let speller = try XCTUnwrap(root["speller"] as? [String: Any])
         let algebra = try XCTUnwrap(speller["algebra"] as? [String])
         XCTAssertTrue(algebra.contains("derive/w/q/"), "per-letter fold rule present")
+    }
+
+    // MARK: - Fold budget
+
+    func testFoldBudgetAcceptsSyllableInventoriesAndRejectsCodeInventories() {
+        let pinyin = CompactSchemaAdapter.SourceProjection(
+            sourceSchema: "p", translatorNamespace: "translator", dictionary: "d",
+            alphabet: "abcdefghijklmnopqrstuvwxyz", algebra: [], separator: "'",
+            syllables: ["zhuang", "shuang", "ni", "hao"].map { syllable($0, [($0, true, false)]) })
+        XCTAssertNil(CompactSchemaAdapter.foldBudgetExceeded(pinyin))
+
+        // A stroke-like inventory: every 5-letter code over seven letters, far more tokens than a syllabary.
+        let letters = Array("hspnzdt")
+        var codes: [String] = [""]
+        for _ in 0..<5 { codes = codes.flatMap { prefix in letters.map { prefix + String($0) } } }
+        let strokes = CompactSchemaAdapter.SourceProjection(
+            sourceSchema: "s", translatorNamespace: "translator", dictionary: "d",
+            alphabet: "hspnzdt", algebra: [], separator: "'",
+            syllables: codes.map { syllable($0, [($0, true, false)]) })
+        XCTAssertNotNil(CompactSchemaAdapter.foldBudgetExceeded(strokes))
+
+        // Few tokens, but each spelling holds ten distinct letters: 1000 x 2^10 spellings.
+        let spread = CompactSchemaAdapter.SourceProjection(
+            sourceSchema: "x", translatorNamespace: "translator", dictionary: "d",
+            alphabet: "abcdefghijklmnopqrstuvwxyz", algebra: [], separator: "'",
+            syllables: (0..<1000).map { syllable("t\($0)", [("abcdefghij", true, false)]) })
+        XCTAssertNotNil(CompactSchemaAdapter.foldBudgetExceeded(spread))
+
+        let wide = CompactSchemaAdapter.SourceProjection(
+            sourceSchema: "w", translatorNamespace: "translator", dictionary: "d",
+            alphabet: "abcdefghijklmnopqrstuvwxyz", algebra: [], separator: "'",
+            syllables: [syllable("a", [("abcdefghijklmnopqrst", true, false)])])
+        XCTAssertNotNil(CompactSchemaAdapter.foldBudgetExceeded(wide))
     }
 }
