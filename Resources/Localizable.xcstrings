@@ -38456,6 +38456,28 @@
           }
         }
       }
+    },
+    "已导入并保存": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "インポートして保存しました"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已导入并保存"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已匯入並儲存"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

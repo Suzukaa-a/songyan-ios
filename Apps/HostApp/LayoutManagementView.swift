@@ -64,13 +64,13 @@ struct LayoutManagementView: View {
             onDismiss: {
                 if savedFromSheet {
                     savedFromSheet = false
-                    toast = String(localized: "已保存")
+                    toast = String(localized: "已导入并保存")
                 }
             }
         ) { draft in
             NavigationStack { LayoutEditorView(layout: draft) { _ in savedFromSheet = true } }
         }
-        .savedToast($toast)
+        .savedToast($toast, seconds: 5)
         .confirmationDialog(removalTitle, isPresented: removalBinding, titleVisibility: .visible) {
             Button(String(localized: "移除布局"), role: .destructive) {
                 let ids = pendingRemoval.map(\.id)

@@ -485,15 +485,19 @@ final class DefinitionResolutionMemo {
             // The bottom row is the Android rule: it holds the space bar or types no engine input.
             guard let definition, let index = LayoutBottomRow.index(definition) else { return nil }
             let last = definition.rows[index]
+            var keys = last.keys
             if isBundled {
                 let sideActions = (definition.auxiliaryAreas ?? [])
                     .filter { !$0.requiresEngineDisambiguation }.flatMap(\.keys).map(\.action.type)
-                return LayoutRow(
-                    keys: last.keys.filter { key in
-                        key.action.type != .modeSwitch && !sideActions.contains(key.action.type)
-                    })
+                keys = keys.filter { key in
+                    key.action.type != .modeSwitch && !sideActions.contains(key.action.type)
+                }
             }
-            return last
+            // An author's row keeps the way to the keyboard menu; the nine-key shell keeps its rails.
+            if LayoutBottomRow.authored(definition) != nil, !PhoneKeypadStructure.matches(definition) {
+                keys = LayoutBottomRow.reachable(definition, keys: keys)
+            }
+            return keys == last.keys ? last : LayoutRow(keys: keys)
         }
     }
 

@@ -396,7 +396,7 @@ final class LayoutManager: ObservableObject {
     /// Exports a single layout as JSON (to be edited externally and re-imported). Pure in-memory encoding, no disk access.
     func exportData(for id: String) -> Data? {
         guard let layout = registry.layout(id: id) else { return nil }
-        return try? layout.encoded()
+        return try? LayoutBottomRow.exportable(layout).encoded()
     }
 
     // MARK: - Error messages

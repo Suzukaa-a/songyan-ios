@@ -23,6 +23,28 @@ public enum LayoutBottomRow {
         return keys == standIn(for: layout) ? nil : keys
     }
 
+    /// `layout` as it is exported: a bottom row that stands in for the keyboard's own is written out as the row
+    /// the keyboard draws (123, 中英, ， 空格 。, ⏎), so a file made from the export keeps its keys however the
+    /// user edits it. The nine-key shell keeps its rails.
+    public static func exportable(_ layout: LayoutDefinition) -> LayoutDefinition {
+        guard !PhoneKeypadStructure.matches(layout), index(layout) != nil, authored(layout) == nil else {
+            return layout
+        }
+        return replacing(defaultKeys.forSystemSwitch(shown: false), in: layout)
+    }
+
+    /// `keys`, the author's bottom row, with a 中英 key added in front when the layout has none anywhere: the
+    /// keyboard menu opens from that key, so a layout can never take the way to it away.
+    public static func reachable(_ layout: LayoutDefinition, keys: [LayoutKey]) -> [LayoutKey] {
+        let all =
+            layout.rows.flatMap(\.keys) + (layout.split?.halves ?? []).flatMap(\.keys)
+            + (layout.auxiliaryAreas ?? []).flatMap(\.keys)
+        guard !all.contains(where: { $0.action.type == .languageSwitch }),
+            let language = defaultKeys.first(where: { $0.action.type == .languageSwitch })
+        else { return keys }
+        return [language] + keys
+    }
+
     /// What the bottom row holds when the author has not changed it: the keyboard's own row.
     public static var defaultKeys: [LayoutKey] {
         KeyboardPagePresets.englishQwerty.materialized().chrome?.bottom ?? []

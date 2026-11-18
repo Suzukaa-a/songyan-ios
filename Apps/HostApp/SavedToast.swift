@@ -4,6 +4,7 @@ import SwiftUI
 /// system success haptic. Set the binding to the text to show; it is cleared when the toast goes away.
 private struct SavedToast: ViewModifier {
     @Binding var text: String?
+    let seconds: Double
     @State private var shown: String?
     @State private var haptic = 0
 
@@ -26,7 +27,7 @@ private struct SavedToast: ViewModifier {
             .onAppear { present(text) }
             .task(id: shown) {
                 guard shown != nil else { return }
-                try? await Task.sleep(for: .seconds(2))
+                try? await Task.sleep(for: .seconds(seconds))
                 guard !Task.isCancelled else { return }
                 withAnimation(.easeOut) { shown = nil }
             }
@@ -42,6 +43,9 @@ private struct SavedToast: ViewModifier {
 }
 
 extension View {
-    /// Shows `text` once as a brief confirmation, then clears it.
-    func savedToast(_ text: Binding<String?>) -> some View { modifier(SavedToast(text: text)) }
+    /// Shows `text` once as a brief confirmation, then clears it. A result that is the only sign a file was
+    /// taken stays longer (`seconds`) so it can be read.
+    func savedToast(_ text: Binding<String?>, seconds: Double = 2) -> some View {
+        modifier(SavedToast(text: text, seconds: seconds))
+    }
 }

@@ -103,4 +103,48 @@ final class LayoutBottomRowTests: XCTestCase {
         keys[0].width = 2
         XCTAssertFalse(KeyboardPageFooterGeometry(width: 390, keys: keys, policy: policy).usesControlRowBudget)
     }
+
+    private func exportedRow(_ layout: LayoutDefinition) throws -> [LayoutKey] {
+        let decoded = try LayoutDefinition.decode(LayoutBottomRow.exportable(layout).encoded())
+        return try XCTUnwrap(decoded.rows.last).keys
+    }
+
+    func testABundledLayoutIsExportedWithTheRowTheKeyboardDraws() throws {
+        for layout in [
+            BuiltinLayouts.qwerty26, BuiltinLayouts.merged14, BuiltinLayouts.merged18, BuiltinLayouts.zhuyin41,
+        ] {
+            let keys = try exportedRow(layout)
+            XCTAssertEqual(
+                keys.map(\.action.type), [.pageSwitch, .languageSwitch, .literal, .space, .literal, .enter], layout.id)
+            XCTAssertEqual(keys.first?.action.pageSwitchTarget, .numeric, layout.id)
+            XCTAssertEqual(keys.compactMap { $0.action.type == .literal ? $0.action.value : nil }, ["，", "。"])
+            XCTAssertEqual(LayoutBottomRow.exportable(layout).rows.dropLast(), layout.rows.dropLast(), layout.id)
+        }
+    }
+
+    func testAnExportedRowIsTheAuthorsRowWhenImportedAndAnAuthoredOrNineKeyLayoutIsLeftAlone() throws {
+        let imported = try LayoutDefinition.decode(LayoutBottomRow.exportable(BuiltinLayouts.qwerty26).encoded())
+        XCTAssertEqual(LayoutBottomRow.authored(imported), try exportedRow(BuiltinLayouts.qwerty26))
+        let own = LayoutBottomRow.replacing(
+            [LayoutKey(label: "空格", action: .init(.space))], in: BuiltinLayouts.qwerty26.copy())
+        XCTAssertEqual(LayoutBottomRow.exportable(own), own)
+        XCTAssertEqual(LayoutBottomRow.exportable(BuiltinLayouts.phone9), BuiltinLayouts.phone9)
+    }
+
+    func testAnAuthoredRowWithoutALanguageKeyGetsOneInFront() {
+        let space = LayoutKey(label: "空格", action: .init(.space))
+        let layout = LayoutBottomRow.replacing([space], in: BuiltinLayouts.qwerty26.copy())
+        let keys = LayoutBottomRow.reachable(layout, keys: [space])
+        XCTAssertEqual(keys.map(\.action.type), [.languageSwitch, .space])
+        let withLanguage = LayoutBottomRow.replacing(
+            LayoutBottomRow.defaultKeys.forSystemSwitch(shown: false), in: BuiltinLayouts.qwerty26.copy())
+        XCTAssertEqual(
+            LayoutBottomRow.reachable(withLanguage, keys: withLanguage.rows.last!.keys), withLanguage.rows.last!.keys)
+        // A language key anywhere in the layout is enough.
+        var elsewhere = layout
+        var first = elsewhere.rows[0].keys
+        first[0] = LayoutKey(label: "中英", action: .init(.languageSwitch))
+        elsewhere.rows[0] = LayoutRow(keys: first)
+        XCTAssertEqual(LayoutBottomRow.reachable(elsewhere, keys: [space]), [space])
+    }
 }
