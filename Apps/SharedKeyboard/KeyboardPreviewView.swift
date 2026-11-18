@@ -461,7 +461,12 @@ struct KeyboardMainLayoutPreview: View {
     /// An editor shows the declared control row as stored; the keyboard's bundled shells hide the
     /// keys their own controls replace.
     private func layoutUtilityBar(split: ActiveLayoutSplit?) -> some View {
-        let row = editing ? (facts.controlRow == nil ? nil : definition.rows.last) : facts.controlRow
+        let stored = definition.rows.last.map { last in
+            // The preview draws the row the keyboard draws: an author's row keeps the way to the keyboard menu.
+            LayoutBottomRow.authored(definition) != nil && !PhoneKeypadStructure.matches(definition)
+                ? LayoutRow(keys: LayoutBottomRow.reachable(definition, keys: last.keys)) : last
+        }
+        let row = editing ? (facts.controlRow == nil ? nil : stored) : facts.controlRow
         let rowIndex = definition.rows.count - 1
         // A footer the split arrangement edited has its own cut.
         let footerSplit = facts.splitFooterBreak.flatMap { cut in
