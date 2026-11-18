@@ -513,12 +513,17 @@ final class SchemeImportCenter: ObservableObject {
             [KeyboardSchemaDescriptor].self,
             from: Data(contentsOf: active.resourceURL.appendingPathComponent(InstalledPackageLayout.keyboardSchemas)))
         // An install made before profiles existed has none in its list; read them from its build.
-        let unprofiled = schemas.filter { $0.profile == nil }.map(\.id)
+        // So does one made before the optional codes were told apart.
+        func needsReading(_ profile: SchemaKeyProfile?) -> Bool {
+            guard let profile else { return true }
+            return profile.optionalCodes == nil && profile.kind != .unknown
+        }
+        let unprofiled = schemas.filter { needsReading($0.profile) }.map(\.id)
         if !unprofiled.isEmpty {
             let profiles = SchemaKeyProfiles.read(
                 buildDir: active.userDataURL.appendingPathComponent("build"), ids: unprofiled)
-            for index in schemas.indices where schemas[index].profile == nil {
-                schemas[index].profile = profiles[schemas[index].id]
+            for index in schemas.indices where needsReading(schemas[index].profile) {
+                schemas[index].profile = profiles[schemas[index].id] ?? schemas[index].profile
             }
         }
         // The enabled receipt is authoritative; missing source inventory never grants input capability.

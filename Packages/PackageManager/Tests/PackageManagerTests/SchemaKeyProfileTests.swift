@@ -24,8 +24,37 @@ final class SchemaKeyProfileTests: XCTestCase {
     func testEveryFixtureSchemaGetsItsExpectedProfile() throws {
         for name in Self.fixtures {
             let expected = try XCTUnwrap(SchemaKeyProfile.decodeOne(try resource("\(name).profile.json")), name)
-            XCTAssertEqual(SchemaKeyProfiles.compute(compiledSchema: try schema(name)), expected, name)
+            // optionalCodes is not part of the shared expectation: the fixtures name every code, not which are optional.
+            let computed = SchemaKeyProfiles.compute(compiledSchema: try schema(name))
+            XCTAssertEqual(
+                SchemaKeyProfile(
+                    kind: computed.kind, codes: computed.codes, strokes: computed.strokes, language: computed.language),
+                expected, name)
         }
+    }
+
+    func testOptionalCodesAreTheOnesOnlyADelimiterOrAPrefixNames() throws {
+        let bopomofo = SchemaKeyProfiles.compute(compiledSchema: try schema("bopomofo"))
+        let optional = try XCTUnwrap(bopomofo.optionalCodes)
+        // The digits and punctuation of the zhuyin alphabet are required; the delimiter is not.
+        XCTAssertFalse(optional.contains("1"))
+        XCTAssertFalse(optional.contains(","))
+        XCTAssertTrue(optional.contains("'"))
+        XCTAssertTrue(optional.allSatisfy(bopomofo.codes.contains))
+    }
+
+    func testAProfileWrittenWithoutOptionalCodesIsReadAgainFromTheSchema() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try schema("bopomofo").write(
+            to: dir.appendingPathComponent("bopomofo.schema.yaml"), atomically: true, encoding: .utf8)
+        let old = SchemaKeyProfile(kind: .syllabic, codes: ["a"], language: "zh-Hant")
+        try SchemaKeyProfiles.write(["bopomofo": old], buildDir: dir)
+        let read = try XCTUnwrap(SchemaKeyProfiles.read(buildDir: dir, ids: ["bopomofo"])["bopomofo"])
+        XCTAssertNotNil(read.optionalCodes)
+        XCTAssertTrue(read.codes.count > 1)
+        XCTAssertEqual(read.language, "zh-Hant", "the language read at deployment stays")
     }
 
     func testKindsFollowThePrimaryTranslator() throws {

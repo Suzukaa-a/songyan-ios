@@ -25,4 +25,12 @@ public enum LayoutCodeCoverage {
         let declared = declared(layout)
         return needed.filter { !declared.contains($0) }
     }
+
+    /// The codes in `needed` that `layout` cannot send and cannot go without: the speller's alphabet and
+    /// initials, not the delimiter or the prefix and suffix codes of reverse lookups (`optional`). Empty
+    /// when the profile does not tell them apart (`optional` is nil).
+    public static func missingRequired(_ layout: LayoutDefinition, needed: [String], optional: [String]?) -> [String] {
+        guard let optional else { return [] }
+        return missing(layout, needed: needed).filter { !optional.contains($0) }
+    }
 }

@@ -40,15 +40,23 @@ public struct SchemaKeyProfile: Codable, Equatable, Sendable {
     /// The language the dictionary is written in, read at deployment: `zh-Hans`, `zh-Hant`, `ja`, `ko`, `zh`
     /// (Chinese in both scripts: the system's decides) or `none` (nothing to force); nil when not read.
     public let language: String?
+    /// The part of `codes` that only the delimiter, a translator's prefix or suffix, or a recognizer pattern
+    /// names: a layout may go without them. The rest (the speller's alphabet and initials) a layout must send
+    /// to type the scheme at all. Nil when the profile predates the split.
+    public let optionalCodes: [String]?
 
-    public init(kind: Kind, codes: [String] = [], strokes: [Stroke] = [], language: String? = nil) {
+    public init(
+        kind: Kind, codes: [String] = [], strokes: [Stroke] = [], language: String? = nil,
+        optionalCodes: [String]? = nil
+    ) {
         self.kind = kind
         self.codes = codes
         self.strokes = strokes
         self.language = language
+        self.optionalCodes = optionalCodes
     }
 
-    private enum CodingKeys: String, CodingKey { case kind, codes, strokes, language }
+    private enum CodingKeys: String, CodingKey { case kind, codes, strokes, language, optionalCodes }
 
     public init(from decoder: any Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
@@ -56,6 +64,7 @@ public struct SchemaKeyProfile: Codable, Equatable, Sendable {
         codes = try values.decodeIfPresent([String].self, forKey: .codes) ?? []
         strokes = try values.decodeIfPresent([Stroke].self, forKey: .strokes) ?? []
         language = try values.decodeIfPresent(String.self, forKey: .language)
+        optionalCodes = try values.decodeIfPresent([String].self, forKey: .optionalCodes)
     }
 
     public func encode(to encoder: any Encoder) throws {
@@ -64,6 +73,7 @@ public struct SchemaKeyProfile: Codable, Equatable, Sendable {
         if !codes.isEmpty { try values.encode(codes, forKey: .codes) }
         if !strokes.isEmpty { try values.encode(strokes, forKey: .strokes) }
         try values.encodeIfPresent(language, forKey: .language)
+        try values.encodeIfPresent(optionalCodes, forKey: .optionalCodes)
     }
 
     /// Whether the folded 14/18/9-key layouts can be generated for this scheme.

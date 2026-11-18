@@ -77,6 +77,34 @@ checkEqual(
 checkEqual(offered("old", nil).count, 4, "a scheme without a profile is offered as before")
 check(offered("old", nil).allSatisfy { $0.generated == nil }, "a scheme without a profile gets no generated layout")
 
+// A 26-key layout with no key for a code the speller needs is not offered; one that lacks only the
+// delimiter still is, with the missing-codes line. A profile that does not tell the two apart never filters.
+let zhuyinCodes = "1qaz2wsxedcrfv5tgbyhnujm8ik,9ol.0p;/-".map(String.init)
+let zhuyin = SchemaKeyProfile(kind: .syllabic, codes: zhuyinCodes + ["'"], optionalCodes: ["'"])
+check(
+    !names(offered("my_zhuyin", zhuyin)).contains("qwerty26#qwerty26"),
+    "plain 26 keys cannot type a zhuyin alphabet and is not offered")
+check(
+    names(offered("my_zhuyin", SchemaKeyProfile(kind: .syllabic, codes: zhuyinCodes + ["'"])))
+        .contains("qwerty26#qwerty26"),
+    "a profile that does not tell optional codes apart never filters")
+check(
+    names(offered("bopomofo", zhuyin)).contains("qwerty26#zhuyin41"),
+    "the 41-key zhuyin board is offered")
+var zhuyinCopy = registry
+try zhuyinCopy.install(
+    LayoutDefinition(
+        id: "copy26", name: "26 键 副本", input: BuiltinLayouts.qwerty26.input, rows: BuiltinLayouts.qwerty26.rows
+    ).encoded())
+check(
+    !offered("bopomofo", zhuyin, in: zhuyinCopy).contains { $0.layoutID == "copy26" },
+    "a copy of plain 26 keys is not offered for zhuyin either")
+let pinyinNoDelimiter = offered(
+    "pinyin", SchemaKeyProfile(kind: .syllabic, codes: letters + ["'"], optionalCodes: ["'"]))
+checkEqual(
+    pinyinNoDelimiter.first { $0.layoutID == "qwerty26" }?.missingCodes, ["'"],
+    "missing only an optional code keeps the layout offered with its missing-codes line")
+
 // A layout the user copied is listed with its own missing codes.
 var withCopy = registry
 let copy = LayoutDefinition(

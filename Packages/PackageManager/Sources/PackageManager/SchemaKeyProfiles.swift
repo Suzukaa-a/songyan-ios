@@ -35,6 +35,7 @@ public enum SchemaKeyProfiles {
         }
         add(alphabet)
         add(speller["initials"] as? String)
+        let required = Set(codes)
         add(speller["delimiter"] as? String ?? defaultDelimiter)
 
         let namespaces = namespacesOf(translators)
@@ -54,14 +55,18 @@ public enum SchemaKeyProfiles {
             if let pattern = patterns[tag] as? String { add(literalHead(pattern)) }
         }
 
-        if primary.klass == .script { return SchemaKeyProfile(kind: .syllabic, codes: codes) }
+        func optional(_ all: [String]) -> [String] { all.filter { !required.contains($0) } }
+        if primary.klass == .script {
+            return SchemaKeyProfile(kind: .syllabic, codes: codes, optionalCodes: optional(codes))
+        }
         let strokes = strokeCaptions(root[primary.namespace] as? [String: Any], alphabet: alphabet)
-        if strokes.isEmpty { return SchemaKeyProfile(kind: .shapeCode, codes: codes) }
+        if strokes.isEmpty { return SchemaKeyProfile(kind: .shapeCode, codes: codes, optionalCodes: optional(codes)) }
         let strokeCodes = strokes.map(\.code)
         let rest = codes.filter { code in
             !strokeCodes.contains(code) && !(code.unicodeScalars.first?.properties.isAlphabetic ?? false)
         }
-        return SchemaKeyProfile(kind: .strokes, codes: strokeCodes + rest, strokes: strokes)
+        let all = strokeCodes + rest
+        return SchemaKeyProfile(kind: .strokes, codes: all, strokes: strokes, optionalCodes: optional(all))
     }
 
     /// The profiles of every `<id>.schema.yaml` in `buildDir` that `ids` names; unreadable ones are unknown.
@@ -87,9 +92,15 @@ public enum SchemaKeyProfiles {
         let file = buildDir.appendingPathComponent(SchemaKeyProfile.fileName)
         let written = boundedRead(file, limit: maximumFileBytes).flatMap(SchemaKeyProfile.decode) ?? [:]
         let wanted = Set(ids)
-        var result = written.filter { wanted.contains($0.key) }
-        for (id, profile) in computeAll(buildDir: buildDir, ids: ids.filter { written[$0] == nil }) {
-            result[id] = profile
+        // A profile written before the optional codes were told apart is read again from the schema.
+        var result = written.filter {
+            wanted.contains($0.key) && ($0.value.optionalCodes != nil || $0.value.kind == .unknown)
+        }
+        let stale = ids.filter { result[$0] == nil }
+        for (id, profile) in computeAll(buildDir: buildDir, ids: stale) {
+            result[id] = SchemaKeyProfile(
+                kind: profile.kind, codes: profile.codes, strokes: profile.strokes,
+                language: written[id]?.language, optionalCodes: profile.optionalCodes)
         }
         return result
     }
@@ -110,7 +121,8 @@ public enum SchemaKeyProfiles {
                 sourceDirectories.lazy.compactMap { DictionaryLanguage.read(sourceDirectory: $0, name: name) }.first
             }
             result[id] = SchemaKeyProfile(
-                kind: profile.kind, codes: profile.codes, strokes: profile.strokes, language: language)
+                kind: profile.kind, codes: profile.codes, strokes: profile.strokes, language: language,
+                optionalCodes: profile.optionalCodes)
         }
         return result
     }

@@ -113,7 +113,7 @@ extension HostLayoutAvailability {
             let boards = familyBoards.filter(candidates.contains)
             let preset = BuiltinLayouts.preset(for: shape.builtinLayout).id
             let own = boards.isEmpty ? [preset].filter(candidates.contains) : boards
-            var entries: [ApplicableLayout] = (own + candidates.filter { !shipped.contains($0) }).map { id in
+            var entries: [ApplicableLayout] = (own + candidates.filter { !shipped.contains($0) }).compactMap { id in
                 let missing =
                     shape == .qwerty26
                     ? profile.flatMap { profile in
@@ -121,6 +121,14 @@ extension HostLayoutAvailability {
                             LayoutCodeCoverage.missing($0, needed: profile.codes)
                         }
                     } ?? [] : []
+                // A 26-key layout with no key for a code the speller needs cannot type the scheme at all.
+                if shape == .qwerty26, let profile, let layout = registry.resolvedLayout(id: id),
+                    !LayoutCodeCoverage.missingRequired(
+                        layout, needed: profile.codes, optional: profile.optionalCodes
+                    ).isEmpty
+                {
+                    return nil
+                }
                 return ApplicableLayout(shape: shape, layoutID: id, missingCodes: missing)
             }
             // A family with physical boards of its own keeps them; nothing is generated beside them.
