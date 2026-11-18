@@ -9,6 +9,7 @@ import SwiftUI
 /// switches to it right away. The pair in use is marked 正在使用.
 struct UserKeyboardManagementView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
     @StateObject private var center: UserKeyboardCenter
     @State private var selectedIDs: Set<String> = []
     @State private var baselineIDs: Set<String> = []
@@ -141,6 +142,16 @@ struct UserKeyboardManagementView: View {
             guard !hasChanges else { return }
             await center.refresh()
             resetDraft()
+        }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active,
+                UserKeyboardCenter.refreshesOnReturn(
+                    hasChanges: hasChanges, isSaving: isSaving, isBusy: center.busyKeyboardID != nil)
+            else { return }
+            Task {
+                await center.refresh()
+                resetDraft()
+            }
         }
         .refreshable {
             guard !hasChanges, !isSaving, center.busyKeyboardID == nil else { return }

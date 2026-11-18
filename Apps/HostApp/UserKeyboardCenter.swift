@@ -73,6 +73,13 @@ final class UserKeyboardCenter: ObservableObject {
         self.listProvider = listProvider
     }
 
+    /// Whether the page reads the list again when the app comes back to the front: the keyboard may have
+    /// switched to another keyboard from its menu while the app was away. A draft or a running change is
+    /// never replaced under the user's hands.
+    static func refreshesOnReturn(hasChanges: Bool, isSaving: Bool, isBusy: Bool) -> Bool {
+        !hasChanges && !isSaving && !isBusy
+    }
+
     /// One structured refresh: reads the published list; when manageable, also reads the authoritative addable combinations.
     /// Re-reading keeps what is on screen until the new lists arrive; only the first read starts
     /// from `.loading`.
