@@ -38412,6 +38412,28 @@
           }
         }
       }
+    },
+    "依赖包，供其他输入方案读取文件": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "依存パック。他の入力パックがファイルを読み込みます"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "依赖包，供其他输入方案读取文件"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "依賴包，供其他輸入方案讀取檔案"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

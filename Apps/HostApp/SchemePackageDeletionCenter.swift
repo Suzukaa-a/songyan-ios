@@ -37,6 +37,8 @@ extension SchemeImportCenter {
         let schemaIDs: Set<String>
         if let item = installedPackages.first(where: { $0.id == packageID }) {
             schemaIDs = Set(item.schemas.map(\.id))
+        } else if dependencyPackages.contains(where: { $0.id == packageID }) {
+            schemaIDs = []
         } else if let damaged = damagedPackages.first(where: { $0.id == packageID }) {
             schemaIDs = damaged.schemaIDs
         } else {

@@ -25,6 +25,13 @@ final class SchemeImportCenter: ObservableObject {
         /// Source URL recorded by a URL import; nil when none (local-file sources show "not recorded").
         let sourceURL: URL?
     }
+    /// Rime data other packages read (a word list, a dictionary repository); it has no input method and is never
+    /// deployed or used by the keyboard.
+    struct DependencyPackage: Identifiable {
+        let id: String
+        let name: String
+        let active: ActiveRecipe
+    }
     private struct VerifiedBindings: Codable {
         let revision: String
         let values: [SchemeInputBinding]
@@ -66,6 +73,7 @@ final class SchemeImportCenter: ObservableObject {
         let schemaIDs: Set<String>
     }
     @Published private(set) var installedPackages: [InstalledPackage] = []
+    @Published private(set) var dependencyPackages: [DependencyPackage] = []
     var addableKeyboardsCache: [String: (revision: String, keyboards: [PublishedKeyboard])] = [:]
     @Published private(set) var damagedPackages: [DamagedPackage] = []
     private var refreshGeneration: UInt64 = 0
@@ -549,6 +557,24 @@ final class SchemeImportCenter: ObservableObject {
             sourceURL: recordedSourceURL(packageID: id, storeRoot: storeRoot))
     }
 
+    nonisolated private static func decodeDependencyPackage(
+        _ id: String, active: ActiveRecipe
+    ) throws -> DependencyPackage {
+        let declaration = try JSONDecoder().decode(
+            SchemePackageDeclaration.self,
+            from: Data(
+                contentsOf: active.resourceURL.appendingPathComponent(InstalledPackageLayout.keyboardPackageFile)))
+        guard declaration.id == id else { throw RecipeInstallError.invalidResource(String(localized: "安装身份不匹配")) }
+        return DependencyPackage(id: id, name: declaration.name, active: active)
+    }
+
+    /// The resource folders other installed packages may lend files from, dependency packages first, as a
+    /// desktop Rime shares one folder between packages. `excluding` does not lend its own old files.
+    func lenders(excluding id: String?) -> [URL] {
+        dependencyPackages.filter { $0.id != id }.sorted { $0.id < $1.id }.map(\.active.resourceURL)
+            + installedPackages.filter { $0.id != id }.sorted { $0.id < $1.id }.map(\.active.resourceURL)
+    }
+
     func refresh() async {
         refreshGeneration &+= 1
         let generation = refreshGeneration
@@ -570,6 +596,7 @@ final class SchemeImportCenter: ObservableObject {
                 }
             }
             var installed: [InstalledPackage] = []
+            var dependencies: [DependencyPackage] = []
             var damaged: [DamagedPackage] = []
             for id in ids {
                 guard !Task.isCancelled else { return }
@@ -578,6 +605,13 @@ final class SchemeImportCenter: ObservableObject {
                     active = try await manager(id).activeInstallation()
                     // Failed first installs leave a private staging slot but never commit active.json.
                     guard let active else { continue }
+                    if active.installation.schemaID.isEmpty {
+                        dependencies.append(
+                            try await KeyboardResourceReadQueue.async {
+                                try Self.decodeDependencyPackage(id, active: active)
+                            })
+                        continue
+                    }
                     installed.append(
                         try await KeyboardResourceReadQueue.async {
                             try Self.decodeInstalledPackage(id, active: active, storeRoot: root)
@@ -602,6 +636,10 @@ final class SchemeImportCenter: ObservableObject {
             }
             guard generation == refreshGeneration, !Task.isCancelled else { return }
             installedPackages = installed.sorted {
+                let order = $0.name.localizedStandardCompare($1.name)
+                return order == .orderedSame ? $0.id < $1.id : order == .orderedAscending
+            }
+            dependencyPackages = dependencies.sorted {
                 let order = $0.name.localizedStandardCompare($1.name)
                 return order == .orderedSame ? $0.id < $1.id : order == .orderedAscending
             }

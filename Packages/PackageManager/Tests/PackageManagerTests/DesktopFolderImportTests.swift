@@ -76,7 +76,8 @@ final class DesktopFolderImportTests: XCTestCase {
         let error = RecipeInstallError.missingSchemaFiles(["terra_pinyin.dict.yaml", "essay.txt", "unknown.dict.yaml"])
         let notice = error.userFacingDescription
         XCTAssertTrue(
-            notice.contains("terra_pinyin.dict.yaml（rime/rime-terra-pinyin）、essay.txt（rime/rime-essay）、unknown.dict.yaml。"),
+            notice.contains(
+                "terra_pinyin.dict.yaml（rime/rime-terra-pinyin）、essay.txt（rime/rime-essay）、unknown.dict.yaml。"),
             notice)
     }
 

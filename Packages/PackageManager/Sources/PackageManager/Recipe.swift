@@ -36,6 +36,11 @@ public struct RecipeManifest: Codable, Sendable {
     }
 }
 
+extension RecipeManifest {
+    /// A dependency package has no input method: it only holds files other packages read.
+    var isDependencyPackage: Bool { origin == .userScheme && schemaID.isEmpty }
+}
+
 public enum RecipeInstallError: Error, LocalizedError {
     case invalidManifest(String)
     case invalidResource(String)
@@ -46,6 +51,8 @@ public enum RecipeInstallError: Error, LocalizedError {
     /// The scheme needs grammar models that were not supplied with it; the paths are the files to add.
     case missingGrammarModels([String])
     case deployment(String)
+    /// The package has neither an input method nor any Rime data file.
+    case noRimeContent
 
     public var errorDescription: String? {
         switch self {
@@ -60,6 +67,7 @@ public enum RecipeInstallError: Error, LocalizedError {
         case .missingGrammarModels(let values):
             return PackageText.format("recipe.error.grammarModelsMissed", values.joined(separator: "、"))
         case .deployment(let value): return PackageText.format("recipe.error.installFailed", value)
+        case .noRimeContent: return PackageText.string("recipe.error.noRimeContent")
         }
     }
 
@@ -80,6 +88,7 @@ public enum RecipeInstallError: Error, LocalizedError {
         case .missingComponents: return PackageText.string("recipe.error.missingComponents")
         case .missingGrammarModels: return PackageText.string("recipe.error.missingGrammarModels")
         case .deployment: return PackageText.string("recipe.error.deploymentFailed")
+        case .noRimeContent: return PackageText.string("recipe.error.noRimeContent")
         }
     }
 }

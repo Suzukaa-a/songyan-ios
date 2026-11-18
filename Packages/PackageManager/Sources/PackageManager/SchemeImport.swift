@@ -59,6 +59,8 @@ public struct PreparedSchemeImport: Sendable {
             .filter(schemaIDs.contains)
         return listed.isEmpty ? schemaIDs : listed
     }
+    /// True for a dependency package: Rime data other packages read, and no input method of its own.
+    public var isDependencyPackage: Bool { schemaIDs.isEmpty }
     public let resourceBytes: Int
     public let diagnostics: [String]
     /// What the package's input methods go without: neither the package nor another installed one
@@ -145,6 +147,53 @@ public struct PreparedSchemeImport: Sendable {
     fileprivate func read(_ path: String) throws -> Data {
         guard let data = bytes[path] else { throw RecipeInstallError.invalidResource(path) }
         return data
+    }
+
+    /// The installed package at `resources` with what `provide` supplies of the files it refers to and
+    /// still lacks, for a package installed after it. Nil when nothing is added. The package's own
+    /// files, borrowed ones included, are never replaced.
+    public static func completing(
+        installed resources: URL, provide: (String) -> Data?
+    ) throws -> PreparedSchemeImport? {
+        let generation = resources.deletingLastPathComponent()
+        let manifest = try JSONDecoder().decode(
+            RecipeManifest.self,
+            from: BoundedLocalFile.read(
+                generation.appendingPathComponent(InstalledPackageLayout.sourceFile),
+                maximumBytes: RecipeResourceBudget.sourceFile))
+        let record = try InstalledRecipeSources.read(resources: resources)
+        var bytes: [String: Data] = [:]
+        for file in manifest.files where record.fileResources[file.path] == nil {
+            bytes[file.path] = try BoundedLocalFile.read(
+                resources.appendingPathComponent(file.path), maximumBytes: RecipeResourceBudget.sourceFile)
+        }
+        guard let declarationData = bytes[InstalledPackageLayout.keyboardPackageFile] else { return nil }
+        let declaration = try JSONDecoder().decode(SchemePackageDeclaration.self, from: declarationData)
+        let before = bytes.count
+        let compiled = Set(record.fileResources.keys.filter { SchemeSourceCheck.isCompiledBuildFile($0) })
+        SchemeSourceCheck.borrow(into: &bytes, compiled: compiled, provide: provide)
+        guard bytes.count > before else { return nil }
+        let closure = try SchemeSourceCheck.dependencyClosure(bytes, compiled: compiled)
+        let records = Set(bytes.keys).union(record.fileResources.keys).sorted().map { path in
+            if let file = record.fileResources[path] {
+                return RecipeManifest.File(path: path, sha256: file.sha256, size: file.size)
+            }
+            return RecipeManifest.File(
+                path: path, sha256: SchemeSourceCheck.hash(bytes[path]!), size: bytes[path]!.count)
+        }
+        let revision = String(
+            SchemeSourceCheck.hash(Data(records.map { $0.path + $0.sha256 }.joined().utf8)).prefix(40))
+        let completed = RecipeManifest(
+            id: manifest.id, repository: manifest.repository, revision: revision,
+            recipePath: manifest.recipePath, license: manifest.license, schemaID: manifest.schemaID,
+            requiredComponents: manifest.requiredComponents, files: records, origin: manifest.origin)
+        return PreparedSchemeImport(
+            declaration: declaration, manifest: completed,
+            schemaIDs: InstalledPackageLayout.topLevelSchemaFiles(in: bytes.keys).map { String($0.dropLast(12)) }
+                .sorted(),
+            bytes: bytes, sourceFiles: record.files.isEmpty ? bytes : record.files,
+            fileResources: record.fileResources, learningSnapshots: .empty,
+            missingFeatures: MissingFeature.of(closure))
     }
 
     /// Keep the installation's learning identity when the user explicitly updates it.
@@ -759,6 +808,12 @@ public extension RecipePackageManager {
         {
             throw RecipeInstallError.invalidManifest(PackageText.string("schemeImport.error.missingInputMethod"))
         }
+        if availableSchemas.isEmpty, supplied == nil, advertisedSchemaIDs == nil,
+            bytes[InstalledPackageLayout.keyboardPackageFile] == nil
+        {
+            return try Self.dependencyPackage(
+                bytes: bytes, fileResources: fileResources, learning: learning, packageName: packageName)
+        }
         let offered = inferred ? Self.offeredSchemas(bytes, roots: availableSchemas, packageName: packageName) : nil
         let declaration: SchemePackageDeclaration
         if let supplied {
@@ -767,9 +822,7 @@ public extension RecipePackageManager {
             declaration = try JSONDecoder().decode(SchemePackageDeclaration.self, from: data)
         } else {
             let ids = availableSchemas
-            guard let first = ids.first else {
-                throw RecipeInstallError.invalidManifest(PackageText.string("schemeImport.error.noSchemaFile"))
-            }
+            guard let first = ids.first else { throw RecipeInstallError.noRimeContent }
             let identities = bytes.mapValues(SchemeSourceCheck.hash).merging(fileResources.mapValues(\.sha256)) {
                 _, new in new
             }
@@ -859,6 +912,56 @@ public extension RecipePackageManager {
             fileResources: fileResources, learningSnapshots: learning, missingFeatures: MissingFeature.of(closure))
     }
 
+    /// Files other packages read by name from the shared data folder: dictionaries, the shared word
+    /// list, includes, OpenCC data, Lua modules and models. A package made of these alone is a
+    /// dependency package; one with none of them (only documentation or images) is not a package.
+    static func isDependencyDataFile(_ path: String) -> Bool {
+        guard SchemeSourceCheck.isRuntimeSourceFile(path), !SchemeSourceCheck.isCompiledBuildFile(path) else {
+            return false
+        }
+        let name = path.split(separator: "/").last.map(String.init) ?? path
+        if path.hasPrefix("opencc/") || path.hasPrefix("lua/") || name.hasSuffix(".gram") { return true }
+        if path.contains("/") { return false }
+        if name == "essay.txt" || name.hasSuffix(".dict.yaml") { return true }
+        return name.hasSuffix(".yaml") && name != "default.yaml" && !name.hasSuffix(".custom.yaml")
+    }
+
+    /// A package without input methods that carries data files. Its identity is the set of data
+    /// files it ships, so a newer version of the same word list replaces the stored one.
+    nonisolated private static func dependencyPackage(
+        bytes source: [String: Data], fileResources: [String: RecipeFileResource],
+        learning: CollectedSnapshots, packageName: String?
+    ) throws -> PreparedSchemeImport {
+        var bytes = source
+        let dataPaths = Set(bytes.keys).union(fileResources.keys).filter(isDependencyDataFile).sorted()
+        guard !dataPaths.isEmpty else { throw RecipeInstallError.noRimeContent }
+        let declaration = SchemePackageDeclaration(
+            id: "data-" + String(SchemeSourceCheck.hash(Data(dataPaths.joined(separator: "\n").utf8)).prefix(16)),
+            name: packageName ?? PackageText.string("schemeImport.dependencyName"), bindings: [])
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        bytes[InstalledPackageLayout.keyboardPackageFile] = try encoder.encode(declaration)
+        try RecipeResourceBudget.validate(
+            bytes.mapValues(\.count).merging(fileResources.mapValues(\.size)) { _, new in new })
+        let records = Set(bytes.keys).union(fileResources.keys).sorted().map { path in
+            if let file = fileResources[path] {
+                return RecipeManifest.File(path: path, sha256: file.sha256, size: file.size)
+            }
+            return RecipeManifest.File(
+                path: path, sha256: SchemeSourceCheck.hash(bytes[path]!), size: bytes[path]!.count)
+        }
+        let revision = String(
+            SchemeSourceCheck.hash(Data(records.map { $0.path + $0.sha256 }.joined().utf8)).prefix(40))
+        let manifest = RecipeManifest(
+            id: declaration.id, repository: "user/import", revision: revision,
+            recipePath: InstalledPackageLayout.keyboardPackageFile,
+            license: PackageText.string("manifest.license.userProvided"),
+            schemaID: "", requiredComponents: [], files: records, origin: .userScheme)
+        return PreparedSchemeImport(
+            declaration: declaration, manifest: manifest, schemaIDs: [], bytes: bytes, sourceFiles: source,
+            fileResources: fileResources, learningSnapshots: learning, missingFeatures: [])
+    }
+
     /// The input methods a package without its own configuration offers: every root schema no other
     /// schema of the package lists in its `dependencies` (those are reverse lookups, built along with
     /// the schema that needs them). The one the package name names comes first, as the primary.
@@ -928,6 +1031,22 @@ public extension RecipePackageManager {
         }
         root["schema_list"] = advertised.map { ["schema": $0] }
         bytes["default.yaml"] = Data(try Yams.dump(object: root).utf8)
+    }
+
+    /// Stores a dependency package. Nothing is deployed and the keyboard never uses it.
+    @discardableResult
+    func installDependencyPackage(
+        _ prepared: PreparedSchemeImport, expectedGeneration: String? = nil
+    ) async throws -> InstalledRecipe {
+        guard prepared.isDependencyPackage else { throw RecipeInstallError.invalidManifest(prepared.manifest.id) }
+        let expected: String?? = expectedGeneration.map { Optional($0) }
+        return try await installResources(
+            prepared.manifest, initialUserDataURL: nil,
+            deploy: { _ in throw RecipeInstallError.invalidManifest(prepared.manifest.id) },
+            fileResources: prepared.fileResources, expectedActiveGeneration: expected
+        ) { file in
+            try prepared.read(file.path)
+        }
     }
 
     /// An update passes the generation it started from; the store compares it under its lock so

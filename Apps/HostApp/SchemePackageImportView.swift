@@ -300,7 +300,9 @@ struct SchemePackageImportView: View {
                 .font(.footnote).foregroundStyle(.secondary)
                 .accessibilityIdentifier("scheme-missing-features")
             }
-            if let packageID = center.lastInstalledPackageID {
+            if let packageID = center.lastInstalledPackageID,
+                !center.dependencyPackages.contains(where: { $0.id == packageID })
+            {
                 if switcher.phase == .done(packageID) {
                     Text(UserTerminology.statusInUse).foregroundStyle(.green)
                     RefusedKeyboardRows(switcher: switcher)
@@ -319,7 +321,7 @@ struct SchemePackageImportView: View {
                 NavigationLink(String(localized: "查看方案详情")) {
                     SchemePackageDetailView(packageID: packageID)
                 }
-            } else {
+            } else if center.lastInstalledPackageID == nil {
                 NavigationLink(String(localized: "查看方案")) {
                     SchemeDetailRouter()
                 }
@@ -411,8 +413,13 @@ struct SchemePackageImportView: View {
                         : (prepared.declaration.name.isEmpty ? UserTerminology.inputScheme : prepared.declaration.name)
                 )
                 .font(.headline)
-                Text("包含 \(prepared.offeredSchemaIDs.count) 种输入方式")
-                    .font(.caption).foregroundStyle(.secondary)
+                if prepared.isDependencyPackage {
+                    Text("依赖包，供其他输入方案读取文件")
+                        .font(.caption).foregroundStyle(.secondary)
+                } else {
+                    Text("包含 \(prepared.offeredSchemaIDs.count) 种输入方式")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
                 if let replaced = center.preparedReplacedPackageName {
                     Text("将更新已安装的「\(replaced)」，原来的设置和输入习惯会保留。")
                         .font(.caption).foregroundStyle(.secondary)

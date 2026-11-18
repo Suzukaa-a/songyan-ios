@@ -256,6 +256,17 @@ public actor RecipePackageManager {
                 try fm.createDirectory(at: target.deletingLastPathComponent(), withIntermediateDirectories: true)
                 try data.write(to: target, options: .atomic)
             }
+            if manifest.isDependencyPackage {
+                // Data for other packages to read: nothing is deployed, so there is no user data to carry.
+                try fm.createDirectory(at: user, withIntermediateDirectories: true)
+                try JSONEncoder().encode(manifest).write(
+                    to: directory.appendingPathComponent(InstalledPackageLayout.sourceFile), options: .atomic)
+                let installed = InstalledRecipe(
+                    id: manifest.id, revision: manifest.revision, generation: generation,
+                    schemaID: "", activatedAt: Date())
+                try save(installed, InstalledPackageLayout.activeMarker)
+                return installed
+            }
             // The user's folder is read and checked once; a file that fails is left out of an import or an
             // update, and stops an explicit apply (`strictUserConfig`) before anything of it is used.
             let configPlan: RimeConfigFolder.Plan? =
@@ -397,7 +408,7 @@ public actor RecipePackageManager {
         guard safePath(manifest.id), !manifest.id.contains("/"),
             safePath(manifest.repository), manifest.repository.split(separator: "/").count == 2,
             manifest.revision.range(of: "^[0-9a-f]{40}$", options: .regularExpression) != nil,
-            safePath(manifest.schemaID), !manifest.schemaID.contains("/"),
+            manifest.isDependencyPackage || (safePath(manifest.schemaID) && !manifest.schemaID.contains("/")),
             !manifest.files.isEmpty, manifest.files.count <= 2000
         else {
             throw RecipeInstallError.invalidManifest("identity/revision")
@@ -416,7 +427,7 @@ public actor RecipePackageManager {
         try RecipeResourceBudget.validate(Dictionary(uniqueKeysWithValues: manifest.files.map { ($0.path, $0.size) }))
         guard (manifest.origin == .userRecipe || paths.contains(manifest.recipePath.lowercased())),
             (manifest.origin == .userScheme || manifest.origin == .userRecipe || paths.contains("license")),
-            paths.contains("\(manifest.schemaID).schema.yaml".lowercased())
+            manifest.isDependencyPackage || paths.contains("\(manifest.schemaID).schema.yaml".lowercased())
         else {
             throw RecipeInstallError.invalidManifest("recipe/license/schema missing")
         }

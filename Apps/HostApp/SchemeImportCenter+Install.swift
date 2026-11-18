@@ -105,8 +105,9 @@ extension SchemeImportCenter {
                     entrySchemaID: $0.active.installation.schemaID)
             }
             // A package may use files another installed package provides, as a desktop Rime shares
-            // one folder between packages; the one being updated does not lend its own old files.
-            let lenders = installedResources.filter { $0.key != explicit?.id }.sorted { $0.key < $1.key }.map(\.value)
+            // one folder between packages, dependency packages first; the one being updated does not
+            // lend its own old files.
+            let lenders = lenders(excluding: explicit?.id)
             let provide = RecipePackageManager.providedFiles(from: lenders)
             let packageName = Self.packageName(from: capture.sourceURL)
             let result = try await withCheckedThrowingContinuation {
@@ -277,8 +278,9 @@ extension SchemeImportCenter {
         // its generation is the baseline this update started from: a change made meanwhile (another
         // device, another screen, a deletion) is reported by the store instead of being overwritten.
         // A package with no current installation passes nil and installs as a first install.
-        let baseline = installedPackages.first { $0.id == sourcePrepared.declaration.id }?
-            .active.installation.generation
+        let baseline =
+            (installedPackages.map { ($0.id, $0.active) } + dependencyPackages.map { ($0.id, $0.active) })
+            .first { $0.0 == sourcePrepared.declaration.id }?.1.installation.generation
         Task { await performInstall(sourcePrepared, expectedGeneration: baseline) }
     }
 
@@ -289,6 +291,19 @@ extension SchemeImportCenter {
     /// when nothing was committed.
     @discardableResult
     func performInstall(_ sourcePrepared: PreparedSchemeImport, expectedGeneration: String?) async -> String? {
+        guard let revision = await installPrepared(sourcePrepared, expectedGeneration: expectedGeneration) else {
+            return nil
+        }
+        // What this package brings may be what the package in use lacks.
+        let shown = (lastInstalledPackageID, lastMissingFeatures, lastInstallReplacedVersion)
+        await completeActivePackage(after: sourcePrepared.declaration.id)
+        (lastInstalledPackageID, lastMissingFeatures, lastInstallReplacedVersion) = shown
+        return revision
+    }
+
+    func installPrepared(
+        _ sourcePrepared: PreparedSchemeImport, expectedGeneration: String?
+    ) async -> String? {
         guard !busy else { return nil }
         retryState.begin(.installRecognizedImport)
         let prepared: PreparedSchemeImport
@@ -316,39 +331,50 @@ extension SchemeImportCenter {
         message = String(localized: "正在安装…")
         do {
             let manager = manager(prepared.declaration.id)
-            let installed = try await EngineOwnershipCoordinator.shared.withExclusive {
-                try await manager.installSchemeImport(prepared, expectedGeneration: expectedGeneration) { deployment in
-                    try await Self.verifyRecipeDeployment(
-                        deployment, packageID: prepared.declaration.id,
-                        packageName: nil,
-                        postValidation: { engine, enabled in
-                            // Author-declared bindings must type their sample candidate on the live engine.
-                            for binding in prepared.declaration.bindings where enabled.contains(binding.schemaID) {
-                                try engine.validateSchemaForActivation(schemaID: binding.schemaID)
-                                engine.clearComposition()
-                                for key in binding.code {
-                                    guard let event = RimeKey(character: key) else {
-                                        throw RecipeInstallError.deployment(String(localized: "输入码不是有效按键"))
+            let installed: InstalledRecipe
+            if prepared.isDependencyPackage {
+                installed = try await manager.installDependencyPackage(
+                    prepared, expectedGeneration: expectedGeneration)
+            } else {
+                installed = try await EngineOwnershipCoordinator.shared.withExclusive {
+                    try await manager.installSchemeImport(prepared, expectedGeneration: expectedGeneration) {
+                        deployment in
+                        try await Self.verifyRecipeDeployment(
+                            deployment, packageID: prepared.declaration.id,
+                            packageName: nil,
+                            postValidation: { engine, enabled in
+                                // Author-declared bindings must type their sample candidate on the live engine.
+                                for binding in prepared.declaration.bindings where enabled.contains(binding.schemaID) {
+                                    try engine.validateSchemaForActivation(schemaID: binding.schemaID)
+                                    engine.clearComposition()
+                                    for key in binding.code {
+                                        guard let event = RimeKey(character: key) else {
+                                            throw RecipeInstallError.deployment(String(localized: "输入码不是有效按键"))
+                                        }
+                                        _ = try engine.processKey(event)
                                     }
-                                    _ = try engine.processKey(event)
-                                }
-                                let state = engine.state()
-                                guard let index = state.candidates.firstIndex(where: { $0.text == binding.candidate }),
-                                    engine.selectCandidate(index)?.commitText == binding.candidate
-                                else {
-                                    throw RecipeInstallError.deployment(
-                                        String(
-                                            localized:
-                                                "试打后没有出现预期的候选词：输入方式「\(binding.schemaID)」，键盘布局「\(binding.layout)」，输入码「\(binding.code)」"
+                                    let state = engine.state()
+                                    guard
+                                        let index = state.candidates.firstIndex(where: { $0.text == binding.candidate }
+                                        ),
+                                        engine.selectCandidate(index)?.commitText == binding.candidate
+                                    else {
+                                        throw RecipeInstallError.deployment(
+                                            String(
+                                                localized:
+                                                    "试打后没有出现预期的候选词：输入方式「\(binding.schemaID)」，键盘布局「\(binding.layout)」，输入码「\(binding.code)」"
+                                            )
                                         )
-                                    )
+                                    }
                                 }
                             }
-                        }
-                    ).receipt
+                        ).receipt
+                    }
                 }
             }
-            lastInstallReplacedVersion = installedPackages.contains { $0.id == prepared.declaration.id }
+            lastInstallReplacedVersion =
+                installedPackages.contains { $0.id == prepared.declaration.id }
+                || dependencyPackages.contains { $0.id == prepared.declaration.id }
             recordModelSources(packageID: prepared.declaration.id, models: prepared.fileResources)
             self.prepared = nil
             preparedSourceURL = nil

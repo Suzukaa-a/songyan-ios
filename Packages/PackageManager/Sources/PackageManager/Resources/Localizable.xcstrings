@@ -5105,28 +5105,6 @@
         }
       }
     },
-    "schemeImport.error.noSchemaFile": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "インポートする内容に、ルート直下の .schema.yaml がありません"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "导入内容缺少根目录下的 .schema.yaml 方案文件"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "匯入內容缺少根目錄下的 .schema.yaml 方案檔案"
-          }
-        }
-      }
-    },
     "schemeImport.error.notUTF8": {
       "localizations": {
         "ja": {
@@ -6289,6 +6267,50 @@
           "stringUnit": {
             "state": "translated",
             "value": "バックアップできないファイルがあります。"
+          }
+        }
+      }
+    },
+    "recipe.error.noRimeContent": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このファイルには入力パックも、辞書などの Rime データファイル（.dict.yaml、essay.txt など）もありません。"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这个文件里没有输入方案，也没有词库等 Rime 数据文件（如 .dict.yaml、essay.txt）。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這個檔案裡沒有輸入方案，也沒有詞庫等 Rime 資料檔案（如 .dict.yaml、essay.txt）。"
+          }
+        }
+      }
+    },
+    "schemeImport.dependencyName": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rime データ"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rime 数据"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rime 資料"
           }
         }
       }
