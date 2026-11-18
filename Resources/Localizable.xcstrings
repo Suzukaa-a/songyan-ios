@@ -35443,24 +35443,24 @@
         }
       }
     },
-    "查看不联网的最小示例": {
+    "例子（不联网）": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "查看不联网的最小示例"
+            "value": "例子（不联网）"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "ネットワークに接続しない最小例を見る"
+            "value": "例（ネットワーク接続なし）"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "檢視不連網的最小示例"
+            "value": "例子（不連網）"
           }
         }
       }
@@ -35729,24 +35729,24 @@
         }
       }
     },
-    "脚本处理你选中的文字，结果先预览。": {
+    "把说明复制给 AI，让它按你的需要写一个脚本。": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "脚本处理你选中的文字，结果先预览。"
+            "value": "把说明复制给 AI，让它按你的需要写一个脚本。"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "スクリプトは選択した文字を処理し、結果を先にプレビューします。"
+            "value": "説明を AI にコピーして、必要なスクリプトを書いてもらいましょう。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "指令碼處理你選中的文字，結果先預覽。"
+            "value": "把說明複製給 AI，讓它按你的需要寫一個指令碼。"
           }
         }
       }
@@ -36561,28 +36561,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "瞭解詳情"
-          }
-        }
-      }
-    },
-    "添加第一个脚本": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "添加第一个脚本"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "最初のスクリプトを追加"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "新增第一個指令碼"
           }
         }
       }

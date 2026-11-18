@@ -68,7 +68,8 @@ class ScriptAddonUXContractTests(unittest.TestCase):
         self.assertIn("String(localized: \"在这里粘贴或编写脚本\")", views)
         self.assertIn("只支持 HTTPS 链接；脚本只在这里下载一次，之后可在详情页检查更新。", view)
         self.assertIn("String(localized: \"下载中…\")", view)
-        self.assertIn("String(localized: \"添加第一个脚本\")", view)
+        self.assertIn("String(localized: \"复制给 AI 的说明\")", view)
+        self.assertIn("String(localized: \"例子（不联网）\")", view)
 
     def test_try_run_returns_the_failure_with_the_console_lines(self):
         bridge = self.read("Apps/HostApp/ScriptAddonBridge.swift")

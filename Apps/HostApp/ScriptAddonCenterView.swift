@@ -19,7 +19,6 @@ struct ScriptAddonCenterView: View {
     /// Set by the guide sheet's add button; staged once the sheet is gone, so the confirm sheet
     /// does not compete with a sheet that is still dismissing.
     @State private var stageExampleAfterGuide = false
-    @State private var showAddOptions = false
 
     var body: some View {
         List {
@@ -103,13 +102,6 @@ struct ScriptAddonCenterView: View {
         ) {
             Button(String(localized: "好")) { center.errorMessage = nil }
         }
-        .confirmationDialog(
-            String(localized: "添加脚本"),
-            isPresented: $showAddOptions,
-            titleVisibility: .visible
-        ) {
-            addActions
-        }
         .onAppear {
             #if DEBUG
                 // Screenshot probe only; Release has no auto-presented sheets.
@@ -147,35 +139,39 @@ struct ScriptAddonCenterView: View {
         Button(String(localized: "新建并编辑")) { editorTarget = EditorTarget(addon: nil) }
     }
 
+    /// Nothing installed: what a script is, then the three ways in, as plain rows of one list.
+    @ViewBuilder
     private var emptyRow: some View {
         Section {
-            VStack(alignment: .leading, spacing: 10) {
-                Label {
-                    Text(String(localized: "还没有脚本")).font(.headline)
-                } icon: {
-                    Image(systemName: "curlybraces").foregroundStyle(.tint)
-                }
-                Text(
-                    String(
-                        localized:
-                            "脚本处理你选中的文字，结果先预览。")
-                )
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                Button {
-                    showAddOptions = true
-                } label: {
-                    Label(String(localized: "添加第一个脚本"), systemImage: "plus")
-                }
-                .buttonStyle(.borderedProminent)
-                Button(String(localized: "复制给 AI 的说明")) {
-                    UIPasteboard.general.string = ScriptAddonCenter.aiGuide()
-                }
-                .font(.footnote)
-                Button(String(localized: "查看不联网的最小示例")) { showGuide = true }
-                    .font(.footnote)
+            VStack(spacing: 8) {
+                Image(systemName: "curlybraces")
+                    .font(.largeTitle)
+                    .foregroundStyle(.tint)
+                Text(String(localized: "还没有脚本")).font(.headline)
+                Text(String(localized: "把说明复制给 AI，让它按你的需要写一个脚本。"))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
             }
-            .padding(.vertical, 4)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+        }
+        Section {
+            Button {
+                UIPasteboard.general.string = ScriptAddonCenter.aiGuide()
+            } label: {
+                Label(String(localized: "复制给 AI 的说明"), systemImage: "doc.on.doc")
+            }
+            Menu {
+                addActions
+            } label: {
+                Label(String(localized: "添加脚本"), systemImage: "plus")
+            }
+            Button {
+                showGuide = true
+            } label: {
+                Label(String(localized: "例子（不联网）"), systemImage: "doc.text")
+            }
         }
     }
 
