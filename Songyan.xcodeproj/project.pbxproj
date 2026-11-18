@@ -159,6 +159,7 @@
 		KL2609210000000000000003 /* KeyboardLifecycleDiagnostics.swift in Sources */ = {isa = PBXBuildFile; fileRef = KL2609210000000000000001; };
 		KL2610230000000000000002 /* KeyboardLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = KL2610230000000000000001; };
 		KL2610230000000000000003 /* KeyboardLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = KL2610230000000000000001; };
+		KL2610230000000000000004 /* KeyboardLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = KL2610230000000000000001; };
 		CA1100000000000000000002 /* KeyboardToolsStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA1100000000000000000001 /* KeyboardToolsStyle.swift */; };
 		CA1100000000000000000003 /* KeyboardToolsStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA1100000000000000000001 /* KeyboardToolsStyle.swift */; };
 		UK2609210000000000000002 /* PublishedKeyboardProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = UK2609210000000000000001 /* PublishedKeyboardProvider.swift */; };
@@ -1358,6 +1359,7 @@
 				SA2611180000000000000013 /* ScriptAddonCatalog.swift in Sources */,
 				SA2611180000000000000014 /* ScriptAddonCatalogTests.swift in Sources */,
 				ST2611180000000000000018 /* ToolDocumentGateway.swift in Sources */,
+				KL2610230000000000000004 /* KeyboardLog.swift in Sources */,
 				ST2611180000000000000022 /* ToolPanelPresentation.swift in Sources */,
 				ST2611180000000000000025 /* ToolPanelDriverStub.swift in Sources */,
 				ST2611180000000000000019 /* ToolDocumentProxy.swift in Sources */,

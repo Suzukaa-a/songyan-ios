@@ -279,7 +279,7 @@ struct DisplayFontsView: View {
     /// Registers the chosen fonts off the main thread, then redraws the previews and any open keyboard panel.
     private func apply() {
         Task {
-            await Task.detached(priority: .userInitiated) { DisplayFontPreferences.refresh() }.value
+            _ = await Task.detached(priority: .userInitiated) { DisplayFontPreferences.refresh() }.value
             revision += 1
             NotificationCenter.default.post(name: .keyboardAppearanceChanged, object: nil)
         }
