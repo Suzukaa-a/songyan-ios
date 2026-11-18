@@ -86,6 +86,11 @@ public enum UserTerminology: Sendable {
         String(localized: "core.term.statusNotApplied", bundle: .module)
     }
 
+    /// A package that only holds files other packages read; it has no input method.
+    public static var dependencyPackage: String {
+        String(localized: "core.term.dependencyPackage", bundle: .module)
+    }
+
     // MARK: - Actions
 
     /// Apply action: switch to a keyboard in 我的键盘.

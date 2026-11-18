@@ -38434,6 +38434,28 @@
           }
         }
       }
+    },
+    "%@ 正在使用": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ が使用中"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 正在使用"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 正在使用"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

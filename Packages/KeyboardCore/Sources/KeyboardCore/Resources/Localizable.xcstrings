@@ -3762,6 +3762,28 @@
           }
         }
       }
+    },
+    "core.term.dependencyPackage": {
+      "localizations": {
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "依存パック"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "依赖包"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "依賴包"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

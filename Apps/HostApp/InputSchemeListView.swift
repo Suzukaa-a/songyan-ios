@@ -33,6 +33,8 @@ struct InputSchemeListView: View {
     /// Display for custom pinyin, which needs disk reads to resolve; imported sources use the install manifest directly.
     @State private var presentations: [String: SourcePresentation] = [:]
     @State private var engineCapabilities: EngineCapabilities?
+    /// For a package not in use: the name of the package in use that reads its files.
+    @State private var usedBy: [String: String] = [:]
 
     init() {
         // Seed from what the home screen already read: the status column and the layout lines are right on the
@@ -94,11 +96,15 @@ struct InputSchemeListView: View {
         let layoutNames: [String]
         let status: RowStatus
         let destination: AnyView
+        var isDependency = false
+        var usedBy: String?
 
         var subtitle: String {
             var parts: [String] = []
+            if isDependency { parts.append(UserTerminology.dependencyPackage) }
             if let line = UserTerminology.inputMethodLine(inputMethodNames) { parts.append(line) }
             if let line = UserTerminology.keyboardLayoutLine(layoutNames) { parts.append(line) }
+            if let usedBy { parts.append(String(localized: "\(usedBy) 正在使用")) }
             return parts.joined(separator: " · ")
         }
     }
@@ -146,6 +152,7 @@ struct InputSchemeListView: View {
             await schemeImports.refresh()
             await loadSelection()
             await loadPresentations()
+            await loadUsage()
         }
         .onChange(of: center.applicationPhase) { _, _ in refreshTick &+= 1 }
         .onChange(of: imports.selectionRevision) { _, _ in refreshTick &+= 1 }
@@ -173,6 +180,14 @@ struct InputSchemeListView: View {
             + schemeImports.installedPackages.filter({ $0.id != builtinID })
         {
             rows.append(packageRow(package, selectionReadable: selectionReadable))
+        }
+        for package in schemeImports.dependencyPackages {
+            rows.append(
+                InstalledSchemeRow(
+                    id: "dependency-\(package.id)", name: package.name,
+                    inputMethodNames: [], layoutNames: [], status: .notInUse,
+                    destination: AnyView(SchemePackageDetailView(packageID: package.id)),
+                    isDependency: true, usedBy: usedBy[package.id]))
         }
         for package in schemeImports.damagedPackages {
             rows.append(
@@ -217,7 +232,8 @@ struct InputSchemeListView: View {
             inputMethodNames: package.schemas.map { UserTerminology.inputMethodName($0) },
             layoutNames: presentations["package-\(package.id)"]?.layouts ?? [],
             status: selected ? (needsNewVersion ? .newVersion : .inUse) : .notInUse,
-            destination: AnyView(SchemePackageDetailView(packageID: package.id)))
+            destination: AnyView(SchemePackageDetailView(packageID: package.id)),
+            usedBy: selected ? nil : usedBy[package.id])
     }
 
     private var installedSection: some View {
@@ -388,6 +404,27 @@ struct InputSchemeListView: View {
         }
         guard !Task.isCancelled else { return }
         presentations = next
+    }
+
+    /// Which package in use reads the files of each package that is not in use.
+    private func loadUsage() async {
+        guard selectedRecipeEnabled == true, selectedKind == .userScheme,
+            let user = schemeImports.installedPackages.first(where: { $0.id == selectedPackageID })
+        else {
+            usedBy = [:]
+            return
+        }
+        let userResources = user.active.resourceURL
+        let others =
+            schemeImports.dependencyPackages.map { ($0.id, $0.active.resourceURL) }
+            + schemeImports.installedPackages.filter { $0.id != user.id }.map { ($0.id, $0.active.resourceURL) }
+        let name = user.name
+        let reading =
+            (try? await KeyboardResourceReadQueue.async {
+                others.filter { DependencyUse.reads(user: userResources, other: $0.1) }.map(\.0)
+            }) ?? []
+        guard !Task.isCancelled else { return }
+        usedBy = Dictionary(uniqueKeysWithValues: reading.map { ($0, name) })
     }
 
     private func presentation(for set: KeyboardResourceSet) -> SourcePresentation {

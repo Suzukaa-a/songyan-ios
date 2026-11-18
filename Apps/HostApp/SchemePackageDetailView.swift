@@ -101,6 +101,11 @@ struct SchemePackageDetailView: View {
                     if developerOptions { configurationSection }
                     managementSection()
                 }
+            } else if center.dependencyPackages.contains(where: { $0.id == packageID }) {
+                Section {
+                    Text(UserTerminology.dependencyPackage)
+                }
+                managementSection()
             } else if center.damagedPackages.contains(where: { $0.id == packageID }) {
                 Section(String(localized: "状态")) {
                     Label(String(localized: "已损坏"), systemImage: "exclamationmark.triangle")
@@ -120,7 +125,8 @@ struct SchemePackageDetailView: View {
             }
         }
         .navigationTitle(
-            item?.name ?? center.damagedPackages.first(where: { $0.id == packageID })?.name
+            item?.name ?? center.dependencyPackages.first(where: { $0.id == packageID })?.name
+                ?? center.damagedPackages.first(where: { $0.id == packageID })?.name
                 ?? UserTerminology.inputScheme
         )
         .navigationBarTitleDisplayMode(.inline)
