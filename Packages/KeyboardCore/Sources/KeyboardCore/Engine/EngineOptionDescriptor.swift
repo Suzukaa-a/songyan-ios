@@ -20,6 +20,8 @@ public struct EngineOptionDescriptor: Identifiable, Equatable, Sendable {
     /// A switch or group the schema declares for itself (`extended_charset`, `ascii_punct`), not one of
     /// the script, emoji or full-width switches the keyboard words itself.
     public let isDeclared: Bool
+    /// The two labels are the schema's own state labels, not the generic 关闭/开启.
+    public let statesWorded: Bool
     public var id: String { name }
 
     public init(
@@ -27,7 +29,7 @@ public struct EngineOptionDescriptor: Identifiable, Equatable, Sendable {
         disabledLabel: String, enabledLabel: String,
         choiceGroup: [String] = [], choiceLabel: String? = nil,
         declaredConversion: String? = nil, knownScriptState: BuiltinScriptState? = nil,
-        isDeclared: Bool = false
+        isDeclared: Bool = false, statesWorded: Bool = false
     ) {
         self.resourceID = resourceID
         self.schemaID = schemaID
@@ -40,6 +42,7 @@ public struct EngineOptionDescriptor: Identifiable, Equatable, Sendable {
         self.declaredConversion = declaredConversion
         self.knownScriptState = knownScriptState
         self.isDeclared = isDeclared
+        self.statesWorded = isDeclared || statesWorded
     }
 }
 

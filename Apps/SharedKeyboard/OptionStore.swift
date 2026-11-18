@@ -435,11 +435,17 @@ enum SchemaOptionCapabilities {
                     guard let title = name == "full_shape" ? String(localized: "全角") : conversions[name] else {
                         continue
                     }
+                    // A full-width switch the schema words itself (半角 / 全角) is shown as it words it.
+                    let worded =
+                        name == "full_shape" && list(item, "states").count == 2
+                        && list(item, "states").allSatisfy { !$0.isEmpty }
                     result.append(
                         .init(
                             resourceID: resourceID, schemaID: schemaID, name: name,
-                            title: title, disabledLabel: String(localized: "关闭"),
-                            enabledLabel: String(localized: "开启"), declaredConversion: declaredConfigs[name]))
+                            title: title,
+                            disabledLabel: worded ? list(item, "states")[0] : String(localized: "关闭"),
+                            enabledLabel: worded ? list(item, "states")[1] : String(localized: "开启"),
+                            declaredConversion: declaredConfigs[name], statesWorded: worded))
                     continue
                 }
                 // Any other two-state switch the schema declares is worded by its own state labels. The
@@ -491,6 +497,37 @@ enum SchemaOptionCapabilities {
         }
         var seen = Set<String>()
         return result.filter { seen.insert($0.name).inserted }
+    }
+
+    /// One entry of the keyboard menu: a switch or an option of a group, as the menu words it.
+    struct MenuEntry: Equatable {
+        let name: String
+        let title: String
+        /// The state a switch without labels of its own is in, or the mark of the option in use.
+        let subtitle: String?
+    }
+
+    /// What the keyboard menu lists of the running input method's switches: every switch and option group
+    /// it declares except `ascii_mode`, which the 中/英 key flips. A two-state switch shows the state it
+    /// is in as the schema words it (a tap flips it), one the schema words no state of is named by its
+    /// kind (全角); a group is one entry per option.
+    static func menuEntries(_ options: [EngineOptionState]) -> [MenuEntry] {
+        options.filter { $0.descriptor.name != "ascii_mode" }.map { state in
+            let descriptor = state.descriptor
+            if !descriptor.choiceGroup.isEmpty {
+                return MenuEntry(
+                    name: descriptor.name, title: descriptor.choiceLabel ?? descriptor.name,
+                    subtitle: state.value ? UserTerminology.userKeyboardCurrent : nil)
+            }
+            if descriptor.statesWorded {
+                return MenuEntry(
+                    name: descriptor.name, title: state.value ? descriptor.enabledLabel : descriptor.disabledLabel,
+                    subtitle: nil)
+            }
+            return MenuEntry(
+                name: descriptor.name, title: descriptor.title,
+                subtitle: state.value ? descriptor.enabledLabel : descriptor.disabledLabel)
+        }
     }
 
     static func verifiedOpenCC(_ config: String, sharedDirectory: URL) -> String? {

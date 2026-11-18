@@ -217,7 +217,7 @@ extension KeyboardPanelView {
         if cap.id.hasPrefix("schema-switch:") {
             let name = String(cap.id.dropFirst("schema-switch:".count))
             guard
-                let state = controller.options.first(where: { $0.descriptor.name == name && $0.descriptor.isDeclared })
+                let state = controller.options.first(where: { $0.descriptor.name == name })
             else { return }
             let value = state.descriptor.choiceGroup.isEmpty ? !state.value : true
             selectionFeedbackAfterEffect { controller.setOption(name, value: value) }
@@ -295,17 +295,8 @@ extension KeyboardPanelView {
         // The running input method's own switches sit before the way out of the menu, worded by the
         // labels its schema declares: a two-state switch shows the state it is in (a tap flips it), a
         // group of options one entry each.
-        caps += controller.options.filter(\.descriptor.isDeclared).map { state in
-            let descriptor = state.descriptor
-            if descriptor.choiceGroup.isEmpty {
-                return KeyCap(
-                    id: Self.schemaSwitchCapID(descriptor.name),
-                    title: state.value ? descriptor.enabledLabel : descriptor.disabledLabel,
-                    subtitle: nil, action: .cycleLayout)
-            }
-            return KeyCap(
-                id: Self.schemaSwitchCapID(descriptor.name), title: descriptor.choiceLabel ?? descriptor.name,
-                subtitle: state.value ? UserTerminology.userKeyboardCurrent : nil, action: .cycleLayout)
+        caps += SchemaOptionCapabilities.menuEntries(controller.options).map {
+            KeyCap(id: Self.schemaSwitchCapID($0.name), title: $0.title, subtitle: $0.subtitle, action: .cycleLayout)
         }
         caps.append(
             KeyCap(

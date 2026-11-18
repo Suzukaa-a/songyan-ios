@@ -1,4 +1,5 @@
 import Foundation
+import KeyboardCore
 
 @main struct Probe {
     static func check(_ value: @autoclosure () throws -> Bool) throws {
@@ -146,5 +147,46 @@ import Foundation
         ) { _ in nil }
         try check(bare.isEmpty)
         print("PASS a switch without two labels or a group without labels stays out")
+
+        // The menu lists every switch and group except ascii_mode: 半角/全角 and the 字形 group as well.
+        let menuSchema = SchemaOptionCapabilities.parse(
+            resourceID: "r", schemaID: "bopomofo",
+            yaml: """
+                switches:
+                  - name: ascii_mode
+                    states: [ 中文, 西文 ]
+                  - name: full_shape
+                    states: [ 半角, 全角 ]
+                  - name: emoji
+                  - options: [ zh_hant, zh_hans ]
+                    states: [ 漢字, 汉字 ]
+                  - name: extended_charset
+                    states: [ 常用, 增廣 ]
+                engine:
+                  filters:
+                    - simplifier@faces
+                    - simplifier@trad
+                    - simplifier@simp
+                faces:
+                  option_name: emoji
+                  opencc_config: arbitrary.json
+                trad:
+                  option_name: zh_hant
+                  opencc_config: s2t.json
+                simp:
+                  option_name: zh_hans
+                  opencc_config: t2s.json
+                """
+        ) { $0 == "arbitrary.json" ? "Emoji 候选" : ($0 == "s2t.json" ? "繁体输出" : "简体输出") }
+        let states = menuSchema.map { EngineOptionState(descriptor: $0, value: $0.name == "zh_hans") }
+        let entries = SchemaOptionCapabilities.menuEntries(states)
+        try check(!entries.contains { $0.name == "ascii_mode" })
+        try check(entries.first { $0.name == "full_shape" }?.title == "半角")
+        try check(entries.first { $0.name == "emoji" }?.title == "Emoji 候选")
+        try check(entries.first { $0.name == "emoji" }?.subtitle == "关闭")
+        try check(entries.filter { ["zh_hant", "zh_hans"].contains($0.name) }.map(\.title) == ["漢字", "汉字"])
+        try check(entries.first { $0.name == "zh_hans" }?.subtitle == UserTerminology.userKeyboardCurrent)
+        try check(entries.first { $0.name == "extended_charset" }?.title == "常用")
+        print("PASS the menu lists full width, the script group and the schema's own switches, not ascii_mode")
     }
 }
