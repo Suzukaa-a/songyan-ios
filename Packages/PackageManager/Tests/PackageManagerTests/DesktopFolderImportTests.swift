@@ -29,8 +29,8 @@ final class DesktopFolderImportTests: XCTestCase {
         XCTAssertNotNil(prepared.preparedBytes(for: "pinyin_simp.schema.yaml"))
         XCTAssertNil(prepared.sourceFiles["pinyin_simp.dict.yaml"], "the source record keeps only what was picked")
         XCTAssertEqual(prepared.schemaIDs, ["wubi86", "wubi_pinyin"], "the borrowed schema is a lookup")
-        // pinyin_simp's own stroke lookup is never built for wubi86, so it is not reported.
-        XCTAssertEqual(prepared.missingFeatures, [])
+        // pinyin_simp declares a stroke lookup of its own; the notice names it too.
+        XCTAssertEqual(prepared.missingFeatures, [MissingFeature(kind: .reverseLookup, names: ["stroke"])])
     }
 
     func testABorrowedFileNeverReplacesOneThePackageShips() throws {
@@ -70,6 +70,14 @@ final class DesktopFolderImportTests: XCTestCase {
         XCTAssertNil(
             RecipePackageManager.cleanPackageName("scheme-0F3C2B1A-0000-4000-8000-123456789ABC.zip"),
             "a download's temporary file name names nothing")
+    }
+
+    func testAMissingFileNamesTheRepositoryThatProvidesIt() {
+        let error = RecipeInstallError.missingSchemaFiles(["terra_pinyin.dict.yaml", "essay.txt", "unknown.dict.yaml"])
+        let notice = error.userFacingDescription
+        XCTAssertTrue(
+            notice.contains("terra_pinyin.dict.yaml（rime/rime-terra-pinyin）、essay.txt（rime/rime-essay）、unknown.dict.yaml。"),
+            notice)
     }
 
     func testAMissingRequiredDependencyNamesItsFilesToTheUser() throws {

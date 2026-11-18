@@ -39,6 +39,13 @@ public struct MissingFeature: Equatable, Sendable {
     /// The upstream repository that provides `name`, when it is one of the well-known ones.
     public static func repository(of name: String) -> String? { repositories[name] }
 
+    /// `file` (`terra_pinyin.dict.yaml`) followed by the upstream repository that provides it, when
+    /// it is one of the well-known ones.
+    public static func named(file path: String) -> String {
+        let name = (path as NSString).lastPathComponent
+        return repository(of: stem(name)).map { "\(name)（\($0)）" } ?? name
+    }
+
     /// The notice for this gap: what does not work, and which names are missing.
     public var userFacingDescription: String {
         let list = names.map { name in
@@ -60,8 +67,11 @@ public struct MissingFeature: Equatable, Sendable {
 
     /// Groups a closure's optional gaps by what they cost the user.
     static func of(_ closure: SchemeSourceCheck.DependencyClosure) -> [MissingFeature] {
-        let lookup = Set(closure.lookups.map(stem)).sorted()
-        let vocabulary = closure.direct.filter { $0 == presetVocabularyFile }.map(stem)
+        // A scheme that another package of the tree declares as its own lookup is as unmet as one the
+        // package names itself.
+        let declared = closure.optional.filter { !closure.direct.contains($0) && $0.hasSuffix(".schema.yaml") }
+        let lookup = Set((closure.lookups + declared).map(stem)).sorted()
+        let vocabulary = closure.optional.filter { $0 == presetVocabularyFile }.map(stem)
         let other = closure.direct.filter {
             !closure.lookups.contains($0) && $0 != presetVocabularyFile && !lookup.contains(stem($0))
         }

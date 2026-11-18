@@ -69,7 +69,7 @@ public enum RecipeInstallError: Error, LocalizedError {
         switch self {
         case .missingSchemaFiles(let paths):
             // File names say what to add; "incomplete" alone hides the cause.
-            let names = paths.prefix(5).map { ($0 as NSString).lastPathComponent }
+            let names = paths.prefix(5).map(MissingFeature.named(file:))
             return PackageText.format(
                 "recipe.error.missingFiles",
                 names.joined(separator: "、") + (paths.count > 5 ? "…" : ""))

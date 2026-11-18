@@ -452,8 +452,8 @@ final class SchemeImportCenter: ObservableObject {
             return (failure as? RecipeInstallError)?.userFacingDescription
                 ?? String(localized: "暂不支持此方案。")
         case RecipeInstallError.missingSchemaFiles(let names):
-            // Show file names only (no paths within the source), at most 5.
-            let files = names.prefix(5).map { ($0 as NSString).lastPathComponent }.joined(separator: "、")
+            // Show file names only (no paths within the source), at most 5, each with its upstream repository when known.
+            let files = names.prefix(5).map(MissingFeature.named(file:)).joined(separator: "、")
             let more = names.count > 5 ? String(localized: " 等 \(names.count) 个文件") : ""
             return names.isEmpty
                 ? String(localized: "输入方案缺少所依赖的文件，请将所需文件放入同一个 ZIP 压缩包或文件夹后重新导入。")
