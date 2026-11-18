@@ -9,6 +9,41 @@ import SwiftUI
 extension SchemeImportCenter {
     // MARK: - Direct update of an installed input scheme (check, download, install, keep the keyboard current)
 
+    /// A package installed after the one in use may hold files the one in use refers to and lacks (its
+    /// reverse-lookup input method, the shared word list). The one in use is installed again with them
+    /// and the keyboard stays on it; nothing changes when no file is added. A failure here leaves the
+    /// package in use as it was and is only logged, because the install that led to it succeeded.
+    func completeActivePackage(after installedID: String) async {
+        guard let activation = try? await AppliedSelectionLoader.loadActivation(),
+            activation.resourceKind == .userScheme, activation.recipeEnabled,
+            let packageID = activation.packageID, packageID != installedID,
+            let item = installedPackages.first(where: { $0.id == packageID }),
+            // A package installed from Rime sources fetches its own files.
+            Self.recordedSourceTarget(packageID: packageID) == nil
+        else { return }
+        let provide = RecipePackageManager.providedFiles(from: lenders(excluding: packageID))
+        let resources = item.active.resourceURL
+        let completed = await Task.detached {
+            try? PreparedSchemeImport.completing(installed: resources, provide: provide)
+        }
+        .value
+        guard let completed else { return }
+        let publication = await captureKeyboardPublication(packageID: packageID)
+        let before = (prepared, preparedSourceURL, diagnostics, message, userNotice)
+        preparedSourceURL = item.sourceURL
+        defer { (prepared, preparedSourceURL, diagnostics, message, userNotice) = before }
+        let baseline = item.active.installation.generation
+        guard await installPrepared(completed, expectedGeneration: baseline) != nil else {
+            HostLog.append("completing the package in use failed: \(error ?? "")")
+            error = nil
+            return
+        }
+        guard publication.isCurrent else { return }
+        do { try await applyInstalledRevision(packageID: packageID, publication: publication) } catch {
+            HostLog.append("completing the package in use: keyboard switch failed: \(error.localizedDescription)")
+        }
+    }
+
     /// What one direct update accomplished.
     enum SchemeUpdateOutcome: Equatable {
         /// Nothing was installed: the downloaded content is what the installation already has, the
@@ -114,41 +149,6 @@ extension SchemeImportCenter {
             userNotice = String(
                 localized: "方案已更新。要让键盘改用新版本，请轻点「使用新版本」。")
             return .installedOnly
-        }
-    }
-
-    /// A package installed after the one in use may hold files the one in use refers to and lacks (its
-    /// reverse-lookup input method, the shared word list). The one in use is installed again with them
-    /// and the keyboard stays on it; nothing changes when no file is added. A failure here leaves the
-    /// package in use as it was and is only logged, because the install that led to it succeeded.
-    func completeActivePackage(after installedID: String) async {
-        guard let activation = try? await AppliedSelectionLoader.loadActivation(),
-            activation.resourceKind == .userScheme, activation.recipeEnabled,
-            let packageID = activation.packageID, packageID != installedID,
-            let item = installedPackages.first(where: { $0.id == packageID }),
-            // A package installed from Rime sources fetches its own files.
-            Self.recordedSourceTarget(packageID: packageID) == nil
-        else { return }
-        let provide = RecipePackageManager.providedFiles(from: lenders(excluding: packageID))
-        let resources = item.active.resourceURL
-        let completed = await Task.detached {
-            try? PreparedSchemeImport.completing(installed: resources, provide: provide)
-        }
-        .value
-        guard let completed else { return }
-        let publication = await captureKeyboardPublication(packageID: packageID)
-        let before = (prepared, preparedSourceURL, diagnostics, message, userNotice)
-        preparedSourceURL = item.sourceURL
-        defer { (prepared, preparedSourceURL, diagnostics, message, userNotice) = before }
-        let baseline = item.active.installation.generation
-        guard await installPrepared(completed, expectedGeneration: baseline) != nil else {
-            HostLog.append("completing the package in use failed: \(error ?? "")")
-            error = nil
-            return
-        }
-        guard publication.isCurrent else { return }
-        do { try await applyInstalledRevision(packageID: packageID, publication: publication) } catch {
-            HostLog.append("completing the package in use: keyboard switch failed: \(error.localizedDescription)")
         }
     }
 
