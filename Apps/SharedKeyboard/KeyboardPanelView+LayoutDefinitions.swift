@@ -181,7 +181,7 @@ extension KeyboardPanelView {
         // A local selection can update the rendered keys before SwiftUI observes the
         // derived report; hand the committed definition to the host in this transaction.
         let selectedFacts = DefinitionResolutionMemo.Facts(usable: [], active: definition)
-        let selectedRowBudget = KeyboardPanelGeometry.physicalMainRowBudget(forDefinitionID: definition.id)
+        let selectedRowBudget = KeyboardPanelGeometry.physicalMainRowBudget(for: definition)
         onReadingRowReport?(
             CandidateReadingRowReport(
                 eligible: CandidateReadingRowPolicy.isEligible(definition),

@@ -1,4 +1,5 @@
 import KeyboardCore
+import LayoutKit
 import XCTest
 
 @testable import CandidateKit
@@ -875,8 +876,22 @@ final class KeyboardPanelGeometryTests: XCTestCase {
         XCTAssertEqual(defaultFit.headerHeight, 46, accuracy: 0.001)
     }
 
-    /// Only the bundled physical boards take their own letter-row budget; user layouts and copies
-    /// keep the three-row budget so they keep scrolling.
+    /// A layout's letter-row budget is its own row count, so a renamed copy of the 注音 board keeps its
+    /// fourth row.
+    func testPhysicalMainRowBudgetFollowsTheLayoutsOwnRows() {
+        let copy = LayoutDefinition(
+            id: "diy-zhuyin41", name: "副本", input: BuiltinLayouts.zhuyin41.input, rows: BuiltinLayouts.zhuyin41.rows)
+        XCTAssertEqual(KeyboardPanelGeometry.physicalMainRowBudget(for: copy), 4)
+        XCTAssertEqual(KeyboardPanelGeometry.physicalMainRowBudget(for: BuiltinLayouts.qwerty26.copy()), 3)
+        XCTAssertEqual(KeyboardPanelGeometry.physicalMainRowBudget(for: BuiltinLayouts.phone9), 3)
+        let long = LayoutDefinition(
+            id: "long", name: "long", input: .init(),
+            rows: Array(repeating: BuiltinLayouts.qwerty26.rows[0], count: 9))
+        XCTAssertEqual(KeyboardPanelGeometry.physicalMainRowBudget(for: long), 6, "a longer layout scrolls")
+        XCTAssertEqual(KeyboardPanelGeometry.physicalMainRowBudget(for: nil), 3)
+    }
+
+    /// Known only by id, a bundled board takes its own budget and any other id the standard one.
     func testPhysicalMainRowBudgetFollowsTheRegisteredBundledBoards() {
         XCTAssertEqual(KeyboardPanelGeometry.physicalMainRowBudget(forDefinitionID: "zhuyin41"), 4)
         XCTAssertEqual(KeyboardPanelGeometry.physicalMainRowBudget(forDefinitionID: "qwerty26"), 3)
@@ -885,7 +900,6 @@ final class KeyboardPanelGeometryTests: XCTestCase {
         XCTAssertEqual(KeyboardPanelGeometry.physicalMainRowBudget(forDefinitionID: "phone9"), 3)
         XCTAssertEqual(KeyboardPanelGeometry.physicalMainRowBudget(forDefinitionID: "cangjie26"), 3)
         XCTAssertEqual(KeyboardPanelGeometry.physicalMainRowBudget(forDefinitionID: nil), 3)
-        XCTAssertEqual(KeyboardPanelGeometry.physicalMainRowBudget(forDefinitionID: "diy-zhuyin41"), 3)
         XCTAssertEqual(KeyboardPanelGeometry.physicalMainRowBudget(forDefinitionID: "zhuyin40"), 3)
     }
 

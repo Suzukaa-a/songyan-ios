@@ -148,7 +148,7 @@ struct KeyboardMainLayoutPreview: View {
     /// Letter rows the previewed definition draws above its control row (the bundled registration
     /// answers it), and the rows the current preview page draws inside that budget.
     private var physicalMainRowBudget: Int {
-        KeyboardPanelGeometry.physicalMainRowBudget(forDefinitionID: definition.id)
+        KeyboardPanelGeometry.physicalMainRowBudget(for: definition)
     }
     private var mainRowCount: Int {
         usesConfiguredLayout && !usesStandardQwerty ? max(1, facts.mainRows.count) : 3

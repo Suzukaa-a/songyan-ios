@@ -132,15 +132,25 @@ public extension KeyboardPanelGeometry {
         return max(1, (area - Double(rows) * rowSpacing) / Double(rows + 1))
     }
 
-    /// Letter rows a physical board draws above its control row. Only the bundled, registered
-    /// physical boards take their own row count; a user layout or a copy keeps the standard
-    /// three-row budget so a longer DIY layout keeps scrolling instead of enlarging the shell.
+    /// Most letter rows a physical board gets a place for in the shell; a longer layout scrolls.
+    static let maximumPhysicalMainRows = 6
+
+    /// Letter rows a layout draws above its control row, from its own rows: a four-row board (注音) gets
+    /// four, whatever its id, so a copy or an imported file keeps every row. The shell stays the
+    /// standard one; only the rows get shorter.
+    static func physicalMainRowBudget(for definition: LayoutDefinition?) -> Int {
+        guard let definition else { return standardMainRowCount }
+        let letterRows = definition.rows.count - (LayoutBottomRow.index(definition) == nil ? 0 : 1)
+        return min(maximumPhysicalMainRows, max(standardMainRowCount, letterRows))
+    }
+
+    /// The same for a bundled board known only by its id (the budget the host remembers before the
+    /// keyboard has drawn); any other id gets the standard budget until the layout itself is read.
     static func physicalMainRowBudget(forDefinitionID id: String?) -> Int {
         guard let id, let board = BuiltinLayouts.all.first(where: { $0.id == id }) else {
             return standardMainRowCount
         }
-        // Every bundled board ends with its control row, which the key area budgets separately.
-        return max(standardMainRowCount, board.rows.count - 1)
+        return physicalMainRowBudget(for: board)
     }
 
     /// The **single** height derivation entry shared by `KeyboardPanelView` (panel) and `KeyboardPanelHost` (host):

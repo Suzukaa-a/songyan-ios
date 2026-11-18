@@ -613,7 +613,7 @@ public struct KeyboardPanelView: View {
     /// Letter rows the selected physical definition draws above its control row; the bundled
     /// registration answers it (four for the 注音 board), any other layout keeps three.
     var physicalMainRowBudget: Int {
-        KeyboardPanelGeometry.physicalMainRowBudget(forDefinitionID: activeDefinition?.id)
+        KeyboardPanelGeometry.physicalMainRowBudget(for: activeDefinition)
     }
     /// Rows this page draws inside the shell: the definition's budget on its letters page, three
     /// on the shared ABC/123 pages, and the physical budget caps a longer DIY layout.
