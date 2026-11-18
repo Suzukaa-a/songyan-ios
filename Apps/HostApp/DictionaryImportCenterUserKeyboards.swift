@@ -38,7 +38,22 @@ enum UserKeyboardSourceFacts {
             let name = activation.packageID.map {
                 ProductionInputAvailability.packageDisplayName(id: $0, declaredName: activation.displayConfigName)
             }
-            return (name ?? activation.displayConfigName, activation.schemas ?? [])
+            // A record published before the optional codes were told apart carries profiles without them;
+            // the installed package has them read again, and the layouts offered follow those.
+            let installed = await MainActor.run {
+                activation.packageID.flatMap { id in
+                    SchemeImportCenter.shared.installedPackages.first { $0.id == id }?.schemas
+                } ?? []
+            }
+            let schemas = (activation.schemas ?? []).map { descriptor -> KeyboardSchemaDescriptor in
+                guard descriptor.profile?.optionalCodes == nil,
+                    let fresh = installed.first(where: { $0.id == descriptor.id })?.profile
+                else { return descriptor }
+                var updated = descriptor
+                updated.profile = fresh
+                return updated
+            }
+            return (name ?? activation.displayConfigName, schemas)
         case .package(let packageID):
             guard
                 let resources = try? await SchemeImportCenter.shared.keyboardResources(packageID: packageID)
