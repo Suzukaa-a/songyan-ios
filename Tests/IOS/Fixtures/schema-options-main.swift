@@ -188,5 +188,44 @@ import KeyboardCore
         try check(entries.first { $0.name == "zh_hans" }?.subtitle == UserTerminology.userKeyboardCurrent)
         try check(entries.first { $0.name == "extended_charset" }?.title == "常用")
         print("PASS the menu lists full width, the script group and the schema's own switches, not ascii_mode")
+
+        // The same switches as a deployment compiles them: quoted inline lists, abbreviations first.
+        let compiled = SchemaOptionCapabilities.parse(
+            resourceID: "r", schemaID: "bopomofo_tw",
+            yaml: """
+                switches:
+                  - abbrev: ["中", "Ａ"]
+                    name: ascii_mode
+                    reset: 0
+                    states: ["中文", "西文"]
+                  - name: full_shape
+                    states: ["半角", "全角"]
+                  - abbrev: ["漢", "简", "港", "臺"]
+                    options: [zh_hant, zh_hans, zh_hant_hk, zh_hant_tw]
+                    reset: 3
+                    states: ["傳統漢字", "简化字", "香港字形", "臺灣字形"]
+                  - name: ascii_punct
+                    states: ["。，", "．，"]
+                engine:
+                  filters:
+                    - simplifier@zh_hans
+                    - simplifier@zh_hant_hk
+                    - simplifier@zh_hant_tw
+                zh_hans:
+                  option_name: zh_hans
+                  opencc_config: t2s.json
+                zh_hant_hk:
+                  option_name: zh_hant_hk
+                  opencc_config: t2hk.json
+                zh_hant_tw:
+                  option_name: zh_hant_tw
+                  opencc_config: t2tw.json
+                """
+        ) { _ in "繁体输出" }
+        let compiledEntries = SchemaOptionCapabilities.menuEntries(
+            compiled.map { EngineOptionState(descriptor: $0, value: false) })
+        try check(
+            compiledEntries.map(\.title) == ["半角", "傳統漢字", "简化字", "香港字形", "臺灣字形", "。，"])
+        print("PASS a compiled schema's switches all reach the menu")
     }
 }
