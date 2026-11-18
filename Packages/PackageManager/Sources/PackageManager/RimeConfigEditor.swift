@@ -239,7 +239,7 @@ extension RecipePackageManager {
         guard let context = try rimeConfigContext() else {
             return .refused(PackageText.string("rimeConfig.error.saveUnavailable"))
         }
-        let data = Data(text.utf8)
+        let data = Data(Self.normalized(text).utf8)
         if let error = UserConfigFiles.check(path, data) {
             return error.problem == .invalidYAML
                 ? .invalid(line: error.line) : .refused(RimeConfigEditor.message(error))
@@ -293,6 +293,13 @@ extension RecipePackageManager {
         }
         scripts.accept(plan.unconfirmed)
         return .ready
+    }
+
+    /// Rime patches must use LF line endings and end with a newline, which a text field does not
+    /// guarantee; the saved file always does, so applying it never fails over invisible characters.
+    static func normalized(_ text: String) -> String {
+        let lf = text.replacingOccurrences(of: "\r\n", with: "\n").replacingOccurrences(of: "\r", with: "\n")
+        return lf.isEmpty || lf.hasSuffix("\n") ? lf : lf + "\n"
     }
 
     private static func editableCustomText(_ text: String) -> String {

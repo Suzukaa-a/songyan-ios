@@ -213,6 +213,20 @@ final class RimeConfigEditorTests: XCTestCase {
         XCTAssertEqual(saved, .saved)
     }
 
+    func testASavedFileAlwaysUsesLfAndEndsWithANewline() async throws {
+        try await install()
+        let file = folder.appendingPathComponent("main.custom.yaml")
+        for (text, expected) in [
+            ("patch:\n  menu/page_size: 5", "patch:\n  menu/page_size: 5\n"),
+            ("patch:\r\n  menu/page_size: 6\r\n", "patch:\n  menu/page_size: 6\n"),
+            ("patch:\r  menu/page_size: 7", "patch:\n  menu/page_size: 7\n"),
+        ] {
+            let saved = try await manager.saveRimeConfigFile("main.custom.yaml", text: text)
+            XCTAssertEqual(saved, .saved)
+            XCTAssertEqual(try String(contentsOf: file, encoding: .utf8), expected)
+        }
+    }
+
     func testOnlyPathsOfThePackageOrACustomFileCanBeOpened() async throws {
         try await install()
         for path in ["../x.yaml", "absent.yaml", "x/main.custom.yaml", "build/default.yaml", "a.lua"] {
