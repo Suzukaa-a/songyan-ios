@@ -182,19 +182,19 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "中英键的行为无法识别，请重新选择。"
+            "value": "语言切换键的行为无法识别，请重新选择。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "中英鍵的行為無法識別，請重新選擇。"
+            "value": "語言切換鍵的行為無法識別，請重新選擇。"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "中英キーの動作を認識できません。選び直してください。"
+            "value": "言語切り替えキーの動作を認識できません。選び直してください。"
           }
         }
       }

@@ -248,19 +248,19 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "中英键"
+            "value": "语言切换键"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "中英鍵"
+            "value": "語言切換鍵"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "かな/英字キー"
+            "value": "言語切り替えキー"
           }
         }
       }
@@ -1018,19 +1018,19 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "长按中英键切换键盘。"
+            "value": "长按语言切换键切换键盘。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "長按中英鍵切換鍵盤。"
+            "value": "長按語言切換鍵切換鍵盤。"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "かな/英字キーを長押しするとキーボードを切り替えられます。"
+            "value": "言語切り替えキーを長押しするとキーボードを切り替えられます。"
           }
         }
       }
