@@ -16,14 +16,14 @@ final class KeyboardPerformanceTests: XCTestCase {
         XCTAssertTrue(app.staticTexts["雾凇拼音"].exists)
         XCTAssertTrue(
             app.descendants(matching: .any).matching(identifier: "schemes.featured.rime-ice").firstMatch.exists)
-        XCTAssertFalse(app.buttons["schemes.download.rime-wanxiang"].exists)
-        XCTAssertFalse(app.buttons["schemes.download.rime-bopomofo"].exists)
+        XCTAssertFalse(downloadButton(app, "万象拼音").exists)
+        XCTAssertFalse(downloadButton(app, "注音（台湾）").exists)
         let more = app.buttons["schemes.more"]
         XCTAssertTrue(more.exists)
         more.tap()
-        XCTAssertTrue(app.buttons["schemes.download.rime-wanxiang"].waitForExistence(timeout: 5))
+        XCTAssertTrue(downloadButton(app, "万象拼音").waitForExistence(timeout: 5))
         app.swipeUp()
-        XCTAssertTrue(app.buttons["schemes.download.rime-bopomofo"].exists)
+        XCTAssertTrue(downloadButton(app, "注音（台湾）").exists)
     }
 
     @MainActor
@@ -35,9 +35,9 @@ final class KeyboardPerformanceTests: XCTestCase {
         let confirm = app.buttons["schemes.confirmDownload"]
         XCTAssertTrue(confirm.waitForExistence(timeout: 5))
         XCTAssertTrue(app.links["查看项目主页"].exists)
-        XCTAssertFalse(app.buttons["schemes.cancel.rime-ice"].exists)
+        XCTAssertFalse(progressButton(app, "rime-ice").exists)
         confirm.tap()
-        let cancel = app.buttons["schemes.cancel.rime-ice"]
+        let cancel = progressButton(app, "rime-ice")
         XCTAssertTrue(cancel.waitForExistence(timeout: 5))
         XCTAssertTrue(app.progressIndicators.firstMatch.exists)
         XCTAssertFalse(download.exists)
@@ -45,7 +45,19 @@ final class KeyboardPerformanceTests: XCTestCase {
         XCTAssertTrue(cancel.waitForNonExistence(timeout: 5))
         XCTAssertTrue(download.waitForExistence(timeout: 5))
         XCTAssertTrue(download.isEnabled)
-        XCTAssertFalse(app.buttons["schemes.download.rime-wanxiang"].exists)
+        XCTAssertFalse(downloadButton(app, "万象拼音").exists)
+    }
+
+    /// Rows inside the collapsible group and the progress block report their container's
+    /// identifier instead of their own, so these are found by accessibility label and container id.
+    @MainActor
+    private func downloadButton(_ app: XCUIApplication, _ name: String) -> XCUIElement {
+        app.buttons.matching(NSPredicate(format: "label == %@", "下载" + name)).firstMatch
+    }
+
+    @MainActor
+    private func progressButton(_ app: XCUIApplication, _ id: String) -> XCUIElement {
+        app.buttons.matching(identifier: "schemes.progress." + id).firstMatch
     }
 
     @MainActor
@@ -57,7 +69,13 @@ final class KeyboardPerformanceTests: XCTestCase {
         XCTAssertTrue(settings.waitForExistence(timeout: 10))
         settings.tap()
         app.buttons["键盘与完全访问"].tap()
-        app.buttons["下一步"].tap()
+        // A tap during the push animation can be dropped; repeat until the guide shows step 2.
+        let progress = app.otherElements["引导进度"]
+        for _ in 0..<3 where !(progress.value as? String ?? "").hasPrefix("第 2 步") {
+            if app.buttons["下一步"].waitForExistence(timeout: 5) { app.buttons["下一步"].tap() }
+            _ = progress.waitForExistence(timeout: 2)
+            Thread.sleep(forTimeInterval: 1)
+        }
         app.swipeUp()
         return app
     }
@@ -177,20 +195,23 @@ final class KeyboardPerformanceTests: XCTestCase {
         }
         // SwiftUI controls in the extension report local accessibility frames on the simulator.
         point(app, 376, 543).tap()
-        let backspace = keyboard.keys["退格"]
+        // The expanded panel keeps the candidate strip as its first row and moves delete into the
+        // right-hand key column.
+        let backspace = keyboard.keys["删除"]
         XCTAssertTrue(backspace.waitForExistence(timeout: 5))
-        for _ in 0..<3 { point(app, 332, 543).tap() }
+        for _ in 0..<3 { backspace.tap() }
         let corrected = expectation(for: NSPredicate(format: "value == %@", "ni"), evaluatedWith: field)
         wait(for: [corrected], timeout: 5)
         XCTAssertTrue(keyboard.buttons["收起候选"].exists)
-        XCTAssertTrue(keyboard.buttons["你"].exists)
-        point(app, 24, 596).tap()
+        let first = keyboard.buttons["你"]
+        XCTAssertTrue(first.exists)
+        point(app, first.frame.midX, 543).tap()
         let committed = expectation(for: NSPredicate(format: "value == %@", "你"), evaluatedWith: field)
         wait(for: [committed], timeout: 5)
         XCTAssertTrue(keyboard.keys["a"].waitForExistence(timeout: 5))
         keyboard.keys["a"].tap()
         point(app, 376, 543).tap()
-        point(app, 332, 543).tap()
+        keyboard.keys["删除"].tap()
         let cleared = expectation(for: NSPredicate(format: "value == %@", "你"), evaluatedWith: field)
         wait(for: [cleared], timeout: 5)
         XCTAssertTrue(keyboard.keys["n"].waitForExistence(timeout: 5))
@@ -204,7 +225,7 @@ final class KeyboardPerformanceTests: XCTestCase {
         for letter in ["n", "i", "h", "a", "o"] { keyboard.keys[letter].tap() }
         point(app, 376, 543).tap()
         XCTAssertTrue(keyboard.buttons["收起候选"].waitForExistence(timeout: 5))
-        point(app, 332, 543).press(forDuration: 1.0)
+        keyboard.keys["删除"].press(forDuration: 1.0)
         let remaining = expectation(for: NSPredicate(format: "value == %@", "你好n"), evaluatedWith: field)
         wait(for: [remaining], timeout: 5)
         XCTAssertTrue(keyboard.keys["i"].waitForExistence(timeout: 5))
@@ -296,7 +317,7 @@ final class KeyboardPerformanceTests: XCTestCase {
         let keyboards = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "我的键盘")).firstMatch
         XCTAssertTrue(keyboards.waitForExistence(timeout: 10))
         keyboards.tap()
-        let pages = app.buttons["userKeyboard.pages.songyan_quanpin:qwerty26"]
+        let pages = app.buttons["userKeyboard.pages.songyan_quanpin:qwerty26#qwerty26"]
         XCTAssertTrue(pages.waitForExistence(timeout: 5))
         pages.tap()
         let picker = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "页面")).firstMatch
@@ -317,7 +338,7 @@ final class KeyboardPerformanceTests: XCTestCase {
         let keyboards = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "我的键盘")).firstMatch
         XCTAssertTrue(keyboards.waitForExistence(timeout: 10))
         keyboards.tap()
-        let nine = "songyan_quanpin:phone9"
+        let nine = "songyan_quanpin:phone9#phone9"
         let added = app.buttons["userKeyboard.pages." + nine]
         XCTAssertTrue(app.buttons["userKeyboard.save"].waitForExistence(timeout: 5))
         if on {
@@ -328,10 +349,16 @@ final class KeyboardPerformanceTests: XCTestCase {
             }
             let use = app.buttons["userKeyboard.use." + nine]
             if use.waitForExistence(timeout: 2) { use.tap() }
+            let qwerty = app.buttons["userKeyboard.use.songyan_quanpin:qwerty26#qwerty26"]
+            XCTAssertTrue(qwerty.waitForExistence(timeout: 5))
         } else if added.exists {
-            let use = app.buttons["userKeyboard.use.songyan_quanpin:qwerty26"]
+            let use = app.buttons["userKeyboard.use.songyan_quanpin:qwerty26#qwerty26"]
             if use.waitForExistence(timeout: 2) { use.tap() }
-            app.buttons["userKeyboard.card." + nine].tap()
+            XCTAssertTrue(app.buttons["userKeyboard.use." + nine].waitForExistence(timeout: 5))
+            // The cards below the added keyboards are lazy rows; scroll until the card exists.
+            let card = app.buttons["userKeyboard.card." + nine]
+            for _ in 0..<6 where !card.exists || !card.isHittable { app.swipeUp() }
+            card.tap()
             app.buttons["userKeyboard.save"].tap()
             XCTAssertTrue(added.waitForNonExistence(timeout: 5))
         }
