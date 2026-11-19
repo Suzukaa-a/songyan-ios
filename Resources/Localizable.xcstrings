@@ -32715,6 +32715,50 @@
         }
       }
     },
+    "左滑删除键选择文字": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "左滑删除键选择文字"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "削除キーを左にスワイプして選択"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "左滑刪除鍵選擇文字"
+          }
+        }
+      }
+    },
+    "按住删除键向左滑，选中要删的文字，松手删除。": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按住删除键向左滑，选中要删的文字，松手删除。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "削除キーを押したまま左にスライドして削除する文字を選び、指を離すと削除します。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "按住刪除鍵向左滑，選中要刪的文字，鬆手刪除。"
+          }
+        }
+      }
+    },
     "横滑移动光标": {
       "localizations": {
         "zh-Hans": {

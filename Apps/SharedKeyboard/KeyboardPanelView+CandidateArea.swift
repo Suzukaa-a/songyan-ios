@@ -100,7 +100,9 @@ extension KeyboardPanelView {
             height: candidateRowHeight,
             backing: .clear
         ) {
-            if controller.isEnglishMode && !controller.englishSuggestions.isEmpty && statusMessage == nil {
+            if let marked = controller.deleteSwipeText {
+                deleteSwipePreview(marked)
+            } else if controller.isEnglishMode && !controller.englishSuggestions.isEmpty && statusMessage == nil {
                 englishSuggestionStrip
             } else if headerShowsRealContent {
                 compositionAreaContent
@@ -129,6 +131,24 @@ extension KeyboardPanelView {
                 if !Task.isCancelled { controller.loadMoreReadings() }
             }
         }
+    }
+
+    /// The characters a Delete swipe will remove, drawn like a text selection at the left of the candidate bar.
+    /// Lifting the finger deletes them; sliding back shrinks them.
+    private func deleteSwipePreview(_ marked: String) -> some View {
+        HStack(spacing: 0) {
+            Text(marked)
+                .font(appearance.candidateFont(appearance.skin.typography.secondarySize))
+                .lineLimit(1)
+                .truncationMode(.head)
+                .padding(.horizontal, 4)
+                .background(RoundedRectangle(cornerRadius: 3).fill(appearance.accentForeground.opacity(0.3)))
+                .foregroundStyle(Color(uiColor: appearance.text(on: "panel")))
+                .padding(.horizontal, 12)
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .accessibilityHidden(true)
     }
 
     /// ABC-page word suggestions: three equal-width slots (the system English keyboard's rhythm), the whole row replaced at once by engine results.

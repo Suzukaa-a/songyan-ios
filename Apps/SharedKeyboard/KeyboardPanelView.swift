@@ -872,7 +872,7 @@ public struct KeyboardPanelView: View {
     private func panelSurface(isWide: Bool) -> some View {
         let plan = layoutPlan
         let showsWideDismiss = isWide && dismissKeyboard != nil
-        let idle = idleToolbarInput.allowsToolbar
+        let idle = idleToolbarInput.allowsToolbar && controller.deleteSwipeText == nil
         return VStack(spacing: 0) {
             // While composing, the full original budget for candidates, readings, status and fallback badge is kept;
             // Optional tools use the blank band only when strictly idle, without splitting candidate width.
@@ -1010,6 +1010,18 @@ public struct KeyboardPanelView: View {
                     isIdle: { !showsCoveringPanel },
                     move: move)
             }
+        )
+        .environment(
+            \.keyboardDeleteSwipe,
+            KeyboardDeleteSwipe(
+                begin: {
+                    controller.beginDeleteSwipe(
+                        settingOn: KeyboardDeleteSwipePreferences.isEnabled,
+                        voiceOverRunning: UIAccessibility.isVoiceOverRunning)
+                },
+                reach: { controller.deleteSwipeReach },
+                update: { controller.updateDeleteSwipe(count: $0) },
+                end: { controller.endDeleteSwipe(commit: $0) })
         )
         .environment(
             \.keyboardDeleteHasComposition,

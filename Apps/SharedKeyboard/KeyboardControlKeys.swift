@@ -460,7 +460,7 @@ struct CursorSpaceKey: UIViewRepresentable {
         /// Cursor mode starts on a still hold this long (0.35s turned slow taps into
         /// swallowed spaces) or on a deliberate sideways drag of `cursorDragStart`.
         private static let cursorHoldDelay: TimeInterval = 0.5
-        private static let cursorDragStart: CGFloat = 14
+        private static let cursorDragStart = CGFloat(KeyboardCursorDragPolicy.startDistance)
         /// A cursor-mode press that never moved the cursor and lifted within this
         /// time was a slow tap: it still types the space.
         private static let slowTapLimit: TimeInterval = 0.8
@@ -618,9 +618,10 @@ struct CursorSpaceKey: UIViewRepresentable {
                 startCursorMode()
             }
             if isDragging {
-                let offset = Int((latestX - steppedX) / 12)
+                let step = CGFloat(KeyboardCursorDragPolicy.stepWidth)
+                let offset = Int((latestX - steppedX) / step)
                 if offset != 0 {
-                    steppedX += CGFloat(offset) * 12
+                    steppedX += CGFloat(offset) * step
                     didMoveCursor = true
                     moveCursor?(offset)
                 }
@@ -752,6 +753,7 @@ extension EnvironmentValues {
 struct RepeatingDeleteKey: UIViewRepresentable {
     @Environment(\.keyboardPanelHostLifetime) private var hostLifetime
     @Environment(\.keyboardDeleteHasComposition) private var hasComposition
+    @Environment(\.keyboardDeleteSwipe) private var deleteSwipe
     @Environment(\.keyboardAppearance) private var appearance
     @Environment(\.isEnabled) private var isEnabled
     /// An author label replaces the delete glyph; a secondary label shows under it. The repeat
@@ -784,6 +786,7 @@ struct RepeatingDeleteKey: UIViewRepresentable {
         button.accessibilityTraits = .keyboardKey
         button.action = action
         button.hasComposition = hasComposition
+        button.swipe = deleteSwipe
         apply(to: button)
         return button
     }
@@ -792,12 +795,13 @@ struct RepeatingDeleteKey: UIViewRepresentable {
         button.hostLifetime = hostLifetime
         button.action = action
         button.hasComposition = hasComposition
+        button.swipe = deleteSwipe
         button.appearance = appearance
         apply(to: button)
         if button.isEnabled != isEnabled { button.isEnabled = isEnabled }
     }
 
-    static func dismantleUIView(_ button: DeleteButton, coordinator: ()) { button.stopRepeating() }
+    static func dismantleUIView(_ button: DeleteButton, coordinator: ()) { button.abandon() }
 
     private func apply(to button: DeleteButton) {
         button.skinRole = skinRole
@@ -809,23 +813,29 @@ struct RepeatingDeleteKey: UIViewRepresentable {
         var hostLifetime: KeyboardPanelHostLifetime? {
             didSet {
                 guard oldValue !== hostLifetime else { return }
-                stopRepeating()
-                rebindPanelHostObserver(self, selector: #selector(stopRepeating), from: oldValue, to: hostLifetime)
+                abandon()
+                rebindPanelHostObserver(self, selector: #selector(abandon), from: oldValue, to: hostLifetime)
             }
         }
         var action: ((Bool) -> Void)?
         var hasComposition: @MainActor () -> Bool = { false }
+        /// Slide left to mark text to delete; nil outside the keyboard's own panel.
+        var swipe: KeyboardDeleteSwipe?
         private var timer: Timer?
         private var repeatCount = 0
         private var startedWithComposition = false
+        private var swipeStart: CGPoint?
+        private var swipeState: KeyboardDeleteSwipePolicy.State?
+        /// The slide was already tried for this press; it is not retried on every move.
+        private var swipeTried = false
 
         private var canRepeat: Bool {
-            isEnabled && isTracking && isHighlighted && window != nil
+            isEnabled && isTracking && isHighlighted && window != nil && swipeState == nil
                 && (!startedWithComposition || hasComposition())
         }
 
         override var isEnabled: Bool {
-            didSet { if !isEnabled { stopRepeating() } }
+            didSet { if !isEnabled { abandon() } }
         }
 
         override var isHighlighted: Bool {
@@ -844,12 +854,82 @@ struct RepeatingDeleteKey: UIViewRepresentable {
             addTarget(
                 self, action: #selector(stopRepeating),
                 for: [.touchUpInside, .touchUpOutside, .touchCancel, .touchDragExit])
+            // Another key engaging means a second finger: a slide in progress deletes nothing.
+            NotificationCenter.default.addObserver(
+                self, selector: #selector(otherKeyEngaged(_:)), name: .keyboardKeyInteractionDidEngage, object: nil)
+        }
+
+        deinit { NotificationCenter.default.removeObserver(self) }
+
+        @objc private func otherKeyEngaged(_ note: Notification) {
+            guard (note.object as AnyObject?) !== self else { return }
+            finishSwipe(commit: false)
+        }
+
+        // MARK: Slide left to mark text
+
+        override func beginTracking(_ touch: UITouch, with event: UIEvent?) -> Bool {
+            swipeStart = touch.location(in: window)
+            swipeTried = false
+            return super.beginTracking(touch, with: event)
+        }
+
+        override func continueTracking(_ touch: UITouch, with event: UIEvent?) -> Bool {
+            if swipe != nil, window != nil { trackSwipe(touch.location(in: window)) }
+            return super.continueTracking(touch, with: event)
+        }
+
+        override func endTracking(_ touch: UITouch?, with event: UIEvent?) {
+            finishSwipe(commit: true)
+            super.endTracking(touch, with: event)
+        }
+
+        override func cancelTracking(with event: UIEvent?) {
+            finishSwipe(commit: false)
+            super.cancelTracking(with: event)
+        }
+
+        private func trackSwipe(_ point: CGPoint) {
+            guard let swipe, let start = swipeStart else { return }
+            if let state = swipeState {
+                let next = KeyboardDeleteSwipePolicy.move(
+                    state, x: Double(point.x), startX: Double(start.x), reach: swipe.reach())
+                guard next != state else { return }
+                swipeState = next
+                if next.count != state.count {
+                    swipe.update(next.count)
+                    KeyboardFeedbackService.shared.alternateHighlightMoved()
+                }
+                return
+            }
+            guard !swipeTried,
+                KeyboardDeleteSwipePolicy.canBegin(dx: Double(point.x - start.x), dy: Double(point.y - start.y))
+            else { return }
+            swipeTried = true
+            // A press that started on a composition keeps deleting from it.
+            guard !startedWithComposition, !hasComposition(), swipe.begin() else { return }
+            stopRepeating()
+            swipeState = KeyboardDeleteSwipePolicy.begin(startX: Double(start.x))
+            KeyboardFeedbackService.shared.caretModeEntered()
+        }
+
+        private func finishSwipe(commit: Bool) {
+            guard swipeState != nil else { return }
+            swipeState = nil
+            swipe?.end(commit)
+        }
+
+        /// Everything a press owns ends without deleting more: repeat and slide.
+        @objc func abandon() {
+            stopRepeating()
+            finishSwipe(commit: false)
         }
 
         required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
         @objc private func beginRepeating() {
             stopRepeating()
+            swipeState = nil
             guard isEnabled, window != nil else { return }
             // Read live state before the first deletion: it may already remove the final composing code.
             startedWithComposition = hasComposition()
@@ -884,7 +964,7 @@ struct RepeatingDeleteKey: UIViewRepresentable {
 
         override func didMoveToWindow() {
             super.didMoveToWindow()
-            if window == nil { stopRepeating() }
+            if window == nil { abandon() }
         }
 
         override func accessibilityActivate() -> Bool {

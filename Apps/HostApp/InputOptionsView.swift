@@ -60,6 +60,8 @@ struct InputOptionsView: View {
     @State private var oneHandWidthDraft: Double?
     @AppStorage(KeyboardCursorSwipePreferences.key, store: KeyboardOneHandPreferences.defaults)
     private var cursorSwipeEnabled = false
+    @AppStorage(KeyboardDeleteSwipePreferences.key, store: KeyboardOneHandPreferences.defaults)
+    private var deleteSwipeEnabled = false
     @AppStorage(KeyboardReadingPlacementPreferences.key, store: KeyboardReadingPlacementPreferences.defaults)
     private var readingPlacementValue = ReadingPlacement.row.rawValue
     /// Per-physical wide-screen dock. Read once per visit, written through the same shared
@@ -115,6 +117,15 @@ struct InputOptionsView: View {
                     }
                 }
                 .accessibilityIdentifier("inputOptions.cursorSwipe")
+                Toggle(isOn: $deleteSwipeEnabled) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("左滑删除键选择文字")
+                        Text("按住删除键向左滑，选中要删的文字，松手删除。")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .accessibilityIdentifier("inputOptions.deleteSwipe")
             }
             keyboardHeightSection
             readingPlacementSection
