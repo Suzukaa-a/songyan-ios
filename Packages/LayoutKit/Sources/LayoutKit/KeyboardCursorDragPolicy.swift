@@ -18,11 +18,16 @@ public enum KeyboardCursorDragPolicy {
             return !hasYielded
         }
     }
+    /// A drag starts this far from the touch-down point; the space bar's step and the Delete swipe's
+    /// step are both `stepWidth`, so the two gestures feel alike.
+    public static let startDistance = 14.0
+    public static let stepWidth = 12.0
+
     public static func canBegin(
         settingOn: Bool, isComposing: Bool, hasPendingCodes: Bool, isIdle: Bool,
         ownership: Ownership, dx: Double, dy: Double
     ) -> Bool {
         settingOn && !isComposing && !hasPendingCodes && isIdle && ownership == .keyboard
-            && abs(dx) >= 14 && abs(dx) > abs(dy)
+            && abs(dx) >= startDistance && abs(dx) > abs(dy)
     }
 }

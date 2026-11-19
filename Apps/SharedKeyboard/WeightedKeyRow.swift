@@ -17,6 +17,23 @@ struct KeyboardCursorSwipe {
     let move: (Int) -> Void
 }
 
+/// The Delete key's slide-to-mark gesture; the live gates are checked only when a slide starts.
+struct KeyboardDeleteSwipe {
+    /// Starts marking; false leaves Delete exactly as without the setting.
+    let begin: () -> Bool
+    let reach: () -> Int
+    let update: (Int) -> Void
+    let end: (_ commit: Bool) -> Void
+}
+
+private struct KeyboardDeleteSwipeKey: EnvironmentKey { static var defaultValue: KeyboardDeleteSwipe? { nil } }
+extension EnvironmentValues {
+    var keyboardDeleteSwipe: KeyboardDeleteSwipe? {
+        get { self[KeyboardDeleteSwipeKey.self] }
+        set { self[KeyboardDeleteSwipeKey.self] = newValue }
+    }
+}
+
 private struct KeyboardCursorSwipeKey: EnvironmentKey { static var defaultValue: KeyboardCursorSwipe? { nil } }
 extension EnvironmentValues {
     var keyboardCursorSwipe: KeyboardCursorSwipe? {
@@ -339,9 +356,10 @@ final class KeyboardCursorDragAnchor: UIView, UIGestureRecognizerDelegate {
     }
 
     private func step() {
-        let offset = Int((drag.translation.x - steppedX) / 12)
+        let step = CGFloat(KeyboardCursorDragPolicy.stepWidth)
+        let offset = Int((drag.translation.x - steppedX) / step)
         guard offset != 0 else { return }
-        steppedX += CGFloat(offset) * 12
+        steppedX += CGFloat(offset) * step
         cursorSwipe?.move(offset)
     }
 
