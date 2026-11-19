@@ -21,6 +21,8 @@ engine:
   processors:
     # librime-predict expects the predictor ahead of the other processors.
     - predictor
+    # A hardware keyboard's Shift switches through it (see default.yaml).
+    - ascii_composer
     - speller
     - selector
     # express_editor supplies _auto_commit, so picking 你 commits it the same
