@@ -137,17 +137,19 @@ extension KeyboardPanelView {
     /// Lifting the finger deletes them; sliding back shrinks them.
     private func deleteSwipePreview(_ marked: String) -> some View {
         HStack(spacing: 0) {
+            // Candidate-sized: this is what is about to be deleted, so it must be readable at a glance.
             Text(marked)
-                .font(appearance.candidateFont(appearance.skin.typography.secondarySize))
+                .font(appearance.candidateFont(appearance.candidateFontSize))
                 .lineLimit(1)
                 .truncationMode(.head)
-                .padding(.horizontal, 4)
-                .background(RoundedRectangle(cornerRadius: 3).fill(appearance.accentForeground.opacity(0.3)))
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(RoundedRectangle(cornerRadius: 4).fill(appearance.accentForeground.opacity(0.3)))
                 .foregroundStyle(Color(uiColor: appearance.text(on: "panel")))
                 .padding(.horizontal, 12)
             Spacer(minLength: 0)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         .accessibilityHidden(true)
     }
 
