@@ -53,6 +53,8 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
     public let usesDigitPadRow: Bool
     /// The scheme's input language for automatic faces; author labels never read it.
     public let script: KeyLabelScript
+    /// The language key's face for a scheme language without a script of its own (Korean, unknown).
+    public let languageFace: LanguageKeyFace
     /// The row-shaped symbol page already types every mark, so its utility position opens the
     /// symbol library (更多) instead of typing one. The native panel, its preview and an
     /// unchanged materialized copy use the same choice; authored keys keep their own actions.
@@ -94,7 +96,7 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
         includesBottomEnter: Bool = true, usesCategorySymbolPage: Bool = true,
         numericPageReachesSymbols: Bool = true, usesDigitPadRow: Bool = false,
         script: KeyLabelScript = .simplifiedChinese, showsSpaceSideMarks: Bool = false,
-        offersSymbolLibrary: Bool = false
+        offersSymbolLibrary: Bool = false, languageFace: LanguageKeyFace = .byScript
     ) {
         self.page = page
         self.isEnglishMode = isEnglishMode
@@ -106,6 +108,7 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
         self.numericPageReachesSymbols = numericPageReachesSymbols
         self.usesDigitPadRow = usesDigitPadRow
         self.script = script
+        self.languageFace = languageFace
         self.showsSpaceSideMarks = showsSpaceSideMarks
         self.offersSymbolLibrary = offersSymbolLibrary
     }
@@ -255,7 +258,7 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
     public func languageTitle(for behavior: LayoutAction.LanguageSwitchBehavior?) -> String {
         KeyLabelPolicy.languageTitle(
             script: script, action: languageAction(for: behavior),
-            isEnglishMode: isEnglishMode, usesASCIIPunctuation: usesASCIIPunctuation)
+            isEnglishMode: isEnglishMode, usesASCIIPunctuation: usesASCIIPunctuation, face: languageFace)
     }
 
     public func languageCurrentSideIsFirst(for behavior: LayoutAction.LanguageSwitchBehavior?) -> Bool? {
@@ -268,7 +271,7 @@ public struct KeyboardControlPolicy: Equatable, Sendable {
     public func languageAccessibilityLabel(for behavior: LayoutAction.LanguageSwitchBehavior?) -> String {
         KeyLabelPolicy.languageAccessibilityLabel(
             script: script, action: languageAction(for: behavior),
-            isEnglishMode: isEnglishMode, usesASCIIPunctuation: usesASCIIPunctuation)
+            isEnglishMode: isEnglishMode, usesASCIIPunctuation: usesASCIIPunctuation, face: languageFace)
     }
     public var utility: Utility {
         isBundledPhonePad && page == .numeric && !isDigitPad

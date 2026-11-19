@@ -338,7 +338,8 @@ extension KeyboardPanelView {
             showsCategorySymbolPage: showsCategorySymbolPage,
             numericPageReachesSymbols: page != .letters || numericPageReachesSymbols,
             script: controller.inputLanguageScript,
-            showsSpaceSideMarks: showsSpaceSideMarks, offersSymbolLibrary: pageDefinition == nil
+            showsSpaceSideMarks: showsSpaceSideMarks, offersSymbolLibrary: pageDefinition == nil,
+            languageFace: controller.languageKeyFace
         ).withFieldMarks(controller.hostFieldMarks)
         return KeyboardPanelRules.fittingSpaceSideMarks(policy, contentWidth: widthBox.contentWidth)
     }

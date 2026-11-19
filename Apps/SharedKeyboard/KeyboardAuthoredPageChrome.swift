@@ -167,6 +167,7 @@ struct KeyboardPageAuthoredState: Equatable {
     var usesCategorySymbolPage = false
     /// The scheme's input language for automatic faces; author labels never read it.
     var script: KeyLabelScript = .simplifiedChinese
+    var languageFace: LanguageKeyFace = .byScript
 
     var shiftActive: Bool { shiftState.isActive }
 
@@ -177,7 +178,7 @@ struct KeyboardPageAuthoredState: Equatable {
             page: page, isEnglishMode: isEnglishMode, hasGlobe: hasGlobe,
             isPhoneLayout: isPhoneStyled, usesASCIIPunctuation: usesASCIIPunctuation,
             includesBottomEnter: true, usesCategorySymbolPage: usesCategorySymbolPage,
-            script: script)
+            script: script, languageFace: languageFace)
     }
 
     /// The real title of a key: the authored label for .custom, otherwise the live native title.

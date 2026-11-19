@@ -212,8 +212,17 @@ public final class KeyboardController: ObservableObject {
         switch inputLanguage.language {
         case .traditionalChinese: return .traditionalChinese
         case .japanese: return .japanese
-        // Key captions have no Korean or unspecified wording; they keep the default one.
+        // Korean and unspecified keep Chinese captions elsewhere; only the language key has its own face.
         case .simplifiedChinese, .korean, .unspecified: return .simplifiedChinese
+        }
+    }
+
+    /// The automatic language key's face for languages without a script of their own.
+    public var languageKeyFace: LanguageKeyFace {
+        switch inputLanguage.language {
+        case .korean: return .korean
+        case .unspecified: return .unspecified
+        case .simplifiedChinese, .traditionalChinese, .japanese: return .byScript
         }
     }
 

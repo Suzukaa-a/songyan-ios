@@ -737,6 +737,11 @@
     },
     {
       "path": "Packages/LayoutKit/Sources/LayoutKit/KeyLabelPolicy.swift",
+      "value": "文/A",
+      "reason": "Language key face for a scheme whose language is unknown; chosen by the scheme, never interface locale."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/KeyLabelPolicy.swift",
       "value": "中文",
       "reason": "Input-language keycap target faces selected explicitly by script, never interface locale."
     },

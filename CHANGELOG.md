@@ -2,6 +2,14 @@
 
 ## 未发布
 
+### 改进
+
+- 语言切换键按输入方案的语言显示：韩文显示「한/A」，认不出语言的显示「文/A」，不再一律显示「中/英」。
+
+### Improved
+
+- The language switch key follows the input scheme's language: 한/A for Korean and 文/A when the language is unknown, instead of always 中/英.
+
 ## 0.2.0 (2026-11-20)
 
 ### 新增

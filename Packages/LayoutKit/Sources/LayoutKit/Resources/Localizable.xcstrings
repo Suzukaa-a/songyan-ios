@@ -3411,6 +3411,94 @@
         }
       }
     },
+    "key.language.genericToEnglish": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入方式的语言，轻点切换为英文"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力方式の言語（タップで英語に切り替え）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "輸入方式的語言，點一下切換為英文"
+          }
+        }
+      }
+    },
+    "key.language.englishToGeneric": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "英文，轻点切换回输入方式的语言"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "英語（タップで入力方式の言語に戻す）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "英文，點一下切換回輸入方式的語言"
+          }
+        }
+      }
+    },
+    "key.symbols.genericToEnglish": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "输入方式的标点，轻点切换为英文标点"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "入力方式の句読点（タップで英語の句読点に切り替え）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "輸入方式的標點，點一下切換為英文標點"
+          }
+        }
+      }
+    },
+    "key.symbols.englishToGeneric": {
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "英文标点，轻点切换回输入方式的标点"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "英語の句読点（タップで入力方式の句読点に戻す）"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "英文標點，點一下切換回輸入方式的標點"
+          }
+        }
+      }
+    },
     "key.page.numeric": {
       "localizations": {
         "zh-Hans": {

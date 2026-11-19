@@ -8,6 +8,24 @@ public enum KeyLabelScript: String, Sendable, Equatable, CaseIterable {
     case japanese = "ja"
 }
 
+/// The face of the automatic language key when the scheme's language has no `KeyLabelScript` of its
+/// own. Chinese and Japanese schemes keep their script's face; Korean has its own, and a scheme whose
+/// language is unknown gets the neutral one, whatever language the app is in.
+public enum LanguageKeyFace: Equatable, Sendable {
+    case byScript, korean, unspecified
+
+    var title: String? {
+        switch self {
+        case .byScript: return nil
+        case .korean: return "한/A"
+        case .unspecified: return "文/A"
+        }
+    }
+
+    /// Korean and unknown languages are spoken as "the input method's language", never as Chinese.
+    var isGeneric: Bool { self != .byScript }
+}
+
 /// Automatic key names and accessibility wording for the three input languages. Only a key whose
 /// face is the native automatic one reads this; an author label always wins.
 extension LayoutKey {
@@ -164,12 +182,13 @@ public enum KeyLabelPolicy {
 
     public static func languageTitle(
         script: KeyLabelScript, action: KeyboardControlPolicy.LanguageAction,
-        isEnglishMode: Bool, usesASCIIPunctuation: Bool
+        isEnglishMode: Bool, usesASCIIPunctuation: Bool, face: LanguageKeyFace = .byScript
     ) -> String {
         switch action {
         case .returnToLetters:
             return script == .japanese ? "戻る" : "返回"
         case .toggleLanguage, .toggleSymbols:
+            if let title = face.title { return title }
             // Both sides are always drawn and the current one is emphasised (see
             // `languageCurrentSideIsFirst`), so the key says where you are without changing its face.
             return script == .japanese ? "あ/A" : "中/英"
@@ -187,16 +206,21 @@ public enum KeyLabelPolicy {
         }
     }
 
-    /// A Japanese scheme names Japanese and English, never Chinese; the other schemes name the
+    /// A Japanese scheme names Japanese and English, never Chinese; a Korean or unknown one names the input method's language; the other schemes name the
     /// target. The wording itself is the app language's.
     public static func languageAccessibilityLabel(
         script: KeyLabelScript, action: KeyboardControlPolicy.LanguageAction,
-        isEnglishMode: Bool, usesASCIIPunctuation: Bool
+        isEnglishMode: Bool, usesASCIIPunctuation: Bool, face: LanguageKeyFace = .byScript
     ) -> String {
         switch action {
         case .returnToLetters:
             return String(localized: "key.language.returnToLetters", bundle: .module)
         case .toggleLanguage:
+            if face.isGeneric {
+                return isEnglishMode
+                    ? String(localized: "key.language.englishToGeneric", bundle: .module)
+                    : String(localized: "key.language.genericToEnglish", bundle: .module)
+            }
             if script == .japanese {
                 return isEnglishMode
                     ? String(localized: "key.language.englishToJapanese", bundle: .module)
@@ -206,6 +230,11 @@ public enum KeyLabelPolicy {
                 ? String(localized: "key.language.toChinese", bundle: .module)
                 : String(localized: "key.language.toEnglish", bundle: .module)
         case .toggleSymbols:
+            if face.isGeneric {
+                return usesASCIIPunctuation
+                    ? String(localized: "key.symbols.englishToGeneric", bundle: .module)
+                    : String(localized: "key.symbols.genericToEnglish", bundle: .module)
+            }
             if script == .japanese {
                 return usesASCIIPunctuation
                     ? String(localized: "key.symbols.englishToJapanese", bundle: .module)

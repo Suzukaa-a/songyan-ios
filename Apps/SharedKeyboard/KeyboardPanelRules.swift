@@ -111,7 +111,8 @@ enum KeyboardPanelRules {
         numericPageReachesSymbols: Bool = true,
         script: KeyLabelScript = .simplifiedChinese,
         showsSpaceSideMarks: Bool = false,
-        offersSymbolLibrary: Bool = false
+        offersSymbolLibrary: Bool = false,
+        languageFace: LanguageKeyFace = .byScript
     ) -> KeyboardControlPolicy {
         let trailingHasReturn = !usesFixedEditingRail && phoneShellVisible && declaredTrailingReturn()
         return KeyboardControlPolicy(
@@ -120,7 +121,8 @@ enum KeyboardPanelRules {
             includesBottomEnter: !phoneShellVisible || (!usesFixedEditingRail && !trailingHasReturn),
             usesCategorySymbolPage: showsCategorySymbolPage, numericPageReachesSymbols: numericPageReachesSymbols,
             usesDigitPadRow: usesFixedEditingRail, script: script,
-            showsSpaceSideMarks: showsSpaceSideMarks, offersSymbolLibrary: offersSymbolLibrary)
+            showsSpaceSideMarks: showsSpaceSideMarks, offersSymbolLibrary: offersSymbolLibrary,
+            languageFace: languageFace)
     }
 
     /// A row too narrow to keep a usable space bar falls back to the single mark; the layout

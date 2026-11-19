@@ -362,7 +362,7 @@ extension KeyboardPanelView {
             isPhoneStyled: !(definition.chrome?.trailing.isEmpty ?? true),
             usesASCIIPunctuation: effectiveUsesASCIIPunctuation,
             usesCategorySymbolPage: definition.symbolPresentation == .categorized,
-            script: controller.inputLanguageScript)
+            script: controller.inputLanguageScript, languageFace: controller.languageKeyFace)
     }
 
     func authoredPageActions() -> KeyboardPageAuthoredActions {
