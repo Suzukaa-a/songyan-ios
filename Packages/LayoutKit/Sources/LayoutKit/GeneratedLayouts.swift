@@ -11,10 +11,18 @@ public enum GeneratedLayouts {
     public static func strokesID(schemaID: String) -> String { "\(idPrefix)\(schemaID).strokes" }
     public static func isGeneratedID(_ id: String) -> Bool { id.hasPrefix(idPrefix) }
 
+    /// The names earlier versions saved on a generated 26-key layout, in every language. Only a layout still
+    /// carrying one of them is renamed for display; a name the user chose stays.
+    static let formerKeys26Names: Set<String> = [
+        "26 键＋编码键", "26 鍵＋編碼鍵", "26キー＋コードキー", "26 keys + code keys",
+    ]
+
     /// The codes a generated 26-key layout sends beyond the standard 26-key board, in key order; nil
-    /// for any other layout.
+    /// for any other layout and for one whose name is no longer a name this app once gave it.
     public static func addedCodes(_ layout: LayoutDefinition) -> [String]? {
-        guard isGeneratedID(layout.id), layout.id.hasSuffix(keys26Suffix) else { return nil }
+        guard isGeneratedID(layout.id), layout.id.hasSuffix(keys26Suffix),
+            formerKeys26Names.contains(layout.name)
+        else { return nil }
         let standard = LayoutCodeCoverage.declared(BuiltinLayouts.qwerty26)
         var seen = Set<String>()
         let added = layout.rows.flatMap(\.keys).compactMap { key -> String? in

@@ -81,6 +81,16 @@
   ],
   "dataLiterals": [
     {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/GeneratedLayouts.swift",
+      "value": "26 键＋编码键",
+      "reason": "A name earlier versions saved on a generated layout; matched against stored data, never shown."
+    },
+    {
+      "path": "Packages/LayoutKit/Sources/LayoutKit/GeneratedLayouts.swift",
+      "value": "26 鍵＋編碼鍵",
+      "reason": "A name earlier versions saved on a generated layout; matched against stored data, never shown."
+    },
+    {
       "path": "Apps/HostApp/HostApp.swift",
       "value": "松烟输入法",
       "reason": "Fixed text for the input-context probe in DEBUG builds; it is a test fixture, not interface copy."

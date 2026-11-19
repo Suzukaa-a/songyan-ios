@@ -29,6 +29,14 @@ final class GeneratedLayoutsTests: XCTestCase {
         XCTAssertEqual(GeneratedLayouts.addedCodes(board), ["`", "'"])
         XCTAssertNil(GeneratedLayouts.addedCodes(BuiltinLayouts.qwerty26))
         XCTAssertNil(GeneratedLayouts.addedCodes(board.copy(name: "mine")))
+        for former in ["26 鍵＋編碼鍵", "26キー＋コードキー", "26 keys + code keys"] {
+            XCTAssertEqual(
+                GeneratedLayouts.addedCodes(GeneratedLayouts.keys26(schemaID: "rime_ice", name: former, codes: codes)),
+                ["`", "'"], former)
+        }
+        // A generated board the user renamed keeps the name they chose.
+        let renamed = GeneratedLayouts.keys26(schemaID: "rime_ice", name: "我的拼音键盘", codes: codes)
+        XCTAssertNil(GeneratedLayouts.addedCodes(renamed))
     }
 
     func testNeededDigitsBecomeATopRowAndExtraSymbolsJoinIt() {
