@@ -7,11 +7,21 @@ name: Release
 # time), then publishes a GitHub Release with an ad-hoc signed IPA for
 # re-signing installers (AltStore, Sideloadly). The build number is always the
 # commit count.
+#
+# The release notes are the changelog: for a release, the body of the signed
+# tag's message (first line the version, a blank line, then the notes); for a
+# pre-release, the `notes` input. A release without notes fails before the
+# build.
 on:
   push:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
   workflow_dispatch:
+    inputs:
+      notes:
+        description: 更新日志（自上一次发布以来的变化）
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -73,6 +83,7 @@ jobs:
         id: version
         env:
           REF: ${{ github.ref_name }}
+          NOTES: ${{ inputs.notes }}
         run: |
           git merge-base --is-ancestor "${GITHUB_SHA}" origin/main \
             || { echo "::error::${REF} is not on main"; exit 1; }
@@ -84,11 +95,18 @@ jobs:
               || { echo "::error::no vX.Y.Z release tag on main yet"; exit 1; }
             marketing="${release#v}"
             full="${marketing} (${build})" tag="v${marketing}-${build}" files="${marketing}-${build}" prerelease=true
+            [[ -n "${NOTES//[[:space:]]/}" ]] || { echo "::error::write the changelog in the notes input"; exit 1; }
           else
             [[ "${REF}" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)$ ]] \
               || { echo "::error::tag ${REF} is not vX.Y.Z"; exit 1; }
             marketing="${REF#v}"
             full="${marketing}" tag="${REF}" files="${marketing}" prerelease=false
+            # Checkout may leave a lightweight copy of the tag; fetch the annotated one to read its message.
+            git fetch --quiet --force origin "refs/tags/${REF}:refs/tags/${REF}"
+            [[ "$(git cat-file -t "${REF}")" == tag ]] || { echo "::error::${REF} is not an annotated tag"; exit 1; }
+            body="$(git for-each-ref --format='%(contents:body)' "refs/tags/${REF}")"
+            [[ -n "${body//[[:space:]]/}" ]] \
+              || { echo "::error::${REF} has no changelog in its message (version line, blank line, notes)"; exit 1; }
           fi
           {
             echo "marketing=${marketing}"
@@ -116,13 +134,14 @@ jobs:
           TAG: ${{ steps.version.outputs.tag }}
           VERSION: ${{ steps.version.outputs.full }}
           PRERELEASE: ${{ steps.version.outputs.prerelease }}
+          NOTES: ${{ inputs.notes }}
         # A pre-release has no pushed tag: the release creates it on the commit that was built.
         run: |
-          flags=(--generate-notes --title "松烟 ${VERSION}")
+          flags=(--title "松烟 ${VERSION}")
           if [[ "${PRERELEASE}" == true ]]; then
-            flags+=(--prerelease --target "${GITHUB_SHA}")
+            flags+=(--prerelease --target "${GITHUB_SHA}" --notes "${NOTES}")
           else
-            flags+=(--verify-tag)
+            flags+=(--verify-tag --notes "$(git for-each-ref --format='%(contents:body)' "refs/tags/${TAG}")")
           fi
           gh release create "${TAG}" dist/*.ipa "${flags[@]}"
       - name: Upload failed build logs

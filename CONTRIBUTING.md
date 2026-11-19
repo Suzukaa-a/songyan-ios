@@ -75,11 +75,11 @@ Use short conventional commits, for example `fix(candidates): keep reading row h
 `main` is the development branch. A release is an annotated tag on a commit of `main`:
 
 ```sh
-git tag -a v0.2.0 -m "v0.2.0"
+git tag -s v0.2.0 -F notes.txt   # first line v0.2.0, a blank line, then the changelog
 git push origin v0.2.0
 ```
 
-[release.yml](.github/workflows/release.yml) then runs lint, tests and the Debug device build, builds the app with version `0.2.0` (the build number is the commit count), and publishes a GitHub Release with an ad-hoc signed IPA and notes generated from the commits since the previous tag. A pre-release is published by running the Release workflow by hand on `main` (Actions → Release → Run workflow): it is named after the latest release plus the commit count, such as `0.2.0 (1234)`, and tagged `v0.2.0-1234`. The IPA is meant for installers that re-sign it under your own Apple ID, such as AltStore or Sideloadly.
+[release.yml](.github/workflows/release.yml) then runs lint, tests and the Debug device build, builds the app with version `0.2.0` (the build number is the commit count), and publishes a GitHub Release with an ad-hoc signed IPA; the tag message below its first line is the release notes, and a tag without them is refused. A pre-release is published by running the Release workflow by hand on `main` (Actions → Release → Run workflow): it is named after the latest release plus the commit count, such as `0.2.0 (1234)`, and tagged `v0.2.0-1234`; its release notes are the required `notes` input. The IPA is meant for installers that re-sign it under your own Apple ID, such as AltStore or Sideloadly.
 
 ## Security
 
