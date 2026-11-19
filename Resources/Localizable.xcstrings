@@ -17816,7 +17816,7 @@
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "有個按鍵無法辨識，檢查沒能完成。"
+            "value": "有個按鍵無法識別，檢查沒能完成。"
           }
         }
       }
