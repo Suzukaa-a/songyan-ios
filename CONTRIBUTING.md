@@ -79,7 +79,7 @@ git tag -a v0.2.0 -m "v0.2.0"
 git push origin v0.2.0
 ```
 
-[release.yml](.github/workflows/release.yml) then runs lint, tests and the Debug device build, builds the app with version `0.2.0` (the build number is the commit count), and publishes a GitHub Release with an ad-hoc signed IPA and notes generated from the commits since the previous tag. A tag with a suffix such as `v0.2.0-beta.1` is published as a pre-release. The IPA is meant for installers that re-sign it under your own Apple ID, such as AltStore or Sideloadly.
+[release.yml](.github/workflows/release.yml) then runs lint, tests and the Debug device build, builds the app with version `0.2.0` (the build number is the commit count), and publishes a GitHub Release with an ad-hoc signed IPA and notes generated from the commits since the previous tag. A pre-release is published by running the Release workflow by hand on `main` (Actions → Release → Run workflow): it is named after the latest release plus the commit count, such as `0.2.0 (1234)`, and tagged `v0.2.0-1234`. The IPA is meant for installers that re-sign it under your own Apple ID, such as AltStore or Sideloadly.
 
 ## Security
 
