@@ -814,7 +814,7 @@ public final class KeyboardPadSession: ObservableObject {
                             let state = try engine.processKey(String(key))
                             guard state.committed.isEmpty else {
                                 throw EngineBackendError.operationFailed(
-                                    String(localized: "恢复输入状态时输入方案提前上屏；已保留原始编码：\(resume.input)"))
+                                    String(localized: "没能恢复刚才的输入，已保留你输入的内容：\(resume.input)"))
                             }
                         }
                     }

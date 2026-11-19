@@ -779,7 +779,7 @@ struct KeyboardChoiceRows: View {
     var body: some View {
         Text(group.name).font(.footnote.weight(.semibold))
         if group.unknownCodes {
-            Text("有些编码键盘上没有，可在键盘布局里补上").font(.footnote).foregroundStyle(.secondary)
+            Text("这个输入方案可能要用到键盘上没有的键，可在「键盘布局」里加上。").font(.footnote).foregroundStyle(.secondary)
         }
         ForEach(group.choices) { choice in
             let ticked = switcher.checked.contains(choice.id)

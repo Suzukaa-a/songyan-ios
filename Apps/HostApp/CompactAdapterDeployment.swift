@@ -135,7 +135,7 @@ enum CompactAdapterDeployment {
             guard let projection = projectionData.flatMap(CompactSchemaAdapter.SourceProjection.decode(json:))
             else {
                 throw RecipeInstallError.deployment(
-                    String(localized: "无法读取输入方式「\(source)」的编码映射"))
+                    String(localized: "没能读取输入方式「\(source)」的拼写数据，请重新安装试试。"))
             }
             // Structural contract, NOT a candidate oracle:
             //   * no primary token at all          -> `.native` (nothing to represent);

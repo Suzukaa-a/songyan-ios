@@ -387,7 +387,7 @@ final class SchemeImportCenter: ObservableObject {
                     try engine.validateSchemaForActivation(schemaID: binding.schemaID)
                     for character in binding.code {
                         guard let event = RimeKey(character: character) else {
-                            throw RecipeInstallError.deployment(String(localized: "无效的按键编码"))
+                            throw RecipeInstallError.deployment(String(localized: "有个按键无法识别，检查没能完成。"))
                         }
                         _ = try engine.processKey(event)
                     }

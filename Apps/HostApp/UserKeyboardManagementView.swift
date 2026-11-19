@@ -65,7 +65,7 @@ struct UserKeyboardManagementView: View {
                         ForEach(groups, id: \.id) { group in
                             DisclosureGroup(isExpanded: expansion(for: group.id)) {
                                 if center.sourceSchemas.first(where: { $0.id == group.id })?.profile?.kind == .unknown {
-                                    Text("有些编码键盘上没有，可在键盘布局里补上")
+                                    Text("这个输入方案可能要用到键盘上没有的键，可在「键盘布局」里加上。")
                                         .font(.footnote).foregroundStyle(.secondary)
                                 }
                                 ForEach(group.items) { item in
