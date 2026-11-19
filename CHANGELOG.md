@@ -2,16 +2,6 @@
 
 ## 未发布
 
-### 改进
-
-- 语言切换键按输入方案的语言显示：韩文显示「한/A」，认不出语言的显示「文/A」，不再一律显示「中/英」。
-- 设置里的说明改称「语言切换键」，不再用「中英键」称呼这个键。
-
-### Improved
-
-- The language switch key follows the input scheme's language: 한/A for Korean and 文/A when the language is unknown, instead of always 中/英.
-- Settings call it the language switch key instead of the 中英 key.
-
 ## 0.2.0 (2026-11-20)
 
 ### 新增
@@ -27,10 +17,12 @@
 
 ### 改进
 
-- 「加入键盘」只列出当前输入方案用得上的布局；缺少必需的键时写明缺哪个键。
+- 「添加键盘」只列出当前输入方案用得上的布局；缺少必需的键时写明缺哪个键。
 - 每个输入方案的 Rime 配置分开保存。
 - 字体里没有的生僻字，候选里显示它的编码（U+…）。
 - 脚本出错时显示说明文字，不再显示原始报错。
+- 语言切换键按输入方案的语言显示：韩文显示「한/A」，认不出语言的显示「文/A」，不再一律显示「中/英」。
+- 设置里的说明改称「语言切换键」，不再用「中英键」称呼这个键。
 
 ### New
 
@@ -49,3 +41,5 @@
 - Each input scheme keeps its own Rime configuration.
 - A rare character the font cannot draw shows its code (U+…) in the candidates.
 - Script errors are explained in words instead of raw error text.
+- The language switch key follows the input scheme's language: 한/A for Korean and 文/A when the language is unknown, instead of always 中/英.
+- Settings call it the language switch key instead of the 中英 key.
