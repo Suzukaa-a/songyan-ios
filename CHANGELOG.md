@@ -7,7 +7,7 @@
 ### 新增
 
 - 「输入选项」新增「左滑删除键选择文字」（默认关闭）：按住删除键向左滑，候选栏显示要删的文字，松手删除。
-- 「我的键盘」：任何键盘布局都可以加为键盘，长按「中/英」键在键盘菜单里切换；装好输入方案后可以直接选要用的键盘。
+- 「我的键盘」：任何键盘布局都可以加为键盘，长按语言切换键在键盘菜单里切换；装好输入方案后可以直接选要用的键盘。
 - 键盘菜单里可以切换输入方案自带的开关。
 - 「字体」：导入字体，分别设置候选栏和按键的字体。
 - 候选栏可以关闭「显示注释」。
@@ -25,7 +25,7 @@
 ### New
 
 - "Swipe left on Delete to select" in Input Options (off by default): hold Delete and slide left, the candidate bar shows the text that will go, and lifting deletes it.
-- My Keyboards: add any keyboard layout as a keyboard and switch from the keyboard menu (press and hold the 中/英 key); after installing an input scheme you can pick the keyboards to use right away.
+- My Keyboards: add any keyboard layout as a keyboard and switch from the keyboard menu (press and hold the language switch key); after installing an input scheme you can pick the keyboards to use right away.
 - The keyboard menu can switch the options an input scheme provides.
 - Fonts: import fonts and choose one for the candidate bar and one for the keys.
 - "Show notes" can be turned off for the candidate bar.
