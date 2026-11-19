@@ -49,14 +49,15 @@ checkEqual(wubiList[1].missingCodes, [";", "'"], "plain 26 keys lack what wubi n
 let strokes = zip(["h", "s", "p", "n", "z"], ["⼀", "⼁", "⼃", "⼂", "⼄"]).map {
     SchemaKeyProfile.Stroke(code: $0, label: $1)
 }
-let stroke = SchemaKeyProfile(kind: .strokes, codes: strokes.map(\.code) + ["'", "`"], strokes: strokes)
+let stroke = SchemaKeyProfile(
+    kind: .strokes, codes: strokes.map(\.code) + ["'", "`"], strokes: strokes, optionalCodes: ["'", "`"])
 let strokeList = offered("stroke", stroke)
 checkEqual(
     names(strokeList),
     ["qwerty26#auto.stroke.strokes", "qwerty26#qwerty26", "qwerty26#auto.stroke.keys26"],
     "a stroke scheme is offered the pad, plain 26 keys, then the code board")
 checkEqual(strokeList[0].generated, .strokes, "the pad is a generated layout")
-check(strokeList[1].missingCodes.contains("`"), "plain 26 keys lack the backtick a stroke scheme needs")
+checkEqual(strokeList[1].missingCodes, [], "plain 26 keys only lack keys the scheme can go without: no warning")
 
 // A syllabic scheme keeps every shape; the code board is only an extra.
 let ice = SchemaKeyProfile(kind: .syllabic, codes: letters + ["`", "'"])
@@ -77,6 +78,9 @@ checkEqual(
     names(offered("rime_ice", iceOptional)).filter { $0.hasPrefix("qwerty26#") },
     ["qwerty26#qwerty26", "qwerty26#auto.rime_ice.keys26"],
     "an unused auxiliary key keeps plain 26 keys offered, first, then the extra board")
+checkEqual(
+    offered("rime_ice", iceOptional).first { $0.layoutID == "qwerty26" }?.missingCodes, [],
+    "plain 26 keys carry no warning for rime-ice's optional keys")
 let microsoft = SchemaKeyProfile(kind: .syllabic, codes: letters + [";", "'"], optionalCodes: ["'"])
 checkEqual(
     names(offered("microsoft", microsoft)).filter { $0.hasPrefix("qwerty26#") },
@@ -115,8 +119,8 @@ check(
 let pinyinNoDelimiter = offered(
     "pinyin", SchemaKeyProfile(kind: .syllabic, codes: letters + ["'"], optionalCodes: ["'"]))
 checkEqual(
-    pinyinNoDelimiter.first { $0.layoutID == "qwerty26" }?.missingCodes, ["'"],
-    "missing only an optional code keeps the layout offered with its missing-codes line")
+    pinyinNoDelimiter.first { $0.layoutID == "qwerty26" }?.missingCodes, [],
+    "missing only an optional code keeps the layout offered, with nothing to warn about")
 
 // A layout the user copied is listed with its own missing codes.
 var withCopy = registry

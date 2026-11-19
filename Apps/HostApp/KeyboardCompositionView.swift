@@ -118,7 +118,9 @@ extension HostLayoutAvailability {
                     shape == .qwerty26
                     ? profile.flatMap { profile in
                         registry.resolvedLayout(id: id).map {
-                            LayoutCodeCoverage.missing($0, needed: profile.codes)
+                            // A missing delimiter or auxiliary key is normal on a plain board: not worth a warning.
+                            LayoutCodeCoverage.missingToReport(
+                                $0, needed: profile.codes, optional: profile.optionalCodes)
                         }
                     } ?? [] : []
                 // A 26-key layout with no key for a code the speller needs cannot type the scheme at all.
