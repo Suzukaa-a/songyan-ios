@@ -140,7 +140,11 @@ checkEqual(
     generatedKeyboard, "the picker's default for a shape code scheme is its code board")
 checkEqual(
     HostLayoutAvailability.choiceTitle(generatedKeyboard, descriptors: descriptors, in: registry),
-    UserTerminology.keys26WithCodesName, "a generated layout not in the catalog yet is titled as it will be stored")
+    UserTerminology.keys26Name(adding: LayoutCodeCoverage.missing(BuiltinLayouts.qwerty26, needed: wubi.codes)),
+    "a generated layout not in the catalog yet is titled as it will be stored")
+check(
+    UserTerminology.keys26Name(adding: [";", "'"]).contains("; '"),
+    "the generated board's name lists the keys it adds")
 checkEqual(
     HostLayoutAvailability.choiceTitle(
         PublishedKeyboard(schemaID: "wubi86", layout: .qwerty26, board: "mine"), descriptors: descriptors, in: withCopy),

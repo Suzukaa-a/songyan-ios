@@ -273,7 +273,7 @@ extension KeyboardPanelView {
             }
             let board = keyboard.layoutName(
                 mainLayoutID: physicalID,
-                savedName: physicalID.flatMap { layoutRegistry?.resolvedLayout(id: $0)?.name })
+                savedName: physicalID.flatMap { layoutRegistry?.resolvedLayout(id: $0)?.shownName })
             return KeyCap(
                 id: Self.userKeyboardCapID(keyboard), title: keyboard.title(physicalLayoutName: board),
                 subtitle: isCurrent(keyboard) ? UserTerminology.userKeyboardCurrent : nil,
@@ -285,7 +285,7 @@ extension KeyboardPanelView {
             // The record names a shipped board itself; a layout of the user's own is only known here.
             let own = other.keyboard.board.flatMap { board in
                 UserKeyboard.layoutName(
-                    board: board, mainLayoutID: board, savedName: layoutRegistry?.resolvedLayout(id: board)?.name)
+                    board: board, mainLayoutID: board, savedName: layoutRegistry?.resolvedLayout(id: board)?.shownName)
             }
             let title =
                 UserKeyboard.physicalBoardTitle(inputMethodName: other.inputMethodName, physicalLayoutName: own)
@@ -341,5 +341,13 @@ extension KeyboardPanelView {
             showsSpaceSideMarks: showsSpaceSideMarks, offersSymbolLibrary: pageDefinition == nil
         ).withFieldMarks(controller.hostFieldMarks)
         return KeyboardPanelRules.fittingSpaceSideMarks(policy, contentWidth: widthBox.contentWidth)
+    }
+}
+
+extension LayoutDefinition {
+    /// The name surfaces show: a generated 26-key board is worded by the keys it adds, whatever name
+    /// it was saved with; every other layout keeps its saved name.
+    var shownName: String {
+        GeneratedLayouts.addedCodes(self).map(UserTerminology.keys26Name(adding:)) ?? name
     }
 }

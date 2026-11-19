@@ -189,7 +189,10 @@ extension HostLayoutAvailability {
         switch layoutID {
         case GeneratedLayouts.keys26ID(schemaID: schemaID):
             return GeneratedLayouts.keys26(
-                schemaID: schemaID, name: UserTerminology.keys26WithCodesName, codes: profile.codes)
+                schemaID: schemaID,
+                name: UserTerminology.keys26Name(
+                    adding: LayoutCodeCoverage.missing(BuiltinLayouts.qwerty26, needed: profile.codes)),
+                codes: profile.codes)
         case GeneratedLayouts.strokesID(schemaID: schemaID):
             return GeneratedLayouts.strokes(
                 schemaID: schemaID, name: UserTerminology.strokePadName,
@@ -206,8 +209,10 @@ extension HostLayoutAvailability {
     ) -> String? {
         let id = effectiveMainLayoutID(
             schemaID: schemaID, layout: layout, board: board, descriptors: descriptors, in: registry)
-        return UserKeyboard.layoutName(
-            board: board, mainLayoutID: id, savedName: registry.resolvedLayout(id: id)?.name)
+        let savedName = registry.resolvedLayout(id: id).map {
+            GeneratedLayouts.addedCodes($0).map(UserTerminology.keys26Name(adding:)) ?? $0.name
+        }
+        return UserKeyboard.layoutName(board: board, mainLayoutID: id, savedName: savedName)
     }
 
     /// A keyboard to add that does not name its layout yet, as the record 我的键盘 writes for it: the
@@ -359,7 +364,7 @@ struct KeyboardCompositionView: View {
                 Text(
                     keyboard.title(
                         physicalLayoutName: keyboard.layoutName(
-                            mainLayoutID: mainLayout?.id, savedName: mainLayout?.name)))
+                            mainLayoutID: mainLayout?.id, savedName: mainLayout?.shownName)))
                 Text("页面与布局单独保存到库中；选好后轻点「保存搭配」。")
                     .font(.footnote).foregroundStyle(.secondary)
                 if let libraryNotice {

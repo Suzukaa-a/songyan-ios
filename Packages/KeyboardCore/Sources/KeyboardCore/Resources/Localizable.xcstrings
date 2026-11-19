@@ -3724,19 +3724,19 @@
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "26 键＋编码键"
+            "value": "26 键（带 %@ 键）"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "26 鍵＋編碼鍵"
+            "value": "26 鍵（帶 %@ 鍵）"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "26キー＋コードキー"
+            "value": "26キー（%@ キー付き）"
           }
         }
       }

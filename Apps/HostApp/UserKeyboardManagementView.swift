@@ -351,7 +351,7 @@ struct UserKeyboardManagementView: View {
     /// The name the keyboard's layout adds to its title: a shipped board's own name, or the saved
     /// name of a layout the keyboard names itself; nil keeps the shape name.
     private func ownLayoutName(_ item: Item, main: LayoutDefinition?) -> String? {
-        item.keyboard.layoutName(mainLayoutID: main?.id, savedName: main?.name)
+        item.keyboard.layoutName(mainLayoutID: main?.id, savedName: main?.shownName)
     }
 
     /// A row's name where the real board is known: the board's name first, then the input method;
@@ -452,7 +452,7 @@ struct UserKeyboardManagementView: View {
                         .foregroundStyle(Color.accentColor)
                         .fixedSize(horizontal: false, vertical: true)
                         if !item.missingCodes.isEmpty {
-                            Text("键盘上没有这些编码：\(item.missingCodes.joined(separator: " "))")
+                            Text("键盘上没有 \(item.missingCodes.joined(separator: " ")) 键，有些内容打不出来。可在「键盘布局」里加上。")
                                 .font(.caption).foregroundStyle(.secondary)
                         }
                     }
@@ -543,7 +543,7 @@ struct UserKeyboardManagementView: View {
                         Text("不可用").font(.caption).foregroundStyle(.secondary)
                     }
                     if !item.missingCodes.isEmpty {
-                        Text("键盘上没有这些编码：\(item.missingCodes.joined(separator: " "))")
+                        Text("键盘上没有 \(item.missingCodes.joined(separator: " ")) 键，有些内容打不出来。可在「键盘布局」里加上。")
                             .font(.caption).foregroundStyle(.secondary)
                     }
                 }

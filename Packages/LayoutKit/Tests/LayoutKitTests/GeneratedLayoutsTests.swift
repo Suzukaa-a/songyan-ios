@@ -21,6 +21,16 @@ final class GeneratedLayoutsTests: XCTestCase {
         XCTAssertEqual(board.rows[1].keys.map(\.label).suffix(2), [";", "'"])
     }
 
+    func testAGeneratedKeys26BoardListsTheKeysItAdds() {
+        // A rime-ice-like profile: the apostrophe is optional for the speller, yet the board carries it.
+        let codes = letters + letters.map { $0.uppercased() } + ["`", "'"]
+        XCTAssertEqual(LayoutCodeCoverage.missing(BuiltinLayouts.qwerty26, needed: codes), ["`", "'"])
+        let board = GeneratedLayouts.keys26(schemaID: "rime_ice", name: "26 键＋编码键", codes: codes)
+        XCTAssertEqual(GeneratedLayouts.addedCodes(board), ["`", "'"])
+        XCTAssertNil(GeneratedLayouts.addedCodes(BuiltinLayouts.qwerty26))
+        XCTAssertNil(GeneratedLayouts.addedCodes(board.copy(name: "mine")))
+    }
+
     func testNeededDigitsBecomeATopRowAndExtraSymbolsJoinIt() {
         let codes = letters + ["3", "1", ";", "'", "`"]
         let board = GeneratedLayouts.keys26(schemaID: "x", name: "n", codes: codes)

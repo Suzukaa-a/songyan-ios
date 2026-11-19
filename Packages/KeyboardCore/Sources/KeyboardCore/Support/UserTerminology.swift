@@ -168,8 +168,10 @@ public enum UserTerminology: Sendable {
         return String(localized: key, bundle: bundle)
     }
 
-    /// Name of the 26-key board a scheme's key profile extends with the codes plain 26 keys lack.
-    public static var keys26WithCodesName: String { String(localized: "core.layout.keys26", bundle: .module) }
+    /// Name of the 26-key board a scheme's key profile extends with `codes`, the keys plain 26 keys lack.
+    public static func keys26Name(adding codes: [String]) -> String {
+        String(format: String(localized: "core.layout.keys26", bundle: .module), codes.joined(separator: " "))
+    }
 
     /// Name of the stroke pad made from a stroke scheme's key profile.
     public static var strokePadName: String { String(localized: "core.layout.strokes", bundle: .module) }

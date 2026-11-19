@@ -792,7 +792,7 @@ struct KeyboardChoiceRows: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(choice.title).foregroundStyle(.primary)
                         if !choice.missingCodes.isEmpty {
-                            Text("键盘上没有这些编码：\(choice.missingCodes.joined(separator: " "))")
+                            Text("键盘上没有 \(choice.missingCodes.joined(separator: " ")) 键，有些内容打不出来。可在「键盘布局」里加上。")
                                 .font(.caption).foregroundStyle(.secondary)
                         }
                     }

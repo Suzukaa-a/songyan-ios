@@ -420,7 +420,7 @@ extension LayoutDefinition {
     /// name is unchanged; every other layout keeps the name it was saved with.
     var listName: String {
         UserTerminology.layoutListName(
-            id: id, name: name, shippedName: BuiltinLayouts.all.first { $0.id == id }?.name)
+            id: id, name: shownName, shippedName: BuiltinLayouts.all.first { $0.id == id }?.name)
     }
 }
 

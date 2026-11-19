@@ -6,9 +6,23 @@ public enum GeneratedLayouts {
     /// Id prefix every generated layout carries, so the app can tell it needs installing.
     public static let idPrefix = "auto."
 
-    public static func keys26ID(schemaID: String) -> String { "\(idPrefix)\(schemaID).keys26" }
+    public static let keys26Suffix = ".keys26"
+    public static func keys26ID(schemaID: String) -> String { "\(idPrefix)\(schemaID)\(keys26Suffix)" }
     public static func strokesID(schemaID: String) -> String { "\(idPrefix)\(schemaID).strokes" }
     public static func isGeneratedID(_ id: String) -> Bool { id.hasPrefix(idPrefix) }
+
+    /// The codes a generated 26-key layout sends beyond the standard 26-key board, in key order; nil
+    /// for any other layout.
+    public static func addedCodes(_ layout: LayoutDefinition) -> [String]? {
+        guard isGeneratedID(layout.id), layout.id.hasSuffix(keys26Suffix) else { return nil }
+        let standard = LayoutCodeCoverage.declared(BuiltinLayouts.qwerty26)
+        var seen = Set<String>()
+        let added = layout.rows.flatMap(\.keys).compactMap { key -> String? in
+            guard key.action.type == .code, let code = key.action.value, !standard.contains(code) else { return nil }
+            return seen.insert(code).inserted ? code : nil
+        }
+        return added.isEmpty ? nil : added
+    }
 
     private static let rowTwoExtras = 2
     private static let digits = "1234567890".map(String.init)
