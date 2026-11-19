@@ -70,16 +70,18 @@ If you cannot run a gate, say so in the pull request and list what remains unver
 
 Use short conventional commits, for example `fix(candidates): keep reading row height stable`, `feat(layout): ...`, `refactor(...)`, `docs(...)`, `build(...)`, `test(...)`. Describe what changed and why in the pull request, and name the gates you ran.
 
+A change users can notice adds one line under `## 未发布` in [CHANGELOG.md](CHANGELOG.md), in the same commit: grouped under 新增, 改进 or 修复, one plain sentence each, using the names shown in the app. That section becomes the notes of the next release. Changes to tests, CI, refactoring or docs need no entry.
+
 ## Releases
 
 `main` is the development branch. A release is an annotated tag on a commit of `main`:
 
 ```sh
-git tag -s v0.2.0 -F notes.txt   # first line v0.2.0, a blank line, then the changelog
+git tag -s v0.2.0 -m "v0.2.0"
 git push origin v0.2.0
 ```
 
-[release.yml](.github/workflows/release.yml) then runs lint, tests and the Debug device build, builds the app with version `0.2.0` (the build number is the commit count), and publishes a GitHub Release with an ad-hoc signed IPA; the tag message below its first line is the release notes, and a tag without them is refused. A pre-release is published by running the Release workflow by hand on `main` (Actions → Release → Run workflow): it is named after the latest release plus the commit count, such as `0.2.0 (1234)`, and tagged `v0.2.0-1234`; its release notes are the required `notes` input. The IPA is meant for installers that re-sign it under your own Apple ID, such as AltStore or Sideloadly.
+[release.yml](.github/workflows/release.yml) then runs lint, tests and the Debug device build, builds the app with version `0.2.0` (the build number is the commit count), and publishes a GitHub Release with an ad-hoc signed IPA; its notes are the `## 0.2.0` section of [CHANGELOG.md](CHANGELOG.md), and a version without one is refused. A pre-release is published by running the Release workflow by hand on `main` (Actions → Release → Run workflow): it is named after the latest release plus the commit count, such as `0.2.0 (1234)`, and tagged `v0.2.0-1234`; its notes are the `## 未发布` section of the changelog. The IPA is meant for installers that re-sign it under your own Apple ID, such as AltStore or Sideloadly.
 
 ## Security
 
