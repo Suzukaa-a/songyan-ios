@@ -6276,19 +6276,19 @@
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "このファイルには入力パックも、辞書などの Rime データファイル（.dict.yaml、essay.txt など）もありません。"
+            "value": "このファイルには入力パックも、Rime データファイルもありません。"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "这个文件里没有输入方案，也没有词库等 Rime 数据文件（如 .dict.yaml、essay.txt）。"
+            "value": "这个文件里没有输入方案，也没有 Rime 数据文件。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "這個檔案裡沒有輸入方案，也沒有詞庫等 Rime 資料檔案（如 .dict.yaml、essay.txt）。"
+            "value": "這個檔案裡沒有輸入方案，也沒有 Rime 資料檔案。"
           }
         }
       }

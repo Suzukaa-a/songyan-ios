@@ -36,8 +36,6 @@ struct CandidateBarStyleView: View {
             Section {
                 Toggle(String(localized: "显示注释"), isOn: $showsAllComments)
                     .accessibilityIdentifier("candidateBarStyle.showComments")
-            } footer: {
-                Text("关闭后，候选栏不显示注释，展开后也不显示。")
             }
             Section {
                 Toggle(String(localized: "单行显示注释"), isOn: $showsComments)
@@ -216,8 +214,6 @@ struct DisplayFontsView: View {
                     ForEach(readableFonts) { Text($0.family ?? $0.storedName).tag($0.storedName) }
                 }
                 .accessibilityIdentifier("fonts.keyLabel")
-            } footer: {
-                Text("选用字体后，字重不再生效；缺的字依次用其他已导入的字体，最后用系统字体。")
             }
             Section(String(localized: "已导入的字体")) {
                 if fonts.isEmpty { Text("还没有导入字体").foregroundStyle(.secondary) }

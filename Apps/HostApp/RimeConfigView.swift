@@ -200,11 +200,11 @@ struct RimeConfigRows: View {
         } footer: {
             if let folder = model.folderName {
                 Text(
-                    "用 xxx.custom.yaml 等文件修改正在使用的输入方案，和电脑上的 Rime 一样。文件在「文件」App 的「我的 iPhone › 松烟 › Rime 配置 › \(folder)」里，改完轻点「应用更改」才会生效。"
+                    "用 xxx.custom.yaml 等文件修改正在使用的输入方案。文件在「文件」App 的「我的 iPhone › 松烟 › Rime 配置 › \(folder)」里，改完轻点「应用更改」才会生效。"
                 )
             } else {
                 Text(
-                    "用 xxx.custom.yaml 等文件修改输入方案，和电脑上的 Rime 一样。文件在「文件」App 的「我的 iPhone › 松烟 › Rime 配置」里，改完轻点「应用更改」才会生效。"
+                    "用 xxx.custom.yaml 等文件修改输入方案。文件在「文件」App 的「我的 iPhone › 松烟 › Rime 配置」里，改完轻点「应用更改」才会生效。"
                 )
             }
         }

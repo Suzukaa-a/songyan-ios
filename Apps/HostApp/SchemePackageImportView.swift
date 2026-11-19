@@ -414,7 +414,7 @@ struct SchemePackageImportView: View {
                 )
                 .font(.headline)
                 if prepared.isDependencyPackage {
-                    Text("依赖包，供其他输入方案读取文件")
+                    Text(UserTerminology.dependencyPackage)
                         .font(.caption).foregroundStyle(.secondary)
                 } else {
                     Text("包含 \(prepared.offeredSchemaIDs.count) 种输入方式")

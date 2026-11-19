@@ -8361,46 +8361,46 @@
         }
       }
     },
-    "用 xxx.custom.yaml 等文件修改输入方案，和电脑上的 Rime 一样。文件在「文件」App 的「我的 iPhone › 松烟 › Rime 配置」里，改完轻点「应用更改」才会生效。": {
+    "用 xxx.custom.yaml 等文件修改输入方案。文件在「文件」App 的「我的 iPhone › 松烟 › Rime 配置」里，改完轻点「应用更改」才会生效。": {
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "用 xxx.custom.yaml 等文件修改输入方案，和电脑上的 Rime 一样。文件在「文件」App 的「我的 iPhone › 松烟 › Rime 配置」里，改完轻点「应用更改」才会生效。"
+            "value": "用 xxx.custom.yaml 等文件修改输入方案。文件在「文件」App 的「我的 iPhone › 松烟 › Rime 配置」里，改完轻点「应用更改」才会生效。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "用 xxx.custom.yaml 等檔案修改輸入方案，和電腦上的 Rime 一樣。檔案在「檔案」App 的「我的 iPhone › 松煙 › Rime 配置」裡，改完點一下「應用更改」才會生效。"
+            "value": "用 xxx.custom.yaml 等檔案修改輸入方案。檔案在「檔案」App 的「我的 iPhone › 松煙 › Rime 配置」裡，改完點一下「應用更改」才會生效。"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "xxx.custom.yaml などのファイルで入力パックを変更します。パソコンの Rime と同じです。ファイルは「ファイル」App の「このiPhone内 › 松煙 › Rime 設定」にあり、変更後に「変更を適用」をタップすると反映されます。"
+            "value": "xxx.custom.yaml などのファイルで入力パックを変更します。ファイルは「ファイル」App の「このiPhone内 › 松煙 › Rime 設定」にあり、変更後に「変更を適用」をタップすると反映されます。"
           }
         }
       }
     },
-    "用 xxx.custom.yaml 等文件修改正在使用的输入方案，和电脑上的 Rime 一样。文件在「文件」App 的「我的 iPhone › 松烟 › Rime 配置 › %@」里，改完轻点「应用更改」才会生效。": {
+    "用 xxx.custom.yaml 等文件修改正在使用的输入方案。文件在「文件」App 的「我的 iPhone › 松烟 › Rime 配置 › %@」里，改完轻点「应用更改」才会生效。": {
       "localizations": {
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "xxx.custom.yaml などのファイルで使用中の入力パックを変更します。パソコンの Rime と同じです。ファイルは「ファイル」App の「このiPhone内 › 松煙 › Rime 設定 › %@」にあり、変更後に「変更を適用」をタップすると反映されます。"
+            "value": "xxx.custom.yaml などのファイルで使用中の入力パックを変更します。ファイルは「ファイル」App の「このiPhone内 › 松煙 › Rime 設定 › %@」にあり、変更後に「変更を適用」をタップすると反映されます。"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "用 xxx.custom.yaml 等文件修改正在使用的输入方案，和电脑上的 Rime 一样。文件在「文件」App 的「我的 iPhone › 松烟 › Rime 配置 › %@」里，改完轻点「应用更改」才会生效。"
+            "value": "用 xxx.custom.yaml 等文件修改正在使用的输入方案。文件在「文件」App 的「我的 iPhone › 松烟 › Rime 配置 › %@」里，改完轻点「应用更改」才会生效。"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "translated",
-            "value": "用 xxx.custom.yaml 等檔案修改正在使用的輸入方案，和電腦上的 Rime 一樣。檔案在「檔案」App 的「我的 iPhone › 松煙 › Rime 配置 › %@」裡，改完點一下「應用更改」才會生效。"
+            "value": "用 xxx.custom.yaml 等檔案修改正在使用的輸入方案。檔案在「檔案」App 的「我的 iPhone › 松煙 › Rime 配置 › %@」裡，改完點一下「應用更改」才會生效。"
           }
         }
       }
@@ -32649,28 +32649,6 @@
         }
       }
     },
-    "关闭后，候选栏不显示注释，展开后也不显示。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "关闭后，候选栏不显示注释，展开后也不显示。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "關閉後，候選列不顯示註釋，展開後也不顯示。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "オフにすると、候補欄を展開しても注釈は表示されません。"
-          }
-        }
-      }
-    },
     "单行显示注释": {
       "localizations": {
         "zh-Hans": {
@@ -38171,28 +38149,6 @@
         }
       }
     },
-    "选用字体后，字重不再生效；缺的字依次用其他已导入的字体，最后用系统字体。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "选用字体后，字重不再生效；缺的字依次用其他已导入的字体，最后用系统字体。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "フォントを選ぶと、文字の太さは反映されません。足りない文字は、読み込んだ他のフォント、最後にシステムフォントの順で表示します。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "選用字型後，字重不再生效；缺的字依次用其他已匯入的字型，最後用系統字型。"
-          }
-        }
-      }
-    },
     "已导入的字体": {
       "localizations": {
         "zh-Hans": {
@@ -38369,28 +38325,6 @@
         }
       }
     },
-    "这个输入方案可能要用到键盘上没有的键，可在「键盘布局」里加上。": {
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "这个输入方案可能要用到键盘上没有的键，可在「键盘布局」里加上。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "這個輸入方案可能要用到鍵盤上沒有的鍵，可在「鍵盤配置」裡加上。"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "この入力方式はキーボードにないキーを使う場合があります。「キー配列」で追加できます。"
-          }
-        }
-      }
-    },
     "选择键盘": {
       "localizations": {
         "zh-Hans": {
@@ -38431,28 +38365,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "%@：この入力方式ではこのキーボードを使えません"
-          }
-        }
-      }
-    },
-    "依赖包，供其他输入方案读取文件": {
-      "localizations": {
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "依存パック。他の入力パックがファイルを読み込みます"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "依赖包，供其他输入方案读取文件"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "依賴包，供其他輸入方案讀取檔案"
           }
         }
       }
