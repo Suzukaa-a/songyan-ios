@@ -70,7 +70,7 @@ If you cannot run a gate, say so in the pull request and list what remains unver
 
 Use short conventional commits, for example `fix(candidates): keep reading row height stable`, `feat(layout): ...`, `refactor(...)`, `docs(...)`, `build(...)`, `test(...)`. Describe what changed and why in the pull request, and name the gates you ran.
 
-A change users can notice adds one line under `## 未发布` in [CHANGELOG.md](CHANGELOG.md), in the same commit: grouped under 新增, 改进 or 修复, one plain sentence each, using the names shown in the app. That section becomes the notes of the next release. Changes to tests, CI, refactoring or docs need no entry.
+A change users can notice adds one line under `## 未发布` in [CHANGELOG.md](CHANGELOG.md), in the same commit, in Chinese (新增, 改进, 修复) and the same entries in English (New, Improved, Fixed), one plain sentence each, using the names the app shows in that language. That section becomes the notes of the next release. Changes to tests, CI, refactoring or docs need no entry.
 
 ## Releases
 

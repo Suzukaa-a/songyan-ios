@@ -1,4 +1,4 @@
-# 更新日志
+# 更新日志 · Changelog
 
 ## 未发布
 
@@ -21,3 +21,21 @@
 - 每个输入方案的 Rime 配置分开保存。
 - 字体里没有的生僻字，候选里显示它的编码（U+…）。
 - 脚本出错时显示说明文字，不再显示原始报错。
+
+### New
+
+- "Swipe left on Delete to select" in Input Options (off by default): hold Delete and slide left, the candidate bar shows the text that will go, and lifting deletes it.
+- My Keyboards: add any keyboard layout as a keyboard and switch from the keyboard menu (press and hold the 中/英 key); after installing an input scheme you can pick the keyboards to use right away.
+- The keyboard menu can switch the options an input scheme provides.
+- Fonts: import fonts and choose one for the candidate bar and one for the keys.
+- "Show notes" can be turned off for the candidate bar.
+- Input Schemes lists dependency packages separately and says which input scheme uses each one.
+- Import a scheme package as you would on desktop Rime.
+- Scripts can add the bundled example in one tap.
+
+### Improved
+
+- "Add keyboard" lists only layouts the current input scheme can use, and names any key it needs that a layout lacks.
+- Each input scheme keeps its own Rime configuration.
+- A rare character the font cannot draw shows its code (U+…) in the candidates.
+- Script errors are explained in words instead of raw error text.
