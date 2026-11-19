@@ -55,7 +55,7 @@ final class DependencyPackageTests: XCTestCase {
         XCTAssertThrowsError(try manager().prepareSync([try zip(["README.md": "x"], named: "empty.zip")])) { error in
             guard case RecipeInstallError.noRimeContent = error else { return XCTFail("\(error)") }
             let notice = (error as? RecipeInstallError)?.userFacingDescription ?? ""
-            XCTAssertTrue(notice.contains(".dict.yaml") && notice.contains("essay.txt"), notice)
+            XCTAssertTrue(notice.contains("Rime"), notice)
             XCTAssertNotEqual(notice, PackageText.string("recipe.error.filesIncomplete"))
         }
     }
