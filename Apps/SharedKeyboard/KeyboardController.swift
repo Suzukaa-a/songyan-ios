@@ -559,6 +559,11 @@ public final class KeyboardController: ObservableObject {
     /// nil (nil = no move, never pretend). Calling `moveCursor(by:)` while composing first commits the
     /// composition with confirm semantics.
     public var onMoveCursor: ((Int) -> Void)?
+    /// A Delete swipe in progress: the document context read when it began and how many characters are marked.
+    var deleteSwipe: (context: String, count: Int)?
+    /// The characters a Delete swipe will remove, shown by the keyboard because the host selection cannot be set;
+    /// nil when no swipe is marking anything.
+    @Published public internal(set) var deleteSwipeText: String?
     /// Layout change callback (`KeyboardPadSession` syncs its own layout and persists the selection from it).
     public var onLayoutChanged: ((KeyboardLayoutKind) -> Void)?
 
@@ -649,6 +654,8 @@ public final class KeyboardController: ObservableObject {
         onRequestDeleteBackward = nil
         onReadDocumentContext = nil
         onReplaceLiteralSuffix = nil
+        deleteSwipe = nil
+        deleteSwipeText = nil
         punctuationCycle.reset()
         resetKana12State()
         onKana12Navigation = nil

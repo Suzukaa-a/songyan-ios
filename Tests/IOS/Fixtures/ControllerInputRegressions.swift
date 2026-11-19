@@ -1138,11 +1138,124 @@ final class ManualQueue: EngineWorkQueue {
         controller.retire()
     }
 
+    /// Hold Delete and slide left: the keyboard marks the characters before the caret, and the release deletes
+    /// exactly those, one `deleteBackward()` per grapheme, only while the text before the caret is unchanged.
+    /// Everything goes through the production controller; only the host document is a double, and like UIKit's
+    /// its `deleteBackward()` removes one composed character (an emoji sequence goes in one call).
+    @MainActor static func deleteSwipe() {
+        let family = "👨‍👩‍👧"
+        func make(_ text: String) -> (KeyboardController, ProbeEngine, Doc) {
+            let engine = ProbeEngine()
+            let controller = KeyboardController(engine: engine)
+            let doc = Doc(text)
+            controller.onReadDocumentContext = { doc.text }
+            controller.onRequestDeleteBackward = { doc.deleteBackward() }
+            return (controller, engine, doc)
+        }
+        func begin(_ controller: KeyboardController, on: Bool = true, voiceOver: Bool = false) -> Bool {
+            controller.beginDeleteSwipe(settingOn: on, voiceOverRunning: voiceOver)
+        }
+
+        // Marks follow the count, one grapheme at a time, and never split an emoji.
+        let (controller, _, doc) = make("ab\(family)c")
+        precondition(begin(controller), "an idle field with text before the caret starts a swipe")
+        precondition(controller.deleteSwipeText == nil && controller.deleteSwipeReach == 4)
+        controller.updateDeleteSwipe(count: 1)
+        precondition(controller.deleteSwipeText == "c", "one step marks one character")
+        controller.updateDeleteSwipe(count: 2)
+        precondition(controller.deleteSwipeText == "\(family)c", "an emoji sequence is one step")
+        controller.updateDeleteSwipe(count: 1)
+        precondition(controller.deleteSwipeText == "c", "sliding back shrinks")
+        controller.updateDeleteSwipe(count: 99)
+        precondition(controller.deleteSwipeText == "ab\(family)c", "the count clamps to the reachable text")
+        controller.updateDeleteSwipe(count: 2)
+        precondition(doc.text == "ab\(family)c" && doc.deletes == 0, "marking never edits the document")
+
+        // Release deletes exactly the marked graphemes, one deleteBackward each.
+        controller.endDeleteSwipe(commit: true)
+        precondition(doc.text == "ab" && doc.deletes == 2, "release deletes the two marked graphemes: \(doc.text)")
+        precondition(controller.deleteSwipeText == nil && controller.deleteSwipeReach == 0, "the swipe is over")
+        controller.endDeleteSwipe(commit: true)
+        precondition(doc.deletes == 2, "a finished swipe deletes nothing more")
+        controller.retire()
+
+        // Released back at the start deletes nothing.
+        let (atStart, _, startDoc) = make("hello")
+        precondition(begin(atStart))
+        atStart.updateDeleteSwipe(count: 3)
+        atStart.updateDeleteSwipe(count: 0)
+        precondition(atStart.deleteSwipeText == nil)
+        atStart.endDeleteSwipe(commit: true)
+        precondition(startDoc.text == "hello" && startDoc.deletes == 0, "back at the start deletes nothing")
+        atStart.retire()
+
+        // Cancel (second finger, window hidden) deletes nothing.
+        let (cancelled, _, cancelDoc) = make("hello")
+        precondition(begin(cancelled))
+        cancelled.updateDeleteSwipe(count: 3)
+        cancelled.endDeleteSwipe(commit: false)
+        precondition(cancelDoc.text == "hello" && cancelDoc.deletes == 0 && cancelled.deleteSwipeText == nil)
+        cancelled.retire()
+
+        // The text changing underneath deletes nothing.
+        let (changed, _, changedDoc) = make("hello")
+        precondition(begin(changed))
+        changed.updateDeleteSwipe(count: 2)
+        changedDoc.text = "hellp"
+        changed.endDeleteSwipe(commit: true)
+        precondition(changedDoc.text == "hellp" && changedDoc.deletes == 0, "changed text is never deleted")
+        changed.retire()
+        let (gone, _, goneDoc) = make("hello")
+        precondition(begin(gone))
+        gone.updateDeleteSwipe(count: 2)
+        gone.onReadDocumentContext = { nil }
+        gone.endDeleteSwipe(commit: true)
+        precondition(goneDoc.deletes == 0, "an unreadable document is never deleted from")
+        gone.retire()
+
+        // Setting off, VoiceOver, an empty field, a retired controller: the swipe never starts.
+        let (off, _, offDoc) = make("hello")
+        precondition(!begin(off, on: false), "setting off leaves Delete as it is")
+        precondition(!begin(off, voiceOver: true), "off under VoiceOver")
+        off.updateDeleteSwipe(count: 2)
+        off.endDeleteSwipe(commit: true)
+        precondition(offDoc.text == "hello" && offDoc.deletes == 0 && off.deleteSwipeText == nil)
+        off.retire()
+        let (empty, _, _) = make("")
+        precondition(!begin(empty), "nothing before the caret")
+        empty.retire()
+
+        // Composing (marked text) never starts a swipe.
+        let (composing, engine, composingDoc) = make("hello")
+        engine.composingCode = "n"
+        composing.handle(.code("n"))
+        precondition(composing.snapshot.isComposing, "fixture must be composing")
+        precondition(!begin(composing), "composing never enters the swipe")
+        composing.updateDeleteSwipe(count: 2)
+        composing.endDeleteSwipe(commit: true)
+        precondition(composingDoc.deletes == 0, "composing deletes no document text")
+        engine.composingCode = nil
+        composing.retire()
+        precondition(!begin(composing), "a retired controller refuses")
+    }
+
+    /// A host text document double: UIKit's `deleteBackward()` removes one composed character.
+    final class Doc {
+        var text: String
+        private(set) var deletes = 0
+        init(_ text: String) { self.text = text }
+        func deleteBackward() {
+            deletes += 1
+            if !text.isEmpty { text.removeLast() }
+        }
+    }
+
     @MainActor static func main() async {
         letters(ascii: false)
         letters(ascii: true)
         boardSwitch()
         punctuationCycle()
+        deleteSwipe()
         firstKeyLongPressInsertsOne()
         t9DigitLongPressIsLiteralNotCode()
         await probeWhileTyping()

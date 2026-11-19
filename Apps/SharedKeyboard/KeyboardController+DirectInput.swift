@@ -105,6 +105,58 @@ extension KeyboardController {
         session.moveCursor(by: offset)
     }
 
+    // MARK: Delete swipe (hold Delete, slide left to mark text, lift to delete it)
+
+    /// How many characters before the caret the swipe in progress can mark.
+    public var deleteSwipeReach: Int { deleteSwipe?.context.count ?? 0 }
+
+    /// Starts marking. The context is read once here; false (nothing changes) when the setting is off, something is
+    /// being typed, VoiceOver is on, or the field gives no text before the caret.
+    @discardableResult
+    public func beginDeleteSwipe(settingOn: Bool, voiceOverRunning: Bool) -> Bool {
+        cancelDeleteSwipe()
+        guard !retired, inputUnavailableReason == nil, onRequestDeleteBackward != nil,
+            KeyboardDeleteSwipePolicy.isAvailable(
+                settingOn: settingOn, isComposing: snapshot.isComposing,
+                hasPendingCodes: !session.pendingCodes.isEmpty, voiceOverRunning: voiceOverRunning),
+            let context = onReadDocumentContext?(), !context.isEmpty
+        else { return false }
+        deleteSwipe = (KeyboardDeleteSwipePolicy.reachable(context), 0)
+        return true
+    }
+
+    /// Marks `count` characters before the caret, as far as the text read at the start reaches.
+    public func updateDeleteSwipe(count: Int) {
+        guard var swipe = deleteSwipe else { return }
+        let clamped = min(max(count, 0), swipe.context.count)
+        guard clamped != swipe.count else { return }
+        swipe.count = clamped
+        deleteSwipe = swipe
+        deleteSwipeText = clamped == 0 ? nil : KeyboardDeleteSwipePolicy.marked(in: swipe.context, count: clamped)
+    }
+
+    /// Ends the swipe. `commit` deletes exactly the marked characters, one Delete per character, and only if the
+    /// text before the caret is still what the swipe read; otherwise nothing is deleted.
+    public func endDeleteSwipe(commit: Bool) {
+        guard let swipe = deleteSwipe else { return }
+        cancelDeleteSwipe()
+        guard commit, swipe.count > 0, !retired, !snapshot.isComposing, session.pendingCodes.isEmpty,
+            let current = onReadDocumentContext?(),
+            KeyboardDeleteSwipePolicy.reachable(current) == swipe.context
+        else { return }
+        resetEnglishWord()
+        for _ in 0..<swipe.count {
+            deleteSequence += 1
+            onRequestDeleteBackward?()
+        }
+    }
+
+    /// Drops the swipe without touching the document.
+    public func cancelDeleteSwipe() {
+        deleteSwipe = nil
+        if deleteSwipeText != nil { deleteSwipeText = nil }
+    }
+
     /// Inserts a piece of text directly (digit/symbol page keys and English-mode letters all come here):
     /// while composing it first confirms (`session.commitComposition`), then commits the text without going through the engine.
     /// True only when this literal reached a live host outlet. Partial composition
