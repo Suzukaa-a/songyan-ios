@@ -44,19 +44,28 @@ public struct SchemaKeyProfile: Codable, Equatable, Sendable {
     /// names: a layout may go without them. The rest (the speller's alphabet and initials) a layout must send
     /// to type the scheme at all. Nil when the profile predates the split.
     public let optionalCodes: [String]?
+    /// The version of the rule that produced `optionalCodes`; a profile written under an older one is read again.
+    public let optionalRevision: Int?
+
+    /// The version of the rule that sorts codes into required and optional; bumped whenever it changes.
+    public static let currentOptionalRevision = 2
+
+    /// Whether `optionalCodes` came from the rule in force now.
+    public var optionalCodesAreCurrent: Bool { optionalRevision == Self.currentOptionalRevision }
 
     public init(
         kind: Kind, codes: [String] = [], strokes: [Stroke] = [], language: String? = nil,
-        optionalCodes: [String]? = nil
+        optionalCodes: [String]? = nil, optionalRevision: Int? = nil
     ) {
         self.kind = kind
         self.codes = codes
         self.strokes = strokes
         self.language = language
         self.optionalCodes = optionalCodes
+        self.optionalRevision = optionalRevision
     }
 
-    private enum CodingKeys: String, CodingKey { case kind, codes, strokes, language, optionalCodes }
+    private enum CodingKeys: String, CodingKey { case kind, codes, strokes, language, optionalCodes, optionalRevision }
 
     public init(from decoder: any Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
@@ -65,6 +74,7 @@ public struct SchemaKeyProfile: Codable, Equatable, Sendable {
         strokes = try values.decodeIfPresent([Stroke].self, forKey: .strokes) ?? []
         language = try values.decodeIfPresent(String.self, forKey: .language)
         optionalCodes = try values.decodeIfPresent([String].self, forKey: .optionalCodes)
+        optionalRevision = try values.decodeIfPresent(Int.self, forKey: .optionalRevision)
     }
 
     public func encode(to encoder: any Encoder) throws {
@@ -74,6 +84,7 @@ public struct SchemaKeyProfile: Codable, Equatable, Sendable {
         if !strokes.isEmpty { try values.encode(strokes, forKey: .strokes) }
         try values.encodeIfPresent(language, forKey: .language)
         try values.encodeIfPresent(optionalCodes, forKey: .optionalCodes)
+        try values.encodeIfPresent(optionalRevision, forKey: .optionalRevision)
     }
 
     /// Whether the folded 14/18/9-key layouts can be generated for this scheme.

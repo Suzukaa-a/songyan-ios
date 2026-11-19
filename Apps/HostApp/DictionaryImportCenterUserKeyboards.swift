@@ -46,7 +46,7 @@ enum UserKeyboardSourceFacts {
                 } ?? []
             }
             let schemas = (activation.schemas ?? []).map { descriptor -> KeyboardSchemaDescriptor in
-                guard descriptor.profile?.optionalCodes == nil,
+                guard !(descriptor.profile?.optionalCodesAreCurrent ?? false),
                     let fresh = installed.first(where: { $0.id == descriptor.id })?.profile
                 else { return descriptor }
                 var updated = descriptor

@@ -516,7 +516,7 @@ final class SchemeImportCenter: ObservableObject {
         // So does one made before the optional codes were told apart.
         func needsReading(_ profile: SchemaKeyProfile?) -> Bool {
             guard let profile else { return true }
-            return profile.optionalCodes == nil && profile.kind != .unknown
+            return !profile.optionalCodesAreCurrent && profile.kind != .unknown
         }
         let unprofiled = schemas.filter { needsReading($0.profile) }.map(\.id)
         if !unprofiled.isEmpty {

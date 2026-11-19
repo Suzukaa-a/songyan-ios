@@ -57,6 +57,52 @@ final class SchemaKeyProfileTests: XCTestCase {
         XCTAssertEqual(read.language, "zh-Hant", "the language read at deployment stays")
     }
 
+    private func spellerSchema(alphabet: String, algebra: [String]) -> String {
+        """
+        engine:
+          processors:
+            - speller
+          translators:
+            - script_translator
+        speller:
+          alphabet: "\(alphabet)"
+          initials: "abcdefghijklmnopqrstuvwxyz"
+          delimiter: " '"
+          algebra:
+        \(algebra.map { "    - \"\($0)\"" }.joined(separator: "\n"))
+        translator:
+          dictionary: d
+        """
+    }
+
+    func testASymbolTheSpellingRulesNeverUseIsOptional() {
+        let ice = SchemaKeyProfiles.compute(
+            compiledSchema: spellerSchema(
+                alphabet: "abcdefghijklmnopqrstuvwxyz`", algebra: ["abbrev/^([a-z]).+$/$1/"]))
+        XCTAssertEqual(ice.kind, .syllabic)
+        XCTAssertEqual(ice.optionalCodes, ["`", "'"])
+    }
+
+    func testASymbolTheSpellingRulesUseStaysRequired() {
+        let microsoft = SchemaKeyProfiles.compute(
+            compiledSchema: spellerSchema(
+                alphabet: "abcdefghijklmnopqrstuvwxyz;", algebra: ["xform/^o;$/ong/"]))
+        XCTAssertEqual(microsoft.optionalCodes, ["'"])
+    }
+
+    func testAProfileWrittenUnderAnOlderRuleIsReadAgain() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try spellerSchema(alphabet: "abcdefghijklmnopqrstuvwxyz`", algebra: ["abbrev/^([a-z]).+$/$1/"]).write(
+            to: dir.appendingPathComponent("ice.schema.yaml"), atomically: true, encoding: .utf8)
+        let old = SchemaKeyProfile(kind: .syllabic, codes: ["a", "`", "'"], optionalCodes: ["'"])
+        try SchemaKeyProfiles.write(["ice": old], buildDir: dir)
+        let read = try XCTUnwrap(SchemaKeyProfiles.read(buildDir: dir, ids: ["ice"])["ice"])
+        XCTAssertEqual(read.optionalCodes, ["`", "'"])
+        XCTAssertTrue(read.optionalCodesAreCurrent)
+    }
+
     func testKindsFollowThePrimaryTranslator() throws {
         XCTAssertEqual(SchemaKeyProfiles.compute(compiledSchema: try schema("wubi86")).kind, .shapeCode)
         XCTAssertEqual(SchemaKeyProfiles.compute(compiledSchema: try schema("stroke")).kind, .strokes)

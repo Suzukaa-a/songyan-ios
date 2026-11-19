@@ -70,6 +70,19 @@ checkEqual(
     offered("pinyin", SchemaKeyProfile(kind: .syllabic, codes: letters)).count, 4,
     "nothing is added when 26 keys suffice")
 
+// An auxiliary key the spelling never uses (rime-ice's backtick) is optional: plain 26 keys stays
+// offered and first; a symbol the spelling does use (Microsoft Shuangpin's ";") hides it.
+let iceOptional = SchemaKeyProfile(kind: .syllabic, codes: letters + ["`", "'"], optionalCodes: ["`", "'"])
+checkEqual(
+    names(offered("rime_ice", iceOptional)).filter { $0.hasPrefix("qwerty26#") },
+    ["qwerty26#qwerty26", "qwerty26#auto.rime_ice.keys26"],
+    "an unused auxiliary key keeps plain 26 keys offered, first, then the extra board")
+let microsoft = SchemaKeyProfile(kind: .syllabic, codes: letters + [";", "'"], optionalCodes: ["'"])
+checkEqual(
+    names(offered("microsoft", microsoft)).filter { $0.hasPrefix("qwerty26#") },
+    ["qwerty26#auto.microsoft.keys26"],
+    "a symbol the spelling uses hides plain 26 keys")
+
 // Unknown: plain 26 keys only. No profile: as before.
 checkEqual(
     names(offered("lua_only", SchemaKeyProfile(kind: .unknown))), ["qwerty26#qwerty26"],

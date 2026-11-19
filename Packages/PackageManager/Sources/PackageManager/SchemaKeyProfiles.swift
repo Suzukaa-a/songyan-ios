@@ -35,7 +35,15 @@ public enum SchemaKeyProfiles {
         }
         add(alphabet)
         add(speller["initials"] as? String)
-        let required = Set(codes)
+        // A symbol the spelling rules never mention is no part of the spelling (rime-ice's backtick only
+        // opens the auxiliary filter), so a board may go without it. With no rules to read, none is known.
+        let algebra = stringList(speller["algebra"]).joined(separator: "\n")
+        let required = Set(
+            algebra.isEmpty
+                ? codes
+                : codes.filter { code in
+                    (code.unicodeScalars.first?.properties.isAlphabetic ?? false) || algebra.contains(code)
+                })
         add(speller["delimiter"] as? String ?? defaultDelimiter)
 
         let namespaces = namespacesOf(translators)
@@ -57,16 +65,24 @@ public enum SchemaKeyProfiles {
 
         func optional(_ all: [String]) -> [String] { all.filter { !required.contains($0) } }
         if primary.klass == .script {
-            return SchemaKeyProfile(kind: .syllabic, codes: codes, optionalCodes: optional(codes))
+            return SchemaKeyProfile(
+                kind: .syllabic, codes: codes, optionalCodes: optional(codes),
+                optionalRevision: SchemaKeyProfile.currentOptionalRevision)
         }
         let strokes = strokeCaptions(root[primary.namespace] as? [String: Any], alphabet: alphabet)
-        if strokes.isEmpty { return SchemaKeyProfile(kind: .shapeCode, codes: codes, optionalCodes: optional(codes)) }
+        if strokes.isEmpty {
+            return SchemaKeyProfile(
+                kind: .shapeCode, codes: codes, optionalCodes: optional(codes),
+                optionalRevision: SchemaKeyProfile.currentOptionalRevision)
+        }
         let strokeCodes = strokes.map(\.code)
         let rest = codes.filter { code in
             !strokeCodes.contains(code) && !(code.unicodeScalars.first?.properties.isAlphabetic ?? false)
         }
         let all = strokeCodes + rest
-        return SchemaKeyProfile(kind: .strokes, codes: all, strokes: strokes, optionalCodes: optional(all))
+        return SchemaKeyProfile(
+            kind: .strokes, codes: all, strokes: strokes, optionalCodes: optional(all),
+            optionalRevision: SchemaKeyProfile.currentOptionalRevision)
     }
 
     /// The profiles of every `<id>.schema.yaml` in `buildDir` that `ids` names; unreadable ones are unknown.
@@ -92,15 +108,17 @@ public enum SchemaKeyProfiles {
         let file = buildDir.appendingPathComponent(SchemaKeyProfile.fileName)
         let written = boundedRead(file, limit: maximumFileBytes).flatMap(SchemaKeyProfile.decode) ?? [:]
         let wanted = Set(ids)
-        // A profile written before the optional codes were told apart is read again from the schema.
+        // A profile written before the optional codes were told apart, or by an older rule for telling
+        // them apart, is read again from the schema.
         var result = written.filter {
-            wanted.contains($0.key) && ($0.value.optionalCodes != nil || $0.value.kind == .unknown)
+            wanted.contains($0.key) && ($0.value.optionalCodesAreCurrent || $0.value.kind == .unknown)
         }
         let stale = ids.filter { result[$0] == nil }
         for (id, profile) in computeAll(buildDir: buildDir, ids: stale) {
             result[id] = SchemaKeyProfile(
                 kind: profile.kind, codes: profile.codes, strokes: profile.strokes,
-                language: written[id]?.language, optionalCodes: profile.optionalCodes)
+                language: written[id]?.language, optionalCodes: profile.optionalCodes,
+                optionalRevision: profile.optionalRevision)
         }
         return result
     }
@@ -122,7 +140,7 @@ public enum SchemaKeyProfiles {
             }
             result[id] = SchemaKeyProfile(
                 kind: profile.kind, codes: profile.codes, strokes: profile.strokes, language: language,
-                optionalCodes: profile.optionalCodes)
+                optionalCodes: profile.optionalCodes, optionalRevision: profile.optionalRevision)
         }
         return result
     }
