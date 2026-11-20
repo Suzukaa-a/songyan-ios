@@ -157,10 +157,43 @@ public extension PublishedKeyboard {
 
     /// Adapter generation tasks (deduplicated, ordered): compact-layout combinations only.
     /// 26-key combinations need no generation and are excluded.
+    /// The companions `requested` needs, each input method and merged layout once per grouping:
+    /// `folds` gives a keyboard's drawn layout grouping (see `KeyboardResourceSet.folds`; absent is
+    /// the bundled one, nil a layout that does not fold, which gets none).
+    public static func companionTasks(
+        for requested: [PublishedKeyboard], folds: (PublishedKeyboard) -> [KeyboardLayoutKind: CompactFold?]
+    ) -> [CompanionTask] {
+        var seen = Set<String>()
+        return requested.compactMap { keyboard in
+            guard keyboard.needsGeneratedAdapter else { return nil }
+            let drawn = folds(keyboard)
+            let fold: CompactFold? = drawn.keys.contains(keyboard.layout) ? drawn[keyboard.layout] ?? nil : keyboard.layout.compactFold
+            guard let fold else { return nil }
+            let task = CompanionTask(schemaID: keyboard.schemaID, layout: keyboard.layout, fold: fold)
+            return seen.insert(task.key).inserted ? task : nil
+        }
+    }
+
     static func generationTasks(for requested: [PublishedKeyboard]) -> [PublishedKeyboard] {
         var seen = Set<String>()
         return requested.filter { $0.needsGeneratedAdapter && seen.insert($0.combinationID).inserted }
     }
+}
+
+/// One companion a deployment makes: an input method on a merged layout, with the grouping its keys make.
+public struct CompanionTask: Hashable, Sendable {
+    public let schemaID: String
+    public let layout: KeyboardLayoutKind
+    public let fold: CompactFold
+
+    public init(schemaID: String, layout: KeyboardLayoutKind, fold: CompactFold) {
+        self.schemaID = schemaID
+        self.layout = layout
+        self.fold = fold
+    }
+
+    /// `schema:layout`, plus `:fold` for a layout's own grouping: two tasks with one key make one companion.
+    public var key: String { schemaID + ":" + layout.rawValue + (fold.isBuiltin ? "" : ":" + fold.id) }
 }
 
 // MARK: - Human-facing projection (names from current scheme descriptors, not persisted)

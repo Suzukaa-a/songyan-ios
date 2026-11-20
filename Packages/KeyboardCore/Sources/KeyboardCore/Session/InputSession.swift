@@ -136,7 +136,7 @@ public final class InputSession {
     }
     /// Layout→schema mapping of the current resource set; nil = the built-in template pairing (`BuiltinTemplateSchemas`).
     /// If the set lacks a layout, `select(layout:)` refuses the switch and reports unsupportedSchema.
-    public let resourceSet: KeyboardResourceSet?
+    public private(set) var resourceSet: KeyboardResourceSet?
 
     /// Called on state changes (candidates/preedit/composition state).
     public var onUpdate: (() -> Void)?
@@ -182,7 +182,8 @@ public final class InputSession {
                 publicationGeneration: resourceSet.publicationGeneration,
                 publishedKeyboards: resourceSet.publishedKeyboards,
                 englishCandidateRoutes: resourceSet.englishCandidateRoutes,
-                encodingAdapters: resourceSet.encodingAdapters)
+                encodingAdapters: resourceSet.encodingAdapters
+            ).withFolds(resourceSet.folds)
         } else {
             resolved = resourceSet
         }
@@ -326,6 +327,22 @@ public final class InputSession {
             refresh()
             succeeded = true
         } catch { refreshAfterSelectionFailure(error) }
+    }
+
+    /// Runs the drawn layouts on `folds` (see `KeyboardResourceSet.folds`). When the running layout's
+    /// companion changes with them, the engine moves to the new one, keeping the input method; a
+    /// grouping without a companion leaves the layout unusable, reported like any missing layout.
+    /// `revalidate: false` only records them, for a caller that selects a layout right after.
+    public func useFolds(_ folds: [KeyboardLayoutKind: CompactFold?], revalidate: Bool = true) {
+        guard let set = resourceSet, set.folds != folds else { return }
+        resourceSet = set.withFolds(folds)
+        guard revalidate, !retired, layout.requiresSpellingDisplay else { return }
+        revalidateCurrentSchema()
+    }
+
+    /// The fold the running layout types with: the drawn layout's own grouping, else the bundled one.
+    public var layoutFold: CompactFold? {
+        resourceSet?.foldFor(layout) ?? layout.compactFold
     }
 
     /// Explicit revalidation is separate from selecting the already-selected menu item.
@@ -568,7 +585,7 @@ public final class InputSession {
     /// Exact token → letter, when the running schema's alphabet takes the layout's exact
     /// tokens (a generated adapter) and the engine is reading Chinese input.
     private func exactTokenLetters() -> [Character: Character] {
-        guard mode == .chinese, !snapshot.isAsciiMode, let tokens = layout.compactFold?.exactTokens, !tokens.isEmpty,
+        guard mode == .chinese, !snapshot.isAsciiMode, let tokens = layoutFold?.exactTokens, !tokens.isEmpty,
             let alphabet = engine.spellerAlphabet(schemaID: snapshot.schemaID)
         else { return [:] }
         return Dictionary(uniqueKeysWithValues: tokens.filter { alphabet.contains($1) }.map { ($1, $0) })

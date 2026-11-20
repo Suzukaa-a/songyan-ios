@@ -76,15 +76,17 @@ public enum KeyboardLayoutKind: String, CaseIterable, Identifiable, Codable, Sen
     }
 }
 
-/// Which key each of the 26 letters lands on in a compact layout: every letter maps to the
-/// letter (or digit) its key sends. Adapter generation, identifiers and binding checks read
-/// this one value, so a new letter-group layout needs no new code paths.
+/// Which key each code lands on in a compact layout: every code maps to the code (or digit) its
+/// key sends. Adapter generation, identifiers and binding checks read this one value, so a new
+/// letter-group layout needs no new code paths.
 public struct CompactFold: Hashable, Sendable {
-    /// Identifier suffix of generated adapters (`_14`, `_18`, `_9`); also the user-facing key count.
+    /// Identifier suffix of generated adapters: the key count for the bundled folds (`14`, `18`,
+    /// `9`), and the key count plus `u` and a hash of the mapping for a layout's own grouping
+    /// (`14u1a2b3c4d`), so two groupings never share a companion.
     public let id: String
-    /// The folded letters, in a fixed order.
+    /// The folded codes, in a fixed order.
     public let source: String
-    /// What the key of each `source` letter sends, position by position.
+    /// What the key of each `source` code sends, position by position.
     public let target: String
 
     /// What an exact pick of a merged key's own letter sends. A tap sends that same
@@ -97,13 +99,21 @@ public struct CompactFold: Hashable, Sendable {
     private static let exactTokenPool = Array("!#%*+<>@^_|~")
 
     public init(id: String, source: String, target: String) {
-        precondition(source.count == target.count, "fold source and target must align")
+        guard let fold = Self(checkedID: id, source: source, target: target) else {
+            preconditionFailure("fold source and target must align, with no more merged keys than exact tokens")
+        }
+        self = fold
+    }
+
+    /// Nil when `source` and `target` do not align or more keys are merged than there are exact tokens.
+    private init?(checkedID id: String, source: String, target: String) {
+        guard source.count == target.count else { return nil }
+        let shared = Set(zip(source, target).filter { $0 != $1 }.map(\.1))
+        let leaders = source.filter { shared.contains($0) }
+        guard leaders.count <= Self.exactTokenPool.count else { return nil }
         self.id = id
         self.source = source
         self.target = target
-        let shared = zip(source, target).filter { $0 != $1 }.map(\.1)
-        let leaders = source.filter { Set(shared).contains($0) }
-        precondition(leaders.count <= Self.exactTokenPool.count, "too many merged keys for exact tokens")
         exactTokens = Dictionary(uniqueKeysWithValues: zip(leaders, Self.exactTokenPool))
     }
 
@@ -117,6 +127,42 @@ public struct CompactFold: Hashable, Sendable {
         Dictionary(uniqueKeysWithValues: zip(source, target))
     }
 
+    /// The key count this fold is offered as: `14` for `14` and for `14u1a2b3c4d`.
+    public var keyCount: String { String(id.prefix { $0 != "u" }) }
+
+    /// One of the three bundled folds, whose companions are named by the key count alone.
+    public var isBuiltin: Bool { id.allSatisfy(\.isNumber) }
+
+    /// The mapping as a registry stores it: the codes, a newline, what each one's key sends.
+    public var encoded: String { source + "\n" + target }
+
+    /// The fold `encoded` wrote for a `kind` layout; nil for anything else.
+    public static func decode(kind: KeyboardLayoutKind, encoded: String) -> CompactFold? {
+        let parts = encoded.split(separator: "\n", omittingEmptySubsequences: false)
+        guard parts.count == 2, parts[0].count == parts[1].count, !parts[0].isEmpty else { return nil }
+        return of(kind: kind, map: Dictionary(zip(parts[0], parts[1]), uniquingKeysWith: { first, _ in first }))
+    }
+
+    /// The fold of a layout whose keys send `map` (each code a key covers, letter, stroke or mark,
+    /// to the character its key sends) on a `kind` layout. Every merged layout follows one rule,
+    /// 9 keys included: a key sends either one of its own codes or a digit 2-9, and all keys send
+    /// the same sort. Whether the codes cover what an input method spells with is the companion
+    /// generator's question. The bundled mapping gives the bundled fold, so existing companions keep
+    /// their names; any other gives a fold of its own. Nil when the mapping breaks the rule, or merges
+    /// more keys than there are exact tokens.
+    public static func of(kind: KeyboardLayoutKind, map: [Character: Character]) -> CompactFold? {
+        guard let builtin = kind.compactFold, !map.isEmpty else { return nil }
+        let sent = Set(map.values)
+        let digits = sent.allSatisfy { ("2"..."9").contains($0) }
+        let own = sent.allSatisfy { map[$0] == $0 }
+        guard digits || own else { return nil }
+        if map == builtin.map { return builtin }
+        let source = String(map.keys.sorted())
+        let target = String(source.map { map[$0]! })
+        let hash = CRC32.checksum(Array((source + "\u{0}" + target).utf8))
+        return CompactFold(checkedID: builtin.id + "u" + String(format: "%08x", hash), source: source, target: target)
+    }
+
     public static let merged14 = CompactFold(
         id: "14", source: "qwertyuiopasdfghjklzxcvbnm",
         target: "qqeettuuooaaddggjjlzzccbbm")
@@ -126,6 +172,22 @@ public struct CompactFold: Hashable, Sendable {
     public static let phone9 = CompactFold(
         id: "9", source: "abcdefghijklmnopqrstuvwxyz",
         target: "22233344455566677778889999")
+}
+
+/// The CRC-32 (IEEE) of a byte string, the same checksum `java.util.zip.CRC32` gives, so a
+/// grouping gets the same fold id on both platforms.
+enum CRC32 {
+    private static let table: [UInt32] = (0..<256).map { index in
+        var value = UInt32(index)
+        for _ in 0..<8 { value = value & 1 == 1 ? 0xEDB8_8320 ^ (value >> 1) : value >> 1 }
+        return value
+    }
+
+    static func checksum(_ bytes: [UInt8]) -> UInt32 {
+        var crc: UInt32 = 0xFFFF_FFFF
+        for byte in bytes { crc = table[Int((crc ^ UInt32(byte)) & 0xFF)] ^ (crc >> 8) }
+        return crc ^ 0xFFFF_FFFF
+    }
 }
 
 /// The bundled input schemes. Both are plain 26-key schemes; every compact layout runs on a

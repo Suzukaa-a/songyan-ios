@@ -57,7 +57,8 @@ public struct KeyboardResourceSet: Equatable, Sendable {
                 // Implicit alphabet inference for 26-key is also turned off (not added = not offered).
                 guard
                     let route = Self.engineRoute(
-                        source: source, layout: layout, adapters: encodingAdapters, bindings: layoutEntries)
+                        source: source, layout: layout, adapters: encodingAdapters, bindings: layoutEntries,
+                        folds: folds) ?? publishedOwnGrouping(source: source, layout: layout)
                 else { continue }
                 if let published = publishedKeyboards {
                     guard published.contains(where: { $0.schemaID == source && $0.layout == layout }) else { continue }
@@ -94,6 +95,15 @@ public struct KeyboardResourceSet: Equatable, Sendable {
         return result
     }
 
+    /// A published keyboard whose layout groups its codes its own way, while this set does not know
+    /// which layout is drawn yet (`folds` names none for `layout`): its companion still makes the
+    /// keyboard listed. The keyboard sets the drawn grouping before it types (`InputSession.useFolds`).
+    private func publishedOwnGrouping(source: String, layout: KeyboardLayoutKind) -> EngineRoute? {
+        guard publishedKeyboards != nil, folds[layout] == nil, !folds.keys.contains(layout) else { return nil }
+        return encodingAdapters.first { $0.sourceSchemaID == source && $0.layout == layout && $0.fold != nil }
+            .map(EngineRoute.adapter)
+    }
+
     /// How a (source, layout) pair reaches the engine.
     enum EngineRoute: Equatable {
         /// A generated or registered companion runs in place of the source.
@@ -110,9 +120,23 @@ public struct KeyboardResourceSet: Equatable, Sendable {
     }
 
     static func engineRoute(
-        source: String, layout: KeyboardLayoutKind, adapters: [EncodingAdapter], bindings: [LayoutEntry]
+        source: String, layout: KeyboardLayoutKind, adapters: [EncodingAdapter], bindings: [LayoutEntry],
+        folds: [KeyboardLayoutKind: CompactFold?] = [:]
     ) -> EngineRoute? {
-        if let adapter = adapters.first(where: { $0.sourceSchemaID == source && $0.layout == layout }) {
+        if let drawn = folds[layout] {
+            // A drawn layout of its own runs only on the companion of its grouping; one that does not
+            // fold runs on none. The bundled companion would read its keys as other letters.
+            guard let fold = drawn else { return nil }
+            let own = fold.isBuiltin ? nil : fold.id
+            if let adapter = adapters.first(where: {
+                $0.sourceSchemaID == source && $0.layout == layout && $0.fold == own
+            }) {
+                return .adapter(adapter)
+            }
+            if !fold.isBuiltin { return nil }
+        } else if let adapter = adapters.first(where: {
+            $0.sourceSchemaID == source && $0.layout == layout && $0.fold == nil
+        }) {
             return .adapter(adapter)
         }
         if bindings.contains(where: { $0.schemaID == source && $0.layout == layout }) { return .bound }
@@ -133,8 +157,9 @@ public struct KeyboardResourceSet: Equatable, Sendable {
         guard InputLayoutPolicy.allows(kind: layout, family: family(ofSource: sourceSchemaID(source))) else {
             return nil
         }
-        return Self.engineSchemaID(
-            source: source, layout: layout, adapters: encodingAdapters, bindings: layoutEntries)
+        return Self.engineRoute(
+            source: source, layout: layout, adapters: encodingAdapters, bindings: layoutEntries, folds: folds
+        )?.schemaID(source: source)
     }
 
     /// Family of an enabled source (descriptor alphabet when known, the ID only otherwise).
@@ -149,6 +174,8 @@ public struct KeyboardResourceSet: Equatable, Sendable {
         let enabled = schemas.isEmpty ? Set(layoutEntries.map(\.schemaID)) : Set(schemas.map(\.id))
         guard enabled.contains(keyboard.schemaID),
             let engine = engineSchemaID(source: keyboard.schemaID, layout: keyboard.layout)
+                ?? publishedOwnGrouping(source: keyboard.schemaID, layout: keyboard.layout)?.schemaID(
+                    source: keyboard.schemaID)
         else {
             return false
         }
@@ -195,14 +222,51 @@ public struct KeyboardResourceSet: Equatable, Sendable {
         public let schemaID: String
         public let layout: KeyboardLayoutKind
         public let schemaName: String?
-        public init(sourceSchemaID: String, schemaID: String, layout: KeyboardLayoutKind, schemaName: String? = nil) {
+        /// The `CompactFold.id` of a layout's own grouping; nil for the bundled fold of `layout`.
+        public let fold: String?
+        /// That grouping's mapping (`CompactFold.encoded`), so a later rebuild makes the same companion.
+        public let foldMap: String?
+        public init(
+            sourceSchemaID: String, schemaID: String, layout: KeyboardLayoutKind, schemaName: String? = nil,
+            fold: CompactFold? = nil
+        ) {
             self.sourceSchemaID = sourceSchemaID
             self.schemaID = schemaID
             self.layout = layout
             self.schemaName = schemaName
+            let own = fold.flatMap { $0.isBuiltin ? nil : $0 }
+            self.fold = own?.id
+            self.foldMap = own?.encoded
+        }
+
+        /// The fold this companion was made for; nil when its own grouping no longer reads back.
+        public var compactFold: CompactFold? {
+            guard fold != nil else { return layout.compactFold }
+            return foldMap.flatMap { CompactFold.decode(kind: layout, encoded: $0) }.flatMap {
+                $0.id == fold ? $0 : nil
+            }
         }
     }
     public let encodingAdapters: [EncodingAdapter]
+    /// The folds of the layouts the keyboard draws, by layout, where the drawn layout is not the
+    /// bundled one. Such a layout runs only on the companion generated for its own grouping, never on
+    /// the bundled one, whose keys would mean other letters; a nil fold is a drawn layout whose codes
+    /// do not fold cleanly, which runs on no companion at all. Set by the keyboard, which reads the
+    /// layouts; derived sets keep it.
+    public private(set) var folds: [KeyboardLayoutKind: CompactFold?] = [:]
+
+    /// The fold `layout` types with here: its drawn layout's own, else the bundled one.
+    public func foldFor(_ layout: KeyboardLayoutKind) -> CompactFold? {
+        if let drawn = folds[layout] { return drawn }
+        return layout.compactFold
+    }
+
+    /// This set with the keyboard's drawn layouts running on `folds`.
+    public func withFolds(_ folds: [KeyboardLayoutKind: CompactFold?]) -> KeyboardResourceSet {
+        var copy = self
+        copy.folds = folds
+        return copy
+    }
     /// Source schemes appear once. Generated keyboard companions remain diagnostics.
     public var inputSchemeChoices: [KeyboardSchemaDescriptor] {
         let companionIDs = Set(encodingAdapters.filter { $0.schemaID != $0.sourceSchemaID }.map(\.schemaID))
@@ -416,7 +480,8 @@ public struct KeyboardResourceSet: Equatable, Sendable {
             sourceRevision: sourceRevision, publicationGeneration: publicationGeneration,
             publishedKeyboards: publishedKeyboards,
             englishCandidateRoutes: englishCandidateRoutes,
-            encodingAdapters: encodingAdapters)
+            encodingAdapters: encodingAdapters
+        ).withFolds(folds)
     }
 
     /// Picks a launchable (physical layout, engine schema) from candidate layouts. When
@@ -472,7 +537,8 @@ public struct KeyboardResourceSet: Equatable, Sendable {
             sourceRevision: sourceRevision, publicationGeneration: publicationGeneration,
             publishedKeyboards: runnable,
             englishCandidateRoutes: englishCandidateRoutes,
-            encodingAdapters: encodingAdapters)
+            encodingAdapters: encodingAdapters
+        ).withFolds(folds)
     }
 
     /// Published-manifest items that are not runnable in this snapshot (input order kept):
