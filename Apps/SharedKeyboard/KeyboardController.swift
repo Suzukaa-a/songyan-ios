@@ -183,6 +183,12 @@ public final class KeyboardController: ObservableObject {
     /// layout / schema, so the selection change is reported with the board it landed on; any other
     /// layout or schema change (no board named) drops the board.
     var incomingBoard: String?
+    /// The layouts the keyboard draws, as read from the shared layout store; nil draws the bundled
+    /// ones. A merged layout of the user's own runs on its own grouping's companion
+    /// (`KeyboardResourceSet.folds`), so the session follows a change here.
+    public var drawnLayouts: LayoutRegistry? {
+        didSet { if drawnLayouts != oldValue { followDrawnFold() } }
+    }
     /// Plain counter (not @Published) bumped on every assignment of `layout` / `selectedSchemaID`.
     /// The key area consults the layout-resolution cache hundreds of times per render; comparing this
     /// integer is much cheaper than reading two @Published values through Combine (the Published
@@ -240,7 +246,7 @@ public final class KeyboardController: ObservableObject {
     /// exact pick sends the fold's exact token when the running schema accepts it.
     public func exactPickCode(_ letter: String) -> String {
         guard !isEnglishMode, !snapshot.isAsciiMode, letter.count == 1, let character = letter.first,
-            let token = layout.compactFold?.exactTokens[character],
+            let token = session.layoutFold?.exactTokens[character],
             runningAlphabet?.contains(token) == true
         else { return letter }
         return String(token)
@@ -254,7 +260,7 @@ public final class KeyboardController: ObservableObject {
 
     /// Exact token → its letter, for reading what was typed back as letters.
     var exactTokenLetters: [Character: Character] {
-        guard let tokens = layout.compactFold?.exactTokens else { return [:] }
+        guard let tokens = session.layoutFold?.exactTokens else { return [:] }
         return Dictionary(uniqueKeysWithValues: tokens.map { ($1, $0) })
     }
 

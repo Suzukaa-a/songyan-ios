@@ -26,6 +26,11 @@ extension SchemeImportCenter {
         if announce { message = String(localized: "正在添加键盘…") }
         let store = manager(id)
         let packageName = explicitName ?? installedPackages.first { $0.id == id }?.name ?? id
+        // Each keyboard's companion follows the grouping of the layout it draws, as the keyboard runs it.
+        let layouts = LayoutManager.shared.registry
+        let folds: @Sendable (PublishedKeyboard) -> [KeyboardLayoutKind: CompactFold?] = {
+            KeyboardController.drawnFolds(in: layouts, layout: $0.layout, board: $0.board)
+        }
         let reused = try await EngineOwnershipCoordinator.shared.withExclusive {
             guard let active = try await store.activeInstallation() else {
                 throw RecipeInstallError.invalidResource(String(localized: "请先安装输入方案"))
@@ -37,7 +42,7 @@ extension SchemeImportCenter {
                     build: active.userDataURL.appendingPathComponent("build"))
                 return try CompactAdapterDeployment.canReuseBuild(
                     resourceURL: active.resourceURL, userDataURL: active.userDataURL,
-                    enabledSchemas: schemas, requested: requested)
+                    enabledSchemas: schemas, requested: requested, folds: folds)
             }
             if reusable {
                 #if DEBUG
@@ -64,7 +69,7 @@ extension SchemeImportCenter {
             }
             let plan = try await withTaskCancellationHandler(
                 operation: { try await task.value }, onCancel: { task.cancel() })
-            let tasks = PublishedKeyboard.generationTasks(for: requested)
+            let tasks = PublishedKeyboard.companionTasks(for: requested, folds: folds)
             _ = try await store.installRecipePlan(
                 plan, packageID: id, schemaID: active.installation.schemaID,
                 initialUserDataURL: nil,
@@ -85,7 +90,7 @@ extension SchemeImportCenter {
                                 resourceURL: deployment.resourceURL,
                                 userDataURL: deployment.userDataURL,
                                 enabledSchemas: enabledSchemas,
-                                requested: combo)
+                                requested: combo, folds: folds(combo))
                         else {
                             // The install picker publishes what could be made and reports the rest.
                             if let refused {
@@ -212,7 +217,10 @@ extension SchemeImportCenter {
                 return .needsConfirmation(scripts: scripts, keys: keys, firstTime: firstTime)
             }
             let name = installedPackages.first { $0.id == packageID }?.name ?? packageID
-            let tasks = PublishedKeyboard.generationTasks(for: shared.keyboards)
+            let layouts = LayoutManager.shared.registry
+            let tasks = PublishedKeyboard.companionTasks(for: shared.keyboards) {
+                KeyboardController.drawnFolds(in: layouts, layout: $0.layout, board: $0.board)
+            }
             try await EngineOwnershipCoordinator.shared.withExclusive {
                 _ = try await store.reinstallActivePackage { deployment in
                     try await Self.verifyRecipeDeployment(

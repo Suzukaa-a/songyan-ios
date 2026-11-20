@@ -518,15 +518,18 @@ extension KeyboardViewController {
             switch result {
             case .loaded(let registry, let path):
                 self.route.assignIfChanged(\.layoutRegistry, registry)
+                self.session.drawnLayouts = registry
                 self.route.assignIfChanged(\.layoutNotice, nil)
                 Self.diagnosticLogger.debug("shared layout loaded: \(path, privacy: .private)")
                 self.route.assignIfChanged(\.layoutMessage, String(localized: "自定义布局已加载。"))
             case .unavailable(let message):
                 self.route.assignIfChanged(\.layoutRegistry, nil)
+                self.session.drawnLayouts = nil
                 self.route.assignIfChanged(\.layoutNotice, String(localized: "自定义布局暂时不可用，当前使用内置布局。"))
                 self.route.assignIfChanged(\.layoutMessage, message)
             case .failed(let message):
                 self.route.assignIfChanged(\.layoutRegistry, nil)
+                self.session.drawnLayouts = nil
                 self.route.assignIfChanged(\.layoutNotice, String(localized: "无法读取布局，当前使用内置布局。"))
                 self.route.assignIfChanged(\.layoutMessage, message)
             }

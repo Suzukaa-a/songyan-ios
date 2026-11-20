@@ -58,15 +58,22 @@ extension KeyboardRecipeStore {
                 throw StoreError(message: String(localized: "已添加的键盘包含未启用的输入方案 \(keyboard.schemaID)，请重新添加"))
             }
             guard keyboard.needsGeneratedAdapter else { continue }
-            guard
-                let engine = KeyboardResourceSet.engineSchemaID(
-                    source: keyboard.schemaID, layout: keyboard.layout, adapters: adapters,
+            // The companions of every grouping made for this input method and layout: the keyboard runs
+            // the one of the layout it draws, which only the keyboard reads.
+            var engines = adapters.filter { $0.sourceSchemaID == keyboard.schemaID && $0.layout == keyboard.layout }
+                .map(\.schemaID)
+            if engines.isEmpty,
+                let bound = KeyboardResourceSet.engineSchemaID(
+                    source: keyboard.schemaID, layout: keyboard.layout, adapters: [],
                     bindings: activation.schemaBindings ?? [])
-            else {
+            {
+                engines = [bound]
+            }
+            guard !engines.isEmpty else {
                 throw StoreError(message: String(localized: "已添加的 \(keyboard.layout.userTitle) 键盘缺少按键映射，请重新添加后再保存"))
             }
-            guard FileManager.default.fileExists(atPath: build.appendingPathComponent("\(engine).schema.yaml").path)
-            else {
+            for engine in engines
+            where !FileManager.default.fileExists(atPath: build.appendingPathComponent("\(engine).schema.yaml").path) {
                 throw StoreError(
                     message: String(localized: "已添加的 \(keyboard.layout.userTitle) 键盘缺少已编译的适配方案 \(engine)，请重新添加后再保存"))
             }

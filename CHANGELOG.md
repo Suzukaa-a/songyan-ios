@@ -2,6 +2,14 @@
 
 ## 未发布
 
+### 新增
+
+- 「键盘布局」里可以自己决定 14 键、18 键和 9 键哪几个编码合用一个键：在按键「轻点后」的「编码」里填写，标题只管显示；导入的布局也一样。编码只能是英文字母、数字或半角符号；不合规的编码和重复的编码会标出来，改好之前不能保存；比原来少了的编码会提示，「我的键盘」也会写明输入方案缺哪个键。
+
+### New
+
+- In Keyboard layouts you can choose which codes share a key on 14-, 18- and 9-key layouts: fill in Codes under a key's tap action, while its title only sets what it shows; imported layouts work the same way. Codes must be letters, digits or half-width marks; invalid or repeated codes are named and block saving until fixed, codes dropped from the original are pointed out, and My Keyboards says which keys an input scheme is missing.
+
 ## 0.2.0 (2026-11-20)
 
 ### 新增

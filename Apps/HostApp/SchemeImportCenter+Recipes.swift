@@ -353,7 +353,7 @@ extension SchemeImportCenter {
     static func verifyRecipeDeployment(
         _ deployment: RecipeDeployment,
         packageID: String, packageName: String?,
-        requestedAdapters: [PublishedKeyboard]? = nil,
+        requestedAdapters: [CompanionTask]? = nil,
         postValidation: (@Sendable (RimeEngine, [String]) throws -> Void)? = nil
     ) async throws -> DeployVerification {
         try await EngineOpQueue.async {
@@ -631,7 +631,7 @@ extension SchemeImportCenter {
                 let declarationName = workspace.displayName
                 let initialUserDataURL = workspace.initialUserDataURL
                 let requestedEntry = planned.schemaID.isEmpty ? workspace.schemaIDs.first ?? "" : planned.schemaID
-                var grammarAdapters: [PublishedKeyboard]?
+                var grammarAdapters: [CompanionTask]?
                 if planned.plan.managesGrammar {
                     let prior = try await manager.activeInstallation()
                     guard prior?.installation.generation == workspace.generation else {

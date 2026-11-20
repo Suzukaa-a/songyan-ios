@@ -1,6 +1,7 @@
 import Combine
 import Foundation
 import KeyboardCore
+import LayoutKit
 import OSLog
 
 /// Where the session's engine output goes: the keyboard controller that is presenting.
@@ -77,6 +78,10 @@ public final class KeyboardPadSession: ObservableObject {
         startupKeys.append(action)
     }
     @Published public private(set) var controller: KeyboardController?
+    /// The layouts the keyboard draws (see `KeyboardController.drawnLayouts`), handed to every controller.
+    public var drawnLayouts: LayoutRegistry? {
+        didSet { controller?.drawnLayouts = drawnLayouts }
+    }
     /// Nonfatal transition failure: keep the ready keyboard and composition visible.
     @Published public private(set) var transitionError: String?
     private var inputRecoveryObservation: AnyCancellable?
@@ -755,7 +760,13 @@ public final class KeyboardPadSession: ObservableObject {
             return
         }
         let bootLayout = plan.layout
-        let schemaID = plan.engineSchemaID
+        // A merged layout of the user's own runs on its own grouping's companion from the first key.
+        let drawn = KeyboardController.drawnFolds(in: drawnLayouts, layout: bootLayout, board: plan.board)
+        let bootSet = drawn.isEmpty ? resolvedSet : resolvedSet.withFolds(drawn)
+        let schemaID =
+            drawn.isEmpty
+            ? plan.engineSchemaID
+            : bootSet.engineSchemaID(source: plan.sourceSchemaID, layout: bootLayout) ?? plan.engineSchemaID
         // Publication-level route identity of this boot: the source schema and the physical layout must come
         // from the same bootSelection result, never from a possibly nil/stale published selection in the
         // resource set; otherwise one running engine computes two different keys and restarts repeatedly.
@@ -858,7 +869,8 @@ public final class KeyboardPadSession: ObservableObject {
         }
 
         let ctrl = KeyboardController(
-            layout: bootLayout, board: plan.board, engine: engine, resourceSet: resolvedSet)
+            layout: bootLayout, board: plan.board, engine: engine, resourceSet: bootSet)
+        ctrl.drawnLayouts = drawnLayouts
         // A boot can span a disappear; the backend was not yet published, so the disappearance could not
         // suspend it directly. Read the real schema at construction and apply the latest visibility before handoff, keeping the same engine.
         if hostIsVisible == false, let backend = engine as? RimeBackend {

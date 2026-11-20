@@ -143,7 +143,9 @@ struct T9LetterLockMain {
 
         /// Run the production generation path over `shared` and return the
         /// generated adapter registry plus the queryable engine.
-        func prepare(shared: String, user: String, sources: [String]) -> RimeEngine {
+        func prepare(
+            shared: String, user: String, sources: [String], tasks: [CompanionTask]? = nil
+        ) -> RimeEngine {
             let sharedURL = URL(fileURLWithPath: shared, isDirectory: true)
             let userURL = URL(fileURLWithPath: user, isDirectory: true)
             let engine = RimeEngine(
@@ -157,9 +159,13 @@ struct T9LetterLockMain {
                 fail("sources missing: \(sources) vs \(available.sorted())")
             }
             do {
-                let requested = enabled.flatMap { source in
-                    [KeyboardLayoutKind.merged14, .phone9].map { PublishedKeyboard(schemaID: source, layout: $0) }
-                }
+                let requested =
+                    tasks
+                    ?? enabled.flatMap { source in
+                        [KeyboardLayoutKind.merged14, .phone9].compactMap { layout in
+                            layout.compactFold.map { CompanionTask(schemaID: source, layout: layout, fold: $0) }
+                        }
+                    }
                 try CompactAdapterDeployment.prepare(
                     engine: engine, resourceURL: sharedURL, userDataURL: userURL,
                     requested: requested)
@@ -649,6 +655,42 @@ struct T9LetterLockMain {
             "C: the refused lock request left the native input")
         engineC.clearComposition()
         engineC.shutdown()
+
+        // =====================================================================
+        // PROFILE D — a layout's own grouping: Y moved from the TY key onto UI
+        // =====================================================================
+        // The production path builds the companion of each grouping asked for; a keyboard drawing
+        // the moved Y types `yao` as UI AS OP, which the bundled grouping reads as `uao`/`iao`.
+        var ownMap = CompactFold.merged14.map
+        ownMap["y"] = "u"
+        guard let ownFold = CompactFold.of(kind: .merged14, map: ownMap) else { fail("D: own grouping") }
+        let userD = userRootURL.appendingPathComponent("d").path
+        let engineD = prepare(
+            shared: adapted, user: userD, sources: ["songyan_quanpin"],
+            tasks: [
+                CompanionTask(schemaID: "songyan_quanpin", layout: .merged14, fold: .merged14),
+                CompanionTask(schemaID: "songyan_quanpin", layout: .merged14, fold: ownFold),
+            ])
+        let adaptersD = adapters(userD)
+        guard let ownD = adaptersD.first(where: { $0.fold == ownFold.id }),
+            let bundledD = adaptersD.first(where: { $0.layout == .merged14 && $0.fold == nil })
+        else {
+            fail("D: both 14-key companions are registered (\(adaptersD.map(\.schemaID)))")
+        }
+        check(ownD.schemaID != bundledD.schemaID, "D: the own grouping gets a companion of its own")
+        check(ownD.compactFold == ownFold, "D: the registry reads the grouping back for a rebuild")
+        guard engineD.selectSchema(ownD.schemaID) else { fail("D: select the own grouping's companion") }
+        _ = probe(engineD, "uao")
+        let ownTyped = candidates(engineD)
+        check(ownTyped.contains("要"), "D: UI AS OP on the own grouping reads yao (\(ownTyped.prefix(8)))")
+        guard engineD.selectSchema(bundledD.schemaID) else { fail("D: select the bundled companion") }
+        _ = probe(engineD, "uao")
+        let bundledTyped = candidates(engineD)
+        check(!bundledTyped.contains("要"), "D: the bundled grouping does not read yao (\(bundledTyped.prefix(8)))")
+        _ = probe(engineD, "tao")
+        check(candidates(engineD).contains("要"), "D: on the bundled grouping yao is typed TY AS OP")
+        engineD.clearComposition()
+        engineD.shutdown()
 
         // =====================================================================
         emit(

@@ -399,7 +399,7 @@ extension KeyboardPanelView {
             // Hints follow the letters each key carries, one per letter; a merged key
             // shows them in columns under its letters. The bundled merged pad draws
             // lowercase letters and keeps its digits on the 123 page.
-            let letterGroup = LetterGroupLayout.group(of: key) ?? []
+            let letterGroup = LetterGroupLayout.group(of: key, in: activeDefinition) ?? []
             let presetKey = knownMainShellPresetKey(for: id, key: key)
             let knownShellFaceUnchanged = presetKey.map { bundledKeyFaceUnchanged(key, preset: $0) } == true
             let showsLetterHints =
@@ -408,7 +408,7 @@ extension KeyboardPanelView {
             let groupHints =
                 showsLetterHints
                 ? ShuangpinHintOverlay.hints(
-                    for: key, labels: shuangpinHints?.activePreset?.hints ?? [:],
+                    for: key, in: activeDefinition, labels: shuangpinHints?.activePreset?.hints ?? [:],
                     // A known bundled main shell keeps its bundled hint policy while its face is
                     // untouched; an edited face keeps the author's labels, and imported/DIY
                     // definitions never get the bundled policy.

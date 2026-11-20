@@ -39,9 +39,17 @@ struct LayoutEditorView: View {
 
     var body: some View {
         Form {
-            Section(String(localized: "布局")) {
+            Section {
                 TextField(
                     String(localized: "名称"), text: Binding(get: { draft.name }, set: { draft = draft.renamed($0) }))
+            } header: {
+                Text("布局")
+            } footer: {
+                if let blocked = codeProblems {
+                    Text(blocked).foregroundStyle(.red).accessibilityIdentifier("layoutEditor.codeProblems")
+                } else if let dropped = droppedCodes {
+                    Text(dropped).accessibilityIdentifier("layoutEditor.droppedCodes")
+                }
             }
             Section(String(localized: "候选栏")) {
                 Toggle(
@@ -99,7 +107,7 @@ struct LayoutEditorView: View {
             Section {
                 Button(String(localized: "另存为副本")) { save(asCopy: true) }
             }
-            .disabled(saving)
+            .disabled(saving || codeProblems != nil)
         }
         .disabled(saving)
         .environment(\.widthFieldValidity, widthValidity)
@@ -114,7 +122,7 @@ struct LayoutEditorView: View {
             }
             ToolbarItem(placement: .confirmationAction) {
                 Button(String(localized: "保存布局")) { save(asCopy: false) }
-                    .disabled(saving)
+                    .disabled(saving || codeProblems != nil)
                     .accessibilityIdentifier("layoutEditor.save")
             }
         }
@@ -139,6 +147,51 @@ struct LayoutEditorView: View {
         }
     }
 
+    /// The codes field of the selected key on a merged layout (14, 18 or 9 keys): a key that sends a
+    /// code. Changing it writes out every key's codes first, so the others keep their grouping.
+    private func selectedKeyCodes(_ key: LayoutKey) -> KeyCodesField? {
+        guard let kind = LayoutFold.kind(of: draft), key.action.type == .code else { return nil }
+        let path = selected
+        return KeyCodesField(value: String(LayoutFold.codesOn(draft, kind: kind, key: key))) { text in
+            let written = LayoutFold.writtenOut(draft, kind: kind)
+            guard let current = written.key(at: path) else { return }
+            draft = written.replacingKey(at: path, with: LayoutFold.key(current, covering: text))
+        }
+    }
+
+    /// What keeps the draft from being saved: codes the input method cannot take (librime reads a
+    /// key as one printable ASCII character), and on a merged layout codes on two keys or a grouping
+    /// that does not fold.
+    private var codeProblems: String? {
+        let unusable = LayoutFold.unusable(draft)
+        let repeated = LayoutFold.repeated(draft)
+        var lines: [String] = []
+        if !unusable.isEmpty {
+            lines.append(String(localized: "编码只能是英文字母、数字或半角符号：\(Self.codeList(unusable))"))
+        }
+        if !repeated.isEmpty { lines.append(String(localized: "重复的编码：\(Self.codeList(repeated))")) }
+        if repeated.isEmpty, let kind = LayoutFold.kind(of: draft), let shape = KeyboardLayoutKind(rawValue: kind.rawValue),
+            LayoutFold.writesGroups(draft),
+            LayoutFold.map(draft, kind: kind).flatMap({ CompactFold.of(kind: shape, map: $0) }) == nil
+        {
+            lines.append(String(localized: "有的键输入的字符不在它的编码里。"))
+        }
+        return lines.isEmpty ? nil : lines.joined(separator: "\n")
+    }
+
+    /// The codes the layout's keys put in when it was opened that they no longer do. Saving is still
+    /// allowed: a keyboard may leave codes out on purpose, and the keyboard list names what an input
+    /// method then misses.
+    private var droppedCodes: String? {
+        let dropped = LayoutFold.coverage(original).subtracting(LayoutFold.coverage(draft))
+        return dropped.isEmpty ? nil : String(localized: "少了编码：\(Self.codeList(dropped.sorted()))")
+    }
+
+    /// How codes are named to the user: a letter as its key cap shows it, anything else as it is.
+    private static func codeList(_ codes: [Character]) -> String {
+        codes.map { String($0).uppercased() }.joined(separator: " ")
+    }
+
     /// The main layout keeps a way to the next keyboard on a machine that needs one: its last globe
     /// key moves but its action stays.
     private func isProtectedGlobe(_ key: LayoutKey) -> Bool {
@@ -159,7 +212,8 @@ struct LayoutEditorView: View {
             // Main-layout function keys draw custom titles at runtime too.
             LayoutKeyFields(
                 key: key, allowsCode: !inBottomRow, allowsTitleMode: true,
-                editsAction: !cyclesQuickSymbols && !isProtectedGlobe(key)
+                editsAction: !cyclesQuickSymbols && !isProtectedGlobe(key),
+                codes: inBottomRow ? nil : selectedKeyCodes(key)
             ) { updated in
                 draft = draft.replacingKey(at: selected, with: updated)
             }
@@ -352,6 +406,8 @@ struct LayoutKeyFields: View {
     /// Only a page's keys may jump to another layout's page, never a main layout's.
     var allowsJump = false
     var editsAction = true
+    /// On a merged layout, the codes the key covers, edited as what a tap types; nil keeps the code field.
+    var codes: KeyCodesField?
     let update: (LayoutKey) -> Void
 
     var body: some View {
@@ -394,7 +450,7 @@ struct LayoutKeyFields: View {
             if editsAction {
                 LayoutActionFields(
                     action: key.action, allowsCode: allowsCode, allowsFunctionActions: allowsFunctionActions,
-                    allowsJump: allowsJump
+                    allowsJump: allowsJump, codes: codes
                 ) { action in
                     update(key.editingAction(action, allowsTitleMode: allowsTitleMode))
                 }
@@ -499,6 +555,8 @@ private struct LayoutActionFields: View {
     var allowsJump = false
     /// What the picker is called: a key does it on tap, a long-press option once chosen.
     var title = String(localized: "轻点后")
+    /// A merged key types the codes it covers; what it sends follows from them.
+    var codes: KeyCodesField?
     let update: (LayoutAction) -> Void
 
     private var kinds: [LayoutAction.Kind] {
@@ -598,7 +656,15 @@ private struct LayoutActionFields: View {
             Text("轻点后换用这个键盘布局。正在使用的输入方式不支持它时，这个键不显示。")
                 .font(.footnote).foregroundStyle(.secondary)
         }
-        if action.type == .code {
+        if action.type == .code, let codes {
+            LabeledContent(String(localized: "编码")) {
+                TextField(String(localized: "编码"), text: Binding(get: { codes.value }, set: codes.onChange))
+                    .keyboardType(.asciiCapable)
+                    .textInputAutocapitalization(.never).autocorrectionDisabled()
+                    .accessibilityIdentifier("layoutEditor.key.codes")
+                    .multilineTextAlignment(.trailing)
+            }
+        } else if action.type == .code {
             TextField(
                 String(localized: "一个英文字符"),
                 text: Binding(
@@ -640,4 +706,10 @@ private struct LayoutActionFields: View {
             }
         }
     }
+}
+
+/// The codes a merged key covers, as the key editor shows and changes them.
+struct KeyCodesField {
+    let value: String
+    let onChange: (String) -> Void
 }

@@ -129,8 +129,9 @@ enum DictionaryDeployVerifier {
             // The compact layouts are generated against the imported dictionary, exactly as for
             // an installed scheme, then every scheme on every layout must type 你好.
             let compact = sources.flatMap { source in
-                KeyboardLayoutKind.allCases.filter { $0.compactFold != nil }
-                    .map { PublishedKeyboard(schemaID: source, layout: $0) }
+                KeyboardLayoutKind.allCases.compactMap { layout in
+                    layout.compactFold.map { CompanionTask(schemaID: source, layout: layout, fold: $0) }
+                }
             }
             try CompactAdapterDeployment.prepare(
                 engine: engine, resourceURL: deployment.resourceURL,

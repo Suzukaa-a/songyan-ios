@@ -13,7 +13,9 @@ import RimeBridge
 enum CompactAdapterDeployment {
     private static let generatorVersionFileName = "keyboard-adapter-generator.txt"
 
-    static func registeredRequests(build: URL) throws -> [PublishedKeyboard] {
+    /// The companions the registry in `build` was made for, each with its grouping, so a rebuild
+    /// makes the same ones.
+    static func registeredRequests(build: URL) throws -> [CompanionTask] {
         let url = build.appendingPathComponent(KeyboardResourceSet.adapterRegistryFileName)
         guard FileManager.default.fileExists(atPath: url.path) else { return [] }
         let data = try Data(contentsOf: url)
@@ -21,13 +23,15 @@ enum CompactAdapterDeployment {
             throw RecipeInstallError.invalidResource(String(localized: "键盘适配配置文件大小超出限制"))
         }
         let adapters = try JSONDecoder().decode([KeyboardResourceSet.EncodingAdapter].self, from: data)
-        let requests = adapters.map { PublishedKeyboard(schemaID: $0.sourceSchemaID, layout: $0.layout) }
-        guard Set(requests).count == requests.count,
+        let requests = adapters.map { adapter in
+            adapter.compactFold.map { CompanionTask(schemaID: adapter.sourceSchemaID, layout: adapter.layout, fold: $0) }
+        }
+        guard requests.allSatisfy({ $0 != nil }), Set(requests.compactMap { $0?.key }).count == requests.count,
             adapters.allSatisfy({ $0.sourceSchemaID.range(of: "^[A-Za-z0-9_-]+$", options: .regularExpression) != nil })
         else {
             throw RecipeInstallError.invalidResource(String(localized: "键盘适配配置文件格式无效"))
         }
-        return PublishedKeyboard.generationTasks(for: requests)
+        return requests.compactMap { $0 }
     }
 
     /// Whether the adapters in `build` came from the current generator. A newer generator must
@@ -43,18 +47,19 @@ enum CompactAdapterDeployment {
     static func canReuseBuild(
         resourceURL: URL, userDataURL: URL,
         enabledSchemas: [KeyboardSchemaDescriptor],
-        requested: [PublishedKeyboard]
+        requested: [PublishedKeyboard],
+        folds: (PublishedKeyboard) -> [KeyboardLayoutKind: CompactFold?]
     ) throws -> Bool {
         let build = userDataURL.appendingPathComponent("build")
-        let tasks = PublishedKeyboard.generationTasks(for: requested)
+        let tasks = PublishedKeyboard.companionTasks(for: requested, folds: folds)
         guard generatorIsCurrent(build: build),
-            Set(try registeredRequests(build: build)) == Set(tasks)
+            Set(try registeredRequests(build: build).map(\.key)) == Set(tasks.map(\.key))
         else { return false }
         return requested.allSatisfy { keyboard in
             guard enabledSchemas.contains(where: { $0.id == keyboard.schemaID }),
                 let engineID = availableEngineSchemaID(
                     resourceURL: resourceURL, userDataURL: userDataURL,
-                    enabledSchemas: enabledSchemas, requested: keyboard)
+                    enabledSchemas: enabledSchemas, requested: keyboard, folds: folds(keyboard))
             else { return false }
             return FileManager.default.fileExists(
                 atPath: InstalledPackageLayout.compiledSchemaURL(build: build, id: engineID).path)
@@ -65,7 +70,7 @@ enum CompactAdapterDeployment {
     @discardableResult
     static func prepare(
         engine: RimeEngine, deployment: RecipeDeployment,
-        requested: [PublishedKeyboard]
+        requested: [CompanionTask]
     ) throws -> [KeyboardResourceSet.EncodingAdapter] {
         try prepare(
             engine: engine, resourceURL: deployment.resourceURL,
@@ -82,7 +87,7 @@ enum CompactAdapterDeployment {
     @discardableResult
     static func prepare(
         engine: RimeEngine, resourceURL: URL, userDataURL: URL,
-        requested: [PublishedKeyboard]
+        requested: [CompanionTask]
     ) throws -> [KeyboardResourceSet.EncodingAdapter] {
         let build = userDataURL.appendingPathComponent("build")
         let fm = FileManager.default
@@ -93,9 +98,10 @@ enum CompactAdapterDeployment {
 
         // Group requested layouts by source so the source projection / capability is
         // computed once, then generate only the requested layout(s) for that source.
-        var layoutsBySource: [String: [KeyboardLayoutKind]] = [:]
-        for combo in requested where combo.needsGeneratedAdapter {
-            layoutsBySource[combo.schemaID, default: []].append(combo.layout)
+        var layoutsBySource: [String: [CompanionTask]] = [:]
+        var seen = Set<String>()
+        for task in requested where seen.insert(task.key).inserted {
+            layoutsBySource[task.schemaID, default: []].append(task)
         }
         // A stable, schema-agnostic iteration order (source id is just the enabled key).
         let sources = layoutsBySource.keys.sorted()
@@ -162,14 +168,14 @@ enum CompactAdapterDeployment {
             // A source that already has a usable numeric (2–9) spelling space runs
             // natively on a phone-digit layout. This is derived from the projection's
             // own spellings, never from candidate presence.
-            let routes = layoutRoutes(
+            let routes = companionRoutes(
                 requestedLayouts,
                 numericSource: aliasRepresentable && CompactSchemaAdapter.isNumericCodeSource(projection)
                     && !CompactSchemaAdapter.declaresLetterClassPrefixSource(projection))
             if let digits = routes.native {
                 adapters.append(
                     .init(
-                        sourceSchemaID: source, schemaID: source, layout: digits,
+                        sourceSchemaID: source, schemaID: source, layout: digits.layout,
                         schemaName: engine.schemaValue(source, key: "schema/name")))
             }
 
@@ -189,12 +195,12 @@ enum CompactAdapterDeployment {
             }
 
             // Requested layouts are always compact (needsGeneratedAdapter): letter groups or phone digits.
-            for layout in routes.companions {
+            for task in routes.companions {
                 try Task.checkCancellation()
+                let layout = task.layout
+                let fold = task.fold
                 // A layout that cannot fold this source's own physical alphabet is skipped, not forced.
-                guard let fold = layout.compactFold,
-                    let data = try plan.companion(fold: fold)
-                else { continue }
+                guard let data = try plan.companion(fold: fold) else { continue }
                 let target = CompactSchemaAdapter.identifier(sourceID: source, fold: fold)
                 let generated = userDataURL.appendingPathComponent(InstalledPackageLayout.schemaFile(target))
                 guard
@@ -231,7 +237,7 @@ enum CompactAdapterDeployment {
                 adapters.append(
                     .init(
                         sourceSchemaID: source, schemaID: target, layout: layout,
-                        schemaName: engine.schemaValue(target, key: "schema/name")))
+                        schemaName: engine.schemaValue(target, key: "schema/name"), fold: fold))
             }
         }
 
@@ -275,6 +281,15 @@ enum CompactAdapterDeployment {
         return (native, layouts.filter { $0 != native })
     }
 
+    /// `layoutRoutes` over companion tasks. Only the bundled 9-key grouping can run natively on a
+    /// numeric source: the source's digits mean the bundled letters, never a grouping of the user's own.
+    static func companionRoutes(_ tasks: [CompanionTask], numericSource: Bool)
+        -> (native: CompanionTask?, companions: [CompanionTask])
+    {
+        let native = numericSource ? tasks.first { $0.layout.keyFold == .phoneDigits && $0.fold.isBuiltin } : nil
+        return (native, tasks.filter { $0 != native })
+    }
+
     /// Whether the launch-time rebuild applies: an enabled publication with compact keyboards
     /// whose published build predates the current generator. The published copy is checked, not
     /// the installed one, so a publication that failed after preparation is retried next launch.
@@ -293,10 +308,12 @@ enum CompactAdapterDeployment {
     static func combinationAvailable(
         resourceURL: URL, userDataURL: URL,
         enabledSchemas: [KeyboardSchemaDescriptor],
-        requested: PublishedKeyboard
+        requested: PublishedKeyboard,
+        folds: [KeyboardLayoutKind: CompactFold?] = [:]
     ) -> Bool {
         availableEngineSchemaID(
-            resourceURL: resourceURL, userDataURL: userDataURL, enabledSchemas: enabledSchemas, requested: requested)
+            resourceURL: resourceURL, userDataURL: userDataURL, enabledSchemas: enabledSchemas, requested: requested,
+            folds: folds)
             != nil
     }
 
@@ -304,7 +321,8 @@ enum CompactAdapterDeployment {
     static func availableEngineSchemaID(
         resourceURL: URL, userDataURL: URL,
         enabledSchemas: [KeyboardSchemaDescriptor],
-        requested: PublishedKeyboard
+        requested: PublishedKeyboard,
+        folds: [KeyboardLayoutKind: CompactFold?] = [:]
     ) -> String? {
         let build = userDataURL.appendingPathComponent("build")
         var bindings: [KeyboardResourceSet.LayoutEntry] = []
@@ -321,7 +339,8 @@ enum CompactAdapterDeployment {
             id: "combination-check", name: "",
             sharedDirectory: resourceURL, userDirectory: userDataURL,
             layoutEntries: bindings, prebuiltDirectory: build,
-            schemas: enabledSchemas, selectedSchemaID: requested.schemaID)
+            schemas: enabledSchemas, selectedSchemaID: requested.schemaID
+        ).withFolds(folds)
         return set.availableCombinations.first {
             $0.schemaID == requested.schemaID && $0.layout == requested.layout
         }?.engineSchemaID

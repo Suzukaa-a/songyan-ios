@@ -115,14 +115,13 @@ extension HostLayoutAvailability {
             let own = boards.isEmpty ? [preset].filter(candidates.contains) : boards
             var entries: [ApplicableLayout] = (own + candidates.filter { !shipped.contains($0) }).compactMap { id in
                 let missing =
-                    shape == .qwerty26
-                    ? profile.flatMap { profile in
+                    profile.flatMap { profile in
                         registry.resolvedLayout(id: id).map {
                             // A missing delimiter or auxiliary key is normal on a plain board: not worth a warning.
                             LayoutCodeCoverage.missingToReport(
-                                $0, needed: profile.codes, optional: profile.optionalCodes)
+                                $0, kind: shape.builtinLayout, needed: profile.codes, optional: profile.optionalCodes)
                         }
-                    } ?? [] : []
+                    } ?? []
                 // A 26-key layout with no key for a code the speller needs cannot type the scheme at all.
                 if shape == .qwerty26, let profile, let layout = registry.resolvedLayout(id: id),
                     !LayoutCodeCoverage.missingRequired(

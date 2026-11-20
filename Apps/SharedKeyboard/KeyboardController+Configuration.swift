@@ -32,9 +32,13 @@ extension KeyboardController {
                 // Nothing in the session changes: settle the composition, then adopt the board.
                 guard session.prepareForConfigurationChange() else { return false }
                 selectedBoard = board
+                // Another board of the same shape may group its codes another way.
+                session.useFolds(drawnFolds(layout: layout, board: board))
                 reportSuccessfulSelectionChange()
                 return true
             }
+            // The engine runs the companion of the grouping the new keyboard draws, chosen before the switch.
+            session.useFolds(drawnFolds(layout: layout, board: board), revalidate: false)
             if let boundSchemaID {
                 session.select(layout: layout, boundSchemaID: boundSchemaID)
             } else {
@@ -43,6 +47,32 @@ extension KeyboardController {
             return session.layout == layout
                 && (boundSchemaID == nil || session.selectedSchemaID == boundSchemaID)
         }
+    }
+
+    /// The fold of the layout drawn on `layout` from `board`, when that layout is not the bundled
+    /// one: the engine must run that grouping's companion (see `KeyboardResourceSet.folds`). A board
+    /// whose codes do not fold maps to nil, which runs on no companion. Other shapes draw their
+    /// bundled layout.
+    func drawnFolds(layout: KeyboardLayoutKind, board: String?) -> [KeyboardLayoutKind: CompactFold?] {
+        Self.drawnFolds(in: drawnLayouts, layout: layout, board: board)
+    }
+
+    /// `drawnFolds` with the layouts read from `registry`; the host asks the same when it builds companions.
+    nonisolated static func drawnFolds(
+        in registry: LayoutRegistry?, layout: KeyboardLayoutKind, board: String?
+    ) -> [KeyboardLayoutKind: CompactFold?] {
+        guard let board, layout.compactFold != nil, let kind = LayoutInput.Builtin(rawValue: layout.rawValue),
+            let definition = registry?.resolvedLayout(id: board)
+        else { return [:] }
+        let fold = LayoutFold.map(definition, kind: kind).flatMap { CompactFold.of(kind: layout, map: $0) }
+        return [layout: fold]
+    }
+
+    /// Keeps the running session on the fold of the layout now drawn: a layout edit can change the
+    /// grouping under the same keyboard, and the engine must follow it.
+    func followDrawnFold() {
+        guard !retired else { return }
+        session.useFolds(drawnFolds(layout: layout, board: selectedBoard))
     }
 
     func reportSuccessfulSelectionChange() {

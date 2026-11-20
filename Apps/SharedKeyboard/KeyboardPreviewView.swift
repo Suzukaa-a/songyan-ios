@@ -512,7 +512,7 @@ struct KeyboardMainLayoutPreview: View {
         }
         let bundledMergedFace =
             usesBundledMergedPad && presetKey.map { KeyboardPanelRules.keyFaceUnchanged(key, preset: $0) } == true
-        let letterGroup = LetterGroupLayout.group(of: key) ?? []
+        let letterGroup = LetterGroupLayout.group(of: key, in: definition) ?? []
         // The live first key shows its cycle while idle and the separator while composing.
         let title: String =
             if isT9FirstKey {

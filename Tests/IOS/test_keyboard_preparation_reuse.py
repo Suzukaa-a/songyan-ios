@@ -39,9 +39,12 @@ enum CompactAdapterDeployment {
         let schemas = [KeyboardSchemaDescriptor(id: "custom", name: "自定义", alphabet: "abc")]
         let native = PublishedKeyboard(schemaID: "custom", layout: .qwerty26)
         let compact = PublishedKeyboard(schemaID: "custom", layout: .phone9)
-        func reusable(_ list: [PublishedKeyboard]) throws -> Bool {
+        func reusable(
+            _ list: [PublishedKeyboard],
+            folds: (PublishedKeyboard) -> [KeyboardLayoutKind: CompactFold?] = { _ in [:] }
+        ) throws -> Bool {
             try CompactAdapterDeployment.canReuseBuild(resourceURL: resources,
-                userDataURL: user, enabledSchemas: schemas, requested: list)
+                userDataURL: user, enabledSchemas: schemas, requested: list, folds: folds)
         }
         precondition(try !reusable([native]), "Missing compiled schema must rebuild")
         let stamp = build.appendingPathComponent("keyboard-adapter-generator.txt")
@@ -67,6 +70,23 @@ enum CompactAdapterDeployment {
         try Data("schema: companion".utf8).write(to: build.appendingPathComponent("custom_t9.schema.yaml"))
         try fm.removeItem(at: build.appendingPathComponent("keyboard-adapters.json"))
 
+        // A keyboard drawing a 9-key layout of its own grouping needs that grouping's companion.
+        var own = CompactFold.phone9.map
+        own["c"] = "3"
+        let ownFold = CompactFold.of(kind: .phone9, map: own)!
+        let drawsOwn: (PublishedKeyboard) -> [KeyboardLayoutKind: CompactFold?] = { _ in [.phone9: ownFold] }
+        try JSONEncoder().encode([record]).write(to: build.appendingPathComponent("keyboard-adapters.json"))
+        precondition(try !reusable([compact], folds: drawsOwn), "Another grouping must generate its companion")
+        let ownRecord = KeyboardResourceSet.EncodingAdapter(
+            sourceSchemaID: "custom", schemaID: "custom_t9_own", layout: .phone9, fold: ownFold)
+        try JSONEncoder().encode([ownRecord]).write(to: build.appendingPathComponent("keyboard-adapters.json"))
+        try Data("schema: companion".utf8).write(to: build.appendingPathComponent("custom_t9_own.schema.yaml"))
+        precondition(try reusable([compact], folds: drawsOwn), "Its built companion can be reused")
+        precondition(try !reusable([compact]), "The bundled grouping is not the one built")
+        precondition(try CompactAdapterDeployment.registeredRequests(build: build).first?.fold == ownFold,
+            "A rebuild reads the grouping back from the registry")
+        try fm.removeItem(at: build.appendingPathComponent("keyboard-adapters.json"))
+
         let numeric = CompactAdapterDeployment.layoutRoutes([.merged14, .phone9], numericSource: true)
         precondition(numeric.native == .phone9 && numeric.companions == [.merged14],
             "A natively served phone layout must not also get a companion")
@@ -80,6 +100,10 @@ enum CompactAdapterDeployment {
         try fm.removeItem(at: build.appendingPathComponent("keyboard-adapters.json"))
         let letters = CompactAdapterDeployment.layoutRoutes([.phone9], numericSource: false)
         precondition(letters.native == nil && letters.companions == [.phone9])
+        let ownTask = CompanionTask(schemaID: "custom", layout: .phone9, fold: ownFold)
+        let ownRoute = CompactAdapterDeployment.companionRoutes([ownTask], numericSource: true)
+        precondition(ownRoute.native == nil && ownRoute.companions == [ownTask],
+            "Only the bundled 9-key grouping runs natively on a numeric source")
 
         let published = root.appendingPathComponent("published")
         try fm.createDirectory(at: published, withIntermediateDirectories: true)
