@@ -213,6 +213,6 @@ public enum TypoCorrection {
 public extension CompactSchemaAdapter {
     /// True for IDs minted by `identifier(sourceID:fold:)` (generated compact companions).
     static func isGeneratedCompanionID(_ id: String) -> Bool {
-        id.range(of: "^keyboard_[0-9a-f]{20}_[0-9]+$", options: .regularExpression) != nil
+        id.range(of: "^keyboard_[0-9a-f]{20}_[0-9]+(u[0-9a-f]{8})?$", options: .regularExpression) != nil
     }
 }

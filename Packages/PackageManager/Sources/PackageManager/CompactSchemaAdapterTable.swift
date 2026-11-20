@@ -109,8 +109,17 @@ public extension CompactSchemaAdapter {
         guard !present.isEmpty else { return nil }
         var passThrough = Set(foldablePunctuation)
         if nineKey { passThrough.formUnion("23456789") }
+        let foldMap = compactFold.map
+        // Codes other than letters a layout puts on a key of its own grouping (`;` beside `l`): they
+        // fold onto that key like a letter instead of being typed as themselves.
+        var seenOthers = Set<Character>()
+        let foldedOthers = sourceAlphabet.filter { character in
+            !foldableLetters.contains(character) && !uppercaseLetters.contains(character)
+                && foldMap[character].map { $0 != character } == true && seenOthers.insert(character).inserted
+        }
         let ignored = sourceAlphabet.filter { character in
             if character.isLowercase, present.contains(character) { return false }
+            if foldedOthers.contains(character) { return false }
             if passThrough.contains(character) { return false }
             guard uppercaseLetters.contains(character), let lowercase = character.lowercased().first else {
                 return true
@@ -118,7 +127,6 @@ public extension CompactSchemaAdapter {
             return !source.contains(lowercase)
         }
 
-        let foldMap = compactFold.map
         // A key letter needs an exact token only when another present letter shares its key.
         let sharedKeys = Set(present.compactMap { letter in foldMap[letter].flatMap { $0 == letter ? nil : $0 } })
         let exactTokens = present.filter(sharedKeys.contains).compactMap { letter in
@@ -133,6 +141,9 @@ public extension CompactSchemaAdapter {
             if source.contains(uppercase) {
                 rules.append("derive/\(uppercase)/\(folded)/")
             }
+        }
+        for code in foldedOthers {
+            if let folded = foldMap[code] { rules.append(deriveRule(code: code, folded: folded)) }
         }
         // The compact keys must exist for the layout to be reachable, and the
         // source letters must remain typeable so a direct code can re-syllabify.
@@ -159,6 +170,14 @@ public extension CompactSchemaAdapter {
             sourceAlphabet: sourceAlphabet,
             typeableAlphabet: typeable,
             ignoredCharacters: String(Set(ignored).sorted()))
+    }
+
+    /// `derive` of one code onto the key that types it, for a code that is not a letter: regex
+    /// characters are escaped, and a `/` code uses another separator.
+    static func deriveRule(code: Character, folded: Character) -> String {
+        let pattern = #".^$|()[]{}*+?\/"#.contains(code) ? "\\" + String(code) : String(code)
+        let separator = code == "/" || folded == "/" ? "|" : "/"
+        return "derive" + separator + pattern + separator + String(folded) + separator
     }
 
     /// Whether typing on the compact layout can reach at least one of the source's
@@ -263,7 +282,7 @@ public extension CompactSchemaAdapter {
         let target = identifier(sourceID: sourceID, fold: compactFold)
         schema["schema_id"] = target
         schema["name"] = PackageText.format(
-            "adapter.name.compact", schema["name"] as? String ?? sourceID, compactFold.id)
+            "adapter.name.compact", schema["name"] as? String ?? sourceID, compactFold.keyCount)
         root["schema"] = schema
 
         // `engine/translators`, the auxiliary config sections and segmentors are

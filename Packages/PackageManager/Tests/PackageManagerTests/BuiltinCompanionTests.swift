@@ -76,6 +76,29 @@ final class BuiltinCompanionTests: XCTestCase {
         }
     }
 
+    func testALayoutsOwnGroupingMakesACompanionOfItsOwn() throws {
+        // W moved from the Q key onto ER, as the layout editor writes it.
+        var map = CompactFold.merged14.map
+        map["w"] = "e"
+        let fold = try XCTUnwrap(CompactFold.of(kind: .merged14, map: map))
+        let source = BuiltinTemplateSchemas.quanpin
+        let schema = try yaml("\(source).schema.yaml")
+        let delimiter =
+            (schema["translator"] as? [String: Any])?["delimiter"] as? String
+            ?? (schema["speller"] as? [String: Any])?["delimiter"] as? String
+        let plan = try CompactSchemaAdapter.CompanionPlan(
+            compiled: try Data(contentsOf: package.appendingPathComponent("\(source).schema.yaml")),
+            sourceID: source, projection: try projection(source), sourceDelimiter: delimiter)
+        let body = try XCTUnwrap(try plan.companion(fold: fold))
+        let root = try XCTUnwrap(Yams.load(yaml: String(decoding: body, as: UTF8.self)) as? [String: Any])
+        let id = try XCTUnwrap((root["schema"] as? [String: Any])?["schema_id"] as? String)
+        XCTAssertEqual(id, CompactSchemaAdapter.identifier(sourceID: source, fold: fold))
+        XCTAssertTrue(id.hasSuffix("_" + fold.id), id)
+        let algebra = try XCTUnwrap((root["speller"] as? [String: Any])?["algebra"] as? [String])
+        XCTAssertTrue(algebra.contains("derive/w/e/"), "\(algebra)")
+        XCTAssertFalse(algebra.contains("derive/w/q/"))
+    }
+
     func testCompanionsCarryDisplayAndRewrite() throws {
         for adapter in BuiltinTemplateSchemas.adapters {
             let root = try yaml(adapter.schemaID + ".schema.yaml")

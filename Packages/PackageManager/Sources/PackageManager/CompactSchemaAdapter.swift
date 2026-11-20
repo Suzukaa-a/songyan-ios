@@ -90,7 +90,7 @@ public enum CompactSchemaAdapter {
         let target = identifier(sourceID: sourceID, fold: compactFold)
         schema["schema_id"] = target
         schema["name"] = PackageText.format(
-            "adapter.name.compact", schema["name"] as? String ?? sourceID, compactFold.id)
+            "adapter.name.compact", schema["name"] as? String ?? sourceID, compactFold.keyCount)
         root["schema"] = schema
         // Dictionary default user_dict is the dictionary name, NOT the new schema ID.
         if translator["user_dict"] == nil { translator["user_dict"] = dictionary }
