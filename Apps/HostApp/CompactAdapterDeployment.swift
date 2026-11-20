@@ -24,7 +24,9 @@ enum CompactAdapterDeployment {
         }
         let adapters = try JSONDecoder().decode([KeyboardResourceSet.EncodingAdapter].self, from: data)
         let requests = adapters.map { adapter in
-            adapter.compactFold.map { CompanionTask(schemaID: adapter.sourceSchemaID, layout: adapter.layout, fold: $0) }
+            adapter.compactFold.map {
+                CompanionTask(schemaID: adapter.sourceSchemaID, layout: adapter.layout, fold: $0)
+            }
         }
         guard requests.allSatisfy({ $0 != nil }), Set(requests.compactMap { $0?.key }).count == requests.count,
             adapters.allSatisfy({ $0.sourceSchemaID.range(of: "^[A-Za-z0-9_-]+$", options: .regularExpression) != nil })

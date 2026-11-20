@@ -170,7 +170,8 @@ struct LayoutEditorView: View {
             lines.append(String(localized: "编码只能是英文字母、数字或半角符号：\(Self.codeList(unusable))"))
         }
         if !repeated.isEmpty { lines.append(String(localized: "重复的编码：\(Self.codeList(repeated))")) }
-        if repeated.isEmpty, let kind = LayoutFold.kind(of: draft), let shape = KeyboardLayoutKind(rawValue: kind.rawValue),
+        if repeated.isEmpty, let kind = LayoutFold.kind(of: draft),
+            let shape = KeyboardLayoutKind(rawValue: kind.rawValue),
             LayoutFold.writesGroups(draft),
             LayoutFold.map(draft, kind: kind).flatMap({ CompactFold.of(kind: shape, map: $0) }) == nil
         {

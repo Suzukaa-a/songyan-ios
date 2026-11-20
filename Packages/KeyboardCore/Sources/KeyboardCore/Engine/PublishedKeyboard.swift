@@ -167,7 +167,8 @@ public extension PublishedKeyboard {
         return requested.compactMap { keyboard in
             guard keyboard.needsGeneratedAdapter else { return nil }
             let drawn = folds(keyboard)
-            let fold: CompactFold? = drawn.keys.contains(keyboard.layout) ? drawn[keyboard.layout] ?? nil : keyboard.layout.compactFold
+            let fold: CompactFold? =
+                drawn.keys.contains(keyboard.layout) ? drawn[keyboard.layout] ?? nil : keyboard.layout.compactFold
             guard let fold else { return nil }
             let task = CompanionTask(schemaID: keyboard.schemaID, layout: keyboard.layout, fold: fold)
             return seen.insert(task.key).inserted ? task : nil

@@ -129,7 +129,8 @@ final class CompactFoldOfTests: XCTestCase {
         // A drawn layout that does not fold runs on nothing; one without its companion neither.
         XCTAssertNil(
             KeyboardResourceSet.engineRoute(
-                source: "pinyin", layout: .merged14, adapters: adapters, bindings: [], folds: [.merged14: CompactFold?.none] as [KeyboardLayoutKind: CompactFold?]))
+                source: "pinyin", layout: .merged14, adapters: adapters, bindings: [],
+                folds: [.merged14: CompactFold?.none] as [KeyboardLayoutKind: CompactFold?]))
         XCTAssertNil(
             KeyboardResourceSet.engineRoute(
                 source: "pinyin", layout: .merged14, adapters: Array(adapters.prefix(1)), bindings: [],

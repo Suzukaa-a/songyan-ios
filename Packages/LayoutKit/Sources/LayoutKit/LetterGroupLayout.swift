@@ -28,7 +28,9 @@ public enum LetterGroupLayout {
     public static func group(of key: LayoutKey, in definition: LayoutDefinition?) -> [Character]? {
         guard key.action.type == .code, let value = key.action.value, value.count == 1, let sent = value.first
         else { return nil }
-        if let definition, let kind = LayoutFold.kind(of: definition) { return LayoutFold.codesOn(definition, kind: kind, key: key) }
+        if let definition, let kind = LayoutFold.kind(of: definition) {
+            return LayoutFold.codesOn(definition, kind: kind, key: key)
+        }
         // A layout that is not a merged one: written codes, else the letters its title shows, which
         // must include the one it sends (a 26-key letter; not a radical key, which shows no letter).
         let written = LayoutFold.codes(of: key.codes)
