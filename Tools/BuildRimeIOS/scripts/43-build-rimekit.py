@@ -22,7 +22,6 @@ ENGINE = ROOT / ".local/ios-engine"
 SOURCE = ROOT / ".local/engine/src/librime"
 PATCHES = sorted((TOOLS / "patches").glob("*.patch"))
 CMAKE = ROOT / ".local/engine/tools/cmake/CMake.app/Contents/bin/cmake"
-BUNDLE_ID = "app.songyan.RimeKit"
 PUBLIC_HEADERS = ("rime_api.h", "rime_api_deprecated.h", "rime_api_stdbool.h", "rime_levers_api.h")
 UMBRELLA = """#ifndef RIMEKIT_H_
 #define RIMEKIT_H_
@@ -33,8 +32,10 @@ UMBRELLA = """#ifndef RIMEKIT_H_
 """ + "".join(f'#include "{name}"\n' for name in (*PUBLIC_HEADERS, "rime_bridge.h")) + """
 #endif
 """
-MODULE_MAP = """framework module RimeKit {
-  umbrella header "RimeKit.h"
+# A static library XCFramework, not a framework: Xcode embeds a framework of a binary target in the
+# app as a codeless stub with no dSYM, which App Store Connect then reports on every upload.
+MODULE_MAP = """module RimeKit {
+  umbrella header "RimeKit/RimeKit.h"
   export *
   module * { export * }
 }
@@ -64,8 +65,8 @@ def write_framework_metadata(framework):
     """Writes the xcframework wrapper and per-slice bundle files from scratch."""
     libraries = []
     for label, _, _, slice_name in sorted(SLICES, key=lambda slice_: slice_[3]):
-        library = {"BinaryPath": "RimeKit.framework/RimeKit", "LibraryIdentifier": slice_name,
-                   "LibraryPath": "RimeKit.framework", "SupportedArchitectures": ["arm64"],
+        library = {"BinaryPath": "libRimeKit.a", "HeadersPath": "Headers", "LibraryIdentifier": slice_name,
+                   "LibraryPath": "libRimeKit.a", "SupportedArchitectures": ["arm64"],
                    "SupportedPlatform": "ios"}
         if label == "sim":
             library["SupportedPlatformVariant"] = "simulator"
@@ -75,23 +76,16 @@ def write_framework_metadata(framework):
                        "XCFrameworkFormatVersion": "1.0"}, stream)
 
 
-def write_slice_metadata(destination, prefix, label):
-    (destination / "Headers").mkdir(parents=True)
-    (destination / "Modules").mkdir()
+def write_slice_metadata(destination, prefix):
+    """Headers/RimeKit/*.h and Headers/module.modulemap, so `#include <RimeKit/rime_api.h>` and
+    `import RimeKit` both resolve from the slice's HeadersPath."""
+    headers = destination / "Headers/RimeKit"
+    headers.mkdir(parents=True)
     for name in PUBLIC_HEADERS:
-        shutil.copy2(prefix / "include" / name, destination / "Headers" / name)
-    shutil.copy2(TOOLS / "src/rime_bridge.h", destination / "Headers/rime_bridge.h")
-    (destination / "Headers/RimeKit.h").write_text(UMBRELLA)
-    (destination / "Modules/module.modulemap").write_text(MODULE_MAP)
-    with (destination / "Info.plist").open("wb") as stream:
-        plistlib.dump({"CFBundleDevelopmentRegion": "en", "CFBundleExecutable": "RimeKit",
-                       "CFBundleIdentifier": BUNDLE_ID, "CFBundleInfoDictionaryVersion": "6.0",
-                       "CFBundleName": "RimeKit", "CFBundlePackageType": "FMWK",
-                       "CFBundleShortVersionString": "1.17.0", "CFBundleVersion": "1.17.0",
-                       # App Store Connect rejects embedded frameworks without it.
-                       "MinimumOSVersion": "17.0",
-                       "CFBundleSupportedPlatforms": ["iPhoneSimulator" if label == "sim" else "iPhoneOS"]},
-                      stream, sort_keys=False)
+        shutil.copy2(prefix / "include" / name, headers / name)
+    shutil.copy2(TOOLS / "src/rime_bridge.h", headers / "rime_bridge.h")
+    (headers / "RimeKit.h").write_text(UMBRELLA)
+    (destination / "Headers/module.modulemap").write_text(MODULE_MAP)
 
 
 def build_core(out, env, boost, jobs, deps_root):
@@ -197,9 +191,9 @@ def build_plugins_and_link(out, env, boost, jobs):
         objs.append(bridge)
         archives = [prefix / "lib/librime.a", *[prefix / "lib" / name for name in DEPENDENCIES],
                     prefix / "lib/librime-lua.a", prefix / "lib/liblua.a", prefix / "lib/librime-octagram.a"]
-        destination = framework / slice_name / "RimeKit.framework"
-        write_slice_metadata(destination, prefix, label)
-        run([toolchain / "libtool", "-static", "-o", destination / "RimeKit", *archives, *objs], env, log)
+        destination = framework / slice_name
+        write_slice_metadata(destination, prefix)
+        run([toolchain / "libtool", "-static", "-o", destination / "libRimeKit.a", *archives, *objs], env, log)
 
     with ThreadPoolExecutor(max_workers=2) as executor:
         for job in [executor.submit(one, *slice_) for slice_ in SLICES]:

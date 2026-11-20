@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 export DEVELOPER_DIR="${DEVELOPER_DIR:-$(xcode-select -p)}"
 FRAMEWORKS="$ROOT/Packages/RimeBridge/Vendored/RimeKit.xcframework/ios-arm64-simulator"
-ARCHIVE="$FRAMEWORKS/RimeKit.framework/RimeKit"
+ARCHIVE="$FRAMEWORKS/libRimeKit.a"
 python3 - "$ARCHIVE" "$ROOT/Packages/RimeBridge/RimeKitArtifact.json" <<'PY'
 import hashlib, json, pathlib, sys
 with pathlib.Path(sys.argv[1]).open('rb') as source:
@@ -20,11 +20,11 @@ SDK="$(xcrun --sdk iphonesimulator --show-sdk-path)"
 # public headers for the simulator slice (same ABI the SPM target uses).
 python3 "$ROOT/Tools/BuildRimeIOS/scripts/build-learning-support.py" \
   --sdk "$SDK" --target arm64-apple-ios17.0-simulator \
-  --kit-include-dir "$FRAMEWORKS/RimeKit.framework/Headers" \
+  --kit-include-dir "$FRAMEWORKS/Headers/RimeKit" \
   --output-dir "$RUN/learning-support" \
   --cc "xcrun --sdk iphonesimulator clang"
 xcrun --sdk iphonesimulator swiftc -O -sdk "$SDK" -target arm64-apple-ios17.0-simulator \
-  -F "$FRAMEWORKS" -module-cache-path "$RUN/module-cache" \
+  -I "$FRAMEWORKS/Headers" -module-cache-path "$RUN/module-cache" \
   -Xcc -fmodule-map-file="$RUN/learning-support/module/module.modulemap" \
   -I "$RUN/learning-support/module" \
   "$ROOT/Tools/BuildRimeIOS/harness-mac/grammar-development-main.swift" \

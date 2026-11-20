@@ -22,7 +22,7 @@ PROBE = sys.argv[1] if len(sys.argv) > 1 else "snapshot-recovery"
 if PROBE not in ("snapshot-recovery", "exact-letter"):
     raise SystemExit(f"unknown probe: {PROBE}")
 frameworks = ROOT / "Packages/RimeBridge/Vendored/RimeKit.xcframework/ios-arm64-simulator"
-archive = frameworks / "RimeKit.framework/RimeKit"
+archive = frameworks / "libRimeKit.a"
 identity = json.loads((ROOT / "Packages/RimeBridge/RimeKitArtifact.json").read_text())
 with archive.open("rb") as source:
     actual = hashlib.file_digest(source, "sha256").hexdigest()
@@ -63,7 +63,7 @@ support = output / "learning-support"
 subprocess.run([
     "python3", str(ROOT / "Tools/BuildRimeIOS/scripts/build-learning-support.py"),
     "--sdk", sdk, "--target", "arm64-apple-ios17.0-simulator",
-    "--kit-include-dir", str(frameworks / "RimeKit.framework/Headers"),
+    "--kit-include-dir", str(frameworks / "Headers/RimeKit"),
     "--output-dir", str(support),
     "--cc", "xcrun --sdk iphonesimulator clang",
 ], env=environment, check=True)
@@ -71,10 +71,10 @@ executable = output / PROBE
 subprocess.run([
     "xcrun", "--sdk", "iphonesimulator", "swiftc", "-swift-version", "5",
     "-D", "SONGYAN_TEST_FAILPOINTS", "-sdk", sdk, "-target", "arm64-apple-ios17.0-simulator",
-    "-F", str(frameworks), "-module-cache-path", str(output / "module-cache"),
+    "-I", str(frameworks / "Headers"), "-module-cache-path", str(output / "module-cache"),
     "-Xcc", f"-fmodule-map-file={support}/module/module.modulemap",
     "-I", str(support / "module"),
-    "-framework", "RimeKit", "-lc++", "-lz", "-liconv", "-lsqlite3",
+    str(archive), "-lc++", "-lz", "-liconv", "-lsqlite3",
     str(ROOT / f"Tools/BuildRimeIOS/harness-mac/{PROBE}-main.swift"),
     *map(str, sorted(stage.glob("*.swift"))),
     str(support / "RimeLeversSupport.o"), "-o", str(executable),

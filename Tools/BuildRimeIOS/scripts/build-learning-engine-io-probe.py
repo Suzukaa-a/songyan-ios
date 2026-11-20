@@ -26,7 +26,7 @@ def main():
         raise SystemExit("candidate must be a build directory directly under .local/ios-engine")
     slice_name = "ios-arm64-simulator"
     framework = candidate / "out/RimeKit.xcframework" / slice_name
-    archive = framework / "RimeKit.framework/RimeKit"
+    archive = framework / "libRimeKit.a"
     identity = sha(archive)
     include = candidate / "prefix/sim-arm64/include"
     for name in ("rime_api.h", "rime_levers_api.h"):
@@ -43,7 +43,7 @@ def main():
     executable = output / "learning-engine-io"
     command = ["xcrun", "--sdk", "iphonesimulator", "clang++", "-std=c++17", "-O2", "-fno-modules",
                "-fapplication-extension", "-target", "arm64-apple-ios17.0-simulator", "-isysroot", sdk,
-               "-I", str(include), "-F", str(framework), str(source), "-framework", "RimeKit",
+               "-I", str(include), str(source), str(archive),
                "-lc++", "-lz", "-liconv", "-lsqlite3", "-o", str(executable)]
     subprocess.run(command, env=environment, check=True)
     if sha(archive) != identity:

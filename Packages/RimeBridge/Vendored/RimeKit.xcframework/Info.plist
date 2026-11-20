@@ -6,11 +6,13 @@
 	<array>
 		<dict>
 			<key>BinaryPath</key>
-			<string>RimeKit.framework/RimeKit</string>
+			<string>libRimeKit.a</string>
+			<key>HeadersPath</key>
+			<string>Headers</string>
 			<key>LibraryIdentifier</key>
 			<string>ios-arm64</string>
 			<key>LibraryPath</key>
-			<string>RimeKit.framework</string>
+			<string>libRimeKit.a</string>
 			<key>SupportedArchitectures</key>
 			<array>
 				<string>arm64</string>
@@ -20,11 +22,13 @@
 		</dict>
 		<dict>
 			<key>BinaryPath</key>
-			<string>RimeKit.framework/RimeKit</string>
+			<string>libRimeKit.a</string>
+			<key>HeadersPath</key>
+			<string>Headers</string>
 			<key>LibraryIdentifier</key>
 			<string>ios-arm64-simulator</string>
 			<key>LibraryPath</key>
-			<string>RimeKit.framework</string>
+			<string>libRimeKit.a</string>
 			<key>SupportedArchitectures</key>
 			<array>
 				<string>arm64</string>

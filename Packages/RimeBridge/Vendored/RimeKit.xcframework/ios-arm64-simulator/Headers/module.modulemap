@@ -1,0 +1,5 @@
+module RimeKit {
+  umbrella header "RimeKit/RimeKit.h"
+  export *
+  module * { export * }
+}

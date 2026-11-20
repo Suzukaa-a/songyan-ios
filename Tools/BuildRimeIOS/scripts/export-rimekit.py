@@ -25,7 +25,7 @@ FORBIDDEN_PATHS = (str(ROOT).encode(), b"/Users/")
 
 
 def archive_path(framework, name):
-    return framework / name / "RimeKit.framework/RimeKit"
+    return framework / name / "libRimeKit.a"
 
 
 def sha256(path):
@@ -55,7 +55,7 @@ def manifest_for(framework):
         "export": "Tools/BuildRimeIOS/scripts/export-rimekit.py",
         "pins": ["Tools/BuildRime/VERSIONS.env", "Tools/BuildRimeIOS/LUA-VERSIONS.env",
                  "Tools/BuildRimeIOS/GRAMMAR-VERSIONS.env", "Tools/BuildRimeIOS/PREDICT-VERSIONS.env"],
-        "slices": {name: {"archive": name + "/RimeKit.framework/RimeKit",
+        "slices": {name: {"archive": name + "/libRimeKit.a",
                           "sha256": sha256(archive_path(framework, name))} for name in SLICES},
     }
 
