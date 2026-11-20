@@ -3,7 +3,8 @@ import Foundation
 /// Which codes of a scheme a layout can send.
 public enum LayoutCodeCoverage {
     /// Every code the layout's keys send: rows, split halves, auxiliary areas and long-press options.
-    /// A lowercase letter key covers its uppercase, as the shift state types it.
+    /// A merged key also covers the codes grouped on it (`LayoutFold.groups`). A lowercase letter
+    /// covers its uppercase, as the shift state types it.
     public static func declared(_ layout: LayoutDefinition) -> Set<String> {
         let keys =
             layout.rows.flatMap(\.keys) + (layout.split?.halves ?? []).flatMap(\.keys)
@@ -17,7 +18,26 @@ public enum LayoutCodeCoverage {
                 if code.count == 1, ("a"..."z").contains(code) { result.insert(code.uppercased()) }
             }
         }
+        if let kind = LayoutFold.kind(of: layout) {
+            for code in LayoutFold.groups(layout, kind: kind).flatMap(\.codes) {
+                result.insert(String(code))
+                if ("a"..."z").contains(code) { result.insert(String(code).uppercased()) }
+            }
+        }
         return result
+    }
+
+    /// The missing codes worth telling the user about for a keyboard of `kind` drawing `layout`. A
+    /// 26-key layout reports `missingToReport`; a merged one (14, 18 or 9 keys) only what it covers
+    /// less than the bundled layout of its kind, since folding schemes are typed on those as they are.
+    public static func missingToReport(
+        _ layout: LayoutDefinition, kind: LayoutInput.Builtin, needed: [String], optional: [String]?
+    ) -> [String] {
+        let report = missingToReport(layout, needed: needed, optional: optional)
+        guard kind != .qwerty26 else { return report }
+        let already = Set(
+            missingToReport(BuiltinLayouts.preset(for: kind), needed: needed, optional: optional))
+        return report.filter { !already.contains($0) }
     }
 
     /// The codes in `needed` that `layout` cannot send, in the given order.

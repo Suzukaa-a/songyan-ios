@@ -12,9 +12,8 @@ import Foundation
 ///
 ///  * standard phone 9-key: delegated to `PhoneKeypadStructure` (rows, digit positions and the `1` slot
 ///    are provable; calculator-style digit grids and symbol 3x3 are rejected there);
-///  * merged letter keys (14-key, 18-key, ...): the key labels split a–z into groups, each key sends
-///    its group's first letter, and at least one key carries more than one letter
-///    (`LetterGroupLayout`).
+///  * merged letter keys (14-key, 18-key, ...): the keys' codes (`LetterGroupLayout`) split a–z into
+///    groups, each key sends a letter of its group, and at least one key covers more than one.
 ///
 /// A 26-key layout never matches: every group has one letter.
 public enum CompactSpellingLayout {
@@ -42,22 +41,10 @@ public enum CompactSpellingLayout {
 }
 
 public extension CompactSpellingLayout {
-    /// Letter → key code sent by a compact encoding key, derived from the key's own
-    /// label (`ABC` → `2`, `QW` → `q`). Used only to bound read-only reading choices
-    /// by what was typed. Ambiguous or non-compact definitions return an empty map.
+    /// Code → the key code it is typed with on a compact layout (QW → q, ABC → 2), read with
+    /// `LayoutFold`'s rule; empty for a definition that is not a compact layout or does not fold.
     static func readingKeyMap(for definition: LayoutDefinition?) -> [Character: Character] {
-        guard let definition, matches(definition) else { return [:] }
-        var map: [Character: Character] = [:]
-        for key in mainRows(in: definition).flatMap(\.keys) {
-            guard key.action.type == .code, let value = key.action.value, value.count == 1,
-                let code = value.lowercased().first
-            else { continue }
-            let letters = (key.label + value).lowercased().filter { $0.isASCII && $0.isLetter }
-            for letter in Set(letters) {
-                if let existing = map[letter], existing != code { return [:] }
-                map[letter] = code
-            }
-        }
-        return map
+        guard let definition, matches(definition), let kind = LayoutFold.kind(of: definition) else { return [:] }
+        return LayoutFold.map(definition, kind: kind) ?? [:]
     }
 }

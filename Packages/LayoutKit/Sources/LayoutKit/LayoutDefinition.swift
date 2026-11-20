@@ -242,12 +242,16 @@ public struct LayoutKey: Codable, Equatable, Sendable {
     public internal(set) var longPress: [LayoutOption]?
     /// Nil draws the stored label; see `LayoutKeyTitleMode`.
     public internal(set) var titleMode: LayoutKeyTitleMode?
+    /// On a merged layout, the codes this key covers (`qw`, `abc`, strokes such as `hs`), any of
+    /// which the input method may mean when the key is tapped; the key sends `action`'s code. The
+    /// title only says what the key shows. Nil on every key keeps the bundled grouping of the layout.
+    public internal(set) var codes: String?
     public var widthWeight: Double { width ?? 1 }
 
     public init(
         label: String, secondaryLabel: String? = nil, width: Double? = nil,
         action: LayoutAction, longPress: [LayoutOption]? = nil,
-        titleMode: LayoutKeyTitleMode? = nil
+        titleMode: LayoutKeyTitleMode? = nil, codes: String? = nil
     ) {
         self.label = label
         self.secondaryLabel = secondaryLabel
@@ -255,6 +259,7 @@ public struct LayoutKey: Codable, Equatable, Sendable {
         self.action = action
         self.longPress = longPress
         self.titleMode = titleMode
+        self.codes = codes
     }
 
     /// Field-preserving edits: editors must not rebuild a key and silently drop `titleMode`.
@@ -277,6 +282,8 @@ public struct LayoutKey: Codable, Equatable, Sendable {
     public func settingAction(_ action: LayoutAction) -> LayoutKey { with { $0.action = action } }
 
     public func settingLongPress(_ options: [LayoutOption]?) -> LayoutKey { with { $0.longPress = options } }
+
+    public func settingCodes(_ codes: String?) -> LayoutKey { with { $0.codes = codes } }
 
     private func with(_ change: (inout LayoutKey) -> Void) -> LayoutKey {
         var key = self

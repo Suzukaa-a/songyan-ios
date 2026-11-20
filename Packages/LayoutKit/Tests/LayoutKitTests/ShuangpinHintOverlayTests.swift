@@ -37,15 +37,15 @@ final class ShuangpinHintOverlayTests: XCTestCase {
         let labels = ["q": "iu", "w": "ei", "t": "ue", "r": "uan"]
         let qw = try XCTUnwrap(BuiltinLayouts.merged14.rows[0].keys.first)
         XCTAssertEqual(
-            ShuangpinHintOverlay.hints(for: qw, labels: labels, preservingSecondaryLabel: false),
+            ShuangpinHintOverlay.hints(for: qw, in: BuiltinLayouts.merged14, labels: labels, preservingSecondaryLabel: false),
             ["iu", "ei"])
         let we = BuiltinLayouts.merged18.rows[0].keys[1]
         XCTAssertEqual(
-            ShuangpinHintOverlay.hints(for: we, labels: labels, preservingSecondaryLabel: false),
+            ShuangpinHintOverlay.hints(for: we, in: BuiltinLayouts.merged18, labels: labels, preservingSecondaryLabel: false),
             ["ei", nil])
         let q = BuiltinLayouts.merged18.rows[0].keys[0]
         XCTAssertEqual(
-            ShuangpinHintOverlay.hints(for: q, labels: labels, preservingSecondaryLabel: false),
+            ShuangpinHintOverlay.hints(for: q, in: BuiltinLayouts.merged18, labels: labels, preservingSecondaryLabel: false),
             ["iu"])
     }
 
@@ -53,16 +53,16 @@ final class ShuangpinHintOverlayTests: XCTestCase {
         let key = BuiltinLayouts.qwerty26.rows[0].keys[0]
         XCTAssertEqual(
             ShuangpinHintOverlay.hints(
-                for: key, labels: ["q": "iu"],
+                for: key, in: BuiltinLayouts.qwerty26, labels: ["q": "iu"],
                 preservingSecondaryLabel: false), ["iu"])
         XCTAssertEqual(
             ShuangpinHintOverlay.hints(
-                for: key, labels: ["q": "iu"],
+                for: key, in: BuiltinLayouts.qwerty26, labels: ["q": "iu"],
                 preservingSecondaryLabel: true), [nil])
         let custom = LayoutKey(label: "q", secondaryLabel: "自定", action: key.action, longPress: key.longPress)
         XCTAssertEqual(
             ShuangpinHintOverlay.hints(
-                for: custom, labels: ["q": "iu"],
+                for: custom, in: BuiltinLayouts.qwerty26, labels: ["q": "iu"],
                 preservingSecondaryLabel: true), [nil])
     }
 
@@ -70,13 +70,13 @@ final class ShuangpinHintOverlayTests: XCTestCase {
         let key = LayoutKey(label: "q", action: .init(.code, value: "q"))
         XCTAssertEqual(
             ShuangpinHintOverlay.hints(
-                for: key, labels: ["q": "iu"],
+                for: key, in: BuiltinLayouts.qwerty26, labels: ["q": "iu"],
                 preservingSecondaryLabel: true), ["iu"])
-        XCTAssertEqual(ShuangpinHintOverlay.hints(for: key, labels: [:], preservingSecondaryLabel: false), [nil])
+        XCTAssertEqual(ShuangpinHintOverlay.hints(for: key, in: BuiltinLayouts.qwerty26, labels: [:], preservingSecondaryLabel: false), [nil])
         XCTAssertEqual(
-            ShuangpinHintOverlay.hints(for: key, labels: ["q": "  "], preservingSecondaryLabel: false), [nil])
+            ShuangpinHintOverlay.hints(for: key, in: BuiltinLayouts.qwerty26, labels: ["q": "  "], preservingSecondaryLabel: false), [nil])
         let literal = LayoutKey(label: "q", action: .init(.literal, value: "q"))
         XCTAssertEqual(
-            ShuangpinHintOverlay.hints(for: literal, labels: ["q": "iu"], preservingSecondaryLabel: false), [])
+            ShuangpinHintOverlay.hints(for: literal, in: BuiltinLayouts.qwerty26, labels: ["q": "iu"], preservingSecondaryLabel: false), [])
     }
 }

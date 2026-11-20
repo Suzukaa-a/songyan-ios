@@ -10,14 +10,16 @@ public enum ShuangpinHintOverlay {
         LetterGroupLayout.groups(in: definition)
     }
 
-    /// One hint per letter on the key, in label order; nil where the preset has no
-    /// hint for that letter. Empty for keys that are not letter keys. An imported
-    /// key's own secondary label wins over the overlay.
+    /// One hint per letter the key covers on `definition` (`LetterGroupLayout.group(of:in:)`); nil
+    /// where the preset has no hint for that letter. Empty for keys that are not letter keys. An
+    /// imported key's own secondary label wins over the overlay.
     public static func hints(
-        for key: LayoutKey, labels: [String: String],
+        for key: LayoutKey, in definition: LayoutDefinition?, labels: [String: String],
         preservingSecondaryLabel: Bool
     ) -> [String?] {
-        guard let group = LetterGroupLayout.group(of: key) else { return [] }
+        guard let group = LetterGroupLayout.group(of: key, in: definition), !group.isEmpty,
+            group.allSatisfy(LetterGroupLayout.alphabet.contains)
+        else { return [] }
         if preservingSecondaryLabel, let existing = key.secondaryLabel, !existing.isEmpty {
             return group.map { _ in nil }
         }
